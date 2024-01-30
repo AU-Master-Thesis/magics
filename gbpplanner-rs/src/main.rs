@@ -1,6 +1,8 @@
 mod config;
+mod shapes;
 use crate::config::Config;
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
+use crate::shapes::ShapesPlugin;
+use bevy::prelude::*;
 use clap::{Parser, Subcommand};
 // use gbp_rs::
 
@@ -13,114 +15,6 @@ struct Cli {
 
     #[arg(long)]
     dump_default_config: bool,
-}
-
-// use macroquad::prelude::*;
-
-// #[macroquad::main("BasicShapes")]
-// async fn main() {
-//     loop {
-//         clear_background(RED);
-
-//         draw_line(40.0, 40.0, 100.0, 200.0, 15.0, BLUE);
-//         draw_rectangle(screen_width() / 2.0 - 60.0, 100.0, 120.0, 60.0, GREEN);
-//         draw_circle(screen_width() - 30.0, screen_height() - 30.0, 15.0, YELLOW);
-
-//         draw_text("IT WORKS!", 20.0, 20.0, 30.0, DARKGRAY);
-
-//         next_frame().await
-//     }
-// }
-
-fn hello_world() {
-    println!("hello world!");
-}
-
-#[derive(Component)]
-struct Person;
-
-#[derive(Component)]
-struct Name(String);
-
-#[derive(Resource)]
-struct GreetTimer(Timer);
-
-fn add_people(mut commands: Commands) {
-    commands.spawn((Person, Name("Elaina Proctor".to_string())));
-    commands.spawn((Person, Name("Renzo Hume".to_string())));
-    commands.spawn((Person, Name("Zayna Nieves".to_string())));
-}
-
-fn greet_people(time: Res<Time>, mut timer: ResMut<GreetTimer>, query: Query<&Name, With<Person>>) {
-    if timer.0.tick(time.delta()).just_finished() {
-        for name in &query {
-            println!("hello {}!", name.0);
-        }
-    }
-}
-
-fn update_people(mut query: Query<&mut Name, With<Person>>) {
-    for mut name in &mut query {
-        if name.0 == "Elaina Proctor" {
-            name.0 = "Elaina Hume".to_string();
-            break; // We don’t need to change any other names
-        }
-    }
-}
-
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    commands.spawn(Camera2dBundle::default());
-
-    // Circle
-    commands.spawn(MaterialMesh2dBundle {
-        mesh: meshes.add(shape::Circle::new(50.).into()).into(),
-        material: materials.add(ColorMaterial::from(Color::PURPLE)),
-        transform: Transform::from_translation(Vec3::new(-150., 0., 0.)),
-        ..default()
-    });
-
-    // Rectangle
-    commands.spawn(SpriteBundle {
-        sprite: Sprite {
-            color: Color::rgb(0.25, 0.25, 0.75),
-            custom_size: Some(Vec2::new(50.0, 100.0)),
-            ..default()
-        },
-        transform: Transform::from_translation(Vec3::new(-50., 0., 0.)),
-        ..default()
-    });
-
-    // Quad
-    commands.spawn(MaterialMesh2dBundle {
-        mesh: meshes
-            .add(shape::Quad::new(Vec2::new(50., 100.)).into())
-            .into(),
-        material: materials.add(ColorMaterial::from(Color::LIME_GREEN)),
-        transform: Transform::from_translation(Vec3::new(50., 0., 0.)),
-        ..default()
-    });
-
-    // Hexagon
-    commands.spawn(MaterialMesh2dBundle {
-        mesh: meshes.add(shape::RegularPolygon::new(50., 6).into()).into(),
-        material: materials.add(ColorMaterial::from(Color::TURQUOISE)),
-        transform: Transform::from_translation(Vec3::new(150., 0., 0.)),
-        ..default()
-    });
-}
-
-pub struct HelloPlugin;
-
-impl Plugin for HelloPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
-            .add_systems(Startup, add_people)
-            .add_systems(Update, (update_people, greet_people).chain());
-    }
 }
 
 fn main() -> color_eyre::eyre::Result<()> {
@@ -141,12 +35,9 @@ fn main() -> color_eyre::eyre::Result<()> {
         Config::default()
     };
 
-    App::new()
-        .add_plugins((DefaultPlugins, HelloPlugin))
-        .add_systems(Startup, setup)
-        // .add_systems(Startup, add_people)
-        //  .add_systems(Update, (hello_world, (update_people, greet_people).chain()))
-        .run();
+    let shapes = ShapesPlugin::new([Color::RED, Color::GREEN, Color::BLUE, Color::YELLOW]);
+
+    App::new().add_plugins((DefaultPlugins, shapes)).run();
 
     Ok(())
 }
