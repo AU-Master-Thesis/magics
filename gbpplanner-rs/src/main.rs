@@ -3,11 +3,13 @@ mod shapes;
 use crate::config::Config;
 use crate::shapes::ShapesPlugin;
 use bevy::prelude::*;
-use clap::{Parser, Subcommand};
-// use gbp_rs::
+use clap::Parser;
+
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 #[derive(Parser)]
-#[clap(version = "0.1.0", author = "Johannes Schickling")]
+#[clap(version, author, about)]
+// #[clap(version = "0.1.0", author = "Johannes Schickling")]
 struct Cli {
     /// Sets a custom config file
     #[arg(short, long, value_name = "FILE")]
@@ -27,6 +29,7 @@ fn main() -> color_eyre::eyre::Result<()> {
 
         // Write to stdout
         print!("{}", toml::to_string_pretty(&default_config)?);
+        return Ok(());
     }
 
     let config = if let Some(config_path) = cli.config {
@@ -37,7 +40,10 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     let shapes = ShapesPlugin::new([Color::RED, Color::GREEN, Color::BLUE, Color::YELLOW]);
 
-    App::new().add_plugins((DefaultPlugins, shapes)).run();
+    App::new()
+        .add_plugins((DefaultPlugins, shapes))
+        .add_plugins(WorldInspectorPlugin::new())
+        .run();
 
     Ok(())
 }
