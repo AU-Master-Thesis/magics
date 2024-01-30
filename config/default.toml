@@ -1,0 +1,26 @@
+[display]
+display = 1
+world_size = 100
+screen_size = 1000
+draw_interrobot = 0
+draw_path = 0
+draw_waypoints = 0
+
+[simulation]
+seed = 2
+timestep = 0.1
+max_time = 10000
+num_robots = 5
+t_horizon = 10
+robot_radius = 1
+communication_radius = 20
+max_speed = 2
+comms_failure_rate = 0
+formation = "custom"
+obstacle_file = "../assets/imgs/very_clutter_sdf.png"
+
+[gbp]
+sigma_factor_dynamics = 0.1
+sigma_factor_interrobot = 0.01
+sigma_factor_obstacle = 0.01
+num_iters = 10
