@@ -14,6 +14,16 @@ pub struct Meter(f64);
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SimulationSection {
     pub communication_radius: Meter,
+    pub num_robots: usize,
+}
+
+impl Default for SimulationSection {
+    fn default() -> Self {
+        Self {
+            communication_radius: Meter(1.0),
+            num_robots: 1,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -28,6 +38,26 @@ pub struct Config {
     pub gbp: GbpSection,
 }
 
+impl Default for GbpSection {
+    fn default() -> Self {
+        Self {
+            iterations_per_timestep: 1,
+            damping: 0.0,
+        }
+    }
+}
+
+impl Default for Config {
+    /// Generate a default config
+    /// Used when no config file is provided
+    fn default() -> Self {
+        Self {
+            simulation: SimulationSection::default(),
+            gbp: GbpSection::default(),
+        }
+    }
+}
+
 impl Config {
     /// Parse a config file
     /// Returns a `ParseError` if the file cannot be parsed
@@ -35,20 +65,4 @@ impl Config {
         let config = toml::from_str(std::fs::read_to_string(file_path)?.as_str())?;
         Ok(config)
     }
-
-    /// Generate a default config
-    /// Used when no config file is provided
-    pub fn generate_default() -> Self {
-        Self {
-            simulation: SimulationSection {
-                communication_radius: Meter(1.0),
-            },
-            gbp: GbpSection {
-                iterations_per_timestep: 1,
-                damping: 0.0,
-            },
-        }
-    }
 }
-
-
