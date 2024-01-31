@@ -9,7 +9,6 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 #[derive(Parser)]
 #[clap(version, author, about)]
-// #[clap(version = "0.1.0", author = "Johannes Schickling")]
 struct Cli {
     /// Sets a custom config file
     #[arg(short, long, value_name = "FILE")]
