@@ -7,8 +7,7 @@ pub enum MeasurementModel {
 }
 
 pub trait Factor {
-    fn id(&self) -> super::NodeId;
-    fn compute_messages(&mut self) -> Vec<Message>;
+    fn compute_messages(&mut self, damping: f64) -> Vec<Message>;
     fn energy(&self) -> f64;
     fn residual(&self) -> nalgebra::DVector<f64>;
     fn adj_means(&self) -> nalgebra::DVector<f64>;

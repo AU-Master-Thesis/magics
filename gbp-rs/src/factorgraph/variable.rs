@@ -19,7 +19,6 @@
 // }
 
 pub trait Variable {
-    fn id(&self) -> super::NodeId;
     fn update_belief(&mut self);
     fn prior_energy(&self) -> f64;
 }
