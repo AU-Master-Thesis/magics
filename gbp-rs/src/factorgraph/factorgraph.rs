@@ -29,11 +29,6 @@ struct VariableNode<V: Variable> {
     pub id: NodeId,
     variable: V,
 }
-// struct FactorWrapper {
-//     id
-//     number_since_re
-//     factor: Factor
-// }
 
 /// A factor graph is a bipartite graph representing the factorization of a function.
 /// It is composed of two types of nodes: factors and variables.
