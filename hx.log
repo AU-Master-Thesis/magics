@@ -1,0 +1,3 @@
+2024-02-01T13:21:37.825 helix_lsp::transport [ERROR] rust-analyzer err <- "error: 'rust-analyzer' is not installed for the toolchain 'stable-x86_64-unknown-linux-gnu'\n"
+2024-02-01T13:21:37.826 helix_lsp [ERROR] failed to initialize language server: server closed the stream
+2024-02-01T13:21:37.826 helix_lsp::transport [ERROR] rust-analyzer err: <- StreamClosed

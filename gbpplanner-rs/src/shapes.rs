@@ -28,11 +28,11 @@ fn set_colors(
     mut query: Query<(&Transform, &Handle<ColorMaterial>)>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    println!("Inside set_colors");
+    info!("Inside set_colors");
     for (i, (_, handle)) in query.iter_mut().enumerate() {
         // let material = materials.get_mut(handle).unwrap();
         if let Some(material) = materials.get_mut(handle) {
-            println!("Setting color to {:?}", colors.0[i]);
+            info!("Setting color to {:?}", colors.0[i]);
             let color = colors.0[i];
             material.color = color;
         }

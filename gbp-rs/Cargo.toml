@@ -16,3 +16,7 @@ rayon = "1.8.1"
 rstest = "0.18.2"
 rand = "0.8.5"
 rand_distr = "0.4.3"
+
+
+[dev-dependencies]
+charming = "0.3.1"
