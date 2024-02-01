@@ -1,8 +1,18 @@
 use crate::factorgraph::factor::Factor;
 use crate::factorgraph::variable::Variable;
 
+use super::factor::MeasurementModel;
+use super::UnitInterval;
+
+#[derive(Debug)]
 pub struct GbpSettings {
+    /// Absolute distance threshold between linearisation point and adjacent belief means for relinearisation
     pub beta: f64,
+    /// Damping for the eta component of the message
+    pub damping: f64,
+    pub dropout: UnitInterval,
+    /// Number of undamped iterations after relinearisation before
+    pub num_undamped_iterations: usize,
 }
 /// A factor graph is a bipartite graph representing the factorization of a function.
 /// It is composed of two types of nodes: factors and variables.
@@ -18,14 +28,6 @@ pub struct FactorGraph<F: Factor, V: Variable> {
 // std::unique_ptr
 
 impl<F: Factor, V: Variable> FactorGraph<F, V> {
-    pub fn new(gbp_settings: GbpSettings) -> Self {
-        Self {
-            factors: Vec::new(),
-            variables: Vec::new(),
-            gbp_settings,
-        }
-    }
-
     pub fn add_factor(&mut self, factor: F) {
         self.factors.push(factor);
     }
@@ -34,26 +36,10 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
         self.variables.push(variable);
     }
 
-    pub fn update_all_beliefs(&mut self) {
-        // for variable in self.variables.iter_mut() {
-        //     variable.update_belief();
-        // }
-        todo!()
-        // for factor in self.factors.iter_mut() {
-        //     factor.update_belief();
-        // }
-    }
-
     // linearize_all_factors
     fn compute_factors(&mut self) {
         for factor in self.factors.iter() {
             factor.compute();
-        }
-    }
-
-    fn robustify_all_factors(&mut self) {
-        for factor in self.factors.iter() {
-            factor.robustify_loss();
         }
     }
 
@@ -67,7 +53,32 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
                         factor.compute();
                     }
                 }
+                MeasurementModel::Linear => {}
             }
         }
+    }
+
+    pub fn new(gbp_settings: GbpSettings) -> Self {
+        Self {
+            factors: Vec::new(),
+            variables: Vec::new(),
+            gbp_settings,
+        }
+    }
+
+    fn robustify_all_factors(&mut self) {
+        for factor in self.factors.iter() {
+            factor.robustify_loss();
+        }
+    }
+
+    pub fn update_all_beliefs(&mut self) {
+        // for variable in self.variables.iter_mut() {
+        //     variable.update_belief();
+        // }
+        todo!()
+        // for factor in self.factors.iter_mut() {
+        //     factor.update_belief();
+        // }
     }
 }
