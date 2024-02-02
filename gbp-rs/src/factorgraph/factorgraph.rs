@@ -10,13 +10,39 @@ type NodeId = usize;
 
 #[derive(Debug, TypedBuilder)]
 pub struct GbpSettings {
+    /// Damping for the eta component of the message
+    damping: f64,
     /// Absolute distance threshold between linearisation point and adjacent belief means for relinearisation
     pub beta: f64,
-    /// Damping for the eta component of the message
-    pub damping: f64,
-    pub dropout: UnitInterval,
     /// Number of undamped iterations after relinearisation before
-    pub num_undamped_iterations: usize,
+    pub number_of_undamped_iterations: usize,
+    pub minimum_linear_iteration: usize,
+    /// Chance for dropout to happen
+    pub dropout: UnitInterval,
+    pub reset_iterations_since_relinearisation: Vec<usize>,
+}
+
+impl Default for GbpSettings {
+    fn default() -> Self {
+        Self {
+            damping: 0.0,
+            beta: 0.1,
+            number_of_undamped_iterations: 5,
+            minimum_linear_iteration: 10,
+            dropout: UnitInterval::new(0.0).unwrap(),
+            reset_iterations_since_relinearisation: vec![],
+        }
+    }
+}
+
+impl GbpSettings {
+    fn damping(&self, iterations_since_relinearisation: usize) -> f64 {
+        if iterations_since_relinearisation > self.number_of_undamped_iterations {
+            self.damping
+        } else {
+            0.0
+        }
+    }
 }
 
 // impl Default for GbpSettings {
@@ -50,11 +76,11 @@ pub struct FactorGraph<F: Factor, V: Variable> {
 // std::unique_ptr
 
 impl<F: Factor, V: Variable> FactorGraph<F, V> {
-    pub fn new(gbp_settings: GbpSettings) -> Self {
+    pub fn new(gbp_settings: Option<GbpSettings>) -> Self {
         Self {
             factors: Vec::new(),
             variables: Vec::new(),
-            gbp_settings,
+            gbp_settings: gbp_settings.unwrap_or_default(),
         }
     }
 
