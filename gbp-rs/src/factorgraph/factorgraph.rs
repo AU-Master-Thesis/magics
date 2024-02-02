@@ -50,6 +50,7 @@ pub struct SolveSettings {
     iterations: usize,
     convergance_threshold: f64,
     include_priors: super::Include,
+    log: bool,
 }
 
 impl Default for SolveSettings {
@@ -58,6 +59,7 @@ impl Default for SolveSettings {
             iterations: 20,
             convergance_threshold: 1e-6,
             include_priors: super::Include(true),
+            log: true,
         }
     }
 }
@@ -195,7 +197,9 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
             energy_log[1] = self.energy(settings.include_priors);
             // energy_log[1] = self.energy();
 
-            println!("");
+            if settings.log {
+                println!("Iterations: {}\tEnergy: {:.3}", i + 1, energy_log[0]);
+            }
 
             if f64::abs(energy_log[0] - energy_log[1]) < settings.convergance_threshold {
                 count += 1;
