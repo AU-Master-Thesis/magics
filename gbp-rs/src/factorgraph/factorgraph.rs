@@ -4,9 +4,11 @@ use crate::factorgraph::variable::Variable;
 use super::factor::MeasurementModel;
 use super::{Dropout, UnitInterval};
 
+use typed_builder::TypedBuilder;
+
 type NodeId = usize;
 
-#[derive(Debug)]
+#[derive(Debug, TypedBuilder)]
 pub struct GbpSettings {
     /// Absolute distance threshold between linearisation point and adjacent belief means for relinearisation
     pub beta: f64,
@@ -17,10 +19,16 @@ pub struct GbpSettings {
     pub num_undamped_iterations: usize,
 }
 
+// impl Default for GbpSettings {
+//     fn default() -> Self {
+//         Self { beta: , damping: , dropout: , num_undamped_iterations:  }
+//     }
+// }
+
 #[derive(Debug)]
 struct FactorNode<F: Factor> {
     pub id: NodeId,
-    pub iterations_since_relinerisation: usize,
+    pub iterations_since_relinearisation: usize,
     factor: F,
 }
 
@@ -54,7 +62,7 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
         let id = self.factors.len();
         self.factors.push(FactorNode {
             id,
-            iterations_since_relinerisation: 0,
+            iterations_since_relinearisation: 0,
             factor,
         });
     }
