@@ -14,5 +14,7 @@ use nutype::nutype;
 pub struct UnitInterval(f64);
 
 pub struct Dropout(bool);
+#[derive(Debug, Copy, Clone)]
+pub struct Include(bool);
 
 // Dropout(false)

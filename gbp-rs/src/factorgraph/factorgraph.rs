@@ -45,6 +45,23 @@ impl GbpSettings {
     }
 }
 
+#[derive(Debug)]
+pub struct SolveSettings {
+    iterations: usize,
+    convergance_threshold: f64,
+    include_priors: super::Include,
+}
+
+impl Default for SolveSettings {
+    fn default() -> Self {
+        Self {
+            iterations: 20,
+            convergance_threshold: 1e-6,
+            include_priors: super::Include(true),
+        }
+    }
+}
+
 // impl Default for GbpSettings {
 //     fn default() -> Self {
 //         Self { beta: , damping: , dropout: , num_undamped_iterations:  }
@@ -56,11 +73,13 @@ struct FactorNode<F: Factor> {
     pub id: NodeId,
     pub iterations_since_relinearisation: usize,
     factor: F,
+    adjacent_variables: Vec<usize>,
 }
 
 #[derive(Debug)]
 struct VariableNode<V: Variable> {
     pub id: NodeId,
+    pub dofs: usize,
     variable: V,
 }
 
@@ -84,18 +103,38 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
         }
     }
 
-    pub fn add_factor(&mut self, factor: F) {
+    pub fn add_variable(&mut self, variable: V, dofs: usize) {
+        // TODO: maybe move variable initialisation inside this function
+        let id = self.variables.len();
+        self.variables.push(VariableNode { id, dofs, variable });
+    }
+
+    pub fn add_factor(&mut self, factor: F, adjacent_variables: Vec<usize>) {
+        // TODO: maybe move adjacent variable node sorting into here
         let id = self.factors.len();
         self.factors.push(FactorNode {
             id,
             iterations_since_relinearisation: 0,
             factor,
+            adjacent_variables,
         });
     }
 
-    pub fn add_variable(&mut self, variable: V) {
-        let id = self.variables.len();
-        self.variables.push(VariableNode { id, variable });
+    pub fn update_beliefs(&mut self) {
+        for variable_node in self.variables.iter_mut() {
+            variable_node.variable.update_belief();
+        }
+    }
+
+    fn compute_messages(&mut self, apply_dropout: Dropout) {
+        for factor_node in self.factors.iter_mut() {
+            if !apply_dropout.0 || rand::random::<f64>() > self.gbp_settings.dropout.into_inner() {
+                let damping = self
+                    .gbp_settings
+                    .damping(factor_node.iterations_since_relinearisation);
+                factor_node.factor.compute_messages(damping);
+            }
+        }
     }
 
     // linearize_all_factors
@@ -135,23 +174,62 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
         self.update_beliefs();
     }
 
-    pub fn update_beliefs(&mut self) {
-        // for variable in self.variables.iter_mut() {
-        //     variable.update_belief();
-        // }
-        todo!()
-        // for factor in self.factors.iter().iter_mut() {
-        //     factor.update_belief();
-        // }
-    }
+    fn solve(&mut self, settings: SolveSettings) {
+        let mut energy_log: [f64; 2] = [0.0, 0.0];
+        let mut count = 0;
 
-    fn compute_messages(&mut self, apply_dropout: Dropout) {
-        for factor_node in self.factors.iter_mut() {
-            if !apply_dropout.0 || rand::random::<f64>() > self.gbp_settings.dropout.into_inner() {
-                // self.gpb_settings.get_damping(factor.iters_since_relin)
-                let damping = self.gbp_settings.damping;
-                factor_node.factor.compute_messages(damping);
+        for i in 0..settings.iterations {
+            self.synchronous_iteration();
+
+            if self
+                .gbp_settings
+                .reset_iterations_since_relinearisation
+                .contains(&i)
+            {
+                for factor_node in self.factors.iter_mut() {
+                    factor_node.iterations_since_relinearisation = 1;
+                }
+            }
+
+            energy_log[0] = energy_log[1];
+            energy_log[1] = self.energy(settings.include_priors);
+            // energy_log[1] = self.energy();
+
+            println!("");
+
+            if f64::abs(energy_log[0] - energy_log[1]) < settings.convergance_threshold {
+                count += 1;
+                if count >= 3 {
+                    return;
+                }
+            } else {
+                count = 0;
             }
         }
+    }
+
+    /// Computes the sum of all of the squared errors in the graph using the appropriate local loss function
+    fn energy(&self, include_priors: super::Include) -> f64 {
+        let factor_energy = self
+            .factors
+            .iter()
+            .fold(0.0, |acc, factor_node| acc + factor_node.factor.energy());
+
+        let prior_energy = if include_priors.0 {
+            self.variables.iter().fold(0.0, |acc, variable_node| {
+                acc + variable_node.variable.prior_energy()
+            })
+        } else {
+            0.0
+        };
+
+        factor_energy + prior_energy
+    }
+
+    fn get_joint_dim(&self) -> usize {
+        self.variables
+            .iter()
+            .map(|variable_node| variable_node.dofs)
+            .sum()
     }
 }
