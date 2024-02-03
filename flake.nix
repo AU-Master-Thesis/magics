@@ -2,44 +2,52 @@
   description = "gbp-rs";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    nixpkgs.inputs.flake-utils.url = "github:numtide/flake-utils";
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
-  }:
-    flake-utils.lib.eachDefaultSystem (system: let
-      # system = "x86_64-linux";
-      # pkgs = nixpkgs.legacyPackages.${system};
-      pkgs = import nixpkgs {inherit system;};
+  } @ inputs:
+    inputs.flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import inputs.nixpkgs {inherit system;};
+      bevy-deps = with pkgs; [
+        udev
+        alsa-lib
+        vulkan-loader
+        xorg.libX11
+        xorg.libXcursor
+        xorg.libXi
+        xorg.libXrandr
+        libxkbcommon
+        wayland
+      ];
+      cargo-subcommands = with pkgs; [
+        cargo-bloat
+        cargo-expand
+        cargo-info
+        cargo-outdated
+        cargo-show-asm
+
+        #   # cargo-profiler
+        #   # cargo-feature
+      ];
+      rust-deps = with pkgs;
+        [
+          rustup
+          taplo # TOML formatter and LSP
+          bacon
+        ]
+        ++ cargo-subcommands;
     in
       with pkgs; {
-        # devShells.${system}.default = pkgs.mkShell rec {
-        # formatter.${system} = pkgs.alejandra;
+        formatter.${system} = pkgs.alejandra;
         devShells.default = pkgs.mkShell rec {
           nativeBuildInputs = [
             pkgs.pkg-config
           ];
-          buildInputs = [
-            pkgs.udev
-            pkgs.alsa-lib
-            pkgs.vulkan-loader
-            pkgs.xorg.libX11
-            pkgs.xorg.libXcursor
-            pkgs.xorg.libXi
-            pkgs.xorg.libXrandr # To use the x11 feature
-            pkgs.libxkbcommon
-            pkgs.wayland # To use the wayland feature
-
-            pkgs.bacon
-            pkgs.rustup
-          ];
-
-          # shellHook = ''
-          #   echo hello
-          # '';
+          buildInputs = bevy-deps ++ rust-deps;
 
           LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
         };
