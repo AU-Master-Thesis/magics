@@ -1,5 +1,4 @@
 ///
-
 // pub trait Variable {}
 
 // struct RobotId(usize);
@@ -17,8 +16,12 @@
 //         Self { node_id, robot_id }
 //     }
 // }
+use crate::gaussian::Gaussian;
 
 pub trait Variable {
     fn update_belief(&mut self);
     fn prior_energy(&self) -> f64;
+
+    fn get_belief(&self) -> &Gaussian;
+    fn get_prior(&self) -> &Gaussian;
 }

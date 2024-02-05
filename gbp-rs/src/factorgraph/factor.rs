@@ -1,3 +1,5 @@
+use crate::gaussian::Gaussian;
+
 use super::message::Message;
 
 #[derive(Debug)]
@@ -15,6 +17,7 @@ pub trait Factor {
     fn robustify_loss(&self);
     fn measurement_model(&self) -> MeasurementModel;
     fn linerisation_point(&self) -> nalgebra::DVector<f64>;
+    fn get_gaussian(&self) -> &Gaussian;
 }
 
 // [1,,3].iter().

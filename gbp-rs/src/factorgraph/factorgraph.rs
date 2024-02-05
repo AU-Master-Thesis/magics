@@ -1,8 +1,11 @@
+use std::ops::AddAssign;
+
 use crate::factorgraph::factor::Factor;
 use crate::factorgraph::variable::Variable;
 
 use super::factor::MeasurementModel;
 use super::{Dropout, UnitInterval};
+use crate::gaussian::Gaussian;
 
 use typed_builder::TypedBuilder;
 
@@ -235,5 +238,138 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
             .iter()
             .map(|variable_node| variable_node.dofs)
             .sum()
+    }
+
+    /// Get the joint distribution over all variables in the information form.
+    /// If non-linear factors exist, it is taken at the linearisation point.
+    fn joint_distribution(&self) -> Gaussian {
+        let dim = self.get_joint_dim();
+        let mut joint = Gaussian::new(dim, None, None);
+
+        // Priors
+        let mut var_ix = vec![0; self.variables.len()];
+        let mut counter = 0;
+
+        for variable_node in self.variables.iter() {
+            let variable = &variable_node.variable;
+
+            var_ix[variable_node.id] = counter;
+
+            joint
+                .information_vector
+                .rows_mut(counter, variable_node.dofs)
+                .add_assign(
+                    &variable
+                        .get_prior()
+                        .information_vector
+                        .rows(counter, variable_node.dofs),
+                );
+            joint
+                .precision_matrix
+                .view_mut(
+                    (counter, counter + variable_node.dofs),
+                    (counter, counter + variable_node.dofs),
+                )
+                .add_assign(
+                    &variable
+                        .get_prior()
+                        .precision_matrix
+                        .view((counter, variable_node.dofs), (counter, variable_node.dofs)),
+                );
+            counter += variable_node.dofs;
+        }
+
+        // Other factors
+        for factor_node in self.factors.iter() {
+            let mut fact_ix = 0;
+            for &adjacent_variable_node_id in factor_node.adjacent_variables.iter() {
+                let adjacent_variable_node = &self.variables[adjacent_variable_node_id];
+
+                // Diagonal contribution of factor
+                joint
+                    .information_vector
+                    .rows_mut(
+                        var_ix[adjacent_variable_node_id],
+                        adjacent_variable_node.dofs,
+                    )
+                    .add_assign(
+                        factor_node
+                            .factor
+                            .get_gaussian()
+                            .information_vector
+                            .rows(fact_ix, adjacent_variable_node.dofs),
+                    );
+
+                // joint.lam[var_ix[vID]:var_ix[vID] + adj_var_node.dofs, var_ix[vID]:var_ix[vID] + adj_var_node.dofs] += \
+                // factor.factor.lam[factor_ix:factor_ix + adj_var_node.dofs, factor_ix:factor_ix + adj_var_node.dofs]
+                joint
+                    .precision_matrix
+                    .view_mut(
+                        (
+                            var_ix[adjacent_variable_node_id],
+                            adjacent_variable_node.dofs,
+                        ),
+                        (
+                            var_ix[adjacent_variable_node_id],
+                            adjacent_variable_node.dofs,
+                        ),
+                    )
+                    .add_assign(factor_node.factor.get_gaussian().precision_matrix.view(
+                        (fact_ix, adjacent_variable_node.dofs),
+                        (fact_ix, adjacent_variable_node.dofs),
+                    ));
+
+                let mut other_fact_ix = 0;
+                for &other_adjacent_variable_node_id in factor_node.adjacent_variables.iter() {
+                    if &other_adjacent_variable_node_id > &adjacent_variable_node_id {
+                        let other_adjacent_variable_node =
+                            &self.variables[other_adjacent_variable_node_id];
+
+                        // off diagonal contributions of factor
+                        // joint.lam[var_ix[vID]:var_ix[vID] + adj_var_node.dofs, var_ix[other_vID]:var_ix[other_vID] + other_adj_var_node.dofs] += \
+                        //     factor.factor.lam[factor_ix:factor_ix + adj_var_node.dofs, other_factor_ix:other_factor_ix + other_adj_var_node.dofs]
+                        joint
+                            .precision_matrix
+                            .view_mut(
+                                (
+                                    var_ix[adjacent_variable_node_id],
+                                    adjacent_variable_node.dofs,
+                                ),
+                                (
+                                    var_ix[adjacent_variable_node_id],
+                                    adjacent_variable_node.dofs,
+                                ),
+                            )
+                            .add_assign(factor_node.factor.get_gaussian().precision_matrix.view(
+                                (fact_ix, adjacent_variable_node.dofs),
+                                (other_fact_ix, adjacent_variable_node.dofs),
+                            ));
+                        // joint.lam[var_ix[other_vID]:var_ix[other_vID] + other_adj_var_node.dofs, var_ix[vID]:var_ix[vID] + adj_var_node.dofs] += \
+                        //     factor.factor.lam[other_factor_ix:other_factor_ix + other_adj_var_node.dofs, factor_ix:factor_ix + adj_var_node.dofs]
+                        joint
+                            .precision_matrix
+                            .view_mut(
+                                (
+                                    var_ix[other_adjacent_variable_node_id],
+                                    other_adjacent_variable_node.dofs,
+                                ),
+                                (
+                                    var_ix[adjacent_variable_node_id],
+                                    adjacent_variable_node.dofs,
+                                ),
+                            )
+                            .add_assign(factor_node.factor.get_gaussian().precision_matrix.view(
+                                (other_fact_ix, other_adjacent_variable_node.dofs),
+                                (fact_ix, adjacent_variable_node.dofs),
+                            ));
+                        other_fact_ix += other_adjacent_variable_node.dofs;
+                    }
+
+                    fact_ix += adjacent_variable_node.dofs;
+                }
+            }
+        }
+
+        joint
     }
 }
