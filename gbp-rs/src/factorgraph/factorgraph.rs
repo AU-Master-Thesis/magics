@@ -8,7 +8,7 @@ use crate::factorgraph::variable::Variable;
 use crate::factorgraph::LearningRate;
 use crate::gaussian::MultivariateNormal;
 
-use super::measurement_model::{Loss, MeasurementModel, MeasurementModelKind};
+use super::measurement_model::{Loss, MeasurementModelKind};
 use super::{Dropout, Include, UnitInterval};
 
 type NodeId = usize;
