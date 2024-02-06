@@ -2,3 +2,6 @@
 .direnv/
 
 *.log
+# pixi environments
+.pixi
+

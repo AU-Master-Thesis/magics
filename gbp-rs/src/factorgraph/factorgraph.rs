@@ -1,13 +1,14 @@
 use std::ops::AddAssign;
 
+use typed_builder::TypedBuilder;
+
 use crate::factorgraph::factor::Factor;
 use crate::factorgraph::variable::Variable;
+use crate::factorgraph::LearningRate;
+use crate::gaussian::MultivariateNormal;
 
 use super::factor::MeasurementModel;
-use super::{Dropout, UnitInterval};
-use crate::gaussian::Gaussian;
-
-use typed_builder::TypedBuilder;
+use super::{Dropout, Include, UnitInterval};
 
 type NodeId = usize;
 
@@ -51,8 +52,8 @@ impl GbpSettings {
 #[derive(Debug)]
 pub struct SolveSettings {
     iterations: usize,
-    convergance_threshold: f64,
-    include_priors: super::Include,
+    convergence_threshold: f64,
+    include_priors: Include,
     log: bool,
 }
 
@@ -60,18 +61,12 @@ impl Default for SolveSettings {
     fn default() -> Self {
         Self {
             iterations: 20,
-            convergance_threshold: 1e-6,
-            include_priors: super::Include(true),
+            convergence_threshold: 1e-6,
+            include_priors: Include(true),
             log: true,
         }
     }
 }
-
-// impl Default for GbpSettings {
-//     fn default() -> Self {
-//         Self { beta: , damping: , dropout: , num_undamped_iterations:  }
-//     }
-// }
 
 #[derive(Debug)]
 struct FactorNode<F: Factor> {
@@ -88,10 +83,17 @@ struct VariableNode<V: Variable> {
     variable: V,
 }
 
+// #[derive(Debug)]
+// enum Node<F: Factor, V: Variable> {
+//     Factor(FactorNode<F>),
+//     Variable(VariableNode<V>),
+// }
+
 /// A factor graph is a bipartite graph representing the factorization of a function.
 /// It is composed of two types of nodes: factors and variables.
 #[derive(Debug)]
 pub struct FactorGraph<F: Factor, V: Variable> {
+    // TODO: maybe use list of list format?
     factors: Vec<FactorNode<F>>,
     variables: Vec<VariableNode<V>>,
     gbp_settings: GbpSettings,
@@ -172,6 +174,12 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
         }
     }
 
+    fn linearise_factors(&mut self) {
+        self.factors
+            .iter()
+            .for_each(|factor_node| factor_node.factor.compute())
+    }
+
     fn synchronous_iteration(&mut self) {
         self.robustify_factors();
         self.jit_linearisation();
@@ -204,7 +212,7 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
                 println!("Iterations: {}\tEnergy: {:.3}", i + 1, energy_log[0]);
             }
 
-            if f64::abs(energy_log[0] - energy_log[1]) < settings.convergance_threshold {
+            if f64::abs(energy_log[0] - energy_log[1]) < settings.convergence_threshold {
                 count += 1;
                 if count >= 3 {
                     return;
@@ -216,7 +224,7 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
     }
 
     /// Computes the sum of all of the squared errors in the graph using the appropriate local loss function
-    fn energy(&self, include_priors: super::Include) -> f64 {
+    fn energy(&self, include_priors: Include) -> f64 {
         let factor_energy = self
             .factors
             .iter()
@@ -234,17 +242,14 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
     }
 
     fn get_joint_dim(&self) -> usize {
-        self.variables
-            .iter()
-            .map(|variable_node| variable_node.dofs)
-            .sum()
+        self.variables.iter().map(|node| node.dofs).sum()
     }
 
     /// Get the joint distribution over all variables in the information form.
     /// If non-linear factors exist, it is taken at the linearisation point.
-    fn joint_distribution(&self) -> Gaussian {
+    fn joint_distribution(&self) -> MultivariateNormal {
         let dim = self.get_joint_dim();
-        let mut joint = Gaussian::new(dim, None, None);
+        let mut joint = MultivariateNormal::new(dim, None, None);
 
         // Priors
         let mut var_ix = vec![0; self.variables.len()];
@@ -260,21 +265,18 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
                 .rows_mut(counter, variable_node.dofs)
                 .add_assign(
                     &variable
-                        .get_prior()
+                        .prior()
                         .information_vector
                         .rows(counter, variable_node.dofs),
                 );
             joint
                 .precision_matrix
-                .view_mut(
-                    (counter, counter + variable_node.dofs),
-                    (counter, counter + variable_node.dofs),
-                )
+                .view_mut((counter, counter), (variable_node.dofs, variable_node.dofs))
                 .add_assign(
                     &variable
-                        .get_prior()
+                        .prior()
                         .precision_matrix
-                        .view((counter, variable_node.dofs), (counter, variable_node.dofs)),
+                        .view((counter, counter), (variable_node.dofs, variable_node.dofs)),
                 );
             counter += variable_node.dofs;
         }
@@ -307,16 +309,13 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
                     .view_mut(
                         (
                             var_ix[adjacent_variable_node_id],
-                            adjacent_variable_node.dofs,
-                        ),
-                        (
                             var_ix[adjacent_variable_node_id],
-                            adjacent_variable_node.dofs,
                         ),
+                        (adjacent_variable_node.dofs, adjacent_variable_node.dofs),
                     )
                     .add_assign(factor_node.factor.get_gaussian().precision_matrix.view(
-                        (fact_ix, adjacent_variable_node.dofs),
-                        (fact_ix, adjacent_variable_node.dofs),
+                        (fact_ix, fact_ix),
+                        (adjacent_variable_node.dofs, adjacent_variable_node.dofs),
                     ));
 
                 let mut other_fact_ix = 0;
@@ -333,16 +332,13 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
                             .view_mut(
                                 (
                                     var_ix[adjacent_variable_node_id],
-                                    adjacent_variable_node.dofs,
-                                ),
-                                (
                                     var_ix[adjacent_variable_node_id],
-                                    adjacent_variable_node.dofs,
                                 ),
+                                (adjacent_variable_node.dofs, adjacent_variable_node.dofs),
                             )
                             .add_assign(factor_node.factor.get_gaussian().precision_matrix.view(
-                                (fact_ix, adjacent_variable_node.dofs),
-                                (other_fact_ix, adjacent_variable_node.dofs),
+                                (fact_ix, other_fact_ix),
+                                (adjacent_variable_node.dofs, adjacent_variable_node.dofs),
                             ));
                         // joint.lam[var_ix[other_vID]:var_ix[other_vID] + other_adj_var_node.dofs, var_ix[vID]:var_ix[vID] + adj_var_node.dofs] += \
                         //     factor.factor.lam[other_factor_ix:other_factor_ix + other_adj_var_node.dofs, factor_ix:factor_ix + adj_var_node.dofs]
@@ -351,16 +347,19 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
                             .view_mut(
                                 (
                                     var_ix[other_adjacent_variable_node_id],
-                                    other_adjacent_variable_node.dofs,
+                                    var_ix[adjacent_variable_node_id],
                                 ),
                                 (
-                                    var_ix[adjacent_variable_node_id],
+                                    other_adjacent_variable_node.dofs,
                                     adjacent_variable_node.dofs,
                                 ),
                             )
                             .add_assign(factor_node.factor.get_gaussian().precision_matrix.view(
-                                (other_fact_ix, other_adjacent_variable_node.dofs),
-                                (fact_ix, adjacent_variable_node.dofs),
+                                (other_fact_ix, fact_ix),
+                                (
+                                    other_adjacent_variable_node.dofs,
+                                    adjacent_variable_node.dofs,
+                                ),
                             ));
                         other_fact_ix += other_adjacent_variable_node.dofs;
                     }
@@ -371,5 +370,96 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
         }
 
         joint
+    }
+
+    #[allow(non_snake_case)]
+    fn MAP(&self) -> nalgebra::DVector<f64> {
+        self.joint_distribution().mean()
+    }
+
+    // fn distance_from_map(&self) -> f64 {
+    //     (self.MAP() - self.belief_means()).norm()
+    // }
+    //
+    // /// All current estimates of belief means
+    // fn belief_means(&self) -> nalgebra::DVector<f64> {
+    //     // return torch.cat([var.belief.mean() for var in self.var_nodes])
+    //     self.variables
+    //         .iter()
+    //         .map(|node| node.variable.belief().mean())
+    //         // [[...], [...], ...]
+    //         .collect::<nalgebra::DVector<f64>>()
+    //
+    // }
+
+    /// All estimates of belief covariances
+    fn belief_covariances(&self) -> Vec<nalgebra::DMatrix<f64>> {
+        self.variables
+            .iter()
+            .map(|node| node.variable.belief().covariance())
+            .collect()
+    }
+
+    /// Gradient with respect to the total energy
+    fn gradient(&self, include_priors: Include) -> nalgebra::DVector<f64> {
+        let dim = self.get_joint_dim();
+        let var_dofs: Vec<_> = self.variables.iter().map(|node| node.dofs).collect();
+
+        // Cumulative sum
+        let var_ix: Vec<_> = var_dofs
+            .iter()
+            .scan(0, |acc, &x| {
+                *acc = *acc + x;
+                Some(*acc)
+            })
+            .collect();
+        let mut grad = nalgebra::DVector::<f64>::zeros(dim);
+
+        if include_priors.0 {
+            for variable_node in self.variables.iter() {
+                // grad[var_ix[v.variableID]:var_ix[v.variableID] + v.dofs] \
+                //     += (v.belief.mean() - v.prior.mean()) @ v.prior.cov()
+                grad.rows_mut(var_ix[variable_node.id], variable_node.dofs)
+                    .add_assign(
+                        (variable_node.variable.belief().mean()
+                            - variable_node.variable.prior().mean())
+                            * variable_node.variable.prior().covariance(),
+                    );
+            }
+        }
+
+        for factor_node in self.factors.iter() {
+            let factor = &factor_node.factor;
+            let residual = factor.residual();
+            let jacobian = factor.measurement_model();
+        }
+
+        grad
+    }
+
+    // TODO: use newtype for learning rate
+
+    // fn gradient_descent_step(&mut self, lr: f64) {
+    fn gradient_descent_step(&mut self, lr: LearningRate) {
+        let lr = lr.into_inner();
+        let gradient = self.gradient(Include(true));
+
+        let mut i = 0;
+        for mut variable_node in self.variables.iter_mut() {
+            let mut v = &variable_node.variable;
+            // let mut belief = variable_node.variable.belief_mut();
+            let update = v.belief().precision_matrix
+                * (v.belief().mean() - lr * gradient.rows(i, variable_node.dofs));
+            let mut belief = v.belief_mut();
+            v = update;
+
+            i += variable_node.dofs;
+            // variable_node.variable.belief_mut().information_vector =
+            //     variable_node.variable.belief().precision_matrix
+            //         * (variable_node.variable.belief().mean()
+            //             - step_size * gradient.rows(counter, variable_node.dofs));
+        }
+
+        self.linearise_all_factors();
     }
 }

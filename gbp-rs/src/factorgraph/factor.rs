@@ -1,12 +1,26 @@
-use crate::gaussian::Gaussian;
+use crate::gaussian::MultivariateNormal;
 
-use super::message::Message;
+use super::{measurement_model::MeasurementModel, message::Message};
 
-#[derive(Debug)]
-pub enum MeasurementModel {
-    Linear,
-    NonLinear,
-}
+// class MeasModel:
+// def __init__(self, meas_fn: Callable, jac_fn: Callable, loss: SquaredLoss, *args) -> None:
+// self._meas_fn = meas_fn
+// self._jac_fn = jac_fn
+// self.loss = loss
+// self.args = args
+// self.linear = True
+//
+// def jac_fn(self, x: torch.Tensor) -> torch.Tensor:
+// return self._jac_fn(x, *self.args)
+//
+// def meas_fn(self, x: torch.Tensor) -> torch.Tensor:
+// return self._meas_fn(x, *self.args)
+
+// #[derive(Debug)]
+// pub enum MeasurementModel {
+//     Linear,
+//     NonLinear,
+// }
 
 pub trait Factor {
     fn compute_messages(&mut self, damping: f64) -> Vec<Message>;
@@ -17,7 +31,7 @@ pub trait Factor {
     fn robustify_loss(&self);
     fn measurement_model(&self) -> MeasurementModel;
     fn linerisation_point(&self) -> nalgebra::DVector<f64>;
-    fn get_gaussian(&self) -> &Gaussian;
+    fn get_gaussian(&self) -> &MultivariateNormal;
 }
 
 // [1,,3].iter().

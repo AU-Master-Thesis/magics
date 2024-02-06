@@ -38,6 +38,8 @@
           rustup
           taplo # TOML formatter and LSP
           bacon
+          mold # A Modern Linker
+          clang # For linking
         ]
         ++ cargo-subcommands;
     in
@@ -47,7 +49,7 @@
           nativeBuildInputs = [
             pkgs.pkg-config
           ];
-          buildInputs = bevy-deps ++ rust-deps;
+          buildInputs = [just] ++ bevy-deps ++ rust-deps;
 
           LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
         };

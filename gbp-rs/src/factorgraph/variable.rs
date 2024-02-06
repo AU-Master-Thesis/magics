@@ -16,12 +16,14 @@
 //         Self { node_id, robot_id }
 //     }
 // }
-use crate::gaussian::Gaussian;
+use crate::gaussian::MultivariateNormal;
 
 pub trait Variable {
     fn update_belief(&mut self);
     fn prior_energy(&self) -> f64;
 
-    fn get_belief(&self) -> &Gaussian;
-    fn get_prior(&self) -> &Gaussian;
+    fn belief(&self) -> &MultivariateNormal;
+    fn belief_mut(&mut self) -> &mut MultivariateNormal;
+    fn prior(&self) -> &MultivariateNormal;
+    fn prior_mut(&mut self) -> &mut MultivariateNormal;
 }

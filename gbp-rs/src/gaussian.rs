@@ -1,15 +1,19 @@
 use nalgebra::{DMatrix, DVector};
-// use num::Float;
 
 // TODO: maybe there should be something to ensure the dimensions of the information vector and precision matrix match
+
+/// Multivariate Gaussian/Normal
 #[derive(Debug)]
-pub struct Gaussian {
-    size: usize,                          // dim
-    pub information_vector: DVector<f64>, // eta
-    pub precision_matrix: DMatrix<f64>,   // lam
+pub struct MultivariateNormal {
+    /// dim
+    size: usize,
+    /// eta
+    pub information_vector: DVector<f64>,
+    /// lam
+    pub precision_matrix: DMatrix<f64>,
 }
 
-impl Gaussian {
+impl MultivariateNormal {
     /// information_vector commonly used symbol: lowercase eta (η)
     /// precision_matrix commmonly used symbol: uppercase lambda (Λ)
     pub fn new(
@@ -21,7 +25,7 @@ impl Gaussian {
         // check if the precision_matrix has an inverse
         let precision_matrix = precision_matrix.unwrap_or_else(|| DMatrix::zeros(size, size));
 
-        Gaussian {
+        Self {
             size,
             information_vector,
             precision_matrix,
@@ -36,7 +40,7 @@ impl Gaussian {
         self.precision_matrix.try_inverse().unwrap()
     }
 
-    pub fn mean_and_coveriance(&self) -> (DVector<f64>, DMatrix<f64>) {
+    pub fn mean_and_covariance(&self) -> (DVector<f64>, DMatrix<f64>) {
         let covariance = self.covariance();
         let mean = &covariance * &self.information_vector;
 
