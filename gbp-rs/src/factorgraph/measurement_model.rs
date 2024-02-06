@@ -57,16 +57,17 @@ pub struct HuberLoss {
 
 impl HuberLoss {
     pub fn new(
-        dofs: usize,
+        // dofs: usize,
         diagonal_covariance: DVector<f64>,
         standard_deviation_transition: f64,
     ) -> Self {
         // TODO: change to result type and return error
-        assert_eq!(diagonal_covariance.len(), dofs);
-        let mut covariance = DMatrix::<f64>::zeros(dofs, dofs);
-        covariance
-            .view_mut((0, 0), (dofs, dofs))
-            .add_assign(DMatrix::<f64>::from_diagonal(&diagonal_covariance));
+        // assert_eq!(diagonal_covariance.len(), dofs);
+        // let mut covariance = DMatrix::<f64>::zeros(dofs, dofs);
+        // covariance
+        //     .view_mut((0, 0), (dofs, dofs))
+        //     .add_assign(DMatrix::<f64>::from_diagonal(&diagonal_covariance));
+        let covariance = DMatrix::<f64>::from_diagonal(&diagonal_covariance);
         let effective_covariance = covariance.to_owned();
         Self {
             covariance,
@@ -120,7 +121,7 @@ pub struct TukeyLoss {
 
 impl crate::factorgraph::measurement_model::TukeyLoss {
     pub fn new(
-        dofs: usize,
+        // dofs: usize,
         diagonal_covariance: DVector<f64>,
         standard_deviation_transition: f64,
     ) -> Self {
@@ -173,30 +174,44 @@ impl Loss for crate::factorgraph::measurement_model::TukeyLoss {
     }
 }
 
-pub struct MeasurementModel<J, M, L>
-where
-    J: Fn(&DVector<f64>) -> DMatrix<f64>,
-    M: Fn(&DVector<f64>) -> DMatrix<f64>,
-    L: Loss,
-{
-    pub loss: L,
-    linear: bool,
-    jacobian: Rc<J>,
-    measurement: Rc<M>,
+pub type Jacobian = dyn Fn(&DVector<f64>) -> DMatrix<f64>;
+pub type Measurement = dyn Fn(&DVector<f64>) -> DMatrix<f64>;
+
+// enum Loss {
+//     Squared(SquaredLoss),
+//     Huber(HuberLoss),
+//     Tukey(TukeyLoss),
+// }
+
+// trait
+
+pub enum MeasurementModelKind {
+    Linear,
+    NonLinear,
 }
 
-impl<J, M, L> MeasurementModel<J, M, L>
+pub struct MeasurementModel<L: Loss> {
+    pub loss: L,
+    pub kind: MeasurementModelKind,
+    jacobian: Rc<Jacobian>,
+    measurement: Rc<Measurement>,
+}
+
+impl<L> MeasurementModel<L>
 where
-    J: Fn(&DVector<f64>) -> DMatrix<f64>,
-    M: Fn(&DVector<f64>) -> DMatrix<f64>,
     L: Loss,
 {
-    pub fn new(jacobian: J, measurement: M, loss: L) -> Self {
+    pub fn new(
+        loss: L,
+        kind: MeasurementModelKind,
+        jacobian: Rc<Jacobian>,
+        measurement: Rc<Measurement>,
+    ) -> Self {
         Self {
             loss,
-            linear: false,
-            jacobian: Rc::new(jacobian),
-            measurement: Rc::new(measurement),
+            kind,
+            jacobian,
+            measurement,
         }
     }
 

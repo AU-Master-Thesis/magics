@@ -33,11 +33,11 @@ impl MultivariateNormal {
     }
 
     pub fn mean(&self) -> DVector<f64> {
-        self.precision_matrix.try_inverse().unwrap() * &self.information_vector
+        self.precision_matrix.clone().try_inverse().unwrap() * &self.information_vector
     }
 
     pub fn covariance(&self) -> DMatrix<f64> {
-        self.precision_matrix.try_inverse().unwrap()
+        self.precision_matrix.clone().try_inverse().unwrap()
     }
 
     pub fn mean_and_covariance(&self) -> (DVector<f64>, DMatrix<f64>) {

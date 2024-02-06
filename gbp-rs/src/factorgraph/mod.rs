@@ -18,7 +18,7 @@ pub struct UnitInterval(f64);
 pub struct LearningRate(f64);
 
 pub struct Dropout(bool);
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Include(bool);
 
 // Dropout(false)

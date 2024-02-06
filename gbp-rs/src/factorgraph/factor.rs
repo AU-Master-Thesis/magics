@@ -1,6 +1,9 @@
 use crate::gaussian::MultivariateNormal;
 
-use super::{measurement_model::MeasurementModel, message::Message};
+use super::{
+    measurement_model::{Loss, MeasurementModel},
+    message::Message,
+};
 
 // class MeasModel:
 // def __init__(self, meas_fn: Callable, jac_fn: Callable, loss: SquaredLoss, *args) -> None:
@@ -22,14 +25,14 @@ use super::{measurement_model::MeasurementModel, message::Message};
 //     NonLinear,
 // }
 
-pub trait Factor {
+pub trait Factor<L: Loss> {
     fn compute_messages(&mut self, damping: f64) -> Vec<Message>;
     fn energy(&self) -> f64;
     fn residual(&self) -> nalgebra::DVector<f64>;
     fn adj_means(&self) -> nalgebra::DVector<f64>;
     fn compute(&self) -> f64;
     fn robustify_loss(&self);
-    fn measurement_model(&self) -> MeasurementModel;
+    fn measurement_model(&self) -> MeasurementModel<L>;
     fn linerisation_point(&self) -> nalgebra::DVector<f64>;
     fn get_gaussian(&self) -> &MultivariateNormal;
 }

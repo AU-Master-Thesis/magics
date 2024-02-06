@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::ops::AddAssign;
 
 use typed_builder::TypedBuilder;
@@ -7,7 +8,7 @@ use crate::factorgraph::variable::Variable;
 use crate::factorgraph::LearningRate;
 use crate::gaussian::MultivariateNormal;
 
-use super::factor::MeasurementModel;
+use super::measurement_model::{Loss, MeasurementModel, MeasurementModelKind};
 use super::{Dropout, Include, UnitInterval};
 
 type NodeId = usize;
@@ -69,11 +70,13 @@ impl Default for SolveSettings {
 }
 
 #[derive(Debug)]
-struct FactorNode<F: Factor> {
+struct FactorNode<L: Loss, F: Factor<L>> {
     pub id: NodeId,
     pub iterations_since_relinearisation: usize,
     factor: F,
     adjacent_variables: Vec<usize>,
+    // This field doesn't store any data of type L but tells Rust that FactorNode is generic over L
+    _loss_marker: PhantomData<L>,
 }
 
 #[derive(Debug)]
@@ -81,6 +84,22 @@ struct VariableNode<V: Variable> {
     pub id: NodeId,
     pub dofs: usize,
     variable: V,
+}
+
+impl<L, F> FactorNode<L, F>
+where
+    L: Loss,
+    F: Factor<L>,
+{
+    pub fn new(id: NodeId, factor: F, adjacent_variables: Vec<usize>) -> Self {
+        Self {
+            id,
+            iterations_since_relinearisation: 0,
+            factor,
+            adjacent_variables,
+            _loss_marker: PhantomData,
+        }
+    }
 }
 
 // #[derive(Debug)]
@@ -92,16 +111,16 @@ struct VariableNode<V: Variable> {
 /// A factor graph is a bipartite graph representing the factorization of a function.
 /// It is composed of two types of nodes: factors and variables.
 #[derive(Debug)]
-pub struct FactorGraph<F: Factor, V: Variable> {
+pub struct FactorGraph<L: Loss, F: Factor<L>, V: Variable> {
     // TODO: maybe use list of list format?
-    factors: Vec<FactorNode<F>>,
+    factors: Vec<FactorNode<L, F>>,
     variables: Vec<VariableNode<V>>,
     gbp_settings: GbpSettings,
 }
 
 // std::unique_ptr
 
-impl<F: Factor, V: Variable> FactorGraph<F, V> {
+impl<L: Loss, F: Factor<L>, V: Variable> FactorGraph<L, F, V> {
     pub fn new(gbp_settings: Option<GbpSettings>) -> Self {
         Self {
             factors: Vec::new(),
@@ -119,12 +138,8 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
     pub fn add_factor(&mut self, factor: F, adjacent_variables: Vec<usize>) {
         // TODO: maybe move adjacent variable node sorting into here
         let id = self.factors.len();
-        self.factors.push(FactorNode {
-            id,
-            iterations_since_relinearisation: 0,
-            factor,
-            adjacent_variables,
-        });
+        self.factors
+            .push(FactorNode::new(id, factor, adjacent_variables));
     }
 
     pub fn update_beliefs(&mut self) {
@@ -153,8 +168,8 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
 
     fn jit_linearisation(&mut self) {
         for factor_node in self.factors.iter() {
-            match factor_node.factor.measurement_model() {
-                MeasurementModel::NonLinear => {
+            match factor_node.factor.measurement_model().kind {
+                MeasurementModelKind::NonLinear => {
                     let adj_means = factor_node.factor.adj_means();
                     // factors.iters_since_relin += 1
                     if (adj_means - factor_node.factor.linerisation_point()).norm()
@@ -163,7 +178,7 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
                         factor_node.factor.compute();
                     }
                 }
-                MeasurementModel::Linear => {}
+                MeasurementModelKind::Linear => {}
             }
         }
     }
@@ -175,9 +190,9 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
     }
 
     fn linearise_factors(&mut self) {
-        self.factors
-            .iter()
-            .for_each(|factor_node| factor_node.factor.compute())
+        self.factors.iter().for_each(|factor_node| {
+            let _ = factor_node.factor.compute();
+        })
     }
 
     fn synchronous_iteration(&mut self) {
@@ -445,21 +460,24 @@ impl<F: Factor, V: Variable> FactorGraph<F, V> {
         let gradient = self.gradient(Include(true));
 
         let mut i = 0;
-        for mut variable_node in self.variables.iter_mut() {
-            let mut v = &variable_node.variable;
+        self.variables.iter_mut().for_each(|variable_node| {
+            let v = &mut variable_node.variable;
             // let mut belief = variable_node.variable.belief_mut();
-            let update = v.belief().precision_matrix
+
+            // v.belief.lam @ (v.belief.mean() - lr * grad[i: i+v.dofs])
+            let update = &v.belief().precision_matrix
                 * (v.belief().mean() - lr * gradient.rows(i, variable_node.dofs));
-            let mut belief = v.belief_mut();
-            v = update;
+            v.belief_mut().information_vector = update;
+            // let mut belief = v.belief_mut();
+            // belief = update;
 
             i += variable_node.dofs;
             // variable_node.variable.belief_mut().information_vector =
             //     variable_node.variable.belief().precision_matrix
             //         * (variable_node.variable.belief().mean()
             //             - step_size * gradient.rows(counter, variable_node.dofs));
-        }
+        });
 
-        self.linearise_all_factors();
+        self.linearise_factors();
     }
 }
