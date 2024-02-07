@@ -18,7 +18,7 @@
 // }
 use crate::gaussian::MultivariateNormal;
 
-pub trait Variable {
+pub trait Variable: std::fmt::Debug {
     fn update_belief(&mut self);
     fn prior_energy(&self) -> f64;
 

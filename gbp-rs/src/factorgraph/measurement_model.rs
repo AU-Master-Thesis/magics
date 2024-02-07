@@ -1,18 +1,18 @@
 use nalgebra::{DMatrix, DVector};
-use std::ops::AddAssign;
 use std::rc::Rc;
 
 #[derive(Debug, thiserror::Error)]
 pub enum LossError {}
 
 // Robust losses are implemented by scaling the Gaussian covariance
-pub trait Loss {
+pub trait Loss: std::fmt::Debug {
     fn effective_covariance(&mut self, residual: Option<&DVector<f64>>) -> &DMatrix<f64>;
     fn covariance(&self) -> &DMatrix<f64>;
     fn robust(&self) -> bool;
 }
 
 /// Defines squared loss functions that correspond to Gaussians
+#[derive(Debug)]
 pub struct SquaredLoss {
     covariance: DMatrix<f64>,
     effective_covariance: DMatrix<f64>,
@@ -49,6 +49,7 @@ impl Loss for SquaredLoss {
     }
 }
 
+#[derive(Debug)]
 pub struct HuberLoss {
     covariance: DMatrix<f64>,
     effective_covariance: DMatrix<f64>,
@@ -113,6 +114,7 @@ impl Loss for HuberLoss {
     }
 }
 
+#[derive(Debug)]
 pub struct TukeyLoss {
     covariance: DMatrix<f64>,
     effective_covariance: DMatrix<f64>,

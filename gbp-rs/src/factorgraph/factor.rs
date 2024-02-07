@@ -25,7 +25,7 @@ use super::{
 //     NonLinear,
 // }
 
-pub trait Factor<L: Loss> {
+pub trait Factor<L: Loss>: std::fmt::Debug {
     fn compute_messages(&mut self, damping: f64) -> Vec<Message>;
     fn energy(&self) -> f64;
     fn residual(&self) -> nalgebra::DVector<f64>;

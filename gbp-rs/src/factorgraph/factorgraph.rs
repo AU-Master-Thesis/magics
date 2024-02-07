@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::marker::PhantomData;
 use std::ops::AddAssign;
 
@@ -69,6 +70,9 @@ impl Default for SolveSettings {
     }
 }
 
+// #[derive(Debug)]
+// pub struct
+
 #[derive(Debug)]
 struct FactorNode<L: Loss, F: Factor<L>> {
     pub id: NodeId,
@@ -77,13 +81,6 @@ struct FactorNode<L: Loss, F: Factor<L>> {
     adjacent_variables: Vec<usize>,
     // This field doesn't store any data of type L but tells Rust that FactorNode is generic over L
     _loss_marker: PhantomData<L>,
-}
-
-#[derive(Debug)]
-struct VariableNode<V: Variable> {
-    pub id: NodeId,
-    pub dofs: usize,
-    variable: V,
 }
 
 impl<L, F> FactorNode<L, F>
@@ -99,6 +96,37 @@ where
             adjacent_variables,
             _loss_marker: PhantomData,
         }
+    }
+}
+
+impl<L, F> Display for FactorNode<L, F>
+where
+    L: Loss,
+    F: Factor<L>,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "\nFactorNode: .id = {} .iterations_since_relinearisation = {}, .factor = {:?}",
+            self.id, self.iterations_since_relinearisation, self.factor
+        )
+    }
+}
+
+#[derive(Debug)]
+struct VariableNode<V: Variable> {
+    pub id: NodeId,
+    pub dofs: usize,
+    variable: V,
+}
+
+impl<V: Variable> Display for VariableNode<V> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "\nVariableNode: .id = {}, .dofs = {}, .variable = {:?}",
+            self.id, self.dofs, self.variable
+        )
     }
 }
 
@@ -479,5 +507,115 @@ impl<L: Loss, F: Factor<L>, V: Variable> FactorGraph<L, F, V> {
         });
 
         self.linearise_factors();
+    }
+
+    // Very close to an LM step, except we always accept update even if it increases the energy.
+    //         As to compute the energy if we were to do the update, we would need to relinearise all factors.
+    //         Returns lambda parameters for LM.
+    //         If lambda_lm = 0, then it is Gauss-Newton.
+
+    // In python:
+    //     current_x = self.belief_means()
+    //     initial_energy = self.energy()
+
+    //     joint = self.get_joint()
+    //     A = joint.lam + lambda_lm * torch.eye(len(joint.eta))
+    //     b_mat = -self.get_gradient()
+    //     delta_x = torch.inverse(A) @ b_mat
+
+    //     i = 0  # apply update
+    //     for v in self.var_nodes:
+    //         v.belief.eta = v.belief.lam @ (v.belief.mean() + delta_x[i: i+v.dofs])
+    //         i += v.dofs
+    //     self.linearise_all_factors()
+    //     new_energy = self.energy()
+
+    //     if lambda_lm == 0.:  # Gauss-Newton
+    //         return lambda_lm
+    //     if new_energy < initial_energy:  # accept update
+    //         lambda_lm /= a
+    //         return lambda_lm
+    //     else:  # undo update
+    //         i = 0  # apply update
+    //         for v in self.var_nodes:
+    //             v.belief.eta = v.belief.lam @ (v.belief.mean() - delta_x[i: i+v.dofs])
+    //             i += v.dofs
+    //         self.linearise_all_factors()
+    //         lambda_lm = min(lambda_lm*b, 1e5)
+    //         return lambda_lm
+
+    // fn lm_step(&self, lambda_lm: f64, a: f64, b: f64) -> bool {
+    //     let initial_energy = self.energy(Include(true));
+    //     let gradient = self.gradient(Include(true));
+    //     let delta_x = nalgebra::DVector::<f64>::zeros(self.get_joint_dim());
+
+    //     let mut i = 0;
+    //     for variable_node in self.variables.iter() {
+    //         let v = &variable_node.variable;
+    //         let update = v.belief().precision_matrix
+    //             * (v.belief().mean() + delta_x.rows(i, variable_node.dofs));
+    //         v.belief_mut().information_vector = update;
+    //         i += variable_node.dofs;
+    //     }
+
+    //     let new_energy = self.energy(Include(true));
+
+    //     if lambda_lm == 0.0 {
+    //         return true;
+    //     }
+
+    //     if new_energy < initial_energy {
+    //         return true;
+    //     } else {
+    //         let mut i = 0;
+    //         for variable_node in self.variables.iter() {
+    //             let v = &variable_node.variable;
+    //             let update = v.belief().precision_matrix
+    //                 * (v.belief().mean() - delta_x.rows(i, variable_node.dofs));
+    //             v.belief_mut().information_vector = update;
+    //             i += variable_node.dofs;
+    //         }
+    //         false
+    //     }
+    // }
+}
+
+// In poython
+// def print(self, brief=False) -> None:
+// print("\nFactor Graph:")
+// print(f"# Variable nodes: {len(self.var_nodes)}")
+// if not brief:
+//     for i, var in enumerate(self.var_nodes):
+//         print(f"Variable {i}: connects to factors {[f.factorID for f in var.adj_factors]}")
+//         print(f"    dofs: {var.dofs}")
+//         print(f"    prior mean: {var.prior.mean().numpy()}")
+//         print(f"    prior covariance: diagonal sigma {torch.diag(var.prior.cov()).numpy()}")
+// print(f"# Factors: {len(self.factors)}")
+// if not brief:
+//     for i, factor in enumerate(self.factors):
+//         if factor.meas_model.linear:
+//             print("Linear", end =" ")
+//         else:
+//             print("Nonlinear", end =" ")
+//         print(f"Factor {i}: connects to variables {factor.adj_vIDs}")
+//         print(f"    measurement model: {type(factor.meas_model).__name__},"
+//             f" {type(factor.meas_model.loss).__name__},"
+//             f" diagonal sigma {torch.diag(factor.meas_model.loss.effective_cov).detach().numpy()}")
+//         print(f"    measurement: {factor.measurement.numpy()}")
+// print("\n")
+
+impl<L, F, V> Display for FactorGraph<L, F, V>
+where
+    L: Loss,
+    F: Factor<L>,
+    V: Variable,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "\nFactor Graph:")?;
+        writeln!(f, "# Variable nodes: {}", self.variables.len())?;
+        write!(f, "{:?}", self.variables)?;
+
+        write!(f, "# Factors: {}", self.factors.len())?;
+        write!(f, "{:?}", self.factors)
     }
 }
