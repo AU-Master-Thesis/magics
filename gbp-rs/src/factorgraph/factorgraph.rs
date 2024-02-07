@@ -363,7 +363,7 @@ impl<L: Loss, F: Factor<L>, V: Variable> FactorGraph<L, F, V> {
 
                 let mut other_fact_ix = 0;
                 for &other_adjacent_variable_node_id in factor_node.adjacent_variables.iter() {
-                    if &other_adjacent_variable_node_id > &adjacent_variable_node_id {
+                    if other_adjacent_variable_node_id > adjacent_variable_node_id {
                         let other_adjacent_variable_node =
                             &self.variables[other_adjacent_variable_node_id];
 
@@ -452,7 +452,7 @@ impl<L: Loss, F: Factor<L>, V: Variable> FactorGraph<L, F, V> {
         let var_ix: Vec<_> = var_dofs
             .iter()
             .scan(0, |acc, &x| {
-                *acc = *acc + x;
+                *acc += x;
                 Some(*acc)
             })
             .collect();

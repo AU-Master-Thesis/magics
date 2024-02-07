@@ -19,7 +19,7 @@ pub struct SquaredLoss {
 }
 
 impl SquaredLoss {
-    pub fn new(&self, dofs: usize, diagonal_coveriance: DVector<f64>) -> Self {
+    pub fn new(dofs: usize, diagonal_coveriance: DVector<f64>) -> Self {
         // TODO: use dofs
         let covariance = DMatrix::<f64>::from_diagonal(&diagonal_coveriance);
         let effective_covariance = covariance.to_owned();
