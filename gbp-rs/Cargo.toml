@@ -23,3 +23,4 @@ thiserror = "*"
 
 [dev-dependencies]
 charming = { version = "0.3.1", features = ["ssr"] }
+color-eyre = "0.6.2"

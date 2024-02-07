@@ -2197,6 +2197,7 @@ name = "gbp-rs"
 version = "0.1.0"
 dependencies = [
  "charming",
+ "color-eyre",
  "nalgebra",
  "num",
  "nutype",

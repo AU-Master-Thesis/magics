@@ -1,6 +1,6 @@
 pub mod factor;
 pub mod factorgraph;
-mod measurement_model;
+pub mod measurement_model;
 pub mod message;
 pub mod variable;
 

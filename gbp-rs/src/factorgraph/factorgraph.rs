@@ -25,6 +25,7 @@ pub struct GbpSettings {
     pub minimum_linear_iteration: usize,
     /// Chance for dropout to happen
     pub dropout: UnitInterval,
+    #[builder(default)]
     pub reset_iterations_since_relinearisation: Vec<usize>,
 }
 
@@ -42,6 +43,17 @@ impl Default for GbpSettings {
 }
 
 impl GbpSettings {
+    pub fn new(damping: f64, beta: f64, number_of_undamped_iterations: usize, minimum_linear_iteration: usize, dropout: UnitInterval, reset_iterations_since_relinearisation: Vec<usize>) -> Self {
+        Self {
+            damping,
+            beta,
+            number_of_undamped_iterations,
+            minimum_linear_iteration,
+            dropout,
+            reset_iterations_since_relinearisation,
+        }
+    }
+
     fn damping(&self, iterations_since_relinearisation: usize) -> f64 {
         if iterations_since_relinearisation > self.number_of_undamped_iterations {
             self.damping

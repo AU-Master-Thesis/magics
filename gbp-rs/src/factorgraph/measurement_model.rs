@@ -187,6 +187,7 @@ pub type Measurement = dyn Fn(&DVector<f64>) -> DMatrix<f64>;
 
 // trait
 
+#[derive(Debug)]
 pub enum MeasurementModelKind {
     Linear,
     NonLinear,
@@ -224,4 +225,15 @@ where
     pub fn measurement(&self, x: &DVector<f64>) -> DMatrix<f64> {
         (self.measurement)(x)
     }
+}
+
+
+impl<L: Loss> std::fmt::Debug for MeasurementModel<L> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MeasurementModel")
+            .field("loss", &self.loss)
+            .field("kind", &self.kind)
+            .finish()
+    }
+    
 }

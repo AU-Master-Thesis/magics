@@ -1,3 +1,5 @@
+use nalgebra::DVector;
+
 use crate::gaussian::MultivariateNormal;
 
 use super::{
@@ -27,13 +29,13 @@ use super::{
 
 pub trait Factor<L: Loss>: std::fmt::Debug {
     fn compute_messages(&mut self, damping: f64) -> Vec<Message>;
-    fn energy(&self) -> f64;
-    fn residual(&self) -> nalgebra::DVector<f64>;
-    fn adj_means(&self) -> nalgebra::DVector<f64>;
+    fn energy(&self, evaluation_point: Option<DVector<f64>>) -> f64;
+    fn residual(&self, evaluation_point: Option<DVector<f64>>) -> DVector<f64>;
+    fn adj_means(&self) -> DVector<f64>;
     fn compute(&self) -> f64;
     fn robustify_loss(&self);
     fn measurement_model(&self) -> MeasurementModel<L>;
-    fn linerisation_point(&self) -> nalgebra::DVector<f64>;
+    fn linerisation_point(&self) -> DVector<f64>;
     fn get_gaussian(&self) -> &MultivariateNormal;
 }
 
