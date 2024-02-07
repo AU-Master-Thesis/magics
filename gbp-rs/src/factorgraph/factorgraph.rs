@@ -43,7 +43,14 @@ impl Default for GbpSettings {
 }
 
 impl GbpSettings {
-    pub fn new(damping: f64, beta: f64, number_of_undamped_iterations: usize, minimum_linear_iteration: usize, dropout: UnitInterval, reset_iterations_since_relinearisation: Vec<usize>) -> Self {
+    pub fn new(
+        damping: f64,
+        beta: f64,
+        number_of_undamped_iterations: usize,
+        minimum_linear_iteration: usize,
+        dropout: UnitInterval,
+        reset_iterations_since_relinearisation: Vec<usize>,
+    ) -> Self {
         Self {
             damping,
             beta,

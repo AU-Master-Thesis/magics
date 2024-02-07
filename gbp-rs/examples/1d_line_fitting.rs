@@ -36,7 +36,10 @@ impl<L: Loss> gbp_rs::factorgraph::factor::Factor<L> for Factor<L> {
     fn energy(&self, evaluation_point: Option<DVector<f64>>) -> f64 {
         let residual = self.residual(evaluation_point);
         0.5 * residual.transpose()
-            * self.measurement_model.loss.effective_covariance(Some(&residual))
+            * self
+                .measurement_model
+                .loss
+                .effective_covariance(Some(&residual))
             * residual
     }
 
@@ -45,9 +48,7 @@ impl<L: Loss> gbp_rs::factorgraph::factor::Factor<L> for Factor<L> {
         self.measurement_model.measurement(evaluation_point) - self.measurement
     }
 
-    fn adj_means(&self) -> DVector<f64> {
-        
-    }
+    fn adj_means(&self) -> DVector<f64> {}
 
     fn compute(&self) -> f64 {
         todo!()

@@ -218,7 +218,6 @@ where
     }
 }
 
-
 impl<L: Loss> std::fmt::Debug for MeasurementModel<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MeasurementModel")
@@ -226,5 +225,4 @@ impl<L: Loss> std::fmt::Debug for MeasurementModel<L> {
             .field("kind", &self.kind)
             .finish()
     }
-    
 }
