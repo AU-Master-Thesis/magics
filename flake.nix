@@ -49,7 +49,7 @@
           nativeBuildInputs = [
             pkgs.pkg-config
           ];
-          buildInputs = [just] ++ bevy-deps ++ rust-deps;
+          buildInputs = [just d2] ++ bevy-deps ++ rust-deps;
 
           LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
         };

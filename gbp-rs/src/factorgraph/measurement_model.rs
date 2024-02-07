@@ -179,15 +179,6 @@ impl Loss for crate::factorgraph::measurement_model::TukeyLoss {
 pub type Jacobian = dyn Fn(&DVector<f64>) -> DMatrix<f64>;
 pub type Measurement = dyn Fn(&DVector<f64>) -> DMatrix<f64>;
 
-// enum Loss {
-//     Squared(SquaredLoss),
-//     Huber(HuberLoss),
-//     Tukey(TukeyLoss),
-// }
-
-// trait
-
-#[derive(Debug)]
 pub enum MeasurementModelKind {
     Linear,
     NonLinear,
