@@ -11,33 +11,9 @@ rust-version.workspace = true
 [dependencies]
 # gbp-rs = { path = "../gbp-rs" }
 # factorgraph = { path = "../factorgraph" }
-bevy = { version = "0.12.1", default-features = false, features = [
-  "animation",
-  "bevy_animation",
-  "bevy_asset",
-  "bevy_core_pipeline",
-  "bevy_gizmos",
-  "bevy_pbr",
-  "bevy_render",
-  "bevy_scene",
-  "bevy_sprite",
-  "bevy_text",
-  "bevy_ui",
-  "bevy_winit",
-  "default_font",
-  "ktx2",
-  "multi-threaded",
-  "png",
-  # "tonemapping_luts",
-  # "zstd",
-  "wayland",
-  "dynamic_linking", # improves compile times for debug builds
-  # "wgpu_trace"
-  "bevy_gilrs",
-] }
+bevy = { version = "0.12.1", default-features = true, features = ["wayland"] }
 bevy-inspector-egui = "0.22.1"
 leafwing-input-manager = "0.11.2"
-# bevy_input_mapper = "0.0.3"
 
 toml = "0.8.8"
 serde = { version = "1.0.196", features = ["derive"] }
