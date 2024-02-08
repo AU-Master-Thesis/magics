@@ -1,4 +1,3 @@
-
 use crate::multivariate_normal::MultivariateNormal;
 
 use nalgebra::{DMatrix, DVector};
@@ -6,7 +5,6 @@ use nalgebra::{DMatrix, DVector};
 /// this consists of an information vector, precision matrix, and a mean vector.
 // Traditionally GBP does not require the sending of the last parameter mu (the mean), as it
 // can be calculated from the eta and lambda. We include it here for computational efficiency.
-
 
 #[derive(Debug)]
 pub struct Message(MultivariateNormal);
@@ -31,7 +29,6 @@ impl Message {
     }
 }
 
-
 impl std::ops::Add for Message {
     type Output = Self;
 
@@ -40,13 +37,11 @@ impl std::ops::Add for Message {
     }
 }
 
-
 impl std::ops::AddAssign for Message {
     fn add_assign(&mut self, other: Self) {
         self.0 += other.0;
     }
 }
-
 
 impl std::ops::Sub for Message {
     type Output = Self;

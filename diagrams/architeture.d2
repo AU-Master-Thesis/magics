@@ -1,22 +1,42 @@
 
+Simulation: {
 
-factorgraph: {
-  variables: {
-    belief
-    prior
-  }
-  factors: {
-    measurement
-    measurement_model: {
-        Loss
-    }
+Robot1: {
+  FactorGraph: {
+    Variable
+    Factor
   }
 }
+
+
+Robot2: {
+  FactorGraph: {
+    Variable
+    Factor
+  }
+}
+
+
+Robot1 <-> Robot2
+
+}
+
+# factorgraph: {
+#   variables: {
+#     belief
+#     prior
+#   }
+#   factors: {
+#     measurement
+#     measurement_model: {
+#         Loss
+#     }
+#   }
+# }
 
 # factorgraph.variables
 # factorgraph.factors
 
 # factorgraph.factors.measurements
 
-bevy
-
+# bevy
