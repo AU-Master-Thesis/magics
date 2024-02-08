@@ -73,23 +73,7 @@ fn bind_input(mut im: ResMut<InputMapper<CameraMode>>) {
             CameraMode::TwoDimensional,
             KeyCode::ArrowRight,
             "move_right",
-        )
-    // .bind_mouse_axis_move(
-    //     CameraMode::TwoDimensional,
-    //     MouseAxis::NegativeX,
-    //     "move_left",
-    // )
-    // .bind_mouse_axis_move(
-    //     CameraMode::TwoDimensional,
-    //     MouseAxis::PositiveX,
-    //     "move_right",
-    // )
-    // .bind_mouse_axis_move(
-    //     CameraMode::TwoDimensional,
-    //     MouseAxis::PositiveY,
-    //     "move_down",
-    // )
-    // .bind_mouse_axis_move(CameraMode::TwoDimensional, MouseAxis::NegativeY, "move_up");
+        );
 }
 
 fn logger(
