@@ -94,41 +94,10 @@ impl Model for DefaultFactor {
     }
 }
 
-// Eigen::MatrixXd InterrobotFactor::h_func_(const Eigen::VectorXd& X){
-//     Eigen::MatrixXd h = Eigen::MatrixXd::Zero(z_.rows(),z_.cols());
-//     Eigen::VectorXd X_diff = X(seqN(0,n_dofs_/2)) - X(seqN(n_dofs_, n_dofs_/2));
-//     X_diff += 1e-6*r_id_*Eigen::VectorXd::Ones(n_dofs_/2);
-
-//     double r = X_diff.norm();
-//     if (r <= safety_distance_){
-//         this->skip_flag = false;
-//         h(0) = 1.f*(1 - r/safety_distance_);
-//     }
-//     else {
-//         this->skip_flag = true;
-//     }
-
-//     return h;
-// };
-
-
-// Eigen::MatrixXd InterrobotFactor::J_func_(const Eigen::VectorXd& X){
-//     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(z_.rows(), n_dofs_*2);
-//     Eigen::VectorXd X_diff = X(seqN(0,n_dofs_/2)) - X(seqN(n_dofs_, n_dofs_/2));
-//     X_diff += 1e-6*r_id_*Eigen::VectorXd::Ones(n_dofs_/2);// Add a tiny random offset to avoid div/0 errors
-//     double r = X_diff.norm();
-//     if (r <= safety_distance_){
-//         J(0,seqN(0, n_dofs_/2)) = -1.f/safety_distance_/r * X_diff;
-//         J(0,seqN(n_dofs_, n_dofs_/2)) = 1.f/safety_distance_/r * X_diff;
-//     }
-//     return J;
-// };
-
-
 
 impl Model for InterRobotFactor {
     fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
-        let j = DMatrix::zeros(state.measurement.nrows(), state.dofs * 2);
+        let mut j = DMatrix::zeros(state.measurement.nrows(), state.dofs * 2);
         let x_diff = {
             let offset = state.dofs / 2;
             let mut x_diff = x.rows(0, offset) - x.rows(state.dofs, offset);
@@ -137,8 +106,8 @@ impl Model for InterRobotFactor {
         };
         let radius = x_diff.norm();
         if radius <= self.safety_distance {
-            j[(0, 0)] = -1.0 / self.safety_distance / radius * x_diff;
-            j[(0, state.dofs)] = 1.0 / self.safety_distance / radius * x_diff;
+            j.view_mut((0, 0), (0, state.dofs / 2)).copy_from(&(-1.0 / self.safety_distance / radius * x_diff));
+            j.view_mut((0, state.dofs), (0, state.dofs + state.dofs / 2)).copy_from(&(1.0 / self.safety_distance / radius * x_diff));
         }
         j
     }
@@ -156,7 +125,8 @@ impl Model for InterRobotFactor {
         let radius = x_diff.norm();
         if radius <= self.safety_distance {
             self.skip = false;
-            // TODO: might not be a correct translation from Eigen to nalgebra
+            // gbpplanner: h(0) = 1.f*(1 - r/safety_distance_);
+            // NOTE: in Eigen, indexing a matrix with a single index corresponds to indexing the matrix as a flattened array in column-major order.
             h[(0, 0)] = 1.0 * (1.0 - radius / self.safety_distance);
         } else {
             self.skip = true;
