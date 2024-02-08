@@ -1,7 +1,7 @@
 
 [workspace]
-resolver = "2"                        # Important! wgpu/Bevy needs this!
-members = ["gbp-rs", "gbpplanner-rs"]
+resolver = "2"                                       # Important! wgpu/Bevy needs this!
+members = ["factorgraph", "gbp-rs", "gbpplanner-rs"]
 
 [workspace.package]
 version = "0.1.0"

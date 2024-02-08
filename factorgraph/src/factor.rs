@@ -1,36 +1,34 @@
-
 use std::rc::Rc;
 
 use nalgebra::{DMatrix, DVector};
 
 use crate::variable::Variable;
 
-
-const JACOBIAN_DELTA: f64 = 1e-8;
-
 struct FactorState {
-    measurement: DVector<f64>,
+    measurement: DVector<f64>, // called z_ in gbpplanner
     measurement_precision: DMatrix<f64>,
+    /// Number of degrees of freedom
+    dofs: usize,
 }
-
-
 
 #[derive(Debug)]
 pub struct Factor {
-
     pub adjacent_variables: Vec<Rc<Variable>>,
     pub valid: bool,
     pub kind: FactorKind,
     pub state: FactorState,
 }
 
-
-// struct 
-
-
+/// Interrobot factor: for avoidance of other robots
+/// This factor results in a high energy or cost if two robots are planning to be in the same
+/// position at the same timestep (collision). This factor is created between variables of two robots.
+/// The factor has 0 energy if the variables are further away than the safety distance.
 #[derive(Debug, Clone, Copy)]
 pub struct InterRobotFactor {
-    safety_distance: f64
+    // TODO: constrain to be positive
+    safety_distance: f64,
+    /// 
+    skip: bool,
 }
 
 #[derive(Debug)]
@@ -47,56 +45,184 @@ enum FactorKind {
     Dynamic(DynamicFactor),
 }
 
-
 trait Model {
     fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64>;
-    fn measurement(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64>;
+    /// Measurement function
+    /// **Note**: This method takes a mutable reference to self, because the interrobot factor 
+    fn measurement(&mut self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64>;
     fn first_order_jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
         let h0 = self.measurement(state, x);
         // DMatrix::from_fn
 
         // TODO: make sexier
         let mut retv = DMatrix::zeros(h0.nrows(), x.nrows());
-        
+
         for i in 0..x.nrows() {
             let mut x_copy = x.clone();
-            x_copy[i] += JACOBIAN_DELTA;
-            let column = (self.measurement(state, &x_copy) - h0) / JACOBIAN_DELTA;
+            x_copy[i] += self.jacobian_delta();
+            let column = (self.measurement(state, &x_copy) - h0) / self.jacobian_delta();
             retv.set_column(i, &column);
         }
         retv
     }
 
+    fn jacobian_delta(&self) -> f64;
+
+    /// Whether to skip this factor in the update step
+    /// In gbpplanner, this is only used for the interrobot factor.
+    /// The other factors are always included in the update step.
+    fn skip(&self) -> bool;
 }
 
-
 impl Model for DefaultFactor {
+    /// Default jacobian is the first order taylor series jacobian
     fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
         self.first_order_jacobian(state, x)
     }
 
     /// Default meaurement function is the identity function
-    fn measurement(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
+    fn measurement(&mut self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
         x
+    }
+
+    fn skip(&self) -> bool {
+        false
+    }
+
+    fn jacobian_delta(&self) -> f64 {
+        1e-8
     }
 }
 
+// Eigen::MatrixXd InterrobotFactor::h_func_(const Eigen::VectorXd& X){
+//     Eigen::MatrixXd h = Eigen::MatrixXd::Zero(z_.rows(),z_.cols());
+//     Eigen::VectorXd X_diff = X(seqN(0,n_dofs_/2)) - X(seqN(n_dofs_, n_dofs_/2));
+//     X_diff += 1e-6*r_id_*Eigen::VectorXd::Ones(n_dofs_/2);
+
+//     double r = X_diff.norm();
+//     if (r <= safety_distance_){
+//         this->skip_flag = false;
+//         h(0) = 1.f*(1 - r/safety_distance_);
+//     }
+//     else {
+//         this->skip_flag = true;
+//     }
+
+//     return h;
+// };
+
+
+// Eigen::MatrixXd InterrobotFactor::J_func_(const Eigen::VectorXd& X){
+//     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(z_.rows(), n_dofs_*2);
+//     Eigen::VectorXd X_diff = X(seqN(0,n_dofs_/2)) - X(seqN(n_dofs_, n_dofs_/2));
+//     X_diff += 1e-6*r_id_*Eigen::VectorXd::Ones(n_dofs_/2);// Add a tiny random offset to avoid div/0 errors
+//     double r = X_diff.norm();
+//     if (r <= safety_distance_){
+//         J(0,seqN(0, n_dofs_/2)) = -1.f/safety_distance_/r * X_diff;
+//         J(0,seqN(n_dofs_, n_dofs_/2)) = 1.f/safety_distance_/r * X_diff;
+//     }
+//     return J;
+// };
+
+
+
 impl Model for InterRobotFactor {
     fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
-        todo!()
+        let j = DMatrix::zeros(state.measurement.nrows(), state.dofs * 2);
+        let x_diff = {
+            let offset = state.dofs / 2;
+            let mut x_diff = x.rows(0, offset) - x.rows(state.dofs, offset);
+            x_diff += 1e-6 * DVector::from_element(offset, 1.0); // Add a tiny random offset to avoid div/0 errors
+            x_diff
+        };
+        let radius = x_diff.norm();
+        if radius <= self.safety_distance {
+            j[(0, 0)] = -1.0 / self.safety_distance / radius * x_diff;
+            j[(0, state.dofs)] = 1.0 / self.safety_distance / radius * x_diff;
+        }
+        j
     }
 
-    fn measurement(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
-        todo!()
+    fn measurement(&mut self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
+        let mut h = DMatrix::zeros(state.measurement.nrows(), state.measurement.ncols());
+        let x_diff = {
+            let mut x_diff = x.rows(0, state.dofs / 2) - x.rows(state.dofs, state.dofs / 2);
+            // NOTE: In gbplanner, they weight this by the robot id, why they do this is unclear
+            // as a robot id should be unique, and not have any semantics of distance/weight.
+            x_diff += 1e-6 * DVector::from_element(state.dofs / 2, 1.0);
+            x_diff
+        };
+
+        let radius = x_diff.norm();
+        if radius <= self.safety_distance {
+            self.skip = false;
+            // TODO: might not be a correct translation from Eigen to nalgebra
+            h[(0, 0)] = 1.0 * (1.0 - radius / self.safety_distance);
+        } else {
+            self.skip = true;
+        }
+
+        h
+    }
+
+    fn jacobian_delta(&self) -> f64 {
+        1e-2
+    }
+
+    fn skip(&self) -> bool {
+        self.skip
     }
 }
 
 impl Model for DynamicFactor {
     fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
+        
+    }
+
+    fn measurement(&mut self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
         todo!()
     }
 
-    fn measurement(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
-        todo!()
+    fn skip(&self) -> bool {
+        false
+    }
+
+    fn jacobian_delta(&self) -> f64 {
+        1e-2
+    }
+}
+
+
+impl Model for FactorKind {
+    fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
+        match self {
+            FactorKind::Default(f) => f.jacobian(state, x),
+            FactorKind::InterRobot(f) => f.jacobian(state, x),
+            FactorKind::Dynamic(f) => f.jacobian(state, x),
+        }
+    }
+
+    fn measurement(&mut self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
+        match self {
+            FactorKind::Default(f) => f.measurement(state, x),
+            FactorKind::InterRobot(f) => f.measurement(state, x),
+            FactorKind::Dynamic(f) => f.measurement(state, x),
+        }
+    }
+
+    fn skip(&self) -> bool {
+        match self {
+            FactorKind::Default(f) => f.skip(),
+            FactorKind::InterRobot(f) => f.skip(),
+            FactorKind::Dynamic(f) => f.skip(),
+        }
+    }
+
+    fn jacobian_delta(&self) -> f64 {
+        match self {
+            FactorKind::Default(f) => f.jacobian_delta(),
+            FactorKind::InterRobot(f) => f.jacobian_delta(),
+            FactorKind::Dynamic(f) => f.jacobian_delta(),
+        }
     }
 }

@@ -1,7 +1,7 @@
 mod factor;
-mod variable;
 mod message;
 mod multivariate_normal;
+mod variable;
 
 use std::{ops::Deref, rc::Rc};
 
@@ -46,16 +46,18 @@ impl FactorGraph {
             for variable in factor.adjacent_variables.iter() {
                 // Check if the factor needs to be skipped
                 let variable_in_internal_graph = variable.graph_id == self.id;
-                
+
                 match mode {
                     MessagePassingMode::Internal if !variable_in_internal_graph => continue,
-                    MessagePassingMode::External if variable_in_internal_graph || self.interrobot_comms_active => continue,
+                    MessagePassingMode::External
+                        if variable_in_internal_graph || self.interrobot_comms_active =>
+                    {
+                        continue
+                    }
                     _ => {} // Remove this empty match arm
                 }
-                
+
                 // Read message from each connected variable
-
-
             }
 
             // Calculate factor potential and create outgoing messages
@@ -68,7 +70,6 @@ impl FactorGraph {
     /// Aggregate over all adjacent factors, and send.
     /// Aggregation: product of all incoming messages
     pub fn variable_iteration(&mut self, mode: MessagePassingMode) {
-        for (i, variable) in self.variables.iter().enumerate() {
-        }
+        for (i, variable) in self.variables.iter().enumerate() {}
     }
 }
