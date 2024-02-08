@@ -10,6 +10,7 @@ rust-version.workspace = true
 
 [dependencies]
 gbp-rs = { path = "../gbp-rs" }
+factorgraph = { path = "../factorgraph" }
 bevy = { version = "0.12.1", default-features = false, features = [
   "animation",
   "bevy_animation",
@@ -34,6 +35,7 @@ bevy = { version = "0.12.1", default-features = false, features = [
   # "wgpu_trace"
 ] }
 bevy-inspector-egui = "0.22.1"
+bevy_input_mapper = "0.0.3"
 
 toml = "0.8.8"
 serde = { version = "1.0.196", features = ["derive"] }
