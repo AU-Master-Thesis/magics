@@ -9,8 +9,8 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gbp-rs = { path = "../gbp-rs" }
-factorgraph = { path = "../factorgraph" }
+# gbp-rs = { path = "../gbp-rs" }
+# factorgraph = { path = "../factorgraph" }
 bevy = { version = "0.12.1", default-features = false, features = [
   "animation",
   "bevy_animation",
@@ -33,9 +33,11 @@ bevy = { version = "0.12.1", default-features = false, features = [
   "wayland",
   "dynamic_linking", # improves compile times for debug builds
   # "wgpu_trace"
+  "bevy_gilrs",
 ] }
 bevy-inspector-egui = "0.22.1"
-bevy_input_mapper = "0.0.3"
+leafwing-input-manager = "0.11.2"
+# bevy_input_mapper = "0.0.3"
 
 toml = "0.8.8"
 serde = { version = "1.0.196", features = ["derive"] }

@@ -1,15 +1,18 @@
 mod config;
 mod shapes;
+// mod factorgraph;
+mod environment;
+mod input;
 use crate::config::Config;
 // use crate::shapes::ShapesPlugin;
-use crate::factorgraph::FactorGraphPlugin;
+// use crate::factorgraph::FactorGraphPlugin;
 use crate::environment::EnvironmentPlugin;
 use crate::input::InputPlugin;
 use bevy::prelude::*;
 use clap::Parser;
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use gbp_rs::factorgraph;
+// use gbp_rs::factorgraph;
 
 #[derive(Parser)]
 #[clap(version, author, about)]
@@ -42,11 +45,11 @@ fn main() -> color_eyre::eyre::Result<()> {
     };
 
     // let shapes = ShapesPlugin::new([Color::RED, Color::GREEN, Color::BLUE, Color::YELLOW]);
-    let factorgraph = FactorGraphPlugin{config};
+    // let factorgraph = FactorGraphPlugin { config };
 
     App::new()
-        .insert_resource(self.config.clone())
-        .add_plugins((DefaultPlugins, factorgraph, EnvironmentPlugin, InputPlugin))
+        // .insert_resource(config.clone())
+        .add_plugins((DefaultPlugins, EnvironmentPlugin, InputPlugin))
         .add_plugins(WorldInspectorPlugin::new())
         .run();
 

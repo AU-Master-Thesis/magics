@@ -1,97 +1,106 @@
 use bevy::prelude::*;
-use bevy_input_mapper::{
-    input::{events::*, gamepad::GamepadAxis, mouse::MouseAxis},
-    InputMapper, InputMapperPlugin,
-};
+use leafwing_input_manager::{prelude::*, user_input::InputKind};
+// use bevy_input_mapper::{
+//     input::{events::*, gamepad::GamepadAxis},
+//     InputMapper, InputMapperPlugin,
+// };
 
-pub struct InputPlugin {
-    config: Config,
-}
+pub struct InputPlugin;
+// {
+//     config: Config,
+// }
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(InputMapperPlugin::default())
-            .add_system(Startup, bind_input)
-            .add_system(Update, handle_input)
-            .add_system(Update, logger);
+        app
+            // .add_plugins(InputManagerPlugin)
+            // .add_state::<CameraMode>()
+            // .add_plugins(InputMapperPlugin::<CameraMode>::new())
+            // .add_system(Startup, bind_input)
+            // .add_system(Update, handle_input)
+            // .add_system(Update, logger);
+            // This plugin maps inputs to an input-type agnostic action-state
+            // We need to provide it with an enum which stores the possible actions a player could take
+            .add_plugins(InputManagerPlugin::<PlayerAction>::default())
+            .add_systems(Startup, spawn_player)
+            .add_systems(Update, use_actions);
     }
 }
 
-/// Here, we define a State for Scenario.
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum CameraMode {
-    #[default]
-    TwoDimensional,
-    ThreeDimensional,
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+enum PlayerAction {
+    Run,
+    Jump,
+    UseItem,
 }
 
-/// Binding input to actions in simulation
-fn bind_input(mut im: ResMut<InputMapper<CameraMode>>) {
-    // On default Scenario, pressing Space or Gamepad South triggers jump action.
-    im.bind_keyboard_key_press(CameraMode::TwoDimensional, KeyCode::Space, "change_mode")
-        .bind_gamepad_button_press(
-            CameraMode::TwoDimensional,
-            GamepadButtonType::South,
-            "change_mode",
-        )
-        // On swimming Scenario/State, pressing Space or Gamepad South triggers swim_up action.
-        .bind_keyboard_key_press(CameraMode::ThreeDimensional, KeyCode::Space, "swim_up")
-        .bind_gamepad_button_press(
-            CameraMode::ThreeDimensional,
-            GamepadButtonType::South,
-            "swim_up",
-        )
-        // Here we bind gamepad's right stick and mouse movements to camera.
-        .bind_gamepad_axis_move(
-            CameraMode::TwoDimensional,
-            GamepadAxis::NegativeLeftStickX,
-            "move_left",
-        )
-        .bind_gamepad_axis_move(
-            CameraMode::TwoDimensional,
-            GamepadAxis::PositiveLeftStickX,
-            "move_right",
-        )
-        .bind_gamepad_axis_move(
-            CameraMode::TwoDimensional,
-            GamepadAxis::NegativeLeftStickY,
-            "move_down",
-        )
-        .bind_gamepad_axis_move(
-            CameraMode::TwoDimensional,
-            GamepadAxis::PositiveLeftStickY,
-            "move_up",
-        )
-        .bind_keyboard_key_press(CameraMode::TwoDimensional, KeyCode::W, "move_up")
-        .bind_keyboard_key_press(CameraMode::TwoDimensional, KeyCode::A, "move_left")
-        .bind_keyboard_key_press(CameraMode::TwoDimensional, KeyCode::S, "move_down")
-        .bind_keyboard_key_press(CameraMode::TwoDimensional, KeyCode::D, "move_right")
-        .bind_keyboard_key_press(CameraMode::TwoDimensional, KeyCode::ArrowUp, "move_up")
-        .bind_keyboard_key_press(CameraMode::TwoDimensional, KeyCode::ArrowLeft, "move_left")
-        .bind_keyboard_key_press(CameraMode::TwoDimensional, KeyCode::ArrowDown, "move_down")
-        .bind_keyboard_key_press(
-            CameraMode::TwoDimensional,
-            KeyCode::ArrowRight,
-            "move_right",
+// Exhaustively match `PlayerAction` and define the default binding to the input
+impl PlayerAction {
+    fn default_keyboard_mouse_input(action: PlayerAction) -> UserInput {
+        // Match against the provided action to get the correct default keyboard-mouse input
+        match action {
+            Self::Run => UserInput::VirtualDPad(VirtualDPad::wasd()),
+            Self::Jump => UserInput::Single(InputKind::Keyboard(KeyCode::Space)),
+            Self::UseItem => UserInput::Single(InputKind::Mouse(MouseButton::Left)),
+        }
+    }
+
+    fn default_gamepad_input(action: PlayerAction) -> UserInput {
+        // Match against the provided action to get the correct default gamepad input
+        match action {
+            Self::Run => UserInput::Single(InputKind::DualAxis(DualAxis::left_stick())),
+            Self::Jump => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::South)),
+            Self::UseItem => {
+                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::RightTrigger2))
+            }
+        }
+    }
+}
+
+#[derive(Component)]
+struct Player;
+
+fn spawn_player(mut commands: Commands) {
+    // Create an `InputMap` to add default inputs to
+    let mut input_map = InputMap::default();
+
+    // Loop through each action in `PlayerAction` and get the default `UserInput`,
+    // then insert each default input into input_map
+    for action in PlayerAction::variants() {
+        input_map.insert(PlayerAction::default_keyboard_mouse_input(action), action);
+        input_map.insert(PlayerAction::default_gamepad_input(action), action);
+    }
+
+    // Spawn the player with the populated input_map
+    commands
+        .spawn(InputManagerBundle::<PlayerAction> {
+            input_map,
+            ..default()
+        })
+        .insert(Player);
+}
+
+fn use_actions(query: Query<&ActionState<PlayerAction>, With<Player>>) {
+    let action_state = query.single();
+
+    // When the default input for `PlayerAction::Run` is pressed, print the clamped direction of the axis
+    if action_state.pressed(PlayerAction::Run) {
+        println!(
+            "Moving in direction {}",
+            action_state
+                .clamped_axis_pair(PlayerAction::Run)
+                .unwrap()
+                .xy()
         );
-}
+    }
 
-fn logger(
-    mut action_active: EventReader<InputActionActive>,
-    mut action_started: EventReader<InputActionStarted>,
-    mut action_continuing: EventReader<InputActionContinuing>,
-    mut action_finished: EventReader<InputActionFinished>,
-) {
-    for ev in action_active.iter() {
-        info!("Action Active: {}, {}", ev.0, ev.1);
+    // When the default input for `PlayerAction::Jump` is pressed, print "Jump!"
+    if action_state.just_pressed(PlayerAction::Jump) {
+        println!("Jumped!");
     }
-    for ev in action_started.iter() {
-        info!("Action Started: {}, {}", ev.0, ev.1);
-    }
-    for ev in action_continuing.iter() {
-        info!("Action Continuing: {}, {}", ev.0, ev.1);
-    }
-    for ev in action_finished.iter() {
-        info!("Action Finished: {}", ev.0);
+
+    // When the default input for `PlayerAction::UseItem` is pressed, print "Used an Item!"
+    if action_state.just_pressed(PlayerAction::UseItem) {
+        println!("Used an Item!");
     }
 }
