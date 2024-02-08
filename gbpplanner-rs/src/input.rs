@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle, transform};
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 
 pub struct InputPlugin;
@@ -45,9 +45,13 @@ impl InputAction {
 }
 
 #[derive(Component)]
-struct Player;
+struct MoveableObject;
 
-fn bind_input(mut commands: Commands) {
+fn bind_input(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
     // Create an `InputMap` to add default inputs to
     let mut input_map = InputMap::default();
 
@@ -64,14 +68,27 @@ fn bind_input(mut commands: Commands) {
             input_map,
             ..default()
         })
-        .insert(Player);
+        .insert(MaterialMesh2dBundle {
+            mesh: meshes.add(shape::Circle::new(50.).into()).into(),
+            material: materials.add(ColorMaterial::from(Color::PURPLE)),
+            // transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
+            ..default()
+        })
+        .insert(MoveableObject);
 }
 
-fn use_actions(query: Query<&ActionState<InputAction>, With<Player>>) {
-    let action_state = query.single();
+fn use_actions(mut query: Query<(&ActionState<InputAction>, &mut Transform)>) {
+    // let action_state = query.single();
+    let (action_state, mut _moveable_object) = query.single_mut();
 
     // When the default input for `InputAction::Move` is pressed, print the clamped direction of the axis
     if action_state.pressed(InputAction::Move) {
+        _moveable_object.translation += action_state
+            .clamped_axis_pair(InputAction::Move)
+            .unwrap()
+            .xy()
+            .extend(0.0)
+            * 5.0;
         println!(
             "Moving in direction {}",
             action_state

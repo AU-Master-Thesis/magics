@@ -49,7 +49,7 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     App::new()
         // .insert_resource(config.clone())
-        .add_plugins((DefaultPlugins, InputPlugin))
+        .add_plugins((DefaultPlugins, EnvironmentPlugin, InputPlugin))
         .add_plugins(WorldInspectorPlugin::new())
         .run();
 

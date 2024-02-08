@@ -11,6 +11,6 @@ impl Plugin for EnvironmentPlugin {
     }
 }
 
-fn build_environment() {
-    todo!()
+fn build_environment(mut commands: Commands) {
+    commands.spawn(Camera2dBundle::default());
 }
