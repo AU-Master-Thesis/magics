@@ -62,7 +62,7 @@ fn main() -> color_eyre::eyre::Result<()> {
         .add_plugins((
             DefaultPlugins,
             AssetLoaderPlugin,
-            // EnvironmentPlugin,
+            EnvironmentPlugin,
             MovementPlugin,
             InputPlugin,
             MoveableObjectPlugin,
