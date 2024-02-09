@@ -1,5 +1,16 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
-use leafwing_input_manager::prelude::*;
+use bevy::prelude::*;
+// use leafwing_input_manager::prelude::*;
+
+use crate::{
+    asset_loader::SceneAssets,
+    movement::{Acceleration, MovingObjectBundle, Velocity},
+};
+
+const START_TRANSLATION: Vec3 = Vec3::new(0., 0., 0.);
+pub const SPEED: f32 = 1.0; // m/s
+pub const ANGULAR_SPEED: f32 = 1.0; // rad/s
+pub const BOOST_SPEED: f32 = 5.0; // m/s
+pub const BOOST_ANGULAR_SPEED: f32 = 5.0; // rad/s
 
 pub struct MoveableObjectPlugin;
 
@@ -7,7 +18,7 @@ impl Plugin for MoveableObjectPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<MoveableObjectMovementState>()
             .add_state::<MoveableObjectVisibilityState>()
-            .add_systems(PostStartup, spawn);
+            .add_systems(Startup, spawn);
         // .add_systems(Update, (visibility_actions, movement_actions));
     }
 }
@@ -33,26 +44,30 @@ pub enum MoveableObjectVisibilityState {
 
 fn spawn(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    query: Query<(Entity, With<InputMap<crate::input::InputAction>>)>,
+    // mut meshes: ResMut<Assets<Mesh>>,
+    // mut materials: ResMut<Assets<ColorMaterial>>,
+    // query: Query<(Entity, With<InputMap<crate::input::InputAction>>)>,
     // query: Query<(Entity, With<ActionState<crate::input::InputAction>>)>,
+    scene_assets: Res<SceneAssets>,
 ) {
-    if let Ok((entity, _)) = query.get_single() {
-        commands.entity(entity).insert(MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(5.).into()).into(),
-            material: materials.add(ColorMaterial::from(Color::PURPLE)),
-            // transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
-            ..default()
-        });
-        // .insert(MoveableObject)
-    }
-    // commands
-    //     .insert(MaterialMesh2dBundle {
+    // if let Ok((entity, _)) = query.get_single() {
+    //     commands.entity(entity).insert(MaterialMesh2dBundle {
     //         mesh: meshes.add(shape::Circle::new(5.).into()).into(),
     //         material: materials.add(ColorMaterial::from(Color::PURPLE)),
     //         // transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
     //         ..default()
-    //     })
-    //     .insert(MoveableObject);
+    //     });
+    // }
+    commands.spawn((
+        MovingObjectBundle {
+            velocity: Velocity::new(Vec3::ZERO),
+            acceleration: Acceleration::new(Vec3::ZERO),
+            model: SceneBundle {
+                scene: scene_assets.roomba.clone(),
+                transform: Transform::from_translation(START_TRANSLATION),
+                ..default()
+            },
+        },
+        MoveableObject,
+    ));
 }

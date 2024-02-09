@@ -14,6 +14,7 @@ rust-version.workspace = true
 bevy = { version = "0.12.1", default-features = true, features = ["wayland"] }
 bevy-inspector-egui = "0.22.1"
 leafwing-input-manager = "0.11.2"
+catppuccin = "1.4.0"
 
 toml = "0.8.8"
 serde = { version = "1.0.196", features = ["derive"] }

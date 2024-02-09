@@ -1,15 +1,23 @@
 mod config;
 mod shapes;
 // mod factorgraph;
+mod asset_loader;
+mod camera;
 mod environment;
 mod input;
 mod moveable_object;
+mod movement;
+
 use crate::config::Config;
 // use crate::shapes::ShapesPlugin;
 // use crate::factorgraph::FactorGraphPlugin;
+use crate::asset_loader::AssetLoaderPlugin;
+use crate::camera::CameraPlugin;
 use crate::environment::EnvironmentPlugin;
 use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
+use crate::movement::MovementPlugin;
+
 use bevy::prelude::*;
 use clap::Parser;
 
@@ -53,9 +61,12 @@ fn main() -> color_eyre::eyre::Result<()> {
         // .insert_resource(config.clone())
         .add_plugins((
             DefaultPlugins,
-            EnvironmentPlugin,
+            AssetLoaderPlugin,
+            // EnvironmentPlugin,
+            MovementPlugin,
             InputPlugin,
             MoveableObjectPlugin,
+            CameraPlugin,
         ))
         .add_plugins(WorldInspectorPlugin::new())
         .run();

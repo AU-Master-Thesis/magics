@@ -2,6 +2,7 @@
     "rust-analyzer.linkedProjects": [
         "./gbp-rs/Cargo.toml",
         "./gbp-rs/Cargo.toml",
-        "./gbp-rs/Cargo.toml"
+        "./gbp-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml"
     ]
 }
