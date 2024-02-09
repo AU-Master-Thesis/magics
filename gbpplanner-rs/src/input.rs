@@ -1,6 +1,8 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
+use bevy::prelude::*;
 // use bevy_inspector_egui::egui::scroll_area::State;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
+
+use crate::moveable_object::{MoveableObjectMovementState, MoveableObjectVisibilityState};
 
 pub struct InputPlugin;
 // {
@@ -10,31 +12,15 @@ pub struct InputPlugin;
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(InputManagerPlugin::<InputAction>::default())
-            .add_state::<MoveableObjectMovementState>()
-            .add_state::<MoveableObjectVisibilityState>()
+            // .add_state::<MoveableObjectMovementState>()
+            // .add_state::<MoveableObjectVisibilityState>()
             .add_systems(Startup, bind_input)
             .add_systems(Update, (visibility_actions, movement_actions));
     }
 }
 
-/// Here, we define a State for Scenario.
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum MoveableObjectMovementState {
-    #[default]
-    Default,
-    Boost,
-}
-
-// define visibility state for the moveable object
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum MoveableObjectVisibilityState {
-    #[default]
-    Visible,
-    Hidden,
-}
-
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
-enum InputAction {
+pub enum InputAction {
     MoveObject,
     MoveCamera,
     Boost,
@@ -66,14 +52,7 @@ impl InputAction {
     }
 }
 
-#[derive(Component)]
-struct MoveableObject;
-
-fn bind_input(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+fn bind_input(mut commands: Commands) {
     // Create an `InputMap` to add default inputs to
     let mut input_map = InputMap::default();
 
@@ -85,18 +64,18 @@ fn bind_input(
     }
 
     // Spawn the player with the populated input_map
-    commands
-        .spawn(InputManagerBundle::<InputAction> {
-            input_map,
-            ..default()
-        })
-        .insert(MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(50.).into()).into(),
-            material: materials.add(ColorMaterial::from(Color::PURPLE)),
-            // transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
-            ..default()
-        })
-        .insert(MoveableObject);
+    commands.spawn(InputManagerBundle::<InputAction> {
+        input_map,
+        ..default()
+    });
+
+    // .insert(MaterialMesh2dBundle {
+    //     mesh: meshes.add(shape::Circle::new(5.).into()).into(),
+    //     material: materials.add(ColorMaterial::from(Color::PURPLE)),
+    //     // transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
+    //     ..default()
+    // })
+    // .insert(MoveableObject);
 }
 
 fn movement_actions(
@@ -110,8 +89,8 @@ fn movement_actions(
     // When the default input for `InputAction::Move` is pressed, print the clamped direction of the axis
     if action_state.pressed(InputAction::MoveObject) {
         let scale = match state.get() {
-            MoveableObjectMovementState::Default => 3.0,
-            MoveableObjectMovementState::Boost => 10.0,
+            MoveableObjectMovementState::Default => 1.0,
+            MoveableObjectMovementState::Boost => 5.0,
         };
         _moveable_object.translation += action_state
             .clamped_axis_pair(InputAction::MoveObject)
