@@ -1,15 +1,25 @@
-mod factor;
-mod message;
-mod multivariate_normal;
-mod variable;
+pub mod factor;
+pub mod message;
+pub mod multivariate_normal;
+pub mod variable;
+pub mod robot;
+pub mod bbox;
 
-use std::{ops::Deref, rc::Rc};
+pub mod prelude {
+    pub use super::Factor;
+    pub use super::Variable;
+    pub use super::FactorGraph;
+    pub use super::MessagePassingMode;
+}
+
+use std::rc::Rc;
 
 pub use factor::Factor;
 pub use variable::Variable;
 
 pub type NodeId = usize;
 pub type FactorGraphId = usize;
+
 
 #[derive(Debug)]
 pub enum MessagePassingMode {
@@ -20,7 +30,7 @@ pub enum MessagePassingMode {
 /// A factor graph is a bipartite graph consisting of two types of nodes: factors and variables.
 #[derive(Debug)]
 pub struct FactorGraph {
-    pub id: FactorGraphId,
+    // pub id: FactorGraphId,
     pub factors: Vec<Rc<Factor>>,
     pub variables: Vec<Rc<Variable>>,
     // TODO: implmement such that the communication flag is per robot factorgraph connection
@@ -29,9 +39,9 @@ pub struct FactorGraph {
 }
 
 impl FactorGraph {
-    pub fn new(id: FactorGraphId) -> Self {
+    pub fn new() -> Self {
         Self {
-            id,
+            // id,
             factors: Vec::new(),
             variables: Vec::new(),
             interrobot_comms_active: false,
@@ -45,7 +55,8 @@ impl FactorGraph {
         for (i, factor) in self.factors.iter().enumerate() {
             for variable in factor.adjacent_variables.iter() {
                 // Check if the factor needs to be skipped
-                let variable_in_internal_graph = variable.graph_id == self.id;
+                // let variable_in_internal_graph = variable.graph_id == self.id;
+                let variable_in_internal_graph = false;
 
                 match mode {
                     MessagePassingMode::Internal if !variable_in_internal_graph => continue,
@@ -61,7 +72,7 @@ impl FactorGraph {
             }
 
             // Calculate factor potential and create outgoing messages
-            *factor.update();
+            // *factor.update();
             // factor.up
         }
     }
