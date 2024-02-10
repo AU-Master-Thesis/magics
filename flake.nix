@@ -29,6 +29,7 @@
         cargo-info
         cargo-outdated
         cargo-show-asm
+        cargo-nextest
 
         #   # cargo-profiler
         #   # cargo-feature
