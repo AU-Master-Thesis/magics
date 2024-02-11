@@ -1,4 +1,3 @@
-
 [workspace]
 resolver = "2"                                       # Important! wgpu/Bevy needs this!
 members = ["factorgraph", "gbp-rs", "gbpplanner-rs"]
@@ -11,7 +10,7 @@ authors = [
   "Jens Høigaard Jensen <jens.jens@live.dk>",
   "Kristoffer Plagborg Bak Sørensen <kristoffer.pbs@tuta.io>",
 ]
-rust-version = "1.75"
+rust-version = "1.76"
 license = "MIT"
 
 [lints.rust]
@@ -25,12 +24,12 @@ unwrap_used = "deny"
 expect_used = "deny"
 
 
-# [profile.release]
-# codegen-units = 1
-# debug = false
-# debug-assertions = false
-# lto = "fat"
-# opt-level = 3
-# panic = "abort"
-# rpath = false
-# strip = true
+[profile.release]
+codegen-units = 1
+debug = false
+debug-assertions = false
+lto = "fat"
+opt-level = 3
+panic = "abort"
+rpath = false
+strip = true
