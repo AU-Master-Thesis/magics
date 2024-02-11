@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 
 use crate::{
-    camera::{self, MainCamera},
+    camera::{self, CameraMovementMode, MainCamera},
     moveable_object::{
         self, MoveableObject, MoveableObjectMovementState, MoveableObjectVisibilityState,
     },
@@ -38,9 +38,10 @@ pub enum InputAction {
     MoveObject,
     RotateObjectClockwise,
     RotateObjectCounterClockwise,
-    MoveCamera,
     Boost,
     Toggle,
+    MoveCamera,
+    ToggleCameraMovementMode,
 }
 
 // Exhaustively match `InputAction` and define the default binding to the input
@@ -53,9 +54,10 @@ impl InputAction {
             Self::RotateObjectCounterClockwise => {
                 UserInput::Single(InputKind::Keyboard(KeyCode::Q))
             }
-            Self::MoveCamera => UserInput::VirtualDPad(VirtualDPad::arrow_keys()),
             Self::Boost => UserInput::Single(InputKind::Keyboard(KeyCode::ShiftLeft)),
             Self::Toggle => UserInput::Single(InputKind::Keyboard(KeyCode::F)),
+            Self::MoveCamera => UserInput::VirtualDPad(VirtualDPad::arrow_keys()),
+            Self::ToggleCameraMovementMode => UserInput::Single(InputKind::Keyboard(KeyCode::C)),
         }
     }
 
@@ -69,11 +71,14 @@ impl InputAction {
             Self::RotateObjectCounterClockwise => {
                 UserInput::Single(InputKind::GamepadButton(GamepadButtonType::LeftTrigger))
             }
-            Self::MoveCamera => UserInput::Single(InputKind::DualAxis(DualAxis::right_stick())),
             Self::Boost => {
                 UserInput::Single(InputKind::GamepadButton(GamepadButtonType::LeftTrigger2))
             }
             Self::Toggle => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::South)),
+            Self::MoveCamera => UserInput::Single(InputKind::DualAxis(DualAxis::right_stick())),
+            Self::ToggleCameraMovementMode => {
+                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::North))
+            }
         }
     }
 }
@@ -96,28 +101,75 @@ fn bind_camera_input(mut commands: Commands, query: Query<(Entity, With<MainCame
     }
 }
 
-fn camera_actions(mut query: Query<(&ActionState<InputAction>, &mut Velocity), With<MainCamera>>) {
-    if let Ok((action_state, mut velocity)) = query.get_single_mut() {
+fn camera_actions(
+    state: Res<State<CameraMovementMode>>,
+    mut next_state: ResMut<NextState<CameraMovementMode>>,
+    mut query: Query<
+        (
+            &ActionState<InputAction>,
+            &mut Velocity,
+            &mut AngularVelocity,
+            &Transform,
+        ),
+        With<MainCamera>,
+    >,
+) {
+    if let Ok((action_state, mut velocity, mut angular_velocity, camera_transform)) =
+        query.get_single_mut()
+    {
+        // if action_state.just_pressed(InputAction::ToggleCameraMovementMode) {
+
         if action_state.pressed(InputAction::MoveCamera) {
-            let action = action_state
-                .clamped_axis_pair(InputAction::MoveCamera)
-                .unwrap()
-                .xy()
-                .normalize();
+            match state.get() {
+                CameraMovementMode::Linear => {
+                    let action = action_state
+                        .clamped_axis_pair(InputAction::MoveCamera)
+                        .unwrap()
+                        .xy()
+                        .normalize();
 
-            velocity.value = Vec3::new(action.x, 0.0, action.y) * camera::SPEED;
+                    velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
 
-            info!(
-                "Moving camera in direction {}",
-                action_state
-                    .clamped_axis_pair(InputAction::MoveCamera)
-                    .unwrap()
-                    .xy()
-            );
+                    info!(
+                        "Moving camera in direction {}",
+                        action_state
+                            .clamped_axis_pair(InputAction::MoveCamera)
+                            .unwrap()
+                            .xy()
+                    );
+                }
+                CameraMovementMode::Orbit => {
+                    // translate x,y of stick to angular velocity around axis in 3D
+                    let action = action_state
+                        .clamped_axis_pair(InputAction::MoveCamera)
+                        .unwrap()
+                        .xy()
+                        .normalize();
+
+                    // create perpendicular vector to camera direction
+                    // let perpendicular = camera_transform.tr
+                    // something something, orbiting logic
+                }
+            }
         } else {
             velocity.value = Vec3::ZERO;
         }
+
+        if action_state.just_pressed(InputAction::ToggleCameraMovementMode) {
+            next_state.set(match state.get() {
+                CameraMovementMode::Linear => {
+                    info!("Toggling camera mode: Linear -> Orbit");
+                    CameraMovementMode::Orbit
+                }
+                CameraMovementMode::Orbit => {
+                    info!("Toggling camera mode: Orbit -> Linear");
+                    CameraMovementMode::Linear
+                }
+            });
+        }
     }
+
+    // toggle camera movement mode
 }
 
 fn bind_moveable_object_input(

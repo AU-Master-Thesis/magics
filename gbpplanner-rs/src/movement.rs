@@ -44,6 +44,19 @@ impl AngularAcceleration {
     }
 }
 
+// orbit flag
+#[derive(Component, Debug)]
+pub struct Orbit {
+    // point to rotate around
+    pub origin: Vec3,
+}
+
+impl Orbit {
+    pub fn new(origin: Vec3) -> Self {
+        Self { origin }
+    }
+}
+
 #[derive(Bundle)]
 pub struct LinearMovementBundle {
     pub velocity: Velocity,
@@ -74,15 +87,6 @@ impl Default for AngularMovementBundle {
     }
 }
 
-// #[derive(Bundle)]
-// pub struct MovingObjectBundle {
-//     pub velocity: Velocity,
-//     pub acceleration: Acceleration,
-//     pub angular_velocity: AngularVelocity,
-//     pub angular_acceleration: AngularAcceleration,
-//     pub model: SceneBundle,
-// }
-
 #[derive(Bundle)]
 pub struct MovingObjectBundle {
     pub linear_movement: LinearMovementBundle,
@@ -100,6 +104,21 @@ impl Default for MovingObjectBundle {
     }
 }
 
+#[derive(Bundle)]
+pub struct OrbitMovementBundle {
+    pub angular_movement: AngularMovementBundle,
+    pub orbit: Orbit,
+}
+
+impl Default for OrbitMovementBundle {
+    fn default() -> Self {
+        Self {
+            angular_movement: AngularMovementBundle::default(),
+            orbit: Orbit::new(Vec3::ZERO),
+        }
+    }
+}
+
 pub struct MovementPlugin;
 
 impl Plugin for MovementPlugin {
@@ -111,6 +130,7 @@ impl Plugin for MovementPlugin {
                 update_position,
                 update_angular_velocity,
                 update_rotation,
+                update_rotation_orbit,
             ),
         );
     }
@@ -137,7 +157,10 @@ fn update_angular_velocity(
     }
 }
 
-fn update_rotation(mut query: Query<(&AngularVelocity, &mut Transform)>, time: Res<Time>) {
+fn update_rotation(
+    mut query: Query<(&AngularVelocity, &mut Transform), Without<Orbit>>,
+    time: Res<Time>,
+) {
     for (angular_velocity, mut transform) in query.iter_mut() {
         let q = Quat::from_euler(
             EulerRot::XYZ,
@@ -146,5 +169,20 @@ fn update_rotation(mut query: Query<(&AngularVelocity, &mut Transform)>, time: R
             angular_velocity.value.z * time.delta_seconds(),
         );
         transform.rotation = q * transform.rotation;
+    }
+}
+
+fn update_rotation_orbit(
+    mut query: Query<(&Orbit, &AngularVelocity, &mut Transform)>,
+    time: Res<Time>,
+) {
+    for (orbit, angular_velocity, mut transform) in query.iter_mut() {
+        let q = Quat::from_euler(
+            EulerRot::XYZ,
+            angular_velocity.value.x * time.delta_seconds(),
+            angular_velocity.value.y * time.delta_seconds(),
+            angular_velocity.value.z * time.delta_seconds(),
+        );
+        transform.translation = orbit.origin + q * (transform.translation - orbit.origin);
     }
 }

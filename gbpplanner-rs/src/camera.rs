@@ -1,19 +1,29 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/camera.rs
 use bevy::prelude::*;
 
-use crate::movement::LinearMovementBundle;
+use crate::movement::{LinearMovementBundle, OrbitMovementBundle};
 
 const CAMERA_DISTANCE: f32 = 80.0;
 pub const SPEED: f32 = 10.0;
+pub const ANGULAR_SPEED: f32 = 5.0;
 
 #[derive(Component, Debug)]
 pub struct MainCamera;
+
+// define visibility state for the moveable object
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum CameraMovementMode {
+    #[default]
+    Linear,
+    Orbit,
+}
 
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_camera);
+        app.add_state::<CameraMovementMode>()
+            .add_systems(Startup, spawn_camera);
     }
 }
 
@@ -25,6 +35,7 @@ fn spawn_camera(mut commands: Commands) {
             ..default()
         },
         LinearMovementBundle::default(),
+        OrbitMovementBundle::default(),
         MainCamera,
     ));
 }
