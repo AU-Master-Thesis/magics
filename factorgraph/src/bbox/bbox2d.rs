@@ -1,7 +1,6 @@
 use super::BoundingBox;
 use nalgebra::Vector2;
 
-
 #[derive(Clone, Debug)]
 pub struct BoundingBox2d {
     pub bottom_left: Vector2<f32>,
@@ -67,6 +66,7 @@ impl BoundingBox for BoundingBox2d {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_bounding_box2d_area() {
