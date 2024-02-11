@@ -1,10 +1,7 @@
 use bevy::prelude::*;
 // use leafwing_input_manager::prelude::*;
 
-use crate::{
-    asset_loader::SceneAssets,
-    movement::{Acceleration, AngularAcceleration, AngularVelocity, MovingObjectBundle, Velocity},
-};
+use crate::{asset_loader::SceneAssets, movement::MovingObjectBundle};
 
 const SCALE: f32 = 5.0;
 const START_TRANSLATION: Vec3 = Vec3::new(0., 0., 0.);
@@ -47,16 +44,13 @@ fn spawn(mut commands: Commands, scene_assets: Res<SceneAssets>) {
     transform.scale = Vec3::splat(SCALE);
     commands.spawn((
         MovingObjectBundle {
-            velocity: Velocity::new(Vec3::ZERO),
-            acceleration: Acceleration::new(Vec3::ZERO),
-            angular_velocity: AngularVelocity::new(Vec3::ZERO),
-            angular_acceleration: AngularAcceleration::new(Vec3::ZERO),
             model: SceneBundle {
-                // scene: scene_assets.object.clone(),
+                // scene: scene_assets.roomba.clone(),
                 scene: scene_assets.object.clone(),
                 transform,
                 ..default()
             },
+            ..default()
         },
         MoveableObject,
     ));

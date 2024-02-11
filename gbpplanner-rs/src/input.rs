@@ -2,10 +2,11 @@ use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 
 use crate::{
+    camera::{self, MainCamera},
     moveable_object::{
         self, MoveableObject, MoveableObjectMovementState, MoveableObjectVisibilityState,
     },
-    movement::{AngularVelocity, MovingObjectBundle, Velocity},
+    movement::{AngularVelocity, Velocity},
 };
 
 pub struct InputPlugin;
@@ -13,8 +14,22 @@ pub struct InputPlugin;
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(InputManagerPlugin::<InputAction>::default())
-            .add_systems(PostStartup, bind_input)
-            .add_systems(Update, movement_actions);
+            .add_systems(
+                PostStartup,
+                (
+                    bind_moveable_object_input,
+                    bind_camera_input,
+                    // somthing more
+                ),
+            )
+            .add_systems(
+                Update,
+                (
+                    movement_actions,
+                    camera_actions,
+                    // somthing more
+                ),
+            );
     }
 }
 
@@ -63,7 +78,52 @@ impl InputAction {
     }
 }
 
-fn bind_input(mut commands: Commands, query: Query<(Entity, With<MoveableObject>)>) {
+fn bind_camera_input(mut commands: Commands, query: Query<(Entity, With<MainCamera>)>) {
+    let mut input_map = InputMap::default();
+
+    for action in InputAction::variants() {
+        input_map.insert(InputAction::default_keyboard_mouse_input(action), action);
+        input_map.insert(InputAction::default_gamepad_input(action), action);
+    }
+
+    if let Ok((entity, _)) = query.get_single() {
+        commands
+            .entity(entity)
+            .insert(InputManagerBundle::<InputAction> {
+                input_map,
+                ..default()
+            });
+    }
+}
+
+fn camera_actions(mut query: Query<(&ActionState<InputAction>, &mut Velocity), With<MainCamera>>) {
+    if let Ok((action_state, mut velocity)) = query.get_single_mut() {
+        if action_state.pressed(InputAction::MoveCamera) {
+            let action = action_state
+                .clamped_axis_pair(InputAction::MoveCamera)
+                .unwrap()
+                .xy()
+                .normalize();
+
+            velocity.value = Vec3::new(action.x, 0.0, action.y) * camera::SPEED;
+
+            info!(
+                "Moving camera in direction {}",
+                action_state
+                    .clamped_axis_pair(InputAction::MoveCamera)
+                    .unwrap()
+                    .xy()
+            );
+        } else {
+            velocity.value = Vec3::ZERO;
+        }
+    }
+}
+
+fn bind_moveable_object_input(
+    mut commands: Commands,
+    query: Query<(Entity, With<MoveableObject>)>,
+) {
     // Create an `InputMap` to add default inputs to
     let mut input_map = InputMap::default();
 

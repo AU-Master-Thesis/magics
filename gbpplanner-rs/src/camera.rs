@@ -1,7 +1,10 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/camera.rs
 use bevy::prelude::*;
 
+use crate::movement::LinearMovementBundle;
+
 const CAMERA_DISTANCE: f32 = 80.0;
+pub const SPEED: f32 = 10.0;
 
 #[derive(Component, Debug)]
 pub struct MainCamera;
@@ -21,6 +24,7 @@ fn spawn_camera(mut commands: Commands) {
                 .looking_at(Vec3::ZERO, Vec3::Z),
             ..default()
         },
+        LinearMovementBundle::default(),
         MainCamera,
     ));
 }
