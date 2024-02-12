@@ -5,8 +5,8 @@ use bevy::prelude::*;
 pub struct SceneAssets {
     pub roomba: Handle<Scene>,
     pub object: Handle<Scene>,
-    pub obstacle_image_raw: Handle<Scene>,
-    pub obstacle_image_sdf: Handle<Scene>,
+    pub obstacle_image_raw: Handle<Image>,
+    pub obstacle_image_sdf: Handle<Image>,
 }
 
 pub struct AssetLoaderPlugin;
