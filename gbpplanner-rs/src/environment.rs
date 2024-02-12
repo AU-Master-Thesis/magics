@@ -1,4 +1,3 @@
-use bevy::render::mesh::VertexAttributeValues;
 use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
@@ -17,12 +16,13 @@ impl Plugin for EnvironmentPlugin {
             })
             .add_plugins(InfiniteGridPlugin)
             .add_systems(
-                Startup,
+                PostStartup,
                 (
                     infinite_grid,
                     // test_cubes,
                     lighting,
-                    obstacles, // ergioeorigj
+                    obstacles,
+                    view_image,
                 ),
             );
     }
@@ -91,6 +91,29 @@ fn test_cubes(
     });
 }
 
+fn view_image(
+    mut commands: Commands,
+    scene_assets: Res<SceneAssets>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let material_handle = materials.add(StandardMaterial {
+        base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
+        ..default()
+    });
+
+    let mesh = Mesh::from(shape::Quad::new(Vec2::new(10.0, 10.0)));
+
+    // Spawn an entity with the mesh and material, and position it in 3D space
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(mesh),
+        material: material_handle,
+        transform: Transform::from_xyz(0.0, 0.0, 0.0)
+            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        ..default()
+    });
+}
+
 fn obstacles(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,
@@ -98,9 +121,13 @@ fn obstacles(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    // info!("1");
     if let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) {
+        // info!("2: some image");
         let width = image.texture_descriptor.size.width as usize;
         let height = image.texture_descriptor.size.height as usize;
+
+        info!("IMAGE: {:?}", image);
 
         let heightmap_data: Vec<f32> = get_heightmap_data_from_image(&image);
 
@@ -131,21 +158,58 @@ fn obstacles(
     }
 }
 
-// Dummy functions for illustration, replace with actual implementations
-fn get_heightmap_data_from_image(image: &Image) -> Vec<f32> {
-    let size = image.texture_descriptor.size;
-    let width = size.width as usize;
-    let height = size.height as usize;
+// // Dummy functions for illustration, replace with actual implementations
+// fn get_heightmap_data_from_image(image: &Image) -> Vec<f32> {
+//     let size = image.texture_descriptor.size;
+//     let width = size.width as usize;
+//     let height = size.height as usize;
 
-    // Assuming the image is 8 bits per channel and in grayscale format
-    (0..width * height)
-        .map(|i| {
-            let pixel_index = i * 4; // 4 bytes per pixel for RGBA8 format
-            let pixel = &image.data[pixel_index..pixel_index + 4];
-            // Convert to grayscale by just taking the red channel
-            pixel[0] as f32 / 255.0
-        })
-        .collect()
+//     // Assuming the image is 8 bits per channel and in grayscale format
+//     let retv = (0..width * height)
+//         .map(|i| {
+//             let pixel_index = i * 4; // 4 bytes per pixel for RGBA8 format
+//             let pixel = &image.data[pixel_index..pixel_index + 4];
+//             // Convert to grayscale by just taking the red channel
+//             let p = pixel[0] as f32 / 255.0;
+
+//             // print!("{}", p);
+
+//             p
+//         })
+//         .collect();
+
+//     info!("HEIGHTMAP DATA");
+//     info!("{:?}", retv);
+
+//     retv
+// }
+
+fn get_heightmap_data_from_image(image: &Image) -> Vec<f32> {
+    info!("HEIGHTMAP DATA");
+    let width = image.texture_descriptor.size.width as usize;
+    let height = image.texture_descriptor.size.height as usize;
+
+    let bytes_per_pixel = image.texture_descriptor.format.block_dimensions().0 as usize;
+    let buffer_size = width * height * bytes_per_pixel;
+    let mut heightmap_data = Vec::with_capacity(width * height);
+
+    for y in 0..height {
+        for x in 0..width {
+            let pixel_index = (y * width + x) * bytes_per_pixel;
+            info!("pixel index: {}", pixel_index);
+            // Assume the image is grayscale and take the first byte for the grayscale value
+            let grayscale_value = image.data[pixel_index] as f32 / 255.0;
+            heightmap_data.push(grayscale_value);
+        }
+    }
+
+    info!(
+        "height: {}, width: {}, bytes per pixel: {}",
+        height, width, bytes_per_pixel
+    );
+    info!("{:?}", heightmap_data);
+
+    heightmap_data
 }
 
 fn generate_vertex_positions_from_heightmap_data(
@@ -155,6 +219,7 @@ fn generate_vertex_positions_from_heightmap_data(
 ) -> Vec<[f32; 3]> {
     let mut positions = Vec::with_capacity(width * height);
 
+    info!("VERTEX POSITIONS");
     for j in 0..height {
         for i in 0..width {
             // Normalize i and j to range between -0.5..0.5
@@ -162,9 +227,14 @@ fn generate_vertex_positions_from_heightmap_data(
             let z = j as f32 / height as f32 - 0.5;
             // Use the heightmap data to set the y coordinate
             let y = heightmap_data[j * width + i];
+
+            // print!("({}, {}, {})", x, y, z);
+
             positions.push([x, y, z]);
         }
     }
+
+    info!("{:?}", positions);
 
     positions
 }
@@ -173,6 +243,7 @@ fn calculate_normals(vertex_positions: &[[f32; 3]], width: usize, height: usize)
     let mut normals = vec![[0.0; 3]; vertex_positions.len()];
 
     // Compute normals by cross-product of the vectors from the adjacent vertices
+    info!("NORMALS");
     for j in 0..height {
         for i in 0..width {
             // Get positions of adjacent vertices
@@ -199,8 +270,12 @@ fn calculate_normals(vertex_positions: &[[f32; 3]], width: usize, height: usize)
             // The normal is the cross product of the two edge vectors
             let normal = edge1.cross(edge2).normalize().to_array();
             normals[current_idx] = normal;
+
+            // print!("{}", edge1.cross(edge2).normalize());
         }
     }
+
+    info!("{:?}", normals);
 
     normals
 }
@@ -208,6 +283,7 @@ fn calculate_normals(vertex_positions: &[[f32; 3]], width: usize, height: usize)
 fn calculate_uvs(width: usize, height: usize) -> Vec<[f32; 2]> {
     let mut uvs = Vec::with_capacity(width * height);
 
+    info!("UVS");
     for j in 0..height {
         for i in 0..width {
             uvs.push([
@@ -216,6 +292,8 @@ fn calculate_uvs(width: usize, height: usize) -> Vec<[f32; 2]> {
             ]);
         }
     }
+
+    info!("{:?}", uvs);
 
     uvs
 }
