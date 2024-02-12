@@ -1,16 +1,17 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/camera.rs
 use bevy::prelude::*;
+use bevy_infinite_grid::GridShadowCamera;
 
 use crate::movement::{LinearMovementBundle, OrbitMovementBundle};
 
-const CAMERA_DISTANCE: f32 = 80.0;
+const CAMERA_DISTANCE: f32 = 40.0;
 pub const SPEED: f32 = 10.0;
 pub const ANGULAR_SPEED: f32 = 5.0;
 
 #[derive(Component, Debug)]
 pub struct MainCamera;
 
-// define visibility state for the moveable object
+// Define camera movement state
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum CameraMovementMode {
     #[default]
@@ -37,5 +38,6 @@ fn spawn_camera(mut commands: Commands) {
         LinearMovementBundle::default(),
         OrbitMovementBundle::default(),
         MainCamera,
+        GridShadowCamera,
     ));
 }
