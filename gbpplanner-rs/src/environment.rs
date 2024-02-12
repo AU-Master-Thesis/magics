@@ -19,8 +19,8 @@ impl Plugin for EnvironmentPlugin {
 
 fn build_environment(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut standard_materials: ResMut<Assets<StandardMaterial>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
+    // mut standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn(InfiniteGridBundle {
         settings: InfiniteGridSettings {
@@ -48,30 +48,33 @@ fn build_environment(
         ..default()
     });
 
-    commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_translation(Vec3::X * 15.0 + Vec3::Z * 20.0)
-            .looking_at(Vec3::ZERO, Vec3::Z),
-        ..default()
-    });
+    // commands.spawn(DirectionalLightBundle {
+    //     transform: Transform::from_translation(Vec3::X * 15.0 + Vec3::Z * 20.0)
+    //         .looking_at(Vec3::ZERO, Vec3::Z),
+    //     ..default()
+    // });
 
-    let mat = standard_materials.add(StandardMaterial::default());
+    // let mat = standard_materials.add(StandardMaterial::default());
 
-    // cube
-    commands.spawn(PbrBundle {
-        material: mat.clone(),
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-        transform: Transform {
-            translation: Vec3::new(3., 4., 0.),
-            rotation: Quat::from_rotation_arc(Vec3::Y, Vec3::ONE.normalize()),
-            scale: Vec3::splat(1.5),
-        },
-        ..default()
-    });
+    // // cube
+    // commands.spawn(PbrBundle {
+    //     material: mat.clone(),
+    //     mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+    //     transform: Transform {
+    //         translation: Vec3::new(3., 4., 0.),
+    //         rotation: Quat::from_rotation_arc(Vec3::Y, Vec3::ONE.normalize()),
+    //         scale: Vec3::splat(1.5),
+    //     },
+    //     ..default()
+    // });
 
-    commands.spawn(PbrBundle {
-        material: mat.clone(),
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 2.0 })),
-        transform: Transform::from_xyz(0.0, 2.0, 0.0),
-        ..default()
-    });
+    // commands.spawn(PbrBundle {
+    //     material: mat.clone(),
+    //     mesh: meshes.add(Mesh::from(shape::Cube { size: 2.0 })),
+    //     transform: Transform::from_xyz(0.0, 2.0, 0.0),
+    //     ..default()
+    // });
+
+    // read image, and display as height-map
+    // black is height of 1, white is height of 0
 }

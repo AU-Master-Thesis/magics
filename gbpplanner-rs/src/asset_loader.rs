@@ -5,6 +5,8 @@ use bevy::prelude::*;
 pub struct SceneAssets {
     pub roomba: Handle<Scene>,
     pub object: Handle<Scene>,
+    pub obstacle_image_raw: Handle<Scene>,
+    pub obstacle_image_sdf: Handle<Scene>,
 }
 
 pub struct AssetLoaderPlugin;
@@ -19,8 +21,11 @@ impl Plugin for AssetLoaderPlugin {
 fn load_assets(mut scene_assets: ResMut<SceneAssets>, asset_server: Res<AssetServer>) {
     *scene_assets = SceneAssets {
         // Robot vacuum by Poly by Google [CC-BY] (https://creativecommons.org/licenses/by/3.0/) via Poly Pizza (https://poly.pizza/m/dQj7UZT-1w0)
-        roomba: asset_server.load("roomba.glb#Scene0"),
+        roomba: asset_server.load("models/roomba.glb#Scene0"),
         // Cardboard Boxes by Quaternius (https://poly.pizza/m/bs6ikOeTrR)
-        object: asset_server.load("box.glb#Scene0"),
+        object: asset_server.load("models/box.glb#Scene0"),
+        // environment images
+        obstacle_image_raw: asset_server.load("imgs/very_clutter.png"),
+        obstacle_image_sdf: asset_server.load("imgs/very_clutter_sdf.png"),
     }
 }
