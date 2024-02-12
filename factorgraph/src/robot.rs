@@ -104,3 +104,5 @@ impl <B: BoundingBox> Robot <B> {
         unimplemented!()
     }
 }
+
+

@@ -6,10 +6,11 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 struct FactorState {
-    measurement: DVector<f64>, // called z_ in gbpplanner
-    measurement_precision: DMatrix<f64>,
-    /// Strength of the factor
-    strength: f64,
+    measurement: DVector<f32>, // called z_ in gbpplanner
+    measurement_precision: DMatrix<f32>,
+    /// Strength of the factor. Called `sigma` in gbpplanner.
+    /// The factor precision $Lambda = sigma^-2 * Identify$
+    strength: f32,
     /// Number of degrees of freedom e.g. 4 [x, y, x', y']
     dofs: usize,
 }
@@ -23,13 +24,12 @@ pub struct Factor {
 }
 
 impl Factor {
-
     // Main section: Factor update:
-// Messages from connected variables are aggregated. The beliefs are used to create the linearisation point X_.
-// The Factor potential is calculated using h_func_ and J_func_
-// The factor precision and information is created, and then marginalised to create outgoing messages to its connected variables.
+    // Messages from connected variables are aggregated. The beliefs are used to create the linearisation point X_.
+    // The Factor potential is calculated using h_func_ and J_func_
+    // The factor precision and information is created, and then marginalised to create outgoing messages to its connected variables.
 
-    /// 
+    ///
     pub fn update() {
         todo!()
     }
@@ -47,36 +47,157 @@ impl Factor {
 #[derive(Debug, Clone, Copy)]
 pub struct InterRobotFactor {
     // TODO: constrain to be positive
-    safety_distance: f64,
+    safety_distance: f32,
     ///
     skip: bool,
+}
+
+// #[derive(Debug)]
+// struct MatrixShape {
+//     nrows: usize,
+//     ncols: usize,
+// }
+
+// impl std::fmt::Display for MatrixShape {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{:?}", self)
+//     }
+// }
+
+// #[derive(Debug)]
+// enum InsertBlockMatrixError {
+//     BlockLargerThanMatrix {
+//         matrix_dims: MatrixShape,
+//         block_dims: MatrixShape
+//     },
+//     StartOutsideMatrix {
+//         start: (usize, usize),
+//         matrix_dims: MatrixShape,
+//     },
+//     StartPlusBlockExceedsMatrix {
+//         start: (usize, usize),
+//         matrix_dims: MatrixShape,
+//         block_dims: MatrixShape
+//     }
+// }
+
+// impl std::fmt::Display for InsertBlockMatrixError {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         use InsertBlockMatrixError::*;
+//         match self {
+//             BlockLargerThanMatrix { matrix_dims, block_dims } => write!(f, "The dimensions of the block matrix ({}) exceeds the dimensions of the matrix ({})", block_dims, matrix_dims),
+//             StartOutsideMatrix { start, matrix_dims } => write!(f, "The start offset ({}, {}) is outside the dimensions of the matrix ({})", start.0, start.1, matrix_dims ),
+//             StartPlusBlockExceedsMatrix { start, matrix_dims, block_dims } => write!(f, ""),
+//         }
+//     }
+// }
+
+// impl std::error::Error for InsertBlockMatrixError {}
+
+// TODO: use proper error handling here with an Error type
+// TODO: move into module
+// TODO: write unit test cases
+fn insert_block_matrix<T: Scalar + Copy>(
+    matrix: &mut DMatrix<T>,
+    start: (usize, usize),
+    block: &DMatrix<T>,
+) {
+    debug_assert!(
+        start.0 <= matrix.nrows() && start.1 <= matrix.ncols(),
+        "start: ({}, {}) not inside matrix dims: ({}, {})",
+        start.0,
+        start.1,
+        matrix.nrows(),
+        matrix.ncols()
+    );
+    debug_assert!(
+        block.nrows() <= matrix.nrows() && block.ncols() <= block.nrows(),
+        "block's dims ({}, {}) exceeds the matrix's ({}, {})",
+        block.nrows(),
+        block.ncols(),
+        matrix.nrows(),
+        matrix.ncols()
+    );
+
+    debug_assert!(
+        matrix.nrows() - start.0 >= block.nrows() || matrix.ncols() - start.1 >= block.ncols(),
+        "inserting block with dims ({}, {}) at ({}, {}) would exceed the matrix's dims ({}, {})",
+        block.nrows(),
+        block.ncols(),
+        start.0,
+        start.1,
+        matrix.nrows(),
+        matrix.ncols()
+    );
+
+    for r in 0..block.nrows() {
+        for c in 0..block.ncols() {
+            matrix[(r + start.0, c + start.1)] = block[(r, c)];
+        }
+    }
 }
 
 /// Dynamic factor: constant velocity model
 #[derive(Debug)]
 pub struct DynamicFactor {
-    cached_jacobian: DMatrix<f64>,
-    pub delta_t: f64, // defined at src/Robot.cpp:64
+    cached_jacobian: DMatrix<f32>,
+    pub delta_t: f32, // defined at src/Robot.cpp:64
 }
 
 impl DynamicFactor {
     // TODO: not done
-    pub fn new(state: &FactorState, delta_t: f64) -> Self  {
-        // let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
-        // let eye = DMatrix::identity(nrows, ncols);
-        // let zeros = DMatrix::zeros(nrows, ncols);
+    #[must_use]
+    pub fn new(state: &mut FactorState, delta_t: f32) -> Self {
+        let (eye, zeros) = {
+            let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
+            let eye = DMatrix::<f32>::identity(nrows, ncols);
+            let zeros = DMatrix::<f32>::zeros(nrows, ncols);
+            (eye, zeros)
+        };
 
-        // let qc_inv = f64::powi(sigma, -2) * eye;
+        let qc_inv = f32::powi(state.strength, -2) * eye;
 
-        // let qi_inv = DMatrix::new(state.dofs, state.dofs);
+        let qi_inv = {
+            let upper_left = 12.0 * f32::powi(delta_t, -3) * qc_inv;
+            let upper_right = -6.0 * f32::powi(delta_t, -2) * qc_inv;
+            let lower_left = -6.0 * f32::powi(delta_t, -2) * qc_inv;
+            let lower_right = (4.0 / delta_t) * qc_inv;
 
-        // let cached_jacobian = DMatrix::new(state.dofs, state.dofs);
-        // Self {
-        //     cached_jacobian,
-        //     delta_t,
-        // }
+            // Construct as a block matrix
+            let (nrows, ncols) = (state.dofs, state.dofs);
+            let mut qi_inv = DMatrix::<f32>::zeros(nrows, ncols);
+            insert_block_matrix(&mut qi_inv, (0, 0), &upper_left);
+            insert_block_matrix(&mut qi_inv, (0, qi_inv.ncols() / 2), &upper_right);
+            insert_block_matrix(&mut qi_inv, (qi_inv.nrows() / 2, 0), &lower_left);
+            insert_block_matrix(
+                &mut qi_inv,
+                (qi_inv.nrows() / 2, qi_inv.ncols() / 2),
+                &lower_right,
+            );
 
-        todo!()
+            qi_inv
+        };
+
+        state.measurement_precision = qi_inv;
+
+        let cached_jacobian = {
+            // J_ = Eigen::MatrixXd::Zero(n_dofs_, n_dofs_*2);
+            // J_ << I, dt*I, -1*I,    O,
+            //      O,    I,    O, -1*I;
+            let mut jacobian = DMatrix::<f32>::zeros(state.dofs, state.dofs * 2);
+            insert_block_matrix(&mut jacobian, (0, 0), &eye);
+            insert_block_matrix(&mut jacobian, (0, eye.ncols()), &(delta_t * eye));
+            insert_block_matrix(&mut jacobian, (0, eye.ncols() * 2), &(-1.0 * eye));
+            insert_block_matrix(&mut jacobian, (jacobian.nrows() / 2, eye.ncols()), &eye);
+            insert_block_matrix(&mut jacobian, (jacobian.nrows() / 2, eye.ncols() * 3), &eye);
+
+            jacobian
+        };
+
+        Self {
+            cached_jacobian,
+            delta_t,
+        }
     }
 }
 
@@ -92,16 +213,15 @@ enum FactorKind {
     Dynamic(DynamicFactor),
 }
 
-
-
 trait Model {
-    fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
+    // TODO: maybe just return &DMatrix<f32>
+    fn jacobian(&self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
         self.first_order_jacobian(state, x)
     }
     /// Measurement function
     /// **Note**: This method takes a mutable reference to self, because the interrobot factor
-    fn measurement(&mut self, state: &FactorState, x: &DVector<f64>) -> DVector<f64>;
-    fn first_order_jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
+    fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32>;
+    fn first_order_jacobian(&self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
         // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
         //     Eigen::MatrixXd h0 = h_func_(X0);    // Value at lin point
         //     Eigen::MatrixXd jac_out = Eigen::MatrixXd::Zero(h0.size(),X0.size());
@@ -112,7 +232,6 @@ trait Model {
         //     }
         //     return jac_out;
         // };
-        
 
         todo!()
         // let h0 = self.measurement(state, x);
@@ -128,7 +247,7 @@ trait Model {
         // // DMatrix::from_columns(h0.nrows(), x.nrows(), columns.as_slice())
         // nalgebra::
 
-        //    todo!() 
+        //    todo!()
         // DMatrix::from_columns(columns)
 
         // TODO: make sexier
@@ -146,7 +265,7 @@ trait Model {
         // retv
     }
 
-    fn jacobian_delta(&self) -> f64;
+    fn jacobian_delta(&self) -> f32;
 
     /// Whether to skip this factor in the update step
     /// In gbpplanner, this is only used for the interrobot factor.
@@ -156,12 +275,12 @@ trait Model {
 
 impl Model for DefaultFactor {
     /// Default jacobian is the first order taylor series jacobian
-    fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
+    fn jacobian(&self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
         self.first_order_jacobian(state, x)
     }
 
     /// Default meaurement function is the identity function
-    fn measurement(&mut self, state: &FactorState, x: &DVector<f64>) -> DVector<f64> {
+    fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         x.clone()
     }
 
@@ -169,13 +288,13 @@ impl Model for DefaultFactor {
         false
     }
 
-    fn jacobian_delta(&self) -> f64 {
+    fn jacobian_delta(&self) -> f32 {
         1e-8
     }
 }
 
 impl Model for InterRobotFactor {
-    fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
+    fn jacobian(&self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
         let mut j = DMatrix::zeros(state.measurement.nrows(), state.dofs * 2);
         let x_diff = {
             let offset = state.dofs / 2;
@@ -193,7 +312,7 @@ impl Model for InterRobotFactor {
         j
     }
 
-    fn measurement(&mut self, state: &FactorState, x: &DVector<f64>) -> DVector<f64> {
+    fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         // let mut h = DMatrix::zeros(state.measurement.nrows(), state.measurement.ncols());
         let mut h = DVector::zeros(state.measurement.nrows());
         let x_diff = {
@@ -219,7 +338,7 @@ impl Model for InterRobotFactor {
         h
     }
 
-    fn jacobian_delta(&self) -> f64 {
+    fn jacobian_delta(&self) -> f32 {
         1e-2
     }
 
@@ -229,13 +348,11 @@ impl Model for InterRobotFactor {
 }
 
 impl Model for DynamicFactor {
-    fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
-        // self.cache_jacobian
+    fn jacobian(&self, _state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
         self.cached_jacobian.clone()
-        // todo!()
     }
 
-    fn measurement(&mut self, state: &FactorState, x: &DVector<f64>) -> DVector<f64> {
+    fn measurement(&mut self, _state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         &self.cached_jacobian * x
     }
 
@@ -243,13 +360,13 @@ impl Model for DynamicFactor {
         false
     }
 
-    fn jacobian_delta(&self) -> f64 {
+    fn jacobian_delta(&self) -> f32 {
         1e-2
     }
 }
 
 impl Model for FactorKind {
-    fn jacobian(&self, state: &FactorState, x: &DVector<f64>) -> DMatrix<f64> {
+    fn jacobian(&self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
         match self {
             FactorKind::Default(f) => f.jacobian(state, x),
             FactorKind::InterRobot(f) => f.jacobian(state, x),
@@ -257,7 +374,7 @@ impl Model for FactorKind {
         }
     }
 
-    fn measurement(&mut self, state: &FactorState, x: &DVector<f64>) -> DVector<f64> {
+    fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         match self {
             FactorKind::Default(f) => f.measurement(state, x),
             FactorKind::InterRobot(f) => f.measurement(state, x),
@@ -273,7 +390,7 @@ impl Model for FactorKind {
         }
     }
 
-    fn jacobian_delta(&self) -> f64 {
+    fn jacobian_delta(&self) -> f32 {
         match self {
             FactorKind::Default(f) => f.jacobian_delta(),
             FactorKind::InterRobot(f) => f.jacobian_delta(),
