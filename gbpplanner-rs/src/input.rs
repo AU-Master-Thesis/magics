@@ -6,7 +6,7 @@ use crate::{
     moveable_object::{
         self, MoveableObject, MoveableObjectMovementState, MoveableObjectVisibilityState,
     },
-    movement::{AngularVelocity, Velocity},
+    movement::{AngularVelocity, Orbit, Velocity},
 };
 
 pub struct InputPlugin;
@@ -42,6 +42,8 @@ pub enum InputAction {
     Toggle,
     MoveCamera,
     ToggleCameraMovementMode,
+    ZoomIn,
+    ZoomOut,
 }
 
 // Exhaustively match `InputAction` and define the default binding to the input
@@ -58,6 +60,8 @@ impl InputAction {
             Self::Toggle => UserInput::Single(InputKind::Keyboard(KeyCode::F)),
             Self::MoveCamera => UserInput::VirtualDPad(VirtualDPad::arrow_keys()),
             Self::ToggleCameraMovementMode => UserInput::Single(InputKind::Keyboard(KeyCode::C)),
+            Self::ZoomIn => UserInput::Single(InputKind::MouseWheel(MouseWheelDirection::Down)),
+            Self::ZoomOut => UserInput::Single(InputKind::MouseWheel(MouseWheelDirection::Up)),
         }
     }
 
@@ -79,6 +83,10 @@ impl InputAction {
             Self::ToggleCameraMovementMode => {
                 UserInput::Single(InputKind::GamepadButton(GamepadButtonType::North))
             }
+            Self::ZoomIn => {
+                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::DPadDown))
+            }
+            Self::ZoomOut => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::DPadUp)),
         }
     }
 }
@@ -109,13 +117,19 @@ fn camera_actions(
             &ActionState<InputAction>,
             &mut Velocity,
             &mut AngularVelocity,
-            &Transform,
+            &mut Transform,
+            &Orbit,
         ),
         With<MainCamera>,
     >,
 ) {
-    if let Ok((action_state, mut velocity, mut angular_velocity, camera_transform)) =
-        query.get_single_mut()
+    if let Ok((
+        action_state,
+        mut velocity,
+        mut angular_velocity,
+        mut camera_transform,
+        camera_orbit,
+    )) = query.get_single_mut()
     {
         // if action_state.just_pressed(InputAction::ToggleCameraMovementMode) {
 
@@ -139,16 +153,18 @@ fn camera_actions(
                     );
                 }
                 CameraMovementMode::Orbit => {
-                    // translate x,y of stick to angular velocity around axis in 3D
+                    // action represents the direction to move the camera around it's origin
                     let action = action_state
                         .clamped_axis_pair(InputAction::MoveCamera)
                         .unwrap()
                         .xy()
-                        .normalize();
+                        .normalize()
+                        * 0.01;
 
-                    // create perpendicular vector to camera direction
-                    // let perpendicular = camera_transform.tr
-                    // something something, orbiting logic
+                    let yaw = Quat::from_axis_angle(Vec3::Y, action.x);
+                    let pitch = Quat::from_axis_angle(camera_transform.right(), -action.y);
+
+                    camera_transform.rotate_around(camera_orbit.origin, yaw * pitch);
                 }
             }
         } else {

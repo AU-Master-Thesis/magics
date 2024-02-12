@@ -14,6 +14,7 @@ impl Plugin for EnvironmentPlugin {
                 color: Color::default(),
                 brightness: 0.5,
             })
+            .add_state::<HeightMapState>()
             .add_plugins(InfiniteGridPlugin)
             .add_systems(
                 PostStartup,
@@ -21,10 +22,11 @@ impl Plugin for EnvironmentPlugin {
                     infinite_grid,
                     // test_cubes,
                     lighting,
-                    obstacles,
-                    view_image,
+                    // obstacles,
+                    // view_image,
                 ),
-            );
+            )
+            .add_systems(Update, obstacles);
     }
 }
 
@@ -114,47 +116,70 @@ fn view_image(
     });
 }
 
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum HeightMapState {
+    #[default]
+    Waiting,
+    Generated,
+}
+
 fn obstacles(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,
     image_assets: Res<Assets<Image>>,
+    asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    state: Res<State<HeightMapState>>,
+    mut next_state: ResMut<NextState<HeightMapState>>,
 ) {
-    // info!("1");
-    if let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) {
-        // info!("2: some image");
-        let width = image.texture_descriptor.size.width as usize;
-        let height = image.texture_descriptor.size.height as usize;
+    match state.get() {
+        HeightMapState::Generated => {}
+        HeightMapState::Waiting => {
+            // info!("1");
+            let i = image_assets.get(scene_assets.obstacle_image_raw.clone());
+            // info!(
+            // "{:?}",
+            // asset_server.get_load_state(scene_assets.obstacle_image_raw.clone())
+            // );
 
-        info!("IMAGE: {:?}", image);
+            // info!("2: {:?}", i);
+            if let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) {
+                next_state.set(HeightMapState::Generated);
+                // info!("3: some image");
+                let width = image.texture_descriptor.size.width as usize;
+                let height = image.texture_descriptor.size.height as usize;
 
-        let heightmap_data: Vec<f32> = get_heightmap_data_from_image(&image);
+                // info!("IMAGE: {:?}", image);
 
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+                let heightmap_data: Vec<f32> = get_heightmap_data_from_image(&image);
 
-        let vertex_positions =
-            generate_vertex_positions_from_heightmap_data(&heightmap_data, width, height);
+                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
 
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertex_positions.clone());
+                let vertex_positions =
+                    generate_vertex_positions_from_heightmap_data(&heightmap_data, width, height);
 
-        mesh.insert_attribute(
-            Mesh::ATTRIBUTE_NORMAL,
-            calculate_normals(&vertex_positions, width, height),
-        );
+                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertex_positions.clone());
 
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, calculate_uvs(width, height));
+                mesh.insert_attribute(
+                    Mesh::ATTRIBUTE_NORMAL,
+                    calculate_normals(&vertex_positions, width, height),
+                );
 
-        let material_handle = materials.add(StandardMaterial {
-            base_color: Color::rgb(0.8, 0.7, 0.6), // Example color
-            ..default()
-        });
+                mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, calculate_uvs(width, height));
 
-        commands.spawn(PbrBundle {
-            mesh: meshes.add(mesh),
-            material: material_handle,
-            ..default()
-        });
+                let material_handle = materials.add(StandardMaterial {
+                    base_color: Color::rgb(0.8, 0.7, 0.6), // Example color
+                    ..default()
+                });
+
+                commands.spawn(PbrBundle {
+                    mesh: meshes.add(mesh),
+                    material: material_handle,
+                    ..default()
+                });
+            }
+        }
     }
 }
 
@@ -196,18 +221,18 @@ fn get_heightmap_data_from_image(image: &Image) -> Vec<f32> {
     for y in 0..height {
         for x in 0..width {
             let pixel_index = (y * width + x) * bytes_per_pixel;
-            info!("pixel index: {}", pixel_index);
+            // info!("pixel index: {}", pixel_index);
             // Assume the image is grayscale and take the first byte for the grayscale value
             let grayscale_value = image.data[pixel_index] as f32 / 255.0;
             heightmap_data.push(grayscale_value);
         }
     }
 
-    info!(
-        "height: {}, width: {}, bytes per pixel: {}",
-        height, width, bytes_per_pixel
-    );
-    info!("{:?}", heightmap_data);
+    // info!(
+    // "height: {}, width: {}, bytes per pixel: {}",
+    // height, width, bytes_per_pixel
+    // );
+    // info!("{:?}", heightmap_data);
 
     heightmap_data
 }
@@ -234,7 +259,7 @@ fn generate_vertex_positions_from_heightmap_data(
         }
     }
 
-    info!("{:?}", positions);
+    // info!("{:?}", positions);
 
     positions
 }
@@ -275,7 +300,7 @@ fn calculate_normals(vertex_positions: &[[f32; 3]], width: usize, height: usize)
         }
     }
 
-    info!("{:?}", normals);
+    // info!("{:?}", normals);
 
     normals
 }
@@ -293,7 +318,7 @@ fn calculate_uvs(width: usize, height: usize) -> Vec<[f32; 2]> {
         }
     }
 
-    info!("{:?}", uvs);
+    // info!("{:?}", uvs);
 
     uvs
 }

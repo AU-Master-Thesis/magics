@@ -864,6 +864,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mesh_terrain"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7bc891d19ebcf680518746db0ae97a7b17158c3d189578677e688ef25bc9536f"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "futures-lite 1.13.0",
+ "image",
+ "png",
+ "ron",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "bevy_mikktspace"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2388,6 +2404,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "bevy_infinite_grid",
+ "bevy_mesh_terrain",
  "catppuccin",
  "clap",
  "color-eyre",
