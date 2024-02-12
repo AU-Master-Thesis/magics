@@ -8,7 +8,7 @@ pub struct EnvironmentPlugin;
 
 impl Plugin for EnvironmentPlugin {
     fn build(&self, app: &mut App) {
-        let (r, g, b) = Flavour::Latte.base().into();
+        let (r, g, b) = Flavour::Macchiato.base().into();
         app.insert_resource(ClearColor(Color::rgb(
             r as f32 / 255.0,
             g as f32 / 255.0,

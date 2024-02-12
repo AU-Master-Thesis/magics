@@ -3,6 +3,7 @@ mod shapes;
 // mod factorgraph;
 mod asset_loader;
 mod camera;
+mod diagnostics;
 mod environment;
 mod input;
 mod moveable_object;
@@ -13,6 +14,7 @@ use crate::config::Config;
 // use crate::factorgraph::FactorGraphPlugin;
 use crate::asset_loader::AssetLoaderPlugin;
 use crate::camera::CameraPlugin;
+use crate::diagnostics::DiagnosticsPlugin;
 use crate::environment::EnvironmentPlugin;
 use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
@@ -67,6 +69,7 @@ fn main() -> color_eyre::eyre::Result<()> {
             InputPlugin,
             MoveableObjectPlugin,
             CameraPlugin,
+            DiagnosticsPlugin,
         ))
         .add_plugins(WorldInspectorPlugin::new())
         .run();
