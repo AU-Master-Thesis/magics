@@ -3,9 +3,7 @@ use std::rc::Rc;
 use crate::{factor::Factor, multivariate_normal::MultivariateNormal};
 
 #[derive(Debug)]
-struct VariableBelief {
-
-}
+struct VariableBelief {}
 
 #[derive(Debug)]
 pub struct Variable {
@@ -24,5 +22,5 @@ impl Variable {
     /// Finally the outgoing messages to factors is created.
     pub fn update_belief(&mut self) {}
 
-    // fn 
+    // fn
 }

@@ -1,6 +1,5 @@
 use nalgebra::{DMatrix, DVector};
 
-
 // trait MultivariateNormal {
 //     fn mean(&self) -> &DVector<f64>;
 //     fn covariance(&self) -> &DMatrix<f64>;
@@ -25,7 +24,6 @@ pub struct MultivariateNormal {
     pub information_vector: DVector<f64>,
     /// $Lambda = Sigma^(-1)$, where $Sigma$ is the covariance matrix
     pub precision_matrix: DMatrix<f64>,
-
     // Consider including the following fields:
     //     gbpplanner includes the means as a computational optimization
     // pub mean: nalgebra::DVector<f64>,

@@ -1,15 +1,17 @@
+pub mod bbox;
 pub mod factor;
 pub mod message;
 pub mod multivariate_normal;
-pub mod variable;
 pub mod robot;
-pub mod bbox;
+pub mod variable;
+
+pub mod factors;
 
 pub mod prelude {
     pub use super::Factor;
-    pub use super::Variable;
     pub use super::FactorGraph;
     pub use super::MessagePassingMode;
+    pub use super::Variable;
 }
 
 use std::rc::Rc;
@@ -19,7 +21,6 @@ pub use variable::Variable;
 
 pub type NodeId = usize;
 pub type FactorGraphId = usize;
-
 
 #[derive(Debug)]
 pub enum MessagePassingMode {

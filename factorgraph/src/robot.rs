@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
-use nutype::nutype;
 use crate::{bbox::BoundingBox, message::Message, FactorGraph};
+use nutype::nutype;
 
 pub type RobotId = usize;
 
@@ -23,14 +23,13 @@ pub struct RobotState {
     pub velocity: Velocity2d,
 }
 
-
 #[derive(Debug, Clone, Copy)]
 pub struct Meter(pub f64);
 
 /// Represents a probability value in the range [0,1]
 #[nutype(
     validate(greater_or_equal = 0.0, less_or_equal = 1.0),
-    derive(Debug, Clone, Copy),
+    derive(Debug, Clone, Copy)
 )]
 pub struct Probability(f64);
 
@@ -41,7 +40,6 @@ pub struct CommunicationMedia {
     pub max_range: Meter,
     pub failure_probability: Probability,
 }
-
 
 #[derive(Debug)]
 pub struct Robot<B: BoundingBox> {
@@ -61,7 +59,7 @@ pub struct Robot<B: BoundingBox> {
     bbox: B,
 }
 
-impl <B: BoundingBox> Robot <B> {
+impl<B: BoundingBox> Robot<B> {
     pub fn position(&self) -> &Position2d {
         &self.state.pose.position
     }
@@ -82,7 +80,13 @@ impl <B: BoundingBox> Robot <B> {
         &mut self.state.velocity
     }
 
-    pub fn new(id: RobotId, factorgraph: FactorGraph, state: RobotState, communication_media: CommunicationMedia, bbox: B) -> Self {
+    pub fn new(
+        id: RobotId,
+        factorgraph: FactorGraph,
+        state: RobotState,
+        communication_media: CommunicationMedia,
+        bbox: B,
+    ) -> Self {
         Self {
             id,
             factorgraph,
@@ -104,5 +108,3 @@ impl <B: BoundingBox> Robot <B> {
         unimplemented!()
     }
 }
-
-

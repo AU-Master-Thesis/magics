@@ -14,7 +14,6 @@ pub struct Header {
     receiver: RobotId,
 }
 
-
 /// Data structure for a message that is passed in GBP
 /// this consists of an information vector, precision matrix, and a mean vector.
 // Traditionally GBP does not require the sending of the last parameter mu (the mean), as it
