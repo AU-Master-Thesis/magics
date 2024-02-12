@@ -117,8 +117,8 @@ fn camera_actions(
             &ActionState<InputAction>,
             &mut Velocity,
             &mut AngularVelocity,
-            &mut Transform,
-            &Orbit,
+            // &mut Transform,
+            // &Orbit,
         ),
         With<MainCamera>,
     >,
@@ -127,8 +127,8 @@ fn camera_actions(
         action_state,
         mut velocity,
         mut angular_velocity,
-        mut camera_transform,
-        camera_orbit,
+        // mut camera_transform,
+        // camera_orbit,
     )) = query.get_single_mut()
     {
         // if action_state.just_pressed(InputAction::ToggleCameraMovementMode) {
@@ -158,17 +158,21 @@ fn camera_actions(
                         .clamped_axis_pair(InputAction::MoveCamera)
                         .unwrap()
                         .xy()
-                        .normalize()
-                        * 0.01;
+                        .normalize();
+                    // * 0.01;
 
-                    let yaw = Quat::from_axis_angle(Vec3::Y, action.x);
-                    let pitch = Quat::from_axis_angle(camera_transform.right(), -action.y);
+                    angular_velocity.value =
+                        Vec3::new(action.x, action.y, 0.0) * camera::ANGULAR_SPEED;
 
-                    camera_transform.rotate_around(camera_orbit.origin, yaw * pitch);
+                    // let yaw = Quat::from_axis_angle(Vec3::Y, action.x);
+                    // let pitch = Quat::from_axis_angle(camera_transform.right(), -action.y);
+
+                    // camera_transform.rotate_around(camera_orbit.origin, yaw * pitch);
                 }
             }
         } else {
             velocity.value = Vec3::ZERO;
+            angular_velocity.value = Vec3::ZERO;
         }
 
         if action_state.just_pressed(InputAction::ToggleCameraMovementMode) {

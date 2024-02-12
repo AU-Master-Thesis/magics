@@ -129,6 +129,7 @@ impl Plugin for MovementPlugin {
             (
                 update_velocity,
                 update_position,
+                update_position_orbit,
                 update_angular_velocity,
                 update_rotation,
                 update_rotation_orbit,
@@ -143,9 +144,33 @@ fn update_velocity(mut query: Query<(&Acceleration, &mut Velocity)>, time: Res<T
     }
 }
 
-fn update_position(mut query: Query<(&Velocity, &mut Transform)>, time: Res<Time>) {
+fn update_position(mut query: Query<(&Velocity, &mut Transform), Without<Orbit>>, time: Res<Time>) {
     for (velocity, mut transform) in query.iter_mut() {
         transform.translation += velocity.value * time.delta_seconds();
+    }
+}
+
+fn update_position_orbit(
+    mut query: Query<(&mut Orbit, &Velocity, &mut Transform)>,
+    time: Res<Time>,
+) {
+    // translate both the orbit.origin point and the transform
+    for (mut orbit, velocity, mut transform) in query.iter_mut() {
+        let source_z_direction = if f32::abs(transform.forward().dot(Vec3::Y)) > 0.5 {
+            transform.up()
+        } else {
+            transform.forward()
+        };
+
+        let z_direction =
+            Vec3::new(source_z_direction.x, 0.0, source_z_direction.z).normalize_or_zero();
+
+        let from_local_translation = (transform.left() * velocity.value.x
+            + z_direction * velocity.value.z)
+            * time.delta_seconds();
+
+        transform.translation += from_local_translation;
+        orbit.origin += from_local_translation;
     }
 }
 
@@ -178,12 +203,14 @@ fn update_rotation_orbit(
     time: Res<Time>,
 ) {
     for (orbit, angular_velocity, mut transform) in query.iter_mut() {
-        let q = Quat::from_euler(
-            EulerRot::XYZ,
-            angular_velocity.value.x * time.delta_seconds(),
-            angular_velocity.value.y * time.delta_seconds(),
-            angular_velocity.value.z * time.delta_seconds(),
+        let yaw = Quat::from_axis_angle(Vec3::Y, angular_velocity.value.x * time.delta_seconds());
+        let pitch = Quat::from_axis_angle(
+            transform.right(),
+            -angular_velocity.value.y * time.delta_seconds(),
         );
-        transform.translation = orbit.origin + q * (transform.translation - orbit.origin);
+
+        transform.rotate_around(orbit.origin, yaw * pitch);
+        // transform.look_at(orbit.origin, Vec3::Z);
+        // transform.translation = orbit.origin + q * (transform.translation - orbit.origin);
     }
 }

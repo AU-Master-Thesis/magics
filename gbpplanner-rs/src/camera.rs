@@ -6,7 +6,7 @@ use crate::movement::{LinearMovementBundle, OrbitMovementBundle};
 
 const CAMERA_DISTANCE: f32 = 40.0;
 pub const SPEED: f32 = 10.0;
-pub const ANGULAR_SPEED: f32 = 5.0;
+pub const ANGULAR_SPEED: f32 = 1.0;
 
 #[derive(Component, Debug)]
 pub struct MainCamera;
