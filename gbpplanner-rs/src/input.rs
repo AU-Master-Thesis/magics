@@ -140,7 +140,7 @@ fn camera_actions(
                         .clamped_axis_pair(InputAction::MoveCamera)
                         .unwrap()
                         .xy()
-                        .normalize();
+                        .normalize_or_zero();
 
                     velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
 
@@ -244,7 +244,7 @@ fn movement_actions(
             .clamped_axis_pair(InputAction::MoveObject)
             .unwrap()
             .xy()
-            .normalize();
+            .normalize_or_zero();
 
         velocity.value = Vec3::new(-action.x, 0.0, action.y) * scale;
 

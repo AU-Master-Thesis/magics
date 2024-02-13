@@ -45,27 +45,27 @@ pub enum MoveableObjectVisibilityState {
 fn spawn(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let mat = materials.add(StandardMaterial::default());
+    // let mat = materials.add(StandardMaterial::default());
     let mut transform = Transform::from_translation(START_TRANSLATION);
     transform.scale = Vec3::splat(SCALE);
     commands.spawn((
-        // MovingObjectBundle {
-        MovingMeshBundle {
-            model: PbrBundle {
-                material: mat.clone(),
-                mesh: meshes.add(Mesh::from(shape::Cube { size: 2.0 })),
-                transform: Transform::from_xyz(0.0, 1.0, 0.0),
+        // MovingMeshBundle {
+        //     model: PbrBundle {
+        //         material: mat.clone(),
+        //         mesh: meshes.add(Mesh::from(shape::Cube { size: 2.0 })),
+        //         transform: Transform::from_xyz(0.0, 1.0, 0.0),
+        //         ..default()
+        //     },
+        MovingObjectBundle {
+            model: SceneBundle {
+                // scene: scene_assets.roomba.clone(),
+                scene: scene_assets.roomba.clone(),
+                transform,
                 ..default()
             },
-            // SceneBundle {
-            //     // scene: scene_assets.roomba.clone(),
-            //     scene: scene_assets.roomba.clone(),
-            //     transform,
-            //     ..default()
-            // },
             ..default()
         },
         MoveableObject,
