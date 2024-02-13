@@ -4,9 +4,9 @@ use bevy_infinite_grid::GridShadowCamera;
 
 use crate::movement::{LinearMovementBundle, OrbitMovementBundle};
 
-const CAMERA_DISTANCE: f32 = 40.0;
-pub const SPEED: f32 = 10.0;
-pub const ANGULAR_SPEED: f32 = 1.0;
+const INITIAL_CAMERA_DISTANCE: f32 = 40.0;
+pub const SPEED: f32 = 20.0;
+pub const ANGULAR_SPEED: f32 = 2.0;
 
 #[derive(Component, Debug)]
 pub struct MainCamera;
@@ -31,7 +31,7 @@ impl Plugin for CameraPlugin {
 fn spawn_camera(mut commands: Commands) {
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(0.0, CAMERA_DISTANCE, 0.0)
+            transform: Transform::from_xyz(0.0, INITIAL_CAMERA_DISTANCE, 0.0)
                 .looking_at(Vec3::ZERO, Vec3::Z),
             ..default()
         },

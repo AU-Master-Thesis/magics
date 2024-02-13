@@ -117,21 +117,13 @@ fn camera_actions(
             &ActionState<InputAction>,
             &mut Velocity,
             &mut AngularVelocity,
-            // &mut Transform,
-            // &Orbit,
         ),
         With<MainCamera>,
     >,
 ) {
-    if let Ok((
-        action_state,
-        mut velocity,
-        mut angular_velocity,
-        // mut camera_transform,
-        // camera_orbit,
-    )) = query.get_single_mut()
-    {
-        // if action_state.just_pressed(InputAction::ToggleCameraMovementMode) {
+    if let Ok((action_state, mut velocity, mut angular_velocity)) = query.get_single_mut() {
+        let mut tmp_velocity = Vec3::ZERO;
+        let mut tmp_angular_velocity = Vec3::ZERO;
 
         if action_state.pressed(InputAction::MoveCamera) {
             match state.get() {
@@ -142,7 +134,8 @@ fn camera_actions(
                         .xy()
                         .normalize_or_zero();
 
-                    velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
+                    tmp_velocity.x = -action.x * camera::SPEED;
+                    tmp_velocity.z = action.y * camera::SPEED;
 
                     info!(
                         "Moving camera in direction {}",
@@ -159,22 +152,32 @@ fn camera_actions(
                         .unwrap()
                         .xy()
                         .normalize();
-                    // * 0.01;
 
-                    angular_velocity.value =
-                        Vec3::new(action.x, action.y, 0.0) * camera::ANGULAR_SPEED;
-
-                    // let yaw = Quat::from_axis_angle(Vec3::Y, action.x);
-                    // let pitch = Quat::from_axis_angle(camera_transform.right(), -action.y);
-
-                    // camera_transform.rotate_around(camera_orbit.origin, yaw * pitch);
+                    tmp_angular_velocity.x = action.x * camera::ANGULAR_SPEED;
+                    tmp_angular_velocity.y = action.y * camera::ANGULAR_SPEED;
                 }
             }
         } else {
-            velocity.value = Vec3::ZERO;
-            angular_velocity.value = Vec3::ZERO;
+            tmp_velocity.x = 0.0;
+            tmp_velocity.z = 0.0;
+            tmp_angular_velocity.x = 0.0;
+            tmp_angular_velocity.y = 0.0;
         }
 
+        if action_state.pressed(InputAction::ZoomIn) {
+            info!("Zooming in");
+            tmp_velocity.y = -camera::SPEED;
+        } else if action_state.pressed(InputAction::ZoomOut) {
+            info!("Zooming out");
+            tmp_velocity.y = camera::SPEED;
+        } else {
+            tmp_velocity.y = 0.0;
+        }
+
+        velocity.value = tmp_velocity;
+        angular_velocity.value = tmp_angular_velocity;
+
+        // Handling state changes
         if action_state.just_pressed(InputAction::ToggleCameraMovementMode) {
             next_state.set(match state.get() {
                 CameraMovementMode::Linear => {

@@ -182,11 +182,18 @@ fn update_position_orbit(
         let z_direction =
             Vec3::new(source_z_direction.x, 0.0, source_z_direction.z).normalize_or_zero();
 
+        // info!("velocity.value.y {:?}", velocity.value.y);
+
         let from_local_translation = (transform.left() * velocity.value.x
             + z_direction * velocity.value.z)
             * time.delta_seconds();
 
-        transform.translation += from_local_translation;
+        // info!("from_local_translation.y {:?}", from_local_translation.y);
+
+        let zoom_direction = transform.forward();
+
+        transform.translation +=
+            from_local_translation + zoom_direction * velocity.value.y * time.delta_seconds();
         orbit.origin += from_local_translation;
     }
 }
