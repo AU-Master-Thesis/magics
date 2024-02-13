@@ -17,7 +17,7 @@ impl Plugin for EnvironmentPlugin {
             .add_state::<HeightMapState>()
             .add_plugins(InfiniteGridPlugin)
             .add_systems(
-                PostStartup,
+                Startup,
                 (
                     infinite_grid,
                     // test_cubes,
@@ -45,12 +45,10 @@ fn infinite_grid(mut commands: Commands) {
             x_axis_color: {
                 let (r, g, b) = Flavour::Macchiato.maroon().into();
                 Color::rgb_u8(r, g, b)
-                // Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8)
             },
             z_axis_color: {
                 let (r, g, b) = Flavour::Macchiato.blue().into();
                 Color::rgb_u8(r, g, b)
-                // Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8)
             },
             ..default()
         },
