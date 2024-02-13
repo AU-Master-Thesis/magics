@@ -106,6 +106,23 @@ impl Default for MovingObjectBundle {
 }
 
 #[derive(Bundle)]
+pub struct MovingMeshBundle {
+    pub linear_movement: LinearMovementBundle,
+    pub angular_movement: AngularMovementBundle,
+    pub model: PbrBundle,
+}
+
+impl Default for MovingMeshBundle {
+    fn default() -> Self {
+        Self {
+            linear_movement: Default::default(),
+            angular_movement: Default::default(),
+            model: Default::default(),
+        }
+    }
+}
+
+#[derive(Bundle)]
 pub struct OrbitMovementBundle {
     pub angular_movement: AngularMovementBundle,
     pub orbit: Orbit,

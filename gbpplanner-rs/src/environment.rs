@@ -25,8 +25,8 @@ impl Plugin for EnvironmentPlugin {
                     // obstacles,
                     // view_image,
                 ),
-            )
-            .add_systems(Update, obstacles);
+            );
+        // .add_systems(Update, obstacles);
     }
 }
 
