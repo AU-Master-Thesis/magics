@@ -21,6 +21,7 @@ struct FactorState {
 
 #[derive(Debug)]
 pub struct Factor {
+    // TODO: are these only variables that belongs to the same factorgraph/robot as self?
     pub adjacent_variables: Vec<Rc<Variable>>,
     // TODO: document when a factor can be valid/invalid
     pub valid: bool,
@@ -36,12 +37,27 @@ impl Factor {
     // The factor precision and information is created, and then marginalised to create outgoing messages to its connected variables.
 
     ///
-    pub fn update() {
+    pub fn update(&mut self) {
+        // // Messages from connected variables are aggregated.
+        // // The beliefs are used to create the linearisation point X_.
+        // int idx = 0; int n_dofs;
+        // for (int v=0; v<variables_.size(); v++){
+        //     n_dofs = variables_[v]->n_dofs_;
+        //     auto& [_, __, mu_belief] = this->inbox_[variables_[v]->key_];
+        //     X_(seqN(idx, n_dofs)) = mu_belief;
+        //     idx += n_dofs;
+        // }
+
+        let mut idx = 0;
+        for var in self.adjacent_variables.iter() {
+            idx += var.dofs;
+        }
+
         todo!()
     }
 
     /// Marginalise the factor precision and information and create the outgoing message to the variable.
-    pub fn marginalise_factor_distance() -> Payload {
+    pub fn marginalise_factor_distance(&mut self) -> Payload {
         todo!()
     }
 }
