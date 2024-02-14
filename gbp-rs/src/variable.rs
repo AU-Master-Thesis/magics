@@ -36,7 +36,7 @@ fn update_variable_belief(var: &mut Variable, messages_of_adjacent_factors: &[Mu
     .sum();
 
     var.belief = updated_belief;
-    
-    
+
+
     // var.belief = adjacent_factors.iter().product()
 }

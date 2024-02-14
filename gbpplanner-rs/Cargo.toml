@@ -42,10 +42,13 @@ thiserror = "1.0.56"
 clap = { version = "4.4.18", features = ["derive"] }
 color-eyre = "0.6.2"
 
-# Enable a small amount of optimization in debug mode
-[profile.dev]
-opt-level = 1
+# # Enable a small amount of optimization in debug mode
+# [profile.dev]
+# opt-level = 1
 
-# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
-[profile.dev.package."*"]
-opt-level = 3
+# # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+# [profile.dev.package."*"]
+# opt-level = 3
+
+[lints]
+workspace = true

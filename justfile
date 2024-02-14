@@ -7,7 +7,7 @@ default:
     @just --list
 
 build:
-    cargo build 
+    cargo build
 
 run:
     cargo run
