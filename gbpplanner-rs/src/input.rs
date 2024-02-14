@@ -55,80 +55,81 @@ pub enum InputAction {
     SwitchCamera,
 }
 
-fn something() -> UserInput {
-    UserInput::Single(InputKind::Keyboard(KeyCode::P))
-}
-
 // Exhaustively match `InputAction` and define the default binding to the input
 impl InputAction {
-    fn default_mouse_input(action: InputAction) -> UserInput {
+    fn default_mouse_input(action: InputAction) -> Option<UserInput> {
         use InputAction::*;
         match action {
-            MoveObject => something(),
-            RotateObjectClockwise => something(),
-            RotateObjectCounterClockwise => something(),
-            Boost => something(),
-            Toggle => something(),
-            MoveCamera => something(),
             MouseMoveCamera => {
                 // UserInput::Single(InputKind::DualAxis(DualAxis::mouse_motion()))
-                UserInput::Chord(vec![
+                Some(UserInput::Chord(vec![
                     InputKind::Mouse(MouseButton::Left),
                     InputKind::DualAxis(DualAxis::mouse_motion()),
-                ])
+                ]))
             }
-            ToggleCameraMovementMode => something(),
-            ZoomIn => something(),
-            ZoomOut => something(),
-            SwitchCamera => something(),
+            _ => None,
         }
     }
 
-    fn default_keyboard_mouse_input(action: InputAction) -> UserInput {
+    fn default_keyboard_mouse_input(action: InputAction) -> Option<UserInput> {
         // Match against the provided action to get the correct default keyboard-mouse input
         match action {
-            Self::MoveObject => UserInput::VirtualDPad(VirtualDPad::wasd()),
-            Self::RotateObjectClockwise => UserInput::Single(InputKind::Keyboard(KeyCode::E)),
+            Self::MoveObject => Some(UserInput::VirtualDPad(VirtualDPad::wasd())),
+            Self::RotateObjectClockwise => Some(UserInput::Single(InputKind::Keyboard(KeyCode::E))),
             Self::RotateObjectCounterClockwise => {
-                UserInput::Single(InputKind::Keyboard(KeyCode::Q))
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::Q)))
             }
-            Self::Boost => UserInput::Single(InputKind::Keyboard(KeyCode::ShiftLeft)),
-            Self::Toggle => UserInput::Single(InputKind::Keyboard(KeyCode::F)),
-            Self::MoveCamera => UserInput::VirtualDPad(VirtualDPad::arrow_keys()),
-            Self::MouseMoveCamera => something(),
-            Self::ToggleCameraMovementMode => UserInput::Single(InputKind::Keyboard(KeyCode::C)),
-            Self::ZoomIn => UserInput::Single(InputKind::MouseWheel(MouseWheelDirection::Down)),
-            Self::ZoomOut => UserInput::Single(InputKind::MouseWheel(MouseWheelDirection::Up)),
-            Self::SwitchCamera => UserInput::Single(InputKind::Keyboard(KeyCode::Tab)),
+            Self::Boost => Some(UserInput::Single(InputKind::Keyboard(KeyCode::ShiftLeft))),
+            Self::Toggle => Some(UserInput::Single(InputKind::Keyboard(KeyCode::F))),
+            Self::MoveCamera => Some(UserInput::VirtualDPad(VirtualDPad::arrow_keys())),
+            Self::MouseMoveCamera => None,
+            Self::ToggleCameraMovementMode => {
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::C)))
+            }
+            Self::ZoomIn => Some(UserInput::Single(InputKind::MouseWheel(
+                MouseWheelDirection::Down,
+            ))),
+            Self::ZoomOut => Some(UserInput::Single(InputKind::MouseWheel(
+                MouseWheelDirection::Up,
+            ))),
+            Self::SwitchCamera => Some(UserInput::Single(InputKind::Keyboard(KeyCode::Tab))),
         }
     }
 
-    fn default_gamepad_input(action: InputAction) -> UserInput {
+    fn default_gamepad_input(action: InputAction) -> Option<UserInput> {
         // Match against the provided action to get the correct default gamepad input
         match action {
-            Self::MoveObject => UserInput::Single(InputKind::DualAxis(DualAxis::left_stick())),
-            Self::RotateObjectClockwise => {
-                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::RightTrigger))
-            }
-            Self::RotateObjectCounterClockwise => {
-                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::LeftTrigger))
-            }
-            Self::Boost => {
-                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::LeftTrigger2))
-            }
-            Self::Toggle => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::South)),
-            Self::MoveCamera => UserInput::Single(InputKind::DualAxis(DualAxis::right_stick())),
-            Self::MouseMoveCamera => something(),
-            Self::ToggleCameraMovementMode => {
-                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::North))
-            }
-            Self::ZoomIn => {
-                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::DPadDown))
-            }
-            Self::ZoomOut => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::DPadUp)),
-            Self::SwitchCamera => {
-                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::East))
-            }
+            Self::MoveObject => Some(UserInput::Single(InputKind::DualAxis(
+                DualAxis::left_stick(),
+            ))),
+            Self::RotateObjectClockwise => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::RightTrigger,
+            ))),
+            Self::RotateObjectCounterClockwise => Some(UserInput::Single(
+                InputKind::GamepadButton(GamepadButtonType::LeftTrigger),
+            )),
+            Self::Boost => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::LeftTrigger2,
+            ))),
+            Self::Toggle => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::South,
+            ))),
+            Self::MoveCamera => Some(UserInput::Single(InputKind::DualAxis(
+                DualAxis::right_stick(),
+            ))),
+            Self::MouseMoveCamera => None,
+            Self::ToggleCameraMovementMode => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::North,
+            ))),
+            Self::ZoomIn => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::DPadDown,
+            ))),
+            Self::ZoomOut => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::DPadUp,
+            ))),
+            Self::SwitchCamera => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::East,
+            ))),
         }
     }
 }
@@ -137,9 +138,15 @@ fn bind_camera_input(mut commands: Commands, query: Query<(Entity, With<MainCame
     let mut input_map = InputMap::default();
 
     for action in InputAction::variants() {
-        input_map.insert(InputAction::default_mouse_input(action), action);
-        input_map.insert(InputAction::default_keyboard_mouse_input(action), action);
-        input_map.insert(InputAction::default_gamepad_input(action), action);
+        if let Some(input) = InputAction::default_mouse_input(action) {
+            input_map.insert(input, action);
+        }
+        if let Some(input) = InputAction::default_keyboard_mouse_input(action) {
+            input_map.insert(input, action);
+        }
+        if let Some(input) = InputAction::default_gamepad_input(action) {
+            input_map.insert(input, action);
+        }
     }
 
     if let Ok((entity, _)) = query.get_single() {
@@ -278,8 +285,12 @@ fn bind_moveable_object_input(
     // Loop through each action in `InputAction` and get the default `UserInput`,
     // then insert each default input into input_map
     for action in InputAction::variants() {
-        input_map.insert(InputAction::default_keyboard_mouse_input(action), action);
-        input_map.insert(InputAction::default_gamepad_input(action), action);
+        if let Some(input) = InputAction::default_keyboard_mouse_input(action) {
+            input_map.insert(input, action);
+        }
+        if let Some(input) = InputAction::default_gamepad_input(action) {
+            input_map.insert(input, action);
+        }
     }
 
     if let Ok((entity, _)) = query.get_single() {
