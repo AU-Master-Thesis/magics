@@ -1,5 +1,9 @@
-use bevy::prelude::*;
-use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use bevy::{core_pipeline::core_2d::graph::input, prelude::*};
+use leafwing_input_manager::{
+    axislike::{MouseMotionAxisType, VirtualAxis},
+    prelude::*,
+    user_input::InputKind,
+};
 
 use crate::{
     camera::{self, CameraMovementMode, MainCamera},
@@ -41,13 +45,40 @@ pub enum InputAction {
     Boost,
     Toggle,
     MoveCamera,
+    MouseMoveCamera,
     ToggleCameraMovementMode,
     ZoomIn,
     ZoomOut,
 }
 
+fn something() -> UserInput {
+    UserInput::Single(InputKind::Keyboard(KeyCode::P))
+}
+
 // Exhaustively match `InputAction` and define the default binding to the input
 impl InputAction {
+    fn default_mouse_input(action: InputAction) -> UserInput {
+        use InputAction::*;
+        match action {
+            MoveObject => something(),
+            RotateObjectClockwise => something(),
+            RotateObjectCounterClockwise => something(),
+            Boost => something(),
+            Toggle => something(),
+            MoveCamera => something(),
+            MouseMoveCamera => {
+                // UserInput::Single(InputKind::DualAxis(DualAxis::mouse_motion()))
+                UserInput::Chord(vec![
+                    InputKind::Mouse(MouseButton::Left),
+                    InputKind::DualAxis(DualAxis::mouse_motion()),
+                ])
+            }
+            ToggleCameraMovementMode => something(),
+            ZoomIn => something(),
+            ZoomOut => something(),
+        }
+    }
+
     fn default_keyboard_mouse_input(action: InputAction) -> UserInput {
         // Match against the provided action to get the correct default keyboard-mouse input
         match action {
@@ -59,6 +90,7 @@ impl InputAction {
             Self::Boost => UserInput::Single(InputKind::Keyboard(KeyCode::ShiftLeft)),
             Self::Toggle => UserInput::Single(InputKind::Keyboard(KeyCode::F)),
             Self::MoveCamera => UserInput::VirtualDPad(VirtualDPad::arrow_keys()),
+            Self::MouseMoveCamera => something(),
             Self::ToggleCameraMovementMode => UserInput::Single(InputKind::Keyboard(KeyCode::C)),
             Self::ZoomIn => UserInput::Single(InputKind::MouseWheel(MouseWheelDirection::Down)),
             Self::ZoomOut => UserInput::Single(InputKind::MouseWheel(MouseWheelDirection::Up)),
@@ -80,6 +112,7 @@ impl InputAction {
             }
             Self::Toggle => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::South)),
             Self::MoveCamera => UserInput::Single(InputKind::DualAxis(DualAxis::right_stick())),
+            Self::MouseMoveCamera => something(),
             Self::ToggleCameraMovementMode => {
                 UserInput::Single(InputKind::GamepadButton(GamepadButtonType::North))
             }
@@ -95,6 +128,7 @@ fn bind_camera_input(mut commands: Commands, query: Query<(Entity, With<MainCame
     let mut input_map = InputMap::default();
 
     for action in InputAction::variants() {
+        input_map.insert(InputAction::default_mouse_input(action), action);
         input_map.insert(InputAction::default_keyboard_mouse_input(action), action);
         input_map.insert(InputAction::default_gamepad_input(action), action);
     }
@@ -133,16 +167,50 @@ fn camera_actions(
     {
         // if action_state.just_pressed(InputAction::ToggleCameraMovementMode) {
 
-        if action_state.pressed(InputAction::MoveCamera) {
+        let mut tmp_velocity = Vec3::ZERO;
+        let mut tmp_angular_velocity = Vec3::ZERO;
+
+        if action_state.pressed(InputAction::MouseMoveCamera) {
+            info!("Mouse move camera");
             match state.get() {
-                CameraMovementMode::Linear => {
+                CameraMovementMode::Pan => {
+                    let action = action_state
+                        .axis_pair(InputAction::MouseMoveCamera)
+                        .unwrap()
+                        .xy();
+
+                    // velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
+                    // tmp_velocity = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
+                    tmp_velocity.x = action.x * 0.8; // * camera::SPEED;
+                    tmp_velocity.z = action.y * 0.8; // * camera::SPEED;
+                                                     // let prev_translation = camera_transform.translation;
+                                                     // camera_transform.translation = prev_translation
+                                                     //     + camera_transform.right() * action.x
+                                                     //     + camera_transform.up() * action.y;
+                }
+                CameraMovementMode::Orbit => {
+                    let action = action_state
+                        .axis_pair(InputAction::MouseMoveCamera)
+                        .unwrap()
+                        .xy();
+
+                    // angular_velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
+                    tmp_angular_velocity.x = -action.x * 0.2; // * camera::ANGULAR_SPEED;
+                    tmp_angular_velocity.y = action.y * 0.2; // * camera::ANGULAR_SPEED;
+                }
+            }
+        } else if action_state.pressed(InputAction::MoveCamera) {
+            match state.get() {
+                CameraMovementMode::Pan => {
                     let action = action_state
                         .clamped_axis_pair(InputAction::MoveCamera)
                         .unwrap()
                         .xy()
                         .normalize_or_zero();
 
-                    velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
+                    // velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
+                    tmp_velocity.x = -action.x * camera::SPEED;
+                    tmp_velocity.z = action.y * camera::SPEED;
 
                     info!(
                         "Moving camera in direction {}",
@@ -161,8 +229,10 @@ fn camera_actions(
                         .normalize();
                     // * 0.01;
 
-                    angular_velocity.value =
-                        Vec3::new(action.x, action.y, 0.0) * camera::ANGULAR_SPEED;
+                    // angular_velocity.value =
+                    //     Vec3::new(action.x, action.y, 0.0) * camera::ANGULAR_SPEED;
+                    tmp_angular_velocity.x = action.x * camera::ANGULAR_SPEED;
+                    tmp_angular_velocity.y = action.y * camera::ANGULAR_SPEED;
 
                     // let yaw = Quat::from_axis_angle(Vec3::Y, action.x);
                     // let pitch = Quat::from_axis_angle(camera_transform.right(), -action.y);
@@ -171,19 +241,24 @@ fn camera_actions(
                 }
             }
         } else {
-            velocity.value = Vec3::ZERO;
-            angular_velocity.value = Vec3::ZERO;
+            // velocity.value = Vec3::ZERO;
+            // angular_velocity.value = Vec3::ZERO;
+            tmp_velocity = Vec3::ZERO;
+            tmp_angular_velocity = Vec3::ZERO;
         }
+
+        velocity.value = tmp_velocity;
+        angular_velocity.value = tmp_angular_velocity;
 
         if action_state.just_pressed(InputAction::ToggleCameraMovementMode) {
             next_state.set(match state.get() {
-                CameraMovementMode::Linear => {
+                CameraMovementMode::Pan => {
                     info!("Toggling camera mode: Linear -> Orbit");
                     CameraMovementMode::Orbit
                 }
                 CameraMovementMode::Orbit => {
                     info!("Toggling camera mode: Orbit -> Linear");
-                    CameraMovementMode::Linear
+                    CameraMovementMode::Pan
                 }
             });
         }
