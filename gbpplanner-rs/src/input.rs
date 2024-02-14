@@ -175,8 +175,8 @@ fn camera_actions(
 
                     // velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
                     // tmp_velocity = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
-                    tmp_velocity.x = action.x * 0.8 * camera_distance / 25.0; // * camera::SPEED;
-                    tmp_velocity.z = action.y * 0.8 * camera_distance / 25.0; // * camera::SPEED;
+                    tmp_velocity.x = action.x * camera_distance / 100.0; // * camera::SPEED;
+                    tmp_velocity.z = action.y * camera_distance / 100.0; // * camera::SPEED;
                 }
                 CameraMovementMode::Orbit => {
                     let action = action_state
