@@ -5,6 +5,7 @@ mod asset_loader;
 mod camera;
 mod diagnostics;
 mod environment;
+mod follow_cameras;
 mod input;
 mod moveable_object;
 mod movement;
@@ -16,6 +17,7 @@ use crate::asset_loader::AssetLoaderPlugin;
 use crate::camera::CameraPlugin;
 use crate::diagnostics::DiagnosticsPlugin;
 use crate::environment::EnvironmentPlugin;
+use crate::follow_cameras::FollowCamerasPlugin;
 use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
 use crate::movement::MovementPlugin;
@@ -69,6 +71,7 @@ fn main() -> color_eyre::eyre::Result<()> {
             InputPlugin,
             MoveableObjectPlugin,
             CameraPlugin,
+            FollowCamerasPlugin,
             DiagnosticsPlugin,
         ))
         .add_plugins(WorldInspectorPlugin::new())

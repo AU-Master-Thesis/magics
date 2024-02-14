@@ -3,6 +3,7 @@ use bevy::prelude::*;
 
 use crate::{
     asset_loader::SceneAssets,
+    follow_cameras::FollowCameraMe,
     movement::{MovingMeshBundle, MovingObjectBundle},
 };
 
@@ -77,5 +78,6 @@ fn spawn(
             ..default()
         },
         MoveableObject,
+        FollowCameraMe,
     ));
 }

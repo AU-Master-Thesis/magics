@@ -7,6 +7,7 @@ use leafwing_input_manager::{
 
 use crate::{
     camera::{self, CameraMovementMode, MainCamera},
+    follow_cameras::FollowCameraMe,
     moveable_object::{
         self, MoveableObject, MoveableObjectMovementState, MoveableObjectVisibilityState,
     },
@@ -23,6 +24,7 @@ impl Plugin for InputPlugin {
                 (
                     bind_moveable_object_input,
                     bind_camera_input,
+                    bind_camera_switch,
                     // somthing more
                 ),
             )
@@ -31,6 +33,7 @@ impl Plugin for InputPlugin {
                 (
                     movement_actions,
                     camera_actions,
+                    switch_camera,
                     // somthing more
                 ),
             );
@@ -49,6 +52,7 @@ pub enum InputAction {
     ToggleCameraMovementMode,
     ZoomIn,
     ZoomOut,
+    SwitchCamera,
 }
 
 fn something() -> UserInput {
@@ -76,6 +80,7 @@ impl InputAction {
             ToggleCameraMovementMode => something(),
             ZoomIn => something(),
             ZoomOut => something(),
+            SwitchCamera => something(),
         }
     }
 
@@ -94,6 +99,7 @@ impl InputAction {
             Self::ToggleCameraMovementMode => UserInput::Single(InputKind::Keyboard(KeyCode::C)),
             Self::ZoomIn => UserInput::Single(InputKind::MouseWheel(MouseWheelDirection::Down)),
             Self::ZoomOut => UserInput::Single(InputKind::MouseWheel(MouseWheelDirection::Up)),
+            Self::SwitchCamera => UserInput::Single(InputKind::Keyboard(KeyCode::Tab)),
         }
     }
 
@@ -120,6 +126,9 @@ impl InputAction {
                 UserInput::Single(InputKind::GamepadButton(GamepadButtonType::DPadDown))
             }
             Self::ZoomOut => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::DPadUp)),
+            Self::SwitchCamera => {
+                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::East))
+            }
         }
     }
 }
@@ -368,4 +377,53 @@ fn movement_actions(
         rotation * rotation_scale * moveable_object::ANGULAR_SPEED,
         0.0,
     );
+}
+
+#[derive(Component)]
+pub struct GlobalInputs;
+
+fn bind_camera_switch(mut commands: Commands) {
+    let mut input_map = InputMap::default();
+    input_map.insert(
+        UserInput::Single(InputKind::Keyboard(KeyCode::Tab)),
+        InputAction::SwitchCamera,
+    );
+
+    commands.spawn((
+        InputManagerBundle::<InputAction> {
+            input_map,
+            ..default()
+        },
+        GlobalInputs,
+    ));
+}
+
+fn switch_camera(
+    query: Query<&ActionState<InputAction>, With<GlobalInputs>>,
+    mut query_follow_cameras: Query<&mut Camera, With<FollowCameraMe>>,
+    mut query_main_camera: Query<&mut Camera, (With<MainCamera>, Without<FollowCameraMe>)>,
+) {
+    let action_state = query.single();
+
+    // collect all cameras in a vector
+    let mut cameras = vec![query_main_camera.single_mut()];
+    let mut last_active_camera = 0;
+    for (i, camera) in query_follow_cameras.iter_mut().enumerate() {
+        if camera.is_active {
+            last_active_camera = i;
+        }
+        cameras.push(camera);
+    }
+
+    if action_state.just_pressed(InputAction::SwitchCamera) {
+        let next_active_camera = (last_active_camera + 1) % cameras.len();
+        info!(
+            "Switching camera from {} to {}, with a total of {} cameras",
+            last_active_camera,
+            next_active_camera,
+            cameras.len()
+        );
+        cameras[last_active_camera].is_active = false;
+        cameras[next_active_camera].is_active = true;
+    }
 }
