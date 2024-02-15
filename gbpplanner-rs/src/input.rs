@@ -58,33 +58,13 @@ pub enum InputAction {
 // Exhaustively match `InputAction` and define the default binding to the input
 impl InputAction {
     fn default_mouse_input(action: InputAction) -> Option<UserInput> {
-        use InputAction::*;
         match action {
-            MouseMoveCamera => {
+            Self::MouseMoveCamera => {
                 // UserInput::Single(InputKind::DualAxis(DualAxis::mouse_motion()))
                 Some(UserInput::Chord(vec![
                     InputKind::Mouse(MouseButton::Left),
                     InputKind::DualAxis(DualAxis::mouse_motion()),
                 ]))
-            }
-            _ => None,
-        }
-    }
-
-    fn default_keyboard_mouse_input(action: InputAction) -> Option<UserInput> {
-        // Match against the provided action to get the correct default keyboard-mouse input
-        match action {
-            Self::MoveObject => Some(UserInput::VirtualDPad(VirtualDPad::wasd())),
-            Self::RotateObjectClockwise => Some(UserInput::Single(InputKind::Keyboard(KeyCode::E))),
-            Self::RotateObjectCounterClockwise => {
-                Some(UserInput::Single(InputKind::Keyboard(KeyCode::Q)))
-            }
-            Self::Boost => Some(UserInput::Single(InputKind::Keyboard(KeyCode::ShiftLeft))),
-            Self::Toggle => Some(UserInput::Single(InputKind::Keyboard(KeyCode::F))),
-            Self::MoveCamera => Some(UserInput::VirtualDPad(VirtualDPad::arrow_keys())),
-            Self::MouseMoveCamera => None,
-            Self::ToggleCameraMovementMode => {
-                Some(UserInput::Single(InputKind::Keyboard(KeyCode::C)))
             }
             Self::ZoomIn => Some(UserInput::Single(InputKind::MouseWheel(
                 MouseWheelDirection::Down,
@@ -92,7 +72,32 @@ impl InputAction {
             Self::ZoomOut => Some(UserInput::Single(InputKind::MouseWheel(
                 MouseWheelDirection::Up,
             ))),
-            Self::SwitchCamera => Some(UserInput::Single(InputKind::Keyboard(KeyCode::Tab))),
+            _ => None,
+        }
+    }
+
+    fn default_keyboard_input(action: InputAction) -> Option<UserInput> {
+        // Match against the provided action to get the correct default keyboard-mouse input
+        match action {
+            Self::MoveObject => Some(UserInput::VirtualDPad(VirtualDPad::wasd())),
+            Self::RotateObjectClockwise => {
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::E)))
+            }
+            Self::RotateObjectCounterClockwise => {
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::Q)))
+            }
+            Self::Boost => {
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::ShiftLeft)))
+            }
+            Self::Toggle => Some(UserInput::Single(InputKind::Keyboard(KeyCode::F))),
+            Self::MoveCamera => Some(UserInput::VirtualDPad(VirtualDPad::arrow_keys())),
+            Self::ToggleCameraMovementMode => {
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::C)))
+            }
+            Self::SwitchCamera => {
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::Tab)))
+            }
+            _ => None,
         }
     }
 
@@ -102,9 +107,9 @@ impl InputAction {
             Self::MoveObject => Some(UserInput::Single(InputKind::DualAxis(
                 DualAxis::left_stick(),
             ))),
-            Self::RotateObjectClockwise => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::RightTrigger,
-            ))),
+            Self::RotateObjectClockwise => Some(UserInput::Single(
+                InputKind::GamepadButton(GamepadButtonType::RightTrigger),
+            )),
             Self::RotateObjectCounterClockwise => Some(UserInput::Single(
                 InputKind::GamepadButton(GamepadButtonType::LeftTrigger),
             )),
@@ -118,9 +123,9 @@ impl InputAction {
                 DualAxis::right_stick(),
             ))),
             Self::MouseMoveCamera => None,
-            Self::ToggleCameraMovementMode => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::North,
-            ))),
+            Self::ToggleCameraMovementMode => Some(UserInput::Single(
+                InputKind::GamepadButton(GamepadButtonType::North),
+            )),
             Self::ZoomIn => Some(UserInput::Single(InputKind::GamepadButton(
                 GamepadButtonType::DPadDown,
             ))),
@@ -141,7 +146,7 @@ fn bind_camera_input(mut commands: Commands, query: Query<(Entity, With<MainCame
         if let Some(input) = InputAction::default_mouse_input(action) {
             input_map.insert(input, action);
         }
-        if let Some(input) = InputAction::default_keyboard_mouse_input(action) {
+        if let Some(input) = InputAction::default_keyboard_input(action) {
             input_map.insert(input, action);
         }
         if let Some(input) = InputAction::default_gamepad_input(action) {
@@ -169,13 +174,23 @@ fn camera_actions(
             &mut AngularVelocity,
             &Orbit,
             &Transform,
+            &Camera,
         ),
         With<MainCamera>,
     >,
 ) {
-    if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform)) =
-        query.get_single_mut()
+    if let Ok((
+        action_state,
+        mut velocity,
+        mut angular_velocity,
+        orbit,
+        transform,
+        camera,
+    )) = query.get_single_mut()
     {
+        if !camera.is_active {
+            return;
+        }
         let mut tmp_velocity = Vec3::ZERO;
         let mut tmp_angular_velocity = Vec3::ZERO;
         let camera_distance = transform.translation.distance(orbit.origin);
@@ -191,8 +206,8 @@ fn camera_actions(
 
                     // velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
                     // tmp_velocity = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
-                    tmp_velocity.x = action.x * camera_distance / 100.0; // * camera::SPEED;
-                    tmp_velocity.z = action.y * camera_distance / 100.0; // * camera::SPEED;
+                    tmp_velocity.x = action.x * camera_distance / 50.0; // * camera::SPEED;
+                    tmp_velocity.z = action.y * camera_distance / 50.0; // * camera::SPEED;
                 }
                 CameraMovementMode::Orbit => {
                     let action = action_state
@@ -285,7 +300,7 @@ fn bind_moveable_object_input(
     // Loop through each action in `InputAction` and get the default `UserInput`,
     // then insert each default input into input_map
     for action in InputAction::variants() {
-        if let Some(input) = InputAction::default_keyboard_mouse_input(action) {
+        if let Some(input) = InputAction::default_keyboard_input(action) {
             input_map.insert(input, action);
         }
         if let Some(input) = InputAction::default_gamepad_input(action) {
@@ -316,7 +331,8 @@ fn movement_actions(
     >,
 ) {
     // let action_state = query.single();
-    let Ok((action_state, mut angular_velocity, mut velocity)) = query.get_single_mut() else {
+    let Ok((action_state, mut angular_velocity, mut velocity)) = query.get_single_mut()
+    else {
         return;
     };
 
@@ -411,15 +427,18 @@ fn bind_camera_switch(mut commands: Commands) {
 
 fn switch_camera(
     query: Query<&ActionState<InputAction>, With<GlobalInputs>>,
-    mut query_follow_cameras: Query<&mut Camera, With<FollowCameraMe>>,
-    mut query_main_camera: Query<&mut Camera, (With<MainCamera>, Without<FollowCameraMe>)>,
+    // mut query_follow_cameras: Query<&mut Camera, With<FollowCameraMe>>,
+    // mut query_main_camera: Query<&mut Camera, (With<MainCamera>, Without<FollowCameraMe>)>,
+    mut query_cameras: Query<&mut Camera>,
 ) {
     let action_state = query.single();
 
     // collect all cameras in a vector
-    let mut cameras = vec![query_main_camera.single_mut()];
+    // let mut cameras = vec![query_main_camera.single_mut()];
+    let mut cameras = vec![];
     let mut last_active_camera = 0;
-    for (i, camera) in query_follow_cameras.iter_mut().enumerate() {
+    // for (i, camera) in query_follow_cameras.iter_mut().enumerate() {
+    for (i, camera) in query_cameras.iter_mut().enumerate() {
         if camera.is_active {
             last_active_camera = i;
         }
