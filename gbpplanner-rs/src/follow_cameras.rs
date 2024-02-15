@@ -65,15 +65,25 @@ pub struct FollowCameraBundle {
 }
 
 impl FollowCameraBundle {
-    fn new(entity: Entity) -> Self {
-        let position = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
+    fn new(entity: Entity, target: Option<&Transform>) -> Self {
+        // let target = target.unwrap_or_else(|| &Transform::from_translation(Vec3::ZERO));
+        let target = match target {
+            Some(t) => *t, // Dereference to copy the Transform
+            None => Transform::from_translation(Vec3::ZERO),
+        };
+        let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
+
+        // transform offset to local space of target entity
+        let offset = (target.compute_matrix() * offset.extend(1.0)).xyz();
+
         Self {
             settings: FollowCameraSettings::new(entity),
             movement: OrbitMovementBundle::default(),
             velocity: Velocity::new(Vec3::ZERO),
             camera: Camera3dBundle {
-                transform: Transform::from_translation(position)
-                    .looking_at(Vec3::ZERO, Vec3::Y),
+                transform: Transform::from_translation(offset)
+                    // .looking_at(target.translation + Vec3::new(0.0, 0.5, 0.0), Vec3::Y),
+                    .looking_at(target.translation, Vec3::Y),
                 camera: Camera {
                     is_active: false,
                     ..Default::default()
@@ -86,11 +96,14 @@ impl FollowCameraBundle {
 
 fn add_follow_cameras(
     mut commands: Commands,
-    query: Query<Entity, With<FollowCameraMe>>,
+    query: Query<(Entity, &Transform), With<FollowCameraMe>>,
 ) {
-    for entity in query.iter() {
-        info!("Adding follow camera for entity: {:?}", entity);
-        commands.spawn((FollowCameraBundle::new(entity), Local));
+    for (entity, transform) in query.iter() {
+        info!(
+            "Adding follow camera for entity: {:?} with target translation: {:?}",
+            entity, transform.translation
+        );
+        commands.spawn((FollowCameraBundle::new(entity, Some(transform)), Local));
     }
 }
 
