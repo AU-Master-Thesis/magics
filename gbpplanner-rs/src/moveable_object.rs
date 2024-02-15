@@ -7,7 +7,7 @@ use crate::{
     movement::{MovingMeshBundle, MovingObjectBundle},
 };
 
-const SCALE: f32 = 1.0;
+const SCALE: f32 = 0.2;
 const START_TRANSLATION: Vec3 = Vec3::new(0., 0., 0.);
 pub const SPEED: f32 = 5.0; // m/s
 pub const BOOST_SPEED: f32 = 50.0; // m/s
