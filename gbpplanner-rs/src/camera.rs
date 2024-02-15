@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 use bevy_infinite_grid::GridShadowCamera;
 
-use crate::movement::{LinearMovementBundle, OrbitMovementBundle};
+use crate::movement::{LinearMovementBundle, Local, OrbitMovementBundle};
 
 const INITIAL_CAMERA_DISTANCE: f32 = 40.0;
 pub const SPEED: f32 = 20.0;
@@ -37,6 +37,7 @@ fn spawn_camera(mut commands: Commands) {
         },
         LinearMovementBundle::default(),
         OrbitMovementBundle::default(),
+        Local,
         MainCamera,
         GridShadowCamera,
     ));

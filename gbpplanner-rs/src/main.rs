@@ -22,6 +22,7 @@ use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
 use crate::movement::MovementPlugin;
 
+use bevy::gizmos::GizmoPlugin;
 use bevy::prelude::*;
 use clap::Parser;
 

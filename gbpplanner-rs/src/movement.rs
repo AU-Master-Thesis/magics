@@ -137,6 +137,9 @@ impl Default for OrbitMovementBundle {
     }
 }
 
+#[derive(Component)]
+pub struct Local;
+
 pub struct MovementPlugin;
 
 impl Plugin for MovementPlugin {
@@ -146,7 +149,8 @@ impl Plugin for MovementPlugin {
             (
                 update_velocity,
                 update_position,
-                update_position_orbit,
+                update_position_local,
+                update_position_local_orbit,
                 update_angular_velocity,
                 update_rotation,
                 update_rotation_orbit,
@@ -161,26 +165,61 @@ fn update_velocity(mut query: Query<(&Acceleration, &mut Velocity)>, time: Res<T
     }
 }
 
-fn update_position(mut query: Query<(&Velocity, &mut Transform), Without<Orbit>>, time: Res<Time>) {
+fn update_position(
+    mut query: Query<(&Velocity, &mut Transform), (Without<Orbit>, Without<Local>)>,
+    time: Res<Time>,
+) {
     for (velocity, mut transform) in query.iter_mut() {
+        if velocity.value.abs_diff_eq(Vec3::ZERO, std::f32::EPSILON) {
+            continue;
+        }
+        info!("update_position GLOBAL");
         transform.translation += velocity.value * time.delta_seconds();
     }
 }
 
-fn update_position_orbit(
-    mut query: Query<(&mut Orbit, &Velocity, &mut Transform)>,
+fn update_position_local(
+    mut query: Query<(&Velocity, &mut Transform), (With<Local>, Without<Orbit>)>,
+    time: Res<Time>,
+) {
+    for (velocity, mut transform) in query.iter_mut() {
+        if velocity.value.abs_diff_eq(Vec3::ZERO, std::f32::EPSILON) {
+            continue;
+        }
+        info!("update_position LOCAL");
+        let mutation = transform.local_x() * velocity.value.x
+            + transform.local_z() * velocity.value.z
+            + transform.local_y() * velocity.value.y;
+
+        info!("velocity {:?}", velocity.value);
+
+        info!("local_x {:?})", transform.local_x(),);
+        info!("local_y {:?})", transform.local_y(),);
+        info!("local_z {:?})", transform.local_z(),);
+
+        info!("mutation {:?}", mutation);
+        transform.translation += mutation * time.delta_seconds();
+    }
+}
+
+fn update_position_local_orbit(
+    mut query: Query<(&mut Orbit, &Velocity, &mut Transform), With<Local>>,
     time: Res<Time>,
 ) {
     // translate both the orbit.origin point and the transform
     for (mut orbit, velocity, mut transform) in query.iter_mut() {
+        if velocity.value.abs_diff_eq(Vec3::ZERO, std::f32::EPSILON) {
+            continue;
+        }
+        info!("update_position LOCAL ORBIT");
         let source_z_direction = if f32::abs(transform.forward().dot(Vec3::Y)) > 0.5 {
             transform.up()
         } else {
             transform.forward()
         };
 
-        let z_direction =
-            Vec3::new(source_z_direction.x, 0.0, source_z_direction.z).normalize_or_zero();
+        let z_direction = Vec3::new(source_z_direction.x, 0.0, source_z_direction.z)
+            .normalize_or_zero();
 
         // info!("velocity.value.y {:?}", velocity.value.y);
 
@@ -192,8 +231,8 @@ fn update_position_orbit(
 
         let zoom_direction = transform.forward();
 
-        transform.translation +=
-            from_local_translation + zoom_direction * velocity.value.y * time.delta_seconds();
+        transform.translation += from_local_translation
+            + zoom_direction * velocity.value.y * time.delta_seconds();
         orbit.origin += from_local_translation;
     }
 }
@@ -227,7 +266,10 @@ fn update_rotation_orbit(
     time: Res<Time>,
 ) {
     for (orbit, angular_velocity, mut transform) in query.iter_mut() {
-        let yaw = Quat::from_axis_angle(Vec3::Y, angular_velocity.value.x * time.delta_seconds());
+        let yaw = Quat::from_axis_angle(
+            Vec3::Y,
+            angular_velocity.value.x * time.delta_seconds(),
+        );
         let pitch = Quat::from_axis_angle(
             transform.right(),
             -angular_velocity.value.y * time.delta_seconds(),

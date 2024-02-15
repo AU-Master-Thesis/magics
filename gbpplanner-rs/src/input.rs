@@ -7,10 +7,7 @@ use leafwing_input_manager::{
 
 use crate::{
     camera::{self, CameraMovementMode, MainCamera},
-    follow_cameras::FollowCameraMe,
-    moveable_object::{
-        self, MoveableObject, MoveableObjectMovementState, MoveableObjectVisibilityState,
-    },
+    moveable_object::{self, MoveableObject, MoveableObjectMovementState},
     movement::{AngularVelocity, Orbit, Velocity},
 };
 
@@ -196,7 +193,7 @@ fn camera_actions(
         let camera_distance = transform.translation.distance(orbit.origin);
 
         if action_state.pressed(InputAction::MouseMoveCamera) {
-            info!("Mouse move camera");
+            // info!("Mouse move camera");
             match state.get() {
                 CameraMovementMode::Pan => {
                     let action = action_state
@@ -232,13 +229,13 @@ fn camera_actions(
                     tmp_velocity.x = -action.x * camera::SPEED * camera_distance / 35.0;
                     tmp_velocity.z = action.y * camera::SPEED * camera_distance / 35.0;
 
-                    info!(
-                        "Moving camera in direction {}",
-                        action_state
-                            .clamped_axis_pair(InputAction::MoveCamera)
-                            .unwrap()
-                            .xy()
-                    );
+                    // info!(
+                    //     "Moving camera in direction {}",
+                    //     action_state
+                    //         .clamped_axis_pair(InputAction::MoveCamera)
+                    //         .unwrap()
+                    //         .xy()
+                    // );
                 }
                 CameraMovementMode::Orbit => {
                     // action represents the direction to move the camera around it's origin
@@ -260,10 +257,10 @@ fn camera_actions(
         }
 
         if action_state.pressed(InputAction::ZoomIn) {
-            info!("Zooming in");
+            // info!("Zooming in");
             tmp_velocity.y = -camera::SPEED * camera_distance / 10.0;
         } else if action_state.pressed(InputAction::ZoomOut) {
-            info!("Zooming out");
+            // info!("Zooming out");
             tmp_velocity.y = camera::SPEED * camera_distance / 10.0;
         } else {
             tmp_velocity.y = 0.0;
@@ -351,13 +348,13 @@ fn movement_actions(
 
         velocity.value = Vec3::new(-action.x, 0.0, action.y) * scale;
 
-        info!(
-            "Moving in direction {}",
-            action_state
-                .clamped_axis_pair(InputAction::MoveObject)
-                .unwrap()
-                .xy()
-        );
+        // info!(
+        //     "Moving in direction {}",
+        //     action_state
+        //         .clamped_axis_pair(InputAction::MoveObject)
+        //         .unwrap()
+        //         .xy()
+        // );
     } else {
         velocity.value = Vec3::ZERO;
     }
@@ -366,7 +363,7 @@ fn movement_actions(
     // Using `just_pressed`, to only trigger once, even if held down, as we want a toggling behaviour
     // -> use `pressed`, if a while-held behaviour is desired
     if action_state.just_pressed(InputAction::Boost) {
-        info!("Using Boost!");
+        // info!("Using Boost!");
         match state.get() {
             MoveableObjectMovementState::Default => {
                 next_state.set(MoveableObjectMovementState::Boost);
@@ -383,11 +380,11 @@ fn movement_actions(
         action_state.pressed(InputAction::RotateObjectCounterClockwise),
     ) {
         (true, false) => {
-            info!("Rotation -1");
+            // info!("Rotation -1");
             -1.0
         }
         (false, true) => {
-            info!("Rotation 1");
+            // info!("Rotation 1");
             1.0
         }
         // Handles both false or both true cases, resulting in no rotation.

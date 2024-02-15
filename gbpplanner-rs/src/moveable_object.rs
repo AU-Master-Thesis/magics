@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use crate::{
     asset_loader::SceneAssets,
     follow_cameras::FollowCameraMe,
-    movement::{MovingMeshBundle, MovingObjectBundle},
+    movement::{Local, MovingObjectBundle},
 };
 
 const SCALE: f32 = 0.2;
@@ -43,31 +43,10 @@ pub enum MoveableObjectVisibilityState {
     Hidden,
 }
 
-fn spawn(
-    mut commands: Commands,
-    scene_assets: Res<SceneAssets>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let mat = materials.add(StandardMaterial::default());
+fn spawn(mut commands: Commands, scene_assets: Res<SceneAssets>) {
     let mut transform = Transform::from_translation(START_TRANSLATION);
     transform.scale = Vec3::splat(SCALE);
     commands.spawn((
-        // MovingMeshBundle {
-        //     model: PbrBundle {
-        //         material: mat.clone(),
-        //         mesh: meshes.add(
-        //             Mesh::try_from(shape::Icosphere {
-        //                 radius: 0.5,
-        //                 subdivisions: 20,
-        //             })
-        //             .unwrap(),
-        //         ),
-        //         transform: transform.clone(),
-        //         ..default()
-        //     },
-        //     ..default()
-        // },
         MovingObjectBundle {
             model: SceneBundle {
                 // scene: scene_assets.roomba.clone(),
@@ -79,5 +58,6 @@ fn spawn(
         },
         MoveableObject,
         FollowCameraMe,
+        Local,
     ));
 }
