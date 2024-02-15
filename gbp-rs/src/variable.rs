@@ -2,9 +2,7 @@ use std::{collections::BTreeMap, rc::Rc};
 
 use nalgebra::DVector;
 
-use crate::{
-    factor::Factor, multivariate_normal::MultivariateNormal, Key, Mailbox, Message,
-};
+use crate::{factor::Factor, multivariate_normal::MultivariateNormal, Key, Mailbox, Message};
 
 #[derive(Debug)]
 struct VariableBelief {}
@@ -47,33 +45,28 @@ impl Variable {
     /// Delete a factor from this variable's list of factors. Remove it from its inbox too.
     pub fn delete_factor(&mut self, factor_key: Key) {
         let Some(_) = self.adjacent_factors.remove(&factor_key) else {
-            eprintln!("Factor with key {} not found in the adjacent factors of the variable with key {}", factor_key, self.key);
+            eprintln!(
+                "Factor with key {} not found in the adjacent factors of the variable with key {}",
+                factor_key, self.key
+            );
             return;
         };
 
         let Some(_) = self.inbox.remove(&factor_key) else {
-            eprintln!("Factor with key {} not found in the inbox of the variable with key {}", factor_key, self.key);
+            eprintln!(
+                "Factor with key {} not found in the inbox of the variable with key {}",
+                factor_key, self.key
+            );
             return;
         };
     }
-
-    // void Variable::change_variable_prior(const Eigen::VectorXd& new_mu){
-    //     eta_prior_ = lam_prior_ * new_mu;
-    //     mu_ = new_mu;
-    //     belief_ = Message {eta_, lam_, mu_};
-    //     for (auto [fkey, fac] : factors_){
-    //         outbox_[fkey] = belief_;
-    //         inbox_[fkey].setZero();
-    //     }
-    // };
-    
 
     pub fn change_prior(&mut self, mean: DVector<f32>) {
         self.prior.information_vector = self.prior.precision_matrix * mean;
         // QUESTION: why cache mu?
         // mu_ = new_mu;
         // belief_ = Message {eta_, lam_, mu_};
-    
+
         for (f_key, factor) in self.adjacent_factors.iter() {
             if let Some(message) = self.outbox.get_mut(f_key) {
                 // outbox_[fkey] = belief_;
@@ -86,10 +79,71 @@ impl Variable {
         }
     }
 
-    pub fn update_belief(&mut self) {
-        unimplemented!()
-    }
+// /***********************************************************************************************************/
+// // Variable belief update step:
+// // Aggregates all the messages from its connected factors (begins with the prior, as this is effectively a unary factor)
+// // The valid_ flag is useful for drawing the variable.
+// // Finally the outgoing messages to factors is created.
+// /***********************************************************************************************************/
+// void Variable::update_belief(){
+//     // Collect messages from all other factors, begin by "collecting message from pose factor prior"
+//     eta_ = eta_prior_;
+//     lam_ = lam_prior_;
 
+//     for (auto& [f_key, msg] : inbox_) {
+//         auto [eta_msg, lam_msg, _] = msg;
+//         eta_ += eta_msg;
+//         lam_ += lam_msg;
+//     }
+//     // Update belief
+//     sigma_ = lam_.inverse();
+
+//     valid_ = sigma_.allFinite();
+//     if (valid_) mu_ = sigma_ * eta_;
+//     belief_ = Message {eta_, lam_, mu_};
+
+//     // Create message to send to each factor that sent it stuff
+//     // msg is the aggregate of all OTHER factor messages (belief - last sent msg of that factor)
+//     for (auto [f_key, fac] : factors_) {
+//         outbox_[f_key] = belief_ - inbox_.at(f_key);
+//     }
+// }
+
+    /// Variable Belief Update step (Step 1 in the GBP algorithm)
+    /// 
+    pub fn update_belief(&mut self) {
+        // Collect messages from all other factors, begin by "collecting message from pose factor prior"
+        self.belief.information_vector = self.prior.information_vector.clone();
+        self.belief.precision_matrix = self.prior.precision_matrix.clone();
+
+        for (f_key, msg) in self.inbox.iter() {
+            self.belief.information_vector += msg.information_vector.clone();
+            self.belief.precision_matrix += msg.precision_matrix.clone();
+        }
+
+        for (_, message) in self.inbox.iter() {
+            self.belief.information_vector += &message.information_vector;
+            self.belief.precision_matrix += &message.precision_matrix;
+        }
+
+        // Update belief
+        let covariance = self.belief.precision_matrix.clone().try_inverse().expect("Precision matrix should be nonsingular");
+
+        let valid = covariance.iter().all(|x| x.is_finite());
+        if valid {
+            // if (valid_) mu_ = sigma_ * eta_;
+        }
+
+        // belief_ = Message {eta_, lam_, mu_};
+        
+        // Create message to send to each factor
+        // Message is teh aggregate of all OTHER factor messages (belief - last sent msg of that factor)
+        for (f_key, factor) in self.adjacent_factors.iter() {
+           if let Some(message) = self.outbox.get_mut(f_key) {
+                *message = &self.belief - self.inbox.get(f_key).expect("The message should exist in the inbox");
+           }
+        }
+    }
 }
 
 // fn update_variable_belief(var: &mut Variable, messages_of_adjacent_factors: &[MultivariateNormal]) {
