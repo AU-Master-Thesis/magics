@@ -1,18 +1,18 @@
-use crate::{multivariate_normal::MultivariateNormal, robot::RobotId};
+// use crate::{multivariate_normal::MultivariateNormal, robot::RobotId};
 
-use nalgebra::{DMatrix, DVector};
+// use nalgebra::{DMatrix, DVector};
 
-#[derive(Debug)]
-pub struct Message {
-    header: MessageHeader,
-    payload: MultivariateNormal,
-}
+// #[derive(Debug)]
+// pub struct Message {
+//     header: MessageHeader,
+//     payload: MultivariateNormal,
+// }
 
-#[derive(Debug)]
-pub struct MessageHeader {
-    sender: RobotId,
-    receiver: RobotId,
-}
+// #[derive(Debug)]
+// pub struct MessageHeader {
+//     sender: RobotId,
+//     receiver: RobotId,
+// }
 
 // Data structure for a message that is passed in GBP
 // this consists of an information vector, precision matrix, and a mean vector.

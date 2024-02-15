@@ -1,8 +1,10 @@
+// #![deny(clippy::pedantic)]
+
 use nalgebra::{DMatrix, DVector};
 
-use crate::{message::Payload, variable::Variable};
+use crate::{variable::Variable, Key, Message};
 
-use std::rc::Rc;
+use std::{collections::BTreeMap, rc::Rc};
 
 // TODO: make generic over f32 | f64
 // <T: nalgebra::Scalar + Copy>
@@ -21,8 +23,10 @@ struct FactorState {
 
 #[derive(Debug)]
 pub struct Factor {
+    pub key: Key,
     // TODO: are these only variables that belongs to the same factorgraph/robot as self?
-    pub adjacent_variables: Vec<Rc<Variable>>,
+    // pub adjacent_variables: Vec<Rc<Variable>>,
+    pub adjacent_variables: BTreeMap<Key, Rc<Variable>>,
     // TODO: document when a factor can be valid/invalid
     pub valid: bool,
     pub kind: FactorKind,
@@ -57,7 +61,7 @@ impl Factor {
     }
 
     /// Marginalise the factor precision and information and create the outgoing message to the variable.
-    pub fn marginalise_factor_distance(&mut self) -> Payload {
+    pub fn marginalise_factor_distance(&mut self) -> Message {
         todo!()
     }
 }
@@ -188,8 +192,10 @@ impl DynamicFactor {
             (eye, zeros)
         };
 
+        #[allow(clippy::similar_names)]
         let qc_inv = f32::powi(state.strength, -2) * &eye;
 
+        #[allow(clippy::similar_names)]
         let qi_inv = {
             let upper_left = 12.0 * f32::powi(delta_t, -3) * &qc_inv;
             let upper_right = -6.0 * f32::powi(delta_t, -2) * &qc_inv;

@@ -13,14 +13,14 @@ use nalgebra::{DMatrix, DVector};
 // }
 
 /// A multivariate normal distribution stored in the information form.
-/// $ cal(N)(X; mu, Sigma) = cal(N)^(-1)(X; nu, Lambda) $,
-/// where $Lambda = Sigma^(-1)$ and $nu = Lambda * mu$
-/// $Lambda$ is called the precision matrix, and $nu$ is called the information vector.
+/// $ cal(N)(X; mu, Sigma) = cal(N)^(-1)(X; eta, Lambda) $,
+/// where $Lambda = Sigma^(-1)$ and $eta = Lambda * mu$
+/// $Lambda$ is called the precision matrix, and $eta$ is called the information vector.
 /// The precision matrix is the inverse of the covariance matrix $Sigma$.
 /// The information vector is the product of the precision matrix and the mean.
 #[derive(Debug, Clone)]
 pub struct MultivariateNormal {
-    /// $nu = Lambda * mu$, where $Lambda$ is the precision matrix and $mu$ is the mean
+    /// $eta = Lambda * mu$, where $Lambda$ is the precision matrix and $mu$ is the mean
     pub information_vector: DVector<f64>,
     /// $Lambda = Sigma^(-1)$, where $Sigma$ is the covariance matrix
     pub precision_matrix: DMatrix<f64>,
@@ -48,12 +48,18 @@ impl MultivariateNormal {
     }
 
     pub fn from_mean_and_covariance(mean: DVector<f64>, covariance: DMatrix<f64>) -> Self {
+        #[allow(clippy::unwrap_used)]
         let precision_matrix = covariance.try_inverse().unwrap();
         let information_vector = &precision_matrix * mean;
         MultivariateNormal {
             information_vector,
             precision_matrix,
         }
+    }
+
+    pub fn zeroize(&mut self) {
+        self.information_vector.fill(0.0);
+        self.precision_matrix.fill(0.0);
     }
 }
 
