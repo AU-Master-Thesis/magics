@@ -36,6 +36,7 @@ pub struct FollowCameraSettings {
     // pub smoothing: f32, // 0.0 = infinite smoothing, 1.0 = no smoothing
     pub target: Entity,
     pub offset: Vec3,
+    // pub target_angle: f32,
     pub pid: PID,
     // pub p_heading: f32,
 }
@@ -45,9 +46,10 @@ impl FollowCameraSettings {
         Self {
             // smoothing: 0.5,
             target,
-            offset: Vec3::new(0.0, 5.0, 10.0),
+            offset: Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0,
+            // target_angle: 0.0,
             pid: PID {
-                p: 6.0,
+                p: 1.0,
                 ..Default::default()
             },
         }
@@ -64,7 +66,7 @@ pub struct FollowCameraBundle {
 
 impl FollowCameraBundle {
     fn new(entity: Entity) -> Self {
-        let position = Vec3::new(0.0, 5.0, 10.0).normalize() * 10.0;
+        let position = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
         Self {
             settings: FollowCameraSettings::new(entity),
             movement: OrbitMovementBundle::default(),
@@ -94,30 +96,35 @@ fn add_follow_cameras(
 
 fn move_cameras(
     // time: Res<Time>,
+    mut gizmos: Gizmos,
     mut query_cameras: Query<
         (
-            &Transform,
+            &mut Transform,
             &FollowCameraSettings,
             &mut AngularVelocity,
             &mut Velocity,
             &mut Orbit,
+            &mut Camera,
         ),
         With<Camera>,
     >,
     query_targets: Query<
-        (Entity, &Transform, &Velocity),
+        (Entity, &Transform, &Velocity, &AngularVelocity),
         (With<FollowCameraMe>, Without<Camera>),
     >,
 ) {
     for (
-        camera_transform,
+        mut camera_transform,
         follow_settings,
-        mut angular_velocity,
+        mut camera_angular_velocity,
         mut camera_velocity,
         mut orbit,
+        mut camera,
     ) in query_cameras.iter_mut()
     {
-        for (target_entity, target_transform, target_velocity) in query_targets.iter() {
+        for (target_entity, target_transform, target_velocity, target_angular_velocity) in
+            query_targets.iter()
+        {
             if target_entity == follow_settings.target {
                 // let target_position = target_transform.translation
                 //     + target_transform.right() * follow_settings.offset.x
@@ -139,24 +146,58 @@ fn move_cameras(
                 // let speed = distance * follow_settings.pid.p;
                 // let direction = delta.normalize_or_zero();
                 // velocity.value = direction * speed;
-                camera_velocity.value = target_velocity.value;
+                // camera_velocity.value = target_velocity.value;
+                // camera_angular_velocity.value = target_angular_velocity.value;
+
+                // let (target_yaw, ..) = target_transform.rotation.to_euler(EulerRot::YXZ);
+                // let (camera_yaw, ..) = camera_transform.rotation.to_euler(EulerRot::YXZ);
+                // let delta_yaw = (target_yaw + std::f32::consts::PI) - camera_yaw;
+
+                // let mut delta_yaw = delta_yaw;
+                // if delta_yaw > std::f32::consts::PI {
+                //     delta_yaw -= std::f32::consts::PI * 2.0;
+                // } else if delta_yaw < -std::f32::consts::PI {
+                //     delta_yaw += std::f32::consts::PI * 2.0;
+                // }
+
+                // let speed = delta_yaw * follow_settings.pid.p;
+                // angular_velocity.value.x = speed;
+
+                // orbit.origin = target_transform.translation;
+                // camera_transform.look_at(target_transform.translation, Vec3::Y);
 
                 let (target_yaw, ..) = target_transform.rotation.to_euler(EulerRot::YXZ);
                 let (camera_yaw, ..) = camera_transform.rotation.to_euler(EulerRot::YXZ);
-                let delta_yaw = target_yaw - camera_yaw;
+                let mut delta_yaw = (target_yaw + std::f32::consts::PI) - camera_yaw;
 
-                let mut delta_yaw = delta_yaw;
                 if delta_yaw > std::f32::consts::PI {
                     delta_yaw -= std::f32::consts::PI * 2.0;
                 } else if delta_yaw < -std::f32::consts::PI {
                     delta_yaw += std::f32::consts::PI * 2.0;
                 }
 
-                let speed = delta_yaw * follow_settings.pid.p;
-                angular_velocity.value.x = speed;
+                let rotate_by_yaw = Quat::from_axis_angle(Vec3::Y, target_yaw);
+                let offset = rotate_by_yaw * follow_settings.offset;
 
-                orbit.origin = target_transform.translation;
-                // camera_transform.look_at(target_transform.translation, Vec3::Y);
+                // gizmos.sphere(
+                //     offset,
+                //     Quat::from_array([0.0, 0.0, 0.0, 0.0]),
+                //     0.2,
+                //     Color::TURQUOISE,
+                // );
+
+                let target_position = target_transform.translation + offset;
+
+                let delta = target_position - camera_transform.translation;
+                let distance = delta.length();
+
+                if distance < std::f32::EPSILON {
+                    continue;
+                }
+
+                camera_transform.translation += delta * follow_settings.pid.p;
+                // rotate by yaw
+                camera_transform.rotate(Quat::from_axis_angle(Vec3::Y, delta_yaw));
             }
         }
     }

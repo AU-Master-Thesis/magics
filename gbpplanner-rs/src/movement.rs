@@ -173,7 +173,6 @@ fn update_position(
         if velocity.value.abs_diff_eq(Vec3::ZERO, std::f32::EPSILON) {
             continue;
         }
-        info!("update_position GLOBAL");
         transform.translation += velocity.value * time.delta_seconds();
     }
 }
@@ -186,18 +185,10 @@ fn update_position_local(
         if velocity.value.abs_diff_eq(Vec3::ZERO, std::f32::EPSILON) {
             continue;
         }
-        info!("update_position LOCAL");
         let mutation = transform.local_x() * velocity.value.x
             + transform.local_z() * velocity.value.z
             + transform.local_y() * velocity.value.y;
 
-        info!("velocity {:?}", velocity.value);
-
-        info!("local_x {:?})", transform.local_x(),);
-        info!("local_y {:?})", transform.local_y(),);
-        info!("local_z {:?})", transform.local_z(),);
-
-        info!("mutation {:?}", mutation);
         transform.translation += mutation * time.delta_seconds();
     }
 }
@@ -211,7 +202,7 @@ fn update_position_local_orbit(
         if velocity.value.abs_diff_eq(Vec3::ZERO, std::f32::EPSILON) {
             continue;
         }
-        info!("update_position LOCAL ORBIT");
+
         let source_z_direction = if f32::abs(transform.forward().dot(Vec3::Y)) > 0.5 {
             transform.up()
         } else {
