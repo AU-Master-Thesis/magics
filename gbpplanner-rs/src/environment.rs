@@ -22,8 +22,7 @@ impl Plugin for EnvironmentPlugin {
                     infinite_grid,
                     // test_cubes,
                     lighting,
-                    // obstacles,
-                    view_image,
+                    // view_image,
                 ),
             )
             .add_systems(Update, obstacles.run_if(environment_png_is_loaded));
@@ -187,11 +186,13 @@ fn get_heightmap_data_from_image(image: &Image) -> Vec<f32> {
 
     let bytes_per_pixel = image.texture_descriptor.format.block_dimensions().0 as usize;
     let buffer_size = width * height * bytes_per_pixel;
-    let mut heightmap_data = Vec::with_capacity(width * height);
+    // let mut heightmap_data = Vec::with_capacity(width * height);
+    let mut heightmap_data = Vec::with_capacity(buffer_size);
 
     for y in 0..height {
         for x in 0..width {
-            let pixel_index = (y * width + x) * bytes_per_pixel;
+            // let pixel_index = (y * width + x) * bytes_per_pixel;
+            let pixel_index = y * width + x;
 
             // Assume the image is grayscale and take the first byte for the grayscale value
             let grayscale_value = image.data[pixel_index] as f32 / 255.0;
@@ -210,8 +211,17 @@ fn generate_vertex_positions_from_heightmap_data(
     let mut positions = Vec::with_capacity(width * height);
 
     info!("VERTEX POSITIONS");
+
+    // Go through the pixels in the heightmap like this
+    // 1   3   5
+    // |  /|  /|
+    // | / | / |
+    // |/  |/  |
+    // 2   4   6
+
     for j in 0..height {
         for i in 0..width {
+            // Vertex 1
             // Normalize i and j to range between -0.5..0.5
             let x = i as f32 / width as f32 - 0.5;
             let z = j as f32 / height as f32 - 0.5;
@@ -219,10 +229,17 @@ fn generate_vertex_positions_from_heightmap_data(
             let y = heightmap_data[j * width + i];
 
             positions.push([x, y, z]);
+
+            // Vertex 2
+            if j < height - 1 {
+                let x = i as f32 / width as f32 - 0.5;
+                let z = (j + 1) as f32 / height as f32 - 0.5;
+                let y = heightmap_data[(j + 1) * width + i];
+
+                positions.push([x, y, z]);
+            }
         }
     }
-
-    // info!("{:?}", positions);
 
     positions
 }
