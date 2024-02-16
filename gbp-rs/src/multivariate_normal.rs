@@ -21,13 +21,13 @@ use nalgebra::{DMatrix, DVector};
 #[derive(Debug, Clone)]
 pub struct MultivariateNormal {
     /// $eta = Lambda * mu$, where $Lambda$ is the precision matrix and $mu$ is the mean
-    pub information_vector: DVector<f64>,
+    pub information_vector: DVector<f32>,
     /// $Lambda = Sigma^(-1)$, where $Sigma$ is the covariance matrix
-    pub precision_matrix: DMatrix<f64>,
+    pub precision_matrix: DMatrix<f32>,
     // Consider including the following fields:
     //     gbpplanner includes the means as a computational optimization
-    // pub mean: nalgebra::DVector<f64>,
-    // pub covariance: nalgebra::DMatrix<f64>,
+    // pub mean: nalgebra::DVector<f32>,
+    // pub covariance: nalgebra::DMatrix<f32>,
 }
 
 impl MultivariateNormal {
@@ -40,16 +40,15 @@ impl MultivariateNormal {
     }
 
     /// Create a MultivariateNormal from a given information vector and precision matrix
-    pub fn new(information_vector: DVector<f64>, precision_matrix: DMatrix<f64>) -> Self {
+    pub fn new(information_vector: DVector<f32>, precision_matrix: DMatrix<f32>) -> Self {
         MultivariateNormal {
             information_vector,
             precision_matrix,
         }
     }
 
-    pub fn from_mean_and_covariance(mean: DVector<f64>, covariance: DMatrix<f64>) -> Self {
-        #[allow(clippy::unwrap_used)]
-        let precision_matrix = covariance.try_inverse().unwrap();
+    pub fn from_mean_and_covariance(mean: DVector<f32>, covariance: DMatrix<f32>) -> Self {
+        let precision_matrix = covariance.try_inverse().expect("Covariance matrix should be nonsingular");
         let information_vector = &precision_matrix * mean;
         MultivariateNormal {
             information_vector,

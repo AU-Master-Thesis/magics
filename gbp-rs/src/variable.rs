@@ -29,6 +29,24 @@ pub struct Variable {
 }
 
 impl Variable {
+
+    pub fn new(key: Key, mut prior: MultivariateNormal, dofs: usize) -> Self {
+        if !prior.precision_matrix.iter().all(|x| x.is_finite()) {
+            // if (!lam_prior_.allFinite()) lam_prior_.setZero();
+            prior.precision_matrix.fill(0.0);
+        }
+        Self {
+            key,
+            adjacent_factors: BTreeMap::new(),
+            prior,
+            belief: prior.clone(),
+            dofs,
+            valid: false,
+            inbox: Mailbox::new(),
+            outbox: Mailbox::new(),
+        }
+    }
+
     // Variable Belief Update step (Step 1 in the GBP algorithm)
     // Aggregates all the messages from its adjacent factors (begins with the prior, as this is effectively a unary factor)
     // Finally the outgoing messages to factors is created.
@@ -37,7 +55,7 @@ impl Variable {
     pub fn add_factor(&mut self, factor: Rc<Factor>) {
         self.adjacent_factors.insert(factor.key, factor);
         self.inbox.insert(factor.key, Message::with_dofs(self.dofs));
-        self.outbox.insert(factor.key, self.belief.clone());
+        self.outbox.insert(factor.key, Message(self.belief.clone()));
     }
 
     /// Delete a factor from this variable's list of factors. Remove it from its inbox too.
@@ -68,7 +86,7 @@ impl Variable {
         for (f_key, factor) in self.adjacent_factors.iter() {
             if let Some(message) = self.outbox.get_mut(f_key) {
                 // outbox_[fkey] = belief_;
-                *message = self.belief.clone();
+                *message = Message(self.belief.clone());
             }
             if let Some(message) = self.inbox.get_mut(f_key) {
                 // inbox_[fkey].setZero();
@@ -115,13 +133,13 @@ impl Variable {
         self.belief.precision_matrix = self.prior.precision_matrix.clone();
 
         for (f_key, msg) in self.inbox.iter() {
-            self.belief.information_vector += msg.information_vector.clone();
-            self.belief.precision_matrix += msg.precision_matrix.clone();
+            self.belief.information_vector += msg.0.information_vector.clone();
+            self.belief.precision_matrix += msg.0.precision_matrix.clone();
         }
 
         for (_, message) in self.inbox.iter() {
-            self.belief.information_vector += &message.information_vector;
-            self.belief.precision_matrix += &message.precision_matrix;
+            self.belief.information_vector += &message.0.information_vector;
+            self.belief.precision_matrix += &message.0.precision_matrix;
         }
 
         // Update belief
@@ -144,11 +162,11 @@ impl Variable {
         // Message is teh aggregate of all OTHER factor messages (belief - last sent msg of that factor)
         for (f_key, factor) in self.adjacent_factors.iter() {
             if let Some(message) = self.outbox.get_mut(f_key) {
-                *message = &self.belief
+                *message = Message(self.belief
                     - self
                         .inbox
                         .get(f_key)
-                        .expect("The message should exist in the inbox");
+                        .expect("The message should exist in the inbox").0);
             }
         }
     }
