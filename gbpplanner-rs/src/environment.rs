@@ -158,6 +158,9 @@ fn obstacles(
 
         let width = image.texture_descriptor.size.width as usize;
         let height = image.texture_descriptor.size.height as usize;
+        let bytes_per_pixel =
+            image.texture_descriptor.format.block_dimensions().0 as usize;
+        let channels = 4;
 
         // let heightmap_data: Vec<f32> = get_heightmap_data_from_image(&image);
 
@@ -177,10 +180,33 @@ fn obstacles(
         // // );
 
         // mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, calculate_uvs(width, height));
-        let vertices_count = (width + 1) * (height + 1);
-        let triangle_count = width * height * 6;
+        let vertices_count = width * height;
+        let triangle_count = (width - 1) * (height - 1) * 6;
         let extent = 10.0;
         let intensity = 0.5;
+
+        info!("image.texture_descriptor.size.width: {}", width);
+        info!("image.texture_descriptor.size.height: {}", height);
+        info!("image.data.len(): {}", image.data.len());
+        info!("bytes_per_pixel: {}", bytes_per_pixel);
+        info!(
+            "image.data.len() / bytes_per_pixel: {}",
+            image.data.len() / bytes_per_pixel
+        );
+        info!("vertices_count: {}", vertices_count);
+        info!("triangle_count: {}", triangle_count);
+
+        let mut heightmap = Vec::<f32>::with_capacity(vertices_count);
+        for w in 0..width {
+            for h in 0..height {
+                // heightmap.push((w + h) as f32);
+                // heightmap.push(0.0);
+                heightmap
+                    .push(1.0 - image.data[(h * width + w) * channels] as f32 / 255.0);
+            }
+        }
+
+        info!("heightmap.len(): {}", heightmap.len());
 
         // let fbm = Fbm::new(3456789);
         // let noisemap = PlaneMapBuilder::new(&fbm)
@@ -191,30 +217,33 @@ fn obstacles(
         // let fbm = Fbm::new(abs);
 
         // let noisemap = PlaneMapBuilder::new(abs)
-        let hasher = PermutationTable::new(0);
-        let noisemap = PlaneMapBuilder::new_fn(
-            |point, hasher| perlin_2d(point.into(), hasher),
-            &hasher,
-        )
-        .set_size(1000, 1000)
-        .set_x_bounds(-5.0, 5.0)
-        .set_y_bounds(-5.0, 5.0)
-        .build();
+        // let hasher = PermutationTable::new(0);
+        // let noisemap = PlaneMapBuilder::new_fn(
+        //     |point, hasher| perlin_2d(point.into(), hasher),
+        //     &hasher,
+        // )
+        // .set_size(1000, 1000)
+        // .set_x_bounds(-5.0, 5.0)
+        // .set_y_bounds(-5.0, 5.0)
+        // .build();
 
         // Defining vertices.
         let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
         // let mut normals: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
         let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(vertices_count);
 
-        for d in 0..=width {
-            for w in 0..=height {
+        for d in 0..width {
+            for w in 0..height {
                 let (w_f32, d_f32) = (w as f32, d as f32);
+
+                // info!("index: {}", d * width + w);
 
                 let pos = [
                     (w_f32 - width as f32 / 2.) * extent as f32 / width as f32,
-                    (noisemap.get_value(w, d) as f32) * intensity + intensity,
+                    // (noisemap.get_value(w, d) as f32) * intensity + intensity,
                     // 0.5,
                     // heightmap_data[(d * width + w) % heightmap_data.len()],
+                    heightmap[(d * width + w) % heightmap.len()],
                     (d_f32 - height as f32 / 2.) * extent as f32 / height as f32,
                 ];
                 positions.push(pos);
@@ -226,8 +255,8 @@ fn obstacles(
         // Defining triangles.
         let mut triangles: Vec<u32> = Vec::with_capacity(triangle_count);
 
-        for d in 0..height as u32 {
-            for w in 0..width as u32 {
+        for d in 0..(height - 1) as u32 {
+            for w in 0..(width - 1) as u32 {
                 // First tringle
                 triangles.push((d * (width as u32 + 1)) + w);
                 triangles.push(((d + 1) * (width as u32 + 1)) + w);
@@ -244,8 +273,8 @@ fn obstacles(
         // mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
         mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
         mesh.set_indices(Some(Indices::U32(triangles)));
-        mesh.duplicate_vertices();
-        mesh.compute_flat_normals();
+        // mesh.duplicate_vertices();
+        // mesh.compute_flat_normals();
 
         let material_handle = materials.add(StandardMaterial {
             base_color: Color::rgb(0.5, 0.5, 0.85),
