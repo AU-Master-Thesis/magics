@@ -25,7 +25,8 @@ fn load_assets(mut scene_assets: ResMut<SceneAssets>, asset_server: Res<AssetSer
         // Cardboard Boxes by Quaternius (https://poly.pizza/m/bs6ikOeTrR)
         object: asset_server.load("models/box.glb#Scene0"),
         // environment images
-        obstacle_image_raw: asset_server.load("imgs/simple.png"),
+        // obstacle_image_raw: asset_server.load("imgs/simple.png"),
+        obstacle_image_raw: asset_server.load("imgs/very_clutter.png"),
         obstacle_image_sdf: asset_server.load("imgs/very_clutter_sdf.png"),
     }
 }

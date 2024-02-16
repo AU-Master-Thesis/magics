@@ -1,4 +1,7 @@
-use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
+use bevy::{
+    prelude::*,
+    render::{mesh::Indices, render_resource::PrimitiveTopology},
+};
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
 
@@ -152,19 +155,71 @@ fn obstacles(
 
         let heightmap_data: Vec<f32> = get_heightmap_data_from_image(&image);
 
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+        // let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
 
-        let vertex_positions =
-            generate_vertex_positions_from_heightmap_data(&heightmap_data, width, height);
+        // let vertex_positions =
+        //     generate_vertex_positions_from_heightmap_data(&heightmap_data, width, height);
 
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertex_positions.clone());
+        // mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertex_positions.clone());
+        // mesh.set_indices(Some(bevy::render::mesh::Indices::U32(generate_indices(
+        //     width, height,
+        // ))));
 
-        mesh.insert_attribute(
-            Mesh::ATTRIBUTE_NORMAL,
-            calculate_normals(&vertex_positions, width, height),
-        );
+        // // mesh.insert_attribute(
+        // //     Mesh::ATTRIBUTE_NORMAL,
+        // //     calculate_normals(&vertex_positions, width, height),
+        // // );
 
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, calculate_uvs(width, height));
+        // mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, calculate_uvs(width, height));
+
+        let vertices_count = (width + 1) * (height + 1);
+        let triangle_count = width * height * 6;
+
+        // Defining vertices.
+        let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
+        let mut normals: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
+        let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(vertices_count);
+
+        let extent = 10.0;
+
+        for d in 0..=width {
+            for w in 0..=height {
+                let (w_f32, d_f32) = (w as f32, d as f32);
+
+                let pos = [
+                    (w_f32 - width as f32 / 2.) * extent / width as f32,
+                    // (noisemap.get_value(w, d) as f32) * intensity,
+                    // 0.0,
+                    heightmap_data[(d * width + w) % heightmap_data.len()],
+                    (d_f32 - height as f32 / 2.) * extent / height as f32,
+                ];
+                positions.push(pos);
+                normals.push([0.0, 1.0, 0.0]);
+                uvs.push([w_f32 / width as f32, d_f32 / height as f32]);
+            }
+        }
+
+        // Defining triangles.
+        let mut triangles: Vec<u32> = Vec::with_capacity(triangle_count);
+
+        for d in 0..height as u32 {
+            for w in 0..width as u32 {
+                // First tringle
+                triangles.push((d * (width as u32 + 1)) + w);
+                triangles.push(((d + 1) * (width as u32 + 1)) + w);
+                triangles.push(((d + 1) * (width as u32 + 1)) + w + 1);
+                // Second triangle
+                triangles.push((d * (width as u32 + 1)) + w);
+                triangles.push(((d + 1) * (width as u32 + 1)) + w + 1);
+                triangles.push((d * (width as u32 + 1)) + w + 1);
+            }
+        }
+
+        let mut mesh = Mesh::new(PrimitiveTopology::TriangleStrip);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+        mesh.set_indices(Some(Indices::U32(triangles)));
 
         let material_handle = materials.add(StandardMaterial {
             base_color: Color::rgb(0.8, 0.7, 0.6), // Example color
@@ -226,22 +281,50 @@ fn generate_vertex_positions_from_heightmap_data(
             let x = i as f32 / width as f32 - 0.5;
             let z = j as f32 / height as f32 - 0.5;
             // Use the heightmap data to set the y coordinate
-            let y = heightmap_data[j * width + i];
+            // let y = heightmap_data[j * width + i];
+            let y = 0.0;
 
             positions.push([x, y, z]);
 
-            // Vertex 2
-            if j < height - 1 {
-                let x = i as f32 / width as f32 - 0.5;
-                let z = (j + 1) as f32 / height as f32 - 0.5;
-                let y = heightmap_data[(j + 1) * width + i];
+            // // Vertex 2
+            // if j < height - 1 {
+            //     let x = i as f32 / width as f32 - 0.5;
+            //     let z = (j + 1) as f32 / height as f32 - 0.5;
+            //     // let y = heightmap_data[(j + 1) * width + i];
+            //     let y = 0.0;
 
-                positions.push([x, y, z]);
-            }
+            //     positions.push([x, y, z]);
+            // }
         }
     }
 
     positions
+}
+
+fn generate_indices(width: usize, height: usize) -> Vec<u32> {
+    let mut indices = Vec::with_capacity((width - 1) * (height - 1) * 6);
+
+    info!("INDICES");
+    for j in 0..height - 1 {
+        for i in 0..width - 1 {
+            let current_idx = j * width + i;
+            let right_idx = current_idx + 1;
+            let bottom_idx = current_idx + width;
+            let bottom_right_idx = bottom_idx + 1;
+
+            // Triangle 1
+            indices.push(current_idx as u32);
+            indices.push(bottom_right_idx as u32);
+            indices.push(bottom_idx as u32);
+
+            // Triangle 2
+            indices.push(current_idx as u32);
+            indices.push(right_idx as u32);
+            indices.push(bottom_right_idx as u32);
+        }
+    }
+
+    indices
 }
 
 fn calculate_normals(
