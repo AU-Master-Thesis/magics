@@ -202,7 +202,7 @@ fn obstacles(
                 // heightmap.push((w + h) as f32);
                 // heightmap.push(0.0);
                 heightmap
-                    .push(1.0 - image.data[(h * width + w) * channels] as f32 / 255.0);
+                    .push(1.0 - image.data[(w * height + h) * channels] as f32 / 255.0);
             }
         }
 
@@ -243,7 +243,7 @@ fn obstacles(
                     // (noisemap.get_value(w, d) as f32) * intensity + intensity,
                     // 0.5,
                     // heightmap_data[(d * width + w) % heightmap_data.len()],
-                    heightmap[(d * width + w) % heightmap.len()],
+                    heightmap[d * width + w],
                     (d_f32 - height as f32 / 2.) * extent as f32 / height as f32,
                 ];
                 positions.push(pos);
@@ -276,8 +276,12 @@ fn obstacles(
         // mesh.duplicate_vertices();
         // mesh.compute_flat_normals();
 
+        // let material_handle = materials.add(StandardMaterial {
+        //     base_color: Color::rgb(0.5, 0.5, 0.85),
+        //     ..default()
+        // });
         let material_handle = materials.add(StandardMaterial {
-            base_color: Color::rgb(0.5, 0.5, 0.85),
+            base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
             ..default()
         });
 
