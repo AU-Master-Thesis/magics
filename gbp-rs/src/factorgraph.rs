@@ -43,14 +43,20 @@ impl FactorGraph {
     }
 
     /// Access the i'th variable within the factorgraph
-    /// Called `getVar(const int& i)` in **gbpplanner** 
+    /// Called `getVar(const int& i)` in **gbpplanner**
     pub fn get_variable_by_index(&self, index: usize) -> Option<Rc<Variable>> {
         if self.variables.is_empty() {
             return None;
         }
         let index = index % self.variables.len();
         // TODO: is there a more rust-idiomatic way to do this? i.e. not cloning the Rc
-        Some(self.variables.values().nth(index).expect("index is within [0, len)").clone())
+        Some(
+            self.variables
+                .values()
+                .nth(index)
+                .expect("index is within [0, len)")
+                .clone(),
+        )
     }
 
     /// Access the variable by a specific key
@@ -68,20 +74,25 @@ impl FactorGraph {
                 // Check if the factor needs to be skipped
                 let variable_in_robots_factorgraph = v_key.robot_id == robot_id;
 
-                            // Check if the factor need to be skipped [see note in description]
-            // if (((msg_passing_mode==INTERNAL) == (var->key_.robot_id_!=this->robot_id_) ||
-            // (!interrobot_comms_active_ && (var->key_.robot_id_!=this->robot_id_) && (msg_passing_mode==EXTERNAL)))) continue;
+                // Check if the factor need to be skipped [see note in description]
+                // if (((msg_passing_mode==INTERNAL) == (var->key_.robot_id_!=this->robot_id_) ||
+                // (!interrobot_comms_active_ && (var->key_.robot_id_!=this->robot_id_) && (msg_passing_mode==EXTERNAL)))) continue;
 
                 match mode {
                     MessagePassingMode::Internal if !variable_in_robots_factorgraph => continue,
                     MessagePassingMode::External
-                        if !variable_in_robots_factorgraph && self.interrobot_comms_active => continue,
+                        if !variable_in_robots_factorgraph && self.interrobot_comms_active =>
+                    {
+                        continue
+                    }
                     _ => {}
                 }
 
-
                 // Read message from each connected variable
-                let message = variable.outbox.get(f_key).expect("f_key is in variable.outbox");
+                let message = variable
+                    .outbox
+                    .get(f_key)
+                    .expect("f_key is in variable.outbox");
                 factor.inbox.insert(v_key, message.clone());
             }
 
@@ -119,7 +130,10 @@ impl FactorGraph {
                 match mode {
                     MessagePassingMode::Internal if !variable_in_robots_factorgraph => continue,
                     MessagePassingMode::External
-                        if !variable_in_robots_factorgraph && self.interrobot_comms_active => continue,
+                        if !variable_in_robots_factorgraph && self.interrobot_comms_active =>
+                    {
+                        continue
+                    }
                     _ => {}
                 }
 
@@ -128,7 +142,7 @@ impl FactorGraph {
                 let message = factor.outbox.get(f_key).expect("f_key is in factor.outbox");
                 variable.inbox.insert(f_key, message.clone());
             }
-            
+
             // Update variable belief and create outgoing messages
             variable.update_belief();
         }

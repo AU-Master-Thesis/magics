@@ -23,7 +23,7 @@ use robot::RobotId;
 pub use variable::Variable;
 
 pub type NodeId = usize;
-pub type FactorGraphId = usize;
+pub type Timestep = u32;
 
 /// Datastructure used to identify both variables and factors
 /// It includes the id of the robot that the variable/factor belongs to, as well as its own id.
@@ -71,4 +71,3 @@ impl PartialEq for Key {
 }
 
 impl Eq for Key {}*/
-

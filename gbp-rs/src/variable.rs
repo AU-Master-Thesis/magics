@@ -4,7 +4,6 @@ use nalgebra::DVector;
 
 use crate::{factor::Factor, multivariate_normal::MultivariateNormal, Key, Mailbox, Message};
 
-
 /// A variable in the factor graph.
 #[derive(Debug)]
 pub struct Variable {
