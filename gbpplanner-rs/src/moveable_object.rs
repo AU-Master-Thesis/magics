@@ -5,6 +5,7 @@ use crate::{
     asset_loader::SceneAssets,
     follow_cameras::FollowCameraMe,
     movement::{Local, MovingObjectBundle},
+    robot_spawner::RobotSpawnedEvent,
 };
 
 const SCALE: f32 = 0.2;
@@ -43,23 +44,38 @@ pub enum MoveableObjectVisibilityState {
     Hidden,
 }
 
-fn spawn(mut commands: Commands, scene_assets: Res<SceneAssets>) {
+fn spawn(
+    mut commands: Commands,
+    scene_assets: Res<SceneAssets>,
+    mut event_writer: EventWriter<RobotSpawnedEvent>,
+) {
     let mut transform = Transform::from_translation(START_TRANSLATION);
     transform.scale = Vec3::splat(SCALE);
-    commands.spawn((
-        MovingObjectBundle {
-            model: SceneBundle {
-                // scene: scene_assets.roomba.clone(),
-                scene: scene_assets.roomba.clone(),
-                transform,
+    let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
+    let entity = commands
+        .spawn((
+            MovingObjectBundle {
+                model: SceneBundle {
+                    // scene: scene_assets.roomba.clone(),
+                    scene: scene_assets.roomba.clone(),
+                    transform,
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
+            MoveableObject,
+            FollowCameraMe {
+                offset: Some(offset),
+            },
+            Local,
+        ))
+        .id();
+
+    event_writer.send(RobotSpawnedEvent {
+        entity,
+        transform,
+        follow_camera_flag: FollowCameraMe {
+            offset: Some(offset),
         },
-        MoveableObject,
-        FollowCameraMe {
-            offset: Some(Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0),
-        },
-        Local,
-    ));
+    });
 }
