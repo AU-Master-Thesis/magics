@@ -4,6 +4,10 @@ use bevy::{
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
+use noise::{
+    utils::{NoiseMapBuilder, PlaneMapBuilder},
+    Abs, Fbm, Perlin,
+};
 
 use crate::asset_loader::SceneAssets;
 
@@ -171,27 +175,42 @@ fn obstacles(
         // // );
 
         // mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, calculate_uvs(width, height));
-
         let vertices_count = (width + 1) * (height + 1);
         let triangle_count = width * height * 6;
+        let extent = 10.0;
+        let intensity = 1.0;
+
+        // let fbm = Fbm::new(3456789);
+        // let noisemap = PlaneMapBuilder::new(&fbm)
+        //     .set_size(width, height)
+        //     .set_x_bounds(-extent, extent)
+        //     .set_y_bounds(-extent, extent)
+        //     .build();
+        let perlin = Perlin::default();
+        let abs: Abs<f64, Perlin, 2> = Abs::new(perlin);
+        // let fbm = Fbm::new(abs);
+
+        let noisemap = PlaneMapBuilder::new(abs)
+            .set_size(1000, 1000)
+            .set_x_bounds(-5.0, 5.0)
+            .set_y_bounds(-5.0, 5.0)
+            .build();
 
         // Defining vertices.
         let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
         let mut normals: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
         let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(vertices_count);
 
-        let extent = 10.0;
-
         for d in 0..=width {
             for w in 0..=height {
                 let (w_f32, d_f32) = (w as f32, d as f32);
 
                 let pos = [
-                    (w_f32 - width as f32 / 2.) * extent / width as f32,
-                    // (noisemap.get_value(w, d) as f32) * intensity,
-                    0.5,
+                    (w_f32 - width as f32 / 2.) * extent as f32 / width as f32,
+                    (noisemap.get_value(w, d) as f32) * intensity,
+                    // 0.5,
                     // heightmap_data[(d * width + w) % heightmap_data.len()],
-                    (d_f32 - height as f32 / 2.) * extent / height as f32,
+                    (d_f32 - height as f32 / 2.) * extent as f32 / height as f32,
                 ];
                 positions.push(pos);
                 normals.push([0.0, 1.0, 0.0]);
