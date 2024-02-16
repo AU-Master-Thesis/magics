@@ -115,7 +115,7 @@ fn add_follow_cameras(
     // info!("Outside event reader for loop");
     // for (entity, transform) in query.iter() {
     for event in robot_spawned_events.read() {
-        info!("Adding follow camera for entity: {:?}", event);
+        // info!("Adding follow camera for entity: {:?}", event);
         commands.spawn((
             FollowCameraBundle::new(
                 event.entity,

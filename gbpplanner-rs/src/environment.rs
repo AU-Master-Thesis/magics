@@ -23,10 +23,10 @@ impl Plugin for EnvironmentPlugin {
                     // test_cubes,
                     lighting,
                     // obstacles,
-                    // view_image,
+                    view_image,
                 ),
-            );
-        // .add_systems(Update, obstacles);
+            )
+            .add_systems(Update, obstacles.run_if(environment_png_is_loaded));
     }
 }
 
@@ -121,63 +121,72 @@ pub enum HeightMapState {
     Generated,
 }
 
+fn environment_png_is_loaded(
+    state: Res<State<HeightMapState>>,
+    scene_assets: Res<SceneAssets>,
+    image_assets: Res<Assets<Image>>,
+) -> bool {
+    if let Some(_) = image_assets.get(scene_assets.obstacle_image_raw.clone()) {
+        return match state.get() {
+            HeightMapState::Waiting => true,
+            _ => false,
+        };
+    }
+    false
+}
+
 fn obstacles(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,
     image_assets: Res<Assets<Image>>,
-    asset_server: Res<AssetServer>,
+    // asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    state: Res<State<HeightMapState>>,
+    // state: Res<State<HeightMapState>>,
     mut next_state: ResMut<NextState<HeightMapState>>,
 ) {
-    match state.get() {
-        HeightMapState::Generated => {}
-        HeightMapState::Waiting => {
-            // info!("1");
-            let i = image_assets.get(scene_assets.obstacle_image_raw.clone());
-            // info!(
-            // "{:?}",
-            // asset_server.get_load_state(scene_assets.obstacle_image_raw.clone())
-            // );
+    info!("Waiting for environment image to load");
+    // let i = image_assets.get(scene_assets.obstacle_image_raw.clone());
+    // info!(
+    // "{:?}",
+    // asset_server.get_load_state(scene_assets.obstacle_image_raw.clone())
+    // );
 
-            // info!("2: {:?}", i);
-            if let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) {
-                next_state.set(HeightMapState::Generated);
-                // info!("3: some image");
-                let width = image.texture_descriptor.size.width as usize;
-                let height = image.texture_descriptor.size.height as usize;
+    // info!("2: {:?}", i);
+    if let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) {
+        next_state.set(HeightMapState::Generated);
+        // info!("3: some image");
+        let width = image.texture_descriptor.size.width as usize;
+        let height = image.texture_descriptor.size.height as usize;
 
-                // info!("IMAGE: {:?}", image);
+        // info!("IMAGE: {:?}", image);
 
-                let heightmap_data: Vec<f32> = get_heightmap_data_from_image(&image);
+        let heightmap_data: Vec<f32> = get_heightmap_data_from_image(&image);
 
-                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
 
-                let vertex_positions =
-                    generate_vertex_positions_from_heightmap_data(&heightmap_data, width, height);
+        let vertex_positions =
+            generate_vertex_positions_from_heightmap_data(&heightmap_data, width, height);
 
-                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertex_positions.clone());
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertex_positions.clone());
 
-                mesh.insert_attribute(
-                    Mesh::ATTRIBUTE_NORMAL,
-                    calculate_normals(&vertex_positions, width, height),
-                );
+        mesh.insert_attribute(
+            Mesh::ATTRIBUTE_NORMAL,
+            calculate_normals(&vertex_positions, width, height),
+        );
 
-                mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, calculate_uvs(width, height));
+        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, calculate_uvs(width, height));
 
-                let material_handle = materials.add(StandardMaterial {
-                    base_color: Color::rgb(0.8, 0.7, 0.6), // Example color
-                    ..default()
-                });
+        let material_handle = materials.add(StandardMaterial {
+            base_color: Color::rgb(0.8, 0.7, 0.6), // Example color
+            ..default()
+        });
 
-                commands.spawn(PbrBundle {
-                    mesh: meshes.add(mesh),
-                    material: material_handle,
-                    ..default()
-                });
-            }
-        }
+        commands.spawn(PbrBundle {
+            mesh: meshes.add(mesh),
+            material: material_handle,
+            ..default()
+        });
     }
 }
 
@@ -262,7 +271,11 @@ fn generate_vertex_positions_from_heightmap_data(
     positions
 }
 
-fn calculate_normals(vertex_positions: &[[f32; 3]], width: usize, height: usize) -> Vec<[f32; 3]> {
+fn calculate_normals(
+    vertex_positions: &[[f32; 3]],
+    width: usize,
+    height: usize,
+) -> Vec<[f32; 3]> {
     let mut normals = vec![[0.0; 3]; vertex_positions.len()];
 
     // Compute normals by cross-product of the vectors from the adjacent vertices
