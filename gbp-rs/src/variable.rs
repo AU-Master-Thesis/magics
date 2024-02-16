@@ -4,9 +4,8 @@ use nalgebra::DVector;
 
 use crate::{factor::Factor, multivariate_normal::MultivariateNormal, Key, Mailbox, Message};
 
-#[derive(Debug)]
-struct VariableBelief {}
 
+/// A variable in the factor graph.
 #[derive(Debug)]
 pub struct Variable {
     /// Unique identifier that associates the variable with a factorgraph/robot.
@@ -79,38 +78,38 @@ impl Variable {
         }
     }
 
-// /***********************************************************************************************************/
-// // Variable belief update step:
-// // Aggregates all the messages from its connected factors (begins with the prior, as this is effectively a unary factor)
-// // The valid_ flag is useful for drawing the variable.
-// // Finally the outgoing messages to factors is created.
-// /***********************************************************************************************************/
-// void Variable::update_belief(){
-//     // Collect messages from all other factors, begin by "collecting message from pose factor prior"
-//     eta_ = eta_prior_;
-//     lam_ = lam_prior_;
+    // /***********************************************************************************************************/
+    // // Variable belief update step:
+    // // Aggregates all the messages from its connected factors (begins with the prior, as this is effectively a unary factor)
+    // // The valid_ flag is useful for drawing the variable.
+    // // Finally the outgoing messages to factors is created.
+    // /***********************************************************************************************************/
+    // void Variable::update_belief(){
+    //     // Collect messages from all other factors, begin by "collecting message from pose factor prior"
+    //     eta_ = eta_prior_;
+    //     lam_ = lam_prior_;
 
-//     for (auto& [f_key, msg] : inbox_) {
-//         auto [eta_msg, lam_msg, _] = msg;
-//         eta_ += eta_msg;
-//         lam_ += lam_msg;
-//     }
-//     // Update belief
-//     sigma_ = lam_.inverse();
+    //     for (auto& [f_key, msg] : inbox_) {
+    //         auto [eta_msg, lam_msg, _] = msg;
+    //         eta_ += eta_msg;
+    //         lam_ += lam_msg;
+    //     }
+    //     // Update belief
+    //     sigma_ = lam_.inverse();
 
-//     valid_ = sigma_.allFinite();
-//     if (valid_) mu_ = sigma_ * eta_;
-//     belief_ = Message {eta_, lam_, mu_};
+    //     valid_ = sigma_.allFinite();
+    //     if (valid_) mu_ = sigma_ * eta_;
+    //     belief_ = Message {eta_, lam_, mu_};
 
-//     // Create message to send to each factor that sent it stuff
-//     // msg is the aggregate of all OTHER factor messages (belief - last sent msg of that factor)
-//     for (auto [f_key, fac] : factors_) {
-//         outbox_[f_key] = belief_ - inbox_.at(f_key);
-//     }
-// }
+    //     // Create message to send to each factor that sent it stuff
+    //     // msg is the aggregate of all OTHER factor messages (belief - last sent msg of that factor)
+    //     for (auto [f_key, fac] : factors_) {
+    //         outbox_[f_key] = belief_ - inbox_.at(f_key);
+    //     }
+    // }
 
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
-    /// 
+    ///
     pub fn update_belief(&mut self) {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
         self.belief.information_vector = self.prior.information_vector.clone();
@@ -127,21 +126,31 @@ impl Variable {
         }
 
         // Update belief
-        let covariance = self.belief.precision_matrix.clone().try_inverse().expect("Precision matrix should be nonsingular");
+        let covariance = self
+            .belief
+            .precision_matrix
+            .clone()
+            .try_inverse()
+            .expect("Precision matrix should be nonsingular");
 
         let valid = covariance.iter().all(|x| x.is_finite());
         if valid {
+            // TODO: is this meaningful?
             // if (valid_) mu_ = sigma_ * eta_;
         }
 
         // belief_ = Message {eta_, lam_, mu_};
-        
+
         // Create message to send to each factor
         // Message is teh aggregate of all OTHER factor messages (belief - last sent msg of that factor)
         for (f_key, factor) in self.adjacent_factors.iter() {
-           if let Some(message) = self.outbox.get_mut(f_key) {
-                *message = &self.belief - self.inbox.get(f_key).expect("The message should exist in the inbox");
-           }
+            if let Some(message) = self.outbox.get_mut(f_key) {
+                *message = &self.belief
+                    - self
+                        .inbox
+                        .get(f_key)
+                        .expect("The message should exist in the inbox");
+            }
         }
     }
 }
