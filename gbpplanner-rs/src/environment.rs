@@ -5,6 +5,8 @@ use bevy::{
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
 use noise::{
+    core::perlin::perlin_2d,
+    permutationtable::PermutationTable,
     utils::{NoiseMapBuilder, PlaneMapBuilder},
     Abs, Fbm, Perlin,
 };
@@ -157,7 +159,7 @@ fn obstacles(
         let width = image.texture_descriptor.size.width as usize;
         let height = image.texture_descriptor.size.height as usize;
 
-        let heightmap_data: Vec<f32> = get_heightmap_data_from_image(&image);
+        // let heightmap_data: Vec<f32> = get_heightmap_data_from_image(&image);
 
         // let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
 
@@ -178,7 +180,7 @@ fn obstacles(
         let vertices_count = (width + 1) * (height + 1);
         let triangle_count = width * height * 6;
         let extent = 10.0;
-        let intensity = 1.0;
+        let intensity = 0.5;
 
         // let fbm = Fbm::new(3456789);
         // let noisemap = PlaneMapBuilder::new(&fbm)
@@ -186,19 +188,22 @@ fn obstacles(
         //     .set_x_bounds(-extent, extent)
         //     .set_y_bounds(-extent, extent)
         //     .build();
-        let perlin = Perlin::default();
-        let abs: Abs<f64, Perlin, 2> = Abs::new(perlin);
         // let fbm = Fbm::new(abs);
 
-        let noisemap = PlaneMapBuilder::new(abs)
-            .set_size(1000, 1000)
-            .set_x_bounds(-5.0, 5.0)
-            .set_y_bounds(-5.0, 5.0)
-            .build();
+        // let noisemap = PlaneMapBuilder::new(abs)
+        let hasher = PermutationTable::new(0);
+        let noisemap = PlaneMapBuilder::new_fn(
+            |point, hasher| perlin_2d(point.into(), hasher),
+            &hasher,
+        )
+        .set_size(1000, 1000)
+        .set_x_bounds(-5.0, 5.0)
+        .set_y_bounds(-5.0, 5.0)
+        .build();
 
         // Defining vertices.
         let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
-        let mut normals: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
+        // let mut normals: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
         let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(vertices_count);
 
         for d in 0..=width {
@@ -207,13 +212,13 @@ fn obstacles(
 
                 let pos = [
                     (w_f32 - width as f32 / 2.) * extent as f32 / width as f32,
-                    (noisemap.get_value(w, d) as f32) * intensity,
+                    (noisemap.get_value(w, d) as f32) * intensity + intensity,
                     // 0.5,
                     // heightmap_data[(d * width + w) % heightmap_data.len()],
                     (d_f32 - height as f32 / 2.) * extent as f32 / height as f32,
                 ];
                 positions.push(pos);
-                normals.push([0.0, 1.0, 0.0]);
+                // normals.push([0.0, 1.0, 0.0]);
                 uvs.push([w_f32 / width as f32, d_f32 / height as f32]);
             }
         }
@@ -236,12 +241,14 @@ fn obstacles(
 
         let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+        // mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
         mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
         mesh.set_indices(Some(Indices::U32(triangles)));
+        mesh.duplicate_vertices();
+        mesh.compute_flat_normals();
 
         let material_handle = materials.add(StandardMaterial {
-            base_color: Color::rgb(0.8, 0.7, 0.6), // Example color
+            base_color: Color::rgb(0.5, 0.5, 0.85),
             ..default()
         });
 
