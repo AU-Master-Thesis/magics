@@ -33,21 +33,16 @@ pub struct FollowCameraMe;
 
 #[derive(Component)]
 pub struct FollowCameraSettings {
-    // pub smoothing: f32, // 0.0 = infinite smoothing, 1.0 = no smoothing
     pub target: Entity,
     pub offset: Vec3,
-    // pub target_angle: f32,
     pub pid: PID,
-    // pub p_heading: f32,
 }
 
 impl FollowCameraSettings {
     pub fn new(target: Entity) -> Self {
         Self {
-            // smoothing: 0.5,
             target,
             offset: Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0,
-            // target_angle: 0.0,
             pid: PID {
                 p: 1.0,
                 ..Default::default()
@@ -66,7 +61,6 @@ pub struct FollowCameraBundle {
 
 impl FollowCameraBundle {
     fn new(entity: Entity, target: Option<&Transform>) -> Self {
-        // let target = target.unwrap_or_else(|| &Transform::from_translation(Vec3::ZERO));
         let target = match target {
             Some(t) => *t, // Dereference to copy the Transform
             None => Transform::from_translation(Vec3::ZERO),
@@ -82,7 +76,6 @@ impl FollowCameraBundle {
             velocity: Velocity::new(Vec3::ZERO),
             camera: Camera3dBundle {
                 transform: Transform::from_translation(offset)
-                    // .looking_at(target.translation + Vec3::new(0.0, 0.5, 0.0), Vec3::Y),
                     .looking_at(target.translation, Vec3::Y),
                 camera: Camera {
                     is_active: false,
