@@ -189,8 +189,8 @@ fn obstacles(
                 let pos = [
                     (w_f32 - width as f32 / 2.) * extent / width as f32,
                     // (noisemap.get_value(w, d) as f32) * intensity,
-                    // 0.0,
-                    heightmap_data[(d * width + w) % heightmap_data.len()],
+                    0.5,
+                    // heightmap_data[(d * width + w) % heightmap_data.len()],
                     (d_f32 - height as f32 / 2.) * extent / height as f32,
                 ];
                 positions.push(pos);
@@ -215,7 +215,7 @@ fn obstacles(
             }
         }
 
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleStrip);
+        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
         mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
