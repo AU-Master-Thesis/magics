@@ -108,8 +108,6 @@ fn add_follow_cameras(
 }
 
 fn move_cameras(
-    // time: Res<Time>,
-    mut gizmos: Gizmos,
     mut query_cameras: Query<(&mut Transform, &FollowCameraSettings), With<Camera>>,
     query_targets: Query<(Entity, &Transform), (With<FollowCameraMe>, Without<Camera>)>,
 ) {
