@@ -145,21 +145,11 @@ fn obstacles(
     // state: Res<State<HeightMapState>>,
     mut next_state: ResMut<NextState<HeightMapState>>,
 ) {
-    info!("Waiting for environment image to load");
-    // let i = image_assets.get(scene_assets.obstacle_image_raw.clone());
-    // info!(
-    // "{:?}",
-    // asset_server.get_load_state(scene_assets.obstacle_image_raw.clone())
-    // );
-
-    // info!("2: {:?}", i);
     if let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) {
         next_state.set(HeightMapState::Generated);
-        // info!("3: some image");
+
         let width = image.texture_descriptor.size.width as usize;
         let height = image.texture_descriptor.size.height as usize;
-
-        // info!("IMAGE: {:?}", image);
 
         let heightmap_data: Vec<f32> = get_heightmap_data_from_image(&image);
 
@@ -190,32 +180,6 @@ fn obstacles(
     }
 }
 
-// // Dummy functions for illustration, replace with actual implementations
-// fn get_heightmap_data_from_image(image: &Image) -> Vec<f32> {
-//     let size = image.texture_descriptor.size;
-//     let width = size.width as usize;
-//     let height = size.height as usize;
-
-//     // Assuming the image is 8 bits per channel and in grayscale format
-//     let retv = (0..width * height)
-//         .map(|i| {
-//             let pixel_index = i * 4; // 4 bytes per pixel for RGBA8 format
-//             let pixel = &image.data[pixel_index..pixel_index + 4];
-//             // Convert to grayscale by just taking the red channel
-//             let p = pixel[0] as f32 / 255.0;
-
-//             // print!("{}", p);
-
-//             p
-//         })
-//         .collect();
-
-//     info!("HEIGHTMAP DATA");
-//     info!("{:?}", retv);
-
-//     retv
-// }
-
 fn get_heightmap_data_from_image(image: &Image) -> Vec<f32> {
     info!("HEIGHTMAP DATA");
     let width = image.texture_descriptor.size.width as usize;
@@ -228,18 +192,12 @@ fn get_heightmap_data_from_image(image: &Image) -> Vec<f32> {
     for y in 0..height {
         for x in 0..width {
             let pixel_index = (y * width + x) * bytes_per_pixel;
-            // info!("pixel index: {}", pixel_index);
+
             // Assume the image is grayscale and take the first byte for the grayscale value
             let grayscale_value = image.data[pixel_index] as f32 / 255.0;
             heightmap_data.push(grayscale_value);
         }
     }
-
-    // info!(
-    // "height: {}, width: {}, bytes per pixel: {}",
-    // height, width, bytes_per_pixel
-    // );
-    // info!("{:?}", heightmap_data);
 
     heightmap_data
 }
@@ -259,8 +217,6 @@ fn generate_vertex_positions_from_heightmap_data(
             let z = j as f32 / height as f32 - 0.5;
             // Use the heightmap data to set the y coordinate
             let y = heightmap_data[j * width + i];
-
-            // print!("({}, {}, {})", x, y, z);
 
             positions.push([x, y, z]);
         }
@@ -306,12 +262,8 @@ fn calculate_normals(
             // The normal is the cross product of the two edge vectors
             let normal = edge1.cross(edge2).normalize().to_array();
             normals[current_idx] = normal;
-
-            // print!("{}", edge1.cross(edge2).normalize());
         }
     }
-
-    // info!("{:?}", normals);
 
     normals
 }
@@ -328,8 +280,6 @@ fn calculate_uvs(width: usize, height: usize) -> Vec<[f32; 2]> {
             ]);
         }
     }
-
-    // info!("{:?}", uvs);
 
     uvs
 }
