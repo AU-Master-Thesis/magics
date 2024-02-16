@@ -89,6 +89,21 @@ impl Default for AngularMovementBundle {
 }
 
 #[derive(Bundle)]
+pub struct MovementBundle {
+    pub linear_movement: LinearMovementBundle,
+    pub angular_movement: AngularMovementBundle,
+}
+
+impl Default for MovementBundle {
+    fn default() -> Self {
+        Self {
+            linear_movement: LinearMovementBundle::default(),
+            angular_movement: AngularMovementBundle::default(),
+        }
+    }
+}
+
+#[derive(Bundle)]
 pub struct MovingObjectBundle {
     pub linear_movement: LinearMovementBundle,
     pub angular_movement: AngularMovementBundle,

@@ -1,28 +1,26 @@
-mod config;
-mod shapes;
-// mod factorgraph;
 mod asset_loader;
 mod camera;
+mod config;
 mod diagnostics;
 mod environment;
 mod follow_cameras;
 mod input;
 mod moveable_object;
 mod movement;
+mod robot_spawner;
+mod shapes;
 
-use crate::config::Config;
-// use crate::shapes::ShapesPlugin;
-// use crate::factorgraph::FactorGraphPlugin;
 use crate::asset_loader::AssetLoaderPlugin;
 use crate::camera::CameraPlugin;
+use crate::config::Config;
 use crate::diagnostics::DiagnosticsPlugin;
 use crate::environment::EnvironmentPlugin;
 use crate::follow_cameras::FollowCamerasPlugin;
 use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
 use crate::movement::MovementPlugin;
+use crate::robot_spawner::RobotSpawnerPlugin;
 
-use bevy::gizmos::GizmoPlugin;
 use bevy::prelude::*;
 use clap::Parser;
 
@@ -74,8 +72,9 @@ fn main() -> color_eyre::eyre::Result<()> {
             CameraPlugin,
             FollowCamerasPlugin,
             DiagnosticsPlugin,
+            RobotSpawnerPlugin,
+            // WorldInspectorPlugin::new()
         ))
-        .add_plugins(WorldInspectorPlugin::new())
         .run();
 
     Ok(())

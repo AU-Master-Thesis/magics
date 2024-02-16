@@ -57,7 +57,9 @@ fn spawn(mut commands: Commands, scene_assets: Res<SceneAssets>) {
             ..default()
         },
         MoveableObject,
-        FollowCameraMe,
+        FollowCameraMe {
+            offset: Some(Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0),
+        },
         Local,
     ));
 }

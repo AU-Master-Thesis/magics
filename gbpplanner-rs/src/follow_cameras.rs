@@ -1,13 +1,15 @@
 use ::bevy::prelude::*;
 
-use crate::movement::{Local, OrbitMovementBundle, Velocity};
+use crate::{
+    movement::{Local, OrbitMovementBundle, Velocity},
+    robot_spawner::RobotSpawnedEvent,
+};
 
 pub struct FollowCamerasPlugin;
 
 impl Plugin for FollowCamerasPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PostStartup, add_follow_cameras)
-            .add_systems(Update, move_cameras);
+        app.add_systems(Update, (move_cameras, add_follow_cameras));
     }
 }
 
@@ -28,8 +30,16 @@ impl Default for PID {
     }
 }
 
-#[derive(Component)]
-pub struct FollowCameraMe;
+#[derive(Component, Debug, Clone, Copy)]
+pub struct FollowCameraMe {
+    pub offset: Option<Vec3>,
+}
+
+impl Default for FollowCameraMe {
+    fn default() -> Self {
+        Self { offset: None }
+    }
+}
 
 #[derive(Component)]
 pub struct FollowCameraSettings {
@@ -49,6 +59,11 @@ impl FollowCameraSettings {
             },
         }
     }
+
+    pub fn with_offset(mut self, offset: Vec3) -> Self {
+        self.offset = offset;
+        self
+    }
 }
 
 #[derive(Bundle)]
@@ -60,22 +75,27 @@ pub struct FollowCameraBundle {
 }
 
 impl FollowCameraBundle {
-    fn new(entity: Entity, target: Option<&Transform>) -> Self {
+    fn new(entity: Entity, target: Option<&Transform>, offset: Option<Vec3>) -> Self {
         let target = match target {
             Some(t) => *t, // Dereference to copy the Transform
             None => Transform::from_translation(Vec3::ZERO),
         };
-        let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
+        // let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
+        let offset = match offset {
+            Some(o) => o,
+            None => Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0,
+        };
 
+        // TODO: Maybe add this back in
         // transform offset to local space of target entity
-        let offset = (target.compute_matrix() * offset.extend(1.0)).xyz();
+        // let offset = (target.compute_matrix() * offset.extend(1.0)).xyz();
 
         Self {
-            settings: FollowCameraSettings::new(entity),
+            settings: FollowCameraSettings::new(entity).with_offset(offset),
             movement: OrbitMovementBundle::default(),
             velocity: Velocity::new(Vec3::ZERO),
             camera: Camera3dBundle {
-                transform: Transform::from_translation(offset)
+                transform: Transform::from_translation(target.translation + offset)
                     .looking_at(target.translation, Vec3::Y),
                 camera: Camera {
                     is_active: false,
@@ -89,14 +109,31 @@ impl FollowCameraBundle {
 
 fn add_follow_cameras(
     mut commands: Commands,
-    query: Query<(Entity, &Transform), With<FollowCameraMe>>,
+    // query: Query<(Entity, &Transform), With<FollowCameraMe>>,
+    mut robot_spawned_events: EventReader<RobotSpawnedEvent>,
 ) {
-    for (entity, transform) in query.iter() {
-        info!(
-            "Adding follow camera for entity: {:?} with target translation: {:?}",
-            entity, transform.translation
-        );
-        commands.spawn((FollowCameraBundle::new(entity, Some(transform)), Local));
+    // info!("Outside event reader for loop");
+    // for (entity, transform) in query.iter() {
+    for event in robot_spawned_events.read() {
+        info!("Adding follow camera for entity: {:?}", event);
+        // info!(
+        //     "Adding follow camera for entity: {:?} with target translation: {:?}",
+        //     entity, transform.translation
+        // );
+        // commands.spawn((FollowCameraBundle::new(entity, Some(transform)), Local));
+        commands.spawn((
+            FollowCameraBundle::new(
+                event.entity,
+                Some(&event.transform),
+                Some(
+                    event
+                        .follow_camera_flag
+                        .offset
+                        .expect("The event always has an offset"),
+                ),
+            ),
+            Local,
+        ));
     }
 }
 

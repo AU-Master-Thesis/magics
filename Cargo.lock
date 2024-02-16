@@ -2409,6 +2409,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "leafwing-input-manager",
+ "rand",
  "serde",
  "thiserror",
  "toml",
