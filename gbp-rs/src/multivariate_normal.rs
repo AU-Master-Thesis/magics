@@ -48,12 +48,18 @@ impl MultivariateNormal {
     }
 
     pub fn from_mean_and_covariance(mean: DVector<f32>, covariance: DMatrix<f32>) -> Self {
+        assert_eq!(mean.nrows(), covariance.nrows());
+        assert_eq!(mean.nrows(), covariance.ncols());
         let precision_matrix = covariance.try_inverse().expect("Covariance matrix should be nonsingular");
         let information_vector = &precision_matrix * mean;
         MultivariateNormal {
             information_vector,
             precision_matrix,
         }
+    }
+
+    pub fn mean(&self) -> DVector<f32> {
+        self.precision_matrix.try_inverse().unwrap() * &self.information_vector
     }
 
     pub fn zeroize(&mut self) {

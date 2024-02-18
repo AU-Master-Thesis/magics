@@ -1,6 +1,4 @@
-// #![deny(clippy::pedantic)]
-
-use nalgebra::{DMatrix, DVector};
+use nalgebra::{dmatrix, dvector, DMatrix, DVector};
 
 use crate::{variable::Variable, Key, Message};
 
@@ -10,10 +8,13 @@ use std::{collections::BTreeMap, rc::Rc};
 // <T: nalgebra::Scalar + Copy>
 #[derive(Debug)]
 struct FactorState {
-    measurement: DVector<f32>, // called z_ in gbpplanner
+    /// called `z_` in **gbpplanner**
+    measurement: DVector<f32>,
+    /// called `meas_model_lambda_` in **gbpplanner**
     measurement_precision: DMatrix<f32>,
     /// Stored linearisation point
-    linearisation_point: DVector<f32>, // called X_ in gbpplanner, they use Eigen::MatrixXd instead
+    /// called X_ in gbpplanner, they use Eigen::MatrixXd instead
+    linearisation_point: DVector<f32>,
     /// Strength of the factor. Called `sigma` in gbpplanner.
     /// The factor precision $Lambda = sigma^-2 * Identify$
     strength: f32,
@@ -21,20 +22,88 @@ struct FactorState {
     dofs: usize,
 }
 
+impl FactorState {
+    fn new(
+        measurement: DVector<f32>,
+        // linearisation_point: DVector<f32>,
+        strength: f32,
+        dofs: usize,
+    ) -> Self {
+        // Initialise precision of the measurement function
+        // this->meas_model_lambda_ = Eigen::MatrixXd::Identity(z_.rows(), z_.rows()) / pow(sigma,2.);
+        let measurement_precision =
+            DMatrix::<f32>::identity(measurement.nrows(), measurement.ncols())
+                / f32::powi(strength, 2);
+
+        Self {
+            measurement,
+            measurement_precision,
+            linearisation_point: dvector![],
+            strength,
+            dofs,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Factor {
+    /// Unique identifier that associates the variable with a factorgraph/robot.
     pub key: Key,
-    // TODO: are these only variables that belongs to the same factorgraph/robot as self?
-    // pub adjacent_variables: Vec<Rc<Variable>>,
-    pub adjacent_variables: BTreeMap<Key, Rc<Variable>>,
-    // TODO: document when a factor can be valid/invalid
-    pub valid: bool,
-    pub kind: FactorKind,
+    /// Vector of pointers to the connected variables. Order of variables matters␍
+    /// in **gbpplanner** `std::vector<std::shared_ptr<Variable>> variables_{};`
+    pub adjacent_variables: Vec<Rc<Variable>>,
 
     pub state: FactorState,
+    // TODO: are these only variables that belongs to the same factorgraph/robot as self?
+    // pub adjacent_variables: BTreeMap<Key, Rc<Variable>>,
+    // TODO: document when a factor can be valid/invalid
+    pub valid: bool,
+    /// Variant storing the specialized behavior of each Factor kind.
+    kind: FactorKind,
 }
 
 impl Factor {
+    fn new(
+        key: Key,
+        adjacent_variables: Vec<Rc<Variable>>,
+        state: FactorState,
+        valid: bool,
+        kind: FactorKind,
+    ) -> Self {
+        Self {
+            key,
+            adjacent_variables,
+            state,
+            valid,
+            kind,
+        }
+    }
+    /// Marginalise the factor precision and information and create the outgoing message to the variable.
+    pub fn marginalise_factor_distance(&mut self) -> Message {}
+
+    pub fn new_dynamic_factor(
+        key: Key,
+        adjacent_variables: Vec<Rc<Variable>>,
+        strength: f32,
+        measurement: &DVector<f32>,
+        dofs: usize,
+        delta_t: f32,
+    ) -> Self {
+        let mut state = FactorState::new(measurement.clone_owned(), strength, dofs);
+        let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
+        let kind = FactorKind::Dynamic(dynamic_factor);
+        Self::new(key, adjacent_variables, state, false, kind)
+    }
+    pub fn new_interrobot_factor() -> Self {
+        todo!()
+    }
+    pub fn new_pose_factor() -> Self {
+        todo!()
+    }
+    pub fn new_obstacle_factor() -> Self {
+        todo!()
+    }
+
     // Main section: Factor update:
     // Messages from connected variables are aggregated. The beliefs are used to create the linearisation point X_.
     // The Factor potential is calculated using h_func_ and J_func_
@@ -57,11 +126,6 @@ impl Factor {
             idx += var.dofs;
         }
 
-        todo!()
-    }
-
-    /// Marginalise the factor precision and information and create the outgoing message to the variable.
-    pub fn marginalise_factor_distance(&mut self) -> Message {
         todo!()
     }
 }
@@ -179,7 +243,8 @@ fn insert_block_matrix<T: nalgebra::Scalar + Copy>(
 #[derive(Debug)]
 pub struct DynamicFactor {
     cached_jacobian: DMatrix<f32>,
-    pub delta_t: f32, // defined at src/Robot.cpp:64
+    /// defined at src/Robot.cpp:64
+    pub delta_t: f32,
 }
 
 impl DynamicFactor {
@@ -237,15 +302,35 @@ impl DynamicFactor {
 }
 
 #[derive(Debug)]
-pub struct DefaultFactor;
+pub struct PoseFactor;
 
 // TODO: obstacle factor, in gbpplanner uses a pointer to an image, which contains an SDF of the obstacles in the environment
 
 #[derive(Debug)]
 enum FactorKind {
-    Default(DefaultFactor),
+    Pose(PoseFactor),
     InterRobot(InterRobotFactor),
     Dynamic(DynamicFactor),
+}
+
+impl Model for PoseFactor {
+    /// Default jacobian is the first order taylor series jacobian
+    fn jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
+        self.first_order_jacobian(state, x)
+    }
+
+    /// Default meaurement function is the identity function
+    fn measurement(&mut self, _state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
+        x.clone()
+    }
+
+    fn skip(&mut self, _state: &FactorState) -> bool {
+        false
+    }
+
+    fn jacobian_delta(&self) -> f32 {
+        1e-8
+    }
 }
 
 trait Model {
@@ -287,26 +372,6 @@ trait Model {
     /// In gbpplanner, this is only used for the interrobot factor.
     /// The other factors are always included in the update step.
     fn skip(&mut self, state: &FactorState) -> bool;
-}
-
-impl Model for DefaultFactor {
-    /// Default jacobian is the first order taylor series jacobian
-    fn jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
-        self.first_order_jacobian(state, x)
-    }
-
-    /// Default meaurement function is the identity function
-    fn measurement(&mut self, _state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
-        x.clone()
-    }
-
-    fn skip(&mut self, _state: &FactorState) -> bool {
-        false
-    }
-
-    fn jacobian_delta(&self) -> f32 {
-        1e-8
-    }
 }
 
 impl Model for InterRobotFactor {
@@ -401,7 +466,7 @@ impl Model for DynamicFactor {
 impl Model for FactorKind {
     fn jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
         match self {
-            FactorKind::Default(f) => f.jacobian(state, x),
+            FactorKind::Pose(f) => f.jacobian(state, x),
             FactorKind::InterRobot(f) => f.jacobian(state, x),
             FactorKind::Dynamic(f) => f.jacobian(state, x),
         }
@@ -409,7 +474,7 @@ impl Model for FactorKind {
 
     fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         match self {
-            FactorKind::Default(f) => f.measurement(state, x),
+            FactorKind::Pose(f) => f.measurement(state, x),
             FactorKind::InterRobot(f) => f.measurement(state, x),
             FactorKind::Dynamic(f) => f.measurement(state, x),
         }
@@ -417,7 +482,7 @@ impl Model for FactorKind {
 
     fn skip(&mut self, state: &FactorState) -> bool {
         match self {
-            FactorKind::Default(f) => f.skip(state),
+            FactorKind::Pose(f) => f.skip(state),
             FactorKind::InterRobot(f) => f.skip(state),
             FactorKind::Dynamic(f) => f.skip(state),
         }
@@ -425,7 +490,7 @@ impl Model for FactorKind {
 
     fn jacobian_delta(&self) -> f32 {
         match self {
-            FactorKind::Default(f) => f.jacobian_delta(),
+            FactorKind::Pose(f) => f.jacobian_delta(),
             FactorKind::InterRobot(f) => f.jacobian_delta(),
             FactorKind::Dynamic(f) => f.jacobian_delta(),
         }

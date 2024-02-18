@@ -29,7 +29,6 @@ pub struct Variable {
 }
 
 impl Variable {
-
     pub fn new(key: Key, mut prior: MultivariateNormal, dofs: usize) -> Self {
         if !prior.precision_matrix.iter().all(|x| x.is_finite()) {
             // if (!lam_prior_.allFinite()) lam_prior_.setZero();
@@ -162,11 +161,14 @@ impl Variable {
         // Message is teh aggregate of all OTHER factor messages (belief - last sent msg of that factor)
         for (f_key, factor) in self.adjacent_factors.iter() {
             if let Some(message) = self.outbox.get_mut(f_key) {
-                *message = Message(self.belief
-                    - self
-                        .inbox
-                        .get(f_key)
-                        .expect("The message should exist in the inbox").0);
+                *message = Message(
+                    self.belief
+                        - self
+                            .inbox
+                            .get(f_key)
+                            .expect("The message should exist in the inbox")
+                            .0,
+                );
             }
         }
     }

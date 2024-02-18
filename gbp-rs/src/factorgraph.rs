@@ -6,7 +6,7 @@ use crate::Key;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
-use rayon::prelude::*;
+// use rayon::prelude::*;
 
 /// How the messages are passed between factors and variables in the connected factorgraphs.
 #[derive(Debug)]
@@ -62,7 +62,7 @@ impl FactorGraph {
     /// Access the variable by a specific key
     /// Called `getVar(const Key& v_key)` in **gbpplanner**
     pub fn get_variable_by_key(&self, key: &Key) -> Option<Rc<Variable>> {
-        self.variables.get(key)
+        self.variables.get(key).cloned()
     }
 
     /// Aggregate and marginalise over all adjacent variables, and send.

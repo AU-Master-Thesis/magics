@@ -30,6 +30,8 @@
         cargo-outdated
         cargo-show-asm
         cargo-nextest
+        cargo-modules
+        cargo-watch
 
         #   # cargo-profiler
         #   # cargo-feature

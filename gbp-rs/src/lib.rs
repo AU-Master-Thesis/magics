@@ -6,6 +6,7 @@ pub mod robot;
 pub mod variable;
 pub mod factors;
 pub mod factorgraph;
+mod utils;
 
 pub mod prelude {
     pub use super::Factor;
@@ -59,6 +60,11 @@ impl Message {
     pub fn with_dofs(dofs: usize) -> Self {
         Self(MultivariateNormal::zeros(dofs))
     }
+
+    pub fn zeroize(&mut self) {
+        self.0.information_vector.fill(0.0);
+        self.0.precision_matrix.fill(0.0);
+    }
 }
 
 
@@ -71,3 +77,40 @@ impl PartialEq for Key {
 }
 
 impl Eq for Key {}*/
+
+
+#[derive(Debug)]
+struct IdGenerator {
+    next_robot_id: RobotId,
+    next_variable_id: NodeId,
+    next_factor_id: NodeId,
+}
+
+impl IdGenerator {
+    fn new() -> Self {
+        Self {
+            next_robot_id: 0,
+            next_variable_id: 0,
+            next_factor_id: 0,
+        }
+    }
+
+    fn next_robot_id(&mut self) -> RobotId {
+        let id = self.next_robot_id;
+        self.next_robot_id += 1;
+        id
+    }
+
+    fn next_variable_id(&mut self) -> NodeId {
+        let id = self.next_variable_id;
+        self.next_variable_id += 1;
+        id
+    }
+    
+    fn next_factor_id(&mut self) -> NodeId {
+        let id = self.next_factor_id;
+        self.next_factor_id += 1;
+        id
+    }
+}
+

@@ -1,5 +1,5 @@
-
 use crate::Timestep;
+use nalgebra as na;
 
 // struct LookaheadParams {
 //     horizon: usize,
@@ -45,6 +45,18 @@ pub fn get_variable_timesteps(lookahead_horizon: u32, lookahead_multiple: u32) -
 
     timesteps
 }
+
+// pub fn static_matrix_to_dynamic<T: na::Scalar, R: na::Const, C: na:: Const, usize>(
+//     m: na::Matrix<T, R, C, na::ArrayStorage<T>>,
+// ) -> na::DMatrix<T> {
+//     let mut d = na::DMatrix::<T>::zeros(R, C);
+//     for i in 0..R {
+//         for j in 0..C {
+//             d[(i, j)] = m[(i, j)];
+//         }
+//     }
+//     d
+// }
 
 #[cfg(test)]
 mod tests {
