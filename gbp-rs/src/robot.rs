@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use crate::factorgraph::FactorGraph;
 use crate::multivariate_normal::MultivariateNormal;
-use crate::{Factor, IdGenerator, Key};
+use crate::{factor, Factor, IdGenerator, Key};
 use crate::{Timestep, Variable};
 
 use nalgebra::{dvector, DMatrix, DVector};
@@ -518,7 +518,35 @@ impl<'a> Robot<'a> {
         self.ids_of_robots_connected_with.insert(other_robot.id);
     }
 
-    pub fn delete_interrobot_factors(&mut self, other_robot: Rc<Self>) {
-        unimplemented!()
+    /// Delete interrobot factors between this robot and another one its connected with
+    pub fn delete_interrobot_factors(&mut self, other_robot: Rc<Self>) -> usize {
+        use factor::FactorKind::*;
+        let mut factors_to_delete: Vec<Key> = vec![];
+        for (&f_key, factor) in self.factorgraph.factors.iter_mut() {
+            match factor.kind {
+                Pose(_) | Dynamic(_) | Obstacle(_) => continue,
+                InterRobot(ir) if ir.id_of_robot_connected_with != other_robot.id => continue,
+                _ => {}
+            };
+
+            for variable in factor.adjacent_variables.iter_mut() {
+                variable.delete_factor(f_key);
+                factors_to_delete.push(f_key);
+            }
+        }
+
+        for f_key in factors_to_delete.iter() {
+            self.factorgraph.factors.remove(f_key);
+        }
+
+        if let Some(robot_id) = self
+            .ids_of_robots_connected_with
+            .iter()
+            .find(|&&it| it == other_robot.id)
+        {
+            self.ids_of_robots_connected_with.remove(robot_id);
+        }
+
+        factors_to_delete.len()
     }
 }

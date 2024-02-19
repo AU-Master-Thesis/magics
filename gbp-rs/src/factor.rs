@@ -55,7 +55,7 @@ pub struct Factor {
     /// State common between all factor kinds
     pub state: FactorState,
     /// Variant storing the specialized behavior of each Factor kind.
-    kind: FactorKind,
+    pub kind: FactorKind,
 }
 
 impl Factor {
@@ -154,10 +154,10 @@ impl Factor {
 #[derive(Debug, Clone, Copy)]
 pub struct InterRobotFactor {
     // TODO: constrain to be positive
-    safety_distance: f32,
+    pub safety_distance: f32,
     ///
     skip: bool,
-    id_of_robot_connected_with: RobotId,
+    pub id_of_robot_connected_with: RobotId,
 }
 
 impl InterRobotFactor {
@@ -330,7 +330,7 @@ pub struct PoseFactor;
 // TODO: obstacle factor, in gbpplanner uses a pointer to an image, which contains an SDF of the obstacles in the environment
 
 #[derive(Debug)]
-enum FactorKind {
+pub enum FactorKind {
     Pose(PoseFactor),
     InterRobot(InterRobotFactor),
     Dynamic(DynamicFactor),
