@@ -76,6 +76,8 @@ impl Variable {
         };
     }
 
+    /// Change the prior of the variable.
+    /// It updates the belief of the variable.
     pub fn change_prior(&mut self, mean: DVector<f32>) {
         self.prior.information_vector = self.prior.precision_matrix * mean;
         // QUESTION: why cache mu?
