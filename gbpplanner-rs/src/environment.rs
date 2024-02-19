@@ -182,7 +182,7 @@ fn obstacles(
         // mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, calculate_uvs(width, height));
         let vertices_count = width * height;
         let triangle_count = (width - 1) * (height - 1) * 6;
-        let extent = 10.0;
+        let extent = 100.0;
         let intensity = 0.5;
 
         info!("image.texture_descriptor.size.width: {}", width);
@@ -229,21 +229,15 @@ fn obstacles(
 
         // Defining vertices.
         let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
-        // let mut normals: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
         let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(vertices_count);
 
         for d in 0..width {
             for w in 0..height {
                 let (w_f32, d_f32) = (w as f32, d as f32);
 
-                // info!("index: {}", d * width + w);
-
                 let pos = [
                     (w_f32 - width as f32 / 2.) * extent as f32 / width as f32,
-                    // (noisemap.get_value(w, d) as f32) * intensity + intensity,
-                    // 0.5,
-                    // heightmap_data[(d * width + w) % heightmap_data.len()],
-                    heightmap[d * width + w],
+                    heightmap[d * width + w] * intensity,
                     (d_f32 - height as f32 / 2.) * extent as f32 / height as f32,
                 ];
                 positions.push(pos);
@@ -255,8 +249,8 @@ fn obstacles(
         // Defining triangles.
         let mut triangles: Vec<u32> = Vec::with_capacity(triangle_count);
 
-        for d in 0..(height - 1) as u32 {
-            for w in 0..(width - 1) as u32 {
+        for d in 0..(height - 2) as u32 {
+            for w in 0..(width - 2) as u32 {
                 // First tringle
                 triangles.push((d * (width as u32 + 1)) + w);
                 triangles.push(((d + 1) * (width as u32 + 1)) + w);
@@ -273,8 +267,8 @@ fn obstacles(
         // mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
         mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
         mesh.set_indices(Some(Indices::U32(triangles)));
-        // mesh.duplicate_vertices();
-        // mesh.compute_flat_normals();
+        mesh.duplicate_vertices();
+        mesh.compute_flat_normals();
 
         // let material_handle = materials.add(StandardMaterial {
         //     base_color: Color::rgb(0.5, 0.5, 0.85),
