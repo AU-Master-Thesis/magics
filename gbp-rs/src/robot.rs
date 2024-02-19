@@ -6,10 +6,10 @@ use std::rc::Rc;
 
 use crate::factorgraph::FactorGraph;
 use crate::multivariate_normal::MultivariateNormal;
-use crate::{IdGenerator, Key, Factor};
+use crate::{Factor, IdGenerator, Key};
 use crate::{Timestep, Variable};
 
-use nalgebra::{DMatrix, DVector, dvector};
+use nalgebra::{dvector, DMatrix, DVector};
 // use crate::{message::Message, FactorGraph};
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
@@ -80,7 +80,6 @@ pub struct GbpParameters {
     pub num_iters: usize,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RobotSettings {
     /// SI unit: s
@@ -91,7 +90,7 @@ pub struct RobotSettings {
     pub dofs: usize,
     /// Inter-robot factors created if robots are within this range of each other
     /// SI unit: m
-    pub communication_radius: f32, 
+    pub communication_radius: f32,
     // /// Simulation timestep interval
     // /// FIXME: does not belong to group of parameters, should be in SimulationSettings or something
     // pub delta_t: f32,
@@ -145,7 +144,6 @@ pub struct Robot<'a> {
     // instead of allocating the same identical vector for each robot.
     // Variables representing the planned path are at timesteps which increase in spacing.
     // variable_timesteps: Vec<Timestep>,
-
     settings: &'a RobotSettings,
     id_generator: Rc<RefCell<IdGenerator>>,
 }
@@ -173,37 +171,43 @@ impl<'a> Robot<'a> {
         }
 
         let start = &initial_state.pose.position;
-        let goal = waypoints.front().expect("Know that waypoints has at least one element");
+        let goal = waypoints
+            .front()
+            .expect("Know that waypoints has at least one element");
 
         // Initialise the horzion in the direction of the goal, at a distance T_HORIZON * MAX_SPEED from the start.
         let start2goal = goal - start;
-        let horizon = start + f32::min(start2goal.norm(),
-    planning_horizon * max_speed) * start2goal.normalize();
+        let horizon = start
+            + f32::min(start2goal.norm(), planning_horizon * max_speed) * start2goal.normalize();
 
         let ndofs = 4; // [x, y, x', y']
 
         let mut factorgraph = FactorGraph::new();
-    // /***************************************************************************/
-    // /* Create Variables with fixed pose priors on start and horizon variables. */
-    // /***************************************************************************/
-    // Color var_color = color_; double sigma; int n = globals.N_DOFS;
-    // Eigen::VectorXd mu(n); Eigen::VectorXd sigma_list(n);
-    // for (int i = 0; i < num_variables_; i++){
-    //     // Set initial mu and covariance of variable interpolated between start and horizon
-    //     mu = start + (horizon - start) * (float)(variable_timesteps[i]/(float)variable_timesteps.back());
-    //     // Start and Horizon state variables should be 'fixed' during optimisation at a timestep
-    //     sigma = (i==0 || i==num_variables_-1) ? globals.SIGMA_POSE_FIXED : 0.;
-    //     sigma_list.setConstant(sigma);
+        // /***************************************************************************/
+        // /* Create Variables with fixed pose priors on start and horizon variables. */
+        // /***************************************************************************/
+        // Color var_color = color_; double sigma; int n = globals.N_DOFS;
+        // Eigen::VectorXd mu(n); Eigen::VectorXd sigma_list(n);
+        // for (int i = 0; i < num_variables_; i++){
+        //     // Set initial mu and covariance of variable interpolated between start and horizon
+        //     mu = start + (horizon - start) * (float)(variable_timesteps[i]/(float)variable_timesteps.back());
+        //     // Start and Horizon state variables should be 'fixed' during optimisation at a timestep
+        //     sigma = (i==0 || i==num_variables_-1) ? globals.SIGMA_POSE_FIXED : 0.;
+        //     sigma_list.setConstant(sigma);
 
-    //     // Create variable and add to robot's factor graph
-    //     auto variable = std::make_shared<Variable>(sim->next_vid_++, rid_, mu, sigma_list, robot_radius_, n);
-    //     variables_[variable->key_] = variable;
-    // }
+        //     // Create variable and add to robot's factor graph
+        //     auto variable = std::make_shared<Variable>(sim->next_vid_++, rid_, mu, sigma_list, robot_radius_, n);
+        //     variables_[variable->key_] = variable;
+        // }
 
-        let last_variable_timestep = *variable_timesteps.last().expect("Know that variable_timesteps has at least one element");
+        let last_variable_timestep = *variable_timesteps
+            .last()
+            .expect("Know that variable_timesteps has at least one element");
         for i in 0..variable_timesteps.len() {
             // Set initial mu and covariance of variable interpolated between start and horizon
-            let mean = start + (horizon - start) * (variable_timesteps[i] as f32 / last_variable_timestep as f32);
+            let mean = start
+                + (horizon - start)
+                    * (variable_timesteps[i] as f32 / last_variable_timestep as f32);
             // Start and Horizon state variables should be 'fixed' during optimisation at a timestep
             let sigma = if i == 0 || i == variable_timesteps.len() - 1 {
                 SIGMA_POSE_FIXED
@@ -218,19 +222,18 @@ impl<'a> Robot<'a> {
             let prior = MultivariateNormal::from_mean_and_covariance(mean, covariance);
             let key = Key::new(id, id_generator.get_mut().next_variable_id());
 
-            let variable = Variable::new(
-                key,
-                prior,
-                ndofs,
-            );
+            let variable = Variable::new(key, prior, ndofs);
 
-            factorgraph.variables.insert(variable.key, Rc::new(variable));
+            factorgraph
+                .variables
+                .insert(variable.key, Rc::new(variable));
         }
 
-        // Create Dynamics factors between variables 
+        // Create Dynamics factors between variables
         for i in 0..variable_timesteps.len() - 1 {
             // T0 is the timestep between the current state and the first planned state.
-            let delta_t = settings.t0 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
+            let delta_t =
+                settings.simulation.t0 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
             let adjacent_variables = vec![
                 factorgraph
                     .get_variable_by_index(i)
@@ -243,7 +246,14 @@ impl<'a> Robot<'a> {
             ];
             let key = Key::new(id, id_generator.get_mut().next_factor_id());
             let measurement = DVector::<f32>::zeros(settings.dofs);
-            let dynamic_factor = Factor::new_dynamic_factor(key, adjacent_variables, settings.gbp.sigma_factor_dynamics, &measurement, settings.dofs, delta_t);
+            let dynamic_factor = Factor::new_dynamic_factor(
+                key,
+                adjacent_variables,
+                settings.gbp.sigma_factor_dynamics,
+                &measurement,
+                settings.dofs,
+                delta_t,
+            );
             let dynamic_factor = Rc::new(dynamic_factor);
 
             // Add the factor to the variance's list of adjacent factor, as well as the robot's list of factors.
@@ -256,18 +266,18 @@ impl<'a> Robot<'a> {
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
         for i in 1..variable_timesteps.len() - 1 {
-            let adjacent_variables = vec![
-                factorgraph
-                    .get_variable_by_index(i)
-                    .expect("The index is within [0, len)")
-                    .clone(),
-            ];
+            let adjacent_variables = vec![factorgraph
+                .get_variable_by_index(i)
+                .expect("The index is within [0, len)")
+                .clone()];
             let key = Key::new(id, id_generator.get_mut().next_factor_id());
-            let obstacle_factor = Factor::new_obstacle_factor(key, adjacent_variables,
+            let obstacle_factor = Factor::new_obstacle_factor(
+                key,
+                adjacent_variables,
                 settings.gbp.sigma_factor_obstacle,
                 dvector![0.0],
                 settings.dofs,
-                Rc::clone(&obstacle_sdf)
+                Rc::clone(&obstacle_sdf),
             );
             let obstacle_factor = Rc::new(obstacle_factor);
 
@@ -317,91 +327,80 @@ impl<'a> Robot<'a> {
         self.factorgraph.get_variable_by_index(index)
     }
 
-//     /***************************************************************************************************/
-// /* Change the prior of the Horizon state */
-// /***************************************************************************************************/
-// void Robot::updateHorizon(){
-//     // Horizon state moves towards the next waypoint.
-//     // The Horizon state's velocity is capped at MAX_SPEED
-//     auto horizon = getVar(-1);      // get horizon state variable
-//     Eigen::VectorXd dist_horz_to_goal = waypoints_.front()({0,1}) - horizon->mu_({0,1});
-//     Eigen::VectorXd new_vel = dist_horz_to_goal.normalized() * std::min((double)globals.MAX_SPEED, dist_horz_to_goal.norm());
-//     Eigen::VectorXd new_pos = horizon->mu_({0,1}) + new_vel*globals.TIMESTEP;
+    //     /***************************************************************************************************/
+    // /* Change the prior of the Horizon state */
+    // /***************************************************************************************************/
+    // void Robot::updateHorizon(){
+    //     // Horizon state moves towards the next waypoint.
+    //     // The Horizon state's velocity is capped at MAX_SPEED
+    //     auto horizon = getVar(-1);      // get horizon state variable
+    //     Eigen::VectorXd dist_horz_to_goal = waypoints_.front()({0,1}) - horizon->mu_({0,1});
+    //     Eigen::VectorXd new_vel = dist_horz_to_goal.normalized() * std::min((double)globals.MAX_SPEED, dist_horz_to_goal.norm());
+    //     Eigen::VectorXd new_pos = horizon->mu_({0,1}) + new_vel*globals.TIMESTEP;
 
-//     // Update horizon state with new pos and vel
-//     horizon->mu_ << new_pos, new_vel;
-//     horizon->change_variable_prior(horizon->mu_);
+    //     // Update horizon state with new pos and vel
+    //     horizon->mu_ << new_pos, new_vel;
+    //     horizon->change_variable_prior(horizon->mu_);
 
-//     // If the horizon has reached the waypoint, pop that waypoint from the waypoints.
-//     // Could add other waypoint behaviours here (maybe they might move, or change randomly).
-//     if (dist_horz_to_goal.norm() < robot_radius_){
-//         if (globals.FORMATION == "custom") {
-//             waypoints_.front()(0) = sim_->random_int(-globals.WORLD_SZ/2, globals.WORLD_SZ/2);
-//             waypoints_.front()(1) = sim_->random_int(-globals.WORLD_SZ/2, globals.WORLD_SZ/2);
-//         } else {
-//             if (waypoints_.size()>1) waypoints_.pop_front();
-//         }
-//     }
-// }
+    //     // If the horizon has reached the waypoint, pop that waypoint from the waypoints.
+    //     // Could add other waypoint behaviours here (maybe they might move, or change randomly).
+    //     if (dist_horz_to_goal.norm() < robot_radius_){
+    //         if (globals.FORMATION == "custom") {
+    //             waypoints_.front()(0) = sim_->random_int(-globals.WORLD_SZ/2, globals.WORLD_SZ/2);
+    //             waypoints_.front()(1) = sim_->random_int(-globals.WORLD_SZ/2, globals.WORLD_SZ/2);
+    //         } else {
+    //             if (waypoints_.size()>1) waypoints_.pop_front();
+    //         }
+    //     }
+    // }
 
     /// Update the prior of the horizon state
+    /// Horizon state moves towards the next waypoint.
     pub fn update_horizon_prior(&mut self) {
-        let horizon = self.factorgraph.variables.values().last().expect("There is at least one variable");
-        let dist_horz_to_goal = self.waypoints.front().expect("There is at least one waypoint") - horizon.prior.mean();
-        let new_velocity = dist_horz_to_goal.normalize() * f32::min(
-            dist_horz_to_goal.norm(),
-            self.settings.max_speed,
-        );
-        let new_position = horizon.prior.mean().columns(0, 2) + new_velocity * self.settings.t0;
+        let horizon = self
+            .factorgraph
+            .variables
+            .values()
+            .last()
+            .expect("There is at least one variable");
+        // TODO: in gbpplanner they slice the ... to get the first 2 entries, I presume [x, y]
+        // Eigen::VectorXd dist_horz_to_goal = waypoints_.front()({0,1}) - horizon->mu_({0,1});
+        let dist_horz_to_goal = self
+            .waypoints
+            .front()
+            .expect("There is at least one waypoint")
+            - horizon.prior.mean();
+        let new_velocity = dist_horz_to_goal.normalize()
+            * f32::min(dist_horz_to_goal.norm(), self.settings.max_speed);
+        let new_position =
+            horizon.prior.mean().columns(0, 2) + new_velocity * self.settings.simulation.t0;
 
         // Update horizon state with new pos and vel
-        horizon.prior.mean().set_columns(0, 2, &new_position);
-        horizon.prior.mean().set_columns(2, 4, &new_velocity);
-        horizon.change_prior(horizon.prior.mean());
+        // let new_mean = utils::nalgebra::concat_column_vectors(&new_position, &new_velocity);
+
+        let new_mean = {
+            let combined_length = new_position.nrows() + new_velocity.nrows();
+            let mut c = DVector::<f32>::zeros(combined_length);
+            for i in 0..new_position.nrows() {
+                c[i] = new_position[i];
+            }
+
+            let offset = new_position.nrows();
+            for i in 0..new_velocity.nrows() {
+                c[offset + i] = new_velocity[i];
+            }
+
+            c
+        };
+
+        horizon.change_prior(new_mean);
 
         // If the horizon has reached the waypoint, pop that waypoint from the waypoints.
         // Could add other waypoint behaviours here (maybe they might move, or change randomly).
-        if dist_horz_to_goal.norm() < self.radius as f32 {
-            if self.waypoints.len() > 1 {
-                self.waypoints.pop_front();
-            }
+        if dist_horz_to_goal.norm() < self.radius as f32 && self.waypoints.len() > 1 {
+            self.waypoints.pop_front();
         }
     }
-
-//     void Robot::updateHorizon(){
-//     // Horizon state moves towards the next waypoint.
-//     // The Horizon state's velocity is capped at MAX_SPEED
-//     auto horizon = getVar(-1);      // get horizon state variable
-//     Eigen::VectorXd dist_horz_to_goal = waypoints_.front()({0,1}) - horizon->mu_({0,1});                        
-//     Eigen::VectorXd new_vel = dist_horz_to_goal.normalized() * std::min((double) globals.MAX_SPEED, dist_horz_to_goal.norm());
-//     Eigen::VectorXd new_pos = horizon->mu_({0,1}) + new_vel * globals.TIMESTEP;
-    
-//     // Update horizon state with new pos and vel
-//     horizon->mu_ << new_pos, new_vel;
-//     horizon->change_variable_prior(horizon->mu_);
-
-//     // If the horizon has reached the waypoint, pop that waypoint from the waypoints.
-//     // Could add other waypoint behaviours here (maybe they might move, or change randomly).
-//     if (dist_horz_to_goal.norm() < robot_radius_){
-//         if (globals.FORMATION == "custom") {
-//             waypoints_.front()(0) = sim_->random_int(-globals.WORLD_SZ/2, globals.WORLD_SZ/2);
-//             waypoints_.front()(1) = sim_->random_int(-globals.WORLD_SZ/2, globals.WORLD_SZ/2);
-//         } else {
-//             if (waypoints_.size()>1) waypoints_.pop_front();
-//         }
-//     }
-// }
-
-    
-    // void Robot::updateCurrent(){
-    //     // Move plan: move plan current state by plan increment
-    //     Eigen::VectorXd increment = ((*this)[1]->mu_ - (*this)[0]->mu_) * globals.TIMESTEP / globals.T0;
-    //     // In GBP we do this by modifying the prior on the variable
-    //     getVar(0)->change_variable_prior(getVar(0)->mu_ + increment);
-    //     // Real pose update
-    //     position_ = position_ + increment;
-
-    // }
 
     /// Update the prior of the current state
     pub fn update_current_prior(&mut self) {
@@ -410,24 +409,37 @@ impl<'a> Robot<'a> {
                 0 => unreachable!(), // gbpplanner does not handle this case
                 1 => {
                     // gbpplanner does not handle this case. I assume this is what the update should do in this case
-                    self
-                        .factorgraph
+                    self.factorgraph
                         .get_variable_by_index(0)
                         .expect("There is one variable")
-                        .belief.mean()
-                        // .prior.mean()
+                        .belief
+                        .mean()
+                    // .prior.mean()
                 }
                 _ => {
-                    let first = &self.factorgraph.get_variable_by_index(0).expect("There are 2 or more variables");
-                    let second = &self.factorgraph.get_variable_by_index(1).expect("There are 2 or more variables");
+                    let first = &self
+                        .factorgraph
+                        .get_variable_by_index(0)
+                        .expect("There are 2 or more variables");
+                    let second = &self
+                        .factorgraph
+                        .get_variable_by_index(1)
+                        .expect("There are 2 or more variables");
                     second.belief.mean() - first.belief.mean()
                 }
             };
             mean * self.settings.simulation.timestep / self.settings.simulation.timestep
         };
 
-        let mean = self.factorgraph.get_variable_by_index(0).expect("There is at least one variable").belief.mean();
-        self.factorgraph.get_variable_by_index(0).expect("There is at least one variable")
+        let mean = self
+            .factorgraph
+            .get_variable_by_index(0)
+            .expect("There is at least one variable")
+            .belief
+            .mean();
+        self.factorgraph
+            .get_variable_by_index(0)
+            .expect("There is at least one variable")
             .change_prior(mean + increment);
 
         // Update pose
@@ -470,7 +482,7 @@ impl<'a> Robot<'a> {
 
             // Create the interrobot factor
             let zeros = DVector::<f32>::zeros(variable.dofs);
-            let
+            // let
         }
 
         // Add the other robot to this robot's list of connected robots.
