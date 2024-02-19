@@ -106,11 +106,10 @@ impl IdGenerator {
         self.next_variable_id += 1;
         id
     }
-    
+
     fn next_factor_id(&mut self) -> NodeId {
         let id = self.next_factor_id;
         self.next_factor_id += 1;
         id
     }
 }
-

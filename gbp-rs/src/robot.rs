@@ -4,12 +4,12 @@ use std::rc::Rc;
 
 // use nalgebra as na;
 
-use crate::factorgraph::{self, FactorGraph};
+use crate::factorgraph::FactorGraph;
 use crate::multivariate_normal::MultivariateNormal;
-use crate::{utils, variable, IdGenerator, Key, Factor};
+use crate::{IdGenerator, Key, Factor};
 use crate::{Timestep, Variable};
 
-use nalgebra::{DMatrix, DVector};
+use nalgebra::{DMatrix, DVector, dvector};
 // use crate::{message::Message, FactorGraph};
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
@@ -119,6 +119,7 @@ pub struct Robot<'a> {
     pub radius: f64, // TODO: create new type that guarantees this constraint
 
     /// Optional shared pointer to image representing the obstacles in the environment as a SDF (Signed Distance Field) map.
+    /// TODO(kpbaks): I do not think it has to be wrapped in a Rc<>, a 'a& should be enough
     obstacle_sdf: Option<Rc<image::RgbImage>>,
 
     /// List of robot ids that are within the communication radius of this robot.
@@ -150,8 +151,9 @@ impl<'a> Robot<'a> {
         planning_horizon: f32,
         max_speed: f32,
         variable_timesteps: &[Timestep],
+        obstacle_sdf: Rc<image::RgbImage>,
         settings: &'a RobotSettings,
-        id_generator: Rc<RefCell<IdGenerator>>,
+        mut id_generator: Rc<RefCell<IdGenerator>>,
     ) -> Result<Self, RobotInitError> {
         if waypoints.is_empty() {
             return Err(RobotInitError::NoWaypoints);
@@ -168,7 +170,7 @@ impl<'a> Robot<'a> {
         let start2goal = goal - start;
         let horizon = start + f32::min(start2goal.norm(),
     planning_horizon * max_speed) * start2goal.normalize();
-    
+
         let ndofs = 4; // [x, y, x', y']
 
         let mut factorgraph = FactorGraph::new();
@@ -176,19 +178,19 @@ impl<'a> Robot<'a> {
     // /* Create Variables with fixed pose priors on start and horizon variables. */
     // /***************************************************************************/
     // Color var_color = color_; double sigma; int n = globals.N_DOFS;
-    // Eigen::VectorXd mu(n); Eigen::VectorXd sigma_list(n); 
+    // Eigen::VectorXd mu(n); Eigen::VectorXd sigma_list(n);
     // for (int i = 0; i < num_variables_; i++){
     //     // Set initial mu and covariance of variable interpolated between start and horizon
     //     mu = start + (horizon - start) * (float)(variable_timesteps[i]/(float)variable_timesteps.back());
     //     // Start and Horizon state variables should be 'fixed' during optimisation at a timestep
     //     sigma = (i==0 || i==num_variables_-1) ? globals.SIGMA_POSE_FIXED : 0.;
     //     sigma_list.setConstant(sigma);
-        
-    //     // Create variable and add to robot's factor graph 
+
+    //     // Create variable and add to robot's factor graph
     //     auto variable = std::make_shared<Variable>(sim->next_vid_++, rid_, mu, sigma_list, robot_radius_, n);
     //     variables_[variable->key_] = variable;
     // }
-        
+
         let last_variable_timestep = *variable_timesteps.last().expect("Know that variable_timesteps has at least one element");
         for i in 0..variable_timesteps.len() {
             // Set initial mu and covariance of variable interpolated between start and horizon
@@ -199,7 +201,7 @@ impl<'a> Robot<'a> {
             } else {
                 0.0
             };
-            
+
             let sigmas = DVector::<f32>::from_element(ndofs, sigma as f32);
             // FIXME: this is not the correct way to create a covariance matrix
             let covariance = DMatrix::<f32>::from_diagonal(&sigmas);
@@ -212,7 +214,7 @@ impl<'a> Robot<'a> {
                 prior,
                 ndofs,
             );
-            
+
             factorgraph.variables.insert(variable.key, Rc::new(variable));
         }
 
@@ -225,7 +227,7 @@ impl<'a> Robot<'a> {
     //     float delta_t = globals.T0 * (variable_timesteps[i + 1] - variable_timesteps[i]);
     //     std::vector<std::shared_ptr<Variable>> variables {getVar(i), getVar(i+1)};
     //     auto factor = std::make_shared<DynamicsFactor>(sim->next_fid_++, rid_, variables, globals.SIGMA_FACTOR_DYNAMICS, Eigen::VectorXd::Zero(globals.N_DOFS), delta_t);
-        
+
     //     // Add this factor to the variable's list of adjacent factors, as well as to the robot's list of factors
     //     for (auto var : factor->variables_) var->add_factor(factor);
     //     factors_[factor->key_] = factor;
@@ -247,7 +249,7 @@ impl<'a> Robot<'a> {
             let key = Key::new(id, id_generator.get_mut().next_factor_id());
             let measurement = DVector::<f32>::zeros(settings.dofs);
             let factor = Factor::new_dynamic_factor(key, adjacent_variables, settings.gbp.sigma_factor_dynamics, &measurement, settings.dofs, delta_t);
-            
+
             for var in factor.adjacent_variables.iter() {
                 var.add_factor(Rc::new(factor));
             }
@@ -270,20 +272,28 @@ impl<'a> Robot<'a> {
     // }
 
         for i in 1..variable_timesteps.len() - 1 {
-            let variables = vec![
+            let adjacent_variables = vec![
                 factorgraph
                     .get_variable_by_index(i)
                     .expect("The index is within [0, len)")
                     .clone(),
             ];
             let key = Key::new(id, id_generator.get_mut().next_factor_id());
+            let obstacle_factor = Factor::new_obstacle_factor(key, adjacent_variables,
+            
+                settings.gbp.sigma_factor_obstacle,
+                dvector![0.0],
+                settings.dofs,
+                Rc::clone(&obstacle_sdf)
+            );
+            let obstacle_factor = Rc::new(obstacle_factor);
             // let factor = factor::ObstacleFactor::new(
-                
-                for var in factor.variables.iter() {
-                    var.add_factor(Rc::new(factor));
+
+                for var in obstacle_factor.adjacent_variables.iter() {
+                    var.add_factor(Rc::clone(&obstacle_factor));
                 }
-    
-                factorgraph.factors.insert(key, Rc::new(factor));
+
+                factorgraph.factors.insert(key, obstacle_factor);
         }
 
         Ok(Self {
@@ -292,7 +302,7 @@ impl<'a> Robot<'a> {
             state: initial_state,
             waypoints,
             radius,
-            obstacle_sdf: None,
+            obstacle_sdf: Some(obstacle_sdf),
             ids_of_robots_within_comms_range: BTreeSet::new(),
             ids_of_robots_connected_with: BTreeSet::new(),
             settings,
@@ -331,10 +341,10 @@ impl<'a> Robot<'a> {
 //     // Horizon state moves towards the next waypoint.
 //     // The Horizon state's velocity is capped at MAX_SPEED
 //     auto horizon = getVar(-1);      // get horizon state variable
-//     Eigen::VectorXd dist_horz_to_goal = waypoints_.front()({0,1}) - horizon->mu_({0,1});                        
+//     Eigen::VectorXd dist_horz_to_goal = waypoints_.front()({0,1}) - horizon->mu_({0,1});
 //     Eigen::VectorXd new_vel = dist_horz_to_goal.normalized() * std::min((double)globals.MAX_SPEED, dist_horz_to_goal.norm());
 //     Eigen::VectorXd new_pos = horizon->mu_({0,1}) + new_vel*globals.TIMESTEP;
-    
+
 //     // Update horizon state with new pos and vel
 //     horizon->mu_ << new_pos, new_vel;
 //     horizon->change_variable_prior(horizon->mu_);
@@ -437,7 +447,7 @@ impl<'a> Robot<'a> {
 
             // Create the interrobot factor
             let zeros = DVector::<f32>::zeros(variable.dofs);
-            let 
+            let
         }
 
         // Add the other robot to this robot's list of connected robots.

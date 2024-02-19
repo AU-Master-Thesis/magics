@@ -1,8 +1,8 @@
-use nalgebra::{dmatrix, dvector, DMatrix, DVector};
+use nalgebra::{dvector, DMatrix, DVector};
 
 use crate::{variable::Variable, Key, Message};
 
-use std::{collections::BTreeMap, rc::Rc};
+use std::rc::Rc;
 
 // TODO: make generic over f32 | f64
 // <T: nalgebra::Scalar + Copy>
@@ -52,12 +52,8 @@ pub struct Factor {
     /// Vector of pointers to the connected variables. Order of variables matters␍
     /// in **gbpplanner** `std::vector<std::shared_ptr<Variable>> variables_{};`
     pub adjacent_variables: Vec<Rc<Variable>>,
-
+    /// State common between all factor kinds
     pub state: FactorState,
-    // TODO: are these only variables that belongs to the same factorgraph/robot as self?
-    // pub adjacent_variables: BTreeMap<Key, Rc<Variable>>,
-    // TODO: document when a factor can be valid/invalid
-    pub valid: bool,
     /// Variant storing the specialized behavior of each Factor kind.
     kind: FactorKind,
 }
@@ -67,14 +63,12 @@ impl Factor {
         key: Key,
         adjacent_variables: Vec<Rc<Variable>>,
         state: FactorState,
-        valid: bool,
         kind: FactorKind,
     ) -> Self {
         Self {
             key,
             adjacent_variables,
             state,
-            valid,
             kind,
         }
     }
@@ -92,16 +86,26 @@ impl Factor {
         let mut state = FactorState::new(measurement.clone_owned(), strength, dofs);
         let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
         let kind = FactorKind::Dynamic(dynamic_factor);
-        Self::new(key, adjacent_variables, state, false, kind)
+        Self::new(key, adjacent_variables, state, kind)
     }
-    pub fn new_interrobot_factor() -> Self {
+    pub fn new_interrobot_factor(key: Key, adjacent_variables: Vec<Rc<Variable>>) -> Self {
         todo!()
     }
-    pub fn new_pose_factor() -> Self {
+    pub fn new_pose_factor(key: Key, adjacent_variables: Vec<Rc<Variable>>) -> Self {
         todo!()
     }
-    pub fn new_obstacle_factor() -> Self {
-        todo!()
+    pub fn new_obstacle_factor(
+        key: Key,
+        adjacent_variables: Vec<Rc<Variable>>,
+        strength: f32,
+        measurement: DVector<f32>,
+        dofs: usize,
+        obstacle_sdf: Rc<image::RgbImage>,
+    ) -> Self {
+        let state = FactorState::new(measurement, strength, dofs);
+        let obstacle_factor = ObstacleFactor::new(obstacle_sdf);
+        let kind = FactorKind::Obstacle(obstacle_factor);
+        Self::new(key, adjacent_variables, state, kind)
     }
 
     // Main section: Factor update:
@@ -311,6 +315,41 @@ enum FactorKind {
     Pose(PoseFactor),
     InterRobot(InterRobotFactor),
     Dynamic(DynamicFactor),
+    Obstacle(ObstacleFactor),
+}
+
+impl FactorKind {
+    /// Returns `true` if the factor kind is [`Obstacle`].
+    ///
+    /// [`Obstacle`]: FactorKind::Obstacle
+    #[must_use]
+    fn is_obstacle(&self) -> bool {
+        matches!(self, Self::Obstacle(..))
+    }
+
+    /// Returns `true` if the factor kind is [`Dynamic`].
+    ///
+    /// [`Dynamic`]: FactorKind::Dynamic
+    #[must_use]
+    fn is_dynamic(&self) -> bool {
+        matches!(self, Self::Dynamic(..))
+    }
+
+    /// Returns `true` if the factor kind is [`InterRobot`].
+    ///
+    /// [`InterRobot`]: FactorKind::InterRobot
+    #[must_use]
+    fn is_inter_robot(&self) -> bool {
+        matches!(self, Self::InterRobot(..))
+    }
+
+    /// Returns `true` if the factor kind is [`Pose`].
+    ///
+    /// [`Pose`]: FactorKind::Pose
+    #[must_use]
+    fn is_pose(&self) -> bool {
+        matches!(self, Self::Pose(..))
+    }
 }
 
 impl Model for PoseFactor {
@@ -463,12 +502,43 @@ impl Model for DynamicFactor {
     }
 }
 
+#[derive(Debug)]
+struct ObstacleFactor {
+    obstacle_sdf: Rc<image::RgbImage>,
+}
+
+impl ObstacleFactor {
+    /// Creates a new [`ObstacleFactor`].
+    fn new(obstacle_sdf: Rc<image::RgbImage>) -> Self {
+        Self { obstacle_sdf }
+    }
+}
+
+impl Model for ObstacleFactor {
+    fn jacobian(&mut self, _state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
+        todo!()
+    }
+
+    fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
+        todo!()
+    }
+
+    fn jacobian_delta(&self) -> f32 {
+        todo!()
+    }
+
+    fn skip(&mut self, state: &FactorState) -> bool {
+        todo!()
+    }
+}
+
 impl Model for FactorKind {
     fn jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
         match self {
             FactorKind::Pose(f) => f.jacobian(state, x),
             FactorKind::InterRobot(f) => f.jacobian(state, x),
             FactorKind::Dynamic(f) => f.jacobian(state, x),
+            FactorKind::Obstacle(f) => f.jacobian(state, x),
         }
     }
 
@@ -477,6 +547,7 @@ impl Model for FactorKind {
             FactorKind::Pose(f) => f.measurement(state, x),
             FactorKind::InterRobot(f) => f.measurement(state, x),
             FactorKind::Dynamic(f) => f.measurement(state, x),
+            FactorKind::Obstacle(f) => f.measurement(state, x),
         }
     }
 
@@ -485,6 +556,7 @@ impl Model for FactorKind {
             FactorKind::Pose(f) => f.skip(state),
             FactorKind::InterRobot(f) => f.skip(state),
             FactorKind::Dynamic(f) => f.skip(state),
+            FactorKind::Obstacle(f) => f.skip(state),
         }
     }
 
@@ -493,6 +565,7 @@ impl Model for FactorKind {
             FactorKind::Pose(f) => f.jacobian_delta(),
             FactorKind::InterRobot(f) => f.jacobian_delta(),
             FactorKind::Dynamic(f) => f.jacobian_delta(),
+            FactorKind::Obstacle(f) => f.jacobian_delta(),
         }
     }
 }
