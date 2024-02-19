@@ -1,5 +1,5 @@
 use crate::Timestep;
-use nalgebra as na;
+// use nalgebra as na;
 
 // struct LookaheadParams {
 //     horizon: usize,
@@ -106,3 +106,38 @@ mod tests {
 //     .take_while(|&ts| ts < lookahead_horizon)
 //     .collect()
 // }
+
+pub mod nalgebra {
+    use nalgebra::DVector;
+
+    pub fn concat_column_vectors(a: &DVector<f32>, b: &DVector<f32>) -> DVector<f32> {
+        let combined_length = a.nrows() + b.nrows();
+        let mut c = DVector::<f32>::zeros(combined_length);
+        for i in 0..a.nrows() {
+            c[i] = a[i];
+        }
+
+        let offset = a.nrows();
+        for i in 0..b.nrows() {
+            c[offset + i] = b[i];
+        }
+
+        c
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_concat_row_vectors() {
+            use nalgebra::dvector;
+            let a = dvector![1.0, 2.0, 3.0];
+            let b = dvector![4.0, 5.0];
+
+            let c = concat_column_vectors(&a, &b);
+
+            assert_eq!(dvector![1.0, 2.0, 3.0, 4.0, 5.0], c);
+        }
+    }
+}

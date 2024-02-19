@@ -15,6 +15,9 @@ use nutype::nutype;
 use serde::{Deserialize, Serialize};
 
 /// Used to uniquely identify each robot
+
+// TODO: use NonZeroUsize
+// pub type RobotId = NonZeroUsize;
 pub type RobotId = usize;
 
 pub type Position2d = nalgebra::Vector2<f32>;
@@ -468,27 +471,51 @@ impl<'a> Robot<'a> {
 
     pub fn create_interrobot_factors(&mut self, other_robot: Rc<Self>) {
         // Create Interrobot factors for all timesteps excluding current state
+        debug_assert_eq!(
+            self.factorgraph.variables.len(),
+            other_robot.factorgraph.variables.len()
+        );
+
         for i in 1..self.factorgraph.variables.len() {
-            let variable = self
+            let variable = &self
                 .factorgraph
                 .get_variable_by_index(i)
-                .expect("The index is within [0, len)")
-                .clone();
-            let other_robot_variable = other_robot
-                .factorgraph
-                .get_variable_by_index(i)
-                .expect("The index is within [0, len)")
-                .clone();
+                .expect("The index is within [0, len)");
+            let adjacent_variables = vec![
+                Rc::clone(variable),
+                Rc::clone(
+                    &other_robot
+                        .factorgraph
+                        .get_variable_by_index(i)
+                        .expect("The index is within [0, len)"),
+                ),
+            ];
 
             // Create the interrobot factor
             let zeros = DVector::<f32>::zeros(variable.dofs);
-            // let
+            let key = Key::new(self.id, self.id_generator.get_mut().next_factor_id());
+            let safety_radius = 0.5 * (self.radius + other_robot.radius);
+            let interrobot_factor = Factor::new_interrobot_factor(
+                key,
+                adjacent_variables,
+                self.settings.gbp.sigma_factor_interrobot,
+                zeros,
+                self.settings.dofs,
+                safety_radius as f32,
+                other_robot.id,
+            );
+
+            let interrobot_factor = Rc::new(interrobot_factor);
+
+            for variable in interrobot_factor.adjacent_variables.iter() {
+                variable.add_factor(Rc::clone(&interrobot_factor));
+            }
+
+            self.factorgraph.factors.insert(key, interrobot_factor);
         }
 
         // Add the other robot to this robot's list of connected robots.
-        self.ids_of_robots_connected_with.push(other_robot.id);
-
-        unimplemented!()
+        self.ids_of_robots_connected_with.insert(other_robot.id);
     }
 
     pub fn delete_interrobot_factors(&mut self, other_robot: Rc<Self>) {

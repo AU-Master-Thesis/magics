@@ -1,12 +1,12 @@
 pub mod bbox;
 pub mod factor;
+pub mod factorgraph;
+pub mod factors;
 pub mod message;
 pub mod multivariate_normal;
 pub mod robot;
-pub mod variable;
-pub mod factors;
-pub mod factorgraph;
 mod utils;
+pub mod variable;
 
 pub mod prelude {
     pub use super::Factor;
@@ -14,7 +14,6 @@ pub mod prelude {
     // pub use super::MessagePassingMode;
     pub use super::Variable;
 }
-
 
 use std::collections::HashMap;
 
@@ -37,10 +36,13 @@ pub struct Key {
 
 impl std::fmt::Display for Key {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "(robot_id: {}, node_id: {})", self.robot_id, self.node_id)
+        write!(
+            f,
+            "(robot_id: {}, node_id: {})",
+            self.robot_id, self.node_id
+        )
     }
 }
-
 
 impl Key {
     pub fn new(robot_id: RobotId, node_id: NodeId) -> Self {
@@ -51,7 +53,6 @@ impl Key {
         }
     }
 }
-
 
 #[derive(Debug)]
 pub struct Message(MultivariateNormal);
@@ -67,7 +68,6 @@ impl Message {
     }
 }
 
-
 pub type Mailbox = HashMap<Key, Message>;
 /*
 impl PartialEq for Key {
@@ -77,7 +77,6 @@ impl PartialEq for Key {
 }
 
 impl Eq for Key {}*/
-
 
 #[derive(Debug)]
 struct IdGenerator {
@@ -111,5 +110,31 @@ impl IdGenerator {
         let id = self.next_factor_id;
         self.next_factor_id += 1;
         id
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::{assert_eq, assert_ne};
+
+    #[test]
+    fn test_id_generator() {
+        let mut gen = IdGenerator::new();
+        assert_eq!(gen.next_robot_id, 0);
+        assert_eq!(gen.next_factor_id, 0);
+        assert_eq!(gen.next_variable_id, 0);
+
+        let robot_id0 = gen.next_robot_id();
+        assert_eq!(robot_id0, 0);
+        assert_ne!(robot_id0, gen.next_robot_id());
+
+        let variable_id0 = gen.next_variable_id();
+        assert_eq!(variable_id0, 0);
+        assert_ne!(variable_id0, gen.next_variable_id());
+
+        let factor_id0 = gen.next_factor_id();
+        assert_eq!(factor_id0, 0);
+        assert_ne!(factor_id0, gen.next_factor_id());
     }
 }

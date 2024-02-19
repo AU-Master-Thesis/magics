@@ -1,6 +1,6 @@
 use nalgebra::{dvector, DMatrix, DVector};
 
-use crate::{variable::Variable, Key, Message};
+use crate::{robot::RobotId, variable::Variable, Key, Message};
 
 use std::rc::Rc;
 
@@ -88,8 +88,21 @@ impl Factor {
         let kind = FactorKind::Dynamic(dynamic_factor);
         Self::new(key, adjacent_variables, state, kind)
     }
-    pub fn new_interrobot_factor(key: Key, adjacent_variables: Vec<Rc<Variable>>) -> Self {
-        todo!()
+    pub fn new_interrobot_factor(
+        key: Key,
+        adjacent_variables: Vec<Rc<Variable>>,
+        strength: f32,
+        measurement: DVector<f32>,
+        dofs: usize,
+        safety_radius: f32,
+        id_of_robot_connected_with: RobotId,
+    ) -> Self {
+        let state = FactorState::new(measurement, strength, dofs);
+        let interrobot_factor =
+            InterRobotFactor::new(safety_radius, strength, false, id_of_robot_connected_with);
+        let kind = FactorKind::InterRobot(interrobot_factor);
+
+        Self::new(key, adjacent_variables, state, kind)
     }
     pub fn new_pose_factor(key: Key, adjacent_variables: Vec<Rc<Variable>>) -> Self {
         todo!()
@@ -144,16 +157,22 @@ pub struct InterRobotFactor {
     safety_distance: f32,
     ///
     skip: bool,
+    id_of_robot_connected_with: RobotId,
 }
 
 impl InterRobotFactor {
-    // TODO: refactor to use a bbox model
-    pub fn new(safety_distance: f32, robot_radius: f32, skip: bool) -> Self {
+    pub fn new(
+        safety_distance: f32,
+        robot_radius: f32,
+        skip: bool,
+        id_of_robot_connected_with: RobotId,
+    ) -> Self {
         let epsilon = 0.2 * robot_radius;
 
         Self {
             safety_distance: 2.0 * robot_radius + epsilon,
             skip,
+            id_of_robot_connected_with,
         }
     }
 }
