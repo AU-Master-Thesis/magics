@@ -33,8 +33,8 @@ impl Plugin for EnvironmentPlugin {
                     lighting,
                     // view_image,
                 ),
-            )
-            .add_systems(Update, obstacles.run_if(environment_png_is_loaded));
+            );
+        // .add_systems(Update, obstacles.run_if(environment_png_is_loaded));
     }
 }
 
@@ -276,6 +276,7 @@ fn obstacles(
         // });
         let material_handle = materials.add(StandardMaterial {
             base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
+            // base_color: Color::rgb(0.5, 0.5, 0.85),
             ..default()
         });
 

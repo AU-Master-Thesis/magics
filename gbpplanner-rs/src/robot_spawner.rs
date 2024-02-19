@@ -37,8 +37,8 @@ pub struct RobotSpawnerPlugin;
 impl Plugin for RobotSpawnerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<RobotSpawnedEvent>()
-            .add_state::<RobotsState>()
-            .add_systems(Update, spawn_robot_periodically);
+            .add_state::<RobotsState>();
+        // .add_systems(Update, spawn_robot_periodically);
     }
 }
 

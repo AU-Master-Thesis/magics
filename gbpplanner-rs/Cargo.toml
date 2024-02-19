@@ -24,7 +24,7 @@ color-eyre = "0.6.2"
 bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
 bevy_mesh_terrain = "0.6.1"
 rand = "0.8.5"
-# bevy_prototype_lyon = "0.11.0"
+itertools = "0.12.1"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
