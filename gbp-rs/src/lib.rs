@@ -15,11 +15,11 @@ pub mod prelude {
     pub use super::Variable;
 }
 
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 pub use factor::Factor;
 use multivariate_normal::MultivariateNormal;
-use robot::RobotId;
+use robot::{Robot, RobotId};
 pub use variable::Variable;
 
 pub type NodeId = usize;
@@ -69,6 +69,31 @@ impl Message {
 }
 
 pub type Mailbox = HashMap<Key, Message>;
+
+pub struct World<'a> {
+    pub robots: Vec<Rc<Robot<'a>>>,
+}
+
+impl<'a> World<'a> {
+    // TODO: ask `r/rust` which about the pros/cons of these two implementations and which is more idiomatic
+    // pub fn get_robot_with_id(&self, id: RobotId) -> Option<&Rc<Robot<'a>>> {
+    pub fn robot_with_id(&self, id: RobotId) -> Option<Rc<Robot<'a>>> {
+        // self.robots.iter().find(|it| it.id == id)
+        self.robots
+            .iter()
+            .find(|it| it.id == id)
+            .and_then(|robot| Some(Rc::clone(robot)))
+    }
+
+    // pub fn robot_with_id_mut(&mut self, id: RobotId) -> Option<&mut Rc<Robot<'a>>> {
+    pub fn robot_with_id_mut(&mut self, id: RobotId) -> Option<Rc<Robot<'a>>> {
+        self.robots
+            .iter_mut()
+            .find(|it| it.id == id)
+            .and_then(|robot| Some(Rc::clone(robot)))
+    }
+}
+
 /*
 impl PartialEq for Key {
     fn eq(&self, other: &Self) -> bool {

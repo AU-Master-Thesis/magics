@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use crate::factorgraph::FactorGraph;
 use crate::multivariate_normal::MultivariateNormal;
-use crate::{factor, Factor, IdGenerator, Key};
+use crate::{factor, Factor, IdGenerator, Key, World};
 use crate::{Timestep, Variable};
 
 use nalgebra::{dvector, DMatrix, DVector};
@@ -97,6 +97,9 @@ pub struct RobotSettings {
     // /// Simulation timestep interval
     // /// FIXME: does not belong to group of parameters, should be in SimulationSettings or something
     // pub delta_t: f32,
+    /// If true, when inter-robot factors need to be created between two robots,
+    /// a pair of factors is created (one belonging to each robot). This becomes a redundancy.
+    pub symmetric_factors: bool,
     pub gbp: GbpParameters,
     pub simulation: SimulationParameters,
 }
@@ -451,21 +454,31 @@ impl<'a> Robot<'a> {
 
     /// For new neighbours of a robot, create inter-robot factors if they don't exist.
     /// Delete existing inter-robot factors for faraway robots
-    pub fn update_interrobot_factors(&mut self) {
+    pub fn update_interrobot_factors(&mut self, world: &World) {
         // Delete interrobot factors between connected neighbours not within range.
         self.ids_of_robots_connected_with
             .difference(&self.ids_of_robots_within_comms_range)
-            .for_each(|robot_id| {
-                // TODO: somehow call Robot::delete_interrobot_factors()
+            .for_each(|&robot_id| {
+                if let Some(robot_ptr) = world.robot_with_id(robot_id) {
+                    self.delete_interrobot_factors(robot_ptr);
+                }
+                // if let Some(robot_ptr) = world.robots.iter().find(|&it| it.id == robot_id) {
+                //     self.delete_interrobot_factors(Rc::clone(robot_ptr));
+                // }
             });
 
         // Create interrobot factors between any robot within communication range, not already
         // connected with.
         self.ids_of_robots_within_comms_range
             .difference(&self.ids_of_robots_connected_with)
-            .for_each(|robot_id| {
-                // TODO: somehow call Robot::delete_interrobot_factors()
-                // c++: if (!sim_->symmetric_factors) sim_->robots_.at(rid)->connected_r_ids_.push_back(rid_);
+            .for_each(|&robot_id| {
+                if let Some(mut robot_ptr) = world.robot_with_id_mut(robot_id) {
+                    self.create_interrobot_factors(robot_ptr);
+                    // if (!sim_->symmetric_factors) sim_->robots_.at(rid)->connected_r_ids_.push_back(rid_);
+                    if !self.settings.symmetric_factors {
+                        robot_ptr.ids_of_robots_connected_with.insert(self.id);
+                    }
+                }
             });
     }
 
