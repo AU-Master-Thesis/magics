@@ -32,6 +32,7 @@
         cargo-nextest
         cargo-modules
         cargo-watch
+        cargo-rr
 
         #   # cargo-profiler
         #   # cargo-feature
@@ -43,6 +44,9 @@
           bacon
           mold # A Modern Linker
           clang # For linking
+          gdb # debugger
+          # lldb # debugger
+          rr # time-traveling debugger
         ]
         ++ cargo-subcommands;
     in
