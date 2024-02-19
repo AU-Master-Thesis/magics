@@ -35,10 +35,6 @@ struct Path {
 
 impl From<Path> for Mesh {
     fn from(line: Path) -> Self {
-        // let vertices: Vec<_> = line.lines.into_iter().flat_map(|(a, b)| [a, b]).collect();
-        // calculate perpendicualar vectors for every line
-        // remember the plane is in xz
-        // such that I can offset the vertices to create a line with a thickness
         let vertices = line.points.clone();
         let width = 0.05;
 
@@ -113,39 +109,11 @@ impl From<Path> for Mesh {
             .collect::<Vec<_>>();
         info!("output vertices {}: {:?}", vertices.len(), vertices);
 
-        // let normals: Vec<Vec3> = vertices.iter().map(|_| Vec3::Y).collect();
-
-        // // create indices for the triangles
-        // let mut indices = Vec::<u32>::with_capacity((vertices.len() - 1) * 6);
-        // // info!("vertices.len(): {}", vertices.len());
-
-        // for i in 0..left_vertices.len() - 1 {
-        //     let i = i as u32;
-
-        //     let t1_v1 = i;
-        //     let t1_v2 = i + 1;
-        //     let t1_v3 = i + 2;
-        //     // let t1_v2 = i + left_vertices.len() as u32;
-        //     // let t1_v3 = i + 1;
-        //     indices.extend_from_slice(&[t1_v1, t1_v2, t1_v3]);
-
-        //     let t2_v1 = i + 1;
-        //     let t2_v2 = i + left_vertices.len() as u32;
-        //     let t2_v3 = i + left_vertices.len() as u32 + 1;
-        //     indices.extend_from_slice(&[t2_v1, t2_v2, t2_v3]);
-        // }
-        // info!("indices: {:?}", indices);
-
         Mesh::new(
-            // This tells wgpu that the positions are list of lines
-            // where every pair is a start and end point
-            // PrimitiveTopology::LineList,
-            // PrimitiveTopology::TriangleList,
             PrimitiveTopology::TriangleStrip,
         )
         // Add the vertices positions as an attribute
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices) //.with_indices(Some(Indices::U32(indices)))
-                                                                     //.with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices)
     }
 }
 
