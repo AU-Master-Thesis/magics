@@ -4,12 +4,12 @@ use bevy::{
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
-use noise::{
-    core::perlin::perlin_2d,
-    permutationtable::PermutationTable,
-    utils::{NoiseMapBuilder, PlaneMapBuilder},
-    Abs, Fbm, Perlin,
-};
+// use noise::{
+//     core::perlin::perlin_2d,
+//     permutationtable::PermutationTable,
+//     utils::{NoiseMapBuilder, PlaneMapBuilder},
+//     Abs, Fbm, Perlin,
+// };
 
 use crate::asset_loader::SceneAssets;
 

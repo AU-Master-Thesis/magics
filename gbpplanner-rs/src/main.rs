@@ -3,6 +3,7 @@ mod camera;
 mod config;
 mod diagnostics;
 mod environment;
+mod factorgraph;
 mod follow_cameras;
 mod input;
 mod moveable_object;
@@ -15,6 +16,7 @@ use crate::camera::CameraPlugin;
 use crate::config::Config;
 use crate::diagnostics::DiagnosticsPlugin;
 use crate::environment::EnvironmentPlugin;
+use crate::factorgraph::FactorGraphPlugin;
 use crate::follow_cameras::FollowCamerasPlugin;
 use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
@@ -73,6 +75,7 @@ fn main() -> color_eyre::eyre::Result<()> {
             FollowCamerasPlugin,
             DiagnosticsPlugin,
             RobotSpawnerPlugin,
+            FactorGraphPlugin,
             // WorldInspectorPlugin::new()
         ))
         .run();
