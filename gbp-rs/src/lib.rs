@@ -8,6 +8,8 @@ pub mod robot;
 mod utils;
 pub mod variable;
 
+mod macros;
+
 pub mod prelude {
     pub use super::Factor;
     // pub use super::FactorGraph;
@@ -19,6 +21,7 @@ use std::{collections::HashMap, rc::Rc};
 
 pub use factor::Factor;
 use multivariate_normal::MultivariateNormal;
+use nalgebra::{DMatrix, DVector};
 use robot::{Robot, RobotId};
 pub use variable::Variable;
 
@@ -58,6 +61,13 @@ impl Key {
 pub struct Message(MultivariateNormal);
 
 impl Message {
+    pub fn new(information_vector: DVector<f32>, precision_matrix: DMatrix<f32>) -> Self {
+        Self(MultivariateNormal {
+            information_vector,
+            precision_matrix,
+        })
+    }
+
     pub fn with_dofs(dofs: usize) -> Self {
         Self(MultivariateNormal::zeros(dofs))
     }

@@ -70,8 +70,9 @@ impl FactorGraph {
     pub fn factor_iteration(&mut self, robot_id: RobotId, mode: MessagePassingMode) {
         // TODO: use rayon .par_iter()
         for (i, (f_key, &factor)) in self.factors.iter().enumerate() {
-            for (v_key, &variable) in factor.adjacent_variables.iter() {
+            for variable in factor.adjacent_variables.iter() {
                 // Check if the factor needs to be skipped
+                let v_key = variable.key;
                 let variable_in_robots_factorgraph = v_key.robot_id == robot_id;
 
                 // Check if the factor need to be skipped [see note in description]
@@ -140,7 +141,7 @@ impl FactorGraph {
                 // Read message from each connected factor
                 // var->inbox_[f_key] = fac->outbox_.at(v_key);
                 let message = factor.outbox.get(f_key).expect("f_key is in factor.outbox");
-                variable.inbox.insert(f_key, message.clone());
+                variable.inbox.insert(*f_key, message.clone());
             }
 
             // Update variable belief and create outgoing messages

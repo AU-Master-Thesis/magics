@@ -1,6 +1,6 @@
 use nalgebra::{dvector, DMatrix, DVector};
 
-use crate::{robot::RobotId, variable::Variable, Key, Message};
+use crate::{robot::RobotId, variable::Variable, Key, Mailbox, Message};
 
 use std::rc::Rc;
 
@@ -56,6 +56,10 @@ pub struct Factor {
     pub state: FactorState,
     /// Variant storing the specialized behavior of each Factor kind.
     pub kind: FactorKind,
+    /// Mailbox for incoming message storage
+    pub inbox: Mailbox,
+    /// Mailbox for outgoing message storage
+    pub outbox: Mailbox,
 }
 
 impl Factor {
@@ -70,10 +74,84 @@ impl Factor {
             adjacent_variables,
             state,
             kind,
+            inbox: Mailbox::new(),
+            outbox: Mailbox::new(),
         }
     }
+
+    // Message Factor::marginalise_factor_dist(const Eigen::VectorXd &eta, const Eigen::MatrixXd &Lam, int var_idx, int marg_idx){
+    //     // Marginalisation only needed if factor is connected to >1 variables
+    //     int n_dofs = variables_[var_idx]->n_dofs_;
+    //     if (eta.size() == n_dofs) return Message {eta, Lam};
+
+    //     Eigen::VectorXd eta_a(n_dofs), eta_b(eta.size()-n_dofs);
+    //     eta_a = eta(seqN(marg_idx, n_dofs));
+    //     eta_b << eta(seq(0, marg_idx - 1)), eta(seq(marg_idx + n_dofs, last));
+
+    //     Eigen::MatrixXd lam_aa(n_dofs, n_dofs), lam_ab(n_dofs, Lam.cols()-n_dofs);
+    //     Eigen::MatrixXd lam_ba(Lam.rows()-n_dofs, n_dofs), lam_bb(Lam.rows()-n_dofs, Lam.cols()-n_dofs);
+    //     lam_aa << Lam(seqN(marg_idx, n_dofs), seqN(marg_idx, n_dofs));
+    //     lam_ab << Lam(seqN(marg_idx, n_dofs), seq(0, marg_idx - 1)), Lam(seqN(marg_idx, n_dofs), seq(marg_idx + n_dofs, last));
+    //     lam_ba << Lam(seq(0, marg_idx - 1), seq(marg_idx, marg_idx + n_dofs - 1)), Lam(seq(marg_idx + n_dofs, last), seqN(marg_idx, n_dofs));
+    //     lam_bb << Lam(seq(0, marg_idx - 1), seq(0, marg_idx - 1)), Lam(seq(0, marg_idx - 1), seq(marg_idx + n_dofs, last)),
+    //             Lam(seq(marg_idx + n_dofs, last), seq(0, marg_idx - 1)), Lam(seq(marg_idx + n_dofs, last), seq(marg_idx + n_dofs, last));
+
+    //     Eigen::MatrixXd lam_bb_inv = lam_bb.inverse();
+    //     Message marginalised_msg(n_dofs);
+    //     marginalised_msg.eta = eta_a - lam_ab * lam_bb_inv * eta_b;
+    //     marginalised_msg.lambda = lam_aa - lam_ab * lam_bb_inv * lam_ba;
+    //     if (!marginalised_msg.lambda.allFinite()) marginalised_msg.setZero();
+
+    //     return marginalised_msg;
+    // }
+
     /// Marginalise the factor precision and information and create the outgoing message to the variable.
-    pub fn marginalise_factor_distance(&mut self) -> Message {}
+    pub fn marginalise_factor_distance(
+        &mut self,
+        information_vector: DVector<f32>,
+        precision_matrix: DMatrix<f32>,
+        // variable_index: usize
+        var_idx: usize,
+        marg_idx: usize,
+    ) -> Message {
+        let dofs = self
+            .adjacent_variables
+            .get(var_idx)
+            .expect("var_idx is within [0, len)")
+            .dofs;
+
+        if information_vector.len() == dofs {
+            return Message::new(information_vector, precision_matrix);
+        }
+
+        // eta_a = eta(seqN(marg_idx, n_dofs));
+        let eta_a = information_vector.rows(marg_idx, dofs);
+        // eta_b << eta(seq(0, marg_idx - 1)), eta(seq(marg_idx + n_dofs, last));
+        let eta_b = {
+            let mut v = DVector::<f32>::zeros(information_vector.len() - dofs);
+            v.view_mut((0, 0), (marg_idx - 1, 0))
+                .copy_from(&information_vector.rows(0, marg_idx - 1));
+            v.view_mut((marg_idx, 0), (v.len(), 0))
+                .copy_from(&information_vector.rows(marg_idx + dofs, information_vector.len()));
+            v
+        };
+
+        // TODO: create some declarative macros to do this
+
+        let mut lam_aa = DMatrix::<f32>::zeros(dofs, dofs);
+        let mut lam_ab = DMatrix::<f32>::zeros(dofs, precision_matrix.ncols() - dofs);
+        let mut lam_ba = DMatrix::<f32>::zeros(precision_matrix.nrows() - dofs, dofs);
+        let mut lam_bb = DMatrix::<f32>::zeros(
+            precision_matrix.nrows() - dofs,
+            precision_matrix.ncols() - dofs,
+        );
+
+        let lam_bb_inv = lam_bb.try_inverse().expect("The matrix is invertible");
+
+        let marginalised_message = Message {};
+
+        marginalised_message
+    }
 
     pub fn new_dynamic_factor(
         key: Key,
@@ -524,30 +602,49 @@ impl Model for DynamicFactor {
 #[derive(Debug)]
 struct ObstacleFactor {
     obstacle_sdf: Rc<image::RgbImage>,
+    /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy of here since
+    /// `ObstacleFactor` needs this information to calculate `.jacobian_delta()` and `.measurement()`
+    world_size: f32,
 }
 
 impl ObstacleFactor {
     /// Creates a new [`ObstacleFactor`].
-    fn new(obstacle_sdf: Rc<image::RgbImage>) -> Self {
-        Self { obstacle_sdf }
+    #[must_use]
+    fn new(obstacle_sdf: Rc<image::RgbImage>, world_size: f32) -> Self {
+        Self {
+            obstacle_sdf,
+            world_size,
+        }
     }
 }
 
 impl Model for ObstacleFactor {
-    fn jacobian(&mut self, _state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
-        todo!()
+    fn jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
+        // Same as PoseFactor
+        self.first_order_jacobian(state, x)
     }
 
     fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
-        todo!()
+        // White areas are obstacles, so h(0) should return a 1 for these regions.
+        // float scale = p_obstacleImage_->width / (float)globals.WORLD_SZ;
+        // Vector3 c_hsv = ColorToHSV(GetImageColor(*p_obstacleImage_, (int)((X(0) + globals.WORLD_SZ/2) * scale), (int)((X(1) + globals.WORLD_SZ/2) * scale)));
+        // h(0) = c_hsv.z;
+
+        let scale = self.obstacle_sdf.width() as f32 / self.world_size;
+        let pixel_x = ((x[0] + self.world_size / 2.0) * scale) as u32;
+        let pixel_y = ((x[1] + self.world_size / 2.0) * scale) as u32;
+        let pixel = self.obstacle_sdf[(pixel_x, pixel_y)].0;
+        let hsv_value = pixel[0] as f32 / 255.0;
+
+        dvector![hsv_value]
     }
 
     fn jacobian_delta(&self) -> f32 {
-        todo!()
+        self.world_size / self.obstacle_sdf.width() as f32
     }
 
     fn skip(&mut self, state: &FactorState) -> bool {
-        todo!()
+        false
     }
 }
 
@@ -586,5 +683,16 @@ impl Model for FactorKind {
             FactorKind::Dynamic(f) => f.jacobian_delta(),
             FactorKind::Obstacle(f) => f.jacobian_delta(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::{assert_eq, assert_ne};
+
+    #[test]
+    fn test_marginalize_factor_distance() {
+        // let
     }
 }
