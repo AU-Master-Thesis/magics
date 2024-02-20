@@ -1,6 +1,7 @@
 {
   description = "gbp-rs";
   inputs = {
+    wgsl_analyzer.url = "github:wgsl-analyzer/wgsl-analyzer";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -9,9 +10,11 @@
     self,
     nixpkgs,
     flake-utils,
+    wgsl_analyzer,
   } @ inputs:
     inputs.flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import inputs.nixpkgs {inherit system;};
+      # wgsl-analyzer-pkgs = import inputs.wgsl_analyzer {inherit system;};
       bevy-deps = with pkgs; [
         udev
         alsa-lib
@@ -22,6 +25,9 @@
         xorg.libXrandr
         libxkbcommon
         wayland
+        # wgsl-analyzer-pkgs.wgsl_analyzer
+        # wgsl_analyzer.packages.${system}
+        wgsl_analyzer.outputs.packages.${system}.default
       ];
       cargo-subcommands = with pkgs; [
         cargo-bloat

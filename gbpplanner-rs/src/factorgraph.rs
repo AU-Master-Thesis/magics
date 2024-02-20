@@ -12,7 +12,7 @@ use bevy::{
         },
     },
 };
-// use bevy_prototype_lyon::prelude::*;
+use catppuccin::Flavour;
 use itertools::Itertools;
 
 #[derive(Component, Debug, Copy, Clone)]
@@ -20,6 +20,12 @@ pub struct Factor(usize);
 
 #[derive(Component, Debug, Copy, Clone)]
 pub struct Variable(usize);
+
+#[derive(Component, Debug)]
+pub struct MoveMe;
+
+#[derive(Component, Debug)]
+pub struct Line;
 
 /// A list of lines with a start and end position
 #[derive(Debug, Clone)]
@@ -38,7 +44,7 @@ impl From<Path> for Mesh {
         let vertices = line.points.clone();
         let width = 0.05;
 
-        info!("input vertices: {:?}", vertices);
+        // info!("input vertices: {:?}", vertices);
         let perps = vertices
             .chunks_exact(2)
             .map(|chunk| {
@@ -56,7 +62,7 @@ impl From<Path> for Mesh {
             normals.push(n);
         }
         normals.push(perps[perps.len() - 1]);
-        info!("normals: {:?}", normals);
+        // info!("normals: {:?}", normals);
 
         assert_eq!(
             vertices.len(),
@@ -77,7 +83,7 @@ impl From<Path> for Mesh {
             .collect();
         expand_by.insert(0, width);
         expand_by.push(width);
-        info!("expand_by: {:?}", expand_by);
+        // info!("expand_by: {:?}", expand_by);
 
         assert_eq!(
             vertices.len(),
@@ -98,8 +104,8 @@ impl From<Path> for Mesh {
             .map(|((&v, &n), &e)| v + n * e / 2.0)
             .collect::<Vec<_>>();
 
-        info!("left_vertices: {:?}", left_vertices);
-        info!("right_vertices: {:?}", right_vertices);
+        // info!("left_vertices: {:?}", left_vertices);
+        // info!("right_vertices: {:?}", right_vertices);
 
         // collect all vertices
         let vertices = left_vertices
@@ -107,7 +113,7 @@ impl From<Path> for Mesh {
             .zip(right_vertices.iter())
             .flat_map(|(l, r)| [*l, *r])
             .collect::<Vec<_>>();
-        info!("output vertices {}: {:?}", vertices.len(), vertices);
+        // info!("output vertices {}: {:?}", vertices.len(), vertices);
 
         Mesh::new(
             PrimitiveTopology::TriangleStrip,
@@ -152,7 +158,8 @@ impl Plugin for FactorGraphPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Msaa::Sample4)
             .add_plugins(MaterialPlugin::<LineMaterial>::default())
-            .add_systems(Startup, insert_dummy_factor_graph);
+            .add_systems(Startup, insert_dummy_factor_graph)
+            .add_systems(Update, (draw_lines, move_variables));
     }
 }
 
@@ -161,17 +168,23 @@ fn insert_dummy_factor_graph(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let variables = vec![Variable(0), Variable(1)];
-    let factors = vec![Factor(0)];
+    let variables = vec![Variable(0), Variable(1), Variable(2)];
+    let factors = vec![Factor(0), Factor(1)];
 
     let factor_graph = FactorGraph {
         factors: factors.clone(),
         variables: variables.clone(),
     };
 
-    let variable_material = materials.add(Color::rgb(0.0, 0.0, 1.0).into());
-    let factor_material = materials.add(Color::rgb(1.0, 0.0, 0.0).into());
-    let line_material = materials.add(Color::rgb(0.0, 1.0, 0.0).into());
+    let alpha = 0.75;
+    let variable_material = materials.add({
+        let (r, g, b) = Flavour::Macchiato.blue().into();
+        Color::rgba_u8(r, g, b, (alpha * 255.0) as u8).into()
+    });
+    let factor_material = materials.add({
+        let (r, g, b) = Flavour::Macchiato.green().into();
+        Color::rgba_u8(r, g, b, (alpha * 255.0) as u8).into()
+    });
 
     let variable_positions: Vec<Vec3> = variables
         .iter()
@@ -232,16 +245,49 @@ fn insert_dummy_factor_graph(
                 transform: Transform::from_translation(factor_positions[i]),
                 ..Default::default()
             },
+            MoveMe,
         ));
     }
 
-    // let mut path_builder = PathBuilder::new();
-    // path_builder.move_to(all_positions[0].xz());
-    // for position in all_positions.iter().skip(1) {
-    //     path_builder.line_to(position.xz());
-    // }
-    // path_builder.close();
-    // let path = path_builder.build();
+    // commands.spawn((PbrBundle {
+    //     mesh: meshes.add(Mesh::from(Path {
+    //         points: all_positions,
+    //     })),
+    //     material: line_material,
+    //     ..Default::default()
+    // },));
+}
+
+// TODO: Set vertex positions on the line mesh instead of generating a new one.
+fn draw_lines(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    query_factors: Query<(&Factor, &Transform)>,
+    query_variables: Query<(&Variable, &Transform)>,
+    query_previous_lines: Query<Entity, With<Line>>,
+) {
+    // remove previous lines
+    for entity in query_previous_lines.iter() {
+        commands.entity(entity).despawn();
+    }
+
+    // collect all factor and variable positions
+    let factor_positions: Vec<Vec3> =
+        query_factors.iter().map(|(_, t)| t.translation).collect();
+    let variable_positions: Vec<Vec3> =
+        query_variables.iter().map(|(_, t)| t.translation).collect();
+
+    // all positions sorted by z value
+    let mut all_positions = variable_positions.clone();
+    all_positions.extend(factor_positions.clone());
+    all_positions.sort_by(|a, b| a.z.partial_cmp(&b.z).unwrap());
+
+    let line_material = materials.add({
+        let (r, g, b) = Flavour::Macchiato.crust().into();
+        // Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8).into()
+        Color::rgb_u8(r, g, b).into()
+    });
 
     commands.spawn((
         PbrBundle {
@@ -251,20 +297,12 @@ fn insert_dummy_factor_graph(
             material: line_material,
             ..Default::default()
         },
-        // Segment3dBundle {
-        //     start: all_positions[0],
-        //     end: all_positions[1],
-        //     thickness: 0.1,
-        //     material: line_material,
-        // },
-        // ShapeBundle {
-        //     path,
-        //     spatial: SpatialBundle {
-        //         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-        //         ..Default::default()
-        //     },
-        //     ..Default::default()
-        // },
-        // Stroke::new(Color::WHITE, 10.0),
+        Line,
     ));
+}
+
+fn move_variables(time: Res<Time>, mut query: Query<&mut Transform, With<Variable>>) {
+    for mut transform in query.iter_mut() {
+        transform.translation.x = time.elapsed_seconds().sin() * 5.0;
+    }
 }

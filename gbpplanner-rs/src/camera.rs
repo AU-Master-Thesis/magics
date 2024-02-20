@@ -41,14 +41,4 @@ fn spawn_camera(mut commands: Commands) {
         MainCamera,
         // GridShadowCamera,
     ));
-
-    commands.spawn(
-        (Camera2dBundle {
-            camera: Camera {
-                is_active: false,
-                ..Default::default()
-            },
-            ..Default::default()
-        }),
-    );
 }
