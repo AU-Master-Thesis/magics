@@ -138,15 +138,16 @@ impl From<Path> for Mesh {
             let ab = (b - a).normalize();
             let bc = (c - b).normalize();
 
-            let kinking_factor = (1.0 - ab.dot(bc)) * width / 2.0;
-            let expand_by = width + kinking_factor;
+            let theta = (std::f32::consts::PI - ab.dot(bc).acos()) / 2.0;
+            info!("theta: {}", theta);
+            let kinked_width = width / theta.sin();
 
             let n = {
                 let sum = (ab + bc).normalize();
                 Vec3::new(sum.z, sum.y, -sum.x)
             };
-            let left = b - n * expand_by / 2.0;
-            let right = b + n * expand_by / 2.0;
+            let left = b - n * kinked_width / 2.0;
+            let right = b + n * kinked_width / 2.0;
 
             left_vertices.push(left);
             right_vertices.push(right);
@@ -168,7 +169,7 @@ impl From<Path> for Mesh {
         let vertices: Vec<Vec3> = left_vertices
             .iter()
             .zip(right_vertices.iter())
-            .flat_map(|(l, r)| [*l, *r])
+            .flat_map(|(l, r)| [*r, *l])
             .collect();
         // info!("output vertices {}: {:?}", vertices.len(), vertices);
 
@@ -178,7 +179,7 @@ impl From<Path> for Mesh {
             PrimitiveTopology::TriangleStrip,
         )
         // Add the vertices positions as an attribute
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices).with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices) //.with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
     }
 }
 
