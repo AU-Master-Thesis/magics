@@ -51,12 +51,12 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
         let home = std::env::var("HOME")?;
         let xdg_config_home = std::path::Path::new(&home).join(".config");
         let user_config_dir = xdg_config_home.join("gbpplanner");
-        let cwd = std::path::Path::new(".");
+        let cwd = std::env::current_dir()?;
 
-        let conf_paths =
-            vec![user_config_dir.join("config.toml"), cwd.join("config.toml")];
-
-        // let foo: &'static str = "asdasd";
+        let conf_paths = dbg!(vec![
+            user_config_dir.join("config.toml"),
+            cwd.join("config/config.toml")
+        ]);
 
         for conf_path in conf_paths {
             if conf_path.exists() {
@@ -72,6 +72,15 @@ fn main() -> color_eyre::eyre::Result<()> {
     color_eyre::install()?;
 
     let cli = Cli::parse();
+
+    if cli.dump_default_config {
+        let default_config = Config::default();
+        // Write default config to stdout
+        println!("{}", toml::to_string_pretty(&default_config)?);
+
+        return Ok(());
+    }
+
     let config = read_config(&cli)?;
 
     info!("Config: {:?}", config);
