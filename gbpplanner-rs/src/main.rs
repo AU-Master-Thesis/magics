@@ -9,7 +9,6 @@ mod input;
 mod moveable_object;
 mod movement;
 mod robot_spawner;
-mod shapes;
 mod theme;
 
 use crate::asset_loader::AssetLoaderPlugin;
@@ -64,7 +63,7 @@ fn main() -> color_eyre::eyre::Result<()> {
     App::new()
         // .insert_resource(config.clone())
         .add_plugins((
-            DefaultPlugins.set(
+            DefaultPlugins.set( // Bevy
                 WindowPlugin {
                     primary_window: Some(Window {
                         title: "GBP Planner".into(),

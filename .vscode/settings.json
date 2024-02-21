@@ -8,6 +8,7 @@
         "./gbpplanner-rs/Cargo.toml",
         "./gbpplanner-rs/Cargo.toml",
         "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
         "./gbpplanner-rs/Cargo.toml"
     ]
 }
