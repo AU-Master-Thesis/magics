@@ -8,8 +8,6 @@ pub mod robot;
 mod utils;
 pub mod variable;
 
-mod macros;
-
 pub mod prelude {
     pub use super::Factor;
     // pub use super::FactorGraph;

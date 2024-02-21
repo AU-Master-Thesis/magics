@@ -9,7 +9,7 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gbp-rs = { path = "../gbp-rs" }
+# gbp-rs = { path = "../gbp-rs" }
 bevy = { version = "0.12.1", default-features = true, features = ["wayland"] }
 bevy-inspector-egui = "0.22.1"
 leafwing-input-manager = "0.11.2"
@@ -21,17 +21,17 @@ thiserror = "1.0.56"
 clap = { version = "4.4.18", features = ["derive"] }
 color-eyre = "0.6.2"
 bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
-bevy_mesh_terrain = "0.6.1"
+# bevy_mesh_terrain = "0.6.1"
 rand = "0.8.5"
 itertools = "0.12.1"
 
-# Enable a small amount of optimization in debug mode
-[profile.dev]
-opt-level = 1
+# # Enable a small amount of optimization in debug mode
+# [profile.dev]
+# opt-level = 1
 
-# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
-[profile.dev.package."*"]
-opt-level = 3
+# # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+# [profile.dev.package."*"]
+# opt-level = 3
 
 [lints]
 workspace = true

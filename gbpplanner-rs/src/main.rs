@@ -57,8 +57,28 @@ fn main() -> color_eyre::eyre::Result<()> {
     let config = if let Some(config_path) = cli.config {
         Config::parse(config_path)?
     } else {
-        Config::default()
+        // define default path
+        let home = std::env::var("HOME")?;
+        let conf_paths = vec![
+            std::path::Path(format!("{}/.config/gbpplanner/config.toml", home)),
+            std::path::Path(format!("./config/config.toml")),
+        ];
+
+        for conf_path in conf_paths {
+            if conf_path.exists() {
+                Config::parse(conf_path)
+            }
+        }
+
+        // if conf_path.exists() {
+        //     Config::parse(conf_path)?
+        // } else {
+        //     // error
+        //     return Err(color_eyre::eyre::eyre!("No config file found"));
+        // }
     };
+
+    info!("Config: {:?}", config);
 
     App::new()
         // .insert_resource(config.clone())
