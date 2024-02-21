@@ -1,3 +1,7 @@
+pub mod formation;
+
+pub use formation::Formation;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error)]
@@ -12,6 +16,7 @@ pub enum ParseError {
 pub struct Meter(f64);
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct DrawSection {
     pub communication_graph: bool,
     pub predicted_trajectories: bool,
@@ -31,6 +36,7 @@ impl Default for DrawSection {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct SimulationSection {
     // TODO: read count from input formation structure/array
     // pub num_robots: usize,
@@ -67,6 +73,7 @@ impl Default for SimulationSection {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct GbpSection {
     /// Sigma for Unary pose factor on current and horizon states
     pub sigma_pose_fixed: f32,
@@ -97,6 +104,7 @@ impl Default for GbpSection {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct CommunicationSection {
     /// Inter-robot factors created if robots are within this range of each other
     /// SI unit: m
@@ -116,6 +124,7 @@ impl Default for CommunicationSection {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct RobotSection {
     /// SI unit: s
     pub planning_horizon: f32,
@@ -166,7 +175,7 @@ impl Default for Config {
     /// Used when no config file is provided
     fn default() -> Self {
         // TODO: make a bit more robust
-        let cwd = std::env::current_dir().expect("The current working directory exists");
+        // let cwd = std::env::current_dir().expect("The current working directory exists");
         // let default_environment = cwd.join("gbpplanner-rs/assets/imgs/junction.png");
         let default_environment = "./gbpplanner-rs/assets/imgs/junction.png".to_string();
         let default_formation = "./config/formation.toml".to_string();

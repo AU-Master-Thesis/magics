@@ -41,6 +41,8 @@ struct Cli {
 
     #[arg(long)]
     dump_default_config: bool,
+    #[arg(long)]
+    dump_default_formation: bool,
 }
 
 fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
@@ -73,8 +75,16 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     let cli = Cli::parse();
 
+    if cli.dump_default_formation {
+        let default_formation = config::Formation::default();
+        // Write default config to stdout
+        println!("{}", toml::to_string_pretty(&default_formation)?);
+
+        return Ok(());
+    }
+
     if cli.dump_default_config {
-        let default_config = Config::default();
+        let default_config = config::Config::default();
         // Write default config to stdout
         println!("{}", toml::to_string_pretty(&default_config)?);
 
