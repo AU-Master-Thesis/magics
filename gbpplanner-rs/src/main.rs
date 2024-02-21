@@ -10,6 +10,7 @@ mod moveable_object;
 mod movement;
 mod robot_spawner;
 mod shapes;
+mod theme;
 
 use crate::asset_loader::AssetLoaderPlugin;
 use crate::camera::CameraPlugin;
@@ -22,8 +23,15 @@ use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
 use crate::movement::MovementPlugin;
 use crate::robot_spawner::RobotSpawnerPlugin;
+use crate::theme::ThemePlugin;
 
 use bevy::prelude::*;
+use bevy::{
+    core::FrameCount,
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    prelude::*,
+    window::{CursorGrabMode, PresentMode, WindowLevel, WindowTheme},
+};
 use clap::Parser;
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -59,23 +67,40 @@ fn main() -> color_eyre::eyre::Result<()> {
         Config::default()
     };
 
-    // let shapes = ShapesPlugin::new([Color::RED, Color::GREEN, Color::BLUE, Color::YELLOW]);
-    // let factorgraph = FactorGraphPlugin { config };
-
     App::new()
         // .insert_resource(config.clone())
         .add_plugins((
-            DefaultPlugins,
-            AssetLoaderPlugin,
-            EnvironmentPlugin,
-            MovementPlugin,
-            InputPlugin,
-            MoveableObjectPlugin,
-            CameraPlugin,
-            FollowCamerasPlugin,
-            DiagnosticsPlugin,
-            RobotSpawnerPlugin,
-            FactorGraphPlugin,
+            DefaultPlugins.set(
+                WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "GBP Planner".into(),
+                        resolution: (1280.0, 720.0).into(),
+                        // present_mode: PresentMode::AutoVsync,
+                        // fit_canvas_to_parent: true,
+                        // prevent_default_event_handling: false,
+                        // window_theme: Some(WindowTheme::Dark),
+                        // enable_buttons: bevy::window::EnableButtons {
+                        //     maximize: false,
+                        //     ..Default::default()
+                        // },
+                        // visible: true,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }
+            ),
+            DiagnosticsPlugin, // Bevy
+            // FrameTimeDiagnosticsPlugin, // Bevy
+            ThemePlugin, // Custom
+            AssetLoaderPlugin, // Custom
+            EnvironmentPlugin, // Custom
+            MovementPlugin, // Custom
+            InputPlugin, // Custom
+            MoveableObjectPlugin, // Custom
+            CameraPlugin, // Custom
+            FollowCamerasPlugin, // Custom
+            RobotSpawnerPlugin, // Custom
+            FactorGraphPlugin, // Custom
             // WorldInspectorPlugin::new()
         ))
         .run();

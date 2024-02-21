@@ -25,6 +25,9 @@ pub struct Variable(usize);
 #[derive(Component, Debug)]
 pub struct MoveMe;
 
+/// A marker component for lines
+/// Generally used to identify previously spawned lines,
+/// so they can be updated or removed
 #[derive(Component, Debug)]
 pub struct Line;
 
@@ -45,84 +48,8 @@ impl From<Path> for Mesh {
         let vertices = line.points.clone();
         let width = 0.05;
 
-        // // info!("input vertices: {:?}", vertices);
-        // let perps = vertices
-        //     .chunks_exact(2)
-        //     .map(|chunk| {
-        //         let (a, b) = (chunk[0], chunk[1]);
-        //         let dir = (b - a).normalize();
-        //         Vec3::new(-dir.z, 0.0, dir.x)
-        //     })
-        //     .flat_map(|n| [n, n])
-        //     .collect::<Vec<_>>();
-
-        // let mut normals = Vec::<Vec3>::with_capacity(vertices.len());
-        // normals.push(perps[0]);
-        // for i in 0..perps.len() - 1 {
-        //     let n = (perps[i] + perps[i + 1]).normalize();
-        //     normals.push(n);
-        // }
-        // normals.push(perps[perps.len() - 1]);
-        // // info!("normals: {:?}", normals);
-
-        // assert_eq!(
-        //     vertices.len(),
-        //     normals.len(),
-        //     "vertices.len() != normals.len()"
-        // );
-
-        // let mut expand_by: Vec<f32> = vertices
-        //     .iter()
-        //     .tuple_windows::<(_, _, _)>()
-        //     .map(|(&a, &b, &c)| {
-        //         let ab = (b - a).normalize();
-        //         let bc = (c - b).normalize();
-
-        //         let kinking_factor = (1.0 - ab.dot(bc)) * width / 2.0;
-        //         width + kinking_factor
-        //     })
-        //     .collect();
-        // expand_by.insert(0, width);
-        // expand_by.push(width);
-        // // info!("expand_by: {:?}", expand_by);
-
-        // assert_eq!(
-        //     vertices.len(),
-        //     expand_by.len(),
-        //     "vertices.len() != expand_by.len()"
-        // );
-
-        // let left_vertices = vertices
-        //     .iter()
-        //     .zip(normals.iter())
-        //     .zip(expand_by.iter())
-        //     .map(|((&v, &n), &e)| v - n * e / 2.0)
-        //     .collect::<Vec<_>>();
-        // let right_vertices = vertices
-        //     .iter()
-        //     .zip(normals.iter())
-        //     .zip(expand_by.iter())
-        //     .map(|((&v, &n), &e)| v + n * e / 2.0)
-        //     .collect::<Vec<_>>();
-
         let mut left_vertices = Vec::<Vec3>::with_capacity(vertices.len());
         let mut right_vertices = Vec::<Vec3>::with_capacity(vertices.len());
-
-        // let _ = vertices.windows(3).map(|window| {
-        //     let (a, b, c) = (window[0], window[1], window[2]);
-        //     let ab = (b - a).normalize();
-        //     let bc = (c - b).normalize();
-
-        //     let kinking_factor = (1.0 - ab.dot(bc)) * width / 2.0;
-        //     let expand_by = width + kinking_factor;
-
-        //     let n = (ab + bc).normalize();
-        //     let left = b - n * expand_by / 2.0;
-        //     let right = b + n * expand_by / 2.0;
-
-        //     left_vertices.push(left);
-        //     right_vertices.push(right);
-        // });
 
         // add the first offset
         let (a, b) = (vertices[0], vertices[1]);
@@ -138,9 +65,8 @@ impl From<Path> for Mesh {
             let ab = (b - a).normalize();
             let bc = (c - b).normalize();
 
-            let theta = (std::f32::consts::PI - ab.dot(bc).acos()) / 2.0;
-            info!("theta: {}", theta);
-            let kinked_width = width / theta.sin();
+            let angle = (std::f32::consts::PI - ab.dot(bc).acos()) / 2.0;
+            let kinked_width = width / angle.sin();
 
             let n = {
                 let sum = (ab + bc).normalize();
@@ -162,24 +88,18 @@ impl From<Path> for Mesh {
         left_vertices.push(left);
         right_vertices.push(right);
 
-        // info!("left_vertices:  {:?}", left_vertices);
-        // info!("right_vertices: {:?}", right_vertices);
-
         // collect all vertices
         let vertices: Vec<Vec3> = left_vertices
             .iter()
             .zip(right_vertices.iter())
             .flat_map(|(l, r)| [*r, *l])
             .collect();
-        // info!("output vertices {}: {:?}", vertices.len(), vertices);
-
-        // let normals: Vec<Vec3> = vertices.iter().map(|_| -Vec3::Y).collect();
 
         Mesh::new(
             PrimitiveTopology::TriangleStrip,
         )
         // Add the vertices positions as an attribute
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices) //.with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices)
     }
 }
 
@@ -336,8 +256,7 @@ fn draw_lines(
     all_positions.sort_by(|a, b| a.z.partial_cmp(&b.z).unwrap());
 
     let line_material = materials.add({
-        let (r, g, b) = Flavour::Macchiato.crust().into();
-        // Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8).into()
+        let (r, g, b) = Flavour::Macchiato.text().into();
         Color::rgb_u8(r, g, b).into()
     });
 

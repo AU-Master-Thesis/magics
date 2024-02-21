@@ -1,9 +1,5 @@
-use bevy::{core_pipeline::core_2d::graph::input, prelude::*};
-use leafwing_input_manager::{
-    axislike::{MouseMotionAxisType, VirtualAxis},
-    prelude::*,
-    user_input::InputKind,
-};
+use bevy::prelude::*;
+use leafwing_input_manager::{prelude::*, user_input::InputKind};
 
 use crate::{
     camera::{self, CameraMovementMode, MainCamera},
@@ -15,54 +11,95 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(InputManagerPlugin::<InputAction>::default())
-            .add_systems(
-                PostStartup,
-                (
-                    bind_moveable_object_input,
-                    bind_camera_input,
-                    bind_camera_switch,
-                    // somthing more
-                ),
-            )
-            .add_systems(
-                Update,
-                (
-                    movement_actions,
-                    camera_actions,
-                    switch_camera,
-                    // somthing more
-                ),
-            );
+        app.add_plugins((
+            InputManagerPlugin::<CameraAction>::default(),
+            InputManagerPlugin::<MoveableObjectAction>::default(),
+        ))
+        .add_systems(
+            PostStartup,
+            (
+                bind_moveable_object_input,
+                bind_camera_input,
+                bind_camera_switch,
+                // somthing more
+            ),
+        )
+        .add_systems(
+            Update,
+            (
+                movement_actions,
+                camera_actions,
+                switch_camera,
+                // somthing more
+            ),
+        );
     }
 }
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
-pub enum InputAction {
-    MoveObject,
-    RotateObjectClockwise,
-    RotateObjectCounterClockwise,
+pub enum MoveableObjectAction {
+    Move,
+    RotateClockwise,
+    RotateCounterClockwise,
     Boost,
     Toggle,
-    MoveCamera,
-    MouseMoveCamera,
-    ToggleCameraMovementMode,
-    ZoomIn,
-    ZoomOut,
-    SwitchCamera,
 }
 
-// Exhaustively match `InputAction` and define the default binding to the input
-impl InputAction {
-    fn default_mouse_input(action: InputAction) -> Option<UserInput> {
+impl MoveableObjectAction {
+    fn default_keyboard_input(action: MoveableObjectAction) -> Option<UserInput> {
         match action {
-            Self::MouseMoveCamera => {
-                // UserInput::Single(InputKind::DualAxis(DualAxis::mouse_motion()))
-                Some(UserInput::Chord(vec![
-                    InputKind::Mouse(MouseButton::Left),
-                    InputKind::DualAxis(DualAxis::mouse_motion()),
-                ]))
+            Self::Move => Some(UserInput::VirtualDPad(VirtualDPad::wasd())),
+            Self::RotateClockwise => {
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::E)))
             }
+            Self::RotateCounterClockwise => {
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::Q)))
+            }
+            Self::Boost => {
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::ShiftLeft)))
+            }
+            Self::Toggle => Some(UserInput::Single(InputKind::Keyboard(KeyCode::F))),
+        }
+    }
+
+    fn default_gamepad_input(action: MoveableObjectAction) -> Option<UserInput> {
+        match action {
+            Self::Move => Some(UserInput::Single(InputKind::DualAxis(
+                DualAxis::left_stick(),
+            ))),
+            Self::RotateClockwise => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::RightTrigger,
+            ))),
+            Self::RotateCounterClockwise => Some(UserInput::Single(
+                InputKind::GamepadButton(GamepadButtonType::LeftTrigger),
+            )),
+            Self::Boost => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::LeftTrigger2,
+            ))),
+            Self::Toggle => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::South,
+            ))),
+        }
+    }
+}
+
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+pub enum CameraAction {
+    Move,
+    MouseMove,
+    ToggleMovementMode,
+    ZoomIn,
+    ZoomOut,
+    Switch,
+}
+
+impl CameraAction {
+    fn default_mouse_input(action: CameraAction) -> Option<UserInput> {
+        match action {
+            Self::MouseMove => Some(UserInput::Chord(vec![
+                InputKind::Mouse(MouseButton::Left),
+                InputKind::DualAxis(DualAxis::mouse_motion()),
+            ])),
             Self::ZoomIn => Some(UserInput::Single(InputKind::MouseWheel(
                 MouseWheelDirection::Down,
             ))),
@@ -73,54 +110,23 @@ impl InputAction {
         }
     }
 
-    fn default_keyboard_input(action: InputAction) -> Option<UserInput> {
-        // Match against the provided action to get the correct default keyboard-mouse input
+    fn default_keyboard_input(action: CameraAction) -> Option<UserInput> {
         match action {
-            Self::MoveObject => Some(UserInput::VirtualDPad(VirtualDPad::wasd())),
-            Self::RotateObjectClockwise => {
-                Some(UserInput::Single(InputKind::Keyboard(KeyCode::E)))
-            }
-            Self::RotateObjectCounterClockwise => {
-                Some(UserInput::Single(InputKind::Keyboard(KeyCode::Q)))
-            }
-            Self::Boost => {
-                Some(UserInput::Single(InputKind::Keyboard(KeyCode::ShiftLeft)))
-            }
-            Self::Toggle => Some(UserInput::Single(InputKind::Keyboard(KeyCode::F))),
-            Self::MoveCamera => Some(UserInput::VirtualDPad(VirtualDPad::arrow_keys())),
-            Self::ToggleCameraMovementMode => {
+            Self::Move => Some(UserInput::VirtualDPad(VirtualDPad::arrow_keys())),
+            Self::ToggleMovementMode => {
                 Some(UserInput::Single(InputKind::Keyboard(KeyCode::C)))
             }
-            Self::SwitchCamera => {
-                Some(UserInput::Single(InputKind::Keyboard(KeyCode::Tab)))
-            }
+            Self::Switch => Some(UserInput::Single(InputKind::Keyboard(KeyCode::Tab))),
             _ => None,
         }
     }
 
-    fn default_gamepad_input(action: InputAction) -> Option<UserInput> {
-        // Match against the provided action to get the correct default gamepad input
+    fn default_gamepad_input(action: CameraAction) -> Option<UserInput> {
         match action {
-            Self::MoveObject => Some(UserInput::Single(InputKind::DualAxis(
+            Self::Move => Some(UserInput::Single(InputKind::DualAxis(
                 DualAxis::left_stick(),
             ))),
-            Self::RotateObjectClockwise => Some(UserInput::Single(
-                InputKind::GamepadButton(GamepadButtonType::RightTrigger),
-            )),
-            Self::RotateObjectCounterClockwise => Some(UserInput::Single(
-                InputKind::GamepadButton(GamepadButtonType::LeftTrigger),
-            )),
-            Self::Boost => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::LeftTrigger2,
-            ))),
-            Self::Toggle => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::South,
-            ))),
-            Self::MoveCamera => Some(UserInput::Single(InputKind::DualAxis(
-                DualAxis::right_stick(),
-            ))),
-            Self::MouseMoveCamera => None,
-            Self::ToggleCameraMovementMode => Some(UserInput::Single(
+            Self::ToggleMovementMode => Some(UserInput::Single(
                 InputKind::GamepadButton(GamepadButtonType::North),
             )),
             Self::ZoomIn => Some(UserInput::Single(InputKind::GamepadButton(
@@ -129,9 +135,10 @@ impl InputAction {
             Self::ZoomOut => Some(UserInput::Single(InputKind::GamepadButton(
                 GamepadButtonType::DPadUp,
             ))),
-            Self::SwitchCamera => Some(UserInput::Single(InputKind::GamepadButton(
+            Self::Switch => Some(UserInput::Single(InputKind::GamepadButton(
                 GamepadButtonType::East,
             ))),
+            _ => None,
         }
     }
 }
@@ -139,14 +146,14 @@ impl InputAction {
 fn bind_camera_input(mut commands: Commands, query: Query<(Entity, With<MainCamera>)>) {
     let mut input_map = InputMap::default();
 
-    for action in InputAction::variants() {
-        if let Some(input) = InputAction::default_mouse_input(action) {
+    for action in CameraAction::variants() {
+        if let Some(input) = CameraAction::default_mouse_input(action) {
             input_map.insert(input, action);
         }
-        if let Some(input) = InputAction::default_keyboard_input(action) {
+        if let Some(input) = CameraAction::default_keyboard_input(action) {
             input_map.insert(input, action);
         }
-        if let Some(input) = InputAction::default_gamepad_input(action) {
+        if let Some(input) = CameraAction::default_gamepad_input(action) {
             input_map.insert(input, action);
         }
     }
@@ -154,7 +161,7 @@ fn bind_camera_input(mut commands: Commands, query: Query<(Entity, With<MainCame
     if let Ok((entity, _)) = query.get_single() {
         commands
             .entity(entity)
-            .insert(InputManagerBundle::<InputAction> {
+            .insert(InputManagerBundle::<CameraAction> {
                 input_map,
                 ..default()
             });
@@ -166,7 +173,7 @@ fn camera_actions(
     mut next_state: ResMut<NextState<CameraMovementMode>>,
     mut query: Query<
         (
-            &ActionState<InputAction>,
+            &ActionState<CameraAction>,
             &mut Velocity,
             &mut AngularVelocity,
             &Orbit,
@@ -192,12 +199,12 @@ fn camera_actions(
         let mut tmp_angular_velocity = Vec3::ZERO;
         let camera_distance = transform.translation.distance(orbit.origin);
 
-        if action_state.pressed(InputAction::MouseMoveCamera) {
+        if action_state.pressed(CameraAction::MouseMove) {
             // info!("Mouse move camera");
             match state.get() {
                 CameraMovementMode::Pan => {
                     let action = action_state
-                        .axis_pair(InputAction::MouseMoveCamera)
+                        .axis_pair(CameraAction::MouseMove)
                         .unwrap()
                         .xy();
 
@@ -208,7 +215,7 @@ fn camera_actions(
                 }
                 CameraMovementMode::Orbit => {
                     let action = action_state
-                        .axis_pair(InputAction::MouseMoveCamera)
+                        .axis_pair(CameraAction::MouseMove)
                         .unwrap()
                         .xy();
 
@@ -217,30 +224,22 @@ fn camera_actions(
                     tmp_angular_velocity.y = action.y * 0.2; // * camera::ANGULAR_SPEED;
                 }
             }
-        } else if action_state.pressed(InputAction::MoveCamera) {
+        } else if action_state.pressed(CameraAction::Move) {
             match state.get() {
                 CameraMovementMode::Pan => {
                     let action = action_state
-                        .clamped_axis_pair(InputAction::MoveCamera)
+                        .clamped_axis_pair(CameraAction::Move)
                         .unwrap()
                         .xy()
                         .normalize_or_zero();
 
                     tmp_velocity.x = -action.x * camera::SPEED * camera_distance / 35.0;
                     tmp_velocity.z = action.y * camera::SPEED * camera_distance / 35.0;
-
-                    // info!(
-                    //     "Moving camera in direction {}",
-                    //     action_state
-                    //         .clamped_axis_pair(InputAction::MoveCamera)
-                    //         .unwrap()
-                    //         .xy()
-                    // );
                 }
                 CameraMovementMode::Orbit => {
                     // action represents the direction to move the camera around it's origin
                     let action = action_state
-                        .clamped_axis_pair(InputAction::MoveCamera)
+                        .clamped_axis_pair(CameraAction::Move)
                         .unwrap()
                         .xy()
                         .normalize();
@@ -256,10 +255,10 @@ fn camera_actions(
             tmp_angular_velocity.y = 0.0;
         }
 
-        if action_state.pressed(InputAction::ZoomIn) {
+        if action_state.pressed(CameraAction::ZoomIn) {
             // info!("Zooming in");
             tmp_velocity.y = -camera::SPEED * camera_distance / 10.0;
-        } else if action_state.pressed(InputAction::ZoomOut) {
+        } else if action_state.pressed(CameraAction::ZoomOut) {
             // info!("Zooming out");
             tmp_velocity.y = camera::SPEED * camera_distance / 10.0;
         } else {
@@ -270,7 +269,7 @@ fn camera_actions(
         angular_velocity.value = tmp_angular_velocity;
 
         // Handling state changes
-        if action_state.just_pressed(InputAction::ToggleCameraMovementMode) {
+        if action_state.just_pressed(CameraAction::ToggleMovementMode) {
             next_state.set(match state.get() {
                 CameraMovementMode::Pan => {
                     info!("Toggling camera mode: Linear -> Orbit");
@@ -283,8 +282,6 @@ fn camera_actions(
             });
         }
     }
-
-    // toggle camera movement mode
 }
 
 fn bind_moveable_object_input(
@@ -294,13 +291,13 @@ fn bind_moveable_object_input(
     // Create an `InputMap` to add default inputs to
     let mut input_map = InputMap::default();
 
-    // Loop through each action in `InputAction` and get the default `UserInput`,
+    // Loop through each action in `MoveableObjectAction` and get the default `UserInput`,
     // then insert each default input into input_map
-    for action in InputAction::variants() {
-        if let Some(input) = InputAction::default_keyboard_input(action) {
+    for action in MoveableObjectAction::variants() {
+        if let Some(input) = MoveableObjectAction::default_keyboard_input(action) {
             input_map.insert(input, action);
         }
-        if let Some(input) = InputAction::default_gamepad_input(action) {
+        if let Some(input) = MoveableObjectAction::default_gamepad_input(action) {
             input_map.insert(input, action);
         }
     }
@@ -308,7 +305,7 @@ fn bind_moveable_object_input(
     if let Ok((entity, _)) = query.get_single() {
         commands
             .entity(entity)
-            .insert(InputManagerBundle::<InputAction> {
+            .insert(InputManagerBundle::<MoveableObjectAction> {
                 input_map,
                 ..default()
             });
@@ -320,7 +317,7 @@ fn movement_actions(
     state: Res<State<MoveableObjectMovementState>>,
     mut query: Query<
         (
-            &ActionState<InputAction>,
+            &ActionState<MoveableObjectAction>,
             &mut AngularVelocity,
             &mut Velocity,
         ),
@@ -333,36 +330,28 @@ fn movement_actions(
         return;
     };
 
-    // When the default input for `InputAction::Move` is pressed, print the clamped direction of the axis
-    if action_state.pressed(InputAction::MoveObject) {
+    // When the default input for `MoveableObjectAction::Move` is pressed, print the clamped direction of the axis
+    if action_state.pressed(MoveableObjectAction::Move) {
         let scale = match state.get() {
             MoveableObjectMovementState::Default => moveable_object::SPEED,
             MoveableObjectMovementState::Boost => moveable_object::BOOST_SPEED,
         };
 
         let action = action_state
-            .clamped_axis_pair(InputAction::MoveObject)
+            .clamped_axis_pair(MoveableObjectAction::Move)
             .unwrap()
             .xy()
             .normalize_or_zero();
 
         velocity.value = Vec3::new(-action.x, 0.0, action.y) * scale;
-
-        // info!(
-        //     "Moving in direction {}",
-        //     action_state
-        //         .clamped_axis_pair(InputAction::MoveObject)
-        //         .unwrap()
-        //         .xy()
-        // );
     } else {
         velocity.value = Vec3::ZERO;
     }
 
-    // When the default input for `InputAction::Boost` is pressed, print "Using Boost!"
+    // When the default input for `MoveableObjectAction::Boost` is pressed, print "Using Boost!"
     // Using `just_pressed`, to only trigger once, even if held down, as we want a toggling behaviour
     // -> use `pressed`, if a while-held behaviour is desired
-    if action_state.just_pressed(InputAction::Boost) {
+    if action_state.just_pressed(MoveableObjectAction::Boost) {
         // info!("Using Boost!");
         match state.get() {
             MoveableObjectMovementState::Default => {
@@ -376,17 +365,11 @@ fn movement_actions(
 
     // Rotation
     let rotation = match (
-        action_state.pressed(InputAction::RotateObjectClockwise),
-        action_state.pressed(InputAction::RotateObjectCounterClockwise),
+        action_state.pressed(MoveableObjectAction::RotateClockwise),
+        action_state.pressed(MoveableObjectAction::RotateCounterClockwise),
     ) {
-        (true, false) => {
-            // info!("Rotation -1");
-            -1.0
-        }
-        (false, true) => {
-            // info!("Rotation 1");
-            1.0
-        }
+        (true, false) => -1.0,
+        (false, true) => 1.0,
         // Handles both false or both true cases, resulting in no rotation.
         _ => 0.0,
     };
@@ -410,11 +393,11 @@ fn bind_camera_switch(mut commands: Commands) {
     let mut input_map = InputMap::default();
     input_map.insert(
         UserInput::Single(InputKind::Keyboard(KeyCode::Tab)),
-        InputAction::SwitchCamera,
+        CameraAction::Switch,
     );
 
     commands.spawn((
-        InputManagerBundle::<InputAction> {
+        InputManagerBundle::<CameraAction> {
             input_map,
             ..default()
         },
@@ -423,9 +406,7 @@ fn bind_camera_switch(mut commands: Commands) {
 }
 
 fn switch_camera(
-    query: Query<&ActionState<InputAction>, With<GlobalInputs>>,
-    // mut query_follow_cameras: Query<&mut Camera, With<FollowCameraMe>>,
-    // mut query_main_camera: Query<&mut Camera, (With<MainCamera>, Without<FollowCameraMe>)>,
+    query: Query<&ActionState<CameraAction>, With<GlobalInputs>>,
     mut query_cameras: Query<&mut Camera>,
 ) {
     let action_state = query.single();
@@ -434,7 +415,7 @@ fn switch_camera(
     // let mut cameras = vec![query_main_camera.single_mut()];
     let mut cameras = vec![];
     let mut last_active_camera = 0;
-    // for (i, camera) in query_follow_cameras.iter_mut().enumerate() {
+
     for (i, camera) in query_cameras.iter_mut().enumerate() {
         if camera.is_active {
             last_active_camera = i;
@@ -442,7 +423,7 @@ fn switch_camera(
         cameras.push(camera);
     }
 
-    if action_state.just_pressed(InputAction::SwitchCamera) {
+    if action_state.just_pressed(CameraAction::Switch) {
         let next_active_camera = (last_active_camera + 1) % cameras.len();
         info!(
             "Switching camera from {} to {}, with a total of {} cameras",
