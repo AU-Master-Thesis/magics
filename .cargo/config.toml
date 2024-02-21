@@ -1,0 +1,11 @@
+# Recommended by bevy: https://bevyengine.org/learn/book/getting-started/setup/
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+## TODO: the path to mold is not right when using nix
+# rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+# rustflags = ["-C", "linker=mold"]
+## rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold"]
+rustflags = [
+  "-C",
+  "link-arg=-fuse-ld=/nix/store/jfvy2amv3ppagvl80g0x3r82k56016kl-mold-2.4.0/bin/mold",
+]

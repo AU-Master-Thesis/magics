@@ -1,7 +1,6 @@
-
 [workspace]
-resolver = "2"                                       # Important! wgpu/Bevy needs this!
-members = ["factorgraph", "gbp-rs", "gbpplanner-rs"]
+resolver = "2"                        # Important! wgpu/bevy needs this!
+members = ["gbp-rs", "gbpplanner-rs"]
 
 [workspace.package]
 version = "0.1.0"
@@ -14,23 +13,22 @@ authors = [
 rust-version = "1.76"
 license = "MIT"
 
-# [lints.rust]
-# unsafe_code = "forbid"
+[workspace.lints.rust]
+unsafe_code = "forbid"
 
-# [lints.clippy]
-# enum_glob_use = "deny"
+[workspace.lints.clippy]
+enum_glob_use = "deny"
 # pedantic = "deny"
 # nursery = "deny"
-# unwrap_used = "deny"
-# expect_used = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
 
-
-# [profile.release]
-# codegen-units = 1
-# debug = false
-# debug-assertions = false
-# lto = "fat"
-# opt-level = 3
-# panic = "abort"
-# rpath = false
-# strip = true
+[profile.release]
+codegen-units = 1
+debug = false
+debug-assertions = false
+lto = "fat"
+opt-level = 3
+panic = "abort"
+rpath = false
+strip = true

@@ -9,8 +9,7 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# gbp-rs = { path = "../gbp-rs" }
-# factorgraph = { path = "../factorgraph" }
+gbp-rs = { path = "../gbp-rs" }
 bevy = { version = "0.12.1", default-features = true, features = ["wayland"] }
 bevy-inspector-egui = "0.22.1"
 leafwing-input-manager = "0.11.2"
@@ -33,3 +32,6 @@ opt-level = 1
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
 opt-level = 3
+
+[lints]
+workspace = true
