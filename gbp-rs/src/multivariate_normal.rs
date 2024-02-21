@@ -47,7 +47,10 @@ impl MultivariateNormal {
         }
     }
 
-    pub fn from_mean_and_covariance(mean: DVector<f32>, covariance: DMatrix<f32>) -> Self {
+    pub fn from_mean_and_covariance(
+        mean: DVector<f32>,
+        covariance: DMatrix<f32>,
+    ) -> Self {
         assert_eq!(mean.nrows(), covariance.nrows());
         assert_eq!(mean.nrows(), covariance.ncols());
         let precision_matrix = covariance
@@ -153,8 +156,10 @@ mod tests {
     #[test]
     fn test_addition() {
         let n = 3;
-        let mvn0 =
-            MultivariateNormal::new(na::dvector![1., 2., 3.], na::DMatrix::<f32>::identity(n, n));
+        let mvn0 = MultivariateNormal::new(
+            na::dvector![1., 2., 3.],
+            na::DMatrix::<f32>::identity(n, n),
+        );
         let mvn1 = MultivariateNormal::new(
             na::dvector![6., 5., 4.],
             3. * na::DMatrix::<f32>::identity(n, n),
@@ -176,8 +181,10 @@ mod tests {
     #[test]
     fn test_substraction() {
         let n = 3;
-        let mvn0 =
-            MultivariateNormal::new(na::dvector![1., 2., 3.], na::DMatrix::<f32>::identity(n, n));
+        let mvn0 = MultivariateNormal::new(
+            na::dvector![1., 2., 3.],
+            na::DMatrix::<f32>::identity(n, n),
+        );
         let mvn1 = MultivariateNormal::new(
             na::dvector![6., 5., 4.],
             3. * na::DMatrix::<f32>::identity(n, n),

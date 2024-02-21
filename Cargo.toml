@@ -21,7 +21,7 @@ enum_glob_use = "deny"
 # pedantic = "deny"
 # nursery = "deny"
 unwrap_used = "deny"
-expect_used = "deny"
+# expect_used = "deny"
 
 [profile.release]
 codegen-units = 1

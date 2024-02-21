@@ -188,7 +188,8 @@ impl<'a> Robot<'a> {
         // Initialise the horzion in the direction of the goal, at a distance T_HORIZON * MAX_SPEED from the start.
         let start2goal = goal - start;
         let horizon = start
-            + f32::min(start2goal.norm(), planning_horizon * max_speed) * start2goal.normalize();
+            + f32::min(start2goal.norm(), planning_horizon * max_speed)
+                * start2goal.normalize();
 
         let ndofs = 4; // [x, y, x', y']
 
@@ -228,7 +229,8 @@ impl<'a> Robot<'a> {
             let sigmas = DVector::<f32>::from_element(ndofs, sigma as f32);
             // FIXME: this is not the correct way to create a covariance matrix
             let covariance = DMatrix::<f32>::from_diagonal(&sigmas);
-            let mean = DVector::<f32>::from_iterator(mean.nrows(), mean.into_iter().cloned());
+            let mean =
+                DVector::<f32>::from_iterator(mean.nrows(), mean.into_iter().cloned());
             let prior = MultivariateNormal::from_mean_and_covariance(mean, covariance);
             let key = Key::new(id, id_generator.get_mut().next_variable_id());
 
@@ -242,8 +244,8 @@ impl<'a> Robot<'a> {
         // Create Dynamics factors between variables
         for i in 0..variable_timesteps.len() - 1 {
             // T0 is the timestep between the current state and the first planned state.
-            let delta_t =
-                settings.simulation.t0 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
+            let delta_t = settings.simulation.t0
+                * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
             let adjacent_variables = vec![
                 factorgraph
                     .get_variable_by_index(i)
@@ -382,8 +384,8 @@ impl<'a> Robot<'a> {
             - horizon.prior.mean();
         let new_velocity = dist_horz_to_goal.normalize()
             * f32::min(dist_horz_to_goal.norm(), self.settings.max_speed);
-        let new_position =
-            horizon.prior.mean().columns(0, 2) + new_velocity * self.settings.simulation.t0;
+        let new_position = horizon.prior.mean().columns(0, 2)
+            + new_velocity * self.settings.simulation.t0;
 
         // Update horizon state with new pos and vel
         // let new_mean = utils::nalgebra::concat_column_vectors(&new_position, &new_velocity);
@@ -542,7 +544,9 @@ impl<'a> Robot<'a> {
         for (&f_key, factor) in self.factorgraph.factors.iter_mut() {
             match factor.kind {
                 Pose(_) | Dynamic(_) | Obstacle(_) => continue,
-                InterRobot(ir) if ir.id_of_robot_connected_with != other_robot.id => continue,
+                InterRobot(ir) if ir.id_of_robot_connected_with != other_robot.id => {
+                    continue
+                }
                 _ => {}
             };
 

@@ -127,7 +127,10 @@ fn fps_text_update_system(
 }
 
 /// Toggle the FPS counter when pressing F12
-fn fps_counter_showhide(mut q: Query<&mut Visibility, With<FpsRoot>>, kbd: Res<Input<KeyCode>>) {
+fn fps_counter_showhide(
+    mut q: Query<&mut Visibility, With<FpsRoot>>,
+    kbd: Res<Input<KeyCode>>,
+) {
     if kbd.just_pressed(KeyCode::F12) {
         let mut vis = q.single_mut();
         *vis = match *vis {

@@ -80,9 +80,12 @@ impl FactorGraph {
                 // (!interrobot_comms_active_ && (var->key_.robot_id_!=this->robot_id_) && (msg_passing_mode==EXTERNAL)))) continue;
 
                 match mode {
-                    MessagePassingMode::Internal if !variable_in_robots_factorgraph => continue,
+                    MessagePassingMode::Internal if !variable_in_robots_factorgraph => {
+                        continue
+                    }
                     MessagePassingMode::External
-                        if !variable_in_robots_factorgraph && self.interrobot_comms_active =>
+                        if !variable_in_robots_factorgraph
+                            && self.interrobot_comms_active =>
                     {
                         continue
                     }
@@ -129,9 +132,12 @@ impl FactorGraph {
                 // }
 
                 match mode {
-                    MessagePassingMode::Internal if !variable_in_robots_factorgraph => continue,
+                    MessagePassingMode::Internal if !variable_in_robots_factorgraph => {
+                        continue
+                    }
                     MessagePassingMode::External
-                        if !variable_in_robots_factorgraph && self.interrobot_comms_active =>
+                        if !variable_in_robots_factorgraph
+                            && self.interrobot_comms_active =>
                     {
                         continue
                     }
@@ -140,7 +146,8 @@ impl FactorGraph {
 
                 // Read message from each connected factor
                 // var->inbox_[f_key] = fac->outbox_.at(v_key);
-                let message = factor.outbox.get(f_key).expect("f_key is in factor.outbox");
+                let message =
+                    factor.outbox.get(f_key).expect("f_key is in factor.outbox");
                 variable.inbox.insert(*f_key, message.clone());
             }
 

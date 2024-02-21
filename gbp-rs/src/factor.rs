@@ -131,8 +131,9 @@ impl Factor {
             let mut v = DVector::<f32>::zeros(information_vector.len() - dofs);
             v.view_mut((0, 0), (marg_idx - 1, 0))
                 .copy_from(&information_vector.rows(0, marg_idx - 1));
-            v.view_mut((marg_idx, 0), (v.len(), 0))
-                .copy_from(&information_vector.rows(marg_idx + dofs, information_vector.len()));
+            v.view_mut((marg_idx, 0), (v.len(), 0)).copy_from(
+                &information_vector.rows(marg_idx + dofs, information_vector.len()),
+            );
             v
         };
 
@@ -176,8 +177,12 @@ impl Factor {
         id_of_robot_connected_with: RobotId,
     ) -> Self {
         let state = FactorState::new(measurement, strength, dofs);
-        let interrobot_factor =
-            InterRobotFactor::new(safety_radius, strength, false, id_of_robot_connected_with);
+        let interrobot_factor = InterRobotFactor::new(
+            safety_radius,
+            strength,
+            false,
+            id_of_robot_connected_with,
+        );
         let kind = FactorKind::InterRobot(interrobot_factor);
 
         Self::new(key, adjacent_variables, state, kind)
@@ -238,8 +243,10 @@ impl Factor {
 
         if self.kind.skip(&self.state) {
             for variable in self.adjacent_variables.iter() {
-                self.outbox
-                    .insert(variable.borrow().key, Message::with_dofs(variable.borrow().dofs));
+                self.outbox.insert(
+                    variable.borrow().key,
+                    Message::with_dofs(variable.borrow().dofs),
+                );
             }
 
             return false;
@@ -414,7 +421,11 @@ impl DynamicFactor {
             insert_block_matrix(&mut jacobian, (0, eye.ncols()), &(delta_t * &eye));
             insert_block_matrix(&mut jacobian, (0, eye.ncols() * 2), &(-1.0 * &eye));
             insert_block_matrix(&mut jacobian, (state.dofs / 2, eye.ncols()), &eye);
-            insert_block_matrix(&mut jacobian, (state.dofs * 2 / 2, eye.ncols() * 3), &eye);
+            insert_block_matrix(
+                &mut jacobian,
+                (state.dofs * 2 / 2, eye.ncols() * 3),
+                &eye,
+            );
 
             jacobian
         };
@@ -501,7 +512,11 @@ trait Model {
     /// Measurement function
     /// **Note**: This method takes a mutable reference to self, because the interrobot factor
     fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32>;
-    fn first_order_jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
+    fn first_order_jacobian(
+        &mut self,
+        state: &FactorState,
+        x: &DVector<f32>,
+    ) -> DMatrix<f32> {
         // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
         //     return jac_out;
         // };
@@ -519,7 +534,8 @@ trait Model {
         for i in 0..x.len() {
             let mut copy_of_x = x.clone();
             copy_of_x[i] += self.jacobian_delta();
-            let column = (self.measurement(state, &copy_of_x) - &h0) / self.jacobian_delta();
+            let column =
+                (self.measurement(state, &copy_of_x) - &h0) / self.jacobian_delta();
             jacobian.set_column(i, &column);
         }
 

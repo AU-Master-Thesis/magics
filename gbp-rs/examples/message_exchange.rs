@@ -4,7 +4,8 @@ use std::time::Duration;
 use gbp_rs::{
     bbox::BoundingBox2d,
     robot::{
-        CommunicationMedia, Meter, Pose2d, Position2d, Probability, Robot, RobotState, Velocity2d,
+        CommunicationMedia, Meter, Pose2d, Position2d, Probability, Robot, RobotState,
+        Velocity2d,
     },
     FactorGraph,
 };

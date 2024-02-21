@@ -26,7 +26,10 @@ use crate::Timestep;
 ///     vec![0, 1, 2, 3, 5, 7, 9, 12, 15, 18, 20]
 /// );
 /// ```
-pub fn get_variable_timesteps(lookahead_horizon: u32, lookahead_multiple: u32) -> Vec<Timestep> {
+pub fn get_variable_timesteps(
+    lookahead_horizon: u32,
+    lookahead_multiple: u32,
+) -> Vec<Timestep> {
     // A visual argument is given for the estimate of the initial capacity in this desmos graph.
     // https://www.desmos.com/calculator/lxxsuqtgdq
     let estimated_capacity = (2.5 * f32::sqrt(lookahead_horizon as f32)) as usize;
