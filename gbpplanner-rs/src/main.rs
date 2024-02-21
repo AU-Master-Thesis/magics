@@ -11,6 +11,8 @@ mod movement;
 mod robot_spawner;
 mod theme;
 
+use std::path::Path;
+
 use crate::asset_loader::AssetLoaderPlugin;
 use crate::camera::CameraPlugin;
 use crate::config::Config;
@@ -41,42 +43,36 @@ struct Cli {
     dump_default_config: bool,
 }
 
+fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
+    if let Some(config_path) = &cli.config {
+        Ok(Config::parse(config_path)?)
+    } else {
+        // define default path
+        let home = std::env::var("HOME")?;
+        let xdg_config_home = std::path::Path::new(&home).join(".config");
+        let user_config_dir = xdg_config_home.join("gbpplanner");
+        let cwd = std::path::Path::new(".");
+
+        let conf_paths =
+            vec![user_config_dir.join("config.toml"), cwd.join("config.toml")];
+
+        // let foo: &'static str = "asdasd";
+
+        for conf_path in conf_paths {
+            if conf_path.exists() {
+                return Ok(Config::parse(&conf_path.to_path_buf())?);
+            }
+        }
+
+        Err(color_eyre::eyre::eyre!("No config file found"))
+    }
+}
+
 fn main() -> color_eyre::eyre::Result<()> {
     color_eyre::install()?;
 
     let cli = Cli::parse();
-
-    if cli.dump_default_config {
-        let default_config = Config::default();
-
-        // Write to stdout
-        print!("{}", toml::to_string_pretty(&default_config)?);
-        return Ok(());
-    }
-
-    let config = if let Some(config_path) = cli.config {
-        Config::parse(config_path)?
-    } else {
-        // define default path
-        let home = std::env::var("HOME")?;
-        let conf_paths = vec![
-            std::path::Path(format!("{}/.config/gbpplanner/config.toml", home)),
-            std::path::Path(format!("./config/config.toml")),
-        ];
-
-        for conf_path in conf_paths {
-            if conf_path.exists() {
-                Config::parse(conf_path)
-            }
-        }
-
-        // if conf_path.exists() {
-        //     Config::parse(conf_path)?
-        // } else {
-        //     // error
-        //     return Err(color_eyre::eyre::eyre!("No config file found"));
-        // }
-    };
+    let config = read_config(&cli)?;
 
     info!("Config: {:?}", config);
 

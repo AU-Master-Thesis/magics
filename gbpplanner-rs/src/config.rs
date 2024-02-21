@@ -61,7 +61,7 @@ impl Default for Config {
 impl Config {
     /// Parse a config file
     /// Returns a `ParseError` if the file cannot be parsed
-    pub fn parse(file_path: std::path::PathBuf) -> Result<Self, ParseError> {
+    pub fn parse(file_path: &std::path::PathBuf) -> Result<Self, ParseError> {
         let config = toml::from_str(std::fs::read_to_string(file_path)?.as_str())?;
         Ok(config)
     }
