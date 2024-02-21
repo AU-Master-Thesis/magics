@@ -1,10 +1,13 @@
 use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 
-use super::super::{
-    camera::{self, CameraMovementMode, MainCamera},
-    moveable_object::{self, MoveableObject, MoveableObjectMovementState},
-    movement::{AngularVelocity, Orbit, Velocity},
+use super::{
+    super::{
+        camera::{self, CameraMovementMode, MainCamera},
+        moveable_object::{self, MoveableObject, MoveableObjectMovementState},
+        movement::{AngularVelocity, Orbit, Velocity},
+    },
+    general_input::GeneralInputs,
 };
 
 pub struct CameraInputPlugin;
@@ -218,9 +221,6 @@ fn camera_actions(
     }
 }
 
-#[derive(Component)]
-pub struct GlobalInputs;
-
 fn bind_camera_switch(mut commands: Commands) {
     let mut input_map = InputMap::default();
     input_map.insert(
@@ -233,12 +233,12 @@ fn bind_camera_switch(mut commands: Commands) {
             input_map,
             ..default()
         },
-        GlobalInputs,
+        GeneralInputs,
     ));
 }
 
 fn switch_camera(
-    query: Query<&ActionState<CameraAction>, With<GlobalInputs>>,
+    query: Query<&ActionState<CameraAction>, With<GeneralInputs>>,
     mut query_cameras: Query<&mut Camera>,
 ) {
     let action_state = query.single();

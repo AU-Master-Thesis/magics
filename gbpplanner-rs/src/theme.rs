@@ -24,8 +24,14 @@ fn toggle_theme(
     for _ in theme_event.read() {
         if let Some(current_theme) = window.window_theme {
             window.window_theme = match current_theme {
-                WindowTheme::Light => Some(WindowTheme::Dark),
-                WindowTheme::Dark => Some(WindowTheme::Light),
+                WindowTheme::Light => {
+                    info!("Switching WindowTheme: Light -> Dark");
+                    Some(WindowTheme::Dark)
+                }
+                WindowTheme::Dark => {
+                    info!("Switching WindowTheme: Dark -> Light");
+                    Some(WindowTheme::Light)
+                }
             };
         }
     }
