@@ -26,12 +26,6 @@ use crate::robot_spawner::RobotSpawnerPlugin;
 use crate::theme::ThemePlugin;
 
 use bevy::prelude::*;
-use bevy::{
-    core::FrameCount,
-    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-    prelude::*,
-    window::{CursorGrabMode, PresentMode, WindowLevel, WindowTheme},
-};
 use clap::Parser;
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
