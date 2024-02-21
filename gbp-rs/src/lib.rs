@@ -57,7 +57,7 @@ impl Key {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Message(MultivariateNormal);
 
 impl Message {

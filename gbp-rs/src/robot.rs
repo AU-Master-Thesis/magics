@@ -111,6 +111,10 @@ pub struct SimulationParameters {
     /// Time between current state and next state of planned path
     /// SI unit: s
     pub t0: f32,
+
+    /// The side length of the smallest square that contains the entire simulated environment.
+    /// SI unit: m
+    pub world_size: f32,
 }
 
 #[derive(Debug)]
@@ -166,7 +170,7 @@ impl<'a> Robot<'a> {
         variable_timesteps: &[Timestep],
         obstacle_sdf: Rc<image::RgbImage>,
         settings: &'a RobotSettings,
-        mut id_generator: Rc<RefCell<IdGenerator>>,
+        id_generator: Rc<RefCell<IdGenerator>>,
     ) -> Result<Self, RobotInitError> {
         if waypoints.is_empty() {
             return Err(RobotInitError::NoWaypoints);

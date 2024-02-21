@@ -23,8 +23,9 @@ pub struct Variable {
     /// Flag to indicate if the variable's covariance is finite, i.e. it does not contain NaNs or Infs
     /// In gbpplanner it is used to control if a variable can be rendered.
     pub valid: bool,
-    /// Mailboxes for message storage
+    /// Mailbox for incoming message storage
     pub inbox: Mailbox,
+    /// Mailbox for outgoing message storage
     pub outbox: Mailbox,
 }
 

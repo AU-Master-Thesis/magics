@@ -187,14 +187,14 @@ impl Factor {
     }
     pub fn new_obstacle_factor(
         key: Key,
-        adjacent_variables: Vec<Rc<Variable>>,
         strength: f32,
         measurement: DVector<f32>,
         dofs: usize,
         obstacle_sdf: Rc<image::RgbImage>,
+        world_size: f32,
     ) -> Self {
         let state = FactorState::new(measurement, strength, dofs);
-        let obstacle_factor = ObstacleFactor::new(obstacle_sdf);
+        let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
         Self::new(key, adjacent_variables, state, kind)
     }
@@ -205,7 +205,7 @@ impl Factor {
     // The factor precision and information is created, and then marginalised to create outgoing messages to its connected variables.
 
     ///
-    pub fn update(&mut self) {
+    pub fn update(&mut self) -> bool {
         // // Messages from connected variables are aggregated.
         // // The beliefs are used to create the linearisation point X_.
         // int idx = 0; int n_dofs;
@@ -217,11 +217,35 @@ impl Factor {
         // }
 
         let mut idx = 0;
-        for var in self.adjacent_variables.iter() {
-            idx += var.dofs;
+        for variable in self.adjacent_variables.iter() {
+            idx += variable.borrow().dofs;
+            let message = self
+                .inbox
+                .get(&variable.borrow().key)
+                .expect("there should be a message");
+            // self.state.linearisation_point
         }
 
-        todo!()
+        // // *Depending on the problem*, we may need to skip computation of this factor.
+        // // eg. to avoid extra computation, factor may not be required if two connected variables are too far apart.
+        // // in which case send out a Zero Message.
+        // if (this->skip_factor()){
+        //     for (auto var : variables_){
+        //         this->outbox_[var->key_] = Message(var->n_dofs_);
+        //     }
+        //     return false;
+        // }
+
+        if self.kind.skip(&self.state) {
+            for variable in self.adjacent_variables.iter() {
+                self.outbox
+                    .insert(variable.borrow().key, Message::with_dofs(variable.borrow().dofs));
+            }
+
+            return false;
+        }
+
+        true
     }
 }
 
@@ -626,10 +650,6 @@ impl Model for ObstacleFactor {
 
     fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         // White areas are obstacles, so h(0) should return a 1 for these regions.
-        // float scale = p_obstacleImage_->width / (float)globals.WORLD_SZ;
-        // Vector3 c_hsv = ColorToHSV(GetImageColor(*p_obstacleImage_, (int)((X(0) + globals.WORLD_SZ/2) * scale), (int)((X(1) + globals.WORLD_SZ/2) * scale)));
-        // h(0) = c_hsv.z;
-
         let scale = self.obstacle_sdf.width() as f32 / self.world_size;
         let pixel_x = ((x[0] + self.world_size / 2.0) * scale) as u32;
         let pixel_y = ((x[1] + self.world_size / 2.0) * scale) as u32;

@@ -109,3 +109,92 @@ impl std::ops::SubAssign for MultivariateNormal {
         self.precision_matrix -= other.precision_matrix;
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use nalgebra as na;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_zeros() {
+        let n = 5;
+        let mvn = MultivariateNormal::zeros(n);
+        assert_eq!(mvn.information_vector.len(), n);
+        assert_eq!(mvn.precision_matrix.nrows(), n);
+        assert_eq!(mvn.precision_matrix.ncols(), n);
+
+        assert_eq!(mvn.information_vector, na::DVector::<f32>::zeros(n));
+        assert_eq!(mvn.precision_matrix, na::DMatrix::<f32>::zeros(n, n));
+    }
+
+    #[test]
+    fn test_zeroize() {
+        let n = 4;
+        let information_vector = na::dvector![1., 2., 3., 4.];
+        let precision_matrix = na::dmatrix![
+            5.0, 0.0, 1.0, 0.5;
+            0.0, 5.0, 0.0, 0.0;
+            1.0, 0.0, 5.0, 0.2;
+            0.5, 0.0, 0.5, 5.0
+        ];
+        let mut mvn = MultivariateNormal::new(information_vector, precision_matrix);
+
+        assert!(!mvn.information_vector.iter().all(|x| *x == 0.0));
+        assert!(!mvn.precision_matrix.iter().all(|x| *x == 0.0));
+
+        mvn.zeroize();
+
+        assert!(mvn.information_vector.iter().all(|x| *x == 0.0));
+        assert!(mvn.precision_matrix.iter().all(|x| *x == 0.0));
+    }
+
+    #[test]
+    fn test_addition() {
+        let n = 3;
+        let mvn0 =
+            MultivariateNormal::new(na::dvector![1., 2., 3.], na::DMatrix::<f32>::identity(n, n));
+        let mvn1 = MultivariateNormal::new(
+            na::dvector![6., 5., 4.],
+            3. * na::DMatrix::<f32>::identity(n, n),
+        );
+
+        let mvn2 = mvn0 + mvn1;
+
+        assert_eq!(mvn2.information_vector, na::dvector![7., 7., 7.]);
+        assert_eq!(
+            mvn2.precision_matrix,
+            na::dmatrix![
+                4., 0., 0.;
+                0., 4., 0.;
+                0., 0., 4.
+            ]
+        );
+    }
+
+    #[test]
+    fn test_substraction() {
+        let n = 3;
+        let mvn0 =
+            MultivariateNormal::new(na::dvector![1., 2., 3.], na::DMatrix::<f32>::identity(n, n));
+        let mvn1 = MultivariateNormal::new(
+            na::dvector![6., 5., 4.],
+            3. * na::DMatrix::<f32>::identity(n, n),
+        );
+
+        let mvn2 = mvn0 + mvn1;
+
+        assert_eq!(mvn2.information_vector, na::dvector![-5., -3., -1.]);
+        assert_eq!(
+            mvn2.precision_matrix,
+            na::dmatrix![
+                -2., 0., 0.;
+                0., -2., 0.;
+                0., 0., -2.
+            ]
+        );
+    }
+
+    // TODO: write unit tests for the rest of the methods
+}

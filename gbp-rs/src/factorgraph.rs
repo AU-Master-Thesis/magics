@@ -1,6 +1,6 @@
 use crate::factor::Factor;
 use crate::robot::RobotId;
-use crate::variable::Variable;
+use crate::variable::{self, Variable};
 use crate::Key;
 
 use std::collections::BTreeMap;
