@@ -8,7 +8,7 @@ mod follow_cameras;
 mod input;
 mod moveable_object;
 mod movement;
-mod planner;
+// mod planner;
 mod robot_spawner;
 mod theme;
 
@@ -93,9 +93,9 @@ fn main() -> color_eyre::eyre::Result<()> {
         return Ok(());
     }
 
-    let config = read_config(&cli)?;
+    // let config = read_config(&cli)?;
 
-    info!("Config: {:?}", config);
+    // info!("Config: {:?}", config);
 
     App::new()
         // .insert_resource(config.clone())
@@ -131,20 +131,8 @@ fn main() -> color_eyre::eyre::Result<()> {
             RobotSpawnerPlugin, // Custom
             FactorGraphPlugin, // Custom
             // WorldInspectorPlugin::new()
-        )).add_systems(Startup, set_theme(WindowTheme::Dark).run_if(theme_is_not_set))
+        ))
         .run();
 
     Ok(())
-}
-
-fn theme_is_not_set(windows: Query<&Window>) -> bool {
-    let window = windows.single();
-    window.window_theme.is_none()
-}
-
-fn set_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
-    move |mut windows: Query<&mut Window>| {
-        let mut window = windows.single_mut();
-        window.window_theme = Some(theme);
-    }
 }
