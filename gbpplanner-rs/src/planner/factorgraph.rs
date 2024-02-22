@@ -1,13 +1,39 @@
 use bevy::prelude::*;
+use petgraph::prelude::{EdgeIndex, NodeIndex};
 use petgraph::Undirected;
 use petgraph::{
     dot::{Config, Dot},
     graph::Graph,
 };
 
+use super::factor::Factor;
+use super::multivariate_normal::MultivariateNormal;
+use super::variable::Variable;
+
+#[derive(Debug)]
+pub struct Message(MultivariateNormal);
+
+pub type Inbox = Vec<(NodeIndex, Message)>;
+
+#[derive(Debug)]
 pub enum Node {
     Factor(Factor),
     Variable(Variable),
+}
+
+impl Node {
+    pub fn set_node_index(&mut self, index: NodeIndex) {
+        match self {
+            Self::Factor(factor) => factor.set_node_index(index),
+            Self::Variable(variable) => variable.set_node_index(index),
+        }
+    }
+    pub fn get_node_index(&mut self) -> NodeIndex {
+        match self {
+            Self::Factor(factor) => factor.get_node_index(),
+            Self::Variable(variable) => variable.get_node_index(),
+        }
+    }
 }
 
 /// A factor graph is a bipartite graph consisting of two types of nodes: factors and variables.
@@ -34,6 +60,7 @@ impl FactorGraph {
         Self {
             graph: Graph::new_undirected(),
             interrobot_comms_active: true,
+            node_id_counter: 0usize,
         }
     }
 
@@ -60,7 +87,7 @@ impl FactorGraph {
 
     // TODO: Implement our own export to `DOT` format, which can be much more specific with styling.
     /// Exports tree to `graphviz` `DOT` format
-    pub fn export() -> String {
+    pub fn export(&self) -> String {
         format!(
             "{:?}",
             Dot::with_config(&self.graph, &[Config::EdgeNoLabel])

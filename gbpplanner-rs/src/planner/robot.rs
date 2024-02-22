@@ -1,8 +1,14 @@
-use std::cell::RefCell;
 use std::collections::{BTreeSet, VecDeque};
 use std::rc::Rc;
 
+use nalgebra::{DMatrix, DVector};
+
+use crate::config::Config;
+
 use super::factorgraph::FactorGraph;
+use super::multivariate_normal::MultivariateNormal;
+use super::variable::Variable;
+use super::Timestep;
 use bevy::prelude::*;
 
 pub struct RobotPlugin;
@@ -13,8 +19,17 @@ const SIGMA_POSE_FIXED: f64 = 1e-15;
 
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system();
+        todo!()
+        // app.add_system();
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RobotInitError {
+    #[error("No waypoints were provided")]
+    NoWaypoints,
+    #[error("No variable timesteps were provided")]
+    NoVariableTimesteps,
 }
 
 /// A component to encapsulate the idea of a radius.
@@ -22,6 +37,7 @@ impl Plugin for RobotPlugin {
 pub struct Radius(pub f32);
 
 /// A waypoint is a position that the robot should move to.
+#[allow(clippy::similar_names)]
 #[derive(Component, Debug)]
 pub struct Waypoints(pub VecDeque<Vec2>);
 
@@ -73,7 +89,7 @@ pub struct RobotBundle {
 impl RobotBundle {
     #[must_use = "Constructor responsible for creating the robots factorgraph"]
     pub fn new(
-        mut waypoints: VecDeque<Waypoint>,
+        mut waypoints: VecDeque<Vec2>,
         // transform: Transform,
         variable_timesteps: &[Timestep],
         config: &Config,
@@ -87,19 +103,18 @@ impl RobotBundle {
         }
 
         let start = waypoints
-            .front()
+            .pop_front()
             .expect("Know that waypoints has at least one element");
         let transform = Transform::from_translation(Vec3::new(start.x, 0.0, start.y));
-        waypoints = waypoints.pop_front();
         let goal = waypoints
             .front()
             .expect("Know that waypoints has at least one element");
 
         // Initialise the horzion in the direction of the goal, at a distance T_HORIZON * MAX_SPEED from the start.
-        let start2goal = goal - start;
+        let start2goal = *goal - start;
         let horizon = start
             + f32::min(
-                start2goal.norm(),
+                start2goal.length(),
                 config.robot.planning_horizon * config.robot.max_speed,
             ) * start2goal.normalize();
 
@@ -132,8 +147,6 @@ impl RobotBundle {
                 }
             });
             let covariance = DMatrix::<f32>::from_diagonal(&sigmas);
-            // let mean =
-            //     DVector::<f32>::from_iterator(mean.nrows(), mean.into_iter().cloned());
             let prior = MultivariateNormal::from_mean_and_covariance(mean, covariance);
 
             let variable = Variable::new(prior, ndofs);

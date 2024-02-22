@@ -25,6 +25,9 @@ bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporat
 rand = "0.8.5"
 itertools = "0.12.1"
 petgraph = "0.6.4"
+nalgebra = "0.32.4"
+image = { version = "0.24.8", default-features = false, features = ["png"] }
+# tap = "1.0.1"
 
 # # Enable a small amount of optimization in debug mode
 # [profile.dev]
@@ -36,3 +39,6 @@ petgraph = "0.6.4"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+pretty_assertions = "1.4.0"

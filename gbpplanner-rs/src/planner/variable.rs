@@ -1,16 +1,13 @@
-use std::{collections::BTreeMap, rc::Rc};
-
+use super::factor::Factor;
+use super::factorgraph::Inbox;
+use super::multivariate_normal::MultivariateNormal;
 use nalgebra::DVector;
-
-use crate::{
-    factor::Factor, multivariate_normal::MultivariateNormal, Key, Mailbox, Message,
-};
+use petgraph::prelude::NodeIndex;
 
 /// A variable in the factor graph.
 #[derive(Debug)]
 pub struct Variable {
     /// Unique identifier that associates the variable with a factorgraph/robot.
-    // pub key: Key,
     pub node_index: Option<NodeIndex>,
     /// Called `factors_` in **gbpplanner**.
     /// **gbpplanner** uses `std::map<Key, std::shared_ptr<Factor>>`
@@ -27,9 +24,7 @@ pub struct Variable {
     /// In gbpplanner it is used to control if a variable can be rendered.
     // pub valid: bool,
     /// Mailbox for incoming message storage
-    pub inbox: Mailbox,
-    /// Mailbox for outgoing message storage
-    pub outbox: Mailbox,
+    pub inbox: Inbox,
 }
 
 impl Variable {
@@ -46,8 +41,7 @@ impl Variable {
             belief: prior.clone(),
             dofs,
             // valid: false,
-            inbox: Mailbox::new(),
-            outbox: Mailbox::new(),
+            inbox: Inbox::new(),
         }
     }
 
@@ -56,6 +50,13 @@ impl Variable {
             panic!("The node index is already set");
         }
         self.node_index = Some(node_index);
+    }
+
+    pub fn get_node_index(&self) -> NodeIndex {
+        if self.node_index.is_none() {
+            panic!("The node index has not been set");
+        }
+        self.node_index.expect("I checked it was there 3 lines ago")
     }
 
     /// Change the prior of the variable.
@@ -86,7 +87,7 @@ impl Variable {
     // /***********************************************************************************************************/
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
     ///
-    pub fn update_belief(&mut self, adjacent_factors: &mut [(NodeIndex, Factor)]) {
+    pub fn update_belief(&mut self, adjacent_factors: &mut [Factor]) {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
         self.belief.information_vector = self.prior.information_vector.clone();
         self.belief.precision_matrix = self.prior.precision_matrix.clone();
@@ -120,7 +121,7 @@ impl Variable {
         // Create message to send to each factor
         // Message is teh aggregate of all OTHER factor messages (belief - last sent msg of that factor)
         for factor in adjacent_factors.iter() {
-            factor.send_message(self.belief.clone() - factor.);
+            // factor.send_message(self.belief.clone() - factor.);
             // if let Some(message) = self.outbox.get_mut(f_key) {
             //     *message = Message(
             //         self.belief
