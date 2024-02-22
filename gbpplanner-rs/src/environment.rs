@@ -1,11 +1,12 @@
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
+    window::WindowTheme,
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
 
-use crate::asset_loader::SceneAssets;
+use crate::{asset_loader::SceneAssets, theme::CatppuccinTheme};
 
 pub struct EnvironmentPlugin;
 
@@ -24,24 +25,24 @@ impl Plugin for EnvironmentPlugin {
     }
 }
 
-fn infinite_grid(mut commands: Commands) {
+fn infinite_grid(
+    mut commands: Commands,
+    catppuccin_theme: Res<CatppuccinTheme>,
+    windows: Query<&Window>,
+) {
+    let grid_colour = catppuccin_theme.grid_colour(windows);
+
     commands.spawn(InfiniteGridBundle {
         settings: InfiniteGridSettings {
             // shadow_color: None,
-            major_line_color: {
-                let (r, g, b) = Flavour::Macchiato.crust().into();
-                Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8)
-            },
-            minor_line_color: {
-                let (r, g, b) = Flavour::Macchiato.crust().into();
-                Color::rgba_u8(r, g, b, (0.25 * 255.0) as u8)
-            },
+            major_line_color: grid_colour,
+            minor_line_color: grid_colour,
             x_axis_color: {
-                let (r, g, b) = Flavour::Macchiato.maroon().into();
+                let (r, g, b) = catppuccin_theme.flavour.maroon().into();
                 Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8)
             },
             z_axis_color: {
-                let (r, g, b) = Flavour::Macchiato.blue().into();
+                let (r, g, b) = catppuccin_theme.flavour.blue().into();
                 Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8)
             },
             ..default()

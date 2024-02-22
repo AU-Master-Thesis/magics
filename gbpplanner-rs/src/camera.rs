@@ -1,6 +1,5 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/camera.rs
 use bevy::prelude::*;
-use bevy_infinite_grid::GridShadowCamera;
 
 use crate::movement::{LinearMovementBundle, Local, OrbitMovementBundle};
 
