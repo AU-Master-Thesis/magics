@@ -192,6 +192,7 @@ impl Factor {
     }
     pub fn new_obstacle_factor(
         key: Key,
+        adjacent_variables: Vec<Rc<Variable>>,
         strength: f32,
         measurement: DVector<f32>,
         dofs: usize,

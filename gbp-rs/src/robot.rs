@@ -170,7 +170,7 @@ impl<'a> Robot<'a> {
         variable_timesteps: &[Timestep],
         obstacle_sdf: Rc<image::RgbImage>,
         settings: &'a RobotSettings,
-        id_generator: Rc<RefCell<IdGenerator>>,
+        mut id_generator: Rc<RefCell<IdGenerator>>,
     ) -> Result<Self, RobotInitError> {
         if waypoints.is_empty() {
             return Err(RobotInitError::NoWaypoints);
@@ -290,6 +290,7 @@ impl<'a> Robot<'a> {
                 dvector![0.0],
                 settings.dofs,
                 Rc::clone(&obstacle_sdf),
+                settings.simulation.world_size,
             );
             let obstacle_factor = Rc::new(obstacle_factor);
 
