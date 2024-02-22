@@ -9,6 +9,17 @@
         "./gbpplanner-rs/Cargo.toml",
         "./gbpplanner-rs/Cargo.toml",
         "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
+        "./gbpplanner-rs/Cargo.toml",
         "./gbpplanner-rs/Cargo.toml"
-    ]
+    ],
+    "rust-analyzer.showUnlinkedFileNotification": false
 }

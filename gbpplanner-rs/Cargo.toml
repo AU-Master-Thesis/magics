@@ -24,6 +24,7 @@ bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporat
 # bevy_mesh_terrain = "0.6.1"
 rand = "0.8.5"
 itertools = "0.12.1"
+petgraph = "0.6.4"
 
 # # Enable a small amount of optimization in debug mode
 # [profile.dev]

@@ -64,7 +64,7 @@ impl MultivariateNormal {
     }
 
     pub fn mean(&self) -> DVector<f32> {
-        self.precision_matrix.try_inverse().unwrap() * &self.information_vector
+        self.precision_matrix.clone().try_inverse().unwrap() * &self.information_vector
     }
 
     pub fn zeroize(&mut self) {

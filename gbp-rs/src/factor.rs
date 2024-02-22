@@ -149,9 +149,10 @@ impl Factor {
 
         let lam_bb_inv = lam_bb.try_inverse().expect("The matrix is invertible");
 
-        let marginalised_message = Message {};
+        // let marginalised_message = Message {};
 
-        marginalised_message
+        // marginalised_message
+        todo!()
     }
 
     pub fn new_dynamic_factor(
@@ -224,10 +225,10 @@ impl Factor {
 
         let mut idx = 0;
         for variable in self.adjacent_variables.iter() {
-            idx += variable.borrow().dofs;
+            idx += variable.dofs;
             let message = self
                 .inbox
-                .get(&variable.borrow().key)
+                .get(&variable.key)
                 .expect("there should be a message");
             // self.state.linearisation_point
         }
@@ -244,10 +245,8 @@ impl Factor {
 
         if self.kind.skip(&self.state) {
             for variable in self.adjacent_variables.iter() {
-                self.outbox.insert(
-                    variable.borrow().key,
-                    Message::with_dofs(variable.borrow().dofs),
-                );
+                self.outbox
+                    .insert(variable.key, Message::with_dofs(variable.dofs));
             }
 
             return false;

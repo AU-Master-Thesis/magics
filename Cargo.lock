@@ -2125,6 +2125,7 @@ dependencies = [
  "color-eyre",
  "itertools",
  "leafwing-input-manager",
+ "petgraph",
  "rand",
  "serde",
  "thiserror",

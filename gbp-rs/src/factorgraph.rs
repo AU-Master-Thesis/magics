@@ -69,7 +69,7 @@ impl FactorGraph {
     /// Aggregation: product of all incoming messages
     pub fn factor_iteration(&mut self, robot_id: RobotId, mode: MessagePassingMode) {
         // TODO: use rayon .par_iter()
-        for (i, (f_key, &factor)) in self.factors.iter().enumerate() {
+        for (i, (f_key, factor)) in self.factors.iter().enumerate() {
             for variable in factor.adjacent_variables.iter() {
                 // Check if the factor needs to be skipped
                 let v_key = variable.key;
@@ -118,7 +118,7 @@ impl FactorGraph {
     ///          in which case the variable or factor may or may not need to take part in GBP depending on if it's connected to another robot
     pub fn variable_iteration(&mut self, robot_id: RobotId, mode: MessagePassingMode) {
         // TODO: use rayon .par_iter()
-        for (i, (v_key, &variable)) in self.variables.iter().enumerate() {
+        for (i, (v_key, variable)) in self.variables.iter().enumerate() {
             for (f_key, factor) in variable.adjacent_factors.iter() {
                 // QUESTION(kpbaks): is this not always true? Given that only factors can be interract with other robots factorgraphs?
                 let variable_in_robots_factorgraph = v_key.robot_id == robot_id;
