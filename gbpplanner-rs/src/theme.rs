@@ -16,15 +16,13 @@ impl Default for CattpuccinTheme {
     }
 }
 
-impl CattpuccinTheme {
-    pub fn new(flavour: Flavour) -> Self {
-        Self { flavour }
-    }
-}
-
-/// Theme event
+/// Signal that theme should be toggled
 #[derive(Event, Debug, Copy, Clone)]
 pub struct ThemeEvent;
+
+/// Signal after theme has been toggled
+#[derive(Event, Debug, Copy, Clone)]
+pub struct ThemeToggledEvent;
 
 /// Theming plugin
 pub struct ThemePlugin;
@@ -32,12 +30,13 @@ pub struct ThemePlugin;
 impl Plugin for ThemePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ThemeEvent>()
+            .add_event::<ThemeToggledEvent>()
             .init_resource::<CattpuccinTheme>()
             .add_systems(
                 Startup,
                 set_theme(WindowTheme::Dark).run_if(theme_is_not_set),
             )
-            .add_systems(Update, toggle_theme);
+            .add_systems(Update, (toggle_theme, handle_clear_color, test));
     }
 }
 
@@ -57,9 +56,9 @@ fn toggle_theme(
     mut windows: Query<&mut Window>,
     mut theme_event: EventReader<ThemeEvent>,
     mut catppuccin_theme: ResMut<CattpuccinTheme>,
+    mut theme_toggled_event: EventWriter<ThemeToggledEvent>,
 ) {
     let mut window = windows.single_mut();
-    info!("cattuccin_theme: {:?}", catppuccin_theme);
     for _ in theme_event.read() {
         if let Some(current_theme) = window.window_theme {
             window.window_theme = match current_theme {
@@ -80,6 +79,24 @@ fn toggle_theme(
                     Some(WindowTheme::Light)
                 }
             };
+            theme_toggled_event.send(ThemeToggledEvent);
         }
+    }
+}
+
+fn handle_clear_color(
+    mut clear_color: ResMut<ClearColor>,
+    catppuccin_theme: Res<CattpuccinTheme>,
+    mut theme_toggled_event: EventReader<ThemeToggledEvent>,
+) {
+    for _ in theme_toggled_event.read() {
+        let (r, g, b) = catppuccin_theme.flavour.crust().into();
+        *clear_color = ClearColor(Color::rgb_u8(r, g, b));
+    }
+}
+
+fn test(mut theme_toggled_event: EventReader<ThemeToggledEvent>) {
+    for _ in theme_toggled_event.read() {
+        info!("TEST");
     }
 }

@@ -12,8 +12,6 @@ mod movement;
 mod robot_spawner;
 mod theme;
 
-use std::path::Path;
-
 use crate::asset_loader::AssetLoaderPlugin;
 use crate::camera::CameraPlugin;
 use crate::config::Config;
@@ -28,10 +26,9 @@ use crate::robot_spawner::RobotSpawnerPlugin;
 use crate::theme::ThemePlugin;
 
 use bevy::prelude::*;
-use bevy::window::WindowTheme;
+
 use clap::Parser;
 
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 // use gbp_rs::factorgraph;
 
 #[derive(Parser)]

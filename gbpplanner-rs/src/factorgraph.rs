@@ -3,9 +3,8 @@
 use bevy::{
     pbr::{MaterialPipeline, MaterialPipelineKey},
     prelude::*,
-    reflect::TypePath,
     render::{
-        mesh::{Indices, MeshVertexBufferLayout, PrimitiveTopology},
+        mesh::{MeshVertexBufferLayout, PrimitiveTopology},
         render_resource::{
             AsBindGroup, PolygonMode, RenderPipelineDescriptor, ShaderRef,
             SpecializedMeshPipelineError,
@@ -13,8 +12,6 @@ use bevy::{
     },
 };
 use catppuccin::Flavour;
-use color_eyre::owo_colors::OwoColorize;
-use itertools::Itertools;
 
 #[derive(Component, Debug, Copy, Clone)]
 pub struct Factor(usize);
@@ -30,12 +27,6 @@ pub struct MoveMe;
 /// so they can be updated or removed
 #[derive(Component, Debug)]
 pub struct Line;
-
-/// A list of lines with a start and end position
-#[derive(Debug, Clone)]
-struct LineList {
-    lines: Vec<(Vec3, Vec3)>,
-}
 
 /// A list of vertices defining a path
 #[derive(Debug, Clone)]
