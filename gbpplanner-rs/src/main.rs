@@ -27,6 +27,7 @@ use crate::robot_spawner::RobotSpawnerPlugin;
 use crate::theme::ThemePlugin;
 
 use bevy::prelude::*;
+use bevy::window::WindowTheme;
 use clap::Parser;
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -118,7 +119,6 @@ fn main() -> color_eyre::eyre::Result<()> {
                 }
             ),
             DiagnosticsPlugin, // Bevy
-            // FrameTimeDiagnosticsPlugin, // Bevy
             ThemePlugin, // Custom
             AssetLoaderPlugin, // Custom
             EnvironmentPlugin, // Custom
@@ -130,8 +130,20 @@ fn main() -> color_eyre::eyre::Result<()> {
             RobotSpawnerPlugin, // Custom
             FactorGraphPlugin, // Custom
             // WorldInspectorPlugin::new()
-        ))
+        )).add_systems(Startup, set_theme(WindowTheme::Dark).run_if(theme_is_not_set))
         .run();
 
     Ok(())
+}
+
+fn theme_is_not_set(windows: Query<&Window>) -> bool {
+    let window = windows.single();
+    window.window_theme.is_none()
+}
+
+fn set_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
+    move |mut windows: Query<&mut Window>| {
+        let mut window = windows.single_mut();
+        window.window_theme = Some(theme);
+    }
 }

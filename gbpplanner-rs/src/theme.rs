@@ -21,8 +21,11 @@ fn toggle_theme(
     mut theme_event: EventReader<ThemeEvent>,
 ) {
     let mut window = windows.single_mut();
+    info!("1: {:?}", window.window_theme);
     for _ in theme_event.read() {
+        info!("2: theme event triggered");
         if let Some(current_theme) = window.window_theme {
+            info!("3: {:?}", current_theme);
             window.window_theme = match current_theme {
                 WindowTheme::Light => {
                     info!("Switching WindowTheme: Light -> Dark");
