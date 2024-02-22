@@ -1,5 +1,3 @@
-// use factorgraph::FactorGraph;
-
 use bevy::{
     pbr::{MaterialPipeline, MaterialPipelineKey},
     prelude::*,
@@ -11,7 +9,8 @@ use bevy::{
         },
     },
 };
-use catppuccin::Flavour;
+
+use crate::theme::CatppuccinTheme;
 
 #[derive(Component, Debug, Copy, Clone)]
 pub struct Factor(usize);
@@ -138,6 +137,7 @@ fn insert_dummy_factor_graph(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     let variables = vec![Variable(0), Variable(1), Variable(2)];
     let factors = vec![Factor(0), Factor(1)];
@@ -149,11 +149,11 @@ fn insert_dummy_factor_graph(
 
     let alpha = 0.75;
     let variable_material = materials.add({
-        let (r, g, b) = Flavour::Macchiato.blue().into();
+        let (r, g, b) = catppuccin_theme.flavour.blue().into();
         Color::rgba_u8(r, g, b, (alpha * 255.0) as u8).into()
     });
     let factor_material = materials.add({
-        let (r, g, b) = Flavour::Macchiato.green().into();
+        let (r, g, b) = catppuccin_theme.flavour.green().into();
         Color::rgba_u8(r, g, b, (alpha * 255.0) as u8).into()
     });
 
@@ -226,6 +226,7 @@ fn draw_lines(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    catppuccin_theme: Res<CatppuccinTheme>,
     query_factors: Query<(&Factor, &Transform)>,
     query_variables: Query<(&Variable, &Transform)>,
     query_previous_lines: Query<Entity, With<Line>>,
@@ -247,7 +248,7 @@ fn draw_lines(
     all_positions.sort_by(|a, b| a.z.partial_cmp(&b.z).unwrap());
 
     let line_material = materials.add({
-        let (r, g, b) = Flavour::Macchiato.text().into();
+        let (r, g, b) = catppuccin_theme.flavour.text().into();
         Color::rgb_u8(r, g, b).into()
     });
 
