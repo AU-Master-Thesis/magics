@@ -25,6 +25,7 @@ use crate::movement::MovementPlugin;
 use crate::robot_spawner::RobotSpawnerPlugin;
 use crate::theme::ThemePlugin;
 
+use bevy::core::FrameCount;
 use bevy::prelude::*;
 
 use clap::Parser;
@@ -110,7 +111,7 @@ fn main() -> color_eyre::eyre::Result<()> {
                         //     maximize: false,
                         //     ..Default::default()
                         // },
-                        // visible: true,
+                        visible: false,
                         ..Default::default()
                     }),
                     ..Default::default()
@@ -128,8 +129,18 @@ fn main() -> color_eyre::eyre::Result<()> {
             RobotSpawnerPlugin, // Custom
             FactorGraphPlugin, // Custom
             // WorldInspectorPlugin::new()
-        ))
+        )).add_systems(Update, make_visible)
         .run();
 
     Ok(())
+}
+
+fn make_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) {
+    // The delay may be different for your app or system.
+    if frames.0 == 3 {
+        // At this point the gpu is ready to show the app so we can make the window visible.
+        // Alternatively, you could toggle the visibility in Startup.
+        // It will work, but it will have one white frame before it starts rendering
+        window.single_mut().visible = true;
+    }
 }
