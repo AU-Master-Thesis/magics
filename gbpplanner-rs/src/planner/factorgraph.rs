@@ -6,6 +6,8 @@ use petgraph::dot::{Config, Dot};
 use petgraph::prelude::{EdgeIndex, NodeIndex};
 use petgraph::Undirected;
 
+use crate::utils;
+
 use super::factor::Factor;
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
@@ -187,58 +189,79 @@ impl FactorGraph {
             if node.is_variable() {
                 continue;
             }
-            let factor = node.as_factor().expect("Node is a factor");
+            let factor_index = node_index;
+            let factor = self.graph[factor_index]
+                .as_factor_mut()
+                .expect("factor_index should point to a Factor in the graph");
 
-            // for node_index in self.graph.neighbors(node_index) {
-            //     let node = &mut self.graph[node_index];
-            //     let variable = node.as_variable().expect("Node is a variable, since a factor cannot have another factor as a neighbour");
+            // Update factor and receive messages to send to its connected variables
+            // let variable_messages = factor.update(factor_index, & self.graph);
+            let adjacent_variables =
+                self.graph.neighbors(factor_index).collect::<Vec<_>>();
+            let _ = factor.update(factor_index, &adjacent_variables, &self.graph);
 
-            //     // Check if the factor needs to be skipped
-            //     // let v_key = variable.key;
-            //     // let variable_in_robots_factorgraph = v_key.robot_id == robot_id;
+            // TODO: propagate the variable_messages to the factors neighbour variables
+            // for variable_index in self.graph.neighbors(factor_index) {
+            //     let variable = self.graph[variable_index]
+            //         .as_variable()
+            //         .expect("A factor can only have variables as neighbors");
 
-            //     // if matches!(factor.kind, Factor::InterRobot) {
-            //     //     let variable_in_robots_factorgraph =
-            //     //         factor.id_of_robot_connected_with == robot_id;
-            //     // }
-
-            //     let variable_in_robots_factorgraph = match factor.kind {
-            //         FactorKind::InterRobot(f) => f.id_of_robot_connected_with == robot_id,
-            //         _ => true,
-            //     };
-
-            //     // Check if the factor need to be skipped [see note in description]
-            //     // if (((msg_passing_mode==INTERNAL) == (var->key_.robot_id_!=this->robot_id_) ||
-            //     // (!interrobot_comms_active_ && (var->key_.robot_id_!=this->robot_id_) && (msg_passing_mode==EXTERNAL)))) continue;
-
-            //     match mode {
-            //         MessagePassingMode::Internal if !variable_in_robots_factorgraph => {
-            //             continue
-            //         }
-            //         MessagePassingMode::External
-            //             if !variable_in_robots_factorgraph
-            //                 && self.interrobot_comms_active =>
-            //         {
-            //             continue
-            //         }
-            //         _ => {}
-            //     }
-
-            //     // // Read message from each connected variable
-            //     // let message = variable
-            //     //     .outbox
-            //     //     .get(f_key)
-            //     //     .expect("f_key is in variable.outbox");
-            //     // factor.inbox.insert(node_index, message.clone());
+            //     let message = variable_messages
+            //         .get(variable_index)
+            //         .expect("There should be a message from the factor to the variable");
+            //     variable.send_message(factor_index, message);
             // }
-
-            let adjacent_variables = self.graph.neighbors(node_index).collect::<Vec<_>>();
-
-            // self.graph.node_weights_mut().filter
-
-            // Calculate factor potential and create outgoing messages
-            factor.update(&adjacent_variables, &mut self.graph);
         }
+    }
+
+    fn update_factor(
+        &mut self,
+        factor_index: NodeIndex,
+        // &mut factor: Factor,
+        // adjacent_variables: impl Iterator<Item = NodeIndex>,
+    ) -> HashMap<NodeIndex, Message> {
+        let factor = self.graph[factor_index]
+            .as_factor_mut()
+            .expect("factor_index should point to a Factor in the graph");
+        let adjacent_variables = self.graph.neighbors(factor_index);
+
+        let mut idx = 0;
+        for variable_index in adjacent_variables.clone() {
+            let variable = self.graph[variable_index]
+                .as_variable()
+                .expect("A factor can only have variables as neighbors");
+
+            idx += variable.dofs;
+            let message = factor
+                .read_message_from(variable_index)
+                .expect("There should be a message from the variable");
+
+            utils::nalgebra::insert_subvector(
+                &mut factor.state.linearisation_point,
+                idx..idx + variable.dofs,
+                &message.mean(),
+            );
+        }
+
+        // *Depending on the problem*, we may need to skip computation of this factor.␍
+        // eg. to avoid extra computation, factor may not be required if two connected variables are too far apart.␍
+        // in which case send out a Zero Message.␍
+        if factor.skip() {
+            for variable_index in adjacent_variables {
+                let variable = self.graph[variable_index]
+                    .as_variable_mut()
+                    .expect("A factor can only have variables as neighbors");
+
+                let message = Message::with_dofs(idx);
+                variable.send_message(factor_index, message);
+            }
+            return false;
+        }
+
+        let measurement = factor.measurement(factor.state.linearisation_point);
+        let jacobian = factor.jacobian(factor.state.linearisation_point);
+
+        todo!()
     }
 
     /// Variable Iteration in Gaussian Belief Propagation (GBP).
@@ -260,7 +283,8 @@ impl FactorGraph {
             if node.is_factor() {
                 continue;
             }
-            let variable = node.as_variable().expect("Node is a variable");
+            self.update_variable(node_index);
+            // let variable = node.as_variable().expect("Node is a variable");
             // for (f_key, factor) in variable.adjacent_factors.iter() {
             //     // QUESTION(kpbaks): is this not always true? Given that only factors can be interract with other robots factorgraphs?
             //     let variable_in_robots_factorgraph = v_key.robot_id == robot_id;
@@ -293,10 +317,19 @@ impl FactorGraph {
             //     variable.inbox.insert(*f_key, message.clone());
             // }
 
-            let adjacent_factors = self.graph.neighbors(node_index).collect::<Vec<_>>();
+            // let adjacent_factors = self.graph.neighbors(node_index).collect::<Vec<_>>();
 
-            // Update variable belief and create outgoing messages
-            variable.update_belief(&adjacent_factors, &mut self.graph);
+            // // Update variable belief and create outgoing messages
+            // variable.update_belief(&adjacent_factors, &mut self.graph);
         }
+    }
+
+    fn update_variable(&mut self, variable_index: NodeIndex) {
+        // let adjacent_factors = self.graph.neighbors(node_index).collect::<Vec<_>>();
+        let adjacent_factors = self.graph.neighbors(variable_index);
+        // // Update variable belief and create outgoing messages
+        // variable.update_belief(&adjacent_factors, &mut self.graph);
+
+        todo!()
     }
 }

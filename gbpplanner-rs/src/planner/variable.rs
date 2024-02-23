@@ -24,7 +24,7 @@ pub struct Variable {
     /// In gbpplanner it is used to control if a variable can be rendered.
     // pub valid: bool,
     /// Mailbox for incoming message storage
-    pub inbox: Inbox,
+    inbox: Inbox,
 }
 
 impl Variable {
@@ -57,6 +57,14 @@ impl Variable {
             panic!("The node index has not been set");
         }
         self.node_index.expect("I checked it was there 3 lines ago")
+    }
+
+    pub fn send_message(&mut self, from: NodeIndex, message: Message) {
+        let _ = self.inbox.insert(from, message);
+    }
+
+    pub fn read_message_from(&mut self, from: NodeIndex) -> Option<&Message> {
+        self.inbox.get(&from)
     }
 
     /// Change the prior of the variable.

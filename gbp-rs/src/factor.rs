@@ -502,6 +502,10 @@ impl Model for PoseFactor {
     fn jacobian_delta(&self) -> f32 {
         1e-8
     }
+
+    fn linear(&self) -> bool {
+        false
+    }
 }
 
 trait Model {
@@ -543,6 +547,8 @@ trait Model {
     }
 
     fn jacobian_delta(&self) -> f32;
+
+    fn linear(&self) -> bool;
 
     /// Whether to skip this factor in the update step
     /// In gbpplanner, this is only used for the interrobot factor.
@@ -608,6 +614,10 @@ impl Model for InterRobotFactor {
         1e-2
     }
 
+    fn linear(&self) -> bool {
+        false
+    }
+
     fn skip(&mut self, state: &FactorState) -> bool {
         // this->skip_flag = ( (X_(seqN(0,n_dofs_/2)) - X_(seqN(n_dofs_, n_dofs_/2))).squaredNorm() >= safety_distance_*safety_distance_ );␍
         let offset = state.dofs / 2;
@@ -636,6 +646,11 @@ impl Model for DynamicFactor {
 
     fn jacobian_delta(&self) -> f32 {
         1e-2
+    }
+
+    // #[inline(always)]
+    fn linear(&self) -> bool {
+        true
     }
 }
 
@@ -682,6 +697,10 @@ impl Model for ObstacleFactor {
     fn skip(&mut self, state: &FactorState) -> bool {
         false
     }
+
+    fn linear(&self) -> bool {
+        false
+    }
 }
 
 impl Model for FactorKind {
@@ -718,6 +737,15 @@ impl Model for FactorKind {
             FactorKind::InterRobot(f) => f.jacobian_delta(),
             FactorKind::Dynamic(f) => f.jacobian_delta(),
             FactorKind::Obstacle(f) => f.jacobian_delta(),
+        }
+    }
+
+    fn linear(&self) -> bool {
+        match self {
+            FactorKind::Pose(f) => f.linear(),
+            FactorKind::InterRobot(f) => f.linear(),
+            FactorKind::Dynamic(f) => f.linear(),
+            FactorKind::Obstacle(f) => f.linear(),
         }
     }
 }

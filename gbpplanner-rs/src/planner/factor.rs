@@ -1,7 +1,11 @@
-use bevy::ecs::entity::Entity;
-use nalgebra::{dvector, DMatrix, DVector};
+use bevy::{
+    ecs::{entity::Entity, system::adapter::info},
+    log::info,
+};
+use itertools::Itertools;
+use nalgebra::{dmatrix, dvector, DMatrix, DVector};
 use petgraph::prelude::NodeIndex;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::utils;
 
@@ -15,6 +19,7 @@ trait Model {
     fn jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
         self.first_order_jacobian(state, x)
     }
+    // TODO: rename to measure
     /// Measurement function
     /// **Note**: This method takes a mutable reference to self, because the interrobot factor
     fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32>;
@@ -54,6 +59,8 @@ trait Model {
     /// In gbpplanner, this is only used for the interrobot factor.
     /// The other factors are always included in the update step.
     fn skip(&mut self, state: &FactorState) -> bool;
+
+    fn linear(&self) -> bool;
 }
 
 /// Interrobot factor: for avoidance of other robots
@@ -154,6 +161,10 @@ impl Model for InterRobotFactor {
         self.skip = dontknow >= f32::powi(self.safety_distance, 2);
 
         self.skip
+    }
+
+    fn linear(&self) -> bool {
+        false
     }
 }
 
@@ -282,6 +293,10 @@ impl Model for DynamicFactor {
     fn jacobian_delta(&self) -> f32 {
         1e-2
     }
+
+    fn linear(&self) -> bool {
+        true
+    }
 }
 
 #[derive(Debug)]
@@ -304,6 +319,10 @@ impl Model for PoseFactor {
 
     fn jacobian_delta(&self) -> f32 {
         1e-8
+    }
+
+    fn linear(&self) -> bool {
+        false
     }
 }
 
@@ -348,6 +367,10 @@ impl Model for ObstacleFactor {
     }
 
     fn skip(&mut self, state: &FactorState) -> bool {
+        false
+    }
+
+    fn linear(&self) -> bool {
         false
     }
 }
@@ -430,6 +453,15 @@ impl Model for FactorKind {
             FactorKind::Obstacle(f) => f.jacobian_delta(),
         }
     }
+
+    fn linear(&self) -> bool {
+        match self {
+            FactorKind::Pose(f) => f.linear(),
+            FactorKind::InterRobot(f) => f.linear(),
+            FactorKind::Dynamic(f) => f.linear(),
+            FactorKind::Obstacle(f) => f.linear(),
+        }
+    }
 }
 
 // TODO: make generic over f32 | f64
@@ -437,17 +469,25 @@ impl Model for FactorKind {
 #[derive(Debug)]
 struct FactorState {
     /// called `z_` in **gbpplanner**
-    measurement: DVector<f32>,
+    pub measurement: DVector<f32>,
     /// called `meas_model_lambda_` in **gbpplanner**
-    measurement_precision: DMatrix<f32>,
+    pub measurement_precision: DMatrix<f32>,
     /// Stored linearisation point
     /// called X_ in gbpplanner, they use Eigen::MatrixXd instead
-    linearisation_point: DVector<f32>,
+    pub linearisation_point: DVector<f32>,
     /// Strength of the factor. Called `sigma` in gbpplanner.
     /// The factor precision $Lambda = sigma^-2 * Identify$
-    strength: f32,
+    pub strength: f32,
     /// Number of degrees of freedom e.g. 4 [x, y, x', y']
-    dofs: usize,
+    pub dofs: usize,
+
+    /// Cached value of the factors jacobian function
+    /// called `J_` in **gbpplanner**
+    pub cached_jacobian: DMatrix<f32>,
+
+    /// Cached value of the factors jacobian function
+    /// called `h_` in **gbpplanner**
+    pub cached_measurement: DVector<f32>,
 }
 
 impl FactorState {
@@ -469,6 +509,8 @@ impl FactorState {
             linearisation_point: dvector![],
             strength,
             dofs,
+            cached_jacobian: dmatrix![],
+            cached_measurement: dvector![],
         }
     }
 }
@@ -482,7 +524,11 @@ pub struct Factor {
     /// Variant storing the specialized behavior of each Factor kind.
     pub kind: FactorKind,
     /// Mailbox for incoming message storage
-    pub inbox: Inbox,
+    inbox: Inbox,
+
+    /// Set to true after the first call to self.update()
+    /// TODO: move to FactorState
+    initialized: bool,
 }
 
 impl Factor {
@@ -492,6 +538,7 @@ impl Factor {
             state,
             kind,
             inbox: Inbox::new(),
+            initialized: false,
         }
     }
 
@@ -557,15 +604,29 @@ impl Factor {
         self.node_index.expect("I checked it was there 3 lines ago")
     }
 
+    pub fn send_message(&mut self, from: NodeIndex, message: Message) {
+        let _ = self.inbox.insert(from, message);
+    }
+
+    pub fn read_message_from(&mut self, from: NodeIndex) -> Option<&Message> {
+        self.inbox.get(&from)
+    }
+
+    fn residual(&self) -> DVector<f32> {
+        self.state.measurement - self.state.cached_measurement
+    }
+
     // Main section: Factor update:
     // Messages from connected variables are aggregated. The beliefs are used to create the linearisation point X_.
     // The Factor potential is calculated using h_func_ and J_func_
     // The factor precision and information is created, and then marginalised to create outgoing messages to its connected variables.
+    // pub fn update(&mut self, factor_index: NodeIndex, graph: &mut Graph) -> bool {
     pub fn update(
         &mut self,
+        factor_index: NodeIndex,
         adjacent_variables: &[NodeIndex],
-        graph: &mut Graph,
-    ) -> bool {
+        graph: &Graph,
+    ) -> HashMap<NodeIndex, Message> {
         // // Messages from connected variables are aggregated.
         // // The beliefs are used to create the linearisation point X_.
         // int idx = 0; int n_dofs;
@@ -575,21 +636,19 @@ impl Factor {
         //     X_(seqN(idx, n_dofs)) = mu_belief;
         //     idx += n_dofs;
         // }
+        // let adjacent_variables = graph.neighbors(factor_index);
         let mut idx = 0;
-        for node_index in adjacent_variables.iter() {
-            let variable = graph[*node_index]
+        for variable_index in adjacent_variables {
+            let variable = graph[*variable_index]
                 .as_variable()
-                .expect("The node should have a variable");
+                .expect("The variable_index should point to a Variable in the graph");
 
             idx += variable.dofs;
-            let message = self
-                .inbox
-                .get(node_index)
-                .expect("There should be a message");
-            // self.state
-            //     .linearisation_point
-            //     .view_mut((idx, 0), (variable.dofs, 0)) = message.0.mean();
+            let message = self.inbox.get(variable_index).expect(
+                "There should be a message from each variable connected to this factor",
+            );
 
+            // TODO: how do we ensure/know state.linearisation_point is long enough to fit all message means concatenated
             utils::nalgebra::insert_subvector(
                 &mut self.state.linearisation_point,
                 idx..idx + variable.dofs,
@@ -600,20 +659,93 @@ impl Factor {
         // TODO: implement the rest of the update method
 
         if self.kind.skip(&self.state) {
-            for node_index in adjacent_variables.iter() {
-                let variable = graph[*node_index]
-                    .as_variable_mut()
-                    .expect("The node should have a variable");
-                // self.outbox
-                //     .insert(variable.key, Message::with_dofs(variable.dofs));
-                variable
-                    .inbox
-                    .insert(self.get_node_index(), Message::with_dofs(idx));
-            }
+            info!("skipping factor update early for factor with index: {factor_index:?}");
+            let messages_to_variables = adjacent_variables
+                .iter()
+                .map(|variable_index| {
+                    let message = Message::with_dofs(idx);
+                    (*variable_index, message)
+                })
+                .collect::<HashMap<_, _>>();
 
-            return false;
+            return messages_to_variables;
         }
 
-        true
+        //  Update factor precision and information with incoming messages from connected variables.
+        let measurement = self
+            .kind
+            .measurement(&self.state, &self.state.linearisation_point);
+
+        let jacobian = if self.kind.linear() && self.initialized {
+            self.state.cached_jacobian
+        } else {
+            self.kind
+                .jacobian(&self.state, &self.state.linearisation_point)
+        };
+
+        // Eigen::MatrixXd factor_lam_potential = J_.transpose() * meas_model_lambda_ * J_;
+        // Eigen::VectorXd factor_eta_potential = (J_.transpose() * meas_model_lambda_) * (J_ * X_ + residual());
+        // this->initialised_ = true;
+
+        // Eigen::MatrixXd factor_lam_potential = J_.transpose() * meas_model_lambda_ * J_;
+        // Eigen::VectorXd factor_eta_potential = (J_.transpose() * meas_model_lambda_) * (J_ * X_ + residual());
+
+        let factor_lam_potential =
+            jacobian.transpose() * self.state.measurement_precision * jacobian;
+        let factor_eta_potential = (jacobian.transpose()
+            * self.state.measurement_precision)
+            * (jacobian * self.state.linearisation_point + self.residual());
+
+        self.initialized = true;
+
+        //  Update factor precision and information with incoming messages from connected variables.
+        let mut marginalisation_idx = 0usize;
+        let mut messages_to_variables =
+            HashMap::<NodeIndex, Message>::with_capacity(adjacent_variables.len());
+
+        for variable_index in adjacent_variables.iter() {
+            let factor_eta = factor_eta_potential.clone_owned();
+            let factor_lam = factor_lam_potential.clone_owned();
+
+            let variable = graph[*variable_index]
+                .as_variable()
+                .expect("The variable_index should point to a Variable in the graph");
+
+            // Combine the factor with the belief from other variables apart from the receiving variable
+
+            let mut index_offset = 0usize;
+            for other_variable_index in adjacent_variables.iter() {
+                let other_variable = graph[*other_variable_index]
+                    .as_variable()
+                    .expect("The variable_index should point to a Variable in the graph");
+                if variable_index != other_variable_index {
+                    let message = self.read_message_from(*other_variable_index).expect("There should be a message from each variable connected to this factor");
+                    // factor_eta(seqN(idx_v, n_dofs)) += eta_belief;
+                    let slice = index_offset..index_offset + variable.dofs;
+                    utils::nalgebra::insert_subvector(&mut factor_eta, slice)
+                    // factor_lam(seqN(idx_v, n_dofs), seqN(idx_v, n_dofs)) += lam_belief;
+                }
+                index_offset += other_variable.dofs;
+            }
+
+            // int idx_v = 0;
+            // for (int v_idx=0; v_idx<variables_.size(); v_idx++){
+            //     int n_dofs = variables_[v_idx]->n_dofs_;
+            //     if (variables_[v_idx]->key_ != var_out->key_) {
+            //         auto [eta_belief, lam_belief, _] = inbox_[variables_[v_idx]->key_];
+            //     }
+            //     idx_v += n_dofs;
+            // }
+
+            // // Marginalise the Factor Precision and Information to send to the relevant variable
+            // outbox_[var_out->key_] = marginalise_factor_dist(factor_eta, factor_lam, v_out_idx, marginalisation_idx);
+            // marginalisation_idx += var_out->n_dofs_;
+        }
+
+        messages_to_variables
+    }
+
+    pub fn skip(&self) -> bool {
+        self.kind.skip(&self.state)
     }
 }
