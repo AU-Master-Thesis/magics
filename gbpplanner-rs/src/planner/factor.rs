@@ -1,9 +1,14 @@
 use bevy::ecs::entity::Entity;
 use nalgebra::{dvector, DMatrix, DVector};
 use petgraph::prelude::NodeIndex;
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
-use super::factorgraph::Inbox;
+use crate::utils;
+
+use super::{
+    factorgraph::{Graph, Inbox, Message},
+    variable::Variable,
+};
 
 trait Model {
     // TODO: maybe just return &DMatrix<f32>
@@ -550,5 +555,65 @@ impl Factor {
             panic!("The node index has not been set");
         }
         self.node_index.expect("I checked it was there 3 lines ago")
+    }
+
+    // Main section: Factor update:
+    // Messages from connected variables are aggregated. The beliefs are used to create the linearisation point X_.
+    // The Factor potential is calculated using h_func_ and J_func_
+    // The factor precision and information is created, and then marginalised to create outgoing messages to its connected variables.
+    pub fn update(
+        &mut self,
+        adjacent_variables: &[NodeIndex],
+        graph: &mut Graph,
+    ) -> bool {
+        // // Messages from connected variables are aggregated.
+        // // The beliefs are used to create the linearisation point X_.
+        // int idx = 0; int n_dofs;
+        // for (int v=0; v<variables_.size(); v++){
+        //     n_dofs = variables_[v]->n_dofs_;
+        //     auto& [_, __, mu_belief] = this->inbox_[variables_[v]->key_];
+        //     X_(seqN(idx, n_dofs)) = mu_belief;
+        //     idx += n_dofs;
+        // }
+        let mut idx = 0;
+        for node_index in adjacent_variables.iter() {
+            let variable = graph[*node_index]
+                .as_variable()
+                .expect("The node should have a variable");
+
+            idx += variable.dofs;
+            let message = self
+                .inbox
+                .get(node_index)
+                .expect("There should be a message");
+            // self.state
+            //     .linearisation_point
+            //     .view_mut((idx, 0), (variable.dofs, 0)) = message.0.mean();
+
+            utils::nalgebra::insert_subvector(
+                &mut self.state.linearisation_point,
+                idx..idx + variable.dofs,
+                &message.mean(),
+            );
+        }
+
+        // TODO: implement the rest of the update method
+
+        if self.kind.skip(&self.state) {
+            for node_index in adjacent_variables.iter() {
+                let variable = graph[*node_index]
+                    .as_variable_mut()
+                    .expect("The node should have a variable");
+                // self.outbox
+                //     .insert(variable.key, Message::with_dofs(variable.dofs));
+                variable
+                    .inbox
+                    .insert(self.get_node_index(), Message::with_dofs(idx));
+            }
+
+            return false;
+        }
+
+        true
     }
 }

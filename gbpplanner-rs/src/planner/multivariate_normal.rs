@@ -106,6 +106,19 @@ impl std::ops::Sub for MultivariateNormal {
     }
 }
 
+impl std::ops::Sub<&MultivariateNormal> for MultivariateNormal {
+    type Output = Self;
+
+    fn sub(self, other: &MultivariateNormal) -> Self {
+        let information_vector = self.information_vector - &other.information_vector;
+        let precision_matrix = self.precision_matrix - &other.precision_matrix;
+        MultivariateNormal {
+            information_vector,
+            precision_matrix,
+        }
+    }
+}
+
 impl std::ops::SubAssign for MultivariateNormal {
     fn sub_assign(&mut self, other: Self) {
         self.information_vector -= other.information_vector;

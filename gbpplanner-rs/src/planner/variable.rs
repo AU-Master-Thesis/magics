@@ -1,5 +1,5 @@
 use super::factor::Factor;
-use super::factorgraph::{Inbox, Message};
+use super::factorgraph::{Graph, Inbox, Message};
 use super::multivariate_normal::MultivariateNormal;
 use nalgebra::DVector;
 use petgraph::prelude::NodeIndex;
@@ -66,7 +66,7 @@ impl Variable {
         mean: DVector<f32>,
         adjacent_factors: &mut [(NodeIndex, Factor)],
     ) {
-        self.prior.information_vector = self.prior.precision_matrix.clone() * mean;
+        self.prior.information_vector = &self.prior.precision_matrix * mean;
         // QUESTION: why cache mu?
         // mu_ = new_mu;
         // belief_ = Message {eta_, lam_, mu_};
@@ -90,7 +90,7 @@ impl Variable {
     // /***********************************************************************************************************/
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
     ///
-    pub fn update_belief(&mut self, adjacent_factors: &mut [(NodeIndex, Factor)]) {
+    pub fn update_belief(&mut self, adjacent_factors: &[NodeIndex], graph: &mut Graph) {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
         self.belief.information_vector = self.prior.information_vector.clone();
         self.belief.precision_matrix = self.prior.precision_matrix.clone();
@@ -123,10 +123,18 @@ impl Variable {
 
         // Create message to send to each factor
         // Message is the aggregate of all OTHER factor messages (belief - last sent msg of that factor)
-        for (factor_node_index, factor) in adjacent_factors.iter_mut() {
+        for node_index in adjacent_factors.iter() {
+            let factor = graph[*node_index]
+                .as_factor_mut()
+                .expect("The node should be a factor");
+
             factor.inbox.insert(
                 self.get_node_index(),
-                Message(self.belief.clone()) - self.inbox[factor_node_index].clone(),
+                Message(self.belief.clone())
+                    - self
+                        .inbox
+                        .get(node_index)
+                        .expect("The message should exist in the inbox"),
             );
             // factor.send_message(self.belief.clone() - factor.);
             // if let Some(message) = self.outbox.get_mut(f_key) {

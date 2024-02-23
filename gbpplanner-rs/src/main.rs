@@ -11,6 +11,7 @@ mod movement;
 mod planner;
 mod robot_spawner;
 mod theme;
+mod utils;
 
 use crate::asset_loader::AssetLoaderPlugin;
 use crate::camera::CameraPlugin;
