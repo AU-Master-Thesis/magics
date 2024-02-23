@@ -119,7 +119,7 @@ fn handle_clear_color(
     mut theme_toggled_event: EventReader<ThemeToggledEvent>,
 ) {
     for _ in theme_toggled_event.read() {
-        let (r, g, b) = catppuccin_theme.flavour.crust().into();
+        let (r, g, b) = catppuccin_theme.flavour.base().into();
         *clear_color = ClearColor(Color::rgb_u8(r, g, b));
     }
 }
