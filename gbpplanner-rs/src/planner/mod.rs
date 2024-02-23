@@ -13,6 +13,6 @@ pub struct PlannerPlugin;
 
 impl Plugin for PlannerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(RobotPlugin);
+        app.add_plugins(RobotPlugin);
     }
 }

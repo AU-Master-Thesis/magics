@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 use petgraph::prelude::{EdgeIndex, NodeIndex};
 use petgraph::Undirected;
@@ -10,10 +12,18 @@ use super::factor::Factor;
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
 
-#[derive(Debug)]
-pub struct Message(MultivariateNormal);
+#[derive(Debug, Clone)]
+pub struct Message(pub MultivariateNormal);
 
-pub type Inbox = Vec<(NodeIndex, Message)>;
+/// Overload subtraction for `Message`
+impl std::ops::Sub for Message {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Message(self.0 - rhs.0)
+    }
+}
+
+pub type Inbox = HashMap<NodeIndex, Message>;
 
 #[derive(Debug)]
 pub enum Node {

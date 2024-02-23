@@ -1,10 +1,12 @@
 use std::collections::{BTreeSet, VecDeque};
 use std::rc::Rc;
+use std::sync::Arc;
 
-use nalgebra::{DMatrix, DVector};
+use nalgebra::{dvector, DMatrix, DVector};
 
 use crate::config::Config;
 
+use super::factor::Factor;
 use super::factorgraph::FactorGraph;
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
@@ -93,6 +95,7 @@ impl RobotBundle {
         // transform: Transform,
         variable_timesteps: &[Timestep],
         config: &Config,
+        obstacle_sdf: Arc<image::RgbImage>,
     ) -> Result<Self, RobotInitError> {
         if waypoints.is_empty() {
             return Err(RobotInitError::NoWaypoints);
@@ -147,7 +150,10 @@ impl RobotBundle {
                 }
             });
             let covariance = DMatrix::<f32>::from_diagonal(&sigmas);
-            let prior = MultivariateNormal::from_mean_and_covariance(mean, covariance);
+            let prior = MultivariateNormal::from_mean_and_covariance(
+                dvector![mean.x, mean.y],
+                covariance,
+            );
 
             let variable = Variable::new(prior, ndofs);
             let variable_index = factorgraph.add_variable(variable);
@@ -159,14 +165,14 @@ impl RobotBundle {
             // T0 is the timestep between the current state and the first planned state.
             let delta_t = config.simulation.t0
                 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
-            let measurement = DVector::<f32>::zeros(config.dofs);
+            let measurement = DVector::<f32>::zeros(config.robot.dofs);
             let dynamic_factor = Factor::new_dynamic_factor(
                 config.gbp.sigma_factor_dynamics,
                 &measurement,
-                config.dofs,
+                config.robot.dofs,
                 delta_t,
             );
-            let dynamic_factor = Rc::new(dynamic_factor);
+
             let factor_node_index = factorgraph.add_factor(dynamic_factor);
             let _ = factorgraph.add_edge(variable_node_indices[i], factor_node_index);
             let _ = factorgraph.add_edge(variable_node_indices[i + 1], factor_node_index);
@@ -177,12 +183,11 @@ impl RobotBundle {
             let obstacle_factor = Factor::new_obstacle_factor(
                 config.gbp.sigma_factor_obstacle,
                 dvector![0.0],
-                config.dofs,
-                Rc::clone(&obstacle_sdf),
+                config.robot.dofs,
+                Arc::clone(&obstacle_sdf),
                 config.simulation.world_size,
             );
 
-            let obstacle_factor = Rc::new(obstacle_factor);
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
             let _ = factorgraph.add_edge(variable_node_indices[i], factor_node_index);
         }
@@ -192,7 +197,7 @@ impl RobotBundle {
             radius: Radius(config.robot.radius),
             state: RobotState::new(),
             transform,
-            waypoints,
+            waypoints: Waypoints(waypoints),
         })
     }
 }

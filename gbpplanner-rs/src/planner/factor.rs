@@ -1,7 +1,7 @@
 use bevy::ecs::entity::Entity;
 use nalgebra::{dvector, DMatrix, DVector};
 use petgraph::prelude::NodeIndex;
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
 
 use super::factorgraph::Inbox;
 
@@ -445,6 +445,29 @@ struct FactorState {
     dofs: usize,
 }
 
+impl FactorState {
+    fn new(
+        measurement: DVector<f32>,
+        // linearisation_point: DVector<f32>,
+        strength: f32,
+        dofs: usize,
+    ) -> Self {
+        // Initialise precision of the measurement function
+        // this->meas_model_lambda_ = Eigen::MatrixXd::Identity(z_.rows(), z_.rows()) / pow(sigma,2.);
+        let measurement_precision =
+            DMatrix::<f32>::identity(measurement.nrows(), measurement.ncols())
+                / f32::powi(strength, 2);
+
+        Self {
+            measurement,
+            measurement_precision,
+            linearisation_point: dvector![],
+            strength,
+            dofs,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Factor {
     /// Unique identifier that associates the variable with a factorgraph/robot.
@@ -458,6 +481,63 @@ pub struct Factor {
 }
 
 impl Factor {
+    fn new(state: FactorState, kind: FactorKind) -> Self {
+        Self {
+            node_index: None,
+            state,
+            kind,
+            inbox: Inbox::new(),
+        }
+    }
+
+    pub fn new_dynamic_factor(
+        strength: f32,
+        measurement: &DVector<f32>,
+        dofs: usize,
+        delta_t: f32,
+    ) -> Self {
+        let mut state = FactorState::new(measurement.clone_owned(), strength, dofs);
+        let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
+        let kind = FactorKind::Dynamic(dynamic_factor);
+        Self::new(state, kind)
+    }
+
+    pub fn new_interrobot_factor(
+        strength: f32,
+        measurement: DVector<f32>,
+        dofs: usize,
+        safety_radius: f32,
+        id_of_robot_connected_with: Entity,
+    ) -> Self {
+        let state = FactorState::new(measurement, strength, dofs);
+        let interrobot_factor = InterRobotFactor::new(
+            safety_radius,
+            strength,
+            false,
+            id_of_robot_connected_with,
+        );
+        let kind = FactorKind::InterRobot(interrobot_factor);
+
+        Self::new(state, kind)
+    }
+
+    pub fn new_pose_factor() -> Self {
+        todo!()
+    }
+
+    pub fn new_obstacle_factor(
+        strength: f32,
+        measurement: DVector<f32>,
+        dofs: usize,
+        obstacle_sdf: Arc<image::RgbImage>,
+        world_size: f32,
+    ) -> Self {
+        let state = FactorState::new(measurement, strength, dofs);
+        let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
+        let kind = FactorKind::Obstacle(obstacle_factor);
+        Self::new(state, kind)
+    }
+
     pub fn set_node_index(&mut self, node_index: NodeIndex) {
         if self.node_index.is_some() {
             panic!("The node index is already set");

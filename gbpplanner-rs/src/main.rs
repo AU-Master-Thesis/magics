@@ -8,7 +8,7 @@ mod follow_cameras;
 mod input;
 mod moveable_object;
 mod movement;
-// mod planner;
+mod planner;
 mod robot_spawner;
 mod theme;
 

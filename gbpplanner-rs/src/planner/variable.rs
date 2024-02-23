@@ -1,5 +1,5 @@
 use super::factor::Factor;
-use super::factorgraph::Inbox;
+use super::factorgraph::{Inbox, Message};
 use super::multivariate_normal::MultivariateNormal;
 use nalgebra::DVector;
 use petgraph::prelude::NodeIndex;
@@ -37,8 +37,8 @@ impl Variable {
             node_index: None,
             // key,
             // adjacent_factors: BTreeMap::new(),
-            prior,
-            belief: prior.clone(),
+            prior: prior.clone(),
+            belief: prior,
             dofs,
             // valid: false,
             inbox: Inbox::new(),
@@ -61,21 +61,24 @@ impl Variable {
 
     /// Change the prior of the variable.
     /// It updates the belief of the variable.
-    pub fn change_prior(&mut self, mean: DVector<f32>) {
-        self.prior.information_vector = self.prior.precision_matrix * mean;
+    pub fn change_prior(
+        &mut self,
+        mean: DVector<f32>,
+        adjacent_factors: &mut [(NodeIndex, Factor)],
+    ) {
+        self.prior.information_vector = self.prior.precision_matrix.clone() * mean;
         // QUESTION: why cache mu?
         // mu_ = new_mu;
         // belief_ = Message {eta_, lam_, mu_};
 
-        for (f_key, factor) in self.adjacent_factors.iter() {
-            if let Some(message) = self.outbox.get_mut(f_key) {
-                // outbox_[fkey] = belief_;
-                *message = Message(self.belief.clone());
-            }
-            if let Some(message) = self.inbox.get_mut(f_key) {
-                // inbox_[fkey].setZero();
-                message.zeroize();
-            }
+        for (factor_node_index, factor) in adjacent_factors.iter_mut() {
+            factor
+                .inbox
+                .insert(self.get_node_index(), Message(self.belief.clone()));
+            self.inbox.insert(
+                *factor_node_index,
+                Message(MultivariateNormal::zeros(self.dofs)),
+            );
         }
     }
 
@@ -87,14 +90,14 @@ impl Variable {
     // /***********************************************************************************************************/
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
     ///
-    pub fn update_belief(&mut self, adjacent_factors: &mut [Factor]) {
+    pub fn update_belief(&mut self, adjacent_factors: &mut [(NodeIndex, Factor)]) {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
         self.belief.information_vector = self.prior.information_vector.clone();
         self.belief.precision_matrix = self.prior.precision_matrix.clone();
 
-        for (f_key, msg) in self.inbox.iter() {
-            self.belief.information_vector += msg.0.information_vector.clone();
-            self.belief.precision_matrix += msg.0.precision_matrix.clone();
+        for (_, message) in self.inbox.iter() {
+            self.belief.information_vector += message.0.information_vector.clone();
+            self.belief.precision_matrix += message.0.precision_matrix.clone();
         }
 
         for (_, message) in self.inbox.iter() {
@@ -119,8 +122,12 @@ impl Variable {
         // belief_ = Message {eta_, lam_, mu_};
 
         // Create message to send to each factor
-        // Message is teh aggregate of all OTHER factor messages (belief - last sent msg of that factor)
-        for factor in adjacent_factors.iter() {
+        // Message is the aggregate of all OTHER factor messages (belief - last sent msg of that factor)
+        for (factor_node_index, factor) in adjacent_factors.iter_mut() {
+            factor.inbox.insert(
+                self.get_node_index(),
+                Message(self.belief.clone()) - self.inbox[factor_node_index].clone(),
+            );
             // factor.send_message(self.belief.clone() - factor.);
             // if let Some(message) = self.outbox.get_mut(f_key) {
             //     *message = Message(
