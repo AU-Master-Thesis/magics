@@ -704,8 +704,8 @@ impl Factor {
             HashMap::<NodeIndex, Message>::with_capacity(adjacent_variables.len());
 
         for variable_index in adjacent_variables.iter() {
-            let factor_eta = factor_eta_potential.clone_owned();
-            let factor_lam = factor_lam_potential.clone_owned();
+            let mut factor_eta = factor_eta_potential.clone_owned();
+            let mut factor_lam = factor_lam_potential.clone_owned();
 
             let variable = graph[*variable_index]
                 .as_variable()
@@ -720,26 +720,34 @@ impl Factor {
                     .expect("The variable_index should point to a Variable in the graph");
                 if variable_index != other_variable_index {
                     let message = self.read_message_from(*other_variable_index).expect("There should be a message from each variable connected to this factor");
+                    // let slice = index_offset..index_offset + variable.dofs;
                     // factor_eta(seqN(idx_v, n_dofs)) += eta_belief;
-                    let slice = index_offset..index_offset + variable.dofs;
-                    utils::nalgebra::insert_subvector(&mut factor_eta, slice)
+                    gbp_linalg::vector::add_assign_subvector(
+                        &mut factor_eta,
+                        index_offset,
+                        &message.0.information_vector,
+                    );
                     // factor_lam(seqN(idx_v, n_dofs), seqN(idx_v, n_dofs)) += lam_belief;
+                    gbp_linalg::matrix::add_assign_submatrix(
+                        &mut factor_lam,
+                        (index_offset, index_offset + variable.dofs),
+                        &message.0.precision_matrix,
+                    );
                 }
                 index_offset += other_variable.dofs;
             }
 
-            // int idx_v = 0;
-            // for (int v_idx=0; v_idx<variables_.size(); v_idx++){
-            //     int n_dofs = variables_[v_idx]->n_dofs_;
-            //     if (variables_[v_idx]->key_ != var_out->key_) {
-            //         auto [eta_belief, lam_belief, _] = inbox_[variables_[v_idx]->key_];
-            //     }
-            //     idx_v += n_dofs;
-            // }
-
             // // Marginalise the Factor Precision and Information to send to the relevant variable
             // outbox_[var_out->key_] = marginalise_factor_dist(factor_eta, factor_lam, v_out_idx, marginalisation_idx);
             // marginalisation_idx += var_out->n_dofs_;
+            let message_to_send = self.marginalise_factor_distance(
+                factor_eta,
+                factor_lam,
+                variable_index,
+                marginalisation_idx,
+            );
+            marginalisation_idx += variable.dofs;
+            messages_to_variables.insert(*variable_index, message_to_send);
         }
 
         messages_to_variables
@@ -747,5 +755,93 @@ impl Factor {
 
     pub fn skip(&self) -> bool {
         self.kind.skip(&self.state)
+    }
+
+    // /// Marginalise the factor precision and information and create the outgoing message to the variable.
+    // pub fn marginalise_factor_distance(
+    //     &mut self,
+    //     information_vector: DVector<f32>,
+    //     precision_matrix: DMatrix<f32>,
+    //     // variable_index: usize
+    //     var_idx: usize,
+    //     marg_idx: usize,
+    // ) -> Message {
+    //     let dofs = self
+    //         .adjacent_variables
+    //         .get(var_idx)
+    //         .expect("var_idx is within [0, len)")
+    //         .dofs;
+
+    //     if information_vector.len() == dofs {
+    //         return Message::new(information_vector, precision_matrix);
+    //     }
+
+    //     // eta_a = eta(seqN(marg_idx, n_dofs));
+    //     let eta_a = information_vector.rows(marg_idx, dofs);
+    //     // eta_b << eta(seq(0, marg_idx - 1)), eta(seq(marg_idx + n_dofs, last));
+    //     let eta_b = {
+    //         let mut v = DVector::<f32>::zeros(information_vector.len() - dofs);
+    //         v.view_mut((0, 0), (marg_idx - 1, 0))
+    //             .copy_from(&information_vector.rows(0, marg_idx - 1));
+    //         v.view_mut((marg_idx, 0), (v.len(), 0)).copy_from(
+    //             &information_vector.rows(marg_idx + dofs, information_vector.len()),
+    //         );
+    //         v
+    //     };
+
+    //     // TODO: create some declarative macros to do this
+
+    //     let mut lam_aa = DMatrix::<f32>::zeros(dofs, dofs);
+    //     let mut lam_ab = DMatrix::<f32>::zeros(dofs, precision_matrix.ncols() - dofs);
+    //     let mut lam_ba = DMatrix::<f32>::zeros(precision_matrix.nrows() - dofs, dofs);
+    //     let mut lam_bb = DMatrix::<f32>::zeros(
+    //         precision_matrix.nrows() - dofs,
+    //         precision_matrix.ncols() - dofs,
+    //     );
+
+    //     let lam_bb_inv = lam_bb.try_inverse().expect("The matrix is invertible");
+
+    //     // let marginalised_message = Message {};
+
+    //     // marginalised_message
+    //     todo!()
+    // }
+
+    fn marginalise_factor_distance(
+        &self,
+        information_vector: DVector<f32>,
+        precision_matrix: DMatrix<f32>,
+        dofs_of_variable: usize,
+        marginalisation_idx: usize,
+    ) -> Message {
+        if information_vector.len() == dofs_of_variable {
+            return Message::new(information_vector, precision_matrix);
+        }
+
+        // Eigen::VectorXd eta_a(n_dofs);
+        // eta_a = eta(seqN(marg_idx, n_dofs));
+        let eta_a = {
+            let mut v = DVector::<f32>::zeros(dofs_of_variable);
+            gbp_linalg::vector::override_subvector(
+                &mut v,
+                marginalisation_idx,
+                &information_vector,
+            );
+            v
+        };
+        // eta_b(eta.size()-n_dofs);
+        // eta_b << eta(seq(0, marg_idx - 1)), eta(seq(marg_idx + n_dofs, last));
+        let eta_b = {
+            let mut v =
+                DVector::<f32>::zeros(information_vector.len() - dofs_of_variable);
+            gbp_linalg::vector::override_subvector(
+                &mut v,
+                0,
+                gbp_linalg::vector_view!(information_vector, 0..marginalisation_idx - 1),
+            );
+            v
+        };
+
+        todo!()
     }
 }

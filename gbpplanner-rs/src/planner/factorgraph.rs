@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
-use nalgebra::DVector;
+use nalgebra::{DMatrix, DVector};
 use petgraph::dot::{Config, Dot};
 use petgraph::prelude::{EdgeIndex, NodeIndex};
 use petgraph::Undirected;
@@ -46,6 +46,13 @@ impl Message {
 
     pub fn mean(&self) -> DVector<f32> {
         self.0.mean()
+    }
+
+    pub fn new(information_vector: DVector<f32>, precision_matrix: DMatrix<f32>) -> Self {
+        Self(MultivariateNormal::new(
+            information_vector,
+            precision_matrix,
+        ))
     }
 }
 
