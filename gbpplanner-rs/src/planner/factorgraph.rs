@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
-use nalgebra::{DMatrix, DVector};
+// use nalgebra::{DMatrix, DVector};
 use petgraph::dot::{Config, Dot};
-use petgraph::prelude::{EdgeIndex, NodeIndex};
+// use petgraph::prelude::{EdgeIndex, NodeIndex};
 use petgraph::Undirected;
 
 use crate::utils;
@@ -11,6 +11,7 @@ use crate::utils;
 use super::factor::Factor;
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
+use super::{Matrix, Vector};
 
 /// How the messages are passed between factors and variables in the connected factorgraphs.
 #[derive(Debug)]
@@ -44,11 +45,11 @@ impl Message {
         Self(MultivariateNormal::zeros(dofs))
     }
 
-    pub fn mean(&self) -> DVector<f32> {
+    pub fn mean(&self) -> Vector<f32> {
         self.0.mean()
     }
 
-    pub fn new(information_vector: DVector<f32>, precision_matrix: DMatrix<f32>) -> Self {
+    pub fn new(information_vector: Vector<f32>, precision_matrix: Matrix<f32>) -> Self {
         Self(MultivariateNormal::new(
             information_vector,
             precision_matrix,
@@ -127,6 +128,8 @@ impl Node {
     }
 }
 
+pub type NodeIndex = petgraph::graph::NodeIndex;
+pub type EdgeIndex = petgraph::graph::EdgeIndex;
 pub type Graph = petgraph::graph::Graph<Node, (), Undirected>;
 
 /// A factor graph is a bipartite graph consisting of two types of nodes: factors and variables.

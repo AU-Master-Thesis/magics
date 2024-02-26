@@ -1,4 +1,3 @@
-pub type Timestep = u32;
 // use nalgebra as na;
 
 // struct LookaheadParams {
@@ -29,11 +28,11 @@ pub type Timestep = u32;
 pub fn get_variable_timesteps(
     lookahead_horizon: u32,
     lookahead_multiple: u32,
-) -> Vec<Timestep> {
+) -> Vec<u32> {
     // A visual argument is given for the estimate of the initial capacity in this desmos graph.
     // https://www.desmos.com/calculator/lxxsuqtgdq
     let estimated_capacity = (2.5 * f32::sqrt(lookahead_horizon as f32)) as usize;
-    let mut timesteps = Vec::<Timestep>::with_capacity(estimated_capacity);
+    let mut timesteps = Vec::<u32>::with_capacity(estimated_capacity);
     timesteps.push(0);
     // TODO: use std::iter::successors instead
     for i in 1..lookahead_horizon {
@@ -110,58 +109,58 @@ mod tests {
 //     .collect()
 // }
 
-pub mod nalgebra {
-    use std::ops::Range;
+// pub mod nalgebra {
+//     use std::ops::Range;
 
-    use nalgebra::{DVector, Scalar};
+//     use nalgebra::{DVector, Scalar};
 
-    pub fn concat_column_vectors(a: &DVector<f32>, b: &DVector<f32>) -> DVector<f32> {
-        let combined_length = a.nrows() + b.nrows();
-        let mut c = DVector::<f32>::zeros(combined_length);
-        for i in 0..a.nrows() {
-            c[i] = a[i];
-        }
+//     pub fn concat_column_vectors(a: &DVector<f32>, b: &DVector<f32>) -> DVector<f32> {
+//         let combined_length = a.nrows() + b.nrows();
+//         let mut c = DVector::<f32>::zeros(combined_length);
+//         for i in 0..a.nrows() {
+//             c[i] = a[i];
+//         }
 
-        let offset = a.nrows();
-        for i in 0..b.nrows() {
-            c[offset + i] = b[i];
-        }
+//         let offset = a.nrows();
+//         for i in 0..b.nrows() {
+//             c[offset + i] = b[i];
+//         }
 
-        c
-    }
+//         c
+//     }
 
-    pub fn insert_subvector<T: Scalar + Copy>(
-        lhs: &mut DVector<T>,
-        range: Range<usize>,
-        rhs: &DVector<T>,
-    ) {
-        if rhs.len() != range.len() {
-            panic!("The vector you want to copy from does not have the same length as the range");
-        }
+//     pub fn insert_subvector<T: Scalar + Copy>(
+//         lhs: &mut DVector<T>,
+//         range: Range<usize>,
+//         rhs: &DVector<T>,
+//     ) {
+//         if rhs.len() != range.len() {
+//             panic!("The vector you want to copy from does not have the same length as the range");
+//         }
 
-        if lhs.len() < range.end {
-            panic!("The vector you want to copy to, is not as long as the range");
-        }
+//         if lhs.len() < range.end {
+//             panic!("The vector you want to copy to, is not as long as the range");
+//         }
 
-        let offset = range.start;
-        for i in range {
-            lhs[i] = rhs[i - offset];
-        }
-    }
+//         let offset = range.start;
+//         for i in range {
+//             lhs[i] = rhs[i - offset];
+//         }
+//     }
 
-    #[cfg(test)]
-    mod tests {
-        use super::*;
+//     #[cfg(test)]
+//     mod tests {
+//         use super::*;
 
-        #[test]
-        fn test_concat_row_vectors() {
-            use nalgebra::dvector;
-            let a = dvector![1.0, 2.0, 3.0];
-            let b = dvector![4.0, 5.0];
+//         #[test]
+//         fn test_concat_row_vectors() {
+//             use nalgebra::dvector;
+//             let a = dvector![1.0, 2.0, 3.0];
+//             let b = dvector![4.0, 5.0];
 
-            let c = concat_column_vectors(&a, &b);
+//             let c = concat_column_vectors(&a, &b);
 
-            assert_eq!(dvector![1.0, 2.0, 3.0, 4.0, 5.0], c);
-        }
-    }
-}
+//             assert_eq!(dvector![1.0, 2.0, 3.0, 4.0, 5.0], c);
+//         }
+//     }
+// }

@@ -1,8 +1,8 @@
 use super::factor::Factor;
 use super::factorgraph::{Graph, Inbox, Message};
 use super::multivariate_normal::MultivariateNormal;
-use nalgebra::DVector;
-use petgraph::prelude::NodeIndex;
+// use petgraph::prelude::NodeIndex;
+use super::factorgraph::{EdgeIndex, NodeIndex};
 
 /// A variable in the factor graph.
 #[derive(Debug)]
@@ -71,7 +71,7 @@ impl Variable {
     /// It updates the belief of the variable.
     pub fn change_prior(
         &mut self,
-        mean: DVector<f32>,
+        mean: Vector<f32>,
         adjacent_factors: &mut [(NodeIndex, Factor)],
     ) {
         self.prior.information_vector = &self.prior.precision_matrix * mean;
@@ -103,11 +103,12 @@ impl Variable {
         self.belief.information_vector = self.prior.information_vector.clone();
         self.belief.precision_matrix = self.prior.precision_matrix.clone();
 
-        for (_, message) in self.inbox.iter() {
-            self.belief.information_vector += message.0.information_vector.clone();
-            self.belief.precision_matrix += message.0.precision_matrix.clone();
-        }
+        // for (_, message) in self.inbox.iter() {
+        //     self.belief.information_vector += message.0.information_vector.clone();
+        //     self.belief.precision_matrix += message.0.precision_matrix.clone();
+        // }
 
+        // accumelate belief
         for (_, message) in self.inbox.iter() {
             self.belief.information_vector += &message.0.information_vector;
             self.belief.precision_matrix += &message.0.precision_matrix;
@@ -118,8 +119,8 @@ impl Variable {
             .belief
             .precision_matrix
             .clone()
-            .try_inverse()
-            .expect("Precision matrix should be nonsingular");
+            .inv()
+            .expect("precision matrix should be nonsingular");
 
         let valid = covariance.iter().all(|x| x.is_finite());
         if valid {
@@ -131,30 +132,17 @@ impl Variable {
 
         // Create message to send to each factor
         // Message is the aggregate of all OTHER factor messages (belief - last sent msg of that factor)
-        for node_index in adjacent_factors.iter() {
-            let factor = graph[*node_index]
+        for factor_index in adjacent_factors.iter() {
+            let factor = graph[*factor_index]
                 .as_factor_mut()
                 .expect("The node should be a factor");
 
-            factor.inbox.insert(
-                self.get_node_index(),
-                Message(self.belief.clone())
-                    - self
-                        .inbox
-                        .get(node_index)
-                        .expect("The message should exist in the inbox"),
-            );
-            // factor.send_message(self.belief.clone() - factor.);
-            // if let Some(message) = self.outbox.get_mut(f_key) {
-            //     *message = Message(
-            //         self.belief
-            //             - self
-            //                 .inbox
-            //                 .get(f_key)
-            //                 .expect("The message should exist in the inbox")
-            //                 .0,
-            //     );
-            // }
+            let message = Message(self.belief.clone())
+                - self
+                    .inbox
+                    .get(factor_index)
+                    .expect("The message should exist in the inbox");
+            factor.send_message(self.get_node_index(), message);
         }
     }
 }

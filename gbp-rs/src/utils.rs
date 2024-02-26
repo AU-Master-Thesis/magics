@@ -49,18 +49,6 @@ pub fn get_variable_timesteps(
     timesteps
 }
 
-// pub fn static_matrix_to_dynamic<T: na::Scalar, R: na::Const, C: na:: Const, usize>(
-//     m: na::Matrix<T, R, C, na::ArrayStorage<T>>,
-// ) -> na::DMatrix<T> {
-//     let mut d = na::DMatrix::<T>::zeros(R, C);
-//     for i in 0..R {
-//         for j in 0..C {
-//             d[(i, j)] = m[(i, j)];
-//         }
-//     }
-//     d
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -110,37 +98,37 @@ mod tests {
 //     .collect()
 // }
 
-pub mod nalgebra {
-    use nalgebra::DVector;
+// pub mod nalgebra {
+//     use nalgebra::DVector;
 
-    pub fn concat_column_vectors(a: &DVector<f32>, b: &DVector<f32>) -> DVector<f32> {
-        let combined_length = a.nrows() + b.nrows();
-        let mut c = DVector::<f32>::zeros(combined_length);
-        for i in 0..a.nrows() {
-            c[i] = a[i];
-        }
+//     pub fn concat_column_vectors(a: &DVector<f32>, b: &DVector<f32>) -> DVector<f32> {
+//         let combined_length = a.nrows() + b.nrows();
+//         let mut c = DVector::<f32>::zeros(combined_length);
+//         for i in 0..a.nrows() {
+//             c[i] = a[i];
+//         }
 
-        let offset = a.nrows();
-        for i in 0..b.nrows() {
-            c[offset + i] = b[i];
-        }
+//         let offset = a.nrows();
+//         for i in 0..b.nrows() {
+//             c[offset + i] = b[i];
+//         }
 
-        c
-    }
+//         c
+//     }
 
-    #[cfg(test)]
-    mod tests {
-        use super::*;
+//     #[cfg(test)]
+//     mod tests {
+//         use super::*;
 
-        #[test]
-        fn test_concat_row_vectors() {
-            use nalgebra::dvector;
-            let a = dvector![1.0, 2.0, 3.0];
-            let b = dvector![4.0, 5.0];
+//         #[test]
+//         fn test_concat_row_vectors() {
+//             use nalgebra::dvector;
+//             let a = dvector![1.0, 2.0, 3.0];
+//             let b = dvector![4.0, 5.0];
 
-            let c = concat_column_vectors(&a, &b);
+//             let c = concat_column_vectors(&a, &b);
 
-            assert_eq!(dvector![1.0, 2.0, 3.0, 4.0, 5.0], c);
-        }
-    }
-}
+//             assert_eq!(dvector![1.0, 2.0, 3.0, 4.0, 5.0], c);
+//         }
+//     }
+// }

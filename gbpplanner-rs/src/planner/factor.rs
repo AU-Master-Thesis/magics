@@ -3,7 +3,8 @@ use bevy::{
     log::info,
 };
 use itertools::Itertools;
-use nalgebra::{dmatrix, dvector, DMatrix, DVector};
+// use nalgebra::{dmatrix, dvector, DMatrix, DVector};
+use ndarray::array;
 use petgraph::prelude::NodeIndex;
 use std::{collections::HashMap, sync::Arc};
 
@@ -12,30 +13,30 @@ use crate::utils;
 use super::{
     factorgraph::{Graph, Inbox, Message},
     variable::Variable,
+    Matrix, Vector,
 };
 
 trait Model {
     // TODO: maybe just return &DMatrix<f32>
-    fn jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
+    fn jacobian(&mut self, state: &FactorState, x: &Vector<f32>) -> Matrix<f32> {
         self.first_order_jacobian(state, x)
     }
-    // TODO: rename to measure
     /// Measurement function
     /// **Note**: This method takes a mutable reference to self, because the interrobot factor
-    fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32>;
+    fn measure(&mut self, state: &FactorState, x: Vector<f32>) -> Vector<f32>;
     fn first_order_jacobian(
         &mut self,
         state: &FactorState,
-        x: &DVector<f32>,
-    ) -> DMatrix<f32> {
+        x: Vector<f32>,
+    ) -> Matrix<f32> {
         // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
         //     return jac_out;
         // };
 
         // Eigen::MatrixXd h0 = h_func_(X0);    // Value at lin point
-        let h0 = self.measurement(state, x);
+        let h0 = self.measure(state, x);
         // Eigen::MatrixXd jac_out = Eigen::MatrixXd::Zero(h0.size(),X0.size());
-        let mut jacobian = DMatrix::<f32>::zeros(h0.len(), x.len());
+        let mut jacobian = Matrix::<f32>::zeros((h0.len(), x.len()));
 
         //     for (int i=0; i<X0.size(); i++){
         //         Eigen::VectorXd X_copy = X0;                                    // Copy of lin point
@@ -45,8 +46,7 @@ trait Model {
         for i in 0..x.len() {
             let mut copy_of_x = x.clone();
             copy_of_x[i] += self.jacobian_delta();
-            let column =
-                (self.measurement(state, &copy_of_x) - &h0) / self.jacobian_delta();
+            let column = (self.measure(state, &copy_of_x) - &h0) / self.jacobian_delta();
             jacobian.set_column(i, &column);
         }
 
@@ -117,7 +117,7 @@ impl Model for InterRobotFactor {
         jacobian
     }
 
-    fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
+    fn measure(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         // let mut h = DMatrix::zeros(state.measurement.nrows(), state.measurement.ncols());
         let mut h = DVector::zeros(state.measurement.nrows());
         let x_diff = {
@@ -282,7 +282,7 @@ impl Model for DynamicFactor {
         self.cached_jacobian.clone()
     }
 
-    fn measurement(&mut self, _state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
+    fn measure(&mut self, _state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         &self.cached_jacobian * x
     }
 
@@ -309,7 +309,7 @@ impl Model for PoseFactor {
     }
 
     /// Default meaurement function is the identity function
-    fn measurement(&mut self, _state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
+    fn measure(&mut self, _state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         x.clone()
     }
 
@@ -351,7 +351,7 @@ impl Model for ObstacleFactor {
         self.first_order_jacobian(state, x)
     }
 
-    fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
+    fn measure(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         // White areas are obstacles, so h(0) should return a 1 for these regions.
         let scale = self.obstacle_sdf.width() as f32 / self.world_size;
         let pixel_x = ((x[0] + self.world_size / 2.0) * scale) as u32;
@@ -359,7 +359,7 @@ impl Model for ObstacleFactor {
         let pixel = self.obstacle_sdf[(pixel_x, pixel_y)].0;
         let hsv_value = pixel[0] as f32 / 255.0;
 
-        dvector![hsv_value]
+        array![hsv_value]
     }
 
     fn jacobian_delta(&self) -> f32 {
@@ -427,12 +427,12 @@ impl Model for FactorKind {
         }
     }
 
-    fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
+    fn measure(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32> {
         match self {
-            FactorKind::Pose(f) => f.measurement(state, x),
-            FactorKind::InterRobot(f) => f.measurement(state, x),
-            FactorKind::Dynamic(f) => f.measurement(state, x),
-            FactorKind::Obstacle(f) => f.measurement(state, x),
+            FactorKind::Pose(f) => f.measure(state, x),
+            FactorKind::InterRobot(f) => f.measure(state, x),
+            FactorKind::Dynamic(f) => f.measure(state, x),
+            FactorKind::Obstacle(f) => f.measure(state, x),
         }
     }
 
@@ -469,12 +469,12 @@ impl Model for FactorKind {
 #[derive(Debug)]
 struct FactorState {
     /// called `z_` in **gbpplanner**
-    pub measurement: DVector<f32>,
+    pub measurement: Vector<f32>,
     /// called `meas_model_lambda_` in **gbpplanner**
-    pub measurement_precision: DMatrix<f32>,
+    pub measurement_precision: Matrix<f32>,
     /// Stored linearisation point
     /// called X_ in gbpplanner, they use Eigen::MatrixXd instead
-    pub linearisation_point: DVector<f32>,
+    pub linearisation_point: Vector<f32>,
     /// Strength of the factor. Called `sigma` in gbpplanner.
     /// The factor precision $Lambda = sigma^-2 * Identify$
     pub strength: f32,
@@ -483,16 +483,16 @@ struct FactorState {
 
     /// Cached value of the factors jacobian function
     /// called `J_` in **gbpplanner**
-    pub cached_jacobian: DMatrix<f32>,
+    pub cached_jacobian: Matrix<f32>,
 
     /// Cached value of the factors jacobian function
     /// called `h_` in **gbpplanner**
-    pub cached_measurement: DVector<f32>,
+    pub cached_measurement: Vector<f32>,
 }
 
 impl FactorState {
     fn new(
-        measurement: DVector<f32>,
+        measurement: Vector<f32>,
         // linearisation_point: DVector<f32>,
         strength: f32,
         dofs: usize,
@@ -500,17 +500,17 @@ impl FactorState {
         // Initialise precision of the measurement function
         // this->meas_model_lambda_ = Eigen::MatrixXd::Identity(z_.rows(), z_.rows()) / pow(sigma,2.);
         let measurement_precision =
-            DMatrix::<f32>::identity(measurement.nrows(), measurement.ncols())
-                / f32::powi(strength, 2);
+            Matrix::<f32>::eye((measurement.len(), measurement.len()))
+                / f32::powi(strengh, 2);
 
         Self {
             measurement,
             measurement_precision,
-            linearisation_point: dvector![],
+            linearisation_point: array![],
             strength,
             dofs,
-            cached_jacobian: dmatrix![],
-            cached_measurement: dvector![],
+            cached_jacobian: array![[]],
+            cached_measurement: array![],
         }
     }
 }
@@ -544,7 +544,7 @@ impl Factor {
 
     pub fn new_dynamic_factor(
         strength: f32,
-        measurement: &DVector<f32>,
+        measurement: &Vector<f32>,
         dofs: usize,
         delta_t: f32,
     ) -> Self {
@@ -556,7 +556,7 @@ impl Factor {
 
     pub fn new_interrobot_factor(
         strength: f32,
-        measurement: DVector<f32>,
+        measurement: Vector<f32>,
         dofs: usize,
         safety_radius: f32,
         id_of_robot_connected_with: Entity,
@@ -579,7 +579,7 @@ impl Factor {
 
     pub fn new_obstacle_factor(
         strength: f32,
-        measurement: DVector<f32>,
+        measurement: Vector<f32>,
         dofs: usize,
         obstacle_sdf: Arc<image::RgbImage>,
         world_size: f32,
@@ -612,7 +612,7 @@ impl Factor {
         self.inbox.get(&from)
     }
 
-    fn residual(&self) -> DVector<f32> {
+    fn residual(&self) -> Vector<f32> {
         self.state.measurement - self.state.cached_measurement
     }
 
@@ -674,7 +674,7 @@ impl Factor {
         //  Update factor precision and information with incoming messages from connected variables.
         let measurement = self
             .kind
-            .measurement(&self.state, &self.state.linearisation_point);
+            .measure(&self.state, &self.state.linearisation_point);
 
         let jacobian = if self.kind.linear() && self.initialized {
             self.state.cached_jacobian

@@ -1,8 +1,7 @@
 use std::collections::{BTreeSet, VecDeque};
-use std::rc::Rc;
 use std::sync::Arc;
 
-use nalgebra::{dvector, DMatrix, DVector};
+// use nalgebra::{dvector, DMatrix, DVector};
 
 use crate::config::Config;
 
@@ -10,8 +9,9 @@ use super::factor::Factor;
 use super::factorgraph::FactorGraph;
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
-use super::Timestep;
+use super::{Timestep, Vector};
 use bevy::prelude::*;
+use ndarray::array;
 
 pub struct RobotPlugin;
 
@@ -142,16 +142,27 @@ impl RobotBundle {
                 0.0
             };
 
-            let sigmas = DVector::<f32>::from_fn(ndofs, |_, _| {
-                if sigma == 0.0 {
+            let sigmas: Vector<f32> = {
+                let elem = if sigma == 0.0 {
                     f32::MAX
                 } else {
                     1.0 / (sigma as f32).powi(2)
-                }
-            });
-            let covariance = DMatrix::<f32>::from_diagonal(&sigmas);
+                };
+                Vector::<f32>::from_shape_fn(ndofs, |_| elem)
+            };
+
+            // let sigmas = DVector::<f32>::from_fn(ndofs, |_, _| {
+            //     if sigma == 0.0 {
+            //         f32::MAX
+            //     } else {
+            //         1.0 / (sigma as f32).powi(2)
+            //     }
+            // });
+            let covariance = Matrix::<f32>::from_diag(&sigmas);
+            // let covariance = DMatrix::<f32>::from_diagonal(&sigmas);
             let prior = MultivariateNormal::from_mean_and_covariance(
-                dvector![mean.x, mean.y],
+                array![mean.x, mean.y],
+                // dvector![mean.x, mean.y],
                 covariance,
             );
 
@@ -165,7 +176,8 @@ impl RobotBundle {
             // T0 is the timestep between the current state and the first planned state.
             let delta_t = config.simulation.t0
                 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
-            let measurement = DVector::<f32>::zeros(config.robot.dofs);
+            let measurement = Vector::<f32>::zeros(config.robot.dofs);
+            // let measurement = DVector::<f32>::zeros(config.robot.dofs);
             let dynamic_factor = Factor::new_dynamic_factor(
                 config.gbp.sigma_factor_dynamics,
                 &measurement,
@@ -182,7 +194,8 @@ impl RobotBundle {
         for i in 1..variable_timesteps.len() - 1 {
             let obstacle_factor = Factor::new_obstacle_factor(
                 config.gbp.sigma_factor_obstacle,
-                dvector![0.0],
+                array![0.0],
+                // dvector![0.0],
                 config.robot.dofs,
                 Arc::clone(&obstacle_sdf),
                 config.simulation.world_size,
