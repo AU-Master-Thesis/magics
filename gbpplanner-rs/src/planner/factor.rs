@@ -634,6 +634,10 @@ impl Factor {
         self.kind.measure(&self.state, x)
     }
 
+    pub fn mark_initialized(&mut self) {
+        self.initialized = true;
+    }
+
     pub fn set_node_index(&mut self, node_index: NodeIndex) {
         if self.node_index.is_some() {
             panic!("The node index is already set");
@@ -868,7 +872,7 @@ impl Factor {
     //     todo!()
     // }
 
-    fn marginalise_factor_distance(
+    pub fn marginalise_factor_distance(
         &self,
         information_vector: Vector<f32>,
         precision_matrix: Matrix<f32>,
