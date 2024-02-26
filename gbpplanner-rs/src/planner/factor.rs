@@ -2,7 +2,7 @@ use bevy::{ecs::entity::Entity, log::info};
 
 // use nalgebra::{Matrix, Vector, Matrix, Vector};
 use ndarray::{array, s, Axis, Slice};
-use ndarray_linalg::Norm;
+// use ndarray_linalg::Norm;
 use petgraph::prelude::NodeIndex;
 use std::{
     collections::HashMap,
@@ -12,7 +12,7 @@ use std::{
 
 use super::{
     factorgraph::{Graph, Inbox, Message},
-    Matrix, Scalar, Vector,
+    Matrix, Vector,
 };
 
 trait Model {
@@ -92,6 +92,16 @@ impl InterRobotFactor {
             skip,
             id_of_robot_connected_with,
         }
+    }
+}
+
+pub trait Norm {
+    fn norm(&self) -> f32;
+}
+
+impl Norm for ndarray::Array1<f32> {
+    fn norm(&self) -> f32 {
+        self.iter().map(|x| f32::powi(*x, 2)).sum()
     }
 }
 
@@ -208,7 +218,7 @@ impl Model for InterRobotFactor {
 // TODO: use proper error handling here with an Error type
 // TODO: move into module
 // TODO: write unit test cases
-fn insert_block_matrix<T: Scalar>(
+fn insert_block_matrix<T: ndarray::NdFloat>(
     matrix: &mut Matrix<T>,
     start: (usize, usize),
     block: &Matrix<T>,
@@ -269,6 +279,7 @@ impl DynamicFactor {
         #[allow(clippy::similar_names)]
         let qc_inv = f32::powi(state.strength, -2) * &eye;
 
+        // TODO: use ndarray instead
         #[allow(clippy::similar_names)]
         let qi_inv = {
             let upper_left = 12.0 * f32::powi(delta_t, -3) * &qc_inv;

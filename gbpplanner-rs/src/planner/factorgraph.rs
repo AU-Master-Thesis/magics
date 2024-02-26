@@ -56,6 +56,14 @@ impl Message {
             precision_matrix,
         ))
     }
+
+    pub fn zeros(dims: usize) -> Self {
+        Self(MultivariateNormal::zeros(dims))
+    }
+
+    pub fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
 }
 
 pub type Inbox = HashMap<NodeIndex, Message>;

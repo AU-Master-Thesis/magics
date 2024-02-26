@@ -1,8 +1,9 @@
-use ndarray_linalg::Inverse;
+// use ndarray_linalg::Inverse;
 
 use super::factor::Factor;
 use super::factorgraph::{Graph, Inbox, Message};
 use super::multivariate_normal::MultivariateNormal;
+use ndarray_inverse::Inverse;
 // use petgraph::prelude::NodeIndex;
 use super::factorgraph::{EdgeIndex, NodeIndex};
 use super::{Matrix, Vector};

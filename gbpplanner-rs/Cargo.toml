@@ -29,9 +29,8 @@ petgraph = "0.6.4"
 # nalgebra = "0.32.4"
 image = { version = "0.24.8", default-features = false, features = ["png"] }
 ndarray = "0.15.6"
-# ndarray-linalg = { version = "0.16", features = ["openblas-static"] }
-
-ndarray-linalg = { version = "0.16", features = ["openblas-system"] }
+ndarray-inverse = "0.1.9"
+# ndarray-linalg = { version = "0.16", features = ["intel-mkl-static"] } # This is the only backend variant i have gotten to work
 num-traits = "0.2.18"
 # tap = "1.0.1"
 

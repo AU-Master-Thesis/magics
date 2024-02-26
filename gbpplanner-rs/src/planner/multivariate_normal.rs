@@ -1,7 +1,5 @@
-// use nalgebra::{Matrix, Vector};
-use super::{Matrix, Scalar, Vector};
-use ndarray_linalg::Inverse;
-// use std::num::Float;
+use super::{Matrix, Vector};
+use ndarray_inverse::Inverse;
 
 // trait MultivariateNormal {
 //     fn mean(&self) -> &Vector<f64>;
@@ -30,7 +28,7 @@ use ndarray_linalg::Inverse;
 /// The precision matrix is the inverse of the covariance matrix $Sigma$.
 /// The information vector is the product of the precision matrix and the mean.
 #[derive(Debug, Clone)]
-pub struct MultivariateNormal<T: Scalar> {
+pub struct MultivariateNormal<T: ndarray::NdFloat> {
     /// $eta = Lambda * mu$, where $Lambda$ is the precision matrix and $mu$ is the mean
     pub information_vector: Vector<T>,
     /// $Lambda = Sigma^(-1)$, where $Sigma$ is the covariance matrix
@@ -42,12 +40,12 @@ pub struct MultivariateNormal<T: Scalar> {
     // pub covariance: nalgebra::Matrix<f32>,
 }
 
-impl<T: Scalar> MultivariateNormal<T> {
+impl<T: ndarray::NdFloat + std::iter::Sum> MultivariateNormal<T> {
     /// Create a default MultivariateNormal, initialized with zeros
-    pub fn zeros(dim: usize) -> Self {
+    pub fn zeros(dims: usize) -> Self {
         MultivariateNormal {
-            information_vector: Vector::<T>::zeros(dim),
-            precision_matrix: Matrix::<T>::zeros((dim, dim)),
+            information_vector: Vector::<T>::zeros(dims),
+            precision_matrix: Matrix::<T>::zeros((dims, dims)),
             // mean: Vector::<T>::zeros(dim),
         }
     }
@@ -98,6 +96,8 @@ impl<T: Scalar> MultivariateNormal<T> {
         self.precision_matrix.fill(T::zero());
     }
 }
+
+// TODO: use declarative macro to define these
 
 impl std::ops::Add for MultivariateNormal<f32> {
     type Output = Self;
@@ -167,6 +167,19 @@ impl std::ops::SubAssign for MultivariateNormal<f32> {
     }
 }
 
+impl std::ops::Sub<&MultivariateNormal<f32>> for &MultivariateNormal<f32> {
+    type Output = MultivariateNormal<f32>;
+
+    fn sub(self, other: &MultivariateNormal<f32>) -> Self::Output {
+        let information_vector = &self.information_vector - &other.information_vector;
+        let precision_matrix = &self.precision_matrix - &other.precision_matrix;
+        MultivariateNormal {
+            information_vector,
+            precision_matrix,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -229,7 +242,7 @@ mod tests {
         let mvn1 =
             MultivariateNormal::new(array![6., 5., 4.], 3. * Matrix::<f32>::eye(n));
 
-        let mvn2 = &mvn0 + &mvn1;
+        let mvn2 = &mvn0 - &mvn1;
 
         assert_eq!(mvn2.information_vector, array![-5., -3., -1.]);
         assert_eq!(
