@@ -1,11 +1,14 @@
+use ndarray_linalg::Inverse;
+
 use super::factor::Factor;
 use super::factorgraph::{Graph, Inbox, Message};
 use super::multivariate_normal::MultivariateNormal;
 // use petgraph::prelude::NodeIndex;
 use super::factorgraph::{EdgeIndex, NodeIndex};
+use super::{Matrix, Vector};
 
 /// A variable in the factor graph.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Variable {
     /// Unique identifier that associates the variable with a factorgraph/robot.
     pub node_index: Option<NodeIndex>,
@@ -16,8 +19,8 @@ pub struct Variable {
     /// In **gbpplanner** the `prior` is stored in 2 separate variables:
     /// 1. `eta_prior_` Information vector of prior on variable (essentially like a unary factor)
     /// 2. `lam_prior_` Precision matrix of prior on variable (essentially like a unary factor)
-    pub prior: MultivariateNormal,
-    pub belief: MultivariateNormal,
+    pub prior: MultivariateNormal<f32>,
+    pub belief: MultivariateNormal<f32>,
     /// Degrees of freedom. For 2D case n_dofs_ = 4 ([x,y,xdot,ydot])
     pub dofs: usize,
     /// Flag to indicate if the variable's covariance is finite, i.e. it does not contain NaNs or Infs
@@ -28,7 +31,7 @@ pub struct Variable {
 }
 
 impl Variable {
-    pub fn new(mut prior: MultivariateNormal, dofs: usize) -> Self {
+    pub fn new(mut prior: MultivariateNormal<f32>, dofs: usize) -> Self {
         if !prior.precision_matrix.iter().all(|x| x.is_finite()) {
             // if (!lam_prior_.allFinite()) lam_prior_.setZero();
             prior.precision_matrix.fill(0.0);
@@ -74,19 +77,17 @@ impl Variable {
         mean: Vector<f32>,
         adjacent_factors: &mut [(NodeIndex, Factor)],
     ) {
-        self.prior.information_vector = &self.prior.precision_matrix * mean;
+        self.prior.information_vector = self.prior.precision_matrix.dot(&mean);
         // QUESTION: why cache mu?
         // mu_ = new_mu;
         // belief_ = Message {eta_, lam_, mu_};
 
         for (factor_node_index, factor) in adjacent_factors.iter_mut() {
-            factor
-                .inbox
-                .insert(self.get_node_index(), Message(self.belief.clone()));
-            self.inbox.insert(
-                *factor_node_index,
-                Message(MultivariateNormal::zeros(self.dofs)),
-            );
+            factor.send_message(self.get_node_index(), Message(self.belief.clone()));
+            // self.inbox.insert(
+            //     *factor_node_index,
+            //     Message(MultivariateNormal::zeros(self.dofs)),
+            // );
         }
     }
 

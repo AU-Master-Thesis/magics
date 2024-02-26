@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
-// use nalgebra::{DMatrix, DVector};
+use ndarray::s;
+// use nalgebra::{Matrix, Vector};
 use petgraph::dot::{Config, Dot};
 // use petgraph::prelude::{EdgeIndex, NodeIndex};
 use petgraph::Undirected;
-
-use crate::utils;
 
 use super::factor::Factor;
 use super::multivariate_normal::MultivariateNormal;
@@ -23,7 +22,7 @@ pub enum MessagePassingMode {
 }
 
 #[derive(Debug, Clone)]
-pub struct Message(pub MultivariateNormal);
+pub struct Message(pub MultivariateNormal<f32>);
 
 /// Overload subtraction for `Message`
 impl std::ops::Sub for Message {
@@ -59,7 +58,7 @@ impl Message {
 
 pub type Inbox = HashMap<NodeIndex, Message>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Node {
     Factor(Factor),
     Variable(Variable),
@@ -199,16 +198,18 @@ impl FactorGraph {
             if node.is_variable() {
                 continue;
             }
-            let factor_index = node_index;
-            let factor = self.graph[factor_index]
-                .as_factor_mut()
-                .expect("factor_index should point to a Factor in the graph");
+            // let factor_index = node_index;
+            // let adjacent_variables =
+            //     self.graph.neighbors(factor_index).collect::<Vec<_>>();
+            // let factor = self.graph[factor_index]
+            //     .as_factor_mut()
+            //     .expect("factor_index should point to a Factor in the graph");
 
             // Update factor and receive messages to send to its connected variables
             // let variable_messages = factor.update(factor_index, & self.graph);
-            let adjacent_variables =
-                self.graph.neighbors(factor_index).collect::<Vec<_>>();
-            let _ = factor.update(factor_index, &adjacent_variables, &self.graph);
+            // let graph_clone = self.graph.clone();
+            // let _ = factor.update(factor_index, &adjacent_variables, &self.graph);
+            self.update_factor(node_index);
 
             // TODO: propagate the variable_messages to the factors neighbour variables
             // for variable_index in self.graph.neighbors(factor_index) {
@@ -230,14 +231,15 @@ impl FactorGraph {
         // &mut factor: Factor,
         // adjacent_variables: impl Iterator<Item = NodeIndex>,
     ) -> HashMap<NodeIndex, Message> {
-        let factor = self.graph[factor_index]
+        let graph_clone = self.graph.clone();
+        let mut factor = self.graph[factor_index]
             .as_factor_mut()
             .expect("factor_index should point to a Factor in the graph");
-        let adjacent_variables = self.graph.neighbors(factor_index);
+        let adjacent_variables = graph_clone.neighbors(factor_index);
 
         let mut idx = 0;
         for variable_index in adjacent_variables.clone() {
-            let variable = self.graph[variable_index]
+            let variable = graph_clone[variable_index]
                 .as_variable()
                 .expect("A factor can only have variables as neighbors");
 
@@ -246,30 +248,46 @@ impl FactorGraph {
                 .read_message_from(variable_index)
                 .expect("There should be a message from the variable");
 
-            utils::nalgebra::insert_subvector(
-                &mut factor.state.linearisation_point,
-                idx..idx + variable.dofs,
-                &message.mean(),
-            );
+            let message_mean = message.mean();
+
+            factor
+                .state
+                .linearisation_point
+                .slice_mut(s![idx..idx + variable.dofs])
+                .assign(&message_mean);
         }
 
         // *Depending on the problem*, we may need to skip computation of this factor.␍
         // eg. to avoid extra computation, factor may not be required if two connected variables are too far apart.␍
         // in which case send out a Zero Message.␍
         if factor.skip() {
-            for variable_index in adjacent_variables {
-                let variable = self.graph[variable_index]
-                    .as_variable_mut()
-                    .expect("A factor can only have variables as neighbors");
+            // for variable_index in adjacent_variables {
+            //     let variable = self.graph[variable_index]
+            //         .as_variable_mut()
+            //         .expect("A factor can only have variables as neighbors");
 
-                let message = Message::with_dofs(idx);
-                variable.send_message(factor_index, message);
-            }
-            return false;
+            //     let message = Message::with_dofs(idx);
+            //     variable.send_message(factor_index, message);
+            // }
+            // return false;
+
+            let messages = adjacent_variables
+                .map(|variable_index| {
+                    // let variable = self.graph[variable_index]
+                    //     .as_variable_mut()
+                    //     .expect("A factor can only have variables as neighbors");
+
+                    let message = Message::with_dofs(idx);
+                    // variable.send_message(factor_index, message);
+                    (variable_index, message)
+                })
+                .collect::<HashMap<_, _>>();
+
+            return messages;
         }
 
-        let measurement = factor.measurement(factor.state.linearisation_point);
-        let jacobian = factor.jacobian(factor.state.linearisation_point);
+        let measurement = factor.measure(&factor.state.linearisation_point.clone());
+        let jacobian = factor.jacobian(&factor.state.linearisation_point.clone());
 
         todo!()
     }

@@ -50,8 +50,8 @@ pub fn get_variable_timesteps(
 
 // pub fn static_matrix_to_dynamic<T: na::Scalar, R: na::Const, C: na:: Const, usize>(
 //     m: na::Matrix<T, R, C, na::ArrayStorage<T>>,
-// ) -> na::DMatrix<T> {
-//     let mut d = na::DMatrix::<T>::zeros(R, C);
+// ) -> na::Matrix<T> {
+//     let mut d = na::Matrix::<T>::zeros(R, C);
 //     for i in 0..R {
 //         for j in 0..C {
 //             d[(i, j)] = m[(i, j)];
@@ -114,7 +114,7 @@ mod tests {
 
 //     use nalgebra::{DVector, Scalar};
 
-//     pub fn concat_column_vectors(a: &DVector<f32>, b: &DVector<f32>) -> DVector<f32> {
+//     pub fn concat_column_vectors(a: &Vector<f32>, b: &Vector<f32>) -> Vector<f32> {
 //         let combined_length = a.nrows() + b.nrows();
 //         let mut c = DVector::<f32>::zeros(combined_length);
 //         for i in 0..a.nrows() {

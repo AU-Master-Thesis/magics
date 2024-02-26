@@ -1,15 +1,15 @@
-// use nalgebra::{DMatrix, DVector};
+// use nalgebra::{Matrix, Vector};
 use super::{Matrix, Scalar, Vector};
 use ndarray_linalg::Inverse;
-// use num::Float;
+// use std::num::Float;
 
 // trait MultivariateNormal {
-//     fn mean(&self) -> &DVector<f64>;
-//     fn covariance(&self) -> &DMatrix<f64>;
-//     fn information_vector(&self) -> &DVector<f64> {
+//     fn mean(&self) -> &Vector<f64>;
+//     fn covariance(&self) -> &Matrix<f64>;
+//     fn information_vector(&self) -> &Vector<f64> {
 //         self.precision_matrix() * self.mean()
 //     }
-//     fn precision_matrix(&self) -> &DMatrix<f64> {
+//     fn precision_matrix(&self) -> &Matrix<f64> {
 //         // self.covariance().cholesky().unwrap().inverse()
 //         self.covariance().try_inverse().unwrap()
 //     }
@@ -38,11 +38,11 @@ pub struct MultivariateNormal<T: Scalar> {
     // mean: Vector<T>,
     // Consider including the following fields:
     //     gbpplanner includes the means as a computational optimization
-    // pub mean: nalgebra::DVector<f32>,
-    // pub covariance: nalgebra::DMatrix<f32>,
+    // pub mean: nalgebra::Vector<f32>,
+    // pub covariance: nalgebra::Matrix<f32>,
 }
 
-impl<T: Float> MultivariateNormal<T> {
+impl<T: Scalar> MultivariateNormal<T> {
     /// Create a default MultivariateNormal, initialized with zeros
     pub fn zeros(dim: usize) -> Self {
         MultivariateNormal {
@@ -64,10 +64,14 @@ impl<T: Float> MultivariateNormal<T> {
     pub fn from_mean_and_covariance(mean: Vector<T>, covariance: Matrix<T>) -> Self {
         assert_eq!(mean.len(), covariance.shape()[0]);
         assert_eq!(mean.len(), covariance.shape()[1]);
+        // let precision_matrix = covariance
+        //     .inv()
+        //     .expect("the covariance matrix should be nonsingular");
+        // let precision_matrix = covariance.inv
         let precision_matrix = covariance
             .inv()
             .expect("the covariance matrix should be nonsingular");
-        let information_vector = &precision_matrix * mean;
+        let information_vector = precision_matrix.dot(&mean);
         MultivariateNormal {
             information_vector,
             precision_matrix,
@@ -90,12 +94,12 @@ impl<T: Float> MultivariateNormal<T> {
     // }
 
     pub fn zeroize(&mut self) {
-        self.information_vector.fill(0.0);
-        self.precision_matrix.fill(0.0);
+        self.information_vector.fill(T::zero());
+        self.precision_matrix.fill(T::zero());
     }
 }
 
-impl std::ops::Add for MultivariateNormal {
+impl std::ops::Add for MultivariateNormal<f32> {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
@@ -108,14 +112,28 @@ impl std::ops::Add for MultivariateNormal {
     }
 }
 
-impl std::ops::AddAssign for MultivariateNormal {
-    fn add_assign(&mut self, other: Self) {
-        self.information_vector += other.information_vector;
-        self.precision_matrix += other.precision_matrix;
+impl std::ops::Add<&MultivariateNormal<f32>> for &MultivariateNormal<f32> {
+    type Output = MultivariateNormal<f32>;
+
+    fn add(self, other: &MultivariateNormal<f32>) -> Self::Output {
+        let information_vector = &self.information_vector + &other.information_vector;
+        let precision_matrix = &self.precision_matrix + &other.precision_matrix;
+        MultivariateNormal {
+            information_vector,
+            precision_matrix,
+        }
     }
 }
 
-impl std::ops::Sub for MultivariateNormal {
+impl std::ops::AddAssign for MultivariateNormal<f32> {
+    fn add_assign(&mut self, other: Self) {
+        self.information_vector
+            .add_assign(&other.information_vector);
+        self.precision_matrix.add_assign(&other.precision_matrix);
+    }
+}
+
+impl std::ops::Sub for MultivariateNormal<f32> {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
@@ -128,10 +146,10 @@ impl std::ops::Sub for MultivariateNormal {
     }
 }
 
-impl std::ops::Sub<&MultivariateNormal> for MultivariateNormal {
+impl std::ops::Sub<&MultivariateNormal<f32>> for MultivariateNormal<f32> {
     type Output = Self;
 
-    fn sub(self, other: &MultivariateNormal) -> Self {
+    fn sub(self, other: &MultivariateNormal<f32>) -> Self {
         let information_vector = self.information_vector - &other.information_vector;
         let precision_matrix = self.precision_matrix - &other.precision_matrix;
         MultivariateNormal {
@@ -141,10 +159,11 @@ impl std::ops::Sub<&MultivariateNormal> for MultivariateNormal {
     }
 }
 
-impl std::ops::SubAssign for MultivariateNormal {
+impl std::ops::SubAssign for MultivariateNormal<f32> {
     fn sub_assign(&mut self, other: Self) {
-        self.information_vector -= other.information_vector;
-        self.precision_matrix -= other.precision_matrix;
+        self.information_vector
+            .sub_assign(&other.information_vector);
+        self.precision_matrix.sub_assign(&other.precision_matrix);
     }
 }
 
@@ -158,9 +177,9 @@ mod tests {
     #[test]
     fn test_zeros() {
         let n = 5;
-        let mvn = MultivariateNormal::zeros(n);
+        let mvn = MultivariateNormal::<f32>::zeros(n);
         assert_eq!(mvn.information_vector.len(), n);
-        assert_eq!(mvn.precision_matrix.shape(), (n, n));
+        assert_eq!(mvn.precision_matrix.raw_dim(), Dim([n, n]));
 
         assert_eq!(mvn.information_vector, Vector::<f32>::zeros(n));
         assert_eq!(mvn.precision_matrix, Matrix::<f32>::zeros((n, n)));
@@ -192,7 +211,7 @@ mod tests {
         let n = 3;
         let mvn0 = MultivariateNormal::new(array![1., 2., 3.], Matrix::<f32>::eye(n));
         let mvn1 =
-            MultivariateNormal::new(na::dvector![6., 5., 4.], 3. * Matrix::<f32>::eye(n));
+            MultivariateNormal::new(array![6., 5., 4.], 3. * Matrix::<f32>::eye(n));
 
         let mvn2 = &mvn0 + &mvn1;
 
