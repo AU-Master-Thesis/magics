@@ -13,14 +13,27 @@ use ndarray::array;
 
 pub struct RobotPlugin;
 
+pub type RobotId = Entity;
+
 /// Sigma for Unary pose factor on current and horizon states
 /// from **gbpplanner** `Globals.h`
 const SIGMA_POSE_FIXED: f64 = 1e-15;
 
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
-        todo!()
-        // app.add_system();
+        // TODO: add rest
+        app.add_systems(
+            Update,
+            (
+                update_robot_neighbours,
+                update_interrobot_factors,
+                iterate_gbp_internal,
+                iterate_gbp_external,
+                update_horizon,
+                update_current,
+            )
+                .chain(),
+        );
     }
 }
 
@@ -48,18 +61,22 @@ pub struct RobotState {
     /// List of robot ids that are within the communication radius of this robot.
     /// called `neighbours_` in **gbpplanner**.
     /// TODO: maybe change to a BTreeSet
-    // ids_of_robots_within_comms_range: Vec<RobotId>,
-    pub ids_of_robots_within_comms_range: BTreeSet<Entity>,
+    ids_of_robots_within_comms_range: Vec<RobotId>,
+    // pub ids_of_robots_within_comms_range: BTreeSet<RobotId>,
     /// List of robot ids that are currently connected via inter-robot factors to this robot
     /// called `connected_r_ids_` in **gbpplanner**.
-    pub ids_of_robots_connected_with: BTreeSet<Entity>,
+    // pub ids_of_robots_connected_with: BTreeSet<RobotId>,
+    pub ids_of_robots_connected_with: Vec<RobotId>,
+    /// Flag for whether this factorgraph/robot communicates with other robots
+    pub interrobot_comms_active: bool,
 }
 
 impl RobotState {
     pub fn new() -> Self {
         Self {
-            ids_of_robots_within_comms_range: BTreeSet::new(),
-            ids_of_robots_connected_with: BTreeSet::new(),
+            ids_of_robots_within_comms_range: Vec::new(),
+            ids_of_robots_connected_with: Vec::new(),
+            interrobot_comms_active: true,
         }
     }
 }
@@ -200,4 +217,68 @@ impl RobotBundle {
             waypoints: Waypoints(waypoints),
         })
     }
+}
+
+/// Called `Simulator::calculateRobotNeighbours` in **gbpplanner**
+fn update_robot_neighbours(
+    // query: Query<(Entity, &Transform, &mut RobotState)>,
+    robots: Query<(Entity, &Transform), With<RobotState>>,
+    mut states: Query<(Entity, &Transform, &mut RobotState)>,
+    config: Res<Config>,
+) {
+    // TODO: use kdtree to speed up, and to have something in the report
+    for (entity_id, transform, mut state) in states.iter_mut() {
+        // TODO: maybe use clear() instead
+        unsafe {
+            state.ids_of_robots_within_comms_range.set_len(0);
+        }
+        robots
+            .iter()
+            .filter_map(|(other_entity_id, other_transform)| {
+                // Do not compute the distance to self
+                if other_entity_id == entity_id
+                    || config.robot.communication.radius
+                        < transform.translation.distance(other_transform.translation)
+                {
+                    None
+                } else {
+                    Some(other_entity_id)
+                }
+            })
+            .for_each(|other_entity_id| {
+                state.ids_of_robots_within_comms_range.push(other_entity_id)
+            });
+    }
+}
+
+fn update_interrobot_factors(query: Query<(&mut FactorGraph, &RobotState)>) {}
+
+/// Called `Simulator::setCommsFailure` in **gbpplanner**
+fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
+    for mut state in query.iter_mut() {
+        state.interrobot_comms_active =
+            config.robot.communication.failure_rate > rand::random::<f32>();
+    }
+}
+
+macro_rules! iterate_gbp_impl {
+    ($name:ident, $mode:expr) => {
+        fn $name(query: Query<&mut FactorGraph>, config: Res<Config>) {}
+    };
+}
+
+iterate_gbp_impl!(iterate_gbp_internal, MessagePassingMode::Internal);
+iterate_gbp_impl!(iterate_gbp_external, MessagePassingMode::External);
+
+// fn iterate_gbp(query: Query<&mut FactorGraph>, config: Res<Config>) {}
+
+fn update_horizon(
+    query: Query<(&mut FactorGraph, &mut Waypoints), With<RobotState>>,
+    config: Res<Config>,
+) {
+}
+fn update_current(
+    query: Query<(&mut FactorGraph, &mut Transform), With<RobotState>>,
+    config: Res<Config>,
+) {
 }

@@ -92,14 +92,17 @@ fn main() -> color_eyre::eyre::Result<()> {
         return Ok(());
     }
 
+    let config = Config::parse(&cli.config.unwrap())?;
+
     // let config = read_config(&cli)?;
 
     // info!("Config: {:?}", config);
 
     App::new()
-        // .insert_resource(config.clone())
+        .insert_resource(config)
         .add_plugins((
-            DefaultPlugins.set( // Bevy
+            DefaultPlugins.set(
+                // Bevy
                 WindowPlugin {
                     primary_window: Some(Window {
                         title: "GBP Planner".into(),
@@ -116,21 +119,22 @@ fn main() -> color_eyre::eyre::Result<()> {
                         ..Default::default()
                     }),
                     ..Default::default()
-                }
+                },
             ),
-            DiagnosticsPlugin, // Bevy
-            ThemePlugin, // Custom
-            AssetLoaderPlugin, // Custom
-            EnvironmentPlugin, // Custom
-            MovementPlugin, // Custom
-            InputPlugin, // Custom
+            DiagnosticsPlugin,    // Bevy
+            ThemePlugin,          // Custom
+            AssetLoaderPlugin,    // Custom
+            EnvironmentPlugin,    // Custom
+            MovementPlugin,       // Custom
+            InputPlugin,          // Custom
             MoveableObjectPlugin, // Custom
-            CameraPlugin, // Custom
-            FollowCamerasPlugin, // Custom
-            RobotSpawnerPlugin, // Custom
-            FactorGraphPlugin, // Custom
-            // WorldInspectorPlugin::new()
-        )).add_systems(Update, make_visible)
+            CameraPlugin,         // Custom
+            FollowCamerasPlugin,  // Custom
+            RobotSpawnerPlugin,   // Custom
+            FactorGraphPlugin,    // Custom
+                                  // WorldInspectorPlugin::new()
+        ))
+        .add_systems(Update, make_visible)
         .run();
 
     Ok(())
