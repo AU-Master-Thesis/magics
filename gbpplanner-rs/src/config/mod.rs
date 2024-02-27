@@ -1,6 +1,7 @@
 pub mod formation;
 
 pub use formation::Formation;
+pub use formation::FormationGroup;
 
 use serde::{Deserialize, Serialize};
 

@@ -127,11 +127,52 @@ pub struct Formation {
 
 /// A `FormationGroup` represent multiple `Formation`s
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FormationGroup(Vec<Formation>);
+#[serde(rename_all = "kebab-case")]
+pub struct FormationGroup {
+    formations: Vec<Formation>,
+}
 
 impl FormationGroup {
-    pub fn from_toml(data: &str) -> Self {
-        todo!()
+    /// Attempt to parse a `FormationGroup` from a TOML file at `path`
+    /// Returns `Err(ParseError)`  if:
+    /// 1. `path` does not exist on the filesystem.
+    /// 2. The contents of `path` is not valid TOML.
+    /// 3. The parsed data does not represent a valid `FormationGroup`.
+    pub fn from_file(path: &std::path::PathBuf) -> Result<Self, ParseError> {
+        let file_contents = std::fs::read_to_string(path)?;
+        let formation_group = Self::parse(file_contents.as_str())?;
+        Ok(formation_group)
+    }
+
+    /// Attempt to parse a `FormationGroup` from a TOML encoded string.
+    /// Returns `Err(ParseError)`  if:
+    /// 1. `contents` is not valid TOML.
+    /// 2. The parsed data does not represent a valid `FormationGroup`.
+    pub fn parse(contents: &str) -> Result<Self, ParseError> {
+        let mut formation_group: FormationGroup = toml::from_str(contents)?;
+        let formation_group = formation_group.validate()?;
+        Ok(formation_group)
+    }
+
+    /// Ensure that the `FormationGroup` is in a valid state
+    /// 1. At least one `Formation` is required
+    /// 2. Validate each `Formation`
+    pub fn validate(self) -> Result<Self, ValidationError> {
+        if self.formations.is_empty() {
+            return Err(ValidationError::NoFormations);
+        }
+
+        // TODO: check if all formations are valid
+
+        Ok(self)
+    }
+}
+
+impl Default for FormationGroup {
+    fn default() -> Self {
+        Self {
+            formations: vec![Formation::default()],
+        }
     }
 }
 
@@ -144,7 +185,7 @@ impl Default for Formation {
             waypoints: vec![
                 Waypoint {
                     placement_strategy: PlacementStrategy::Random,
-                    shape: polygon![(0.4, 0.), (0.6, 0.)],
+                    shape: polygon![(0.4, 0.0), (0.6, 0.0)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
@@ -152,7 +193,7 @@ impl Default for Formation {
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
-                    shape: polygon![(0., 0.), (0.6, 0.6)],
+                    shape: polygon![(0.0, 0.4), (0.0, 0.6)],
                 },
             ],
         }
@@ -167,6 +208,8 @@ pub enum ValidationError {
     ShapeError(#[from] ShapeError),
     #[error("At least two waypoints needs to be given, as the first and last waypoint represent the start and end for the formation")]
     LessThanTwoWaypoints,
+    #[error("FormationGroup has no formations")]
+    NoFormations,
 }
 
 #[derive(Debug, thiserror::Error)]

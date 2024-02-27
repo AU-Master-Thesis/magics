@@ -77,9 +77,18 @@ fn main() -> color_eyre::eyre::Result<()> {
     let cli = Cli::parse();
 
     if cli.dump_default_formation {
-        let default_formation = config::Formation::default();
+        // let default_formation = config::Formation::default();
+        let default_formation = config::FormationGroup::default();
         // Write default config to stdout
-        println!("{}", toml::to_string_pretty(&default_formation)?);
+        // println!("{}", toml::to_string_pretty(&default_formation)?);
+        // println!("{}", ron::to_string(&default_formation)?);
+        println!(
+            "{}",
+            ron::ser::to_string_pretty(
+                &default_formation,
+                ron::ser::PrettyConfig::default()
+            )?
+        );
 
         return Ok(());
     }
@@ -88,6 +97,7 @@ fn main() -> color_eyre::eyre::Result<()> {
         let default_config = config::Config::default();
         // Write default config to stdout
         println!("{}", toml::to_string_pretty(&default_config)?);
+        // println!("{}", ron::to_string(&default_config)?);
 
         return Ok(());
     }

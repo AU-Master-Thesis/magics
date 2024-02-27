@@ -1,0 +1,38 @@
+[[formations]]
+repeat = false
+time = 5.0
+robots = 3
+
+[[formations.waypoints]]
+placement-strategy = "random"
+
+[[formations.waypoints.shape.polygon]]
+x = 0.4000000059604645
+y = 0.0
+
+[[formations.waypoints.shape.polygon]]
+x = 0.6000000238418579
+y = 0.0
+
+[[formations.waypoints]]
+placement-strategy = "map"
+
+[[formations.waypoints.shape.polygon]]
+x = 0.4000000059604645
+y = 0.4000000059604645
+
+[[formations.waypoints.shape.polygon]]
+x = 0.6000000238418579
+y = 0.6000000238418579
+
+[[formations.waypoints]]
+placement-strategy = "map"
+
+[[formations.waypoints.shape.polygon]]
+x = 0.0
+y = 0.4000000059604645
+
+[[formations.waypoints.shape.polygon]]
+x = 0.0
+y = 0.6000000238418579
+

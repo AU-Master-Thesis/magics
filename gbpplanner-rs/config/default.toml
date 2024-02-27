@@ -24,3 +24,37 @@ sigma_factor_dynamics = 0.1
 sigma_factor_interrobot = 0.01
 sigma_factor_obstacle = 0.01
 num_iters = 10
+environment = "./gbpplanner-rs/assets/imgs/junction.png"
+formation = "./config/formation.toml"
+
+[draw]
+communication-graph = true
+predicted-trajectories = true
+waypoints = true
+uncertainty = true
+
+[gbp]
+sigma-pose-fixed = 0.0000000000000010000000036274937
+sigma-factor-dynamics = 0.10000000149011612
+sigma-factor-interrobot = 0.009999999776482582
+sigma-factor-obstacle = 0.009999999776482582
+iterations-per-timestep = 10
+lookahead-multiple = 3
+
+[robot]
+planning-horizon = 5.0
+max-speed = 2.0
+dofs = 4
+symmetric-factors = true
+radius = 1.0
+
+[robot.communication]
+communication-radius = 20.0
+communication-failure-rate = 0.0
+
+[simulation]
+t0 = 0.0
+max-time = 10000.0
+world-size = 100.0
+random-seed = 0
+
