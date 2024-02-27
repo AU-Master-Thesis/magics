@@ -1,12 +1,14 @@
 // use ndarray_linalg::Inverse;
 
+use std::collections::HashMap;
+
 use super::factor::Factor;
 use super::factorgraph::{Graph, Inbox, Message};
 use super::multivariate_normal::MultivariateNormal;
 use ndarray_inverse::Inverse;
 // use petgraph::prelude::NodeIndex;
-use super::factorgraph::{EdgeIndex, NodeIndex};
-use super::{Matrix, Vector};
+use super::factorgraph::NodeIndex;
+use super::Vector;
 
 /// A variable in the factor graph.
 #[derive(Debug, Clone)]
@@ -76,20 +78,17 @@ impl Variable {
     pub fn change_prior(
         &mut self,
         mean: Vector<f32>,
-        adjacent_factors: &mut [(NodeIndex, Factor)],
-    ) {
+        indices_of_adjacent_factors: Vec<NodeIndex>,
+    ) -> HashMap<NodeIndex, Message> {
         self.prior.information_vector = self.prior.precision_matrix.dot(&mean);
         // QUESTION: why cache mu?
         // mu_ = new_mu;
         // belief_ = Message {eta_, lam_, mu_};
 
-        for (factor_node_index, factor) in adjacent_factors.iter_mut() {
-            factor.send_message(self.get_node_index(), Message(self.belief.clone()));
-            // self.inbox.insert(
-            //     *factor_node_index,
-            //     Message(MultivariateNormal::zeros(self.dofs)),
-            // );
-        }
+        indices_of_adjacent_factors
+            .into_iter()
+            .map(|factor_index| (factor_index, Message(self.belief.clone())))
+            .collect()
     }
 
     // /***********************************************************************************************************/
@@ -100,7 +99,10 @@ impl Variable {
     // /***********************************************************************************************************/
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
     ///
-    pub fn update_belief(&mut self, adjacent_factors: &[NodeIndex], graph: &mut Graph) {
+    pub fn update_belief(
+        &mut self,
+        // indices_of_adjacent_factors: Vec<NodeIndex>,
+    ) -> HashMap<NodeIndex, Message> {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
         self.belief.information_vector = self.prior.information_vector.clone();
         self.belief.precision_matrix = self.prior.precision_matrix.clone();
@@ -111,16 +113,22 @@ impl Variable {
         // }
 
         // accumelate belief
+        // for (auto &[f_key, msg] : inbox_) {
+        //   auto [eta_msg, lam_msg, _] = msg;
+        //   eta_ += eta_msg;
+        //   lam_ += lam_msg;
+        // }
+
         for (_, message) in self.inbox.iter() {
             self.belief.information_vector += &message.0.information_vector;
             self.belief.precision_matrix += &message.0.precision_matrix;
         }
 
+        // TODO: update self.sigma_ with covariance
         // Update belief
         let covariance = self
             .belief
             .precision_matrix
-            .clone()
             .inv()
             .expect("precision matrix should be nonsingular");
 
@@ -132,19 +140,40 @@ impl Variable {
 
         // belief_ = Message {eta_, lam_, mu_};
 
-        // Create message to send to each factor
-        // Message is the aggregate of all OTHER factor messages (belief - last sent msg of that factor)
-        for factor_index in adjacent_factors.iter() {
-            let factor = graph[*factor_index]
-                .as_factor_mut()
-                .expect("The node should be a factor");
+        // // Create message to send to each factor that sent it stuff
+        // // msg is the aggregate of all OTHER factor messages (belief - last sent msg
+        // // of that factor)
+        // for (auto [f_key, fac] : factors_) {
+        //   outbox_[f_key] = belief_ - inbox_.at(f_key);
+        // }
 
-            let message = Message(self.belief.clone())
-                - self
-                    .inbox
-                    .get(factor_index)
-                    .expect("The message should exist in the inbox");
-            factor.send_message(self.get_node_index(), message);
-        }
+        self.inbox
+            .iter()
+            .map(|(&factor_index, received_message)| {
+                let response = Message(self.belief.clone()) - received_message;
+                (factor_index, response)
+            })
+            .collect()
+
+        // indices_of_adjacent_factors
+        //     .iter()
+        //     .map(|factor_index| {
+
+        //     })
+
+        // Create message to send to each factor
+        // // Message is the aggregate of all OTHER factor messages (belief - last sent msg of that factor)
+        // for factor_index in adjacent_factors.iter() {
+        //     let factor = graph[*factor_index]
+        //         .as_factor_mut()
+        //         .expect("The node should be a factor");
+
+        //     let message = Message(self.belief.clone())
+        //         - self
+        //             .inbox
+        //             .get(factor_index)
+        //             .expect("The message should exist in the inbox");
+        //     factor.send_message(self.get_node_index(), message);
+        // }
     }
 }

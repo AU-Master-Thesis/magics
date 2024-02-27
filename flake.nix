@@ -39,6 +39,7 @@
         cargo-modules
         cargo-watch
         cargo-rr
+        cargo-udeps
 
         #   # cargo-profiler
         #   # cargo-feature

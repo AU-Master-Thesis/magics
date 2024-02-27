@@ -28,7 +28,7 @@ const fn seq_n(start: usize, n: usize) -> std::ops::Range<usize> {
 }
 
 // fn marginalise_factor_distance<T: Scalar>(
-fn marginalise_factor_distance(
+pub fn marginalise_factor_distance(
     information_vector: Vector<f32>,
     precision_matrix: Matrix<f32>,
     dofs_of_variable: usize,

@@ -1,8 +1,6 @@
 use std::collections::{BTreeSet, VecDeque};
 use std::sync::Arc;
 
-// use nalgebra::{Vector, Matrix, Vector};
-
 use crate::config::Config;
 
 use super::factor::Factor;
@@ -151,18 +149,9 @@ impl RobotBundle {
                 Vector::<f32>::from_shape_fn(ndofs, |_| elem)
             };
 
-            // let sigmas = Vector::<f32>::from_fn(ndofs, |_, _| {
-            //     if sigma == 0.0 {
-            //         f32::MAX
-            //     } else {
-            //         1.0 / (sigma as f32).powi(2)
-            //     }
-            // });
             let covariance = Matrix::<f32>::from_diag(&sigmas);
-            // let covariance = Matrix::<f32>::from_diagonal(&sigmas);
             let prior = MultivariateNormal::from_mean_and_covariance(
                 array![mean.x, mean.y],
-                // Vector![mean.x, mean.y],
                 covariance,
             );
 
@@ -177,7 +166,6 @@ impl RobotBundle {
             let delta_t = config.simulation.t0
                 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
             let measurement = Vector::<f32>::zeros(config.robot.dofs);
-            // let measurement = Vector::<f32>::zeros(config.robot.dofs);
             let dynamic_factor = Factor::new_dynamic_factor(
                 config.gbp.sigma_factor_dynamics,
                 &measurement,
@@ -195,7 +183,6 @@ impl RobotBundle {
             let obstacle_factor = Factor::new_obstacle_factor(
                 config.gbp.sigma_factor_obstacle,
                 array![0.0],
-                // Vector![0.0],
                 config.robot.dofs,
                 Arc::clone(&obstacle_sdf),
                 config.simulation.world_size,

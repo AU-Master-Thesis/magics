@@ -1,4 +1,3 @@
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::ops::AddAssign;
 
@@ -12,7 +11,7 @@ use petgraph::Undirected;
 use super::factor::Factor;
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
-use super::{Matrix, Vector};
+use super::{marginalise_factor_distance, Matrix, Vector};
 
 /// How the messages are passed between factors and variables in the connected factorgraphs.
 #[derive(Debug)]
@@ -145,14 +144,6 @@ pub type Graph = petgraph::graph::Graph<Node, (), Undirected>;
 /// Factors and variables are stored in separate btree maps, that are indexed by a unique tuple of (robot_id, node_id).
 #[derive(Component, Debug)]
 pub struct FactorGraph {
-    // /// Called `factors_` in **gbpplanner**.
-    // /// **gbpplanner** uses `std::map<Key, std::shared_ptr<Factor>>`
-    // /// So we use `BTreeMap` as it provides iteration sorted by the `Key` similar to `std::map` in C++.
-    // pub factors: BTreeMap<Key, Rc<Factor>>,
-    // /// Called `variables_` in **gbpplanner**.
-    // /// **gbpplanner** uses `std::map<Key, std::shared_ptr<Variable>>`
-    // /// So we use `BTreeMap` as it provides iteration sorted by the `Key` similar to `std::map` in C++.
-    // pub variables: BTreeMap<Key, Rc<Variable>>,
     // graph: Cell<Graph>,
     graph: Graph,
     /// Flag for whether this factorgraph/robot communicates with other robots
@@ -170,10 +161,10 @@ impl FactorGraph {
         }
     }
 
-    pub fn next_node_id(&mut self) -> usize {
-        self.node_id_counter += 1;
-        self.node_id_counter
-    }
+    // pub fn next_node_id(&mut self) -> usize {
+    //     self.node_id_counter += 1;
+    //     self.node_id_counter
+    // }
 
     pub fn add_variable(&mut self, variable: Variable) -> NodeIndex {
         let node_index = self.graph.add_node(Node::Variable(variable));
@@ -233,92 +224,16 @@ impl FactorGraph {
                 let message = variable_messages
                     .get(&variable_index)
                     .expect("There should be a message from the factor to the variable");
-                // self.send_message_to_variable(variable_index, message.clone());
                 variable.send_message(factor_index, message.clone());
             }
         }
     }
 
-    // fn send_message_to_variable(&mut self, variable_index: NodeIndex, message: Message) {
-    //     let variable = self.graph[variable_index]
-    //         .as_variable_mut()
-    //         .expect("A factor can only have variables as neighbors");
-    //     variable.send_message(variable_index, message);
-    // }
-
-    // /*****************************************************************************************************/
-    // Main section: Factor update:
-    // Messages from connected variables are aggregated. The beliefs are used to create the linearisation point X_.
-    // The Factor potential is calculated using h_func_ and J_func_
-    // The factor precision and information is created, and then marginalised to create outgoing messages to its connected variables.
-    // /*****************************************************************************************************/
-    // bool Factor::update_factor(){
-
-    //     // Messages from connected variables are aggregated.
-    //     // The beliefs are used to create the linearisation point X_.
-    //     int idx = 0; int n_dofs;
-    //     for (int v=0; v<variables_.size(); v++){
-    //         n_dofs = variables_[v]->n_dofs_;
-    //         auto& [_, __, mu_belief] = this->inbox_[variables_[v]->key_];
-    //         X_(seqN(idx, n_dofs)) = mu_belief;
-    //         idx += n_dofs;
-    //     }
-
-    //     // *Depending on the problem*, we may need to skip computation of this factor.
-    //     // eg. to avoid extra computation, factor may not be required if two connected variables are too far apart.
-    //     // in which case send out a Zero Message.
-    //     if (this->skip_factor()){
-    //         for (auto var : variables_){
-    //             this->outbox_[var->key_] = Message(var->n_dofs_);
-    //         }
-    //         return false;
-    //     }
-
-    //     // The Factor potential and linearised Factor Precision and Information is calculated using h_func_ and J_func_
-    //     // residual() is by default (z - h_func_(X))
-    //     // Skip calculation of Jacobian if the factor is linear and Jacobian has already been computed once
-    //     h_ = h_func_(X_);
-    //     J_ = (this->linear_ && this->initialised_)? J_ : this->J_func_(X_);
-    //     Eigen::MatrixXd factor_lam_potential = J_.transpose() * meas_model_lambda_ * J_;
-    //     Eigen::VectorXd factor_eta_potential = (J_.transpose() * meas_model_lambda_) * (J_ * X_ + residual());
-    //     this->initialised_ = true;
-
-    //     //  Update factor precision and information with incoming messages from connected variables.
-    //     int marginalisation_idx = 0;
-    //     for (int v_out_idx=0; v_out_idx<variables_.size(); v_out_idx++){
-    //         auto var_out = variables_[v_out_idx];
-    //         // Initialise with factor values
-    //         Eigen::VectorXd factor_eta = factor_eta_potential;
-    //         Eigen::MatrixXd factor_lam = factor_lam_potential;
-
-    //         // Combine the factor with the belief from other variables apart from the receiving variable
-    //         int idx_v = 0;
-    //         for (int v_idx=0; v_idx<variables_.size(); v_idx++){
-    //             int n_dofs = variables_[v_idx]->n_dofs_;
-    //             if (variables_[v_idx]->key_ != var_out->key_) {
-    //                 auto [eta_belief, lam_belief, _] = inbox_[variables_[v_idx]->key_];
-    //                 factor_eta(seqN(idx_v, n_dofs)) += eta_belief;
-    //                 factor_lam(seqN(idx_v, n_dofs), seqN(idx_v, n_dofs)) += lam_belief;
-    //             }
-    //             idx_v += n_dofs;
-    //         }
-
-    //         // Marginalise the Factor Precision and Information to send to the relevant variable
-    //         outbox_[var_out->key_] = marginalise_factor_dist(factor_eta, factor_lam, v_out_idx, marginalisation_idx);
-    //         marginalisation_idx += var_out->n_dofs_;
-    //     }
-
-    //     return true;
-    // };
-
     fn update_factor(
         &mut self,
         factor_index: NodeIndex,
-        // &mut factor: Factor,
         adjacent_variables: Vec<NodeIndex>,
     ) -> HashMap<NodeIndex, Message> {
-        // let graph_clone = self.graph.clone();
-        // let adjacent_variables = self.graph.neighbors(factor_index).collect::<Vec<_>>();
         let factor = self.graph[factor_index]
             .as_factor_mut()
             .expect("factor_index should point to a Factor in the graph");
@@ -432,7 +347,8 @@ impl FactorGraph {
                 idx_v += dofs;
             }
 
-            let message = factor.marginalise_factor_distance(
+            // Marginalise the Factor Precision and Information to send to the relevant variable
+            let message = marginalise_factor_distance::marginalise_factor_distance(
                 factor_eta,
                 factor_lam,
                 variable_index.index(),
@@ -459,12 +375,23 @@ impl FactorGraph {
     pub fn variable_iteration(&mut self, robot_id: Entity, mode: MessagePassingMode) {
         // TODO: use rayon .par_iter()
         // for (i, (v_key, variable)) in self.variables.iter().enumerate() {
-        for node_index in self.graph.node_indices() {
-            let node = &mut self.graph[node_index];
+        for variable_index in self.graph.node_indices() {
+            let node = &mut self.graph[variable_index];
             if node.is_factor() {
                 continue;
             }
-            self.update_variable(node_index);
+            let variable = node
+                .as_variable_mut()
+                .expect("variable_index should point to a Variable in the graph");
+            let factor_messages = variable.update_belief();
+
+            for (factor_index, message) in factor_messages {
+                let factor = self.graph[factor_index]
+                    .as_factor_mut()
+                    .expect("The variable can only send messages to factors");
+                factor.send_message(variable_index, message);
+            }
+
             // let variable = node.as_variable().expect("Node is a variable");
             // for (f_key, factor) in variable.adjacent_factors.iter() {
             //     // QUESTION(kpbaks): is this not always true? Given that only factors can be interract with other robots factorgraphs?
@@ -505,12 +432,15 @@ impl FactorGraph {
         }
     }
 
-    fn update_variable(&mut self, variable_index: NodeIndex) {
-        // let adjacent_factors = self.graph.neighbors(node_index).collect::<Vec<_>>();
-        let adjacent_factors = self.graph.neighbors(variable_index);
-        // // Update variable belief and create outgoing messages
-        // variable.update_belief(&adjacent_factors, &mut self.graph);
+    // fn update_variable(
+    //     &mut self,
+    //     variable_index: NodeIndex,
+    //     indices_of_adjacent_factors: Vec<NodeIndex>,
+    // ) -> HashMap<NodeIndex, Message> {
+    //     let adjacent_factors = self.graph.neighbors(variable_index);
+    //     // // Update variable belief and create outgoing messages
+    //     // variable.update_belief(&adjacent_factors, &mut self.graph);
 
-        todo!()
-    }
+    //     todo!()
+    // }
 }
