@@ -61,12 +61,12 @@ pub struct RobotState {
     /// List of robot ids that are within the communication radius of this robot.
     /// called `neighbours_` in **gbpplanner**.
     /// TODO: maybe change to a BTreeSet
-    ids_of_robots_within_comms_range: Vec<RobotId>,
-    // pub ids_of_robots_within_comms_range: BTreeSet<RobotId>,
+    // ids_of_robots_within_comms_range: Vec<RobotId>,
+    pub ids_of_robots_within_comms_range: BTreeSet<RobotId>,
     /// List of robot ids that are currently connected via inter-robot factors to this robot
     /// called `connected_r_ids_` in **gbpplanner**.
-    // pub ids_of_robots_connected_with: BTreeSet<RobotId>,
-    pub ids_of_robots_connected_with: Vec<RobotId>,
+    pub ids_of_robots_connected_with: BTreeSet<RobotId>,
+    // pub ids_of_robots_connected_with: Vec<RobotId>,
     /// Flag for whether this factorgraph/robot communicates with other robots
     pub interrobot_comms_active: bool,
 }
@@ -74,8 +74,8 @@ pub struct RobotState {
 impl RobotState {
     pub fn new() -> Self {
         Self {
-            ids_of_robots_within_comms_range: Vec::new(),
-            ids_of_robots_connected_with: Vec::new(),
+            ids_of_robots_within_comms_range: BTreeSet::new(),
+            ids_of_robots_connected_with: BTreeSet::new(),
             interrobot_comms_active: true,
         }
     }
@@ -229,10 +229,10 @@ fn update_robot_neighbours(
     // TODO: use kdtree to speed up, and to have something in the report
     for (entity_id, transform, mut state) in states.iter_mut() {
         // TODO: maybe use clear() instead
-        unsafe {
-            state.ids_of_robots_within_comms_range.set_len(0);
-        }
-        robots
+        // unsafe {
+        //     state.ids_of_robots_within_comms_range.set_len(0);
+        // }
+        state.ids_of_robots_within_comms_range = robots
             .iter()
             .filter_map(|(other_entity_id, other_transform)| {
                 // Do not compute the distance to self
@@ -245,13 +245,69 @@ fn update_robot_neighbours(
                     Some(other_entity_id)
                 }
             })
-            .for_each(|other_entity_id| {
-                state.ids_of_robots_within_comms_range.push(other_entity_id)
-            });
+            .collect();
+        // .for_each(|other_entity_id| {
+        //     state.ids_of_robots_within_comms_range.push(other_entity_id)
+        // });
     }
 }
 
-fn update_interrobot_factors(query: Query<(&mut FactorGraph, &RobotState)>) {}
+/// Called `Robot::updateInterrobotFactors` in **gbpplanner**
+/// For new neighbours of a robot, create inter-robot factors if they don't exist.
+/// Delete existing inter-robot factors for faraway robots
+fn update_interrobot_factors(
+    mut primary_query: Query<(Entity, &mut FactorGraph, &RobotState)>,
+    mut secondary_query: Query<(Entity, &mut FactorGraph, &RobotState)>,
+) {
+    // 1. For every robot
+    //    1.1 Find the ids of all the robots that it is connected to but, are outside its
+    //        communication range.
+    //        1.1.1 Delete the robots interrobot factor associated with the other robot
+    //        1.1.2 Delete the interrobot factor
+    for (entity_id, mut factorgraph, state) in primary_query.iter_mut() {
+        let ids_of_robots_connected_with_outside_comms_range: BTreeSet<_> = state
+            .ids_of_robots_connected_with
+            .difference(&state.ids_of_robots_within_comms_range)
+            .cloned()
+            .collect();
+
+        for id in ids_of_robots_connected_with_outside_comms_range.iter() {
+            if let Some((_, graph, _)) = secondary_query
+                .iter_mut()
+                .find(|(other_id, _, _)| other_id == id)
+            {}
+
+            // flag/store entity_id
+        }
+        // state.ids_of_robots_connected_with.iter().zip(state.ids_of_robots_within_comms_range.iter()).
+    }
+
+    // // Delete interrobot factors between connected neighbours not within range.
+    // self.ids_of_robots_connected_with
+    //     .difference(&self.ids_of_robots_within_comms_range)
+    //     .for_each(|&robot_id| {
+    //         if let Some(robot_ptr) = world.robot_with_id(robot_id) {
+    //             self.delete_interrobot_factors(robot_ptr);
+    //         }
+    //         // if let Some(robot_ptr) = world.robots.iter().find(|&it| it.id == robot_id) {
+    //         //     self.delete_interrobot_factors(Rc::clone(robot_ptr));
+    //         // }
+    //     });
+
+    // // Create interrobot factors between any robot within communication range, not already
+    // // connected with.
+    // self.ids_of_robots_within_comms_range
+    //     .difference(&self.ids_of_robots_connected_with)
+    //     .for_each(|&robot_id| {
+    //         if let Some(mut robot_ptr) = world.robot_with_id_mut(robot_id) {
+    //             self.create_interrobot_factors(robot_ptr);
+    //             // if (!sim_->symmetric_factors) sim_->robots_.at(rid)->connected_r_ids_.push_back(rid_);
+    //             if !self.settings.symmetric_factors {
+    //                 robot_ptr.ids_of_robots_connected_with.insert(self.id);
+    //             }
+    //         }
+    //     });
+}
 
 /// Called `Simulator::setCommsFailure` in **gbpplanner**
 fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
@@ -263,7 +319,7 @@ fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
 
 macro_rules! iterate_gbp_impl {
     ($name:ident, $mode:expr) => {
-        fn $name(query: Query<&mut FactorGraph>, config: Res<Config>) {}
+        fn $name(mut query: Query<&mut FactorGraph>, config: Res<Config>) {}
     };
 }
 
