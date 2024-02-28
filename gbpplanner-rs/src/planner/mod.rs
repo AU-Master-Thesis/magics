@@ -27,6 +27,11 @@ pub struct PlannerPlugin;
 
 impl Plugin for PlannerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((RobotPlugin, SpawnerPlugin));
+        app.add_plugins(
+            (
+                // RobotPlugin,
+                SpawnerPlugin
+            ),
+        );
     }
 }

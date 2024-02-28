@@ -140,7 +140,7 @@ fn spawn_formation(
         commands.spawn((
             RobotBundle::new(
                 // TODO: Used tha actual mapped waypoints from the formation
-                VecDeque::from(vec![*position]),
+                VecDeque::from(vec![*position, *position + Vec2::new(1.0, 1.0)]),
                 // TODO: calculate variable timesteps in `Startup` stage and store in a resource
                 &get_variable_timesteps(
                     (config.robot.planning_horizon / config.simulation.t0) as u32,

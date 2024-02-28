@@ -124,11 +124,11 @@ impl RobotBundle {
 
         let start = waypoints
             .pop_front()
-            .expect("Know that waypoints has at least one element");
+            .expect("Waypoints has at least one element");
         // let transform = Transform::from_translation(Vec3::new(start.x, 0.0, start.y));
         let goal = waypoints
             .front()
-            .expect("Know that waypoints has at least one element");
+            .expect("Waypoints has at least two elements");
 
         // Initialise the horzion in the direction of the goal, at a distance T_HORIZON * MAX_SPEED from the start.
         let start2goal = *goal - start;
@@ -170,7 +170,7 @@ impl RobotBundle {
 
             let covariance = Matrix::<f32>::from_diag(&sigmas);
             let prior = MultivariateNormal::from_mean_and_covariance(
-                array![mean.x, mean.y],
+                array![mean.x, mean.y, 0.0, 0.0], // initial velocity (x', y') is zero
                 covariance,
             );
 

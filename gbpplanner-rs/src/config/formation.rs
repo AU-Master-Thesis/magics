@@ -116,6 +116,14 @@ macro_rules! polygon {
     }}
 }
 
+/// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x: $x2, y: $y2}))`
+#[macro_export]
+macro_rules! line {
+    [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
+        Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
+    };
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Waypoint {
@@ -196,15 +204,18 @@ impl Default for Formation {
             waypoints: vec![
                 Waypoint {
                     placement_strategy: PlacementStrategy::Random,
-                    shape: polygon![(0.4, 0.0), (0.6, 0.0)],
+                    // shape: polygon![(0.4, 0.0), (0.6, 0.0)],
+                    shape: line![(0.4, 0.0), (0.6, 0.0)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
-                    shape: polygon![(0.4, 0.4), (0.6, 0.6)],
+                    // shape: polygon![(0.4, 0.4), (0.6, 0.6)],
+                    shape: line![(0.4, 0.4), (0.6, 0.6)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
-                    shape: polygon![(0.0, 0.4), (0.0, 0.6)],
+                    // shape: polygon![(0.0, 0.4), (0.0, 0.6)],
+                    shape: line![(0.0, 0.4), (0.0, 0.6)],
                 },
             ],
         }

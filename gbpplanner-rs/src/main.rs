@@ -26,6 +26,7 @@ use crate::follow_cameras::FollowCamerasPlugin;
 use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
 use crate::movement::MovementPlugin;
+use crate::planner::PlannerPlugin;
 use crate::robot_spawner::RobotSpawnerPlugin;
 use crate::theme::ThemePlugin;
 
@@ -77,7 +78,6 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
 }
 
 fn main() -> color_eyre::eyre::Result<()> {
-    println!("current working directory: {:?}", std::env::current_dir()?);
     color_eyre::install()?;
 
     let cli = Cli::parse();
@@ -152,7 +152,7 @@ fn main() -> color_eyre::eyre::Result<()> {
             FollowCamerasPlugin,  // Custom
             RobotSpawnerPlugin,   // Custom
             FactorGraphPlugin,    // Custom
-                                  // WorldInspectorPlugin::new()
+            PlannerPlugin,        // WorldInspectorPlugin::new()
         ))
         .add_systems(Update, make_visible)
         .run();
