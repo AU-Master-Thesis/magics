@@ -14,7 +14,7 @@ use super::variable::Variable;
 use super::{marginalise_factor_distance, Matrix, Vector};
 
 /// How the messages are passed between factors and variables in the connected factorgraphs.
-#[derive(Debug)]
+// #[derive(Debug)]
 pub enum MessagePassingMode {
     /// Messages are passed within a robot's own factorgraph.
     Internal,
@@ -146,18 +146,15 @@ pub type Graph = petgraph::graph::Graph<Node, (), Undirected>;
 pub struct FactorGraph {
     // graph: Cell<Graph>,
     graph: Graph,
-    /// Flag for whether this factorgraph/robot communicates with other robots
-    interrobot_comms_active: bool,
-    /// Node id counter
-    node_id_counter: usize,
+    // / Node id counter
+    // node_id_counter: usize,
 }
 
 impl FactorGraph {
     pub fn new() -> Self {
         Self {
             graph: Graph::new_undirected(),
-            interrobot_comms_active: true,
-            node_id_counter: 0usize,
+            // node_id_counter: 0usize,
         }
     }
 

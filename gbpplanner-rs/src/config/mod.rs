@@ -1,5 +1,6 @@
 pub mod formation;
 
+use bevy::ecs::system::Resource;
 pub use formation::Formation;
 pub use formation::FormationGroup;
 
@@ -109,17 +110,17 @@ impl Default for GbpSection {
 pub struct CommunicationSection {
     /// Inter-robot factors created if robots are within this range of each other
     /// SI unit: m
-    pub communication_radius: f32,
+    pub radius: f32,
 
     /// Probability for failing to send/receive a message
-    pub communication_failure_rate: f32,
+    pub failure_rate: f32,
 }
 
 impl Default for CommunicationSection {
     fn default() -> Self {
         Self {
-            communication_radius: 20.0,
-            communication_failure_rate: 0.0,
+            radius: 20.0,
+            failure_rate: 0.0,
         }
     }
 }
@@ -160,7 +161,7 @@ impl Default for RobotSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Resource)]
 pub struct Config {
     /// Path to the **.png** containing the environment sdf
     pub environment: String,

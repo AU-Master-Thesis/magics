@@ -180,6 +180,7 @@ fn update_velocity(mut query: Query<(&Acceleration, &mut Velocity)>, time: Res<T
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn update_position(
     mut query: Query<(&Velocity, &mut Transform), (Without<Orbit>, Without<Local>)>,
     time: Res<Time>,
@@ -192,6 +193,7 @@ fn update_position(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn update_position_local(
     mut query: Query<(&Velocity, &mut Transform), (With<Local>, Without<Orbit>)>,
     time: Res<Time>,

@@ -71,11 +71,11 @@ fn environment_png_is_loaded(
     scene_assets: Res<SceneAssets>,
     image_assets: Res<Assets<Image>>,
 ) -> bool {
-    if let Some(_) = image_assets.get(scene_assets.obstacle_image_raw.clone()) {
-        return match state.get() {
-            HeightMapState::Waiting => true,
-            _ => false,
-        };
+    if image_assets
+        .get(scene_assets.obstacle_image_raw.clone())
+        .is_some()
+    {
+        return matches!(state.get(), HeightMapState::Waiting);
     }
     false
 }
@@ -88,95 +88,95 @@ fn obstacles(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut next_state: ResMut<NextState<HeightMapState>>,
 ) {
-    if let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) {
-        next_state.set(HeightMapState::Generated);
+    let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) else {
+        return;
+    };
 
-        let width = image.texture_descriptor.size.width as usize;
-        let height = image.texture_descriptor.size.height as usize;
-        let bytes_per_pixel =
-            image.texture_descriptor.format.block_dimensions().0 as usize;
-        let channels = 4;
+    next_state.set(HeightMapState::Generated);
 
-        let vertices_count = width * height;
-        let triangle_count = (width - 1) * (height - 1) * 6;
-        let extent = 100.0;
-        let intensity = 0.5;
+    let width = image.texture_descriptor.size.width as usize;
+    let height = image.texture_descriptor.size.height as usize;
+    let bytes_per_pixel = image.texture_descriptor.format.block_dimensions().0 as usize;
+    let channels = 4;
 
-        info!("image.texture_descriptor.size.width: {}", width);
-        info!("image.texture_descriptor.size.height: {}", height);
-        info!("image.data.len(): {}", image.data.len());
-        info!("bytes_per_pixel: {}", bytes_per_pixel);
-        info!(
-            "image.data.len() / bytes_per_pixel: {}",
-            image.data.len() / bytes_per_pixel
-        );
-        info!("vertices_count: {}", vertices_count);
-        info!("triangle_count: {}", triangle_count);
+    let vertices_count = width * height;
+    let triangle_count = (width - 1) * (height - 1) * 6;
+    let extent = 100.0;
+    let intensity = 0.5;
 
-        let mut heightmap = Vec::<f32>::with_capacity(vertices_count);
-        for w in 0..width {
-            for h in 0..height {
-                // heightmap.push((w + h) as f32);
-                // heightmap.push(0.0);
-                heightmap
-                    .push(1.0 - image.data[(w * height + h) * channels] as f32 / 255.0);
-            }
+    info!("image.texture_descriptor.size.width: {}", width);
+    info!("image.texture_descriptor.size.height: {}", height);
+    info!("image.data.len(): {}", image.data.len());
+    info!("bytes_per_pixel: {}", bytes_per_pixel);
+    info!(
+        "image.data.len() / bytes_per_pixel: {}",
+        image.data.len() / bytes_per_pixel
+    );
+    info!("vertices_count: {}", vertices_count);
+    info!("triangle_count: {}", triangle_count);
+
+    let mut heightmap = Vec::<f32>::with_capacity(vertices_count);
+    for w in 0..width {
+        for h in 0..height {
+            // heightmap.push((w + h) as f32);
+            // heightmap.push(0.0);
+            heightmap.push(1.0 - image.data[(w * height + h) * channels] as f32 / 255.0);
         }
-
-        info!("heightmap.len(): {}", heightmap.len());
-
-        // Defining vertices.
-        let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
-        let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(vertices_count);
-
-        for d in 0..width {
-            for w in 0..height {
-                let (w_f32, d_f32) = (w as f32, d as f32);
-
-                let pos = [
-                    (w_f32 - width as f32 / 2.) * extent as f32 / width as f32,
-                    heightmap[d * width + w] * intensity,
-                    (d_f32 - height as f32 / 2.) * extent as f32 / height as f32,
-                ];
-                positions.push(pos);
-                uvs.push([w_f32 / width as f32, d_f32 / height as f32]);
-            }
-        }
-
-        // Defining triangles.
-        let mut triangles: Vec<u32> = Vec::with_capacity(triangle_count);
-
-        for d in 0..(height - 2) as u32 {
-            for w in 0..(width - 2) as u32 {
-                // First tringle
-                triangles.push((d * (width as u32 + 1)) + w);
-                triangles.push(((d + 1) * (width as u32 + 1)) + w);
-                triangles.push(((d + 1) * (width as u32 + 1)) + w + 1);
-                // Second triangle
-                triangles.push((d * (width as u32 + 1)) + w);
-                triangles.push(((d + 1) * (width as u32 + 1)) + w + 1);
-                triangles.push((d * (width as u32 + 1)) + w + 1);
-            }
-        }
-
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-        // mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-        mesh.set_indices(Some(Indices::U32(triangles)));
-        mesh.duplicate_vertices();
-        mesh.compute_flat_normals();
-
-        let material_handle = materials.add(StandardMaterial {
-            base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
-            // base_color: Color::rgb(0.5, 0.5, 0.85),
-            ..default()
-        });
-
-        commands.spawn(PbrBundle {
-            mesh: meshes.add(mesh),
-            material: material_handle,
-            ..default()
-        });
     }
+
+    info!("heightmap.len(): {}", heightmap.len());
+
+    // Defining vertices.
+    let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
+    let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(vertices_count);
+
+    for d in 0..width {
+        for w in 0..height {
+            let (w_f32, d_f32) = (w as f32, d as f32);
+
+            let pos = [
+                (w_f32 - width as f32 / 2.) * extent as f32 / width as f32,
+                heightmap[d * width + w] * intensity,
+                (d_f32 - height as f32 / 2.) * extent as f32 / height as f32,
+            ];
+            positions.push(pos);
+            uvs.push([w_f32 / width as f32, d_f32 / height as f32]);
+        }
+    }
+
+    // Defining triangles.
+    let mut triangles: Vec<u32> = Vec::with_capacity(triangle_count);
+
+    for d in 0..(height - 2) as u32 {
+        for w in 0..(width - 2) as u32 {
+            // First tringle
+            triangles.push((d * (width as u32 + 1)) + w);
+            triangles.push(((d + 1) * (width as u32 + 1)) + w);
+            triangles.push(((d + 1) * (width as u32 + 1)) + w + 1);
+            // Second triangle
+            triangles.push((d * (width as u32 + 1)) + w);
+            triangles.push(((d + 1) * (width as u32 + 1)) + w + 1);
+            triangles.push((d * (width as u32 + 1)) + w + 1);
+        }
+    }
+
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    // mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    mesh.set_indices(Some(Indices::U32(triangles)));
+    mesh.duplicate_vertices();
+    mesh.compute_flat_normals();
+
+    let material_handle = materials.add(StandardMaterial {
+        base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
+        // base_color: Color::rgb(0.5, 0.5, 0.85),
+        ..default()
+    });
+
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(mesh),
+        material: material_handle,
+        ..default()
+    });
 }

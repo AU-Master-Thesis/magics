@@ -2133,7 +2133,6 @@ dependencies = [
  "catppuccin",
  "clap",
  "color-eyre",
- "gbp-linalg",
  "image",
  "itertools",
  "leafwing-input-manager",
