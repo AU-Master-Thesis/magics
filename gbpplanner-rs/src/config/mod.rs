@@ -181,7 +181,7 @@ impl Default for Config {
         // let cwd = std::env::current_dir().expect("The current working directory exists");
         // let default_environment = cwd.join("gbpplanner-rs/assets/imgs/junction.png");
         let default_environment = "./gbpplanner-rs/assets/imgs/junction.png".to_string();
-        let default_formation_group = "./config/formation.toml".to_string();
+        let default_formation_group = "./config/formation.ron".to_string();
 
         Self {
             environment: default_environment,
@@ -198,14 +198,13 @@ impl Config {
     /// Parse a config file from a given path
     pub fn from_file(file_path: &std::path::PathBuf) -> Result<Self, ParseError> {
         let file_contents = std::fs::read_to_string(file_path)?;
-        Self::parse(file_path)
+        Self::parse(file_contents.as_str())
     }
 
     /// Parse a config file
     /// Returns a `ParseError` if the file cannot be parsed
-    pub fn parse(file_path: &std::path::PathBuf) -> Result<Self, ParseError> {
-        let file_contents = std::fs::read_to_string(file_path)?;
-        let config = toml::from_str(file_contents.as_str())?;
+    pub fn parse(contents: &str) -> Result<Self, ParseError> {
+        let config = toml::from_str(contents)?;
         Ok(config)
     }
 }

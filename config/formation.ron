@@ -1,0 +1,50 @@
+(
+  formations: [
+    (
+      repeat: false,
+      time: 5.0,
+      robots: 3,
+      waypoints: [
+        (
+          shape: polygon([
+            (
+              x: 0.4,
+              y: 0.0,
+            ),
+            (
+              x: 0.6,
+              y: 0.0,
+            ),
+          ]),
+          r#placement-strategy: random,
+        ),
+        (
+          shape: polygon([
+            (
+              x: 0.4,
+              y: 0.4,
+            ),
+            (
+              x: 0.6,
+              y: 0.6,
+            ),
+          ]),
+          r#placement-strategy: map,
+        ),
+        (
+          shape: polygon([
+            (
+              x: 0.0,
+              y: 0.4,
+            ),
+            (
+              x: 0.0,
+              y: 0.6,
+            ),
+          ]),
+          r#placement-strategy: map,
+        ),
+      ],
+    ),
+  ],
+)

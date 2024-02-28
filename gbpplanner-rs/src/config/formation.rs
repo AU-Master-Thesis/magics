@@ -148,21 +148,19 @@ impl FormationGroup {
     /// 1. `path` does not exist on the filesystem.
     /// 2. The contents of `path` is not valid TOML.
     /// 3. The parsed data does not represent a valid `FormationGroup`.
-    pub fn from_file(path: &std::path::PathBuf) -> Result<Self, ParseError> {
-        println!("Reading formation group from {:?}", path);
+    pub fn from_file(path: &std::path::PathBuf) -> color_eyre::eyre::Result<Self> {
         let file_contents = std::fs::read_to_string(path)?;
-        println!("File contents: {}", file_contents);
         Self::parse(file_contents.as_str())
         // let formation_group = Self::parse(file_contents.as_str())?;
         // Ok(formation_group)
     }
 
-    /// Attempt to parse a `FormationGroup` from a TOML encoded string.
+    /// Attempt to parse a `FormationGroup` from a RON encoded string.
     /// Returns `Err(ParseError)`  if:
-    /// 1. `contents` is not valid TOML.
+    /// 1. `contents` is not valid RON.
     /// 2. The parsed data does not represent a valid `FormationGroup`.
-    pub fn parse(contents: &str) -> Result<Self, ParseError> {
-        let formation_group: FormationGroup = toml::from_str(contents)?;
+    pub fn parse(contents: &str) -> color_eyre::eyre::Result<Self> {
+        let formation_group: FormationGroup = ron::from_str(contents)?;
         let formation_group = formation_group.validate()?;
         Ok(formation_group)
     }
@@ -233,6 +231,8 @@ pub enum ParseError {
     Toml(#[from] toml::de::Error),
     #[error("Validation error: {0}")]
     Invalid(#[from] ValidationError),
+    #[error("RON error: {0}")]
+    Ron(#[from] ron::Error),
 }
 
 impl Formation {

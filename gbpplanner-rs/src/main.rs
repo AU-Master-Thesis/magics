@@ -51,7 +51,7 @@ struct Cli {
 
 fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
     if let Some(config_path) = &cli.config {
-        Ok(Config::parse(config_path)?)
+        Ok(Config::from_file(config_path)?)
     } else {
         let mut conf_paths = Vec::<PathBuf>::new();
 
@@ -77,6 +77,7 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
 }
 
 fn main() -> color_eyre::eyre::Result<()> {
+    println!("current working directory: {:?}", std::env::current_dir()?);
     color_eyre::install()?;
 
     let cli = Cli::parse();
