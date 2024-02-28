@@ -1,4 +1,4 @@
-use bevy::{ecs::entity::Entity, log::info};
+use bevy::{ecs::entity::Entity, log::info, render::texture::Image};
 
 // use nalgebra::{Matrix, Vector, Matrix, Vector};
 use ndarray::{array, s, Axis, Slice};
@@ -7,7 +7,6 @@ use petgraph::prelude::NodeIndex;
 use std::{
     collections::HashMap,
     ops::{AddAssign, Sub},
-    sync::Arc,
 };
 
 use super::{
@@ -376,7 +375,7 @@ impl Model for PoseFactor {
 
 #[derive(Debug, Clone)]
 struct ObstacleFactor {
-    obstacle_sdf: Arc<image::RgbImage>,
+    obstacle_sdf: &'static Image,
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy of here since
     /// `ObstacleFactor` needs this information to calculate `.jacobian_delta()` and `.measurement()`
     world_size: f32,
@@ -385,7 +384,8 @@ struct ObstacleFactor {
 impl ObstacleFactor {
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
-    fn new(obstacle_sdf: Arc<image::RgbImage>, world_size: f32) -> Self {
+    // fn new(obstacle_sdf: &OnceLock<Image>, world_size: f32) -> Self {
+    fn new(obstacle_sdf: &'static Image, world_size: f32) -> Self {
         Self {
             obstacle_sdf,
             world_size,
@@ -400,17 +400,27 @@ impl Model for ObstacleFactor {
     }
 
     fn measure(&mut self, state: &FactorState, x: &Vector<f32>) -> Vector<f32> {
+        // let obstacle_sdf = IMAGE
+        //     .get()
+        //     .expect("No obstacle factor should be created before the image is loaded.");
         // White areas are obstacles, so h(0) should return a 1 for these regions.
         let scale = self.obstacle_sdf.width() as f32 / self.world_size;
         let pixel_x = ((x[0] + self.world_size / 2.0) * scale) as u32;
         let pixel_y = ((x[1] + self.world_size / 2.0) * scale) as u32;
-        let pixel = self.obstacle_sdf[(pixel_x, pixel_y)].0;
-        let hsv_value = pixel[0] as f32 / 255.0;
+        // multiply by 4 because the image is in RGBA format,
+        // and we simply use th R channel to determine value,
+        // as the image is grayscale
+        let linear_index = ((self.obstacle_sdf.width() * pixel_y + pixel_x) * 4) as usize;
+        let pixel = self.obstacle_sdf.data[linear_index];
+        let hsv_value = pixel as f32 / 255.0;
 
         array![hsv_value]
     }
 
     fn jacobian_delta(&self) -> f32 {
+        // let obstacle_sdf = IMAGE
+        //     .get()
+        //     .expect("No obstacle factor should be created before the image is loaded.");
         self.world_size / self.obstacle_sdf.width() as f32
     }
 
@@ -628,10 +638,13 @@ impl Factor {
         strength: f32,
         measurement: Vector<f32>,
         dofs: usize,
-        obstacle_sdf: Arc<image::RgbImage>,
+        // obstacle_sdf: Arc<image::RgbImage>,
+        // obstacle_sdf: &OnceLock<Image>,
+        obstacle_sdf: &'static Image,
         world_size: f32,
     ) -> Self {
         let state = FactorState::new(measurement, strength, dofs);
+        // let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
         Self::new(state, kind)

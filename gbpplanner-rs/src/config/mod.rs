@@ -165,7 +165,7 @@ impl Default for RobotSection {
 pub struct Config {
     /// Path to the **.png** containing the environment sdf
     pub environment: String,
-    pub formation: String,
+    pub formation_group: String,
     pub draw: DrawSection,
     pub gbp: GbpSection,
     pub robot: RobotSection,
@@ -180,11 +180,11 @@ impl Default for Config {
         // let cwd = std::env::current_dir().expect("The current working directory exists");
         // let default_environment = cwd.join("gbpplanner-rs/assets/imgs/junction.png");
         let default_environment = "./gbpplanner-rs/assets/imgs/junction.png".to_string();
-        let default_formation = "./config/formation.toml".to_string();
+        let default_formation_group = "./config/formation.toml".to_string();
 
         Self {
             environment: default_environment,
-            formation: default_formation,
+            formation_group: default_formation_group,
             draw: DrawSection::default(),
             gbp: GbpSection::default(),
             robot: RobotSection::default(),

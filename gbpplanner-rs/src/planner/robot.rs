@@ -1,5 +1,5 @@
 use std::collections::{BTreeSet, VecDeque};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use crate::config::Config;
 
@@ -91,7 +91,7 @@ pub struct RobotBundle {
     pub radius: Radius, // TODO: create new type that guarantees this constraint
     /// The current state of the robot
     pub state: RobotState,
-    pub transform: Transform,
+    // pub transform: Transform,
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A VecDeque is used to allow for efficient pop_front operations, and push_back operations.
     pub waypoints: Waypoints,
@@ -110,7 +110,9 @@ impl RobotBundle {
         // transform: Transform,
         variable_timesteps: &[Timestep],
         config: &Config,
-        obstacle_sdf: Arc<image::RgbImage>,
+        // obstacle_sdf: Arc<image::RgbImage>,
+        // obstacle_sdf: &OnceLock<Image>,
+        obstacle_sdf: &'static Image,
     ) -> Result<Self, RobotInitError> {
         if waypoints.is_empty() {
             return Err(RobotInitError::NoWaypoints);
@@ -123,7 +125,7 @@ impl RobotBundle {
         let start = waypoints
             .pop_front()
             .expect("Know that waypoints has at least one element");
-        let transform = Transform::from_translation(Vec3::new(start.x, 0.0, start.y));
+        // let transform = Transform::from_translation(Vec3::new(start.x, 0.0, start.y));
         let goal = waypoints
             .front()
             .expect("Know that waypoints has at least one element");
@@ -201,7 +203,7 @@ impl RobotBundle {
                 config.gbp.sigma_factor_obstacle,
                 array![0.0],
                 config.robot.dofs,
-                Arc::clone(&obstacle_sdf),
+                obstacle_sdf,
                 config.simulation.world_size,
             );
 
@@ -213,7 +215,7 @@ impl RobotBundle {
             factorgraph,
             radius: Radius(config.robot.radius),
             state: RobotState::new(),
-            transform,
+            // transform,
             waypoints: Waypoints(waypoints),
         })
     }

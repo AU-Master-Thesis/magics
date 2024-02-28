@@ -13,9 +13,12 @@ mod robot_spawner;
 mod theme;
 mod utils;
 
+use std::path::PathBuf;
+
 use crate::asset_loader::AssetLoaderPlugin;
 use crate::camera::CameraPlugin;
 use crate::config::Config;
+use crate::config::FormationGroup;
 use crate::diagnostics::DiagnosticsPlugin;
 use crate::environment::EnvironmentPlugin;
 use crate::factorgraph::FactorGraphPlugin;
@@ -50,16 +53,18 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
     if let Some(config_path) = &cli.config {
         Ok(Config::parse(config_path)?)
     } else {
-        // define default path
-        let home = std::env::var("HOME")?;
-        let xdg_config_home = std::path::Path::new(&home).join(".config");
-        let user_config_dir = xdg_config_home.join("gbpplanner");
+        let mut conf_paths = Vec::<PathBuf>::new();
+
+        if let Some(home) = std::env::var("HOME").ok() {
+            let xdg_config_home = std::path::Path::new(&home).join(".config");
+            let user_config_dir = xdg_config_home.join("gbpplanner");
+
+            conf_paths.push(user_config_dir.join("config.toml"));
+        }
+
         let cwd = std::env::current_dir()?;
 
-        let conf_paths = dbg!(vec![
-            user_config_dir.join("config.toml"),
-            cwd.join("config/config.toml")
-        ]);
+        conf_paths.push(cwd.join("config/config.toml"));
 
         for conf_path in conf_paths {
             if conf_path.exists() {
@@ -102,7 +107,9 @@ fn main() -> color_eyre::eyre::Result<()> {
         return Ok(());
     }
 
-    let config = Config::parse(&cli.config.unwrap())?;
+    // let config = Config::parse(&cli.config.unwrap())?;
+    let config = read_config(&cli)?;
+    let formation = FormationGroup::parse(&config.formation_group)?;
 
     // let config = read_config(&cli)?;
 
@@ -110,6 +117,7 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     App::new()
         .insert_resource(config)
+        .insert_resource(formation)
         .add_plugins((
             DefaultPlugins.set(
                 // Bevy

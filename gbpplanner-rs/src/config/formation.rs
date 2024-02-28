@@ -1,3 +1,4 @@
+use bevy::ecs::system::Resource;
 // use super::ParseError;
 use serde::{Deserialize, Serialize};
 
@@ -35,6 +36,15 @@ pub struct Point {
 
 impl From<Point> for bevy::math::Vec2 {
     fn from(value: Point) -> Self {
+        Self {
+            x: value.x,
+            y: value.y,
+        }
+    }
+}
+
+impl From<&Point> for bevy::math::Vec2 {
+    fn from(value: &Point) -> Self {
         Self {
             x: value.x,
             y: value.y,
@@ -126,10 +136,10 @@ pub struct Formation {
 }
 
 /// A `FormationGroup` represent multiple `Formation`s
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub struct FormationGroup {
-    formations: Vec<Formation>,
+    pub formations: Vec<Formation>,
 }
 
 impl FormationGroup {
