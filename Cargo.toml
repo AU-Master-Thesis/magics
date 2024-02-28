@@ -32,3 +32,6 @@ opt-level = 3
 panic = "abort"
 rpath = false
 strip = true
+
+# [build]
+# rustflags = ["-C", "link-arg=-Wl", "--verbose"]

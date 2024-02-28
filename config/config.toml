@@ -1,5 +1,5 @@
 environment = "./gbpplanner-rs/assets/imgs/junction.png"
-formation = "./config/formation.toml"
+formation_group = "./config/formation.ron"
 
 [draw]
 communication-graph = true
@@ -23,8 +23,8 @@ symmetric-factors = true
 radius = 1.0
 
 [robot.communication]
-communication-radius = 20.0
-communication-failure-rate = 0.0
+radius = 20.0
+failure-rate = 0.0
 
 [simulation]
 t0 = 0.0
