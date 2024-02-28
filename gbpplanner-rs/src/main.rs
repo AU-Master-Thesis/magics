@@ -86,7 +86,7 @@ fn main() -> color_eyre::eyre::Result<()> {
             "{}",
             ron::ser::to_string_pretty(
                 &default_formation,
-                ron::ser::PrettyConfig::default()
+                ron::ser::PrettyConfig::new().indentor("  ".to_string())
             )?
         );
 
