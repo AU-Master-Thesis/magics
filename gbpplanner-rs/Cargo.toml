@@ -33,6 +33,7 @@ ndarray-inverse = "0.1.9"
 # ndarray-linalg = { version = "0.16", features = ["intel-mkl-static"] } # This is the only backend variant i have gotten to work
 num-traits = "0.2.18"
 ron = "0.8.1"
+bevy_egui = "0.24.0"
 # tap = "1.0.1"
 
 # # Enable a small amount of optimization in debug mode

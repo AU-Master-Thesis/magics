@@ -11,6 +11,7 @@ mod movement;
 mod planner;
 mod robot_spawner;
 mod theme;
+mod ui;
 mod utils;
 
 use std::path::PathBuf;
@@ -29,6 +30,7 @@ use crate::movement::MovementPlugin;
 use crate::planner::PlannerPlugin;
 use crate::robot_spawner::RobotSpawnerPlugin;
 use crate::theme::ThemePlugin;
+use crate::ui::EguiInterfacePlugin;
 
 use bevy::core::FrameCount;
 use bevy::prelude::*;
@@ -152,7 +154,9 @@ fn main() -> color_eyre::eyre::Result<()> {
             FollowCamerasPlugin,  // Custom
             RobotSpawnerPlugin,   // Custom
             FactorGraphPlugin,    // Custom
-            PlannerPlugin,        // WorldInspectorPlugin::new()
+            EguiInterfacePlugin,  // Custom
+                                  // PlannerPlugin, // Custom
+                                  // WorldInspectorPlugin::new()
         ))
         .add_systems(Update, make_visible)
         .run();
