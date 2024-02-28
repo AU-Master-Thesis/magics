@@ -1,5 +1,6 @@
 pub mod formation;
 
+use bevy::asset::io::file;
 use bevy::ecs::system::Resource;
 pub use formation::Formation;
 pub use formation::FormationGroup;
@@ -194,6 +195,12 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Parse a config file from a given path
+    pub fn from_file(file_path: &std::path::PathBuf) -> Result<Self, ParseError> {
+        let file_contents = std::fs::read_to_string(file_path)?;
+        Self::parse(file_path)
+    }
+
     /// Parse a config file
     /// Returns a `ParseError` if the file cannot be parsed
     pub fn parse(file_path: &std::path::PathBuf) -> Result<Self, ParseError> {

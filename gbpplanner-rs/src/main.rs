@@ -68,7 +68,7 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
 
         for conf_path in conf_paths {
             if conf_path.exists() {
-                return Ok(Config::parse(&conf_path.to_path_buf())?);
+                return Ok(Config::from_file(&conf_path.to_path_buf())?);
             }
         }
 
@@ -109,7 +109,8 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     // let config = Config::parse(&cli.config.unwrap())?;
     let config = read_config(&cli)?;
-    let formation = FormationGroup::parse(&config.formation_group)?;
+    let formation_file_path = PathBuf::from(&config.formation_group.clone());
+    let formation = FormationGroup::from_file(&formation_file_path)?;
 
     // let config = read_config(&cli)?;
 

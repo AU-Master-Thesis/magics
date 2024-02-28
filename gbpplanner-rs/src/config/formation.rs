@@ -149,9 +149,12 @@ impl FormationGroup {
     /// 2. The contents of `path` is not valid TOML.
     /// 3. The parsed data does not represent a valid `FormationGroup`.
     pub fn from_file(path: &std::path::PathBuf) -> Result<Self, ParseError> {
+        println!("Reading formation group from {:?}", path);
         let file_contents = std::fs::read_to_string(path)?;
-        let formation_group = Self::parse(file_contents.as_str())?;
-        Ok(formation_group)
+        println!("File contents: {}", file_contents);
+        Self::parse(file_contents.as_str())
+        // let formation_group = Self::parse(file_contents.as_str())?;
+        // Ok(formation_group)
     }
 
     /// Attempt to parse a `FormationGroup` from a TOML encoded string.
@@ -159,7 +162,7 @@ impl FormationGroup {
     /// 1. `contents` is not valid TOML.
     /// 2. The parsed data does not represent a valid `FormationGroup`.
     pub fn parse(contents: &str) -> Result<Self, ParseError> {
-        let mut formation_group: FormationGroup = toml::from_str(contents)?;
+        let formation_group: FormationGroup = toml::from_str(contents)?;
         let formation_group = formation_group.validate()?;
         Ok(formation_group)
     }

@@ -143,7 +143,7 @@ fn spawn_formation(
                 VecDeque::from(vec![*position]),
                 // TODO: calculate variable timesteps in `Startup` stage and store in a resource
                 &get_variable_timesteps(
-                    config.robot.planning_horizon as u32,
+                    (config.robot.planning_horizon / config.simulation.t0) as u32,
                     config.gbp.lookahead_multiple as u32,
                 ),
                 &config,
