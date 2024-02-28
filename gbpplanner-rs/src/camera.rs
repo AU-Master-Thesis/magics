@@ -7,10 +7,12 @@ const INITIAL_CAMERA_DISTANCE: f32 = 40.0;
 pub const SPEED: f32 = 20.0;
 pub const ANGULAR_SPEED: f32 = 2.0;
 
+/// Bevy `Component` for the main camera
 #[derive(Component, Debug)]
 pub struct MainCamera;
 
-// Define camera movement state
+/// Bevy `State` representing the main camera's movement mode
+/// Enables the camera to `Pan` and `Orbit`
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum CameraMovementMode {
     #[default]
@@ -27,6 +29,7 @@ impl Plugin for CameraPlugin {
     }
 }
 
+/// `Startup` system to spawn the main camera
 fn spawn_camera(mut commands: Commands) {
     commands.spawn((
         Camera3dBundle {

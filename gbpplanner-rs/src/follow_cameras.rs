@@ -30,6 +30,7 @@ impl Default for PID {
     }
 }
 
+/// `Component` to tag an entity to be followed by a `FollowCamera`
 #[derive(Component, Debug, Clone, Copy)]
 pub struct FollowCameraMe {
     pub offset: Option<Vec3>,
@@ -41,6 +42,7 @@ impl Default for FollowCameraMe {
     }
 }
 
+/// `Component` to store the settings for a `FollowCamera`
 #[derive(Component)]
 pub struct FollowCameraSettings {
     pub target: Entity,
@@ -66,6 +68,7 @@ impl FollowCameraSettings {
     }
 }
 
+/// Bundle for a `FollowCamera` entity
 #[derive(Bundle)]
 pub struct FollowCameraBundle {
     pub settings: FollowCameraSettings,
@@ -107,6 +110,7 @@ impl FollowCameraBundle {
     }
 }
 
+/// `Update` system to add a `FollowCamera` to any entity with a tagged to be followed with a `FollowCameraMe` component
 fn add_follow_cameras(
     mut commands: Commands,
     // query: Query<(Entity, &Transform), With<FollowCameraMe>>,
@@ -132,6 +136,8 @@ fn add_follow_cameras(
     }
 }
 
+/// `Update` system to move all cameras tagged with the `FollowCamera` component
+/// Queries for all targets with `Transforms` and their corresponding cameras with `FollowCameraSettings` to move cameras correctly
 fn move_cameras(
     mut query_cameras: Query<(&mut Transform, &FollowCameraSettings), With<Camera>>,
     query_targets: Query<(Entity, &Transform), (With<FollowCameraMe>, Without<Camera>)>,

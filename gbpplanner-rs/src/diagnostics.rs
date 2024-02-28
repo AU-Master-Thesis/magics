@@ -20,6 +20,7 @@ struct FpsRoot;
 #[derive(Component)]
 struct FpsText;
 
+/// Setup the FPS counter UI
 fn setup_fps_counter(mut commands: Commands) {
     // create our UI root node
     // this is the wrapper/container for the text
@@ -87,6 +88,7 @@ fn setup_fps_counter(mut commands: Commands) {
     commands.entity(root).push_children(&[text_fps]);
 }
 
+/// Update the FPS counter text
 fn fps_text_update_system(
     diagnostics: Res<DiagnosticsStore>,
     mut query: Query<&mut Text, With<FpsText>>,
