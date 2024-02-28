@@ -6,10 +6,12 @@ use ndarray::s;
 // use nalgebra::{Matrix, Vector};
 use petgraph::dot::{Config, Dot};
 // use petgraph::prelude::{EdgeIndex, NodeIndex};
+use petgraph::visit::IntoNodeIdentifiers;
 use petgraph::Undirected;
 
 use super::factor::Factor;
 use super::multivariate_normal::MultivariateNormal;
+use super::robot::RobotId;
 use super::variable::Variable;
 use super::{marginalise_factor_distance, Matrix, Vector};
 
@@ -428,6 +430,75 @@ impl FactorGraph {
             // variable.update_belief(&adjacent_factors, &mut self.graph);
         }
     }
+
+    pub(crate) fn delete_interrobot_factor_connected_to(
+        &mut self,
+        other: RobotId,
+    ) -> Result<(), &'static str> {
+        let node_idx = self
+        .graph
+        .node_indices()
+        // Use `find_map` for a more concise filter-and-map operation
+        .find_map(|node_idx| {
+            let node = &self.graph[node_idx];
+            node.as_factor()
+                .and_then(|factor| factor.kind.as_inter_robot())
+                // Extract `id_of_robot_connected_with` directly
+                .filter(|interrobot| interrobot.id_of_robot_connected_with == other)
+                .map(|_interrobot| node_idx)
+        })
+        .ok_or("not found")?;
+
+        // Directly remove the node using the fallible method
+        self.graph
+            .remove_node(node_idx)
+            .ok_or("the interrobot factor does not exist in the graph")?;
+
+        Ok(())
+    }
+
+    // /// TODO: should probably not be a method on the graph, but on the robot, but whatever
+    // pub(crate) fn delete_interrobot_factor_connected_to(
+    //     &mut self,
+    //     other: RobotId,
+    // ) -> Result<(), &'static str> {
+    //     let node_idx = self
+    //         .graph
+    //         .node_indices()
+    //         .filter_map(|node_idx| {
+    //             let node = &self.graph[node_idx];
+    //             let Some(factor) = node.as_factor() else {
+    //                 return None;
+    //             };
+
+    //             let Some(interrobot) = factor.kind.as_inter_robot() else {
+    //                 return None;
+    //             };
+
+    //             Some((node_idx, interrobot))
+    //         })
+    //         .find(|(_, interrobot)| interrobot.id_of_robot_connected_with == other)
+    //         .map(|(node_idx, _)| node_idx);
+
+    //     let Some(node_idx) = node_idx else {
+    //         return Err("not found");
+    //     };
+
+    //     self.graph.remove_node(node_idx).expect(
+    //         "The node index was retrieved from the graph in the previous statement",
+    //     );
+
+    //     Ok(())
+
+    //     // let node_idx = self
+    //     //     .graph
+    //     //     .raw_nodes()
+    //     //     .iter()
+    //     //     .filter_map(|node| node.weight.as_factor())
+    //     //     .filter_map(|factor| factor.kind.as_inter_robot())
+    //     //     .find(|&interrobot| interrobot.id_of_robot_connected_with == other)
+    //     //     .ok_or("not found")?;
+    // }
 
     // fn update_variable(
     //     &mut self,

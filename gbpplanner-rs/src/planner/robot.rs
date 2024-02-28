@@ -9,6 +9,7 @@ use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
 use super::{Matrix, Timestep, Vector};
 use bevy::prelude::*;
+use bevy::utils::HashMap;
 use ndarray::array;
 
 pub struct RobotPlugin;
@@ -227,12 +228,12 @@ fn update_robot_neighbours(
     config: Res<Config>,
 ) {
     // TODO: use kdtree to speed up, and to have something in the report
-    for (entity_id, transform, mut state) in states.iter_mut() {
+    for (entity_id, transform, mut robotstate) in states.iter_mut() {
         // TODO: maybe use clear() instead
         // unsafe {
         //     state.ids_of_robots_within_comms_range.set_len(0);
         // }
-        state.ids_of_robots_within_comms_range = robots
+        robotstate.ids_of_robots_within_comms_range = robots
             .iter()
             .filter_map(|(other_entity_id, other_transform)| {
                 // Do not compute the distance to self
@@ -252,33 +253,89 @@ fn update_robot_neighbours(
     }
 }
 
+fn delete_interrobot_factors(
+    mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
+) {
+    // the set of robots connected with will (possibly) be mutated
+    // the robots factorgraph will (possibly) be mutated
+    // the other robot with an interrobot factor connected will be mutated
+
+    let mut interrobot_factors_to_delete: HashMap<Entity, Entity> = HashMap::new();
+    for (entity, _, mut robotstate) in query.iter_mut() {
+        let ids_of_robots_connected_with_outside_comms_range: BTreeSet<_> = robotstate
+            .ids_of_robots_connected_with
+            .difference(&robotstate.ids_of_robots_within_comms_range)
+            .cloned()
+            .collect();
+
+        interrobot_factors_to_delete.extend(
+            ids_of_robots_connected_with_outside_comms_range
+                .iter()
+                .map(|id| (entity, *id)),
+        );
+
+        let robotstate = robotstate.as_mut();
+        for id in ids_of_robots_connected_with_outside_comms_range {
+            robotstate.ids_of_robots_connected_with.remove(&id);
+        }
+    }
+
+    for (a, b) in interrobot_factors_to_delete {
+        // Will delete both interrobot factors as,
+        // (a, b)
+        // (a, c)
+        // (b, a)
+        // (c, a)
+        // (b, d)
+        // (d, b)
+        // etc.
+        // deletes a's interrobot factor connecting to b, a -> b
+        // deletes b's interrobot factor connecting to a, b -> a
+        // TODO: use par_iter_mut
+        for (entity, mut graph, _) in query.iter_mut() {
+            if entity != a {
+                continue;
+            }
+
+            if let Err(err) = graph.as_mut().delete_interrobot_factor_connected_to(b) {
+                error!("Could not delete interrobot factor between {:?} -> {:?}, with error msg: {}", a, b, err);
+            }
+        }
+    }
+}
+
 /// Called `Robot::updateInterrobotFactors` in **gbpplanner**
 /// For new neighbours of a robot, create inter-robot factors if they don't exist.
 /// Delete existing inter-robot factors for faraway robots
 fn update_interrobot_factors(
-    mut primary_query: Query<(Entity, &mut FactorGraph, &RobotState)>,
-    mut secondary_query: Query<(Entity, &mut FactorGraph, &RobotState)>,
+    mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
+    // mut secondary_query: Query<(Entity, &mut FactorGraph, &RobotState)>,
 ) {
     // 1. For every robot
     //    1.1 Find the ids of all the robots that it is connected to but, are outside its
     //        communication range.
     //        1.1.1 Delete the robots interrobot factor associated with the other robot
-    //        1.1.2 Delete the interrobot factor
-    for (entity_id, mut factorgraph, state) in primary_query.iter_mut() {
+    //        1.1.2 Delete the interrobot factor of the other robot associated with this
+    //        1.1.3 Delete the id from the robots list of connections
+    //        1.1.4 Delete the current robots id from the other robots list of connections
+    let mut updates_to_apply: HashMap<Entity, Vec<Entity>> =
+        HashMap::with_capacity(query.iter().len());
+    for (entity_id, factorgraph, state) in query.iter() {
+        // 1.1
         let ids_of_robots_connected_with_outside_comms_range: BTreeSet<_> = state
             .ids_of_robots_connected_with
             .difference(&state.ids_of_robots_within_comms_range)
             .cloned()
             .collect();
 
-        for id in ids_of_robots_connected_with_outside_comms_range.iter() {
-            if let Some((_, graph, _)) = secondary_query
-                .iter_mut()
-                .find(|(other_id, _, _)| other_id == id)
-            {}
+        // for id in ids_of_robots_connected_with_outside_comms_range.iter() {
+        //     if let Some((_, graph, _)) = secondary_query
+        //         .iter_mut()
+        //         .find(|(other_id, _, _)| other_id == id)
+        //     {}
 
-            // flag/store entity_id
-        }
+        //     // flag/store entity_id
+        // }
         // state.ids_of_robots_connected_with.iter().zip(state.ids_of_robots_within_comms_range.iter()).
     }
 

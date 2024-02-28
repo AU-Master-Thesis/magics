@@ -269,6 +269,7 @@ pub struct DynamicFactor {
 impl DynamicFactor {
     #[must_use]
     pub fn new(state: &mut FactorState, delta_t: f32) -> Self {
+        /// FIXME: change to use ndarray
         let (eye, zeros) = {
             let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
             let eye = Matrix::<f32>::eye(nrows);
@@ -462,6 +463,38 @@ impl FactorKind {
     #[must_use]
     pub fn is_pose(&self) -> bool {
         matches!(self, Self::Pose(..))
+    }
+
+    pub fn as_pose(&self) -> Option<&PoseFactor> {
+        if let Self::Pose(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_inter_robot(&self) -> Option<&InterRobotFactor> {
+        if let Self::InterRobot(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_dynamic(&self) -> Option<&DynamicFactor> {
+        if let Self::Dynamic(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_obstacle(&self) -> Option<&ObstacleFactor> {
+        if let Self::Obstacle(v) = self {
+            Some(v)
+        } else {
+            None
+        }
     }
 }
 
