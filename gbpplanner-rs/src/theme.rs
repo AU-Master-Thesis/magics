@@ -1,11 +1,16 @@
 use bevy::prelude::*;
 use bevy::window::WindowTheme;
 use bevy_egui::{
-    egui::{self, Style, Visuals},
+    egui::{
+        self,
+        epaint::Shadow,
+        style::{HandleShape, Selection, Widgets},
+        Color32, Rounding, Stroke, Style, Visuals,
+    },
     EguiContexts,
 };
 use bevy_infinite_grid::InfiniteGridSettings;
-use catppuccin::Flavour;
+use catppuccin::{Colour, Flavour};
 
 use crate::factorgraph::{Factor, Line, Variable};
 
@@ -36,6 +41,103 @@ impl CatppuccinTheme {
 
         let (r, g, b) = colour.into();
         Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8)
+    }
+}
+
+pub trait ColourExt {
+    fn lightness(&self) -> f32;
+}
+
+impl ColourExt for Colour {
+    fn lightness(&self) -> f32 {
+        let (r, g, b) = Into::<(u8, u8, u8)>::into(*self);
+        let average = (r as u16 + g as u16 + b as u16) / 3;
+        average as f32 / 255.0
+    }
+}
+
+pub trait CatppuccinThemeExt {
+    fn catppuccin_light() -> Visuals {
+        Self::catppuccin_flavour(Flavour::Latte)
+    }
+    fn catppuccin_dark() -> Visuals {
+        Self::catppuccin_flavour(Flavour::Macchiato)
+    }
+    fn catppuccin_flavour(flavour: Flavour) -> Visuals;
+}
+
+pub trait FromCatppuccinColourExt {
+    fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color32;
+}
+
+impl FromCatppuccinColourExt for Color32 {
+    fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color32 {
+        Color32::from_rgb(colour.0, colour.1, colour.2)
+    }
+}
+
+impl CatppuccinThemeExt for Visuals {
+    fn catppuccin_flavour(flavour: Flavour) -> Visuals {
+        let is_dark = flavour.base().lightness() < 0.5;
+        Visuals {
+            dark_mode: true,
+            override_text_color: Some(Color32::from_catppuccin_colour(flavour.text())),
+            widgets: Widgets::default(),
+            selection: Selection::default(),
+            // hyperlink_color: Color32::from_rgb(90, 170, 255),
+            hyperlink_color: Color32::from_catppuccin_colour(flavour.blue()),
+            faint_bg_color: Color32::from_additive_luminance(5), // visible, but barely so
+            // extreme_bg_color: Color32::from_gray(10), // e.g. TextEdit background
+            extreme_bg_color: Color32::from_catppuccin_colour(flavour.crust()), // e.g. TextEdit background
+            // code_bg_color: Color32::from_gray(64),
+            code_bg_color: Color32::from_catppuccin_colour(flavour.mantle()),
+            // warn_fg_color: Color32::from_rgb(255, 143, 0), // orange
+            warn_fg_color: Color32::from_catppuccin_colour(flavour.yellow()),
+            error_fg_color: Color32::from_catppuccin_colour(flavour.red()),
+
+            window_rounding: Rounding::same(6.0),
+            window_shadow: if is_dark {
+                Shadow::big_dark()
+            } else {
+                Shadow::big_light()
+            },
+            // window_fill: Color32::from_gray(27),
+            window_fill: Color32::from_catppuccin_colour(flavour.base()),
+            window_stroke: Stroke::new(
+                1.0,
+                Color32::from_catppuccin_colour(flavour.crust()),
+            ),
+
+            menu_rounding: Rounding::same(6.0),
+
+            // panel_fill: Color32::from_gray(27),
+            panel_fill: Color32::from_catppuccin_colour(flavour.base()),
+
+            popup_shadow: if is_dark {
+                Shadow::small_dark()
+            } else {
+                Shadow::small_light()
+            },
+            resize_corner_size: 12.0,
+            text_cursor: Stroke::new(
+                2.0,
+                Color32::from_catppuccin_colour(flavour.lavender()),
+            ),
+            text_cursor_preview: false,
+            clip_rect_margin: 3.0, // should be at least half the size of the widest frame stroke + max WidgetVisuals::expansion
+            button_frame: true,
+            collapsing_header_frame: false,
+            indent_has_left_vline: true,
+
+            striped: false,
+
+            slider_trailing_fill: false,
+            handle_shape: HandleShape::Circle,
+
+            interact_cursor: None,
+
+            image_loading_spinners: true,
+        }
     }
 }
 
@@ -103,18 +205,7 @@ fn toggle_theme(
                         _ => Flavour::Latte,
                     };
 
-                    // contexts.ctx_mut().set_visuals(egui::Visuals {
-                    //     dark_mode: true,
-                    //     ..Default::default()
-                    // });
-
-                    (
-                        Some(WindowTheme::Dark),
-                        Style {
-                            visuals: Visuals::dark(),
-                            ..Default::default()
-                        },
-                    )
+                    (Some(WindowTheme::Dark), Visuals::catppuccin_dark())
                 }
                 WindowTheme::Dark => {
                     info!("Switching WindowTheme: Dark -> Light");
@@ -123,22 +214,13 @@ fn toggle_theme(
                         _ => Flavour::Latte,
                     };
 
-                    // contexts.ctx_mut().set_visuals(egui::Visuals {
-                    //     dark_mode: false,
-                    //     ..Default::default()
-                    // });
-
-                    (
-                        Some(WindowTheme::Light),
-                        Style {
-                            visuals: Visuals::light(),
-                            ..Default::default()
-                        },
-                    )
+                    (Some(WindowTheme::Light), Visuals::catppuccin_light())
                 }
             };
             window.window_theme = window_theme;
-            contexts.ctx_mut().set_style(egui_style);
+            contexts
+                .ctx_mut()
+                .style_mut(|style| style.visuals = egui_style);
             theme_toggled_event.send(ThemeToggledEvent);
         }
     }

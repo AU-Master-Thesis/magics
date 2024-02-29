@@ -1,10 +1,11 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::WindowTheme};
 use bevy_egui::{
-    egui::{self, RichText},
+    egui::{self, Color32, RichText, Visuals},
     EguiContexts, EguiPlugin,
 };
+use catppuccin::Flavour;
 
-use crate::asset_loader::SceneAssets;
+use crate::theme::{CatppuccinTheme, CatppuccinThemeExt};
 
 pub struct EguiInterfacePlugin;
 
@@ -32,10 +33,15 @@ pub struct UiState {
 
 /// `Setup` **Bevy** sytem to initialise the `egui` visuals
 /// This is where the **default** for `egui` is set
-fn configure_visuals_system(mut contexts: EguiContexts) {
-    contexts.ctx_mut().set_visuals(egui::Visuals {
-        window_rounding: 5.0.into(),
-        ..Default::default()
+fn configure_visuals_system(
+    mut contexts: EguiContexts,
+    catppuccin: Res<CatppuccinTheme>,
+    windows: Query<&Window>,
+) {
+    let window = windows.single();
+    contexts.ctx_mut().set_visuals(match window.window_theme {
+        Some(WindowTheme::Dark) => Visuals::catppuccin_dark(),
+        _ => Visuals::catppuccin_light(),
     });
 
     let mut fonts = egui::FontDefinitions::default();
