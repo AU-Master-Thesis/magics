@@ -96,15 +96,15 @@ impl InterRobotFactor {
     }
 }
 
-pub trait Norm {
-    fn norm(&self) -> f32;
-}
+// pub trait Norm {
+//     fn norm(&self) -> f32;
+// }
 
-impl Norm for ndarray::Array1<f32> {
-    fn norm(&self) -> f32 {
-        self.iter().map(|x| f32::powi(*x, 2)).sum()
-    }
-}
+// impl Norm for ndarray::Array1<f32> {
+//     fn norm(&self) -> f32 {
+//         self.iter().map(|x| f32::powi(*x, 2)).sum()
+//     }
+// }
 
 impl Model for InterRobotFactor {
     fn jacobian(&mut self, state: &FactorState, x: &Vector<f32>) -> Matrix<f32> {

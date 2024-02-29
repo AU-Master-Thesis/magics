@@ -1,12 +1,11 @@
 use std::collections::{BTreeSet, VecDeque};
-use std::env::current_exe;
 use std::sync::Arc;
 
 use crate::config::Config;
 use crate::utils::get_variable_timesteps;
 
-use super::factor::{Factor, Norm};
-use super::factorgraph::FactorGraph;
+use super::factor::Factor;
+use super::factorgraph::{FactorGraph, MessagePassingMode};
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
 use super::{Matrix, NdarrayVectorExt, Timestep, Vector};
@@ -24,7 +23,6 @@ const SIGMA_POSE_FIXED: f64 = 1e-15;
 
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
-        // TODO: add rest
         app.add_systems(
             Update,
             (
@@ -32,6 +30,7 @@ impl Plugin for RobotPlugin {
                 delete_interrobot_factors_system,
                 create_interrobot_factors_system,
                 update_failed_comms_system,
+                // iterate_gbp_system,
                 iterate_gbp_internal_system,
                 iterate_gbp_external_system,
                 update_prior_of_horizon_state_system,
@@ -434,12 +433,46 @@ fn update_failed_comms_system(mut query: Query<&mut RobotState>, config: Res<Con
 
 macro_rules! iterate_gbp_impl {
     ($name:ident, $mode:expr) => {
-        fn $name(mut query: Query<&mut FactorGraph>, config: Res<Config>) {}
+        fn $name(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {
+
+            query.par_iter_mut().for_each(|(robot_id, mut factorgraph)| {
+                factorgraph.factor_iteration(robot_id, $mode);
+            });
+            query.par_iter_mut().for_each(|(robot_id, mut factorgraph)| {
+                factorgraph.variable_iteration(robot_id, $mode);
+            });
+            // for (robot_id, mut factorgraph) in query.par_iter_mut() {
+            //     factorgraph.factor_iteration(robot_id, $mode);
+            // }
+            // for (robot_id, mut factorgraph) in query.iter_mut() {
+            //     factorgraph.variable_iteration(robot_id, $mode);
+            // }
+
+        }
     };
 }
 
 iterate_gbp_impl!(iterate_gbp_internal_system, MessagePassingMode::Internal);
 iterate_gbp_impl!(iterate_gbp_external_system, MessagePassingMode::External);
+
+// fn iterate_gbp_system(
+//     mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
+//     config: Res<Config>,
+// ) {
+
+//     query.par_iter_mut().for_each(|(robot_id, mut factorgraph)| {
+//         factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
+//     });
+//     query.par_iter_mut().for_each(|(robot_id, mut factorgraph)| {
+//         factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
+//     });
+//     // for (robot_id, mut factorgraph) in query.par_iter_mut() {
+//     //     factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
+//     // }
+//     // for (robot_id, mut factorgraph) in query.iter_mut() {
+//     //     factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
+//     // }
+// }
 
 // fn iterate_gbp(query: Query<&mut FactorGraph>, config: Res<Config>) {}
 
@@ -462,7 +495,7 @@ fn update_prior_of_horizon_state_system(
         let mean_of_horizon_variable = horizon_variable.belief.mean();
         let direction_from_horizon_to_goal = current_waypoint - &mean_of_horizon_variable;
         let distance_from_horizon_to_goal =
-            direction_from_horizon_to_goal.euclidian_norm();
+            direction_from_horizon_to_goal.euclidean_norm();
         let new_velocity =
             f32::min(config.robot.max_speed, distance_from_horizon_to_goal)
                 * direction_from_horizon_to_goal.normalized();

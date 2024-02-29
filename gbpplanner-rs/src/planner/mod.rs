@@ -17,6 +17,18 @@ pub type Timestep = u32;
 pub type Vector<T> = ndarray::Array1<T>;
 pub type Matrix<T> = ndarray::Array2<T>;
 
+// TODO: finish and implement
+pub trait VectorNorm {
+    type Scalar: NdFloat;
+    fn euclidian_norm(&self) -> Self::Scalar;
+    fn l1_norm(&self) -> Self::Scalar;
+
+    #[inline(always)]
+    fn l2_norm(&self) -> Self::Scalar {
+        self.euclidian_norm()
+    }
+}
+
 pub trait NdarrayVectorExt: Clone {
     type Scalar: NdFloat;
     fn normalize(&mut self);
