@@ -558,6 +558,7 @@ trait Model {
 
 impl Model for InterRobotFactor {
     fn jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
+        // TODO: switch to ndarray
         let mut jacobian = DMatrix::zeros(state.measurement.nrows(), state.dofs * 2);
         let x_diff = {
             let offset = state.dofs / 2;

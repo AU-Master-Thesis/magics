@@ -17,8 +17,70 @@ pub type Timestep = u32;
 pub type Vector<T> = ndarray::Array1<T>;
 pub type Matrix<T> = ndarray::Array2<T>;
 
+pub trait NdarrayVectorExt: Clone {
+    type Scalar: NdFloat;
+    fn normalize(&mut self);
+    fn normalized(self) -> Self {
+        let mut copy = self.clone();
+        copy.normalize();
+        copy
+    }
+    fn euclidian_norm(&self) -> Self::Scalar;
+}
+
+macro_rules! ndarray_vector_ext_impl {
+    ($float:ty) => {
+        impl NdarrayVectorExt for Vector<$float> {
+            type Scalar = $float;
+            fn normalize(&mut self) {
+                let len = self.len() as $float;
+                self.map_mut(|x| *x / len);
+            }
+
+            // TODO: use SIMD
+            fn euclidian_norm(&self) -> Self::Scalar {
+                <$float>::sqrt(self.fold(0.0, |acc, x| acc + <$float>::powi(*x, 2)))
+            }
+        }
+    };
+}
+
+// TODO: write test cases for impls
+ndarray_vector_ext_impl!(f32);
+ndarray_vector_ext_impl!(f64);
+
+// impl NdarrayVectorExt for Vector<f32> {
+//     type Scalar = f32;
+//     fn normalize(self) -> Self {
+//         let len = self.len() as f32;
+//         self.mapv_into(|x| x / len)
+//     }
+// }
+
+// pub trait NdarrayVectorExt<T>
+// where
+//     T: NdFloat,
+// {
+//     fn normalize(self) -> Self {
+//         // Provide a default implementation using generics
+//         let norm = self.dot(self).sqrt();
+//         self.mapv_into(|x| x / norm)
+//     }
+// }
+
+// impl<T> NdarrayVectorExt<T> for Vector<T> where T: NdFloat {}
+
+// impl<T> TryFrom<Vector<T>> for bevy::math::Vec2 {
+//     type Error = &'static str;
+
+//     fn try_from(value: Vector<T>) -> Result<Self, Self::Error> {
+//         todo!()
+//     }
+// }
+
 use self::robot::RobotPlugin;
 use bevy::prelude::*;
+use ndarray::NdFloat;
 // use ndarray_linalg::Lapack;
 
 pub struct PlannerPlugin;

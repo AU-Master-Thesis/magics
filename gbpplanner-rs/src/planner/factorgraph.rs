@@ -228,6 +228,18 @@ impl FactorGraph {
         node.as_variable_mut()
     }
 
+    pub fn first_variable(&self) -> Option<&Variable> {
+        self.nth_variable(0usize)
+    }
+
+    pub fn last_variable(&self) -> Option<&Variable> {
+        self.nth_variable(self.variable_ordering.len())
+    }
+
+    pub fn last_variable_mut(&mut self) -> Option<&mut Variable> {
+        self.nth_variable_mut(self.variable_ordering.len())
+    }
+
     // TODO: Implement our own export to `DOT` format, which can be much more specific with styling.
     /// Exports tree to `graphviz` `DOT` format
     pub fn export(&self) -> String {

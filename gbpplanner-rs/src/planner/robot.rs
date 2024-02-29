@@ -1,16 +1,17 @@
 use std::collections::{BTreeSet, VecDeque};
+use std::env::current_exe;
 use std::sync::Arc;
 
 use crate::config::Config;
 use crate::utils::get_variable_timesteps;
 
-use super::factor::Factor;
+use super::factor::{Factor, Norm};
 use super::factorgraph::FactorGraph;
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
-use super::{Matrix, Timestep, Vector};
+use super::{Matrix, NdarrayVectorExt, Timestep, Vector};
 use bevy::prelude::*;
-use ndarray::array;
+use ndarray::{array, concatenate, Axis};
 use std::collections::HashMap;
 
 pub struct RobotPlugin;
@@ -443,10 +444,51 @@ iterate_gbp_impl!(iterate_gbp_external_system, MessagePassingMode::External);
 // fn iterate_gbp(query: Query<&mut FactorGraph>, config: Res<Config>) {}
 
 fn update_prior_of_horizon_state_system(
-    query: Query<(&mut FactorGraph, &mut Waypoints), With<RobotState>>,
+    mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints), With<RobotState>>,
     config: Res<Config>,
+    time: Res<Time>,
 ) {
+    let delta_t = time.delta_seconds();
+    for (entity, mut factorgraph, mut waypoints) in query.iter_mut() {
+        let Some(current_waypoint) = waypoints.0.front().map(|wp| array![wp.x, wp.y])
+        else {
+            warn!("robot {:?}, has reached its final waypoint", entity);
+            continue;
+        };
+
+        let horizon_variable = factorgraph
+            .last_variable_mut()
+            .expect("factorgraph has a horizon variable");
+        let mean_of_horizon_variable = horizon_variable.belief.mean();
+        let direction_from_horizon_to_goal = current_waypoint - &mean_of_horizon_variable;
+        let distance_from_horizon_to_goal =
+            direction_from_horizon_to_goal.euclidian_norm();
+        let new_velocity =
+            f32::min(config.robot.max_speed, distance_from_horizon_to_goal)
+                * direction_from_horizon_to_goal.normalized();
+        let new_position = mean_of_horizon_variable + &new_velocity * delta_t;
+
+        // Update horizon state with new pos and vel
+        // horizon->mu_ << new_pos, new_vel;
+        // horizon->change_variable_prior(horizon->mu_);
+        let new_mean = concatenate![Axis(0), new_position, new_velocity];
+        // TODO: cache the mean ...
+        // horizon_variable.belief.mean()
+
+        // TODO: create a separate method on Variable so we do not have to abuse the interface, and call it with a empty
+
+        // vector, and get an empty HashMap as a return value.
+        let _ = horizon_variable.change_prior(new_mean, vec![]);
+
+        // NOTE: this is weird, we think
+        let horizon_has_reached_waypoint =
+            distance_from_horizon_to_goal < config.robot.radius;
+        if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
+            waypoints.0.pop_front();
+        }
+    }
 }
+
 fn update_prior_of_current_state_system(
     mut query: Query<(&mut FactorGraph, &mut Transform), With<RobotState>>,
     config: Res<Config>,
