@@ -6,7 +6,7 @@ use super::{
         camera::{self, CameraMovementMode, MainCamera},
         movement::{AngularVelocity, Orbit, Velocity},
     },
-    general_input::GeneralInputs,
+    general::GeneralInputs,
 };
 
 pub struct CameraInputPlugin;

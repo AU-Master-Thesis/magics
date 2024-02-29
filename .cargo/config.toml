@@ -6,9 +6,7 @@ linker = "clang"
 # rustflags = ["-C", "linker=mold"]
 ## rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold"]
 rustflags = [
-  "-C",
-  "link-arg=-fuse-ld=/nix/store/jfvy2amv3ppagvl80g0x3r82k56016kl-mold-2.4.0/bin/mold",
+  "-Clink-arg=-fuse-ld=mold", # Use mold Linker
+  # "-Zshare-generics=y",       # (Nightly) Make the current crate share its generic instantiations
+  # "-Zthreads=0",              # (Nightly) Use improved multithreading with the recommended amount of threads.
 ]
-
-# [build]
-# rustc-wrapper = 'sccache'
