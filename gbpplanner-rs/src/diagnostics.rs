@@ -2,6 +2,8 @@ use bevy::diagnostic::DiagnosticsStore;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::*;
 
+use crate::asset_loader::SceneAssets;
+
 pub struct DiagnosticsPlugin;
 
 impl Plugin for DiagnosticsPlugin {
@@ -20,7 +22,8 @@ struct FpsRoot;
 #[derive(Component)]
 struct FpsText;
 
-fn setup_fps_counter(mut commands: Commands) {
+/// Setup the FPS counter UI
+fn setup_fps_counter(mut commands: Commands, scene_assets: Res<SceneAssets>) {
     // create our UI root node
     // this is the wrapper/container for the text
     let root = commands
@@ -60,6 +63,7 @@ fn setup_fps_counter(mut commands: Commands) {
                     TextSection {
                         value: "FPS: ".into(),
                         style: TextStyle {
+                            font: scene_assets.main_font.clone(),
                             font_size: 16.0,
                             color: Color::WHITE,
                             // if you want to use your game's font asset,
@@ -71,6 +75,7 @@ fn setup_fps_counter(mut commands: Commands) {
                     TextSection {
                         value: " N/A".into(),
                         style: TextStyle {
+                            font: scene_assets.main_font.clone(),
                             font_size: 16.0,
                             color: Color::WHITE,
                             // if you want to use your game's font asset,
@@ -87,12 +92,13 @@ fn setup_fps_counter(mut commands: Commands) {
     commands.entity(root).push_children(&[text_fps]);
 }
 
+/// Update the FPS counter text
 fn fps_text_update_system(
     diagnostics: Res<DiagnosticsStore>,
     mut query: Query<&mut Text, With<FpsText>>,
 ) {
     for mut text in &mut query {
-        // try to get a "smoothed" FPS value from Bevy
+        // try to get a "smoothed" FPS value from **Bevy**
         if let Some(value) = diagnostics
             .get(FrameTimeDiagnosticsPlugin::FPS)
             .and_then(|fps| fps.smoothed())

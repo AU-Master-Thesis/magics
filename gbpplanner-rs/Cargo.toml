@@ -11,7 +11,10 @@ rust-version.workspace = true
 [dependencies]
 # gbp-rs = { path = "../gbp-rs" }
 # gbp-linalg = { path = "../gbp-linalg" }
-bevy = { version = "0.12.1", default-features = true, features = ["wayland"] }
+bevy = { version = "0.12.1", default-features = true, features = [
+    "wayland",
+    "dynamic_linking",
+] }
 bevy-inspector-egui = "0.22.1"
 leafwing-input-manager = "0.11.2"
 catppuccin = "1.4.0"
@@ -32,15 +35,17 @@ ndarray = "0.15.6"
 ndarray-inverse = "0.1.9"
 # ndarray-linalg = { version = "0.16", features = ["intel-mkl-static"] } # This is the only backend variant i have gotten to work
 num-traits = "0.2.18"
+ron = "0.8.1"
+bevy_egui = "0.24.0"
 # tap = "1.0.1"
 
-# # Enable a small amount of optimization in debug mode
-# [profile.dev]
-# opt-level = 1
+# Enable a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
 
-# # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
-# [profile.dev.package."*"]
-# opt-level = 3
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+[profile.dev.package."*"]
+opt-level = 3
 
 [lints]
 workspace = true

@@ -11,11 +11,15 @@ mod movement;
 mod planner;
 mod robot_spawner;
 mod theme;
+mod ui;
 mod utils;
+
+use std::path::PathBuf;
 
 use crate::asset_loader::AssetLoaderPlugin;
 use crate::camera::CameraPlugin;
 use crate::config::Config;
+use crate::config::FormationGroup;
 use crate::diagnostics::DiagnosticsPlugin;
 use crate::environment::EnvironmentPlugin;
 use crate::factorgraph::FactorGraphPlugin;
@@ -23,12 +27,15 @@ use crate::follow_cameras::FollowCamerasPlugin;
 use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
 use crate::movement::MovementPlugin;
+use crate::planner::PlannerPlugin;
 use crate::robot_spawner::RobotSpawnerPlugin;
 use crate::theme::ThemePlugin;
+use crate::ui::EguiInterfacePlugin;
 
 use bevy::core::FrameCount;
 use bevy::prelude::*;
 
+use bevy::window::WindowTheme;
 use clap::Parser;
 
 // use gbp_rs::factorgraph;
@@ -48,22 +55,24 @@ struct Cli {
 
 fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
     if let Some(config_path) = &cli.config {
-        Ok(Config::parse(config_path)?)
+        Ok(Config::from_file(config_path)?)
     } else {
-        // define default path
-        let home = std::env::var("HOME")?;
-        let xdg_config_home = std::path::Path::new(&home).join(".config");
-        let user_config_dir = xdg_config_home.join("gbpplanner");
+        let mut conf_paths = Vec::<PathBuf>::new();
+
+        if let Some(home) = std::env::var("HOME").ok() {
+            let xdg_config_home = std::path::Path::new(&home).join(".config");
+            let user_config_dir = xdg_config_home.join("gbpplanner");
+
+            conf_paths.push(user_config_dir.join("config.toml"));
+        }
+
         let cwd = std::env::current_dir()?;
 
-        let conf_paths = dbg!(vec![
-            user_config_dir.join("config.toml"),
-            cwd.join("config/config.toml")
-        ]);
+        conf_paths.push(cwd.join("config/config.toml"));
 
         for conf_path in conf_paths {
             if conf_path.exists() {
-                return Ok(Config::parse(&conf_path.to_path_buf())?);
+                return Ok(Config::from_file(&conf_path.to_path_buf())?);
             }
         }
 
@@ -77,9 +86,18 @@ fn main() -> color_eyre::eyre::Result<()> {
     let cli = Cli::parse();
 
     if cli.dump_default_formation {
-        let default_formation = config::Formation::default();
+        // let default_formation = config::Formation::default();
+        let default_formation = config::FormationGroup::default();
         // Write default config to stdout
-        println!("{}", toml::to_string_pretty(&default_formation)?);
+        // println!("{}", toml::to_string_pretty(&default_formation)?);
+        // println!("{}", ron::to_string(&default_formation)?);
+        println!(
+            "{}",
+            ron::ser::to_string_pretty(
+                &default_formation,
+                ron::ser::PrettyConfig::new().indentor("  ".to_string())
+            )?
+        );
 
         return Ok(());
     }
@@ -88,11 +106,15 @@ fn main() -> color_eyre::eyre::Result<()> {
         let default_config = config::Config::default();
         // Write default config to stdout
         println!("{}", toml::to_string_pretty(&default_config)?);
+        // println!("{}", ron::to_string(&default_config)?);
 
         return Ok(());
     }
 
-    let config = Config::parse(&cli.config.unwrap())?;
+    // let config = Config::parse(&cli.config.unwrap())?;
+    let config = read_config(&cli)?;
+    let formation_file_path = PathBuf::from(&config.formation_group.clone());
+    let formation = FormationGroup::from_file(&formation_file_path)?;
 
     // let config = read_config(&cli)?;
 
@@ -100,9 +122,10 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     App::new()
         .insert_resource(config)
+        .insert_resource(formation)
         .add_plugins((
             DefaultPlugins.set(
-                // Bevy
+                // **Bevy**
                 WindowPlugin {
                     primary_window: Some(Window {
                         title: "GBP Planner".into(),
@@ -110,7 +133,7 @@ fn main() -> color_eyre::eyre::Result<()> {
                         // present_mode: PresentMode::AutoVsync,
                         // fit_canvas_to_parent: true,
                         // prevent_default_event_handling: false,
-                        // window_theme: Some(WindowTheme::Dark),
+                        window_theme: Some(WindowTheme::Dark),
                         // enable_buttons: bevy::window::EnableButtons {
                         //     maximize: false,
                         //     ..Default::default()
@@ -121,7 +144,7 @@ fn main() -> color_eyre::eyre::Result<()> {
                     ..Default::default()
                 },
             ),
-            DiagnosticsPlugin,    // Bevy
+            DiagnosticsPlugin,    // **Bevy**
             ThemePlugin,          // Custom
             AssetLoaderPlugin,    // Custom
             EnvironmentPlugin,    // Custom
@@ -132,6 +155,8 @@ fn main() -> color_eyre::eyre::Result<()> {
             FollowCamerasPlugin,  // Custom
             RobotSpawnerPlugin,   // Custom
             FactorGraphPlugin,    // Custom
+            EguiInterfacePlugin,  // Custom
+                                  // PlannerPlugin, // Custom
                                   // WorldInspectorPlugin::new()
         ))
         .add_systems(Update, make_visible)

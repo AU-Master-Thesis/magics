@@ -1,7 +1,6 @@
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
-    window::WindowTheme,
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
@@ -25,6 +24,8 @@ impl Plugin for EnvironmentPlugin {
     }
 }
 
+/// `Startup` system to spawn the an infinite grid
+/// Using the `InfiniteGridPlugin` from the `bevy_infinite_grid` crate
 fn infinite_grid(
     mut commands: Commands,
     catppuccin_theme: Res<CatppuccinTheme>,
@@ -51,6 +52,7 @@ fn infinite_grid(
     });
 }
 
+/// `Startup` system to spawn the directional light.
 fn lighting(mut commands: Commands) {
     commands.spawn(DirectionalLightBundle {
         transform: Transform::from_translation(Vec3::X * 15.0 + Vec3::Z * 20.0)
@@ -59,6 +61,9 @@ fn lighting(mut commands: Commands) {
     });
 }
 
+/// **Bevy** `State` representing whether the heightmap.
+/// 1. is `Waiting` for the image asset to be loaded.
+/// 2. has been `Generated` from the image asset.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum HeightMapState {
     #[default]
@@ -66,6 +71,8 @@ pub enum HeightMapState {
     Generated,
 }
 
+/// Function to check if the environment image asset has been loaded.
+/// used as a run criteria for the `obstacles` system.
 fn environment_png_is_loaded(
     state: Res<State<HeightMapState>>,
     scene_assets: Res<SceneAssets>,
@@ -80,6 +87,7 @@ fn environment_png_is_loaded(
     false
 }
 
+/// `Update` system to spawn the heightmap obstacles as soon as the obstacle image is loaded.
 fn obstacles(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,

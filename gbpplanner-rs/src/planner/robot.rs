@@ -1,5 +1,5 @@
 use std::collections::{BTreeSet, VecDeque};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use crate::config::Config;
 use crate::utils::get_variable_timesteps;
@@ -95,13 +95,13 @@ pub struct RobotBundle {
     pub radius: Radius, // TODO: create new type that guarantees this constraint
     /// The current state of the robot
     pub state: RobotState,
-    pub transform: Transform,
+    // pub transform: Transform,
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A VecDeque is used to allow for efficient pop_front operations, and push_back operations.
     pub waypoints: Waypoints,
-    // NOTE: Using the Bevy entity id as the robot id
+    // NOTE: Using the **Bevy** entity id as the robot id
     // pub id: RobotId,
-    // NOTE: These are accessible as Bevy resources
+    // NOTE: These are accessible as **Bevy** resources
     // obstacle_sdf: Option<Rc<image::RgbImage>>,
     // settings: &'a RobotSettings,
     // id_generator: Rc<RefCell<IdGenerator>>,
@@ -114,7 +114,9 @@ impl RobotBundle {
         // transform: Transform,
         variable_timesteps: &[Timestep],
         config: &Config,
-        obstacle_sdf: Arc<image::RgbImage>,
+        // obstacle_sdf: Arc<image::RgbImage>,
+        // obstacle_sdf: &OnceLock<Image>,
+        obstacle_sdf: &'static Image,
     ) -> Result<Self, RobotInitError> {
         if waypoints.is_empty() {
             return Err(RobotInitError::NoWaypoints);
@@ -126,11 +128,11 @@ impl RobotBundle {
 
         let start = waypoints
             .pop_front()
-            .expect("Know that waypoints has at least one element");
-        let transform = Transform::from_translation(Vec3::new(start.x, 0.0, start.y));
+            .expect("Waypoints has at least one element");
+        // let transform = Transform::from_translation(Vec3::new(start.x, 0.0, start.y));
         let goal = waypoints
             .front()
-            .expect("Know that waypoints has at least one element");
+            .expect("Waypoints has at least two elements");
 
         // Initialise the horzion in the direction of the goal, at a distance T_HORIZON * MAX_SPEED from the start.
         let start2goal = *goal - start;
@@ -172,7 +174,7 @@ impl RobotBundle {
 
             let covariance = Matrix::<f32>::from_diag(&sigmas);
             let prior = MultivariateNormal::from_mean_and_covariance(
-                array![mean.x, mean.y],
+                array![mean.x, mean.y, 0.0, 0.0], // initial velocity (x', y') is zero
                 covariance,
             );
 
@@ -205,7 +207,7 @@ impl RobotBundle {
                 config.gbp.sigma_factor_obstacle,
                 array![0.0],
                 config.robot.dofs,
-                Arc::clone(&obstacle_sdf),
+                obstacle_sdf,
                 config.simulation.world_size,
             );
 
@@ -217,7 +219,7 @@ impl RobotBundle {
             factorgraph,
             radius: Radius(config.robot.radius),
             state: RobotState::new(),
-            transform,
+            // transform,
             waypoints: Waypoints(waypoints),
         })
     }
