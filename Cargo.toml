@@ -1,6 +1,6 @@
 [workspace]
-resolver = "2"                                      # Important! wgpu/bevy needs this!
-members = ["gbp-linalg", "gbp-rs", "gbpplanner-rs"]
+resolver = "2"              # Important! wgpu/bevy needs this!
+members = ["gbpplanner-rs"]
 
 [workspace.package]
 version = "0.1.0"
