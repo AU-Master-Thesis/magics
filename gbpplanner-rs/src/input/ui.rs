@@ -1,4 +1,5 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
+use bevy_egui::EguiSettings;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 
 use super::super::ui::UiState;
@@ -16,6 +17,7 @@ impl Plugin for UiInputPlugin {
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 pub enum UiAction {
     ToggleLeftPanel,
+    ToggleScaleFactor,
 }
 
 impl UiAction {
@@ -23,6 +25,9 @@ impl UiAction {
         match action {
             Self::ToggleLeftPanel => {
                 Some(UserInput::Single(InputKind::Keyboard(KeyCode::H)))
+            }
+            Self::ToggleScaleFactor => {
+                Some(UserInput::Single(InputKind::Keyboard(KeyCode::U)))
             }
         }
     }
@@ -43,10 +48,31 @@ fn bind_ui_input(mut commands: Commands) {
     },));
 }
 
-fn ui_actions(mut query: Query<&ActionState<UiAction>>, mut left_panel: ResMut<UiState>) {
+fn ui_actions(
+    query: Query<&ActionState<UiAction>>,
+    mut left_panel: ResMut<UiState>,
+    mut toggle_scale_factor: Local<Option<bool>>,
+    mut egui_settings: ResMut<EguiSettings>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+) {
     if let Ok(action_state) = query.get_single() {
         if action_state.just_pressed(UiAction::ToggleLeftPanel) {
             left_panel.left_panel = !left_panel.left_panel;
+        }
+
+        if action_state.just_pressed(UiAction::ToggleScaleFactor)
+            || toggle_scale_factor.is_none()
+        {
+            *toggle_scale_factor = Some(!toggle_scale_factor.unwrap_or(true));
+
+            if let Ok(window) = windows.get_single() {
+                let scale_factor = if toggle_scale_factor.unwrap() {
+                    1.0
+                } else {
+                    1.0 / window.scale_factor()
+                };
+                egui_settings.scale_factor = scale_factor;
+            }
         }
     }
 }

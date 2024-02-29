@@ -61,7 +61,7 @@ fn lighting(mut commands: Commands) {
     });
 }
 
-/// Bevy `State` representing whether the heightmap.
+/// **Bevy** `State` representing whether the heightmap.
 /// 1. is `Waiting` for the image asset to be loaded.
 /// 2. has been `Generated` from the image asset.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]

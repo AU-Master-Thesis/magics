@@ -11,7 +11,10 @@ rust-version.workspace = true
 [dependencies]
 # gbp-rs = { path = "../gbp-rs" }
 # gbp-linalg = { path = "../gbp-linalg" }
-bevy = { version = "0.12.1", default-features = true, features = ["wayland"] }
+bevy = { version = "0.12.1", default-features = true, features = [
+    "wayland",
+    "dynamic_linking",
+] }
 bevy-inspector-egui = "0.22.1"
 leafwing-input-manager = "0.11.2"
 catppuccin = "1.4.0"

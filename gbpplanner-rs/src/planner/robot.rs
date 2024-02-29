@@ -95,9 +95,9 @@ pub struct RobotBundle {
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A VecDeque is used to allow for efficient pop_front operations, and push_back operations.
     pub waypoints: Waypoints,
-    // NOTE: Using the Bevy entity id as the robot id
+    // NOTE: Using the **Bevy** entity id as the robot id
     // pub id: RobotId,
-    // NOTE: These are accessible as Bevy resources
+    // NOTE: These are accessible as **Bevy** resources
     // obstacle_sdf: Option<Rc<image::RgbImage>>,
     // settings: &'a RobotSettings,
     // id_generator: Rc<RefCell<IdGenerator>>,
