@@ -7,6 +7,18 @@ use catppuccin::Flavour;
 
 use crate::theme::{CatppuccinTheme, CatppuccinThemeExt};
 
+//  ██████████                      ███
+// ░░███░░░░░█                     ░░░
+//  ░███  █ ░   ███████ █████ ████ ████
+//  ░██████    ███░░███░░███ ░███ ░░███
+//  ░███░░█   ░███ ░███ ░███ ░███  ░███
+//  ░███ ░   █░███ ░███ ░███ ░███  ░███
+//  ██████████░░███████ ░░████████ █████
+// ░░░░░░░░░░  ░░░░░███  ░░░░░░░░ ░░░░░
+//             ███ ░███
+//            ░░██████
+//             ░░░░░░
+
 pub struct EguiInterfacePlugin;
 
 impl Plugin for EguiInterfacePlugin {
