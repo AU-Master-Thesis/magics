@@ -39,6 +39,7 @@
         cargo-modules
         cargo-watch
         cargo-rr
+        cargo-udeps
 
         #   # cargo-profiler
         #   # cargo-feature
@@ -62,7 +63,19 @@
           nativeBuildInputs = [
             pkgs.pkg-config
           ];
-          buildInputs = [just d2] ++ bevy-deps ++ rust-deps;
+          buildInputs =
+            [
+              just
+              d2
+              graphviz
+              openblas
+              openssl
+              # lapack
+              gcc
+              gfortran
+            ]
+            ++ bevy-deps
+            ++ rust-deps;
 
           LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
         };

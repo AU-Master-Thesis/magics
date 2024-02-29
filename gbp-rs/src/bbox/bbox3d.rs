@@ -118,45 +118,61 @@ mod tests {
 
     #[test]
     fn test_bounding_box3d_volume() {
-        let bbox =
-            BoundingBox3d::from_min_max(Vector3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 1.0, 1.0));
+        let bbox = BoundingBox3d::from_min_max(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
         assert_eq!(bbox.volume(), 1.0);
 
-        let bbox =
-            BoundingBox3d::from_min_max(Vector3::new(0.0, 0.0, 0.0), Vector3::new(2.0, 2.0, 2.0));
+        let bbox = BoundingBox3d::from_min_max(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(2.0, 2.0, 2.0),
+        );
         assert_eq!(bbox.volume(), 8.0);
 
-        let bbox =
-            BoundingBox3d::from_min_max(Vector3::new(-1.0, 2.0, 3.0), Vector3::new(1.0, 3.0, 4.0));
+        let bbox = BoundingBox3d::from_min_max(
+            Vector3::new(-1.0, 2.0, 3.0),
+            Vector3::new(1.0, 3.0, 4.0),
+        );
         assert_eq!(bbox.volume(), 2.0);
     }
 
     #[test]
     fn test_bounding_box3d_center() {
-        let bbox =
-            BoundingBox3d::from_min_max(Vector3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 1.0, 1.0));
+        let bbox = BoundingBox3d::from_min_max(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
         assert_eq!(bbox.center(), Vector3::new(0.5, 0.5, 0.5));
 
-        let bbox =
-            BoundingBox3d::from_min_max(Vector3::new(0.0, 0.0, 0.0), Vector3::new(2.0, 2.0, 2.0));
+        let bbox = BoundingBox3d::from_min_max(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(2.0, 2.0, 2.0),
+        );
         assert_eq!(bbox.center(), Vector3::new(1.0, 1.0, 1.0));
 
-        let bbox =
-            BoundingBox3d::from_min_max(Vector3::new(-1.0, 2.0, 3.0), Vector3::new(1.0, 3.0, 4.0));
+        let bbox = BoundingBox3d::from_min_max(
+            Vector3::new(-1.0, 2.0, 3.0),
+            Vector3::new(1.0, 3.0, 4.0),
+        );
         assert_eq!(bbox.center(), Vector3::new(0.0, 2.5, 3.5));
     }
 
     #[test]
     fn test_bounding_box3d_contains() {
-        let bbox =
-            BoundingBox3d::from_min_max(Vector3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 1.0, 1.0));
+        let bbox = BoundingBox3d::from_min_max(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
         assert!(bbox.contains(&Vector3::new(0.5, 0.5, 0.5)));
         assert!(!bbox.contains(&Vector3::new(1.5, 0.5, 0.5)));
         assert!(!bbox.contains(&Vector3::new(0.5, 1.5, 0.5)));
         assert!(!bbox.contains(&Vector3::new(0.5, 0.5, 1.5)));
 
-        let bbox =
-            BoundingBox3d::from_min_max(Vector3::new(-1.0, -3.5, 0.0), Vector3::new(2.0, 2.0, 2.0));
+        let bbox = BoundingBox3d::from_min_max(
+            Vector3::new(-1.0, -3.5, 0.0),
+            Vector3::new(2.0, 2.0, 2.0),
+        );
         assert!(bbox.contains(&Vector3::new(0.5, -2.0, 1.0)));
         assert!(!bbox.contains(&Vector3::new(0.5, -4.0, 1.0)));
         assert!(!bbox.contains(&Vector3::new(0.5, -2.0, 3.0)));
@@ -165,8 +181,10 @@ mod tests {
 
     #[test]
     fn test_bounding_box3d_vertices() {
-        let bbox =
-            BoundingBox3d::from_min_max(Vector3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 1.0, 1.0));
+        let bbox = BoundingBox3d::from_min_max(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
         let vertices = bbox.vertices();
         assert_eq!(vertices.len(), 8);
         assert_eq!(vertices[0], bbox.min);
@@ -199,16 +217,24 @@ mod tests {
 
     #[test]
     fn test_bounding_box3d_intersects() {
-        let bbox1 =
-            BoundingBox3d::from_min_max(Vector3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 1.0, 1.0));
-        let bbox2 =
-            BoundingBox3d::from_min_max(Vector3::new(0.5, 0.5, 0.5), Vector3::new(1.5, 1.5, 1.5));
+        let bbox1 = BoundingBox3d::from_min_max(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
+        let bbox2 = BoundingBox3d::from_min_max(
+            Vector3::new(0.5, 0.5, 0.5),
+            Vector3::new(1.5, 1.5, 1.5),
+        );
         assert!(bbox1.intersects(&bbox2));
 
-        let bbox1 =
-            BoundingBox3d::from_min_max(Vector3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 1.0, 1.0));
-        let bbox2 =
-            BoundingBox3d::from_min_max(Vector3::new(1.5, 0.5, 0.5), Vector3::new(2.5, 1.5, 1.5));
+        let bbox1 = BoundingBox3d::from_min_max(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
+        let bbox2 = BoundingBox3d::from_min_max(
+            Vector3::new(1.5, 0.5, 0.5),
+            Vector3::new(2.5, 1.5, 1.5),
+        );
         assert!(!bbox1.intersects(&bbox2));
     }
 }

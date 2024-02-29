@@ -1,6 +1,6 @@
 [workspace]
-resolver = "2"                        # Important! wgpu/bevy needs this!
-members = ["gbp-rs", "gbpplanner-rs"]
+resolver = "2"                                      # Important! wgpu/bevy needs this!
+members = ["gbp-linalg", "gbp-rs", "gbpplanner-rs"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,15 +13,15 @@ authors = [
 rust-version = "1.76"
 license = "MIT"
 
-[workspace.lints.rust]
-unsafe_code = "forbid"
+# [workspace.lints.rust]
+# unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 enum_glob_use = "deny"
 # pedantic = "deny"
 # nursery = "deny"
 unwrap_used = "deny"
-expect_used = "deny"
+# expect_used = "deny"
 
 [profile.release]
 codegen-units = 1
@@ -32,3 +32,6 @@ opt-level = 3
 panic = "abort"
 rpath = false
 strip = true
+
+# [build]
+# rustflags = ["-C", "link-arg=-Wl", "--verbose"]

@@ -1,8 +1,11 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/asset_loader.rs
 use bevy::prelude::*;
 
+/// A resource to hold all assets in a common place
+/// Good practice to load assets once, and then reference them by their `Handle`
 #[derive(Resource, Debug, Default)]
 pub struct SceneAssets {
+    pub main_font: Handle<Font>,
     pub roomba: Handle<Scene>,
     pub object: Handle<Scene>,
     pub obstacle_image_raw: Handle<Image>,
@@ -18,8 +21,11 @@ impl Plugin for AssetLoaderPlugin {
     }
 }
 
+/// `PreStartup` system to load assets as soon as possible
 fn load_assets(mut scene_assets: ResMut<SceneAssets>, asset_server: Res<AssetServer>) {
     *scene_assets = SceneAssets {
+        // Load the main font
+        main_font: asset_server.load("fonts/JetBrainsMonoNerdFont-Regular.ttf"),
         // Robot vacuum by Poly by Google [CC-BY] (https://creativecommons.org/licenses/by/3.0/) via Poly Pizza (https://poly.pizza/m/dQj7UZT-1w0)
         roomba: asset_server.load("models/roomba.glb#Scene0"),
         // Cardboard Boxes by Quaternius (https://poly.pizza/m/bs6ikOeTrR)

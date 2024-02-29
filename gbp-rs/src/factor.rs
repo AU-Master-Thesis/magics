@@ -131,8 +131,9 @@ impl Factor {
             let mut v = DVector::<f32>::zeros(information_vector.len() - dofs);
             v.view_mut((0, 0), (marg_idx - 1, 0))
                 .copy_from(&information_vector.rows(0, marg_idx - 1));
-            v.view_mut((marg_idx, 0), (v.len(), 0))
-                .copy_from(&information_vector.rows(marg_idx + dofs, information_vector.len()));
+            v.view_mut((marg_idx, 0), (v.len(), 0)).copy_from(
+                &information_vector.rows(marg_idx + dofs, information_vector.len()),
+            );
             v
         };
 
@@ -148,9 +149,10 @@ impl Factor {
 
         let lam_bb_inv = lam_bb.try_inverse().expect("The matrix is invertible");
 
-        let marginalised_message = Message {};
+        // let marginalised_message = Message {};
 
-        marginalised_message
+        // marginalised_message
+        todo!()
     }
 
     pub fn new_dynamic_factor(
@@ -176,8 +178,12 @@ impl Factor {
         id_of_robot_connected_with: RobotId,
     ) -> Self {
         let state = FactorState::new(measurement, strength, dofs);
-        let interrobot_factor =
-            InterRobotFactor::new(safety_radius, strength, false, id_of_robot_connected_with);
+        let interrobot_factor = InterRobotFactor::new(
+            safety_radius,
+            strength,
+            false,
+            id_of_robot_connected_with,
+        );
         let kind = FactorKind::InterRobot(interrobot_factor);
 
         Self::new(key, adjacent_variables, state, kind)
@@ -187,6 +193,7 @@ impl Factor {
     }
     pub fn new_obstacle_factor(
         key: Key,
+        adjacent_variables: Vec<Rc<Variable>>,
         strength: f32,
         measurement: DVector<f32>,
         dofs: usize,
@@ -218,10 +225,10 @@ impl Factor {
 
         let mut idx = 0;
         for variable in self.adjacent_variables.iter() {
-            idx += variable.borrow().dofs;
+            idx += variable.dofs;
             let message = self
                 .inbox
-                .get(&variable.borrow().key)
+                .get(&variable.key)
                 .expect("there should be a message");
             // self.state.linearisation_point
         }
@@ -239,7 +246,7 @@ impl Factor {
         if self.kind.skip(&self.state) {
             for variable in self.adjacent_variables.iter() {
                 self.outbox
-                    .insert(variable.borrow().key, Message::with_dofs(variable.borrow().dofs));
+                    .insert(variable.key, Message::with_dofs(variable.dofs));
             }
 
             return false;
@@ -414,7 +421,11 @@ impl DynamicFactor {
             insert_block_matrix(&mut jacobian, (0, eye.ncols()), &(delta_t * &eye));
             insert_block_matrix(&mut jacobian, (0, eye.ncols() * 2), &(-1.0 * &eye));
             insert_block_matrix(&mut jacobian, (state.dofs / 2, eye.ncols()), &eye);
-            insert_block_matrix(&mut jacobian, (state.dofs * 2 / 2, eye.ncols() * 3), &eye);
+            insert_block_matrix(
+                &mut jacobian,
+                (state.dofs * 2 / 2, eye.ncols() * 3),
+                &eye,
+            );
 
             jacobian
         };
@@ -491,6 +502,10 @@ impl Model for PoseFactor {
     fn jacobian_delta(&self) -> f32 {
         1e-8
     }
+
+    fn linear(&self) -> bool {
+        false
+    }
 }
 
 trait Model {
@@ -501,7 +516,11 @@ trait Model {
     /// Measurement function
     /// **Note**: This method takes a mutable reference to self, because the interrobot factor
     fn measurement(&mut self, state: &FactorState, x: &DVector<f32>) -> DVector<f32>;
-    fn first_order_jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
+    fn first_order_jacobian(
+        &mut self,
+        state: &FactorState,
+        x: &DVector<f32>,
+    ) -> DMatrix<f32> {
         // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
         //     return jac_out;
         // };
@@ -519,7 +538,8 @@ trait Model {
         for i in 0..x.len() {
             let mut copy_of_x = x.clone();
             copy_of_x[i] += self.jacobian_delta();
-            let column = (self.measurement(state, &copy_of_x) - &h0) / self.jacobian_delta();
+            let column =
+                (self.measurement(state, &copy_of_x) - &h0) / self.jacobian_delta();
             jacobian.set_column(i, &column);
         }
 
@@ -527,6 +547,8 @@ trait Model {
     }
 
     fn jacobian_delta(&self) -> f32;
+
+    fn linear(&self) -> bool;
 
     /// Whether to skip this factor in the update step
     /// In gbpplanner, this is only used for the interrobot factor.
@@ -536,6 +558,7 @@ trait Model {
 
 impl Model for InterRobotFactor {
     fn jacobian(&mut self, state: &FactorState, x: &DVector<f32>) -> DMatrix<f32> {
+        // TODO: switch to ndarray
         let mut jacobian = DMatrix::zeros(state.measurement.nrows(), state.dofs * 2);
         let x_diff = {
             let offset = state.dofs / 2;
@@ -592,6 +615,10 @@ impl Model for InterRobotFactor {
         1e-2
     }
 
+    fn linear(&self) -> bool {
+        false
+    }
+
     fn skip(&mut self, state: &FactorState) -> bool {
         // this->skip_flag = ( (X_(seqN(0,n_dofs_/2)) - X_(seqN(n_dofs_, n_dofs_/2))).squaredNorm() >= safety_distance_*safety_distance_ );␍
         let offset = state.dofs / 2;
@@ -620,6 +647,11 @@ impl Model for DynamicFactor {
 
     fn jacobian_delta(&self) -> f32 {
         1e-2
+    }
+
+    // #[inline(always)]
+    fn linear(&self) -> bool {
+        true
     }
 }
 
@@ -666,6 +698,10 @@ impl Model for ObstacleFactor {
     fn skip(&mut self, state: &FactorState) -> bool {
         false
     }
+
+    fn linear(&self) -> bool {
+        false
+    }
 }
 
 impl Model for FactorKind {
@@ -702,6 +738,15 @@ impl Model for FactorKind {
             FactorKind::InterRobot(f) => f.jacobian_delta(),
             FactorKind::Dynamic(f) => f.jacobian_delta(),
             FactorKind::Obstacle(f) => f.jacobian_delta(),
+        }
+    }
+
+    fn linear(&self) -> bool {
+        match self {
+            FactorKind::Pose(f) => f.linear(),
+            FactorKind::InterRobot(f) => f.linear(),
+            FactorKind::Dynamic(f) => f.linear(),
+            FactorKind::Obstacle(f) => f.linear(),
         }
     }
 }

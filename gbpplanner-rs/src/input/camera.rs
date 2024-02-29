@@ -4,10 +4,9 @@ use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use super::{
     super::{
         camera::{self, CameraMovementMode, MainCamera},
-        moveable_object::{self, MoveableObject, MoveableObjectMovementState},
         movement::{AngularVelocity, Orbit, Velocity},
     },
-    general_input::GeneralInputs,
+    general::GeneralInputs,
 };
 
 pub struct CameraInputPlugin;

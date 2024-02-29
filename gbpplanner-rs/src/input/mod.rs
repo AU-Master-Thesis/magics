@@ -1,12 +1,13 @@
 use bevy::prelude::*;
 
-mod camera_input;
-mod general_input;
-mod moveable_object_input;
+mod camera;
+mod general;
+mod moveable_object;
+mod ui;
 
 use self::{
-    camera_input::CameraInputPlugin, general_input::GeneralInputPlugin,
-    moveable_object_input::MoveableObjectInputPlugin,
+    camera::CameraInputPlugin, general::GeneralInputPlugin,
+    moveable_object::MoveableObjectInputPlugin, ui::UiInputPlugin,
 };
 
 pub struct InputPlugin;
@@ -17,6 +18,7 @@ impl Plugin for InputPlugin {
             CameraInputPlugin,
             MoveableObjectInputPlugin,
             GeneralInputPlugin,
+            UiInputPlugin,
         ));
     }
 }

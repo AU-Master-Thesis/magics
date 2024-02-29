@@ -2,9 +2,8 @@ use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 
 use super::super::{
-    camera::{self, CameraMovementMode, MainCamera},
     moveable_object::{self, MoveableObject, MoveableObjectMovementState},
-    movement::{AngularVelocity, Orbit, Velocity},
+    movement::{AngularVelocity, Velocity},
 };
 
 pub struct MoveableObjectInputPlugin;
