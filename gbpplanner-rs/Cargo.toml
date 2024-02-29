@@ -1,9 +1,11 @@
 [package]
 name = "gbpplanner-rs"
-version = "0.1.0"
+# version = "0.1.0"
+version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 rust-version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,8 +14,8 @@ rust-version.workspace = true
 # gbp-rs = { path = "../gbp-rs" }
 # gbp-linalg = { path = "../gbp-linalg" }
 bevy = { version = "0.12.1", default-features = true, features = [
-    "wayland",
-    "dynamic_linking",
+  "wayland",
+  "dynamic_linking",
 ] }
 bevy-inspector-egui = "0.22.1"
 leafwing-input-manager = "0.11.2"
@@ -38,14 +40,8 @@ num-traits = "0.2.18"
 ron = "0.8.1"
 bevy_egui = "0.24.0"
 # tap = "1.0.1"
-
-# Enable a small amount of optimization in debug mode
-[profile.dev]
-opt-level = 1
-
-# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
-[profile.dev.package."*"]
-opt-level = 3
+strum = "0.26.1"
+strum_macros = "0.26.1"
 
 [lints]
 workspace = true
