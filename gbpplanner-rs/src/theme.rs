@@ -1,11 +1,15 @@
 use bevy::prelude::*;
 use bevy::window::WindowTheme;
+use bevy_egui::{
+    egui::{self, Style, Visuals},
+    EguiContexts,
+};
 use bevy_infinite_grid::InfiniteGridSettings;
 use catppuccin::Flavour;
 
 use crate::factorgraph::{Factor, Line, Variable};
 
-/// Catppuccin Bevy theme wrapper
+/// Catppuccin **Bevy** theme wrapper
 #[derive(Resource, Debug)]
 pub struct CatppuccinTheme {
     pub flavour: Flavour,
@@ -86,18 +90,31 @@ fn toggle_theme(
     mut theme_event: EventReader<ThemeEvent>,
     mut catppuccin_theme: ResMut<CatppuccinTheme>,
     mut theme_toggled_event: EventWriter<ThemeToggledEvent>,
+    mut contexts: EguiContexts,
 ) {
     let mut window = windows.single_mut();
     for _ in theme_event.read() {
         if let Some(current_theme) = window.window_theme {
-            window.window_theme = match current_theme {
+            let (window_theme, egui_style) = match current_theme {
                 WindowTheme::Light => {
                     info!("Switching WindowTheme: Light -> Dark");
                     catppuccin_theme.flavour = match catppuccin_theme.flavour {
                         Flavour::Latte => Flavour::Macchiato,
                         _ => Flavour::Latte,
                     };
-                    Some(WindowTheme::Dark)
+
+                    // contexts.ctx_mut().set_visuals(egui::Visuals {
+                    //     dark_mode: true,
+                    //     ..Default::default()
+                    // });
+
+                    (
+                        Some(WindowTheme::Dark),
+                        Style {
+                            visuals: Visuals::dark(),
+                            ..Default::default()
+                        },
+                    )
                 }
                 WindowTheme::Dark => {
                     info!("Switching WindowTheme: Dark -> Light");
@@ -105,9 +122,23 @@ fn toggle_theme(
                         Flavour::Latte => Flavour::Macchiato,
                         _ => Flavour::Latte,
                     };
-                    Some(WindowTheme::Light)
+
+                    // contexts.ctx_mut().set_visuals(egui::Visuals {
+                    //     dark_mode: false,
+                    //     ..Default::default()
+                    // });
+
+                    (
+                        Some(WindowTheme::Light),
+                        Style {
+                            visuals: Visuals::light(),
+                            ..Default::default()
+                        },
+                    )
                 }
             };
+            window.window_theme = window_theme;
+            contexts.ctx_mut().set_style(egui_style);
             theme_toggled_event.send(ThemeToggledEvent);
         }
     }

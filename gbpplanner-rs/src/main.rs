@@ -35,6 +35,7 @@ use crate::ui::EguiInterfacePlugin;
 use bevy::core::FrameCount;
 use bevy::prelude::*;
 
+use bevy::window::WindowTheme;
 use clap::Parser;
 
 // use gbp_rs::factorgraph;
@@ -124,7 +125,7 @@ fn main() -> color_eyre::eyre::Result<()> {
         .insert_resource(formation)
         .add_plugins((
             DefaultPlugins.set(
-                // Bevy
+                // **Bevy**
                 WindowPlugin {
                     primary_window: Some(Window {
                         title: "GBP Planner".into(),
@@ -132,7 +133,7 @@ fn main() -> color_eyre::eyre::Result<()> {
                         // present_mode: PresentMode::AutoVsync,
                         // fit_canvas_to_parent: true,
                         // prevent_default_event_handling: false,
-                        // window_theme: Some(WindowTheme::Dark),
+                        window_theme: Some(WindowTheme::Dark),
                         // enable_buttons: bevy::window::EnableButtons {
                         //     maximize: false,
                         //     ..Default::default()
@@ -143,7 +144,7 @@ fn main() -> color_eyre::eyre::Result<()> {
                     ..Default::default()
                 },
             ),
-            DiagnosticsPlugin,    // Bevy
+            DiagnosticsPlugin,    // **Bevy**
             ThemePlugin,          // Custom
             AssetLoaderPlugin,    // Custom
             EnvironmentPlugin,    // Custom

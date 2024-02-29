@@ -7,11 +7,11 @@ const INITIAL_CAMERA_DISTANCE: f32 = 40.0;
 pub const SPEED: f32 = 20.0;
 pub const ANGULAR_SPEED: f32 = 2.0;
 
-/// Bevy `Component` for the main camera
+/// **Bevy** `Component` for the main camera
 #[derive(Component, Debug)]
 pub struct MainCamera;
 
-/// Bevy `State` representing the main camera's movement mode
+/// **Bevy** `State` representing the main camera's movement mode
 /// Enables the camera to `Pan` and `Orbit`
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum CameraMovementMode {
