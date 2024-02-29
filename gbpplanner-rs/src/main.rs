@@ -156,7 +156,7 @@ fn main() -> color_eyre::eyre::Result<()> {
             RobotSpawnerPlugin,   // Custom
             FactorGraphPlugin,    // Custom
             EguiInterfacePlugin,  // Custom
-                                  // PlannerPlugin, // Custom
+            PlannerPlugin,        // Custom
                                   // WorldInspectorPlugin::new()
         ))
         .add_systems(Update, make_visible)
