@@ -8,7 +8,7 @@ use super::factor::Factor;
 use super::factorgraph::{FactorGraph, MessagePassingMode};
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
-use super::{Matrix, NdarrayVectorExt, Timestep, Vector};
+use super::{Matrix, NdarrayVectorExt, VectorNorm, Timestep, Vector};
 use bevy::prelude::*;
 use ndarray::{array, concatenate, Axis};
 use std::collections::HashMap;
@@ -435,21 +435,26 @@ fn update_failed_comms_system(mut query: Query<&mut RobotState>, config: Res<Con
 
 macro_rules! iterate_gbp_impl {
     ($name:ident, $mode:expr) => {
-        fn $name(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {
-
-            query.par_iter_mut().for_each(|(robot_id, mut factorgraph)| {
-                factorgraph.factor_iteration(robot_id, $mode);
-            });
-            query.par_iter_mut().for_each(|(robot_id, mut factorgraph)| {
-                factorgraph.variable_iteration(robot_id, $mode);
-            });
+        fn $name(
+            mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
+            config: Res<Config>,
+        ) {
+            query
+                .par_iter_mut()
+                .for_each(|(robot_id, mut factorgraph)| {
+                    factorgraph.factor_iteration(robot_id, $mode);
+                });
+            query
+                .par_iter_mut()
+                .for_each(|(robot_id, mut factorgraph)| {
+                    factorgraph.variable_iteration(robot_id, $mode);
+                });
             // for (robot_id, mut factorgraph) in query.par_iter_mut() {
             //     factorgraph.factor_iteration(robot_id, $mode);
             // }
             // for (robot_id, mut factorgraph) in query.iter_mut() {
             //     factorgraph.variable_iteration(robot_id, $mode);
             // }
-
         }
     };
 }

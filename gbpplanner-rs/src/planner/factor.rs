@@ -12,7 +12,7 @@ use std::{
 use super::{
     factorgraph::{Graph, Inbox, Message},
     robot::RobotId,
-    Matrix, Vector,
+    Matrix, Vector, VectorNorm,
 };
 
 trait Model {
@@ -119,7 +119,7 @@ impl Model for InterRobotFactor {
             }
             x_diff
         };
-        let radius = x_diff.norm();
+        let radius = x_diff.euclidean_norm();
         if radius <= self.safety_distance {
             // TODO: why do we change the Jacobian if we are not outside the safety distance?
             // jacobian
@@ -157,6 +157,7 @@ impl Model for InterRobotFactor {
             // let mut x_diff = x.rows(0, offset) - x.rows(state.dofs, offset);
             // let mut x_diff = x.slice_axis(Axis(0), s![0..offset])
             //     - x.slice_axis(Axis(0), s![state.dofs..(state.dofs + offset)]);
+            
             let mut x_diff = x.slice_axis(Axis(0), Slice::from(0..offset)).sub(
                 &x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))),
             );
@@ -171,7 +172,7 @@ impl Model for InterRobotFactor {
             x_diff
         };
 
-        let radius = x_diff.norm();
+        let radius = x_diff.euclidean_norm();
         if radius <= self.safety_distance {
             self.skip = false;
             // gbpplanner: h(0) = 1.f*(1 - r/safety_distance_);
@@ -204,7 +205,7 @@ impl Model for InterRobotFactor {
                     .linearisation_point
                     .slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))),
             )
-            .norm();
+            .euclidean_norm();
         self.skip = dontknow >= f32::powi(self.safety_distance, 2);
 
         self.skip

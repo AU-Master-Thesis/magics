@@ -21,14 +21,32 @@ pub type Matrix<T> = ndarray::Array2<T>;
 // TODO: finish and implement
 pub trait VectorNorm {
     type Scalar: NdFloat;
-    fn euclidian_norm(&self) -> Self::Scalar;
+    fn euclidean_norm(&self) -> Self::Scalar;
     fn l1_norm(&self) -> Self::Scalar;
 
     #[inline(always)]
     fn l2_norm(&self) -> Self::Scalar {
-        self.euclidian_norm()
+        self.euclidean_norm()
     }
 }
+
+macro_rules! vector_norm_impl {
+    ($float:ty) => {
+        impl VectorNorm for Vector<$float> {
+            type Scalar = $float;
+            fn euclidean_norm(&self) -> Self::Scalar {
+                <$float>::sqrt(self.fold(0.0, |acc, x| acc + x * x))
+                // self.dot(&self).sqrt()
+            }
+            fn l1_norm(&self) -> Self::Scalar {
+                self.fold(0.0, |acc, x| acc + x.abs())
+            }
+        }
+    };
+}
+
+vector_norm_impl!(f32);
+vector_norm_impl!(f64);
 
 pub trait NdarrayVectorExt: Clone {
     type Scalar: NdFloat;
@@ -38,7 +56,7 @@ pub trait NdarrayVectorExt: Clone {
         copy.normalize();
         copy
     }
-    fn euclidian_norm(&self) -> Self::Scalar;
+    // fn euclidian_norm(&self) -> Self::Scalar;
 }
 
 macro_rules! ndarray_vector_ext_impl {
@@ -48,11 +66,6 @@ macro_rules! ndarray_vector_ext_impl {
             fn normalize(&mut self) {
                 let len = self.len() as $float;
                 self.map_mut(|x| *x / len);
-            }
-
-            // TODO: use SIMD
-            fn euclidian_norm(&self) -> Self::Scalar {
-                <$float>::sqrt(self.fold(0.0, |acc, x| acc + <$float>::powi(*x, 2)))
             }
         }
     };
