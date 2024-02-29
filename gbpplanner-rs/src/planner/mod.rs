@@ -6,6 +6,9 @@ mod robot;
 mod spawner;
 mod variable;
 
+pub use factorgraph::FactorGraph;
+pub use robot::RobotState;
+
 pub type Timestep = u32;
 
 // pub trait Scalar: num_traits::Float + Copy + std::fmt::Debug {}
@@ -114,11 +117,6 @@ pub struct PlannerPlugin;
 
 impl Plugin for PlannerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(
-            (
-                // RobotPlugin,
-                SpawnerPlugin
-            ),
-        );
+        app.add_plugins((RobotPlugin, SpawnerPlugin));
     }
 }

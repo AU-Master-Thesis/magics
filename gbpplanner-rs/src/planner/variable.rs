@@ -107,45 +107,24 @@ impl Variable {
         self.belief.information_vector = self.prior.information_vector.clone();
         self.belief.precision_matrix = self.prior.precision_matrix.clone();
 
-        // for (_, message) in self.inbox.iter() {
-        //     self.belief.information_vector += message.0.information_vector.clone();
-        //     self.belief.precision_matrix += message.0.precision_matrix.clone();
-        // }
-
-        // accumelate belief
-        // for (auto &[f_key, msg] : inbox_) {
-        //   auto [eta_msg, lam_msg, _] = msg;
-        //   eta_ += eta_msg;
-        //   lam_ += lam_msg;
-        // }
-
         for (_, message) in self.inbox.iter() {
             self.belief.information_vector += &message.0.information_vector;
             self.belief.precision_matrix += &message.0.precision_matrix;
         }
 
         // TODO: update self.sigma_ with covariance
+        // -> Seems to not be useful
+
         // Update belief
-        let covariance = self
-            .belief
-            .precision_matrix
-            .inv()
-            .expect("precision matrix should be nonsingular");
+        // println!("precision matrix: {:?}", self.belief.precision_matrix);
 
-        let valid = covariance.iter().all(|x| x.is_finite());
-        if valid {
-            // TODO: is this meaningful?
-            // if (valid_) mu_ = sigma_ * eta_;
+        if let Some(covariance) = self.belief.precision_matrix.inv() {
+            let valid = covariance.iter().all(|x| x.is_finite());
+            if valid {
+                // TODO: is this meaningful?
+                // if (valid_) mu_ = sigma_ * eta_;
+            }
         }
-
-        // belief_ = Message {eta_, lam_, mu_};
-
-        // // Create message to send to each factor that sent it stuff
-        // // msg is the aggregate of all OTHER factor messages (belief - last sent msg
-        // // of that factor)
-        // for (auto [f_key, fac] : factors_) {
-        //   outbox_[f_key] = belief_ - inbox_.at(f_key);
-        // }
 
         self.inbox
             .iter()
@@ -154,26 +133,5 @@ impl Variable {
                 (factor_index, response)
             })
             .collect()
-
-        // indices_of_adjacent_factors
-        //     .iter()
-        //     .map(|factor_index| {
-
-        //     })
-
-        // Create message to send to each factor
-        // // Message is the aggregate of all OTHER factor messages (belief - last sent msg of that factor)
-        // for factor_index in adjacent_factors.iter() {
-        //     let factor = graph[*factor_index]
-        //         .as_factor_mut()
-        //         .expect("The node should be a factor");
-
-        //     let message = Message(self.belief.clone())
-        //         - self
-        //             .inbox
-        //             .get(factor_index)
-        //             .expect("The message should exist in the inbox");
-        //     factor.send_message(self.get_node_index(), message);
-        // }
     }
 }

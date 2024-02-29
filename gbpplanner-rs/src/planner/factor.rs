@@ -1,7 +1,7 @@
 use bevy::{ecs::entity::Entity, log::info, render::texture::Image};
 
 // use nalgebra::{Matrix, Vector, Matrix, Vector};
-use ndarray::{array, s, Axis, Slice};
+use ndarray::{array, concatenate, s, Axis, Slice};
 // use ndarray_linalg::Norm;
 use petgraph::prelude::NodeIndex;
 use std::{
@@ -157,7 +157,7 @@ impl Model for InterRobotFactor {
             // let mut x_diff = x.rows(0, offset) - x.rows(state.dofs, offset);
             // let mut x_diff = x.slice_axis(Axis(0), s![0..offset])
             //     - x.slice_axis(Axis(0), s![state.dofs..(state.dofs + offset)]);
-            
+
             let mut x_diff = x.slice_axis(Axis(0), Slice::from(0..offset)).sub(
                 &x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))),
             );
@@ -216,49 +216,6 @@ impl Model for InterRobotFactor {
     }
 }
 
-// TODO: use proper error handling here with an Error type
-// TODO: move into module
-// TODO: write unit test cases
-fn insert_block_matrix<T: ndarray::NdFloat>(
-    matrix: &mut Matrix<T>,
-    start: (usize, usize),
-    block: &Matrix<T>,
-) {
-    debug_assert!(
-        start.0 <= matrix.nrows() && start.1 <= matrix.ncols(),
-        "start: ({}, {}) not inside matrix dims: ({}, {})",
-        start.0,
-        start.1,
-        matrix.nrows(),
-        matrix.ncols()
-    );
-    debug_assert!(
-        block.nrows() <= matrix.nrows() && block.ncols() <= block.nrows(),
-        "block's dims ({}, {}) exceeds the matrix's ({}, {})",
-        block.nrows(),
-        block.ncols(),
-        matrix.nrows(),
-        matrix.ncols()
-    );
-
-    debug_assert!(
-        matrix.nrows() - start.0 >= block.nrows() || matrix.ncols() - start.1 >= block.ncols(),
-        "inserting block with dims ({}, {}) at ({}, {}) would exceed the matrix's dims ({}, {})",
-        block.nrows(),
-        block.ncols(),
-        start.0,
-        start.1,
-        matrix.nrows(),
-        matrix.ncols()
-    );
-
-    for r in 0..block.nrows() {
-        for c in 0..block.ncols() {
-            matrix[(r + start.0, c + start.1)] = block[(r, c)];
-        }
-    }
-}
-
 /// Dynamic factor: constant velocity model
 #[derive(Debug, Clone)]
 pub struct DynamicFactor {
@@ -270,7 +227,6 @@ pub struct DynamicFactor {
 impl DynamicFactor {
     #[must_use]
     pub fn new(state: &mut FactorState, delta_t: f32) -> Self {
-        /// FIXME: change to use ndarray
         let (eye, zeros) = {
             let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
             let eye = Matrix::<f32>::eye(nrows);
@@ -281,44 +237,30 @@ impl DynamicFactor {
         #[allow(clippy::similar_names)]
         let qc_inv = f32::powi(state.strength, -2) * &eye;
 
-        // TODO: use ndarray instead
         #[allow(clippy::similar_names)]
-        let qi_inv = {
-            let upper_left = 12.0 * f32::powi(delta_t, -3) * &qc_inv;
-            let upper_right = -6.0 * f32::powi(delta_t, -2) * &qc_inv;
-            let lower_left = -6.0 * f32::powi(delta_t, -2) * &qc_inv;
-            let lower_right = (4.0 / delta_t) * &qc_inv;
-
-            // Construct as a block matrix
-            let (nrows, ncols) = (state.dofs, state.dofs);
-            let mut qi_inv = Matrix::<f32>::zeros((nrows, ncols));
-            insert_block_matrix(&mut qi_inv, (0, 0), &upper_left);
-            insert_block_matrix(&mut qi_inv, (0, ncols / 2), &upper_right);
-            insert_block_matrix(&mut qi_inv, (nrows / 2, 0), &lower_left);
-            insert_block_matrix(&mut qi_inv, (nrows / 2, ncols / 2), &lower_right);
-
-            qi_inv
-        };
+        let qi_inv = concatenate![
+            Axis(0),
+            concatenate![
+                Axis(1),
+                12.0 * f32::powi(delta_t, -3) * &qc_inv,
+                -6.0 * f32::powi(delta_t, -2) * &qc_inv
+            ],
+            concatenate![
+                Axis(1),
+                -6.0 * f32::powi(delta_t, -2) * &qc_inv,
+                (4.0 / delta_t) * &qc_inv
+            ]
+        ];
+        assert_eq!(qi_inv.shape(), &[state.dofs, state.dofs]);
 
         state.measurement_precision = qi_inv;
 
-        let cached_jacobian = {
-            // J_ = Eigen::MatrixXd::Zero(n_dofs_, n_dofs_*2);
-            // J_ << I, dt*I, -1*I,    O,
-            //      O,    I,    O, -1*I;
-            let mut jacobian = Matrix::<f32>::zeros((state.dofs, state.dofs * 2));
-            insert_block_matrix(&mut jacobian, (0, 0), &eye);
-            insert_block_matrix(&mut jacobian, (0, eye.ncols()), &(delta_t * &eye));
-            insert_block_matrix(&mut jacobian, (0, eye.ncols() * 2), &(-1.0 * &eye));
-            insert_block_matrix(&mut jacobian, (state.dofs / 2, eye.ncols()), &eye);
-            insert_block_matrix(
-                &mut jacobian,
-                (state.dofs * 2 / 2, eye.ncols() * 3),
-                &eye,
-            );
-
-            jacobian
-        };
+        let cached_jacobian = concatenate![
+            Axis(0),
+            concatenate![Axis(1), eye, delta_t * &eye, -1.0 * &eye, zeros],
+            concatenate![Axis(1), zeros, eye, zeros, -1.0 * &eye]
+        ];
+        assert_eq!(cached_jacobian.shape(), &[state.dofs, state.dofs * 2]);
 
         Self {
             cached_jacobian,
@@ -377,7 +319,7 @@ impl Model for PoseFactor {
 }
 
 #[derive(Debug, Clone)]
-struct ObstacleFactor {
+pub struct ObstacleFactor {
     obstacle_sdf: &'static Image,
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy of here since
     /// `ObstacleFactor` needs this information to calculate `.jacobian_delta()` and `.measurement()`

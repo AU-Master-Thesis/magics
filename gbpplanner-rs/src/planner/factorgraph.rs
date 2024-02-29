@@ -243,10 +243,51 @@ impl FactorGraph {
     // TODO: Implement our own export to `DOT` format, which can be much more specific with styling.
     /// Exports tree to `graphviz` `DOT` format
     pub fn export(&self) -> String {
-        format!(
-            "{:?}",
-            Dot::with_config(&self.graph, &[Config::EdgeNoLabel])
-        )
+        // println!("graph {{");
+        // for node_index in self.graph.node_indices() {
+        //     for neighbour_index in self.graph.neighbors(node_index) {
+        //         println!("    {} -- {}", node_index.index(), neighbour_index.index());
+        //     }
+        // }
+        // println!("}}");
+        let mut output = String::new();
+        output.push_str("graph {\n");
+        output.push_str("    node [style=filled]\n");
+        for node_index in self.graph.node_indices() {
+            let node = &self.graph[node_index];
+
+            let shape = match node {
+                Node::Factor(_) => "box",
+                Node::Variable(_) => "circle",
+            };
+
+            let color = match node {
+                Node::Factor(factor) => match factor.kind {
+                    super::factor::FactorKind::InterRobot(_) => "green",
+                    super::factor::FactorKind::Dynamic(_) => "blue",
+                    super::factor::FactorKind::Obstacle(_) => "purple",
+                    super::factor::FactorKind::Pose(_) => "red",
+                },
+                Node::Variable(_) => "white",
+            };
+
+            output.push_str(&format!(
+                "    {} [shape={}, fillcolor={}]\n",
+                node_index.index(),
+                shape,
+                color
+            ));
+
+            for neighbour_index in self.graph.neighbors(node_index) {
+                output.push_str(&format!(
+                    "    {} -- {}\n",
+                    node_index.index(),
+                    neighbour_index.index()
+                ));
+            }
+        }
+        output.push_str("}\n");
+        output
     }
 
     /// Aggregate and marginalise over all adjacent variables, and send.
@@ -299,12 +340,6 @@ impl FactorGraph {
         let mut idx = 0;
         let dofs = 4;
         for &variable_index in adjacent_variables.iter() {
-            // let dofs = {
-            //     self.graph[variable_index]
-            //         .as_variable()
-            //         .expect("A factor can only have variables as neighbors")
-            //         .dofs
-            // };
             idx += dofs;
             let message = factor
                 .read_message_from(variable_index)
@@ -442,6 +477,8 @@ impl FactorGraph {
                 .as_variable_mut()
                 .expect("variable_index should point to a Variable in the graph");
             let factor_messages = variable.update_belief();
+
+            println!("factor_messages: {:?}", factor_messages);
 
             for (factor_index, message) in factor_messages {
                 let factor = self.graph[factor_index]

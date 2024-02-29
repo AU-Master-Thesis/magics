@@ -8,7 +8,7 @@ use super::factor::Factor;
 use super::factorgraph::{FactorGraph, MessagePassingMode};
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
-use super::{Matrix, NdarrayVectorExt, VectorNorm, Timestep, Vector};
+use super::{Matrix, NdarrayVectorExt, Timestep, Vector, VectorNorm};
 use bevy::prelude::*;
 use ndarray::{array, concatenate, Axis};
 use std::collections::HashMap;
@@ -31,10 +31,10 @@ impl Plugin for RobotPlugin {
                 create_interrobot_factors_system,
                 update_failed_comms_system,
                 // iterate_gbp_system,
-                iterate_gbp_internal_system,
-                iterate_gbp_external_system,
-                update_prior_of_horizon_state_system,
-                update_prior_of_current_state_system,
+                // iterate_gbp_internal_system,
+                // iterate_gbp_external_system,
+                // update_prior_of_horizon_state_system,
+                // update_prior_of_current_state_system,
             )
                 .chain(),
         );
@@ -442,12 +442,12 @@ macro_rules! iterate_gbp_impl {
             query
                 .par_iter_mut()
                 .for_each(|(robot_id, mut factorgraph)| {
-                    factorgraph.factor_iteration(robot_id, $mode);
+                    factorgraph.variable_iteration(robot_id, $mode);
                 });
             query
                 .par_iter_mut()
                 .for_each(|(robot_id, mut factorgraph)| {
-                    factorgraph.variable_iteration(robot_id, $mode);
+                    factorgraph.factor_iteration(robot_id, $mode);
                 });
             // for (robot_id, mut factorgraph) in query.par_iter_mut() {
             //     factorgraph.factor_iteration(robot_id, $mode);
