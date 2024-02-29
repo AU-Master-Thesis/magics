@@ -33,8 +33,8 @@ impl Plugin for RobotPlugin {
                 update_failed_comms_system,
                 iterate_gbp_internal_system,
                 iterate_gbp_external_system,
-                update_horizon_system,
-                update_current_system,
+                update_prior_of_horizon_state_system,
+                update_prior_of_current_state_system,
             )
                 .chain(),
         );
@@ -442,13 +442,41 @@ iterate_gbp_impl!(iterate_gbp_external_system, MessagePassingMode::External);
 
 // fn iterate_gbp(query: Query<&mut FactorGraph>, config: Res<Config>) {}
 
-fn update_horizon_system(
+fn update_prior_of_horizon_state_system(
     query: Query<(&mut FactorGraph, &mut Waypoints), With<RobotState>>,
     config: Res<Config>,
 ) {
 }
-fn update_current_system(
-    query: Query<(&mut FactorGraph, &mut Transform), With<RobotState>>,
+fn update_prior_of_current_state_system(
+    mut query: Query<(&mut FactorGraph, &mut Transform), With<RobotState>>,
     config: Res<Config>,
+    time: Res<Time>,
 ) {
+    let scale = time.delta_seconds() / config.simulation.t0;
+
+    for (mut factorgraph, mut transform) in query.iter_mut() {
+        let (mean_of_current_variable, increment) = {
+            let current_variable = factorgraph
+                .nth_variable(0)
+                .expect("factorgraph should have a current variable");
+            let next_variable = factorgraph
+                .nth_variable(1)
+                .expect("factorgraph should have a next variable");
+
+            let mean_of_current_variable = current_variable.belief.mean();
+            let increment =
+                scale * (next_variable.belief.mean() - &mean_of_current_variable);
+
+            (mean_of_current_variable, increment)
+        };
+
+        // TODO: create a separate method on Variable so we do not have to abuse the interface, and call it with a empty
+        // vector, and get an empty HashMap as a return value.
+        let _ = factorgraph
+            .nth_variable_mut(0)
+            .expect("factorgraph should have a current variable")
+            .change_prior(mean_of_current_variable + &increment, vec![]);
+        let increment = Vec3::new(increment[0], 0.0, increment[1]);
+        transform.translation += increment;
+    }
 }
