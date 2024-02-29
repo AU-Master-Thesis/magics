@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::ops::AddAssign;
 
 use bevy::prelude::*;
@@ -142,43 +142,78 @@ pub type NodeIndex = petgraph::graph::NodeIndex;
 pub type EdgeIndex = petgraph::graph::EdgeIndex;
 pub type Graph = petgraph::graph::Graph<Node, (), Undirected>;
 
+#[derive(Debug, Clone, Copy)]
+pub struct NodeCount {
+    pub factors: usize,
+    pub variables: usize,
+}
+
 /// A factor graph is a bipartite graph consisting of two types of nodes: factors and variables.
 /// Factors and variables are stored in separate btree maps, that are indexed by a unique tuple of (robot_id, node_id).
 #[derive(Component, Debug)]
 pub struct FactorGraph {
-    // graph: Cell<Graph>,
     graph: Graph,
-    // / Node id counter
-    // node_id_counter: usize,
+    node_count: NodeCount,
+    // num_factors: usize,
+    // num_variables: usize,
+    /// In **gbpplanner** the sequence in which variables are inserted/created in the graph
+    /// is meaningful. `self.graph` does not capture this ordering, so we use an extra queue
+    /// to manage the order in which variables are inserted/removed from the graph.
+    /// **IMPORTANT** we have to manually ensure the invariant that `self.graph` and `self.variable_ordering`
+    /// is consistent at all time.
+    /// TODO: come up with a better name
+    variable_ordering: VecDeque<NodeIndex>,
 }
 
 impl FactorGraph {
     pub fn new() -> Self {
         Self {
             graph: Graph::new_undirected(),
-            // node_id_counter: 0usize,
+            node_count: NodeCount {
+                factors: 0usize,
+                variables: 0usize,
+            },
+            variable_ordering: VecDeque::new(),
         }
     }
-
-    // pub fn next_node_id(&mut self) -> usize {
-    //     self.node_id_counter += 1;
-    //     self.node_id_counter
-    // }
 
     pub fn add_variable(&mut self, variable: Variable) -> NodeIndex {
         let node_index = self.graph.add_node(Node::Variable(variable));
         self.graph[node_index].set_node_index(node_index);
+        self.variable_ordering.push_back(node_index);
+        self.node_count.variables += 1;
         node_index
     }
 
     pub fn add_factor(&mut self, factor: Factor) -> NodeIndex {
         let node_index = self.graph.add_node(Node::Factor(factor));
         self.graph[node_index].set_node_index(node_index);
+        self.node_count.factors += 1;
         node_index
     }
 
     pub fn add_edge(&mut self, a: NodeIndex, b: NodeIndex) -> EdgeIndex {
         self.graph.add_edge(a, b, ())
+    }
+
+    /// Number of nodes in the factorgraph
+    ///
+    /// **Computes in O(1) time**
+    pub fn len(&self) -> usize {
+        self.graph.node_count()
+    }
+
+    // pub fn factors(&self) -> impl Iterator<Item = Node> {}
+
+    /// A count over the number of variables and factors in the factorgraph
+    ///
+    /// **Computes in O(1) time**
+    pub fn node_count(&self) -> NodeCount {
+        self.node_count
+    }
+
+    pub fn nth_variable_index(&self, index: usize) -> Option<NodeIndex> {
+        self.variable_ordering.get(index).copied()
     }
 
     // TODO: Implement our own export to `DOT` format, which can be much more specific with styling.

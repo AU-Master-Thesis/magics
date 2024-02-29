@@ -12,6 +12,7 @@ use std::{
 
 use super::{
     factorgraph::{Graph, Inbox, Message},
+    robot::RobotId,
     Matrix, Vector,
 };
 
@@ -75,7 +76,7 @@ pub struct InterRobotFactor {
     pub safety_distance: f32,
     ///
     skip: bool,
-    pub id_of_robot_connected_with: Entity,
+    pub id_of_robot_connected_with: RobotId,
 }
 
 impl InterRobotFactor {
@@ -83,7 +84,7 @@ impl InterRobotFactor {
         safety_distance: f32,
         robot_radius: f32,
         skip: bool,
-        id_of_robot_connected_with: Entity,
+        id_of_robot_connected_with: RobotId,
     ) -> Self {
         let epsilon = 0.2 * robot_radius;
 
