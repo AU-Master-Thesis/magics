@@ -30,6 +30,12 @@ pub enum CameraAction {
 }
 
 impl CameraAction {
+    fn variants() -> &'static [Self] {
+        #[allow(clippy::enum_glob_use)]
+        use CameraAction::*;
+        &[Move, MouseMove, ToggleMovementMode, ZoomIn, ZoomOut, Switch]
+    }
+
     fn default_mouse_input(action: CameraAction) -> Option<UserInput> {
         match action {
             Self::MouseMove => Some(UserInput::Chord(vec![
@@ -50,9 +56,9 @@ impl CameraAction {
         match action {
             Self::Move => Some(UserInput::VirtualDPad(VirtualDPad::arrow_keys())),
             Self::ToggleMovementMode => {
-                Some(UserInput::Single(InputKind::Keyboard(KeyCode::C)))
+                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyC)))
             }
-            Self::Switch => Some(UserInput::Single(InputKind::Keyboard(KeyCode::Tab))),
+            Self::Switch => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::Tab))),
             _ => None,
         }
     }
@@ -79,28 +85,30 @@ impl CameraAction {
     }
 }
 
-fn bind_camera_input(mut commands: Commands, query: Query<(Entity, With<MainCamera>)>) {
+fn bind_camera_input(mut commands: Commands, query: Query<Entity, With<MainCamera>>) {
     let mut input_map = InputMap::default();
 
-    for action in CameraAction::variants() {
+    for &action in CameraAction::variants() {
         if let Some(input) = CameraAction::default_mouse_input(action) {
-            input_map.insert(input, action);
+            input_map.insert(action, input);
         }
         if let Some(input) = CameraAction::default_keyboard_input(action) {
-            input_map.insert(input, action);
+            input_map.insert(action, input);
         }
         if let Some(input) = CameraAction::default_gamepad_input(action) {
-            input_map.insert(input, action);
+            input_map.insert(action, input);
         }
     }
 
-    if let Ok((entity, _)) = query.get_single() {
+    if let Ok(entity) = query.get_single() {
         commands
             .entity(entity)
-            .insert(InputManagerBundle::<CameraAction> {
-                input_map,
-                ..default()
-            });
+            .insert(InputManagerBundle::with_map(input_map));
+        // .insert(InputManagerBundle::<CameraAction> {
+        //     input_map,
+        //     ..default()
+        // }
+        // );
     }
 }
 
@@ -135,53 +143,75 @@ fn camera_actions(
         let mut tmp_angular_velocity = Vec3::ZERO;
         let camera_distance = transform.translation.distance(orbit.origin);
 
-        if action_state.pressed(CameraAction::MouseMove) {
+        if action_state.pressed(&CameraAction::MouseMove) {
             // info!("Mouse move camera");
             match state.get() {
                 CameraMovementMode::Pan => {
-                    let action = action_state
-                        .axis_pair(CameraAction::MouseMove)
-                        .unwrap()
-                        .xy();
+                    if let Some(action) = action_state
+                        .axis_pair(&CameraAction::MouseMove)
+                        .map(|axis| axis.xy())
+                    {
+                        // let action = action_state
+                        //     .axis_pair(&CameraAction::MouseMove)
+                        //     .unwrap()
+                        //     .xy();
 
-                    // velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
-                    // tmp_velocity = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
-                    tmp_velocity.x = action.x * camera_distance / 50.0; // * camera::SPEED;
-                    tmp_velocity.z = action.y * camera_distance / 50.0; // * camera::SPEED;
+                        // velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
+                        // tmp_velocity = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
+                        tmp_velocity.x = action.x * camera_distance / 50.0; // * camera::SPEED;
+                        tmp_velocity.z = action.y * camera_distance / 50.0; // * camera::SPEED;
+                    }
                 }
                 CameraMovementMode::Orbit => {
-                    let action = action_state
-                        .axis_pair(CameraAction::MouseMove)
-                        .unwrap()
-                        .xy();
+                    if let Some(action) = action_state
+                        .axis_pair(&CameraAction::MouseMove)
+                        .map(|axis| axis.xy())
+                    {
+                        // let action = action_state
+                        //     .axis_pair(&CameraAction::MouseMove)
+                        //     .unwrap()
+                        //     .xy();
 
-                    // angular_velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
-                    tmp_angular_velocity.x = -action.x * 0.2; // * camera::ANGULAR_SPEED;
-                    tmp_angular_velocity.y = action.y * 0.2; // * camera::ANGULAR_SPEED;
+                        // angular_velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
+                        tmp_angular_velocity.x = -action.x * 0.2; // * camera::ANGULAR_SPEED;
+                        tmp_angular_velocity.y = action.y * 0.2; // * camera::ANGULAR_SPEED;
+                    }
                 }
             }
-        } else if action_state.pressed(CameraAction::Move) {
+        } else if action_state.pressed(&CameraAction::Move) {
             match state.get() {
                 CameraMovementMode::Pan => {
-                    let action = action_state
-                        .clamped_axis_pair(CameraAction::Move)
-                        .unwrap()
-                        .xy()
-                        .normalize_or_zero();
+                    if let Some(action) = action_state
+                        .clamped_axis_pair(&CameraAction::Move)
+                        .map(|axis| axis.xy().normalize_or_zero())
+                    {
+                        // let action = action_state
+                        //     .clamped_axis_pair(&CameraAction::Move)
+                        //     .unwrap()
+                        //     .xy()
+                        //     .normalize_or_zero();
 
-                    tmp_velocity.x = -action.x * camera::SPEED * camera_distance / 35.0;
-                    tmp_velocity.z = action.y * camera::SPEED * camera_distance / 35.0;
+                        tmp_velocity.x =
+                            -action.x * camera::SPEED * camera_distance / 35.0;
+                        tmp_velocity.z =
+                            action.y * camera::SPEED * camera_distance / 35.0;
+                    }
                 }
                 CameraMovementMode::Orbit => {
                     // action represents the direction to move the camera around it's origin
-                    let action = action_state
-                        .clamped_axis_pair(CameraAction::Move)
-                        .unwrap()
-                        .xy()
-                        .normalize();
+                    if let Some(action) = action_state
+                        .clamped_axis_pair(&CameraAction::Move)
+                        .map(|axis| axis.xy().normalize())
+                    {
+                        // let action = action_state
+                        //     .clamped_axis_pair(&CameraAction::Move)
+                        //     .unwrap()
+                        //     .xy()
+                        //     .normalize();
 
-                    tmp_angular_velocity.x = action.x * camera::ANGULAR_SPEED;
-                    tmp_angular_velocity.y = action.y * camera::ANGULAR_SPEED;
+                        tmp_angular_velocity.x = action.x * camera::ANGULAR_SPEED;
+                        tmp_angular_velocity.y = action.y * camera::ANGULAR_SPEED;
+                    }
                 }
             }
         } else {
@@ -191,10 +221,10 @@ fn camera_actions(
             tmp_angular_velocity.y = 0.0;
         }
 
-        if action_state.pressed(CameraAction::ZoomIn) {
+        if action_state.pressed(&CameraAction::ZoomIn) {
             // info!("Zooming in");
             tmp_velocity.y = -camera::SPEED * camera_distance / 10.0;
-        } else if action_state.pressed(CameraAction::ZoomOut) {
+        } else if action_state.pressed(&CameraAction::ZoomOut) {
             // info!("Zooming out");
             tmp_velocity.y = camera::SPEED * camera_distance / 10.0;
         } else {
@@ -205,7 +235,7 @@ fn camera_actions(
         angular_velocity.value = tmp_angular_velocity;
 
         // Handling state changes
-        if action_state.just_pressed(CameraAction::ToggleMovementMode) {
+        if action_state.just_pressed(&CameraAction::ToggleMovementMode) {
             next_state.set(match state.get() {
                 CameraMovementMode::Pan => {
                     info!("Toggling camera mode: Linear -> Orbit");
@@ -223,15 +253,16 @@ fn camera_actions(
 fn bind_camera_switch(mut commands: Commands) {
     let mut input_map = InputMap::default();
     input_map.insert(
-        UserInput::Single(InputKind::Keyboard(KeyCode::Tab)),
         CameraAction::Switch,
+        UserInput::Single(InputKind::PhysicalKey(KeyCode::Tab)),
     );
 
     commands.spawn((
-        InputManagerBundle::<CameraAction> {
-            input_map,
-            ..default()
-        },
+        InputManagerBundle::with_map(input_map),
+        // InputManagerBundle::<CameraAction> {
+        //     input_map,
+        //     ..default()
+        // },
         GeneralInputs,
     ));
 }
@@ -254,7 +285,7 @@ fn switch_camera(
         cameras.push(camera);
     }
 
-    if action_state.just_pressed(CameraAction::Switch) {
+    if action_state.just_pressed(&CameraAction::Switch) {
         let next_active_camera = (last_active_camera + 1) % cameras.len();
         info!(
             "Switching camera from {} to {}, with a total of {} cameras",

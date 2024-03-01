@@ -369,8 +369,8 @@ fn create_interrobot_factors_system(
             .expect("the key is in the map")
         {
             let other_varible_indices = variable_indices_of_each_factorgraph
-                .get(&other_robot_id)
-                .unwrap();
+                .get(other_robot_id)
+                .expect("the key is in the map");
             for i in 1..n_variables {
                 // TODO: do not hardcode
                 let dofs = 4;

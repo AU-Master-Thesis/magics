@@ -114,7 +114,7 @@ fn spawn_formation(
     // spawn the formation
     let first_wp = formation
         .waypoints
-        .get(0)
+        .first()
         .expect("Formation cannot have 0 waypoint entries");
 
     let initial_positions = random_position_on_shape(&first_wp.shape, formation.robots);
@@ -124,17 +124,23 @@ fn spawn_formation(
     let alpha = 0.75;
     let variable_material = materials.add({
         let (r, g, b) = catppuccin_theme.flavour.blue().into();
-        Color::rgba_u8(r, g, b, (alpha * 255.0) as u8).into()
+        Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
     });
 
     let variable_mesh = meshes.add(
-        shape::Icosphere {
-            radius: 0.3,
-            subdivisions: 4,
-        }
-        .try_into()
-        .unwrap(),
+        bevy::math::primitives::Sphere::new(0.3)
+            .mesh()
+            .ico(4)
+            .expect("4 subdivisions is less than the maximum allowed of 80"),
     );
+    // let variable_mesh = meshes.add(
+    //     shape::Icosphere {
+    //         radius: 0.3,
+    //         subdivisions: 4,
+    //     }
+    //     .try_into()
+    //     .unwrap(),
+    // );
 
     for position in initial_positions.clone().iter() {
         commands.spawn((

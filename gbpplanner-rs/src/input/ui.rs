@@ -21,13 +21,17 @@ pub enum UiAction {
 }
 
 impl UiAction {
+    fn variants() -> &'static [Self] {
+        &[UiAction::ToggleLeftPanel, UiAction::ToggleScaleFactor]
+    }
+
     fn default_keyboard_input(action: UiAction) -> Option<UserInput> {
         match action {
             Self::ToggleLeftPanel => {
-                Some(UserInput::Single(InputKind::Keyboard(KeyCode::H)))
+                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyH)))
             }
             Self::ToggleScaleFactor => {
-                Some(UserInput::Single(InputKind::Keyboard(KeyCode::U)))
+                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyU)))
             }
         }
     }
@@ -36,16 +40,18 @@ impl UiAction {
 fn bind_ui_input(mut commands: Commands) {
     let mut input_map = InputMap::default();
 
-    for action in UiAction::variants() {
+    for &action in UiAction::variants() {
         if let Some(input) = UiAction::default_keyboard_input(action) {
-            input_map.insert(input, action);
+            input_map.insert(action, input);
         }
     }
 
-    commands.spawn((InputManagerBundle::<UiAction> {
-        input_map,
-        ..Default::default()
-    },));
+    commands.spawn(InputManagerBundle::with_map(input_map));
+
+    // commands.spawn((InputManagerBundle::<UiAction> {
+    //     input_map,
+    //     ..Default::default()
+    // },));
 }
 
 fn ui_actions(
@@ -55,24 +61,26 @@ fn ui_actions(
     mut egui_settings: ResMut<EguiSettings>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
-    if let Ok(action_state) = query.get_single() {
-        if action_state.just_pressed(UiAction::ToggleLeftPanel) {
-            left_panel.left_panel = !left_panel.left_panel;
-        }
+    let Ok(action_state) = query.get_single() else {
+        return;
+    };
 
-        if action_state.just_pressed(UiAction::ToggleScaleFactor)
-            || toggle_scale_factor.is_none()
-        {
-            *toggle_scale_factor = Some(!toggle_scale_factor.unwrap_or(true));
+    if action_state.just_pressed(&UiAction::ToggleLeftPanel) {
+        left_panel.left_panel = !left_panel.left_panel;
+    }
 
-            if let Ok(window) = windows.get_single() {
-                let scale_factor = if toggle_scale_factor.unwrap() {
-                    1.0
-                } else {
-                    1.0 / window.scale_factor()
-                };
-                egui_settings.scale_factor = scale_factor;
-            }
+    if action_state.just_pressed(&UiAction::ToggleScaleFactor)
+        || toggle_scale_factor.is_none()
+    {
+        *toggle_scale_factor = Some(!toggle_scale_factor.unwrap_or(true));
+
+        if let Ok(window) = windows.get_single() {
+            let scale_factor = if toggle_scale_factor.unwrap() {
+                1.0
+            } else {
+                1.0 / window.scale_factor()
+            };
+            egui_settings.scale_factor = scale_factor;
         }
     }
 }

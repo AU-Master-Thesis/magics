@@ -279,7 +279,7 @@ fn update_rotation_orbit(
             angular_velocity.value.x * time.delta_seconds(),
         );
         let pitch = Quat::from_axis_angle(
-            transform.right(),
+            *transform.right(),
             -angular_velocity.value.y * time.delta_seconds(),
         );
 

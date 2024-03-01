@@ -37,7 +37,8 @@ pub struct RobotSpawnerPlugin;
 impl Plugin for RobotSpawnerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<RobotSpawnedEvent>()
-            .add_state::<RobotsState>();
+            .init_state::<RobotsState>();
+        // .add_state::<RobotsState>();
         // .add_systems(Update, spawn_robot_periodically);
     }
 }
@@ -66,10 +67,11 @@ fn spawn_robot_periodically(
 
         // create a cube mesh
         let size = 1.0;
-        let mesh = meshes.add(Mesh::from(bevy::prelude::shape::Cube { size }));
+        // let mesh = meshes.add(Mesh::from(bevy::prelude::shape::Cube { size }));
+        let mesh = meshes.add(bevy::math::primitives::Cuboid::new(size, size, size));
 
         // create a material
-        let material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
+        let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
         let transform = Transform::from_translation(Vec3::new(x, size / 2.0, z));
         let follow_camera_flag = FollowCameraMe {
             offset: Some(Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0),

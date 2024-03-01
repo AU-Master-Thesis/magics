@@ -216,7 +216,7 @@ pub type EdgeIndex = petgraph::graph::EdgeIndex;
 pub type Graph = petgraph::graph::Graph<Node, (), Undirected>;
 
 /// Record type used to keep track of how many factors and variables
-/// there are in the factorgraph. We keep track of these counts internally in the 
+/// there are in the factorgraph. We keep track of these counts internally in the
 /// factorgraph, such a query for the counts, is **O(1)**.
 #[derive(Debug, Clone, Copy)]
 pub struct NodeCount {
@@ -285,7 +285,10 @@ impl FactorGraph {
     /// Return an ordered interval of variables indices.
     /// The indices are ordered by the order in which they are inserted into the factorgraph.
     /// Returns `None`, if the end of the  **range** exceeds the number of variables in the factorgraph.
-    pub fn variable_indices_ordered_by_creation(&self, range: Range<usize>) -> Option<Vec<NodeIndex>> {
+    pub fn variable_indices_ordered_by_creation(
+        &self,
+        range: Range<usize>,
+    ) -> Option<Vec<NodeIndex>> {
         let within_range = range.end <= self.variable_indices_ordered.len();
         if within_range {
             Some(
@@ -294,13 +297,13 @@ impl FactorGraph {
                     .skip(range.start)
                     .take(range.end - range.start)
                     .copied()
-                    .collect::<Vec<_>>()
+                    .collect::<Vec<_>>(),
             )
         } else {
             None
         }
     }
-  
+
     // pub fn factors(&self) -> impl Iterator<Item = Node> {}
 
     /// A count over the number of variables and factors in the factorgraph
@@ -425,7 +428,7 @@ impl FactorGraph {
                             FactorKind::Obstacle(_) => graphviz::NodeKind::ObstacleFactor,
                             FactorKind::Pose(_) => graphviz::NodeKind::PoseFactor,
                             FactorKind::InterRobot(inner) => {
-                                graphviz::NodeKind::InterRobotFactor { 
+                                graphviz::NodeKind::InterRobotFactor {
                                     other_robot_id: inner.connection.id_of_robot_connected_with,
                                     variable_index_in_other_robot: self.graph.neighbors(node_index).nth(0).expect("interrobot factor have exactly 1 variable node as neighbour").index()
                                 }

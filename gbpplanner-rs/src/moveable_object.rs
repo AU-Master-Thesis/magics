@@ -19,8 +19,11 @@ pub struct MoveableObjectPlugin;
 
 impl Plugin for MoveableObjectPlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<MoveableObjectMovementState>()
-            .add_state::<MoveableObjectVisibilityState>()
+        app
+            .init_state::<MoveableObjectMovementState>()
+            .init_state::<MoveableObjectVisibilityState>()
+            // .add_state::<MoveableObjectMovementState>()
+            // .add_state::<MoveableObjectVisibilityState>()
             .add_systems(Startup, spawn);
     }
 }

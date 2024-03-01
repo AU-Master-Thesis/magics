@@ -1,9 +1,8 @@
 use bevy::{prelude::*, window::WindowTheme};
 use bevy_egui::{
-    egui::{self, Color32, RichText, Visuals},
+    egui::{self, RichText, Visuals},
     EguiContexts, EguiPlugin,
 };
-use catppuccin::Flavour;
 
 use crate::theme::{CatppuccinTheme, CatppuccinThemeExt};
 
@@ -103,9 +102,13 @@ fn ui_example_system(
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         });
 
-    occupied_screen_space.left = if left_panel.is_some() {
-        left_panel.unwrap().response.rect.width()
-    } else {
-        0.0
+    occupied_screen_space.left = match left_panel {
+        Some(inner) => inner.response.rect.width(),
+        _ => 0.0,
     };
+    // occupied_screen_space.left = if left_panel.is_some() {
+    //     left_panel.unwrap().response.rect.width()
+    // } else {
+    //     0.0
+    // };
 }

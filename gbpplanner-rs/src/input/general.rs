@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::planner::{FactorGraph, NodeIndex, NodeKind, RobotId, RobotState};
+use crate::planner::{FactorGraph, NodeKind, RobotId, RobotState};
 
 use super::super::theme::ThemeEvent;
 use bevy::prelude::*;
@@ -26,10 +26,18 @@ pub enum GeneralAction {
 }
 
 impl GeneralAction {
+    fn variants() -> &'static [Self] {
+        &[GeneralAction::ToggleTheme, GeneralAction::ExportGraph]
+    }
+
     fn default_keyboard_input(action: GeneralAction) -> Option<UserInput> {
         match action {
-            Self::ToggleTheme => Some(UserInput::Single(InputKind::Keyboard(KeyCode::T))),
-            Self::ExportGraph => Some(UserInput::Single(InputKind::Keyboard(KeyCode::G))),
+            Self::ToggleTheme => {
+                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT)))
+            }
+            Self::ExportGraph => {
+                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG)))
+            }
         }
     }
 }
@@ -37,17 +45,18 @@ impl GeneralAction {
 fn bind_general_input(mut commands: Commands) {
     let mut input_map = InputMap::default();
 
-    for action in GeneralAction::variants() {
+    for &action in GeneralAction::variants() {
         if let Some(input) = GeneralAction::default_keyboard_input(action) {
-            input_map.insert(input, action);
+            input_map.insert(action, input);
         }
     }
 
     commands.spawn((
-        InputManagerBundle {
-            input_map,
-            ..Default::default()
-        },
+        InputManagerBundle::with_map(input_map),
+        // InputManagerBundle {
+        //     input_map,
+        //     ..Default::default()
+        // },
         GeneralInputs,
     ));
 }
@@ -119,7 +128,6 @@ fn export_factorgraphs_as_graphviz(
                     other_robot_id,
                     variable_index_in_other_robot,
                 } => Some((node.index, other_robot_id)),
-
                 _ => None,
             })
             .collect();
@@ -160,12 +168,12 @@ fn general_actions_system(
         return;
     };
 
-    if action_state.just_pressed(GeneralAction::ToggleTheme) {
+    if action_state.just_pressed(&GeneralAction::ToggleTheme) {
         info!("Toggling theme");
         theme_event.send(ThemeEvent);
     }
 
-    if action_state.just_pressed(GeneralAction::ExportGraph) {
+    if action_state.just_pressed(&GeneralAction::ExportGraph) {
         let output_path = std::path::Path::new("factorgraphs.dot");
         info!("Exporting all factorgraphs to ./{:#?}", output_path);
         let output = export_factorgraphs_as_graphviz(query_graphs);
