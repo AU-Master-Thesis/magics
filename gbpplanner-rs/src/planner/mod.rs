@@ -6,7 +6,10 @@ mod robot;
 mod spawner;
 mod variable;
 
+pub use factorgraph::graphviz::{Node, NodeKind};
 pub use factorgraph::FactorGraph;
+pub use factorgraph::NodeIndex;
+pub use robot::RobotId;
 pub use robot::RobotState;
 
 pub type Timestep = u32;

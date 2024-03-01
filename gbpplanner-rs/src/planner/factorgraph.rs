@@ -6,7 +6,7 @@ use ndarray::s;
 // use nalgebra::{Matrix, Vector};
 use petgraph::dot::{Config, Dot};
 // use petgraph::prelude::{EdgeIndex, NodeIndex};
-use petgraph::visit::IntoNodeIdentifiers;
+use petgraph::visit::{IntoNeighbors, IntoNodeIdentifiers};
 use petgraph::Undirected;
 
 use super::factor::Factor;
@@ -14,6 +14,70 @@ use super::multivariate_normal::MultivariateNormal;
 use super::robot::RobotId;
 use super::variable::Variable;
 use super::{marginalise_factor_distance, Matrix, Vector};
+
+pub mod graphviz {
+    use crate::planner::RobotId;
+
+    use super::NodeIndex;
+
+    pub struct Node {
+        pub index: usize,
+        pub kind: NodeKind,
+    }
+
+    impl Node {
+        pub fn color(&self) -> &'static str {
+            self.kind.color()
+        }
+
+        pub fn shape(&self) -> &'static str {
+            self.kind.shape()
+        }
+
+        pub fn width(&self) -> &'static str {
+            self.kind.width()
+        }
+    }
+
+    pub enum NodeKind {
+        Variable,
+        InterRobotFactor(usize, RobotId),
+        DynamicFactor,
+        ObstacleFactor,
+        PoseFactor,
+    }
+
+    impl NodeKind {
+        pub fn color(&self) -> &'static str {
+            match self {
+                Self::Variable => "#eff1f5",            // latte base (white)
+                Self::InterRobotFactor(_) => "#a6da95", // green
+                Self::DynamicFactor => "#8aadf4",       // blue
+                Self::ObstacleFactor => "#c6a0f6",      // mauve (purple)
+                Self::PoseFactor => "#ee99a0",          // maroon (red)
+            }
+        }
+
+        pub fn shape(&self) -> &'static str {
+            match self {
+                Self::Variable => "circle",
+                _ => "square",
+            }
+        }
+
+        pub fn width(&self) -> &'static str {
+            match self {
+                Self::Variable => "0.8",
+                _ => "0.2",
+            }
+        }
+    }
+
+    pub struct Edge {
+        pub from: usize,
+        pub to: usize,
+    }
+}
 
 /// How the messages are passed between factors and variables in the connected factorgraphs.
 // #[derive(Debug)]
@@ -251,43 +315,113 @@ impl FactorGraph {
         // }
         // println!("}}");
         let mut output = String::new();
-        output.push_str("graph {\n");
+        output.push_str("subgraph {\n");
         output.push_str("    node [style=filled]\n");
+
+        let mut connections_made = HashMap::<NodeIndex, NodeIndex>::new();
+
         for node_index in self.graph.node_indices() {
             let node = &self.graph[node_index];
 
             let shape = match node {
-                Node::Factor(_) => "box",
+                Node::Factor(_) => "square",
                 Node::Variable(_) => "circle",
             };
 
             let color = match node {
                 Node::Factor(factor) => match factor.kind {
-                    super::factor::FactorKind::InterRobot(_) => "green",
-                    super::factor::FactorKind::Dynamic(_) => "blue",
-                    super::factor::FactorKind::Obstacle(_) => "purple",
-                    super::factor::FactorKind::Pose(_) => "red",
+                    super::factor::FactorKind::InterRobot(_) => "\"#a6da95\"", // green
+                    super::factor::FactorKind::Dynamic(_) => "\"#8aadf4\"",    // blue
+                    super::factor::FactorKind::Obstacle(_) => "\"#c6a0f6\"", // mauve (purple)
+                    super::factor::FactorKind::Pose(_) => "\"#ee99a0\"", // maroon (red)
                 },
-                Node::Variable(_) => "white",
+                Node::Variable(_) => "\"#eff1f5\"", // latte base (white)
+            };
+
+            let width = match node {
+                Node::Factor(_) => "0.2",
+                Node::Variable(_) => "0.8",
             };
 
             output.push_str(&format!(
-                "    {} [shape={}, fillcolor={}]\n",
+                "    {} [shape={}, fillcolor={}, width={}]\n",
                 node_index.index(),
                 shape,
-                color
+                color,
+                width
             ));
 
             for neighbour_index in self.graph.neighbors(node_index) {
-                output.push_str(&format!(
-                    "    {} -- {}\n",
-                    node_index.index(),
-                    neighbour_index.index()
-                ));
+                if let Some(existing_neighbour) = connections_made.get(&neighbour_index) {
+                    if *existing_neighbour == node_index {
+                        continue;
+                    }
+                } else {
+                    connections_made.insert(neighbour_index, node_index);
+                }
             }
         }
+
+        for (neighbour_index, node_index) in connections_made {
+            output.push_str(&format!(
+                "    {} -- {}\n",
+                node_index.index(),
+                neighbour_index.index()
+            ));
+        }
+
         output.push_str("}\n");
         output
+    }
+
+    pub fn export_data(&self) -> (Vec<graphviz::Node>, Vec<graphviz::Edge>) {
+        // let mut nodes = Vec::<graphviz::Node>::with_capacity(self.graph.node_count());
+        // let mut edges = Vec::<graphviz::Edge>::with_capacity(self.graph.edge_count());
+
+        let nodes = self
+            .graph
+            .node_indices()
+            .map(|node_index| {
+                let node = &self.graph[node_index];
+                graphviz::Node {
+                    index: node_index.index(),
+                    kind: match node {
+                        Node::Factor(factor) => match factor.kind {
+                            super::factor::FactorKind::InterRobot(inter_robot_factor) => {
+                                graphviz::NodeKind::InterRobotFactor(
+                                    self.graph.neighbors(node_index).nth(0).expect("InterRobotFactors have exactly 1 internal neighbour").index(),
+                                    inter_robot_factor.id_of_robot_connected_with,
+                                )
+                            }
+                            super::factor::FactorKind::Dynamic(_) => {
+                                graphviz::NodeKind::DynamicFactor
+                            }
+                            super::factor::FactorKind::Obstacle(_) => {
+                                graphviz::NodeKind::ObstacleFactor
+                            }
+                            super::factor::FactorKind::Pose(_) => {
+                                graphviz::NodeKind::PoseFactor
+                            }
+                        },
+                        Node::Variable(_) => graphviz::NodeKind::Variable,
+                    },
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let edges = self
+            .graph
+            .edge_indices()
+            .map(|edge_index| {
+                let edge = self.graph.edge_endpoints(edge_index).unwrap();
+                graphviz::Edge {
+                    from: edge.0.index(),
+                    to: edge.1.index(),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        (nodes, edges)
     }
 
     /// Aggregate and marginalise over all adjacent variables, and send.
