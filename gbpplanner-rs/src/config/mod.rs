@@ -1,6 +1,5 @@
 pub mod formation;
 
-use bevy::asset::io::file;
 use bevy::ecs::system::Resource;
 pub use formation::Formation;
 pub use formation::FormationGroup;

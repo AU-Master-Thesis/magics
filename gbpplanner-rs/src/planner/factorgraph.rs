@@ -1,15 +1,11 @@
 use std::collections::{HashMap, VecDeque};
-use std::ops::AddAssign;
+use std::ops::{AddAssign, Range};
 
 use bevy::prelude::*;
 use ndarray::s;
-// use nalgebra::{Matrix, Vector};
-use petgraph::dot::{Config, Dot};
-// use petgraph::prelude::{EdgeIndex, NodeIndex};
-use petgraph::visit::{IntoNeighbors, IntoNodeIdentifiers};
 use petgraph::Undirected;
 
-use super::factor::Factor;
+use super::factor::{Factor, FactorKind};
 use super::multivariate_normal::MultivariateNormal;
 use super::robot::RobotId;
 use super::variable::Variable;
@@ -17,8 +13,6 @@ use super::{marginalise_factor_distance, Matrix, Vector};
 
 pub mod graphviz {
     use crate::planner::RobotId;
-
-    use super::NodeIndex;
 
     pub struct Node {
         pub index: usize,
@@ -40,8 +34,16 @@ pub mod graphviz {
     }
 
     pub enum NodeKind {
-        Variable,
-        InterRobotFactor(usize, RobotId),
+        Variable {
+            x: f32,
+            y: f32,
+        },
+        InterRobotFactor {
+            /// The id of the robot the interrobot factor is connected to
+            other_robot_id: RobotId,
+            /// The index of the variable in the other robots factorgraph, that the interrobot factor is connected with
+            variable_index_in_other_robot: usize,
+        },
         DynamicFactor,
         ObstacleFactor,
         PoseFactor,
@@ -50,24 +52,24 @@ pub mod graphviz {
     impl NodeKind {
         pub fn color(&self) -> &'static str {
             match self {
-                Self::Variable => "#eff1f5",            // latte base (white)
-                Self::InterRobotFactor(_) => "#a6da95", // green
-                Self::DynamicFactor => "#8aadf4",       // blue
-                Self::ObstacleFactor => "#c6a0f6",      // mauve (purple)
-                Self::PoseFactor => "#ee99a0",          // maroon (red)
+                Self::Variable { .. } => "#eff1f5", // latte base (white)
+                Self::InterRobotFactor { .. } => "#a6da95", // green
+                Self::DynamicFactor => "#8aadf4",   // blue
+                Self::ObstacleFactor => "#c6a0f6",  // mauve (purple)
+                Self::PoseFactor => "#ee99a0",      // maroon (red)
             }
         }
 
         pub fn shape(&self) -> &'static str {
             match self {
-                Self::Variable => "circle",
+                Self::Variable { .. } => "circle",
                 _ => "square",
             }
         }
 
         pub fn width(&self) -> &'static str {
             match self {
-                Self::Variable => "0.8",
+                Self::Variable { .. } => "0.8",
                 _ => "0.2",
             }
         }
@@ -202,10 +204,20 @@ impl Node {
     }
 }
 
+/// The type used to represent indices into the nodes of the factorgraph.
+/// This is just a type alias for `petgraph::graph::NodeIndex`, but
+/// we make an alias for it here, such that it is easier to use the same
+/// index type across modules, as the various node index types `petgraph`
+/// are not interchangeable.
 pub type NodeIndex = petgraph::graph::NodeIndex;
+/// The type used to represent indices into the nodes of the factorgraph.
 pub type EdgeIndex = petgraph::graph::EdgeIndex;
+/// A factorgraph is an undirected graph
 pub type Graph = petgraph::graph::Graph<Node, (), Undirected>;
 
+/// Record type used to keep track of how many factors and variables
+/// there are in the factorgraph. We keep track of these counts internally in the 
+/// factorgraph, such a query for the counts, is **O(1)**.
 #[derive(Debug, Clone, Copy)]
 pub struct NodeCount {
     pub factors: usize,
@@ -217,19 +229,18 @@ pub struct NodeCount {
 #[derive(Component, Debug)]
 pub struct FactorGraph {
     graph: Graph,
+    /// tracks how many variable and factor nodes there are in the graph.
     node_count: NodeCount,
-    // num_factors: usize,
-    // num_variables: usize,
     /// In **gbpplanner** the sequence in which variables are inserted/created in the graph
     /// is meaningful. `self.graph` does not capture this ordering, so we use an extra queue
     /// to manage the order in which variables are inserted/removed from the graph.
-    /// **IMPORTANT** we have to manually ensure the invariant that `self.graph` and `self.variable_ordering`
+    /// **IMPORTANT** we have to manually ensure the invariant that `self.graph` and this field
     /// is consistent at all time.
-    /// TODO: come up with a better name
-    variable_ordering: VecDeque<NodeIndex>,
+    variable_indices_ordered: VecDeque<NodeIndex>,
 }
 
 impl FactorGraph {
+    /// Construct a new empty factorgraph
     pub fn new() -> Self {
         Self {
             graph: Graph::new_undirected(),
@@ -237,14 +248,14 @@ impl FactorGraph {
                 factors: 0usize,
                 variables: 0usize,
             },
-            variable_ordering: VecDeque::new(),
+            variable_indices_ordered: VecDeque::new(),
         }
     }
 
     pub fn add_variable(&mut self, variable: Variable) -> NodeIndex {
         let node_index = self.graph.add_node(Node::Variable(variable));
         self.graph[node_index].set_node_index(node_index);
-        self.variable_ordering.push_back(node_index);
+        self.variable_indices_ordered.push_back(node_index);
         self.node_count.variables += 1;
         node_index
     }
@@ -256,6 +267,10 @@ impl FactorGraph {
         node_index
     }
 
+    /// Add an edge between nodes `a` and `b` in the factorgraph.
+    ///
+    /// **invariants**:
+    /// - Both `a` and `b` must already be in the factorgraph. Panics if any of the nodes does not exist.
     pub fn add_edge(&mut self, a: NodeIndex, b: NodeIndex) -> EdgeIndex {
         self.graph.add_edge(a, b, ())
     }
@@ -267,6 +282,25 @@ impl FactorGraph {
         self.graph.node_count()
     }
 
+    /// Return an ordered interval of variables indices.
+    /// The indices are ordered by the order in which they are inserted into the factorgraph.
+    /// Returns `None`, if the end of the  **range** exceeds the number of variables in the factorgraph.
+    pub fn variable_indices_ordered_by_creation(&self, range: Range<usize>) -> Option<Vec<NodeIndex>> {
+        let within_range = range.end <= self.variable_indices_ordered.len();
+        if within_range {
+            Some(
+                self.variable_indices_ordered
+                    .iter()
+                    .skip(range.start)
+                    .take(range.end - range.start)
+                    .copied()
+                    .collect::<Vec<_>>()
+            )
+        } else {
+            None
+        }
+    }
+  
     // pub fn factors(&self) -> impl Iterator<Item = Node> {}
 
     /// A count over the number of variables and factors in the factorgraph
@@ -277,7 +311,7 @@ impl FactorGraph {
     }
 
     pub fn nth_variable_index(&self, index: usize) -> Option<NodeIndex> {
-        self.variable_ordering.get(index).copied()
+        self.variable_indices_ordered.get(index).copied()
     }
 
     pub fn nth_variable(&self, index: usize) -> Option<&Variable> {
@@ -297,82 +331,82 @@ impl FactorGraph {
     }
 
     pub fn last_variable(&self) -> Option<&Variable> {
-        self.nth_variable(self.variable_ordering.len())
+        self.nth_variable(self.variable_indices_ordered.len())
     }
 
     pub fn last_variable_mut(&mut self) -> Option<&mut Variable> {
-        self.nth_variable_mut(self.variable_ordering.len())
+        self.nth_variable_mut(self.variable_indices_ordered.len())
     }
 
     // TODO: Implement our own export to `DOT` format, which can be much more specific with styling.
     /// Exports tree to `graphviz` `DOT` format
-    pub fn export(&self) -> String {
-        // println!("graph {{");
-        // for node_index in self.graph.node_indices() {
-        //     for neighbour_index in self.graph.neighbors(node_index) {
-        //         println!("    {} -- {}", node_index.index(), neighbour_index.index());
-        //     }
-        // }
-        // println!("}}");
-        let mut output = String::new();
-        output.push_str("subgraph {\n");
-        output.push_str("    node [style=filled]\n");
+    // pub fn export(&self) -> String {
+    //     // println!("graph {{");
+    //     // for node_index in self.graph.node_indices() {
+    //     //     for neighbour_index in self.graph.neighbors(node_index) {
+    //     //         println!("    {} -- {}", node_index.index(), neighbour_index.index());
+    //     //     }
+    //     // }
+    //     // println!("}}");
+    //     let mut output = String::new();
+    //     output.push_str("subgraph {\n");
+    //     output.push_str("    node [style=filled]\n");
 
-        let mut connections_made = HashMap::<NodeIndex, NodeIndex>::new();
+    //     let mut connections_made = HashMap::<NodeIndex, NodeIndex>::new();
 
-        for node_index in self.graph.node_indices() {
-            let node = &self.graph[node_index];
+    //     for node_index in self.graph.node_indices() {
+    //         let node = &self.graph[node_index];
 
-            let shape = match node {
-                Node::Factor(_) => "square",
-                Node::Variable(_) => "circle",
-            };
+    //         let shape = match node {
+    //             Node::Factor(_) => "square",
+    //             Node::Variable(_) => "circle",
+    //         };
 
-            let color = match node {
-                Node::Factor(factor) => match factor.kind {
-                    super::factor::FactorKind::InterRobot(_) => "\"#a6da95\"", // green
-                    super::factor::FactorKind::Dynamic(_) => "\"#8aadf4\"",    // blue
-                    super::factor::FactorKind::Obstacle(_) => "\"#c6a0f6\"", // mauve (purple)
-                    super::factor::FactorKind::Pose(_) => "\"#ee99a0\"", // maroon (red)
-                },
-                Node::Variable(_) => "\"#eff1f5\"", // latte base (white)
-            };
+    //         let color = match node {
+    //             Node::Factor(factor) => match factor.kind {
+    //                 super::factor::FactorKind::InterRobot(_) => "\"#a6da95\"", // green
+    //                 super::factor::FactorKind::Dynamic(_) => "\"#8aadf4\"",    // blue
+    //                 super::factor::FactorKind::Obstacle(_) => "\"#c6a0f6\"", // mauve (purple)
+    //                 super::factor::FactorKind::Pose(_) => "\"#ee99a0\"", // maroon (red)
+    //             },
+    //             Node::Variable(_) => "\"#eff1f5\"", // latte base (white)
+    //         };
 
-            let width = match node {
-                Node::Factor(_) => "0.2",
-                Node::Variable(_) => "0.8",
-            };
+    //         let width = match node {
+    //             Node::Factor(_) => "0.2",
+    //             Node::Variable(_) => "0.8",
+    //         };
 
-            output.push_str(&format!(
-                "    {} [shape={}, fillcolor={}, width={}]\n",
-                node_index.index(),
-                shape,
-                color,
-                width
-            ));
+    //         output.push_str(&format!(
+    //             "    {} [shape={}, fillcolor={}, width={}]\n",
+    //             node_index.index(),
+    //             shape,
+    //             color,
+    //             width
+    //         ));
 
-            for neighbour_index in self.graph.neighbors(node_index) {
-                if let Some(existing_neighbour) = connections_made.get(&neighbour_index) {
-                    if *existing_neighbour == node_index {
-                        continue;
-                    }
-                } else {
-                    connections_made.insert(neighbour_index, node_index);
-                }
-            }
-        }
+    //         for neighbour_index in self.graph.neighbors(node_index) {
+    //             if let Some(existing_neighbour) = connections_made.get(&neighbour_index) {
+    //                 if *existing_neighbour == node_index {
+    //                     continue;
+    //                 }
+    //             } else {
+    //                 connections_made.insert(neighbour_index, node_index);
+    //             }
+    //         }
+    //     }
 
-        for (neighbour_index, node_index) in connections_made {
-            output.push_str(&format!(
-                "    {} -- {}\n",
-                node_index.index(),
-                neighbour_index.index()
-            ));
-        }
+    //     for (neighbour_index, node_index) in connections_made {
+    //         output.push_str(&format!(
+    //             "    {} -- {}\n",
+    //             node_index.index(),
+    //             neighbour_index.index()
+    //         ));
+    //     }
 
-        output.push_str("}\n");
-        output
-    }
+    //     output.push_str("}\n");
+    //     output
+    // }
 
     pub fn export_data(&self) -> (Vec<graphviz::Node>, Vec<graphviz::Edge>) {
         // let mut nodes = Vec::<graphviz::Node>::with_capacity(self.graph.node_count());
@@ -387,23 +421,20 @@ impl FactorGraph {
                     index: node_index.index(),
                     kind: match node {
                         Node::Factor(factor) => match factor.kind {
-                            super::factor::FactorKind::InterRobot(inter_robot_factor) => {
-                                graphviz::NodeKind::InterRobotFactor(
-                                    self.graph.neighbors(node_index).nth(0).expect("InterRobotFactors have exactly 1 internal neighbour").index(),
-                                    inter_robot_factor.id_of_robot_connected_with,
-                                )
-                            }
-                            super::factor::FactorKind::Dynamic(_) => {
-                                graphviz::NodeKind::DynamicFactor
-                            }
-                            super::factor::FactorKind::Obstacle(_) => {
-                                graphviz::NodeKind::ObstacleFactor
-                            }
-                            super::factor::FactorKind::Pose(_) => {
-                                graphviz::NodeKind::PoseFactor
+                            FactorKind::Dynamic(_) => graphviz::NodeKind::DynamicFactor,
+                            FactorKind::Obstacle(_) => graphviz::NodeKind::ObstacleFactor,
+                            FactorKind::Pose(_) => graphviz::NodeKind::PoseFactor,
+                            FactorKind::InterRobot(inner) => {
+                                graphviz::NodeKind::InterRobotFactor { 
+                                    other_robot_id: inner.connection.id_of_robot_connected_with,
+                                    variable_index_in_other_robot: self.graph.neighbors(node_index).nth(0).expect("interrobot factor have exactly 1 variable node as neighbour").index()
+                                }
                             }
                         },
-                        Node::Variable(_) => graphviz::NodeKind::Variable,
+                        Node::Variable(variable) => {
+                            let mean = variable.belief.mean();
+                            graphviz::NodeKind::Variable { x: mean[0], y: mean[1]  }
+                        },
                     },
                 }
             })
@@ -412,12 +443,13 @@ impl FactorGraph {
         let edges = self
             .graph
             .edge_indices()
-            .map(|edge_index| {
-                let edge = self.graph.edge_endpoints(edge_index).unwrap();
-                graphviz::Edge {
-                    from: edge.0.index(),
-                    to: edge.1.index(),
-                }
+            .filter_map(|edge_index| {
+                self.graph
+                    .edge_endpoints(edge_index)
+                    .map(|(from, to)| graphviz::Edge {
+                        from: from.index(),
+                        to: to.index(),
+                    })
             })
             .collect::<Vec<_>>();
 
@@ -674,7 +706,7 @@ impl FactorGraph {
             node.as_factor()
                 .and_then(|factor| factor.kind.as_inter_robot())
                 // Extract `id_of_robot_connected_with` directly
-                .filter(|interrobot| interrobot.id_of_robot_connected_with == other)
+                .filter(|interrobot| interrobot.connection.id_of_robot_connected_with == other)
                 .map(|_interrobot| node_idx)
         })
         .ok_or("not found")?;

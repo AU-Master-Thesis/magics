@@ -15,7 +15,7 @@ impl Plugin for GeneralInputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((InputManagerPlugin::<GeneralAction>::default(),))
             .add_systems(PostStartup, (bind_general_input,))
-            .add_systems(Update, (general_actions,));
+            .add_systems(Update, (general_actions_system,));
     }
 }
 
@@ -52,135 +52,123 @@ fn bind_general_input(mut commands: Commands) {
     ));
 }
 
-fn general_actions(
+fn export_factorgraphs_as_graphviz(
+    query: Query<(Entity, &FactorGraph), With<RobotState>>,
+) -> String {
+    let external_edge_length = 1.0;
+    let internal_edge_length = 1.0;
+    let mut buf = String::with_capacity(4 * 1024); // 4 kB
+    let mut append_line_to_output = |line: &str| {
+        buf.push_str(line);
+        buf.push('\n');
+    };
+    append_line_to_output("graph {");
+    append_line_to_output("  node [style=filled];");
+    append_line_to_output("  layout=neato;");
+
+    let mut all_external_connections =
+        HashMap::<RobotId, HashMap<usize, RobotId>>::with_capacity(query.iter().len());
+
+    for (robot_id, factorgraph) in query.iter() {
+        let (nodes, edges) = factorgraph.export_data();
+
+        append_line_to_output(&format!("  subgraph cluster_{:?} {{", robot_id));
+        // Add all nodes
+        for node in nodes.iter() {
+            let pos = match node.kind {
+                NodeKind::Variable { x, y } => Some((x, y)),
+                _ => None,
+            };
+
+            let line = {
+                let mut line = String::with_capacity(32);
+                line.push_str(&format!(
+                    r#""{:?}_{:?} [label="{:?}", fillcolor="{}", shape={}, width={}""#,
+                    robot_id,
+                    node.index,
+                    node.index,
+                    node.color(),
+                    node.shape(),
+                    node.width()
+                ));
+                if let Some((x, y)) = pos {
+                    line.push_str(&format!(r#", pos="{x}, {y}""#));
+                }
+                line.push(']');
+                line
+            };
+
+            append_line_to_output(&line);
+        }
+        append_line_to_output("}");
+
+        append_line_to_output("");
+        // Add all internal edges
+        for edge in edges.iter() {
+            let line = format!(
+                r#""{:?}_{:?}" -- "{:?}_{:?}""#,
+                robot_id, edge.from, robot_id, edge.to
+            );
+            append_line_to_output(&line);
+        }
+
+        let external_connections: HashMap<usize, RobotId> = nodes
+            .into_iter()
+            .filter_map(|node| match node.kind {
+                NodeKind::InterRobotFactor {
+                    other_robot_id,
+                    variable_index_in_other_robot,
+                } => Some((node.index, other_robot_id)),
+
+                _ => None,
+            })
+            .collect();
+
+        all_external_connections.insert(robot_id, external_connections);
+    }
+
+    for (from_robot_id, from_connections) in all_external_connections.iter() {
+        for (from_node, to_robot_id) in from_connections.iter() {
+            let to_connections = all_external_connections.get(to_robot_id).unwrap();
+            // let to_robot_id = to_connections.get(from_node).unwrap();
+
+            let to_node = to_connections
+                .iter()
+                .find(|(_, robot_id)| from_robot_id == *robot_id)
+                .map(|(node, _)| node)
+                .unwrap();
+
+            // let to_variable =
+
+            // buf.push_str(&format!(
+            //     "    \"{:?}_{:?}\" -- \"{:?}_{:?}\" [len=10]\n",
+            //     from_robot_id, from_node, to_robot_id, to_node
+            // ));
+        }
+    }
+
+    append_line_to_output("}"); // closing '}' for starting "graph {"
+    buf
+}
+
+fn general_actions_system(
     mut theme_event: EventWriter<ThemeEvent>,
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
     query_graphs: Query<(Entity, &FactorGraph), With<RobotState>>,
 ) {
-    if let Ok(action_state) = query.get_single() {
-        if action_state.just_pressed(GeneralAction::ToggleTheme) {
-            info!("Toggling theme");
-            theme_event.send(ThemeEvent);
-        }
+    let Ok(action_state) = query.get_single() else {
+        return;
+    };
 
-        if action_state.just_pressed(GeneralAction::ExportGraph) {
-            info!("Exporting all graphs");
+    if action_state.just_pressed(GeneralAction::ToggleTheme) {
+        info!("Toggling theme");
+        theme_event.send(ThemeEvent);
+    }
 
-            // for (i, graph) in query_graphs.iter().enumerate() {
-            //     info!("Exporting graph {}", i);
-            //     std::fs::write(format!("graph_{}.dot", i), graph.export().as_bytes())
-            //         .unwrap();
-            //     // let graph_viz = graph.export();
-            // }
-            let mut output = String::new();
-            output.push_str("graph {\n");
-            output.push_str("    node [style=filled];\n");
-            output.push_str("    layout=neato;\n");
-
-            let mut all_external_connections =
-                HashMap::<RobotId, HashMap<usize, RobotId>>::new();
-
-            for (robot_id, graph) in query_graphs.iter() {
-                output.push_str(&format!("    subgraph cluster_{:?} {{\n", robot_id));
-
-                // output.push_str(&graph.export());
-                let (nodes, edges) = graph.export_data();
-
-                // Add all nodes
-                for node in nodes.iter() {
-                    output.push_str(&format!(
-                        "        \"{:?}_{:?}\" [label=\"{:?}\", fillcolor=\"{}\", shape={}, width={}]\n",
-                        robot_id,
-                        node.index,
-                        node.index,
-                        node.color(),
-                        node.shape(),
-                        node.width()
-                    ));
-                }
-
-                output.push_str("    }\n");
-
-                // Add all internal edges
-                for edge in edges {
-                    output.push_str(&format!(
-                        "    \"{:?}_{:?}\" -- \"{:?}_{:?}\"\n",
-                        robot_id, edge.from, robot_id, edge.to
-                    ));
-                }
-
-                // Add all external edges
-                // where the `Node` is a `Factor` of the `InterRobot` kind and it's value is the `NodeIndex` of the other robot (`Node`) to which it is connected
-                // let mut external_connections =
-                //     HashMap::<(RobotId, usize), RobotId>::new();
-                // for node in nodes.iter() {
-                //     match node.kind {
-                //         NodeKind::InterRobotFactor(other_robot_id) => {
-                //             // output.push_str(&format!(
-                //             //     "    \"{:?}_{:?}\" -- \"{:?}_{:?}\"\n",
-                //             //     robot_id, node.index, other_robot_id, node
-                //             // ));
-                //             external_connections
-                //                 .insert((robot_id, node.index), other_robot_id);
-                //         }
-                //         _ => {}
-                //     }
-                // }
-
-                // for ((from_robot_id, from_node), to_robot_id) in external_connections.iter() {
-                //     // find counterpart node to `to_robot_id`
-                // }
-
-                let mut external_connections = HashMap::<usize, RobotId>::new();
-
-                for node in nodes.iter() {
-                    match node.kind {
-                        NodeKind::InterRobotFactor(other_robot_id) => {
-                            external_connections.insert(node.index, other_robot_id);
-                        }
-                        _ => {}
-                    }
-                }
-
-                all_external_connections.insert(robot_id, external_connections);
-            }
-
-            for (from_robot_id, from_connections) in all_external_connections.iter() {
-                for (from_node, to_robot_id) in from_connections.iter() {
-                    let to_connections =
-                        all_external_connections.get(to_robot_id).unwrap();
-                    // let to_robot_id = to_connections.get(from_node).unwrap();
-
-                    let to_node = to_connections
-                        .iter()
-                        .find(|(_, robot_id)| from_robot_id == *robot_id)
-                        .map(|(node, _)| node)
-                        .unwrap();
-
-                    // let to_variable =
-
-                    output.push_str(&format!(
-                        "    \"{:?}_{:?}\" -- \"{:?}_{:?}\" [len=10]\n",
-                        from_robot_id, from_node, to_robot_id, to_node
-                    ));
-
-                    // if from_robot_id == to_robot_id {
-                    //     output.push_str(&format!(
-                    //         "    \"{:?}_{:?}\" -- \"{:?}_{:?}\"\n",
-                    //         from_robot_id, from_node, to_robot_id, from_node
-                    //     ));
-                    // }
-
-                    // output.push_str(&format!(
-                    //     "    \"{:?}_{:?}\" -- \"{:?}_{:?}\"\n",
-                    //     from_robot_id, from_node, to_robot_id, to_node
-                    // ));
-                }
-            }
-
-            output.push_str("}\n");
-
-            std::fs::write("graph.dot", output.as_bytes()).unwrap();
-        }
+    if action_state.just_pressed(GeneralAction::ExportGraph) {
+        let output_path = std::path::Path::new("factorgraphs.dot");
+        info!("Exporting all factorgraphs to ./{:#?}", output_path);
+        let output = export_factorgraphs_as_graphviz(query_graphs);
+        std::fs::write(output_path, output.as_bytes()).unwrap();
     }
 }

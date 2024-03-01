@@ -27,7 +27,7 @@ impl Plugin for EguiInterfacePlugin {
             .init_resource::<UiState>()
             .add_plugins(EguiPlugin)
             .add_systems(Startup, configure_visuals_system)
-            .add_systems(Update, (ui_example_system));
+            .add_systems(Update, ui_example_system);
     }
 }
 
