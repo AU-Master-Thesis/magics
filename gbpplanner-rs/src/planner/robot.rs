@@ -338,7 +338,7 @@ fn create_interrobot_factors_system(
     // a mapping between a robot and the other robots it should create a interrobot factor to
     // e.g:
     // {a -> [b, c, d], b -> [a, c], c -> [a, b], d -> [c]}
-    let new_connections_map: HashMap<RobotId, Vec<RobotId>> = query
+    let new_connections_to_establish: HashMap<RobotId, Vec<RobotId>> = query
         .iter()
         .map(|(entity, _, robotstate)| {
             let new_connections = robotstate
@@ -358,13 +358,13 @@ fn create_interrobot_factors_system(
         .map(|(robot_id, factorgraph, _)| {
             let varible_indices = factorgraph
                 .variable_indices_ordered_by_creation(1..n_variables)
-                .expect("");
+                .expect("the factorgraph has up to `n_variables` variables");
             (robot_id, varible_indices)
         })
         .collect();
 
     for (robot_id, mut factorgraph, mut robotstate) in query.iter_mut() {
-        for other_robot_id in new_connections_map
+        for other_robot_id in new_connections_to_establish
             .get(&robot_id)
             .expect("the key is in the map")
         {

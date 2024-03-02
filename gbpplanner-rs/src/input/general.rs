@@ -65,10 +65,10 @@ fn export_factorgraphs_as_graphviz(
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
 ) -> Option<String> {
     if query.is_empty() {
+        // There are no factorgraph in the scene/world
         return None;
     }
 
-    // TODO: what if there are no factorgraphs? return None
     let external_edge_length = 1.0;
     let internal_edge_length = 1.0;
     let cluster_margin = 16;
@@ -85,7 +85,9 @@ fn export_factorgraphs_as_graphviz(
     append_line_to_output("  layout=neato;");
 
     let mut all_external_connections =
-        HashMap::<RobotId, HashMap<usize, RobotId>>::with_capacity(query.iter().len());
+        HashMap::<RobotId, HashMap<usize, (RobotId, usize)>>::with_capacity(
+            query.iter().len(),
+        );
 
     for (robot_id, factorgraph) in query.iter() {
         let (nodes, edges) = factorgraph.export_data();
@@ -133,13 +135,22 @@ fn export_factorgraphs_as_graphviz(
             append_line_to_output(&line);
         }
 
-        let external_connections: HashMap<usize, RobotId> = nodes
+        let external_connections: HashMap<usize, (RobotId, usize)> = nodes
             .into_iter()
             .filter_map(|node| match node.kind {
-                NodeKind::InterRobotFactor {
-                    other_robot_id,
-                    variable_index_in_other_robot,
-                } => Some((node.index, other_robot_id)),
+                NodeKind::InterRobotFactor(connection) => Some((
+                    node.index,
+                    (
+                        connection.id_of_robot_connected_with,
+                        connection
+                            .index_of_connected_variable_in_other_robots_factorgraph
+                            .index(),
+                    ),
+                )),
+                // NodeKind::InterRobotFactor {
+                //     other_robot_id,
+                //     variable_index_in_other_robot,
+                // } => Some((node.index, other_robot_id)),
                 _ => None,
             })
             .collect();
@@ -148,17 +159,22 @@ fn export_factorgraphs_as_graphviz(
     }
 
     for (from_robot_id, from_connections) in all_external_connections.iter() {
-        for (from_node, to_robot_id) in from_connections.iter() {
-            let to_connections = all_external_connections.get(to_robot_id).unwrap();
+        for (from_factor, (to_robot_id, to_variable_index)) in from_connections.iter() {
+            // let to_connections = all_external_connections.get(to_robot_id).unwrap();
             // let to_robot_id = to_connections.get(from_node).unwrap();
 
-            let to_node = to_connections
-                .iter()
-                .find(|(_, robot_id)| from_robot_id == *robot_id)
-                .map(|(node, _)| node)
-                .unwrap();
+            // let to_node = to_connections
+            //     .iter()
+            //     .find(|(_, robot_id)| from_robot_id == *robot_id)
+            //     .map(|(node, _)| node)
+            //     .unwrap();
 
             // let to_variable =
+
+            append_line_to_output(&format!(
+                r#" "{:?}_{:?}" -- "{:?}_{:?}" [len=10]"#,
+                from_robot_id, from_factor, to_robot_id, to_variable_index,
+            ));
 
             // buf.push_str(&format!(
             //     "    \"{:?}_{:?}\" -- \"{:?}_{:?}\" [len=10]\n",

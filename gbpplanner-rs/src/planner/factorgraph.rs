@@ -12,7 +12,7 @@ use super::variable::Variable;
 use super::{marginalise_factor_distance, Matrix, Vector};
 
 pub mod graphviz {
-    use crate::planner::RobotId;
+    use crate::planner::{factor::InterRobotConnection, RobotId};
 
     pub struct Node {
         pub index: usize,
@@ -34,16 +34,14 @@ pub mod graphviz {
     }
 
     pub enum NodeKind {
-        Variable {
-            x: f32,
-            y: f32,
-        },
-        InterRobotFactor {
-            /// The id of the robot the interrobot factor is connected to
-            other_robot_id: RobotId,
-            /// The index of the variable in the other robots factorgraph, that the interrobot factor is connected with
-            variable_index_in_other_robot: usize,
-        },
+        Variable { x: f32, y: f32 },
+        InterRobotFactor(InterRobotConnection),
+        // InterRobotFactor {
+        //     /// The id of the robot the interrobot factor is connected to
+        //     other_robot_id: RobotId,
+        //     /// The index of the variable in the other robots factorgraph, that the interrobot factor is connected with
+        //     variable_index_in_other_robot: usize,
+        // },
         DynamicFactor,
         ObstacleFactor,
         PoseFactor,
@@ -138,6 +136,7 @@ pub type Inbox = HashMap<NodeIndex, Message>;
 #[derive(Debug, Clone)]
 pub enum Node {
     Factor(Factor),
+    // TODO: wrap in Box<>
     Variable(Variable),
 }
 
@@ -428,17 +427,23 @@ impl FactorGraph {
                             FactorKind::Obstacle(_) => graphviz::NodeKind::ObstacleFactor,
                             FactorKind::Pose(_) => graphviz::NodeKind::PoseFactor,
                             FactorKind::InterRobot(inner) => {
-                                graphviz::NodeKind::InterRobotFactor {
-                                    other_robot_id: inner.connection.id_of_robot_connected_with,
-                                    variable_index_in_other_robot: self.graph.neighbors(node_index).nth(0).expect("interrobot factor have exactly 1 variable node as neighbour").index()
-                                }
+                                graphviz::NodeKind::InterRobotFactor(
+                                    inner.connection.clone(),
+                                )
+                                // graphviz::NodeKind::InterRobotFactor {
+                                //     other_robot_id: inner.connection.id_of_robot_connected_with,
+                                //     variable_index_in_other_robot: self.graph.neighbors(node_index).nth(0).expect("interrobot factor have exactly 1 variable node as neighbour").index()
+                                // }
                             }
                         },
                         Node::Variable(variable) => {
                             let mean = variable.belief.mean();
-                            graphviz::NodeKind::Variable { x: mean[0], y: mean[1]  }
+                            graphviz::NodeKind::Variable {
+                                x: mean[0],
+                                y: mean[1],
+                            }
                             // graphviz::NodeKind::Variable { x: 0.0, y: 0.0 }
-                        },
+                        }
                     },
                 }
             })
