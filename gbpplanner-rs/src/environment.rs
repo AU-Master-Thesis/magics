@@ -22,14 +22,14 @@ impl Plugin for EnvironmentPlugin {
             })
             // .add_state::<HeightMapState>()
             .init_state::<HeightMapState>()
-            // .add_plugins(InfiniteGridPlugin)
+            .add_plugins(InfiniteGridPlugin)
             .add_systems(Startup, (infinite_grid, lighting));
         // .add_systems(Update, obstacles.run_if(environment_png_is_loaded));
     }
 }
 
 /// `Startup` system to spawn the an infinite grid
-/// Using the `InfiniteGridPlugin` from the `bevy_infinite_grid` crate
+/// Using the [`InfiniteGridPlugin`] from the [`bevy_infinite_grid`] crate
 fn infinite_grid(
     mut commands: Commands,
     catppuccin_theme: Res<CatppuccinTheme>,
@@ -39,21 +39,29 @@ fn infinite_grid(
 
     // commands.spawn(InfiniteGridBundle {
     //     settings: InfiniteGridSettings {
-    //         // shadow_color: None,
-    //         major_line_color: grid_colour,
-    //         minor_line_color: grid_colour,
-    //         x_axis_color: {
-    //             let (r, g, b) = catppuccin_theme.flavour.maroon().into();
-    //             Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8)
-    //         },
-    //         z_axis_color: {
-    //             let (r, g, b) = catppuccin_theme.flavour.blue().into();
-    //             Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8)
-    //         },
+    //         shadow_color: None,
     //         ..default()
     //     },
     //     ..default()
     // });
+
+    commands.spawn(InfiniteGridBundle {
+        settings: InfiniteGridSettings {
+            shadow_color: None,
+            major_line_color: grid_colour,
+            minor_line_color: grid_colour,
+            x_axis_color: {
+                let (r, g, b) = catppuccin_theme.flavour.maroon().into();
+                Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8)
+            },
+            z_axis_color: {
+                let (r, g, b) = catppuccin_theme.flavour.blue().into();
+                Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8)
+            },
+            ..default()
+        },
+        ..default()
+    });
 }
 
 /// `Startup` system to spawn the directional light.

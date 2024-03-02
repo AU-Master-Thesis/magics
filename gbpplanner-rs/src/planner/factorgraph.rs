@@ -128,9 +128,9 @@ impl Message {
         Self(MultivariateNormal::zeros(dims))
     }
 
-    pub fn zeroize(&mut self) {
-        self.0.zeroize();
-    }
+    // pub fn zeroize(&mut self) {
+    //     self.0.zeroize();
+    // }
 }
 
 pub type Inbox = HashMap<NodeIndex, Message>;
@@ -437,6 +437,7 @@ impl FactorGraph {
                         Node::Variable(variable) => {
                             let mean = variable.belief.mean();
                             graphviz::NodeKind::Variable { x: mean[0], y: mean[1]  }
+                            // graphviz::NodeKind::Variable { x: 0.0, y: 0.0 }
                         },
                     },
                 }

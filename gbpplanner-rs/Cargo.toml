@@ -8,6 +8,10 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+
+# [[bin]]
+
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -15,13 +19,14 @@ rust-version.workspace = true
 # gbp-linalg = { path = "../gbp-linalg" }
 # bevy = { version = "0.12.1", default-features = true, features = [
 bevy = { version = "0.13.0", default-features = true, features = [
-  "wayland",
-  "dynamic_linking",
+  # "wayland",
+  # "dynamic_linking",
 ] }
 bevy-inspector-egui = "0.23.2"
 bevy_egui = "0.25.0"
 leafwing-input-manager = "0.13.3"
-bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
+# bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
+bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "main" }
 # bevy_mesh_terrain = "0.6.1"
 
 catppuccin = "1.4.0"

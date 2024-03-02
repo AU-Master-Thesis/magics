@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"                            # Important! wgpu/bevy needs this!
-members = ["gbp_config", "gbpplanner-rs"]
+members = ["gbp_config", "gbp_multivariate_normal", "gbpplanner-rs"]
 
 [workspace.package]
 version = "0.1.0"
@@ -32,13 +32,12 @@ opt-level = 3
 panic = "abort"
 rpath = false
 strip = true
-
-# [build]
-# rustflags = ["-C", "link-arg=-Wl", "--verbose"]
+incremental = true
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
 opt-level = 1
+incremental = true
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]

@@ -81,7 +81,7 @@ fn export_factorgraphs_as_graphviz(
     for (robot_id, factorgraph) in query.iter() {
         let (nodes, edges) = factorgraph.export_data();
 
-        append_line_to_output(&format!("  subgraph cluster_{:?} {{", robot_id));
+        append_line_to_output(&format!(r#"  subgraph "cluster_{:?}" {{"#, robot_id));
         // Add all nodes
         for node in nodes.iter() {
             let pos = match node.kind {
@@ -92,7 +92,7 @@ fn export_factorgraphs_as_graphviz(
             let line = {
                 let mut line = String::with_capacity(32);
                 line.push_str(&format!(
-                    r#""{:?}_{:?} [label="{:?}", fillcolor="{}", shape={}, width={}""#,
+                    r#""{:?}_{:?}" [label="{:?}", fillcolor="{}", shape={}, width="{}""#,
                     robot_id,
                     node.index,
                     node.index,
@@ -165,6 +165,7 @@ fn general_actions_system(
     query_graphs: Query<(Entity, &FactorGraph), With<RobotState>>,
 ) {
     let Ok(action_state) = query.get_single() else {
+        warn!("general_actions_system was called without an action state!");
         return;
     };
 
@@ -175,8 +176,13 @@ fn general_actions_system(
 
     if action_state.just_pressed(&GeneralAction::ExportGraph) {
         let output_path = std::path::Path::new("factorgraphs.dot");
-        info!("Exporting all factorgraphs to ./{:#?}", output_path);
+        if output_path.exists() {
+            warn!("output destination: ./{:#?} already exists!", output_path);
+            warn!("overwriting ./{:#?}", output_path);
+        }
+        info!("exporting all factorgraphs to ./{:#?}", output_path);
         let output = export_factorgraphs_as_graphviz(query_graphs);
-        std::fs::write(output_path, output.as_bytes()).unwrap();
+        std::fs::write(output_path, output.as_bytes())
+            .expect("the file can be written to disk");
     }
 }

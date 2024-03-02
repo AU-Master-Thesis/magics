@@ -72,6 +72,7 @@
               just
               d2
               graphviz
+              dot-language-server
               openblas
               openssl
               # lapack
