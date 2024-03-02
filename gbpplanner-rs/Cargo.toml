@@ -49,6 +49,7 @@ ron = "0.8.1"
 # tap = "1.0.1"
 strum = "0.26.1"
 strum_macros = "0.26.1"
+open = "5.1.0"
 
 [lints]
 workspace = true

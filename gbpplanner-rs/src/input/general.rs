@@ -63,15 +63,24 @@ fn bind_general_input(mut commands: Commands) {
 
 fn export_factorgraphs_as_graphviz(
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
-) -> String {
+) -> Option<String> {
+    if query.is_empty() {
+        return None;
+    }
+
+    // TODO: what if there are no factorgraphs? return None
     let external_edge_length = 1.0;
     let internal_edge_length = 1.0;
+    let cluster_margin = 16;
+
     let mut buf = String::with_capacity(4 * 1024); // 4 kB
     let mut append_line_to_output = |line: &str| {
         buf.push_str(line);
         buf.push('\n');
     };
     append_line_to_output("graph {");
+    append_line_to_output("  dpi=96;");
+    append_line_to_output(r#"  label="factorgraph""#);
     append_line_to_output("  node [style=filled];");
     append_line_to_output("  layout=neato;");
 
@@ -81,7 +90,10 @@ fn export_factorgraphs_as_graphviz(
     for (robot_id, factorgraph) in query.iter() {
         let (nodes, edges) = factorgraph.export_data();
 
-        append_line_to_output(&format!(r#"  subgraph "cluster_{:?}" {{"#, robot_id));
+        // append_line_to_output(&format!(r#"  subgraph "cluster_{:?}" {{"#, robot_id));
+        append_line_to_output(&format!(r#"  subgraph "{:?}" {{"#, robot_id));
+        append_line_to_output(&format!("  margin={}", cluster_margin));
+        append_line_to_output(&format!(r#"  label="{:?}""#, robot_id));
         // Add all nodes
         for node in nodes.iter() {
             let pos = match node.kind {
@@ -156,7 +168,63 @@ fn export_factorgraphs_as_graphviz(
     }
 
     append_line_to_output("}"); // closing '}' for starting "graph {"
-    buf
+    Some(buf)
+}
+
+fn handle_toggle_theme(theme_event: &mut EventWriter<ThemeEvent>) {
+    info!("toggling application theme");
+    theme_event.send(ThemeEvent);
+}
+
+fn handle_export_graph(
+    q: Query<(Entity, &FactorGraph), With<RobotState>>,
+) -> std::io::Result<()> {
+    let Some(output) = export_factorgraphs_as_graphviz(q) else {
+        warn!("There are no factorgraphs in the world");
+        return Ok(());
+    };
+
+    let dot_output_path = std::path::PathBuf::from("factorgraphs.dot");
+    if dot_output_path.exists() {
+        warn!(
+            "output destination: ./{:#?} already exists!",
+            dot_output_path
+        );
+        warn!("overwriting ./{:#?}", dot_output_path);
+    }
+    info!("exporting all factorgraphs to ./{:#?}", dot_output_path);
+    std::fs::write(&dot_output_path, output.as_bytes())?;
+
+    let png_output_path = dot_output_path.with_extension("png");
+
+    let output = std::process::Command::new("dot")
+        .args([
+            "-T",
+            "png",
+            "-o",
+            png_output_path.to_str().expect("is valid UTF8"),
+            dot_output_path.to_str().expect("is valid UTF8"),
+        ])
+        .output()?;
+
+    if output.status.success() {
+        info!(
+            "compiled {:?} to {:?} with dot",
+            dot_output_path, png_output_path
+        );
+        open::that(&png_output_path)?;
+        info!(
+            "opening the compiled graph: {:?} in the filetypes default application",
+            png_output_path
+        );
+    } else {
+        error!(
+            "attempting to compile graph with dot, returned a non-zero exit status: {:?}",
+            output
+        );
+    }
+
+    Ok(())
 }
 
 fn general_actions_system(
@@ -170,19 +238,12 @@ fn general_actions_system(
     };
 
     if action_state.just_pressed(&GeneralAction::ToggleTheme) {
-        info!("Toggling theme");
-        theme_event.send(ThemeEvent);
+        handle_toggle_theme(&mut theme_event);
     }
 
     if action_state.just_pressed(&GeneralAction::ExportGraph) {
-        let output_path = std::path::Path::new("factorgraphs.dot");
-        if output_path.exists() {
-            warn!("output destination: ./{:#?} already exists!", output_path);
-            warn!("overwriting ./{:#?}", output_path);
+        if let Err(e) = handle_export_graph(query_graphs) {
+            error!("failed to export factorgraphs with error: {:?}", e);
         }
-        info!("exporting all factorgraphs to ./{:#?}", output_path);
-        let output = export_factorgraphs_as_graphviz(query_graphs);
-        std::fs::write(output_path, output.as_bytes())
-            .expect("the file can be written to disk");
     }
 }
