@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use strum_macros::EnumIter;
 
 use super::{
     super::{
@@ -19,7 +20,7 @@ impl Plugin for CameraInputPlugin {
     }
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter)]
 pub enum CameraAction {
     Move,
     MouseMove,
@@ -27,6 +28,25 @@ pub enum CameraAction {
     ZoomIn,
     ZoomOut,
     Switch,
+}
+
+impl ToString for CameraAction {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Move => "Move".to_string(),
+            Self::MouseMove => "Mouse Move".to_string(),
+            Self::ToggleMovementMode => "Toggle Movement Mode".to_string(),
+            Self::ZoomIn => "Zoom In".to_string(),
+            Self::ZoomOut => "Zoom Out".to_string(),
+            Self::Switch => "Switch".to_string(),
+        }
+    }
+}
+
+impl Default for CameraAction {
+    fn default() -> Self {
+        Self::Move
+    }
 }
 
 impl CameraAction {

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use strum_macros::EnumIter;
 
 use super::super::{
     moveable_object::{self, MoveableObject, MoveableObjectMovementState},
@@ -16,13 +17,31 @@ impl Plugin for MoveableObjectInputPlugin {
     }
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter)]
 pub enum MoveableObjectAction {
     Move,
     RotateClockwise,
     RotateCounterClockwise,
     Boost,
     Toggle,
+}
+
+impl ToString for MoveableObjectAction {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Move => "Move".to_string(),
+            Self::RotateClockwise => "Rotate Clockwise".to_string(),
+            Self::RotateCounterClockwise => "Rotate Counter Clockwise".to_string(),
+            Self::Boost => "Boost".to_string(),
+            Self::Toggle => "Toggle".to_string(),
+        }
+    }
+}
+
+impl Default for MoveableObjectAction {
+    fn default() -> Self {
+        Self::Move
+    }
 }
 
 impl MoveableObjectAction {

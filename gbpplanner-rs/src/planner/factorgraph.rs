@@ -50,11 +50,11 @@ pub mod graphviz {
     impl NodeKind {
         pub fn color(&self) -> &'static str {
             match self {
-                Self::Variable => "#eff1f5",            // latte base (white)
-                Self::InterRobotFactor(_) => "#a6da95", // green
-                Self::DynamicFactor => "#8aadf4",       // blue
-                Self::ObstacleFactor => "#c6a0f6",      // mauve (purple)
-                Self::PoseFactor => "#ee99a0",          // maroon (red)
+                Self::Variable => "#eff1f5", // latte base (white)
+                Self::InterRobotFactor(_, _) => "#a6da95", // green
+                Self::DynamicFactor => "#8aadf4", // blue
+                Self::ObstacleFactor => "#c6a0f6", // mauve (purple)
+                Self::PoseFactor => "#ee99a0", // maroon (red)
             }
         }
 

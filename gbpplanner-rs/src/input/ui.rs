@@ -1,6 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiSettings;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use strum_macros::EnumIter;
 
 use super::super::ui::UiState;
 
@@ -14,7 +15,7 @@ impl Plugin for UiInputPlugin {
     }
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter)]
 pub enum UiAction {
     ToggleLeftPanel,
     ToggleScaleFactor,
@@ -30,6 +31,21 @@ impl UiAction {
                 Some(UserInput::Single(InputKind::Keyboard(KeyCode::U)))
             }
         }
+    }
+}
+
+impl ToString for UiAction {
+    fn to_string(&self) -> String {
+        match self {
+            Self::ToggleLeftPanel => "Toggle Left Panel".to_string(),
+            Self::ToggleScaleFactor => "Toggle Scale Factor".to_string(),
+        }
+    }
+}
+
+impl Default for UiAction {
+    fn default() -> Self {
+        Self::ToggleLeftPanel
     }
 }
 
