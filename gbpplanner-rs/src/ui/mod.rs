@@ -62,10 +62,10 @@ impl ToDisplayString for UserInput {
 impl ToDisplayString for VirtualDPad {
     fn to_display_string(&self) -> String {
         format!(
-            "{} {} {} {}",
+            "{}{}{}{}",
             self.up.to_display_string(),
-            self.down.to_display_string(),
             self.left.to_display_string(),
+            self.down.to_display_string(),
             self.right.to_display_string()
         )
     }
@@ -74,7 +74,7 @@ impl ToDisplayString for VirtualDPad {
 impl ToDisplayString for VirtualAxis {
     fn to_display_string(&self) -> String {
         format!(
-            "{} {}",
+            "{}{}",
             self.positive.to_display_string(),
             self.negative.to_display_string()
         )
@@ -206,8 +206,8 @@ impl ToDisplayString for GamepadButtonType {
             GamepadButtonType::Select => "Select".to_string(),
             GamepadButtonType::Start => "Start".to_string(),
             GamepadButtonType::Mode => "Mode".to_string(),
-            GamepadButtonType::LeftThumb => "Left Thumb".to_string(),
-            GamepadButtonType::RightThumb => "Right Thumb".to_string(),
+            GamepadButtonType::LeftThumb => "Left Trigger Press".to_string(),
+            GamepadButtonType::RightThumb => "Right Trigger Press".to_string(),
             GamepadButtonType::DPadUp => "󰹁".to_string(), // DPad Up
             GamepadButtonType::DPadDown => "󰸽".to_string(), // DPad Down
             GamepadButtonType::DPadLeft => "󰸾".to_string(), // DPad Left
