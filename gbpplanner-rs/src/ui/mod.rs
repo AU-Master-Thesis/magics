@@ -193,25 +193,25 @@ impl ToDisplayString for DualAxis {
 impl ToDisplayString for GamepadButtonType {
     fn to_display_string(&self) -> String {
         match self {
-            GamepadButtonType::South => "South".to_string(),
-            GamepadButtonType::East => "East".to_string(),
-            GamepadButtonType::North => "North".to_string(),
-            GamepadButtonType::West => "West".to_string(),
+            GamepadButtonType::South => "󰸴".to_string(), // Cross/A
+            GamepadButtonType::East => "󰸷".to_string(),  // Circle/B
+            GamepadButtonType::North => "󰸸".to_string(), // Triangle/Y
+            GamepadButtonType::West => "󰸵".to_string(),  // Square/X
             GamepadButtonType::C => "C".to_string(),
             GamepadButtonType::Z => "Z".to_string(),
-            GamepadButtonType::LeftTrigger => "Left Trigger".to_string(),
-            GamepadButtonType::RightTrigger => "Right Trigger".to_string(),
-            GamepadButtonType::LeftTrigger2 => "Left Trigger 2".to_string(),
-            GamepadButtonType::RightTrigger2 => "Right Trigger 2".to_string(),
+            GamepadButtonType::LeftTrigger => "Left Bumper".to_string(),
+            GamepadButtonType::RightTrigger => "Right Bumper".to_string(),
+            GamepadButtonType::LeftTrigger2 => "Left Trigger".to_string(),
+            GamepadButtonType::RightTrigger2 => "Right Trigger".to_string(),
             GamepadButtonType::Select => "Select".to_string(),
             GamepadButtonType::Start => "Start".to_string(),
             GamepadButtonType::Mode => "Mode".to_string(),
             GamepadButtonType::LeftThumb => "Left Thumb".to_string(),
             GamepadButtonType::RightThumb => "Right Thumb".to_string(),
-            GamepadButtonType::DPadUp => "DPad Up".to_string(),
-            GamepadButtonType::DPadDown => "DPad Down".to_string(),
-            GamepadButtonType::DPadLeft => "DPad Left".to_string(),
-            GamepadButtonType::DPadRight => "DPad Right".to_string(),
+            GamepadButtonType::DPadUp => "󰹁".to_string(), // DPad Up
+            GamepadButtonType::DPadDown => "󰸽".to_string(), // DPad Down
+            GamepadButtonType::DPadLeft => "󰸾".to_string(), // DPad Left
+            GamepadButtonType::DPadRight => "󰹀".to_string(), // DPad Right
             GamepadButtonType::Other(x) => format!("Gamepad {}", x).to_string(),
             // _ => "Unknown".to_string(),
         }
@@ -355,7 +355,8 @@ fn ui_example_system(
                                         .1
                                         .iter()
                                         .map(|x| x.to_display_string())
-                                        .collect::<String>(),
+                                        .collect::<Vec<String>>()
+                                        .join(", "),
                                 ));
                             });
                         }
@@ -370,7 +371,8 @@ fn ui_example_system(
                                         .1
                                         .iter()
                                         .map(|x| x.to_display_string())
-                                        .collect::<String>(),
+                                        .collect::<Vec<String>>()
+                                        .join(", "),
                                 ));
                             });
                         }
@@ -385,7 +387,8 @@ fn ui_example_system(
                                         .1
                                         .iter()
                                         .map(|x| x.to_display_string())
-                                        .collect::<String>(),
+                                        .collect::<Vec<String>>()
+                                        .join(", "),
                                 ));
                             });
                         }
@@ -400,7 +403,8 @@ fn ui_example_system(
                                         .1
                                         .iter()
                                         .map(|x| x.to_display_string())
-                                        .collect::<String>(),
+                                        .collect::<Vec<String>>()
+                                        .join(", "),
                                 ));
                             });
                         }
