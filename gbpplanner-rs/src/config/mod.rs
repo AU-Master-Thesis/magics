@@ -19,6 +19,41 @@ pub struct Meter(f64);
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub struct GraphvizEdgeAttributes {
+    // TODO: implement a way to validate this field to only match the valid edge styles: https://graphviz.org/docs/attr-types/style/
+    pub style: String,
+    pub len: f32,
+    pub color: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GraphvizInterrbotSection {
+    pub edge: GraphvizEdgeAttributes,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GraphvizSection {
+    pub interrobot: GraphvizInterrbotSection,
+}
+
+impl Default for GraphvizSection {
+    fn default() -> Self {
+        Self {
+            interrobot: GraphvizInterrbotSection {
+                edge: GraphvizEdgeAttributes {
+                    style: "solid".to_string(),
+                    len: 8.0,
+                    color: "red".to_string(),
+                },
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct DrawSection {
     pub communication_graph: bool,
     pub predicted_trajectories: bool,
@@ -170,6 +205,7 @@ pub struct Config {
     pub gbp: GbpSection,
     pub robot: RobotSection,
     pub simulation: SimulationSection,
+    pub graphviz: GraphvizSection,
 }
 
 impl Default for Config {
@@ -189,6 +225,7 @@ impl Default for Config {
             gbp: GbpSection::default(),
             robot: RobotSection::default(),
             simulation: SimulationSection::default(),
+            graphviz: GraphvizSection::default(),
         }
     }
 }

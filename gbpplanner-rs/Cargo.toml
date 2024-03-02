@@ -40,7 +40,7 @@ rand = "0.8.5"
 itertools = "0.12.1"
 petgraph = "0.6.4"
 # nalgebra = "0.32.4"
-image = { version = "0.24.8", default-features = false, features = ["png"] }
+# image = { version = "0.24.8", default-features = false, features = ["png"] }
 ndarray = "0.15.6"
 ndarray-inverse = "0.1.9"
 # ndarray-linalg = { version = "0.16", features = ["intel-mkl-static"] } # This is the only backend variant i have gotten to work

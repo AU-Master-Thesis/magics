@@ -31,3 +31,8 @@ t0 = 0.2
 max-time = 10000.0
 world-size = 100.0
 random-seed = 0
+
+[graphviz.interrobot.edge]
+style = "dashed"
+len = 8.0
+color = "red"

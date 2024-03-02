@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::planner::{FactorGraph, NodeKind, RobotId, RobotState};
+use crate::{
+    config::Config,
+    planner::{FactorGraph, NodeKind, RobotId, RobotState},
+};
 
 use super::super::theme::ThemeEvent;
 use bevy::prelude::*;
@@ -63,13 +66,15 @@ fn bind_general_input(mut commands: Commands) {
 
 fn export_factorgraphs_as_graphviz(
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
+    config: &Config,
+    // config: Res<Config>,
 ) -> Option<String> {
     if query.is_empty() {
         // There are no factorgraph in the scene/world
         return None;
     }
 
-    let external_edge_length = 1.0;
+    let external_edge_length = 8.0;
     let internal_edge_length = 1.0;
     let cluster_margin = 16;
 
@@ -84,6 +89,8 @@ fn export_factorgraphs_as_graphviz(
     append_line_to_output("  node [style=filled];");
     append_line_to_output("  layout=neato;");
 
+    // A hashmap used to keep track of which variable in another robots factorgraph, is connected to a interrobot
+    // factor in the current robots factorgraph.
     let mut all_external_connections =
         HashMap::<RobotId, HashMap<usize, (RobotId, usize)>>::with_capacity(
             query.iter().len(),
@@ -147,10 +154,6 @@ fn export_factorgraphs_as_graphviz(
                             .index(),
                     ),
                 )),
-                // NodeKind::InterRobotFactor {
-                //     other_robot_id,
-                //     variable_index_in_other_robot,
-                // } => Some((node.index, other_robot_id)),
                 _ => None,
             })
             .collect();
@@ -158,28 +161,19 @@ fn export_factorgraphs_as_graphviz(
         all_external_connections.insert(robot_id, external_connections);
     }
 
+    // Add edges between interrobot factors and the variable they are connected to in another robots graph
     for (from_robot_id, from_connections) in all_external_connections.iter() {
         for (from_factor, (to_robot_id, to_variable_index)) in from_connections.iter() {
-            // let to_connections = all_external_connections.get(to_robot_id).unwrap();
-            // let to_robot_id = to_connections.get(from_node).unwrap();
-
-            // let to_node = to_connections
-            //     .iter()
-            //     .find(|(_, robot_id)| from_robot_id == *robot_id)
-            //     .map(|(node, _)| node)
-            //     .unwrap();
-
-            // let to_variable =
-
             append_line_to_output(&format!(
-                r#" "{:?}_{:?}" -- "{:?}_{:?}" [len=10]"#,
-                from_robot_id, from_factor, to_robot_id, to_variable_index,
+                r#" "{:?}_{:?}" -- "{:?}_{:?}" [len={}, style={}, color="{}"]"#,
+                from_robot_id,
+                from_factor,
+                to_robot_id,
+                to_variable_index,
+                config.graphviz.interrobot.edge.len,
+                config.graphviz.interrobot.edge.style,
+                config.graphviz.interrobot.edge.color,
             ));
-
-            // buf.push_str(&format!(
-            //     "    \"{:?}_{:?}\" -- \"{:?}_{:?}\" [len=10]\n",
-            //     from_robot_id, from_node, to_robot_id, to_node
-            // ));
         }
     }
 
@@ -194,8 +188,9 @@ fn handle_toggle_theme(theme_event: &mut EventWriter<ThemeEvent>) {
 
 fn handle_export_graph(
     q: Query<(Entity, &FactorGraph), With<RobotState>>,
+    config: &Config,
 ) -> std::io::Result<()> {
-    let Some(output) = export_factorgraphs_as_graphviz(q) else {
+    let Some(output) = export_factorgraphs_as_graphviz(q, config) else {
         warn!("There are no factorgraphs in the world");
         return Ok(());
     };
@@ -247,6 +242,7 @@ fn general_actions_system(
     mut theme_event: EventWriter<ThemeEvent>,
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
     query_graphs: Query<(Entity, &FactorGraph), With<RobotState>>,
+    config: Res<Config>,
 ) {
     let Ok(action_state) = query.get_single() else {
         warn!("general_actions_system was called without an action state!");
@@ -258,7 +254,7 @@ fn general_actions_system(
     }
 
     if action_state.just_pressed(&GeneralAction::ExportGraph) {
-        if let Err(e) = handle_export_graph(query_graphs) {
+        if let Err(e) = handle_export_graph(query_graphs, config.as_ref()) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
     }

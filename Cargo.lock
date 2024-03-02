@@ -2096,7 +2096,6 @@ dependencies = [
  "catppuccin",
  "clap",
  "color-eyre",
- "image",
  "itertools",
  "leafwing-input-manager",
  "ndarray",
