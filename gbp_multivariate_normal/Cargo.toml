@@ -1,0 +1,19 @@
+[package]
+name = "gbp_multivariate_normal"
+edition = "2021"
+version.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gbp_linalg = { path = "../gbp_linalg" }
+ndarray-inverse = "0.1.9"
+ndarray.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

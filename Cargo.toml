@@ -1,6 +1,11 @@
 [workspace]
-resolver = "2"                            # Important! wgpu/bevy needs this!
-members = ["gbp_config", "gbp_multivariate_normal", "gbpplanner-rs"]
+resolver = "2" # Important! wgpu/bevy needs this!
+members = [
+  "gbp_config",
+  "gbp_linalg",
+  "gbp_multivariate_normal",
+  "gbpplanner-rs",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,14 +18,24 @@ authors = [
 rust-version = "1.76"
 license = "MIT"
 
-# [workspace.lints.rust]
+[workspace.dependencies]
+ndarray = "0.15.6"
+thiserror = "1.0.56"
+
+[workspace.lints.rust]
 # unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
 
 [workspace.lints.clippy]
-enum_glob_use = "deny"
+undocumented_unsafe_blocks = "warn"
+enum_glob_use = "warn"
+cast_possible_truncation = "warn"
+tests_outside_test_module = "warn"
+assertions_on_result_states = "warn"
 # pedantic = "deny"
 # nursery = "deny"
-unwrap_used = "deny"
+unwrap_used = "warn"
 # expect_used = "deny"
 
 [profile.release]
@@ -37,6 +52,7 @@ incremental = true
 # Enable a small amount of optimization in debug mode
 [profile.dev]
 opt-level = 1
+debug = true
 incremental = true
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
