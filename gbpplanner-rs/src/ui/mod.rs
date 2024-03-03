@@ -18,14 +18,19 @@ use leafwing_input_manager::{
 };
 use strum::IntoEnumIterator;
 
-use crate::input::{
-    CameraAction, GeneralAction, InputAction, MoveableObjectAction, UiAction,
-};
 use crate::theme::{CatppuccinTheme, CatppuccinThemeExt};
+use crate::{
+    input::{CameraAction, GeneralAction, InputAction, MoveableObjectAction, UiAction},
+    theme::FromCatppuccinColourExt,
+};
 
-//  _     _ _______ _______  ______      _____ __   _ _______ _______  ______ _______ _______ _______ _______
-//  |     | |______ |______ |_____/        |   | \  |    |    |______ |_____/ |______ |_____| |       |______
-//  |_____| ______| |______ |    \_      __|__ |  \_|    |    |______ |    \_ |       |     | |_____  |______
+//  _     _ _______ _______  ______
+//  |     | |______ |______ |_____/
+//  |_____| ______| |______ |    \_
+//
+//  _____ __   _ _______ _______  ______ _______ _______ _______ _______
+//    |   | \  |    |    |______ |_____/ |______ |_____| |       |______
+//  __|__ |  \_|    |    |______ |    \_ |       |     | |_____  |______
 //
 
 pub struct EguiInterfacePlugin;
@@ -326,6 +331,7 @@ fn ui_example_system(
     mut query_general_action: Query<&mut InputMap<GeneralAction>>,
     mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
     mut query_ui_action: Query<&mut InputMap<UiAction>>,
+    catppuccin: Res<CatppuccinTheme>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -333,84 +339,103 @@ fn ui_example_system(
         .default_width(300.0)
         .resizable(true)
         .show_animated(ctx, ui_state.left_panel, |ui| {
-            ui.label(RichText::new("Bindings").heading());
-            // ui.label(RichText::new("Keyboard").raised());
-            // ui.label("◀ ▲ ▼ ▶ - Move camera");
+            egui::Grid::new("cool_grid")
+                .num_columns(3)
+                .striped(true)
+                .spacing((10.0, 10.0))
+                .show(ui, |ui| {
+                    let size = 15.0; // pt
+                    ui.label(RichText::new("Binding").size(size).color(
+                        Color32::from_catppuccin_colour(catppuccin.flavour.green()),
+                    ));
+                    ui.label(RichText::new("1").size(size).color(
+                        Color32::from_catppuccin_colour(catppuccin.flavour.green()),
+                    ));
+                    ui.label(RichText::new("2").size(size).color(
+                        Color32::from_catppuccin_colour(catppuccin.flavour.green()),
+                    ));
+                    ui.end_row();
 
-            // go through all InputAction variants, and make a title for each
-            // then nested go through each inner variant and make a button for each
-            for action in InputAction::iter() {
-                ui.label(RichText::new(action.to_string()).strong());
-                match action {
-                    InputAction::MoveableObject(_) => {
-                        let mut map = query_moveable_object_action.single_mut();
-                        for inner_action in map.iter() {
-                            // let _ = ui.button(RichText::new(inner_action.to_string()));
-                            // put inner_action.0 as a label to the left, and inner_action.1 as a button to the right
-                            // with space in between
-                            ui.horizontal(|ui| {
-                                ui.label(inner_action.0.to_string());
-                                let _ = ui.button(RichText::new(
-                                    inner_action
-                                        .1
-                                        .iter()
-                                        .map(|x| x.to_display_string())
-                                        .collect::<Vec<String>>()
-                                        .join(", "),
-                                ));
-                            });
+                    // go through all InputAction variants, and make a title for each
+                    // then nested go through each inner variant and make a button for each
+                    for action in InputAction::iter() {
+                        ui.label(RichText::new(action.to_string()).italics().color(
+                            Color32::from_catppuccin_colour(
+                                catppuccin.flavour.lavender(),
+                            ),
+                        ));
+
+                        ui.end_row();
+                        match action {
+                            InputAction::MoveableObject(_) => {
+                                let mut map = query_moveable_object_action.single_mut();
+                                for inner_action in map.iter() {
+                                    ui.label(inner_action.0.to_string());
+
+                                    inner_action.1.iter().for_each(|x| {
+                                        let button_response = ui
+                                            .button(RichText::new(x.to_display_string()));
+                                        if button_response.clicked() {
+                                            button_response.highlight();
+                                        }
+                                    });
+
+                                    ui.end_row();
+                                }
+                            }
+                            InputAction::General(_) => {
+                                let mut map = query_general_action.single_mut();
+                                for inner_action in map.iter() {
+                                    ui.label(inner_action.0.to_string());
+
+                                    inner_action.1.iter().for_each(|x| {
+                                        let button_response = ui
+                                            .button(RichText::new(x.to_display_string()));
+                                        if button_response.clicked() {
+                                            button_response.highlight();
+                                        }
+                                    });
+
+                                    ui.end_row();
+                                }
+                            }
+                            InputAction::Camera(_) => {
+                                let mut map =
+                                    query_camera_action.iter_mut().next().unwrap();
+                                for inner_action in map.iter() {
+                                    ui.label(inner_action.0.to_string());
+
+                                    inner_action.1.iter().for_each(|x| {
+                                        let button_response = ui
+                                            .button(RichText::new(x.to_display_string()));
+                                        if button_response.clicked() {
+                                            button_response.highlight();
+                                        }
+                                    });
+
+                                    ui.end_row();
+                                }
+                            }
+                            InputAction::Ui(_) => {
+                                let mut map = query_ui_action.single_mut();
+                                for mut inner_action in map.iter() {
+                                    ui.label(inner_action.0.to_string());
+
+                                    inner_action.1.iter().for_each(|x| {
+                                        let button_response = ui
+                                            .button(RichText::new(x.to_display_string()));
+                                        if button_response.clicked() {
+                                            // button_response.highlight();
+                                            // remove the button's text
+                                        }
+                                    });
+
+                                    ui.end_row();
+                                }
+                            }
                         }
                     }
-                    InputAction::General(_) => {
-                        let mut map = query_general_action.single_mut();
-                        for inner_action in map.iter() {
-                            ui.horizontal(|ui| {
-                                ui.label(inner_action.0.to_string());
-                                let _ = ui.button(RichText::new(
-                                    inner_action
-                                        .1
-                                        .iter()
-                                        .map(|x| x.to_display_string())
-                                        .collect::<Vec<String>>()
-                                        .join(", "),
-                                ));
-                            });
-                        }
-                    }
-                    InputAction::Camera(_) => {
-                        let mut map = query_camera_action.iter_mut().next().unwrap();
-                        for inner_action in map.iter() {
-                            ui.horizontal(|ui| {
-                                ui.label(inner_action.0.to_string());
-                                let _ = ui.button(RichText::new(
-                                    inner_action
-                                        .1
-                                        .iter()
-                                        .map(|x| x.to_display_string())
-                                        .collect::<Vec<String>>()
-                                        .join(", "),
-                                ));
-                            });
-                        }
-                    }
-                    InputAction::Ui(_) => {
-                        let mut map = query_ui_action.single_mut();
-                        for inner_action in map.iter() {
-                            ui.horizontal(|ui| {
-                                ui.label(inner_action.0.to_string());
-                                let _ = ui.button(RichText::new(
-                                    inner_action
-                                        .1
-                                        .iter()
-                                        .map(|x| x.to_display_string())
-                                        .collect::<Vec<String>>()
-                                        .join(", "),
-                                ));
-                            });
-                        }
-                    }
-                }
-            }
+                });
 
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         });
