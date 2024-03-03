@@ -22,6 +22,13 @@ pub enum InputAction {
     General(GeneralAction),
     MoveableObject(MoveableObjectAction),
     Ui(UiAction),
+    Undefined,
+}
+
+impl Default for InputAction {
+    fn default() -> Self {
+        Self::Undefined
+    }
 }
 
 impl ToString for InputAction {
@@ -31,6 +38,7 @@ impl ToString for InputAction {
             Self::General(_) => "General".to_string(),
             Self::MoveableObject(_) => "Moveable Object".to_string(),
             Self::Ui(_) => "UI".to_string(),
+            Self::Undefined => "Undefined".to_string(),
         }
     }
 }
