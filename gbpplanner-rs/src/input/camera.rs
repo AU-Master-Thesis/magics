@@ -88,7 +88,7 @@ impl CameraAction {
     fn default_gamepad_input(action: CameraAction) -> Option<UserInput> {
         match action {
             Self::Move => Some(UserInput::Single(InputKind::DualAxis(
-                DualAxis::left_stick(),
+                DualAxis::right_stick(),
             ))),
             Self::ToggleMovementMode => Some(UserInput::Single(InputKind::GamepadButton(
                 GamepadButtonType::North,

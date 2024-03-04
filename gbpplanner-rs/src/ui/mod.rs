@@ -1,7 +1,10 @@
 use std::iter::Scan;
 
 use bevy::{
-    input::{gamepad, keyboard::KeyboardInput},
+    input::{
+        gamepad::{self, GamepadButtonChangedEvent, GamepadButtonInput},
+        keyboard::KeyboardInput,
+    },
     prelude::*,
     window::WindowTheme,
 };
@@ -115,10 +118,10 @@ impl ToDisplayString for InputKind {
 impl ToDisplayString for MouseMotionDirection {
     fn to_display_string(&self) -> String {
         match self {
-            MouseMotionDirection::Up => "Mouse Move Up".to_string(),
-            MouseMotionDirection::Down => "Mouse Move Down".to_string(),
-            MouseMotionDirection::Left => "Mouse Move Left".to_string(),
-            MouseMotionDirection::Right => "Mouse Move Right".to_string(),
+            MouseMotionDirection::Up => "󰍽 ↑".to_string(),
+            MouseMotionDirection::Down => "󰍽 ↓".to_string(),
+            MouseMotionDirection::Left => "󰍽 ←".to_string(),
+            MouseMotionDirection::Right => "󰍽 →".to_string(),
         }
     }
 }
@@ -126,10 +129,10 @@ impl ToDisplayString for MouseMotionDirection {
 impl ToDisplayString for MouseWheelDirection {
     fn to_display_string(&self) -> String {
         match self {
-            MouseWheelDirection::Up => "Mouse Wheel Up".to_string(),
-            MouseWheelDirection::Down => "Mouse Wheel Down".to_string(),
-            MouseWheelDirection::Left => "Mouse Wheel Left".to_string(),
-            MouseWheelDirection::Right => "Mouse Wheel Right".to_string(),
+            MouseWheelDirection::Up => "󰍽󰠳 ↑".to_string(), // Mouse Wheel Up
+            MouseWheelDirection::Down => "󰍽󰠳 ↓".to_string(), // Mouse Wheel Down
+            MouseWheelDirection::Left => "󰍽󰠳 ←".to_string(), // Mouse Wheel Left
+            MouseWheelDirection::Right => "󰍽󰠳 →".to_string(), // Mouse Wheel Right
         }
     }
 }
@@ -196,6 +199,15 @@ impl ToDisplayString for KeyCode {
             KeyCode::KeyX => "X".to_string(),
             KeyCode::KeyY => "Y".to_string(),
             KeyCode::KeyZ => "Z".to_string(),
+            KeyCode::ArrowUp => "↑".to_string(),
+            KeyCode::ArrowDown => "↓".to_string(),
+            KeyCode::ArrowLeft => "←".to_string(),
+            KeyCode::ArrowRight => "→".to_string(),
+            KeyCode::Tab => "".to_string(),              // Tab  
+            KeyCode::Enter => "󰌑".to_string(),            // Enter 󰌑
+            KeyCode::Space => "󱁐".to_string(),            // Space 󱁐
+            KeyCode::ShiftLeft => "󰧇 Left".to_string(),   // Shift Left
+            KeyCode::ShiftRight => "󰧇 Right".to_string(), // Shift Right
             _ => format!("{:?}", self).to_title_case(),
         }
     }
@@ -207,20 +219,23 @@ impl ToDisplayString for DualAxis {
             (
                 AxisType::Gamepad(GamepadAxisType::LeftStickX),
                 AxisType::Gamepad(GamepadAxisType::LeftStickY),
-            ) => "Left Stick".to_string(),
+            ) => "L3 󰆾".to_string(), // Left Stick Ⓛ
             (
                 AxisType::Gamepad(GamepadAxisType::LeftStickY),
                 AxisType::Gamepad(GamepadAxisType::LeftStickX),
-            ) => "Left Stick".to_string(),
+            ) => "L3 󰆾".to_string(), // Left Stick Ⓛ
             (
                 AxisType::Gamepad(GamepadAxisType::RightStickX),
                 AxisType::Gamepad(GamepadAxisType::RightStickY),
-            ) => "Right Stick".to_string(),
+            ) => "R3 󰆾".to_string(), // Right Stick Ⓡ
             (
                 AxisType::Gamepad(GamepadAxisType::RightStickY),
                 AxisType::Gamepad(GamepadAxisType::RightStickX),
-            ) => "Right Stick".to_string(),
-            // TODO: add more cases for `MouseWheel` and `MouseMotion`
+            ) => "R3 󰆾".to_string(), // Right Stick Ⓡ
+            (AxisType::MouseMotion(_), AxisType::MouseMotion(_)) => {
+                "󰍽 󰆾".to_string() //  Mouse Motion
+            }
+            (AxisType::MouseWheel(_), AxisType::MouseWheel(_)) => "󰍽󰠳".to_string(), // Mouse Wheel
             _ => "Not yet implemented".to_string(),
         }
     }
@@ -235,19 +250,19 @@ impl ToDisplayString for GamepadButtonType {
             GamepadButtonType::West => "󰸵".to_string(),  // Square/X
             GamepadButtonType::C => "C".to_string(),
             GamepadButtonType::Z => "Z".to_string(),
-            GamepadButtonType::LeftTrigger => "Left Bumper".to_string(),
-            GamepadButtonType::RightTrigger => "Right Bumper".to_string(),
-            GamepadButtonType::LeftTrigger2 => "Left Trigger".to_string(),
-            GamepadButtonType::RightTrigger2 => "Right Trigger".to_string(),
+            GamepadButtonType::LeftTrigger => "L1".to_string(), // Left bumper
+            GamepadButtonType::RightTrigger => "R1".to_string(), // Right bumper
+            GamepadButtonType::LeftTrigger2 => "L2".to_string(), // Left Trigger
+            GamepadButtonType::RightTrigger2 => "R2".to_string(), // Right Trigger
             GamepadButtonType::Select => "Select".to_string(),
             GamepadButtonType::Start => "Start".to_string(),
             GamepadButtonType::Mode => "Mode".to_string(),
-            GamepadButtonType::LeftThumb => "Left Trigger Press".to_string(),
-            GamepadButtonType::RightThumb => "Right Trigger Press".to_string(),
-            GamepadButtonType::DPadUp => "󰹁".to_string(), // DPad Up
-            GamepadButtonType::DPadDown => "󰸽".to_string(), // DPad Down
-            GamepadButtonType::DPadLeft => "󰸾".to_string(), // DPad Left
-            GamepadButtonType::DPadRight => "󰹀".to_string(), // DPad Right
+            GamepadButtonType::LeftThumb => "L3 ↓".to_string(), // Left Stick Press Down Ⓛ
+            GamepadButtonType::RightThumb => "R3 ↓".to_string(), // Right Stick Press Down Ⓡ
+            GamepadButtonType::DPadUp => "󰹁".to_string(),       // DPad Up
+            GamepadButtonType::DPadDown => "󰸽".to_string(),     // DPad Down
+            GamepadButtonType::DPadLeft => "󰸾".to_string(),     // DPad Left
+            GamepadButtonType::DPadRight => "󰹀".to_string(),    // DPad Right
             GamepadButtonType::Other(x) => format!("Gamepad {}", x).to_string(),
             // _ => "Unknown".to_string(),
         }
@@ -269,12 +284,12 @@ impl ToDisplayString for SingleAxis {
 impl ToDisplayString for GamepadAxisType {
     fn to_display_string(&self) -> String {
         match self {
-            GamepadAxisType::LeftStickX => "Left Stick X".to_string(),
-            GamepadAxisType::LeftStickY => "Left Stick Y".to_string(),
-            GamepadAxisType::LeftZ => "Left Stick Down".to_string(),
-            GamepadAxisType::RightStickX => "Right Stick X".to_string(),
-            GamepadAxisType::RightStickY => "Right Stick Y".to_string(),
-            GamepadAxisType::RightZ => "Right Stick Down".to_string(),
+            GamepadAxisType::LeftStickX => "L3 󰹳".to_string(), // Left Stick Axis X Ⓛ
+            GamepadAxisType::LeftStickY => "L3 󰹹".to_string(), // Left Stick Axis Y Ⓛ
+            GamepadAxisType::LeftZ => "L3 ↓".to_string(),      // Left Stick Axis Z (Press down) Ⓛ
+            GamepadAxisType::RightStickX => "R3 󰹳".to_string(), // Right Stick Axis X Ⓡ
+            GamepadAxisType::RightStickY => "R3 󰹹".to_string(), // Right Stick Axis Y Ⓡ
+            GamepadAxisType::RightZ => "R3 ↓".to_string(),     // Right Stick Axis Z (Press down) Ⓡ
             GamepadAxisType::Other(x) => format!("Gamepad {}", x).to_string(),
             // _ => "Unknown".to_string(),
         }
@@ -284,8 +299,8 @@ impl ToDisplayString for GamepadAxisType {
 impl ToDisplayString for MouseWheelAxisType {
     fn to_display_string(&self) -> String {
         match self {
-            MouseWheelAxisType::X => "Horizontal".to_string(),
-            MouseWheelAxisType::Y => "Vertical".to_string(),
+            MouseWheelAxisType::X => "󰍽󰠳 󰹳".to_string(), // Mouse Wheel Axis X (Horizontal)
+            MouseWheelAxisType::Y => "󰍽󰠳 󰹹".to_string(), // Mouse Wheel Axis Y (Vertical)
         }
     }
 }
@@ -293,8 +308,8 @@ impl ToDisplayString for MouseWheelAxisType {
 impl ToDisplayString for MouseMotionAxisType {
     fn to_display_string(&self) -> String {
         match self {
-            MouseMotionAxisType::X => "Horizontal".to_string(),
-            MouseMotionAxisType::Y => "Vertical".to_string(),
+            MouseMotionAxisType::X => "󰍽 󰹳".to_string(), // Mouse Wheel Axis X (Horizontal)
+            MouseMotionAxisType::Y => "󰍽 󰹹".to_string(), // Mouse Wheel Axis Y (Vertical)
         }
     }
 }
@@ -375,6 +390,7 @@ fn ui_binding_panel(
     catppuccin: Res<CatppuccinTheme>,
     mut currently_changing: ResMut<ChangingBinding>,
     mut keyboard_events: EventReader<KeyboardInput>,
+    mut gamepad_button_events: EventReader<GamepadButtonInput>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -384,134 +400,165 @@ fn ui_binding_panel(
         .default_width(300.0)
         .resizable(true)
         .show_animated(ctx, ui_state.left_panel, |ui| {
-            egui::Grid::new("cool_grid")
-                .num_columns(3)
-                .striped(true)
-                .spacing((10.0, 10.0))
-                .show(ui, |ui| {
-                    let size = 15.0; // pt
-                    ui.label(
-                        RichText::new("Binding")
-                            .size(size)
-                            .color(Color32::from_catppuccin_colour(catppuccin.flavour.green())),
-                    );
-                    ui.label(
-                        RichText::new("1")
-                            .size(size)
-                            .color(Color32::from_catppuccin_colour(catppuccin.flavour.green())),
-                    );
-                    ui.label(
-                        RichText::new("2")
-                            .size(size)
-                            .color(Color32::from_catppuccin_colour(catppuccin.flavour.green())),
-                    );
-                    ui.end_row();
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.heading("Binding Panel");
+                ui.add_space(5.0);
+                ui.separator();
+                ui.add_space(10.0);
+                egui::Grid::new("cool_grid")
+                    .num_columns(3)
+                    .min_col_width(100.0)
+                    .striped(true)
+                    .spacing((10.0, 10.0))
+                    .show(ui, |ui| {
+                        let size = 15.0; // pt
+                        ui.label(RichText::new("Binding").size(size).color(
+                            Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
+                        ));
+                        ui.centered_and_justified(|ui| {
+                            ui.label(RichText::new("󰌌").size(size).color(
+                                Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
+                            ));
+                        });
 
-                    // go through all InputAction variants, and make a title for each
-                    // then nested go through each inner variant and make a button for each
-                    for action in InputAction::iter() {
-                        if matches!(action, InputAction::Undefined) {
-                            continue;
-                        }
-                        ui.label(
-                            RichText::new(action.to_string())
-                                .italics()
-                                .color(Color32::from_catppuccin_colour(
-                                    catppuccin.flavour.lavender(),
-                                ))
-                                .size(size),
-                        );
+                        ui.centered_and_justified(|ui| {
+                            ui.label(RichText::new("󰊗").size(size).color(
+                                Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
+                            ));
+                        });
 
                         ui.end_row();
-                        match action {
-                            InputAction::MoveableObject(_) => {
-                                let map = query_moveable_object_action.single();
-                                for inner_action in map.iter() {
-                                    ui.label(inner_action.0.to_string());
 
-                                    inner_action.1.iter().enumerate().for_each(|(i, x)| {
-                                        let button_response =
-                                            ui.button(RichText::new(x.to_display_string()));
-                                        if button_response.clicked() {
-                                            // button_response.highlight();
-                                            *currently_changing = ChangingBinding {
-                                                action: InputAction::MoveableObject(
-                                                    *inner_action.0,
-                                                ),
-                                                binding: i,
-                                            };
-                                        }
-                                    });
-
-                                    ui.end_row();
-                                }
+                        // go through all InputAction variants, and make a title for each
+                        // then nested go through each inner variant and make a button for each
+                        for action in InputAction::iter() {
+                            if matches!(action, InputAction::Undefined) {
+                                continue;
                             }
-                            InputAction::General(_) => {
-                                let map = query_general_action.single();
-                                for inner_action in map.iter() {
-                                    ui.label(inner_action.0.to_string());
+                            ui.label(
+                                RichText::new(action.to_string())
+                                    .italics()
+                                    .color(Color32::from_catppuccin_colour(
+                                        catppuccin.flavour.lavender(),
+                                    ))
+                                    .size(size),
+                            );
 
-                                    inner_action.1.iter().enumerate().for_each(|(i, x)| {
-                                        let button_response =
-                                            ui.button(RichText::new(x.to_display_string()));
-                                        if button_response.clicked() {
-                                            // button_response.highlight();
-                                            *currently_changing = ChangingBinding {
-                                                action: InputAction::General(*inner_action.0),
-                                                binding: i,
-                                            };
+                            ui.end_row();
+                            match action {
+                                InputAction::MoveableObject(_) => {
+                                    // let map = query_moveable_object_action.single();
+                                    for map in query_moveable_object_action.iter() {
+                                        for inner_action in map.iter() {
+                                            ui.label(inner_action.0.to_string());
+
+                                            inner_action.1.iter().enumerate().for_each(|(i, x)| {
+                                                ui.centered_and_justified(|ui| {
+                                                    let button_response = ui.button(RichText::new(
+                                                        x.to_display_string(),
+                                                    ));
+                                                    if button_response.clicked() {
+                                                        // button_response.highlight();
+                                                        *currently_changing = ChangingBinding {
+                                                            action: InputAction::MoveableObject(
+                                                                *inner_action.0,
+                                                            ),
+                                                            binding: i,
+                                                        };
+                                                    }
+                                                });
+                                            });
+
+                                            ui.end_row();
                                         }
-                                    });
-
-                                    ui.end_row();
+                                    }
                                 }
-                            }
-                            InputAction::Camera(_) => {
-                                let map = query_camera_action.iter().next().unwrap();
-                                for inner_action in map.iter() {
-                                    ui.label(inner_action.0.to_string());
+                                InputAction::General(_) => {
+                                    // let map = query_general_action.single();
+                                    for map in query_general_action.iter() {
+                                        for inner_action in map.iter() {
+                                            ui.label(inner_action.0.to_string());
 
-                                    inner_action.1.iter().enumerate().for_each(|(i, x)| {
-                                        let button_response =
-                                            ui.button(RichText::new(x.to_display_string()));
-                                        if button_response.clicked() {
-                                            // button_response.highlight();
-                                            *currently_changing = ChangingBinding {
-                                                action: InputAction::Camera(*inner_action.0),
-                                                binding: i,
-                                            };
+                                            inner_action.1.iter().enumerate().for_each(|(i, x)| {
+                                                ui.centered_and_justified(|ui| {
+                                                    let button_response = ui.button(RichText::new(
+                                                        x.to_display_string(),
+                                                    ));
+                                                    if button_response.clicked() {
+                                                        // button_response.highlight();
+                                                        *currently_changing = ChangingBinding {
+                                                            action: InputAction::General(
+                                                                *inner_action.0,
+                                                            ),
+                                                            binding: i,
+                                                        };
+                                                    }
+                                                });
+                                            });
+
+                                            ui.end_row();
                                         }
-                                    });
-
-                                    ui.end_row();
+                                    }
                                 }
-                            }
-                            InputAction::Ui(_) => {
-                                let map = query_ui_action.single();
-                                for inner_action in map.iter() {
-                                    ui.label(inner_action.0.to_string());
+                                InputAction::Camera(_) => {
+                                    // let map = query_camera_action.iter().next().unwrap();
+                                    for map in query_camera_action.iter() {
+                                        for inner_action in map.iter() {
+                                            ui.label(inner_action.0.to_string());
 
-                                    inner_action.1.iter().enumerate().for_each(|(i, x)| {
-                                        let button_response =
-                                            ui.button(RichText::new(x.to_display_string()));
-                                        if button_response.clicked() {
-                                            // button_response.highlight();
-                                            // remove the button's text
-                                            // button_response.text = "".to_string();
-                                            *currently_changing = ChangingBinding {
-                                                action: InputAction::Ui(*inner_action.0),
-                                                binding: i,
-                                            };
+                                            inner_action.1.iter().enumerate().for_each(|(i, x)| {
+                                                ui.centered_and_justified(|ui| {
+                                                    let button_response = ui.button(RichText::new(
+                                                        x.to_display_string(),
+                                                    ));
+                                                    if button_response.clicked() {
+                                                        // button_response.highlight();
+                                                        *currently_changing = ChangingBinding {
+                                                            action: InputAction::Camera(
+                                                                *inner_action.0,
+                                                            ),
+                                                            binding: i,
+                                                        };
+                                                    }
+                                                });
+                                            });
+
+                                            ui.end_row();
                                         }
-                                    });
-
-                                    ui.end_row();
+                                    }
                                 }
+                                InputAction::Ui(_) => {
+                                    // let map = query_ui_action.single();
+                                    for map in query_ui_action.iter() {
+                                        for inner_action in map.iter() {
+                                            ui.label(inner_action.0.to_string());
+
+                                            inner_action.1.iter().enumerate().for_each(|(i, x)| {
+                                                ui.centered_and_justified(|ui| {
+                                                    let button_response = ui.button(RichText::new(
+                                                        x.to_display_string(),
+                                                    ));
+                                                    if button_response.clicked() {
+                                                        // button_response.highlight();
+                                                        *currently_changing = ChangingBinding {
+                                                            action: InputAction::Ui(
+                                                                *inner_action.0,
+                                                            ),
+                                                            binding: i,
+                                                        };
+                                                    }
+                                                });
+                                            });
+
+                                            ui.end_row();
+                                        }
+                                    }
+                                }
+                                _ => { /* do nothing */ }
                             }
-                            _ => { /* do nothing */ }
                         }
-                    }
-                });
+                    });
+            });
 
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         });
@@ -551,6 +598,48 @@ fn ui_binding_panel(
             }
             _ => { /* do nothing */ }
         }
+        *currently_changing = ChangingBinding::default();
+    }
+
+    for event in gamepad_button_events.read() {
+        let button = event.button;
+
+        match currently_changing.action {
+            InputAction::Camera(action) => {
+                let mut map = query_camera_action.single_mut();
+                map.remove_at(&action, currently_changing.binding);
+                map.insert(
+                    action,
+                    UserInput::Single(InputKind::GamepadButton(button.button_type)),
+                );
+            }
+            InputAction::General(action) => {
+                let mut map = query_general_action.single_mut();
+                map.remove_at(&action, currently_changing.binding);
+                map.insert(
+                    action,
+                    UserInput::Single(InputKind::GamepadButton(button.button_type)),
+                );
+            }
+            InputAction::MoveableObject(action) => {
+                let mut map = query_moveable_object_action.single_mut();
+                map.remove_at(&action, currently_changing.binding);
+                map.insert(
+                    action,
+                    UserInput::Single(InputKind::GamepadButton(button.button_type)),
+                );
+            }
+            InputAction::Ui(action) => {
+                let mut map = query_ui_action.single_mut();
+                map.remove_at(&action, currently_changing.binding);
+                map.insert(
+                    action,
+                    UserInput::Single(InputKind::GamepadButton(button.button_type)),
+                );
+            }
+            _ => { /* do nothing */ }
+        }
+
         *currently_changing = ChangingBinding::default();
     }
 
