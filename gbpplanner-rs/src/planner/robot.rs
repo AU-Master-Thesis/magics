@@ -23,8 +23,8 @@ pub type RobotId = Entity;
 const SIGMA_POSE_FIXED: f32 = 1e-15;
 
 #[derive(Resource)]
-struct VariableTimestepsResource {
-    timesteps: Vec<u32>,
+pub struct VariableTimestepsResource {
+    pub timesteps: Vec<u32>,
 }
 
 impl FromWorld for VariableTimestepsResource {

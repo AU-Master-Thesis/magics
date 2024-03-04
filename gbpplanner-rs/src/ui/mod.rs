@@ -1,10 +1,5 @@
-use std::iter::Scan;
-
 use bevy::{
-    input::{
-        gamepad::{self, GamepadButtonChangedEvent, GamepadButtonInput},
-        keyboard::KeyboardInput,
-    },
+    input::{gamepad::GamepadButtonInput, keyboard::KeyboardInput},
     prelude::*,
     window::WindowTheme,
 };
@@ -12,8 +7,6 @@ use bevy_egui::{
     egui::{self, Color32, RichText, Visuals},
     EguiContexts, EguiPlugin,
 };
-use catppuccin::Flavour;
-use color_eyre::owo_colors::OwoColorize;
 use leafwing_input_manager::{
     axislike::{
         AxisType, DualAxis, MouseMotionAxisType, MouseWheelAxisType, SingleAxis, VirtualAxis,
@@ -31,7 +24,6 @@ use crate::{
     theme::FromCatppuccinColourExt,
 };
 use heck::ToTitleCase;
-use std::fmt;
 
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/
@@ -602,59 +594,69 @@ fn ui_binding_panel(
     }
 
     for event in gamepad_button_events.read() {
-        let button = event.button;
-
         match currently_changing.action {
             InputAction::Camera(action) => {
-                let mut map = query_camera_action.single_mut();
-                map.remove_at(&action, currently_changing.binding);
-                map.insert(
-                    action,
-                    UserInput::Single(InputKind::GamepadButton(button.button_type)),
-                );
+                // let _: Option<u32> = query_camera_action
+                //     .get_single_mut()
+                //     .ok()
+                //     .inspect(|map| {
+                //         map.remove_at(&action, currently_changing.binding);
+                //     })
+                //     .and_then(|mut map| {
+                //         map.insert(
+                //             action,
+                //             UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
+                //         );
+                //         None
+                //     });
+
+                if let Ok(mut map) = query_camera_action.get_single_mut() {
+                    // let mut map = query_camera_action.single_mut();
+                    map.remove_at(&action, currently_changing.binding);
+                    map.insert(
+                        action,
+                        UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
+                    );
+                }
             }
             InputAction::General(action) => {
-                let mut map = query_general_action.single_mut();
-                map.remove_at(&action, currently_changing.binding);
-                map.insert(
-                    action,
-                    UserInput::Single(InputKind::GamepadButton(button.button_type)),
-                );
+                if let Ok(mut map) = query_general_action.get_single_mut() {
+                    map.remove_at(&action, currently_changing.binding);
+                    map.insert(
+                        action,
+                        UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
+                    );
+                }
+                // let mut map = query_general_action.single_mut();
             }
             InputAction::MoveableObject(action) => {
-                let mut map = query_moveable_object_action.single_mut();
-                map.remove_at(&action, currently_changing.binding);
-                map.insert(
-                    action,
-                    UserInput::Single(InputKind::GamepadButton(button.button_type)),
-                );
+                if let Ok(mut map) = query_moveable_object_action.get_single_mut() {
+                    // let mut map = query_moveable_object_action.single_mut();
+                    map.remove_at(&action, currently_changing.binding);
+                    map.insert(
+                        action,
+                        UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
+                    );
+                }
             }
             InputAction::Ui(action) => {
-                let mut map = query_ui_action.single_mut();
-                map.remove_at(&action, currently_changing.binding);
-                map.insert(
-                    action,
-                    UserInput::Single(InputKind::GamepadButton(button.button_type)),
-                );
+                if let Ok(mut map) = query_ui_action.get_single_mut() {
+                    // let mut map = query_ui_action.single_mut();
+                    map.remove_at(&action, currently_changing.binding);
+                    map.insert(
+                        action,
+                        UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
+                    );
+                }
             }
             _ => { /* do nothing */ }
         }
 
+        // TODO: does this need to be within the for loop?
         *currently_changing = ChangingBinding::default();
     }
 
     occupied_screen_space.left = left_panel
         .map(|ref inner| inner.response.rect.width())
         .unwrap_or(0.0);
-
-    // occupied_screen_space.left = if left_panel.is_some() {
-    //     left_panel.unwrap().response.rect.width()
-    // } else {
-    //     0.0
-    // };
-    // occupied_screen_space.left = if left_panel.is_some() {
-    //     left_panel.unwrap().response.rect.width()
-    // } else {
-    //     0.0
-    // };
 }
