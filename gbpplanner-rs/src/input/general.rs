@@ -253,10 +253,18 @@ fn general_actions_system(
     query_graphs: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
 ) {
-    if let Ok(action_state) = query.get_single() {
-        if action_state.just_pressed(&GeneralAction::ToggleTheme) {
-            info!("Toggling theme");
-            theme_event.send(ThemeEvent);
+    let Ok(action_state) = query.get_single() else {
+        warn!("general_actions_system was called without an action state!");
+        return;
+    };
+
+    if action_state.just_pressed(&GeneralAction::ToggleTheme) {
+        handle_toggle_theme(&mut theme_event);
+    }
+
+    if action_state.just_pressed(&GeneralAction::ExportGraph) {
+        if let Err(e) = handle_export_graph(query_graphs, config.as_ref()) {
+            error!("failed to export factorgraphs with error: {:?}", e);
         }
     }
 }
