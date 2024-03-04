@@ -82,7 +82,11 @@ impl CatppuccinThemeExt for Visuals {
         Visuals {
             dark_mode: is_dark,
             override_text_color: Some(Color32::from_catppuccin_colour(flavour.text())),
-            widgets: Widgets::default(),
+            widgets: if is_dark {
+                Widgets::default()
+            } else {
+                Widgets::light()
+            },
             selection: Selection::default(),
             // hyperlink_color: Color32::from_rgb(90, 170, 255),
             hyperlink_color: Color32::from_catppuccin_colour(flavour.blue()),
@@ -131,6 +135,7 @@ impl CatppuccinThemeExt for Visuals {
             interact_cursor: None,
 
             image_loading_spinners: true,
+            ..Default::default()
         }
     }
 }
