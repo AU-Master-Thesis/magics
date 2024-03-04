@@ -27,6 +27,7 @@ const fn seq_n(start: usize, n: usize) -> std::ops::Range<usize> {
     start..start + n
 }
 
+// TODO: possible duplicate function?
 // fn marginalise_factor_distance<T: Scalar>(
 pub fn marginalise_factor_distance(
     information_vector: Vector<f32>,
@@ -34,54 +35,37 @@ pub fn marginalise_factor_distance(
     dofs_of_variable: usize,
     marginalisation_idx: usize,
 ) -> Message {
+    if information_vector.len() == dofs_of_variable {
+        return Message::new(information_vector, precision_matrix).expect(
+            "the given information vector and precision matrix is a valid multivariate gaussian",
+        );
+    }
+
     let ndofs = dofs_of_variable;
     let marg_idx = marginalisation_idx;
     let iv = &information_vector;
     let pm = &precision_matrix;
-    if information_vector.len() == dofs_of_variable {
-        return Message::new(information_vector, precision_matrix);
-    }
-
-    // eprintln!("dofs_of_variable = {dofs_of_variable}");
-    // eprintln!("marginalisation_idx = {marginalisation_idx}");
-    // eprintln!("information_vector.len() = {:?}", information_vector.len());
-    // eprintln!("precision_matrix.shape() = {:?}", precision_matrix.shape());
 
     let eta_a = information_vector.slice(s![seq_n(marginalisation_idx, dofs_of_variable)]);
-    // eprintln!("eta_a = {:?}", eta_a);
     assert_eq!(eta_a.len(), ndofs);
     let eta_b = concatenate![
         Axis(0),
         information_vector.slice(s![0..marginalisation_idx]),
         information_vector.slice(s![marginalisation_idx + dofs_of_variable..])
     ];
-    // eprintln!("eta_b = {:?}", eta_b);
-    assert_eq!(eta_b.len(), information_vector.len() - ndofs);
 
+    assert_eq!(eta_b.len(), information_vector.len() - ndofs);
     let lam_aa = precision_matrix.slice(s![
         seq_n(marginalisation_idx, dofs_of_variable),
         seq_n(marginalisation_idx, dofs_of_variable)
     ]);
 
-    // eprintln!("lam_aa = {:#?}", lam_aa);
-
-    // assert_eq!(lam_aa.shape(), &[])
-
-    // lam_ab << Lam(seqN(marg_idx, n_dofs), seq(0, marg_idx - 1)),
-    //           Lam(seqN(marg_idx, n_dofs), seq(marg_idx + n_dofs, last));
     let lam_ab = concatenate![
         Axis(1),
         dbg!(precision_matrix.slice(s![seq_n(marg_idx, ndofs), ..marg_idx])),
         dbg!(precision_matrix.slice(s![seq_n(marg_idx, ndofs), marg_idx + ndofs..]))
     ];
 
-    // eprintln!("lam_ab = {:#?}", lam_ab);
-
-    // lam_ba << Lam(seq(0, marg_idx - 1), seq(marg_idx, marg_idx + n_dofs - 1)),
-    //           Lam(seq(marg_idx + n_dofs, last), seqN(marg_idx, n_dofs));
-    // let lam_ba = {
-    //     let mut lam_ba =
-    // }
     let lam_ba = if marg_idx + ndofs == information_vector.len() {
         concatenate![
             Axis(1),
@@ -94,20 +78,6 @@ pub fn marginalise_factor_distance(
             dbg!(precision_matrix.slice(s![marg_idx + ndofs.., seq_n(marg_idx, ndofs)]))
         ]
     };
-    // let lam_ba = concatenate![
-    //     Axis(1),
-    //     dbg!(precision_matrix.slice(s![..marg_idx, marg_idx..marg_idx + ndofs])),
-    //     dbg!(precision_matrix.slice(s![marg_idx + ndofs.., seqN(marg_idx, ndofs)]))
-    // ];
-
-    // eprintln!("lam_ba = {:?}", lam_ba);
-
-    // let lam_bb = {
-    //     let shape = precision_matrix.shape();
-    //     // let shap
-    //     let mut m = Matrix::<f32>::uninit((shape[0] - ndofs, shape[0]-ndofs));
-    //     m.slice_mut(s![])
-    // };
 
     let lam_bb = concatenate![
         Axis(0),
@@ -123,8 +93,6 @@ pub fn marginalise_factor_distance(
         ]
     ];
 
-    // eprintln!("lam_bb = {:#?}", lam_bb);
-
     assert_eq!(
         lam_bb.shape(),
         &[
@@ -133,46 +101,20 @@ pub fn marginalise_factor_distance(
         ]
     );
 
-    // let mut lam_bb = Array::<f32>::uninit((precision_matrix.rows()))
-    // let lam_bb = concatenate![
-    //     Axis(1),
-    //     precision_matrix.slice(s![])
-
-    // ]
-
-    // lam_bb.
-
     let lam_bb_inv = lam_bb.inv().expect("should have an inverse");
+    // let information_vector = (&eta_a - &lam_ab).dot(&lam_bb_inv).dot(&eta_b);
+    let information_vector = &eta_a - &lam_ab.dot(&lam_bb_inv).dot(&eta_b);
+    // eprintln!("information_vector = {:?}", information_vector);
+    let precision_matrix = &lam_aa - &lam_ab.dot(&lam_bb_inv).dot(&lam_ba);
+    // eprintln!("precision_matrix = {:?}", precision_matrix);
 
-    // eprintln!("lam_bb_inv = {:?}", lam_bb_inv);
-
-    {
-        // let information_vector = (&eta_a - &lam_ab).dot(&lam_bb_inv).dot(&eta_b);
-        let information_vector = &eta_a - &lam_ab.dot(&lam_bb_inv).dot(&eta_b);
-        // eprintln!("information_vector = {:?}", information_vector);
-        let precision_matrix = &lam_aa - &lam_ab.dot(&lam_bb_inv).dot(&lam_ba);
-        // eprintln!("precision_matrix = {:?}", precision_matrix);
-
-        if precision_matrix.iter().any(|elem| elem.is_infinite()) {
-            Message::zeros(information_vector.len())
-        } else {
-            Message::new(information_vector, precision_matrix)
-        }
-
-        // let mut message = Message {
-        //     information_vector,
-        //     precision_matrix,
-        // };
-
-        // if message
-        //     .precision_matrix
-        //     .iter()
-        //     .any(|elem| elem.is_infinite())
-        // {
-        //     message.zeroize();
-        // }
-
-        // message
+    if precision_matrix.iter().any(|elem| elem.is_infinite()) {
+        Message::with_dofs(information_vector.len())
+        // Message::zeros(information_vector.len())
+    } else {
+        Message::new(information_vector, precision_matrix).expect(
+            "the given information vector and precision matrix is a valid multivariate gaussian",
+        )
     }
 }
 
@@ -288,11 +230,11 @@ mod tests {
         );
 
         assert_eq!(
-            marginalised_msg.0.information_vector,
+            marginalised_msg.gaussian.information_vector(),
             array![0., 1., 2., 3.]
         );
         assert_eq!(
-            marginalised_msg.0.precision_matrix,
+            marginalised_msg.gaussian.precision_matrix(),
             array![
                 [5., 0.2, 0., 0.],
                 [0.2, 5., 0., 0.],
@@ -323,17 +265,20 @@ mod tests {
             marginalisation_idx,
         );
 
-        assert_eq!(marginalised_msg.0.information_vector.len(), ndofs);
-        assert_eq!(marginalised_msg.0.precision_matrix.shape(), &[ndofs, ndofs]);
+        assert_eq!(marginalised_msg.gaussian.information_vector().len(), ndofs);
+        assert_eq!(
+            marginalised_msg.gaussian.precision_matrix().shape(),
+            &[ndofs, ndofs]
+        );
 
         assert_eq!(
-            marginalised_msg.0.information_vector,
+            marginalised_msg.gaussian.information_vector(),
             array![1.8, 3., 4., 4.6]
         );
 
         let result = marginalised_msg
-            .0
-            .precision_matrix
+            .gaussian
+            .precision_matrix()
             .into_iter()
             .collect::<Vec<_>>();
         let expected = array![

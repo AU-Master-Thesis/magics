@@ -1,7 +1,6 @@
 mod factor;
 mod factorgraph;
 mod marginalise_factor_distance;
-mod multivariate_normal;
 mod robot;
 mod spawner;
 mod variable;
@@ -19,7 +18,6 @@ pub type Timestep = u32;
 use self::robot::RobotPlugin;
 use self::spawner::SpawnerPlugin;
 use bevy::prelude::*;
-// use ndarray::NdFloat;
 
 pub struct PlannerPlugin;
 

@@ -35,7 +35,7 @@ use crate::ui::EguiInterfacePlugin;
 use bevy::core::FrameCount;
 use bevy::prelude::*;
 
-use bevy::window::WindowResolution;
+use bevy::window::WindowMode;
 use bevy::window::WindowTheme;
 use clap::Parser;
 
@@ -133,7 +133,10 @@ fn main() -> color_eyre::eyre::Result<()> {
                 WindowPlugin {
                     primary_window: Some(Window {
                         title: "GBP Planner".into(),
-                        resolution: (1280.0, 720.0).into(),
+                        // resolution: (1280.0, 720.0).into(),
+                        // mode: WindowMode::BorderlessFullscreen,
+                        mode: WindowMode::Windowed,
+                        // mode: WindowMode::Fullscreen,
                         // present_mode: PresentMode::AutoVsync,
                         // fit_canvas_to_parent: true,
                         // prevent_default_event_handling: false,

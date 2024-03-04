@@ -708,7 +708,7 @@ impl Factor {
             self.state
                 .linearisation_point
                 .slice_mut(s![idx..idx + variable.dofs])
-                .assign(&message.mean());
+                .assign(message.gaussian.mean());
         }
 
         // TODO: implement the rest of the update method
@@ -788,7 +788,7 @@ impl Factor {
                     // TODO: KRISTOFFER CHECK THIS
                     factor_eta
                         .slice_mut(s![index_offset..index_offset + variable.dofs])
-                        .add_assign(&message.0.information_vector);
+                        .add_assign(message.gaussian.information_vector());
                     // .add_assign(&message.0.mean());
                     // factor_lam(seqN(idx_v, n_dofs), seqN(idx_v, n_dofs)) += lam_belief;
                     // gbp_linalg::matrix::add_assign_submatrix(
@@ -802,7 +802,7 @@ impl Factor {
                             index_offset..index_offset + variable.dofs,
                             index_offset..index_offset + variable.dofs
                         ])
-                        .add_assign(&message.0.precision_matrix);
+                        .add_assign(message.gaussian.precision_matrix());
                 }
                 index_offset += other_variable.dofs;
             }
@@ -877,6 +877,7 @@ impl Factor {
     //     todo!()
     // }
 
+    // TODO: possible duplicate function?
     pub fn marginalise_factor_distance(
         &self,
         information_vector: Vector<f32>,
@@ -885,7 +886,7 @@ impl Factor {
         marginalisation_idx: usize,
     ) -> Message {
         if information_vector.len() == dofs_of_variable {
-            return Message::new(information_vector, precision_matrix);
+            return Message::new(information_vector, precision_matrix).expect("the given information vector and precision matrix is a valid multivariate gaussian");
         }
 
         // Eigen::VectorXd eta_a(n_dofs);

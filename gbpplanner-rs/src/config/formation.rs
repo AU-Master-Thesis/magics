@@ -304,7 +304,8 @@ mod tests {
     #[test]
     fn default_is_valid() {
         let default = Formation::default();
-        assert!(default.validate().is_ok());
+        assert!(matches!(default.validate(), Ok(Formation { .. })));
+        // assert!(default.validate().is_ok());
     }
 
     #[test]
@@ -389,7 +390,10 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(zero_is_okay.validate().is_ok());
+        assert!(matches!(zero_is_okay.validate(), Ok(Formation { .. })));
+
+        // zero_is_okay.validate().unwrap();
+        // assert!(zero_is_okay.validate().is_ok());
     }
 
     mod polygon_macro {
