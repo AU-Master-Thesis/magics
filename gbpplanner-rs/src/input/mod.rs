@@ -18,8 +18,8 @@ use self::{
 
 #[derive(Debug, EnumIter)]
 pub enum InputAction {
-    Camera(CameraAction),
     General(GeneralAction),
+    Camera(CameraAction),
     MoveableObject(MoveableObjectAction),
     Ui(UiAction),
     Undefined,

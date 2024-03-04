@@ -68,11 +68,19 @@ pub trait CatppuccinThemeExt {
 
 pub trait FromCatppuccinColourExt {
     fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color32;
+    fn from_catppuccin_colour_ref(colour: &catppuccin::Colour) -> Color32 {
+        Self::from_catppuccin_colour(*colour)
+    }
+    fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Color32;
 }
 
 impl FromCatppuccinColourExt for Color32 {
     fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color32 {
         Color32::from_rgb(colour.0, colour.1, colour.2)
+    }
+    fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Color32 {
+        let (r, g, b) = colour.into();
+        Color32::from_rgba_unmultiplied(r, g, b, (alpha * 255.0) as u8)
     }
 }
 

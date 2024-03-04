@@ -14,6 +14,7 @@ use bevy_egui::{
 };
 use catppuccin::Flavour;
 use color_eyre::owo_colors::OwoColorize;
+use itertools::Itertools;
 use leafwing_input_manager::{
     axislike::{
         AxisType, DualAxis, MouseMotionAxisType, MouseWheelAxisType, SingleAxis, VirtualAxis,
@@ -395,6 +396,63 @@ fn ui_binding_panel(
     let ctx = contexts.ctx_mut();
 
     // info!("Currently changing: {:?}", currently_changing);
+    // let grid_row_color = |r: usize, style: &mut egui::style::Style| {
+    //     if r == 0 {
+    //         style.visuals.widgets.noninteractive.bg_fill = Some(Color32::from_catppuccin_colour_ref(
+    //             &catppuccin.flavour.lavender(),
+    //         ));
+    //     }
+    // };
+
+    let grid_row_color = catppuccin.flavour.mantle();
+    // let grid_title_color = catppuccin.flavour.lavender();
+    // let mut grid_title_colors = [
+    //     catppuccin.flavour.green(),
+    //     catppuccin.flavour.blue(),
+    //     catppuccin.flavour.mauve(),
+    //     catppuccin.flavour.maroon(),
+    // ]
+    // .into_iter()
+    // .cycle();
+    // title colours
+    let grid_title_colors = [
+        catppuccin.flavour.green(),
+        catppuccin.flavour.blue(),
+        catppuccin.flavour.mauve(),
+        catppuccin.flavour.maroon(),
+        catppuccin.flavour.lavender(),
+    ];
+
+    let mut gtc_iter = grid_title_colors.iter().cycle();
+
+    let mut counter = 1; // offset by 1 to account for header row
+    let mut grid_title_rows = Vec::with_capacity(InputAction::iter().count());
+    let grid_map_ranges = InputAction::iter()
+        .map(|variant| {
+            grid_title_rows.push(counter);
+            counter += 1;
+            let start = counter;
+            match variant {
+                InputAction::Camera(_) => {
+                    counter += CameraAction::iter().count();
+                }
+                InputAction::General(_) => {
+                    counter += GeneralAction::iter().count();
+                }
+                InputAction::MoveableObject(_) => {
+                    counter += MoveableObjectAction::iter().count();
+                }
+                InputAction::Ui(_) => {
+                    counter += UiAction::iter().count();
+                }
+                _ => { /* do nothing */ }
+            }
+            let end = counter;
+
+            (start..end).step_by(2)
+        })
+        .flatten()
+        .collect::<Vec<usize>>();
 
     let left_panel = egui::SidePanel::left("left_panel")
         .default_width(300.0)
@@ -409,21 +467,34 @@ fn ui_binding_panel(
                 egui::Grid::new("cool_grid")
                     .num_columns(3)
                     .min_col_width(100.0)
-                    .striped(true)
+                    // .striped(true)
                     .spacing((10.0, 10.0))
+                    .with_row_color(move |r, s| {
+                        if grid_map_ranges.iter().any(|x| *x == r) {
+                            Some(Color32::from_catppuccin_colour(grid_row_color))
+                        } else if grid_title_rows.iter().any(|x| *x == r) {
+                            Some(Color32::from_catppuccin_colour_with_alpha(grid_title_colors[grid_title_rows.iter().position(|&e| e == r).expect("In a conditional branch that ensures this")], 0.5))
+                            // Some(Color32::from_catppuccin_colour_with_alpha(gtc_iter.next().expect(""), 0.5))
+                        } else {
+                            None
+                        }
+                    })
                     .show(ui, |ui| {
                         let size = 15.0; // pt
                         ui.label(RichText::new("Binding").size(size).color(
+                            // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
                             Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
                         ));
                         ui.centered_and_justified(|ui| {
                             ui.label(RichText::new("󰌌").size(size + 5.0).color(
+                                // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
                                 Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
                             ));
                         });
 
                         ui.centered_and_justified(|ui| {
                             ui.label(RichText::new("󰊗").size(size + 5.0).color(
+                                // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
                                 Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
                             ));
                         });
@@ -440,7 +511,7 @@ fn ui_binding_panel(
                                 RichText::new(action.to_string())
                                     .italics()
                                     .color(Color32::from_catppuccin_colour(
-                                        catppuccin.flavour.lavender(),
+                                        catppuccin.flavour.base(),
                                     ))
                                     .size(size),
                             );
