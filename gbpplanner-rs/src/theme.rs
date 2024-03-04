@@ -188,16 +188,16 @@ impl CatppuccinThemeWidgetsExt for Widgets {
                 bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
                 bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), // e.g. hover over window edge or button
                 fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding: Rounding::same(8.0),
-                expansion: 3.0,
+                rounding: Rounding::same(7.0),
+                expansion: 2.0,
             },
             active: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
                 bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
                 bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
                 fg_stroke: Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                rounding: Rounding::same(8.0),
-                expansion: 3.0,
+                rounding: Rounding::same(7.0),
+                expansion: 2.0,
             },
             open: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
