@@ -158,10 +158,10 @@ fn main() -> color_eyre::eyre::Result<()> {
             CameraPlugin,         // Custom
             FollowCamerasPlugin,  // Custom
             RobotSpawnerPlugin,   // Custom
-            // FactorGraphPlugin,    // Custom
-            EguiInterfacePlugin, // Custom
-            PlannerPlugin,       // Custom
-                                 // WorldInspectorPlugin::new()
+            FactorGraphPlugin,    // Custom
+            EguiInterfacePlugin,  // Custom
+            PlannerPlugin,        // Custom
+                                  // WorldInspectorPlugin::new()
         ))
         .add_systems(Update, make_visible)
         .run();
