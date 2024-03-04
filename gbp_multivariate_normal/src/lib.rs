@@ -134,6 +134,32 @@ impl<T: Scalar> MultivariateNormal<T> {
     pub fn precision_matrix(&self) -> &Matrix<T> {
         &self.precision
     }
+
+    pub fn update_information_vector(&mut self, value: &Vector<T>) {
+        self.information.clone_from(value);
+        self.update();
+    }
+
+    // pub fn update_precision_matrix(mut self, value: &Matrix<T>) -> Result<Self> {
+    //     if value.det() == T::zero() {
+    //         Err(MultivariateNormalError::NonInvertiblePrecisionMatrix)
+    //     } else {
+    //         self.precision.clone_from(value);
+    //         self.update();
+    //         Ok(self)
+    //     }
+    // }
+
+    pub fn update_precision_matrix(&mut self, value: &Matrix<T>) -> Result<()> {
+        if value.det() == T::zero() {
+            Err(MultivariateNormalError::NonInvertiblePrecisionMatrix)
+        } else {
+            self.precision.clone_from(value);
+            self.update();
+            Ok(())
+        }
+    }
+
     /// Get the mean of the multivariate normal distribution
     #[inline(always)]
     pub fn mean(&self) -> &Vector<T> {
@@ -179,6 +205,35 @@ impl<T: Scalar> MultivariateNormal<T> {
         self.dirty = true;
     }
 
+    /// Add a vector to the information vector of the multivariate normal distribution
+    ///
+    /// The motivation for this method is to allow the user to interract with the information vector directly,
+    /// without having to update the mean. For example if you have a loop where you add assign the information
+    /// multiple times, it is wasteful to update the mean after each assignment.
+    ///
+    /// # Safety
+    /// No checks are performed to ensure that the given vector is the same length as the one stored
+    /// The mean is not updated after setting the information vector, so it is the responsibility of the caller to call [`Self::update()`] after setting the information vector
+    pub unsafe fn add_assign_information_vector(&mut self, value: &Vector<T>) {
+        self.information += value;
+        self.dirty = true;
+    }
+
+    /// Add a matrix to the precision matrix of the multivariate normal distribution
+    ///
+    /// The motivation for this method is to allow the user to interract with the information vector directly,
+    /// without having to update the mean. For example if you have a loop where you add assign the information
+    /// multiple times, it is wasteful to update the mean after each assignment.
+    ///
+    /// # Safety
+    /// No checks are performed to ensure that the precision matrix is invertible
+    /// It is the responsibility of the caller to ensure that the precision matrix is invertible
+    /// The mean is not updated after setting the precision matrix, so it is the responsibility of the caller to call [`Self::update()`] after setting the precision matrix
+    pub unsafe fn add_assign_precision_matrix(&mut self, value: &Matrix<T>) {
+        self.precision += value;
+        self.dirty = true;
+    }
+
     /// Update the mean of the multivariate normal distribution
     /// Returns true if the mean was updated, false otherwise
     /// This method is meant to be called after using [`Self::set_information_vector()`] or [`Self::set_precision_matrix()`]
@@ -209,6 +264,22 @@ impl<T: Scalar> std::ops::Add<&MultivariateNormal<T>> for MultivariateNormal<T> 
     }
 }
 
+impl<T: Scalar> std::ops::Add<&MultivariateNormal<T>> for &MultivariateNormal<T> {
+    type Output = MultivariateNormal<T>;
+
+    fn add(self, rhs: &MultivariateNormal<T>) -> Self::Output {
+        let information = &self.information + &rhs.information;
+        let precision = &self.precision + &rhs.precision;
+        let mean = precision.dot(&information);
+        Self::Output {
+            information,
+            precision,
+            mean,
+            dirty: false,
+        }
+    }
+}
+
 impl<T: Scalar> std::ops::AddAssign<&MultivariateNormal<T>> for MultivariateNormal<T> {
     fn add_assign(&mut self, rhs: &MultivariateNormal<T>) {
         self.information += &rhs.information;
@@ -224,6 +295,22 @@ impl<T: Scalar> std::ops::Sub<&MultivariateNormal<T>> for MultivariateNormal<T> 
     fn sub(self, rhs: &MultivariateNormal<T>) -> Self::Output {
         let information = self.information - &rhs.information;
         let precision = self.precision - &rhs.precision;
+        let mean = precision.dot(&information);
+        Self::Output {
+            information,
+            precision,
+            mean,
+            dirty: false,
+        }
+    }
+}
+
+impl<T: Scalar> std::ops::Sub<&MultivariateNormal<T>> for &MultivariateNormal<T> {
+    type Output = MultivariateNormal<T>;
+
+    fn sub(self, rhs: &MultivariateNormal<T>) -> Self::Output {
+        let information = &self.information - &rhs.information;
+        let precision = &self.precision - &rhs.precision;
         let mean = precision.dot(&information);
         Self::Output {
             information,

@@ -6,13 +6,14 @@ use ndarray::s;
 use petgraph::Undirected;
 
 use super::factor::{Factor, FactorKind};
-use super::multivariate_normal::MultivariateNormal;
+// use super::multivariate_normal::MultivariateNormal;
 use super::robot::RobotId;
 use super::variable::Variable;
 use super::{marginalise_factor_distance, Matrix, Vector};
+use gbp_multivariate_normal::MultivariateNormal;
 
 pub mod graphviz {
-    use crate::planner::{factor::InterRobotConnection, RobotId};
+    use crate::planner::factor::InterRobotConnection;
 
     pub struct Node {
         pub index: usize,
@@ -89,47 +90,69 @@ pub enum MessagePassingMode {
 }
 
 #[derive(Debug, Clone)]
-pub struct Message(pub MultivariateNormal<f32>);
-
-/// Overload subtraction for `Message`
-impl std::ops::Sub for Message {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Message(self.0 - rhs.0)
-    }
+// pub struct Message(pub MultivariateNormal<f32>);
+pub struct Message {
+    pub gaussian: MultivariateNormal<f32>,
 }
 
-impl std::ops::Sub<&Message> for Message {
-    type Output = Self;
-    fn sub(self, rhs: &Self) -> Self::Output {
-        Message(self.0 - &rhs.0)
-    }
-}
+// /// Overload subtraction for `Message`
+// impl std::ops::Sub for Message {
+//     type Output = Self;
+//     fn sub(self, rhs: Self) -> Self::Output {
+//         Message(self.0 - rhs.0)
+//     }
+// }
+
+// impl std::ops::Sub<&Message> for Message {
+//     type Output = Self;
+//     fn sub(self, rhs: &Self) -> Self::Output {
+//         Message(self.0 - &rhs.0)
+//     }
+// }
 
 impl Message {
     pub fn with_dofs(dofs: usize) -> Self {
-        Self(MultivariateNormal::zeros(dofs))
+        let information_vector = Vector::<f32>::from_elem(dofs, 1.0 / dofs as f32);
+        let precision_matrix = Matrix::<f32>::eye(dofs);
+        MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
+            .map(|gaussian| Self { gaussian })
+            .expect("An identity matrix and uniform vector is a valid multivariate normal")
     }
 
-    pub fn mean(&self) -> Vector<f32> {
-        self.0.mean()
+    // pub fn mean(&self) -> Vector<f32> {
+    //     self.0.mean()
+    // }
+
+    pub fn new(
+        information_vector: Vector<f32>,
+        precision_matrix: Matrix<f32>,
+    ) -> gbp_multivariate_normal::Result<Self> {
+        MultivariateNormal::from_mean_and_covariance(information_vector, precision_matrix)
+            .map(|gaussian| Self { gaussian })
     }
 
-    pub fn new(information_vector: Vector<f32>, precision_matrix: Matrix<f32>) -> Self {
-        Self(MultivariateNormal::new(
-            information_vector,
-            precision_matrix,
-        ))
-    }
-
-    pub fn zeros(dims: usize) -> Self {
-        Self(MultivariateNormal::zeros(dims))
-    }
+    // pub fn zeros(dims: usize) -> Self {
+    //     Self(MultivariateNormal::zeros(dims))
+    // }
 
     // pub fn zeroize(&mut self) {
     //     self.0.zeroize();
     // }
 }
+
+impl From<MultivariateNormal<f32>> for Message {
+    fn from(value: MultivariateNormal<f32>) -> Self {
+        Self { gaussian: value }
+    }
+}
+
+// impl TryFrom<MultivariateNormal<f32>> for Message {
+//     type Error: gbp_multivariate_normal::Error;
+
+//     fn try_from(value: MultivariateNormal<f32>) -> Result<Self, Self::Error> {
+//         todo!()
+//     }
+// }
 
 pub type Inbox = HashMap<NodeIndex, Message>;
 
@@ -510,14 +533,19 @@ impl FactorGraph {
             .expect("factor_index should point to a Factor in the graph");
 
         let mut idx = 0;
+        // TODO: do not hardcode
         let dofs = 4;
         for &variable_index in adjacent_variables.iter() {
             idx += dofs;
-            let message = factor
+            // let message = factor
+            //     .read_message_from(variable_index)
+            //     .expect("There should be a message from the variable");
+            let message_mean = factor
                 .read_message_from(variable_index)
-                .expect("There should be a message from the variable");
-
-            let message_mean = message.mean();
+                .expect("There should be a message from the variable")
+                .gaussian
+                .mean()
+                .clone();
 
             factor
                 .state
@@ -596,18 +624,18 @@ impl FactorGraph {
                         .read_message_from(v_idx)
                         .expect("There should be a message from the variable");
 
-                    let message_mean = message.mean();
+                    let message_mean = message.gaussian.mean();
 
                     // factor_eta += message_mean;
                     // factor_eta.add_assign(&message_mean);
                     factor_eta
                         .slice_mut(s![idx_v..idx_v + dofs])
-                        .add_assign(&message_mean);
+                        .add_assign(message_mean);
                     // factor_lam += message.0.precision_matrix;
                     // factor_lam.add_assign(&message.0.precision_matrix);
                     factor_lam
                         .slice_mut(s![idx_v..idx_v + dofs, idx_v..idx_v + dofs])
-                        .add_assign(&message.0.precision_matrix);
+                        .add_assign(message.gaussian.precision_matrix());
                 }
                 idx_v += dofs;
             }

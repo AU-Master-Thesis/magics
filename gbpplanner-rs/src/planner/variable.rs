@@ -1,14 +1,9 @@
-// use ndarray_linalg::Inverse;
-
 use std::collections::HashMap;
 
-use super::factor::Factor;
-use super::factorgraph::{Graph, Inbox, Message};
-use super::multivariate_normal::MultivariateNormal;
-use ndarray_inverse::Inverse;
-// use petgraph::prelude::NodeIndex;
 use super::factorgraph::NodeIndex;
+use super::factorgraph::{Inbox, Message};
 use super::Vector;
+use gbp_multivariate_normal::MultivariateNormal;
 
 /// A variable in the factor graph.
 #[derive(Debug, Clone)]
@@ -34,11 +29,12 @@ pub struct Variable {
 }
 
 impl Variable {
-    pub fn new(mut prior: MultivariateNormal<f32>, dofs: usize) -> Self {
-        if !prior.precision_matrix.iter().all(|x| x.is_finite()) {
-            // if (!lam_prior_.allFinite()) lam_prior_.setZero();
-            prior.precision_matrix.fill(0.0);
-        }
+    pub fn new(prior: MultivariateNormal<f32>, dofs: usize) -> Self {
+        // if !prior.precision_matrix().iter().all(|x| x.is_finite()) {
+        //     // if (!lam_prior_.allFinite()) lam_prior_.setZero();
+
+        //     prior.precision_matrix.fill(0.0);
+        // }
         Self {
             node_index: None,
             // key,
@@ -80,14 +76,17 @@ impl Variable {
         mean: Vector<f32>,
         indices_of_adjacent_factors: Vec<NodeIndex>,
     ) -> HashMap<NodeIndex, Message> {
-        self.prior.information_vector = self.prior.precision_matrix.dot(&mean);
+        self.prior
+            .update_information_vector(&self.prior.precision_matrix().dot(&mean));
+        // self.prior.information_vector = self.prior.precision_matrix.dot(&mean);
         // QUESTION: why cache mu?
         // mu_ = new_mu;
         // belief_ = Message {eta_, lam_, mu_};
 
         indices_of_adjacent_factors
             .into_iter()
-            .map(|factor_index| (factor_index, Message(self.belief.clone())))
+            // .map(|factor_index| (factor_index, Message(self.belief.clone())))
+            .map(|factor_index| (factor_index, Message::from(self.belief.clone())))
             .collect()
     }
 
@@ -104,13 +103,27 @@ impl Variable {
         // indices_of_adjacent_factors: Vec<NodeIndex>,
     ) -> HashMap<NodeIndex, Message> {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
-        self.belief.information_vector = self.prior.information_vector.clone();
-        self.belief.precision_matrix = self.prior.precision_matrix.clone();
+        // TODO: wrap in unsafe block for perf:
+        self.belief
+            .update_information_vector(self.prior.information_vector());
+        self.belief
+            .update_precision_matrix(self.prior.precision_matrix())
+            .expect("the precision matrix of the prior is nonsigular");
+        // self.belief
+        //     .update_precision_matrix(self.prior.precision_matrix());
 
         for (_, message) in self.inbox.iter() {
-            self.belief.information_vector += &message.0.information_vector;
-            self.belief.precision_matrix += &message.0.precision_matrix;
+            unsafe {
+                self.belief
+                    .add_assign_information_vector(message.gaussian.information_vector());
+                self.belief
+                    .add_assign_precision_matrix(message.gaussian.precision_matrix());
+            }
+            // self.belief.information_vector += &message.0.information_vector;
+            // self.belief.precision_matrix += &message.0.precision_matrix;
         }
+
+        self.belief.update();
 
         // TODO: update self.sigma_ with covariance
         // -> Seems to not be useful
@@ -118,18 +131,19 @@ impl Variable {
         // Update belief
         // println!("precision matrix: {:?}", self.belief.precision_matrix);
 
-        if let Some(covariance) = self.belief.precision_matrix.inv() {
-            let valid = covariance.iter().all(|x| x.is_finite());
-            if valid {
-                // TODO: is this meaningful?
-                // if (valid_) mu_ = sigma_ * eta_;
-            }
-        }
+        // if let Some(covariance) = self.belief.precision_matrix().inv() {
+        // let valid = self.belief.covariance().iter().all(|x| x.is_finite());
+        // if valid {
+        // TODO: is this meaningful?
+        // if (valid_) mu_ = sigma_ * eta_;
+        // }
+        // }
 
         self.inbox
             .iter()
             .map(|(&factor_index, received_message)| {
-                let response = Message(self.belief.clone()) - received_message;
+                // let response = Message(self.belief.clone()) - received_message;
+                let response = Message::from(&self.belief - &received_message.gaussian);
                 (factor_index, response)
             })
             .collect()

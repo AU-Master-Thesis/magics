@@ -6,10 +6,11 @@ use crate::utils::get_variable_timesteps;
 
 use super::factor::{Factor, InterRobotConnection};
 use super::factorgraph::{FactorGraph, MessagePassingMode};
-use super::multivariate_normal::MultivariateNormal;
+// use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
 use super::{Matrix, NdarrayVectorExt, NodeIndex, Timestep, Vector, VectorNorm};
 use bevy::prelude::*;
+use gbp_multivariate_normal::MultivariateNormal;
 use ndarray::{array, concatenate, Axis};
 use std::collections::HashMap;
 
@@ -19,7 +20,7 @@ pub type RobotId = Entity;
 
 /// Sigma for Unary pose factor on current and horizon states
 /// from **gbpplanner** `Globals.h`
-const SIGMA_POSE_FIXED: f64 = 1e-15;
+const SIGMA_POSE_FIXED: f32 = 1e-15;
 
 #[derive(Resource)]
 struct VariableTimestepsResource {
@@ -31,6 +32,7 @@ impl FromWorld for VariableTimestepsResource {
         let config = world.resource::<Config>();
         let lookahead_horizon = config.robot.planning_horizon / config.simulation.t0;
 
+        #[allow(clippy::cast_possible_truncation)]
         Self {
             timesteps: get_variable_timesteps(
                 lookahead_horizon as u32,
@@ -187,7 +189,7 @@ impl RobotBundle {
                 let elem = if sigma == 0.0 {
                     f32::MAX
                 } else {
-                    1.0 / (sigma as f32).powi(2)
+                    1.0 / sigma.powi(2)
                 };
                 Vector::<f32>::from_shape_fn(ndofs, |_| elem)
             };
@@ -196,7 +198,8 @@ impl RobotBundle {
             let prior = MultivariateNormal::from_mean_and_covariance(
                 array![mean.x, mean.y, 0.0, 0.0], // initial velocity (x', y') is zero
                 covariance,
-            );
+            )
+            .expect("the covariance is nonsingular");
 
             let variable = Variable::new(prior, ndofs);
             let variable_index = factorgraph.add_variable(variable);
@@ -222,6 +225,8 @@ impl RobotBundle {
         }
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
+
+        #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
             let obstacle_factor = Factor::new_obstacle_factor(
                 config.gbp.sigma_factor_obstacle,
@@ -478,7 +483,7 @@ fn update_prior_of_horizon_state_system(
             .last_variable_mut()
             .expect("factorgraph has a horizon variable");
         let mean_of_horizon_variable = horizon_variable.belief.mean();
-        let direction_from_horizon_to_goal = current_waypoint - &mean_of_horizon_variable;
+        let direction_from_horizon_to_goal = current_waypoint - mean_of_horizon_variable;
         let distance_from_horizon_to_goal = direction_from_horizon_to_goal.euclidean_norm();
         let new_velocity = f32::min(config.robot.max_speed, distance_from_horizon_to_goal)
             * direction_from_horizon_to_goal.normalized();
@@ -520,7 +525,7 @@ fn update_prior_of_current_state_system(
                 .nth_variable(1)
                 .expect("factorgraph should have a next variable");
 
-            let mean_of_current_variable = current_variable.belief.mean();
+            let mean_of_current_variable = current_variable.belief.mean().clone();
             let increment = scale * (next_variable.belief.mean() - &mean_of_current_variable);
 
             (mean_of_current_variable, increment)

@@ -16,6 +16,7 @@ rust-version.workspace = true
 
 [dependencies]
 gbp_linalg = { path = "../gbp_linalg" }
+gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
 # gbp-rs = { path = "../gbp-rs" }
 # gbp-linalg = { path = "../gbp-linalg" }
 # bevy = { version = "0.12.1", default-features = true, features = [
