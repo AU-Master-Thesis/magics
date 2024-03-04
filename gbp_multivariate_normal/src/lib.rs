@@ -24,6 +24,7 @@ pub trait Scalar: ndarray::NdFloat + Copy + std::iter::Sum {}
 impl Scalar for f32 {}
 impl Scalar for f64 {}
 
+#[allow(clippy::len_without_is_empty)]
 #[derive(Debug, Clone)]
 pub struct MultivariateNormal<T: Scalar> {
     information: Vector<T>,
@@ -269,6 +270,7 @@ impl<T: Scalar> std::ops::MulAssign<&MultivariateNormal<T>> for MultivariateNorm
     }
 }
 
+#[allow(clippy::unwrap_used)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -421,6 +423,7 @@ mod tests {
         .unwrap();
         assert_eq!(normal.mean(), precision.dot(&information));
         assert!(!normal.update());
+        #[allow(clippy::undocumented_unsafe_blocks)]
         unsafe {
             normal.set_information_vector(&array![3.0, 2.0, 1.0]);
         }
@@ -428,6 +431,7 @@ mod tests {
         assert_eq!(normal.mean(), precision.dot(&array![3.0, 2.0, 1.0]));
         assert!(!normal.update());
 
+        #[allow(clippy::undocumented_unsafe_blocks)]
         unsafe {
             normal.set_precision_matrix(&array![[2.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 2.0]]);
         }

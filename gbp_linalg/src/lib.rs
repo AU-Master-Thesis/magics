@@ -60,7 +60,7 @@ macro_rules! ndarray_vector_ext_trait_impl {
                     // panic!("Cannot normalize a vector with zero magnitude or infinite magnitude.");
                 }
                 for i in 0..self.len() {
-                    self[i] = self[i] / mag;
+                    self[i] /= mag;
                 }
                 // self.map_mut(|x| *x = *x / mag);
             }

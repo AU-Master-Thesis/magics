@@ -8,7 +8,7 @@ pub struct FpsCounterPlugin;
 
 impl Plugin for FpsCounterPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(FrameTimeDiagnosticsPlugin::default())
+        app.add_plugins(FrameTimeDiagnosticsPlugin)
             .add_systems(Startup, setup_fps_counter_system)
             .add_systems(
                 Update,
@@ -72,7 +72,7 @@ fn setup_fps_counter_system(mut commands: Commands, scene_assets: Res<SceneAsset
                             // if you want to use your game's font asset,
                             // uncomment this and provide the handle:
                             // font: my_font_handle
-                            ..default()
+                            // ..default()
                         },
                     },
                     TextSection {
@@ -84,7 +84,7 @@ fn setup_fps_counter_system(mut commands: Commands, scene_assets: Res<SceneAsset
                             // if you want to use your game's font asset,
                             // uncomment this and provide the handle:
                             // font: my_font_handle
-                            ..default()
+                            // ..default()
                         },
                     },
                 ]),
@@ -95,17 +95,27 @@ fn setup_fps_counter_system(mut commands: Commands, scene_assets: Res<SceneAsset
     commands.entity(root).push_children(&[text_fps]);
 }
 
+#[allow(clippy::cast_possible_truncation)]
 fn fps_to_color(fps: f64) -> Color {
-    match fps {
-        // Above 120 FPS, use green color
-        120.0.. => Color::rgb(0.0, 1.0, 0.0),
-        // Between 60-120 FPS, gradually transition from yellow to green
-        60.0.. => Color::rgb((1.0 - (fps - 60.0) / (120.0 - 60.0)) as f32, 1.0, 0.0),
-        // Between 30-60 FPS, gradually transition from red to yellow
-        30.0.. => Color::rgb(1.0, ((fps - 30.0) / (60.0 - 30.0)) as f32, 0.0),
-        // Below 30 FPS, use red color
-        _ => Color::rgb(1.0, 0.0, 0.0),
+    if 120.0 <= fps {
+        Color::rgb(0.0, 1.0, 0.0)
+    } else if 60.0 <= fps {
+        Color::rgb((1.0 - (fps - 60.0) / (120.0 - 60.0)) as f32, 1.0, 0.0)
+    } else if 30.0 <= fps {
+        Color::rgb(1.0, ((fps - 30.0) / (60.0 - 30.0)) as f32, 0.0)
+    } else {
+        Color::rgb(1.0, 0.0, 0.0)
     }
+    // match fps {
+    //     // Above 120 FPS, use green color
+    //     120.0.. => Color::rgb(0.0, 1.0, 0.0),
+    //     // Between 60-120 FPS, gradually transition from yellow to green
+    //     60.0.. => Color::rgb((1.0 - (fps - 60.0) / (120.0 - 60.0)) as f32, 1.0, 0.0),
+    //     // Between 30-60 FPS, gradually transition from red to yellow
+    //     30.0.. => Color::rgb(1.0, ((fps - 30.0) / (60.0 - 30.0)) as f32, 0.0),
+    //     // Below 30 FPS, use red color
+    //     _ => Color::rgb(1.0, 0.0, 0.0),
+    // }
 }
 
 /// Update the FPS counter text

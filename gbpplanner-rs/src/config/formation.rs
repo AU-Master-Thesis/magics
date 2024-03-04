@@ -10,6 +10,7 @@ pub enum PlacementStrategy {
     Map,
 }
 
+#[allow(dead_code)]
 impl PlacementStrategy {
     /// Returns `true` if the placement strategy is [`Equal`].
     ///
