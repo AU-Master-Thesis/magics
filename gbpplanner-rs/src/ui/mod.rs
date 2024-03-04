@@ -26,7 +26,7 @@ use leafwing_input_manager::{
 };
 use strum::IntoEnumIterator;
 
-use crate::theme::{CatppuccinTheme, CatppuccinThemeExt};
+use crate::theme::{CatppuccinTheme, CatppuccinThemeVisualsExt};
 use crate::{
     input::{CameraAction, GeneralAction, InputAction, MoveableObjectAction, UiAction},
     theme::FromCatppuccinColourExt,
@@ -456,25 +456,25 @@ fn ui_binding_panel(
 
     let left_panel = egui::SidePanel::left("left_panel")
         .default_width(300.0)
-        .resizable(true)
+        .resizable(false)
         .show_animated(ctx, ui_state.left_panel, |ui| {
+            ui.add_space(10.0);
+            ui.heading("Binding Panel");
+            ui.add_space(5.0);
+            ui.separator();
             egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.add_space(10.0);
-                ui.heading("Binding Panel");
-                ui.add_space(5.0);
-                ui.separator();
                 ui.add_space(10.0);
                 egui::Grid::new("cool_grid")
                     .num_columns(3)
                     .min_col_width(100.0)
                     // .striped(true)
                     .spacing((10.0, 10.0))
-                    .with_row_color(move |r, s| {
+                    .with_row_color(move |r, _| {
                         if grid_map_ranges.iter().any(|x| *x == r) {
                             Some(Color32::from_catppuccin_colour(grid_row_color))
                         } else if grid_title_rows.iter().any(|x| *x == r) {
+                            // TODO: Do this better
                             Some(Color32::from_catppuccin_colour_with_alpha(grid_title_colors[grid_title_rows.iter().position(|&e| e == r).expect("In a conditional branch that ensures this")], 0.5))
-                            // Some(Color32::from_catppuccin_colour_with_alpha(gtc_iter.next().expect(""), 0.5))
                         } else {
                             None
                         }
