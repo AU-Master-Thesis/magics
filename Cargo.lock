@@ -2130,6 +2130,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "gbp_linalg",
+ "heck",
  "itertools",
  "leafwing-input-manager",
  "ndarray",

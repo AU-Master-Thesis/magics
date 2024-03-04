@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::{
     config::Config,
     planner::{FactorGraph, NodeKind, RobotId, RobotState},
+    ui::ChangingBinding,
 };
 
 use super::super::theme::ThemeEvent;
@@ -252,7 +253,11 @@ fn general_actions_system(
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
     query_graphs: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
+    currently_changing: Res<ChangingBinding>,
 ) {
+    if currently_changing.is_changing() {
+        return;
+    }
     let Ok(action_state) = query.get_single() else {
         warn!("general_actions_system was called without an action state!");
         return;

@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum_macros::EnumIter;
 
+use crate::ui::ChangingBinding;
+
 use super::{
     super::{
         camera::{self, CameraMovementMode, MainCamera},
@@ -146,7 +148,11 @@ fn camera_actions(
         ),
         With<MainCamera>,
     >,
+    currently_changing: Res<ChangingBinding>,
 ) {
+    if currently_changing.is_changing() {
+        return;
+    }
     if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
         query.get_single_mut()
     {
@@ -282,7 +288,11 @@ fn bind_camera_switch(mut commands: Commands) {
 fn switch_camera(
     query: Query<&ActionState<CameraAction>, With<GeneralInputs>>,
     mut query_cameras: Query<&mut Camera>,
+    currently_changing: Res<ChangingBinding>,
 ) {
+    if currently_changing.is_changing() {
+        return;
+    }
     let action_state = query.single();
 
     // collect all cameras in a vector

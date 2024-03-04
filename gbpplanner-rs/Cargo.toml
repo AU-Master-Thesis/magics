@@ -29,7 +29,7 @@ leafwing-input-manager = "0.13.3"
 # bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
 bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "bevy-v0.13.0" }
 # bevy_mesh_terrain = "0.6.1"
-
+heck = "0.4.1"
 catppuccin = "1.4.0"
 
 toml = "0.8.8"

@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum_macros::EnumIter;
 
+use crate::ui::ChangingBinding;
+
 use super::super::{
     moveable_object::{self, MoveableObject, MoveableObjectMovementState},
     movement::{AngularVelocity, Velocity},
@@ -135,7 +137,11 @@ fn movement_actions(
         ),
         With<MoveableObject>,
     >,
+    currently_changing: Res<ChangingBinding>,
 ) {
+    if currently_changing.is_changing() {
+        return;
+    }
     // let action_state = query.single();
     let Ok((action_state, mut angular_velocity, mut velocity)) = query.get_single_mut() else {
         return;

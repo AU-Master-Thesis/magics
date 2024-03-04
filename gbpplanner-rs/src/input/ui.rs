@@ -1,7 +1,9 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{input::keyboard::KeyboardInput, prelude::*, window::PrimaryWindow};
 use bevy_egui::EguiSettings;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum_macros::EnumIter;
+
+use crate::ui::ChangingBinding;
 
 use super::super::ui::UiState;
 
@@ -74,7 +76,15 @@ fn ui_actions(
     mut toggle_scale_factor: Local<Option<bool>>,
     mut egui_settings: ResMut<EguiSettings>,
     windows: Query<&Window, With<PrimaryWindow>>,
+    currently_changing: Res<ChangingBinding>,
+    keyboard_events: EventReader<KeyboardInput>,
 ) {
+    if keyboard_events.is_empty() {
+        return;
+    }
+    if currently_changing.is_changing() {
+        return;
+    }
     let Ok(action_state) = query.get_single() else {
         return;
     };
