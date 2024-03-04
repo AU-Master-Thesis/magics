@@ -11,6 +11,7 @@
     nixpkgs,
     flake-utils,
     # wgsl_analyzer,
+    ...
   } @ inputs:
     inputs.flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import inputs.nixpkgs {inherit system;};
@@ -25,6 +26,7 @@
         xorg.libXrandr
         libxkbcommon
         wayland
+        egl-wayland
         # wgsl-analyzer-pkgs.wgsl_analyzer
         # wgsl_analyzer.packages.${system}
         # wgsl_analyzer.outputs.packages.${system}.default
@@ -60,14 +62,17 @@
       with pkgs; {
         formatter.${system} = pkgs.alejandra;
         devShells.default = pkgs.mkShell rec {
-          nativeBuildInputs = [
+          nativeBuildInputs = with pkgs; [
             pkgs.pkg-config
+            # cargo
+            # rustc
           ];
           buildInputs =
             [
               just
               d2
               graphviz
+              dot-language-server
               openblas
               openssl
               # lapack

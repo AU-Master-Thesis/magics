@@ -1,6 +1,6 @@
 use bevy::{
     prelude::*,
-    render::{mesh::Indices, render_resource::PrimitiveTopology},
+    render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
@@ -17,7 +17,8 @@ impl Plugin for EnvironmentPlugin {
                 color: Color::default(),
                 brightness: 0.5,
             })
-            .add_state::<HeightMapState>()
+            // .add_state::<HeightMapState>()
+            .init_state::<HeightMapState>()
             .add_plugins(InfiniteGridPlugin)
             .add_systems(Startup, (infinite_grid, lighting));
         // .add_systems(Update, obstacles.run_if(environment_png_is_loaded));
@@ -25,7 +26,7 @@ impl Plugin for EnvironmentPlugin {
 }
 
 /// `Startup` system to spawn the an infinite grid
-/// Using the `InfiniteGridPlugin` from the `bevy_infinite_grid` crate
+/// Using the [`InfiniteGridPlugin`] from the [`bevy_infinite_grid`] crate
 fn infinite_grid(
     mut commands: Commands,
     catppuccin_theme: Res<CatppuccinTheme>,
@@ -33,9 +34,17 @@ fn infinite_grid(
 ) {
     let grid_colour = catppuccin_theme.grid_colour(windows);
 
+    // commands.spawn(InfiniteGridBundle {
+    //     settings: InfiniteGridSettings {
+    //         shadow_color: None,
+    //         ..default()
+    //     },
+    //     ..default()
+    // });
+
     commands.spawn(InfiniteGridBundle {
         settings: InfiniteGridSettings {
-            // shadow_color: None,
+            shadow_color: None,
             major_line_color: grid_colour,
             minor_line_color: grid_colour,
             x_axis_color: {
@@ -168,11 +177,15 @@ fn obstacles(
         }
     }
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     // mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-    mesh.set_indices(Some(Indices::U32(triangles)));
+    // mesh.set_indices(Some(Indices::U32(triangles)));
+    mesh.insert_indices(Indices::U32(triangles));
     mesh.duplicate_vertices();
     mesh.compute_flat_normals();
 

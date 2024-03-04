@@ -13,8 +13,8 @@ use catppuccin::Flavour;
 use color_eyre::owo_colors::OwoColorize;
 use leafwing_input_manager::{
     axislike::{
-        AxisType, DualAxis, MouseMotionAxisType, MouseWheelAxisType, SingleAxis,
-        VirtualAxis, VirtualDPad,
+        AxisType, DualAxis, MouseMotionAxisType, MouseWheelAxisType, SingleAxis, VirtualAxis,
+        VirtualDPad,
     },
     buttonlike::{MouseMotionDirection, MouseWheelDirection},
     input_map::InputMap,
@@ -93,13 +93,11 @@ impl ToDisplayString for VirtualAxis {
 impl ToDisplayString for InputKind {
     fn to_display_string(&self) -> String {
         match self {
-            InputKind::GamepadButton(gamepad_button) => {
-                gamepad_button.to_display_string()
-            }
+            InputKind::GamepadButton(gamepad_button) => gamepad_button.to_display_string(),
             InputKind::SingleAxis(single_axis) => single_axis.to_display_string(),
             InputKind::DualAxis(dual_axis) => dual_axis.to_display_string(),
-            InputKind::Keyboard(key_code) => key_code.to_display_string(),
-            InputKind::KeyLocation(key_location) => key_location.to_display_string(),
+            InputKind::PhysicalKey(key_code) => key_code.to_display_string(),
+            // InputKind::KeyLocation(key_location) => key_location.to_display_string(),
             InputKind::Modifier(modifier) => modifier.to_display_string(),
             InputKind::Mouse(mouse) => mouse.to_display_string(),
             InputKind::MouseWheel(mouse_wheel_direction) => {
@@ -140,6 +138,7 @@ impl ToDisplayString for MouseButton {
             MouseButton::Right => "Right".to_string(),
             MouseButton::Middle => "Middle".to_string(),
             MouseButton::Other(x) => format!("Mouse {}", x).to_string(),
+            _ => unreachable!(),
         }
     }
 }
@@ -150,22 +149,22 @@ impl ToDisplayString for Modifier {
             Modifier::Alt => "Alt".to_string(),
             Modifier::Control => "Control".to_string(),
             Modifier::Shift => "Shift".to_string(),
-            Modifier::Win => "Super".to_string(),
+            Modifier::Super => "Super".to_string(),
         }
     }
 }
 
-impl ToDisplayString for ScanCode {
-    fn to_display_string(&self) -> String {
-        match self {
-            ScanCode(17) => "W".to_string(),
-            ScanCode(30) => "A".to_string(),
-            ScanCode(31) => "S".to_string(),
-            ScanCode(32) => "D".to_string(),
-            _ => format!("{:?}", self),
-        }
-    }
-}
+// impl ToDisplayString for ScanCode {
+//     fn to_display_string(&self) -> String {
+//         match self {
+//             ScanCode(17) => "W".to_string(),
+//             ScanCode(30) => "A".to_string(),
+//             ScanCode(31) => "S".to_string(),
+//             ScanCode(32) => "D".to_string(),
+//             _ => format!("{:?}", self),
+//         }
+//     }
+// }
 
 impl ToDisplayString for KeyCode {
     fn to_display_string(&self) -> String {
@@ -362,15 +361,21 @@ fn ui_binding_panel(
                 .spacing((10.0, 10.0))
                 .show(ui, |ui| {
                     let size = 15.0; // pt
-                    ui.label(RichText::new("Binding").size(size).color(
-                        Color32::from_catppuccin_colour(catppuccin.flavour.green()),
-                    ));
-                    ui.label(RichText::new("1").size(size).color(
-                        Color32::from_catppuccin_colour(catppuccin.flavour.green()),
-                    ));
-                    ui.label(RichText::new("2").size(size).color(
-                        Color32::from_catppuccin_colour(catppuccin.flavour.green()),
-                    ));
+                    ui.label(
+                        RichText::new("Binding")
+                            .size(size)
+                            .color(Color32::from_catppuccin_colour(catppuccin.flavour.green())),
+                    );
+                    ui.label(
+                        RichText::new("1")
+                            .size(size)
+                            .color(Color32::from_catppuccin_colour(catppuccin.flavour.green())),
+                    );
+                    ui.label(
+                        RichText::new("2")
+                            .size(size)
+                            .color(Color32::from_catppuccin_colour(catppuccin.flavour.green())),
+                    );
                     ui.end_row();
 
                     // go through all InputAction variants, and make a title for each
@@ -395,22 +400,19 @@ fn ui_binding_panel(
                                 for inner_action in map.iter() {
                                     ui.label(inner_action.0.to_string());
 
-                                    inner_action.1.iter().enumerate().for_each(
-                                        |(i, x)| {
-                                            let button_response = ui.button(
-                                                RichText::new(x.to_display_string()),
-                                            );
-                                            if button_response.clicked() {
-                                                // button_response.highlight();
-                                                *currently_changing = ChangingBinding {
-                                                    action: InputAction::MoveableObject(
-                                                        *inner_action.0,
-                                                    ),
-                                                    binding: i,
-                                                };
-                                            }
-                                        },
-                                    );
+                                    inner_action.1.iter().enumerate().for_each(|(i, x)| {
+                                        let button_response =
+                                            ui.button(RichText::new(x.to_display_string()));
+                                        if button_response.clicked() {
+                                            // button_response.highlight();
+                                            *currently_changing = ChangingBinding {
+                                                action: InputAction::MoveableObject(
+                                                    *inner_action.0,
+                                                ),
+                                                binding: i,
+                                            };
+                                        }
+                                    });
 
                                     ui.end_row();
                                 }
@@ -420,22 +422,17 @@ fn ui_binding_panel(
                                 for inner_action in map.iter() {
                                     ui.label(inner_action.0.to_string());
 
-                                    inner_action.1.iter().enumerate().for_each(
-                                        |(i, x)| {
-                                            let button_response = ui.button(
-                                                RichText::new(x.to_display_string()),
-                                            );
-                                            if button_response.clicked() {
-                                                // button_response.highlight();
-                                                *currently_changing = ChangingBinding {
-                                                    action: InputAction::General(
-                                                        *inner_action.0,
-                                                    ),
-                                                    binding: i,
-                                                };
-                                            }
-                                        },
-                                    );
+                                    inner_action.1.iter().enumerate().for_each(|(i, x)| {
+                                        let button_response =
+                                            ui.button(RichText::new(x.to_display_string()));
+                                        if button_response.clicked() {
+                                            // button_response.highlight();
+                                            *currently_changing = ChangingBinding {
+                                                action: InputAction::General(*inner_action.0),
+                                                binding: i,
+                                            };
+                                        }
+                                    });
 
                                     ui.end_row();
                                 }
@@ -445,22 +442,17 @@ fn ui_binding_panel(
                                 for inner_action in map.iter() {
                                     ui.label(inner_action.0.to_string());
 
-                                    inner_action.1.iter().enumerate().for_each(
-                                        |(i, x)| {
-                                            let button_response = ui.button(
-                                                RichText::new(x.to_display_string()),
-                                            );
-                                            if button_response.clicked() {
-                                                // button_response.highlight();
-                                                *currently_changing = ChangingBinding {
-                                                    action: InputAction::Camera(
-                                                        *inner_action.0,
-                                                    ),
-                                                    binding: i,
-                                                };
-                                            }
-                                        },
-                                    );
+                                    inner_action.1.iter().enumerate().for_each(|(i, x)| {
+                                        let button_response =
+                                            ui.button(RichText::new(x.to_display_string()));
+                                        if button_response.clicked() {
+                                            // button_response.highlight();
+                                            *currently_changing = ChangingBinding {
+                                                action: InputAction::Camera(*inner_action.0),
+                                                binding: i,
+                                            };
+                                        }
+                                    });
 
                                     ui.end_row();
                                 }
@@ -470,24 +462,19 @@ fn ui_binding_panel(
                                 for inner_action in map.iter() {
                                     ui.label(inner_action.0.to_string());
 
-                                    inner_action.1.iter().enumerate().for_each(
-                                        |(i, x)| {
-                                            let button_response = ui.button(
-                                                RichText::new(x.to_display_string()),
-                                            );
-                                            if button_response.clicked() {
-                                                // button_response.highlight();
-                                                // remove the button's text
-                                                // button_response.text = "".to_string();
-                                                *currently_changing = ChangingBinding {
-                                                    action: InputAction::Ui(
-                                                        *inner_action.0,
-                                                    ),
-                                                    binding: i,
-                                                };
-                                            }
-                                        },
-                                    );
+                                    inner_action.1.iter().enumerate().for_each(|(i, x)| {
+                                        let button_response =
+                                            ui.button(RichText::new(x.to_display_string()));
+                                        if button_response.clicked() {
+                                            // button_response.highlight();
+                                            // remove the button's text
+                                            // button_response.text = "".to_string();
+                                            *currently_changing = ChangingBinding {
+                                                action: InputAction::Ui(*inner_action.0),
+                                                binding: i,
+                                            };
+                                        }
+                                    });
 
                                     ui.end_row();
                                 }
@@ -503,37 +490,45 @@ fn ui_binding_panel(
     // check for any input at all (keyboard, mouse, gamepad, etc.)
     // if there is, then rebind the map
     for event in keyboard_events.read() {
-        if let Some(key_code) = event.key_code {
-            match currently_changing.action {
-                InputAction::Camera(action) => {
-                    let mut map = query_camera_action.single_mut();
-                    map.remove_at(action, currently_changing.binding);
-                    map.insert(UserInput::Single(InputKind::Keyboard(key_code)), action);
-                }
-                InputAction::General(action) => {
-                    let mut map = query_general_action.single_mut();
-                    map.remove_at(action, currently_changing.binding);
-                    map.insert(UserInput::Single(InputKind::Keyboard(key_code)), action);
-                }
-                InputAction::MoveableObject(action) => {
-                    let mut map = query_moveable_object_action.single_mut();
-                    map.remove_at(action, currently_changing.binding);
-                    map.insert(UserInput::Single(InputKind::Keyboard(key_code)), action);
-                }
-                InputAction::Ui(action) => {
-                    let mut map = query_ui_action.single_mut();
-                    map.remove_at(action, currently_changing.binding);
-                    map.insert(UserInput::Single(InputKind::Keyboard(key_code)), action);
-                }
-                _ => { /* do nothing */ }
+        let key_code = event.key_code;
+        match currently_changing.action {
+            InputAction::Camera(action) => {
+                let mut map = query_camera_action.single_mut();
+                map.remove_at(&action, currently_changing.binding);
+                map.insert(action, UserInput::Single(InputKind::PhysicalKey(key_code)));
             }
-            *currently_changing = ChangingBinding::default();
+            InputAction::General(action) => {
+                let mut map = query_general_action.single_mut();
+                map.remove_at(&action, currently_changing.binding);
+                map.insert(action, UserInput::Single(InputKind::PhysicalKey(key_code)));
+            }
+            InputAction::MoveableObject(action) => {
+                let mut map = query_moveable_object_action.single_mut();
+                map.remove_at(&action, currently_changing.binding);
+                map.insert(action, UserInput::Single(InputKind::PhysicalKey(key_code)));
+            }
+            InputAction::Ui(action) => {
+                let mut map = query_ui_action.single_mut();
+                map.remove_at(&action, currently_changing.binding);
+                map.insert(action, UserInput::Single(InputKind::PhysicalKey(key_code)));
+            }
+            _ => { /* do nothing */ }
         }
+        *currently_changing = ChangingBinding::default();
     }
 
-    occupied_screen_space.left = if left_panel.is_some() {
-        left_panel.unwrap().response.rect.width()
-    } else {
-        0.0
-    };
+    occupied_screen_space.left = left_panel
+        .map(|ref inner| inner.response.rect.width())
+        .unwrap_or(0.0);
+
+    // occupied_screen_space.left = if left_panel.is_some() {
+    //     left_panel.unwrap().response.rect.width()
+    // } else {
+    //     0.0
+    // };
+    // occupied_screen_space.left = if left_panel.is_some() {
+    //     left_panel.unwrap().response.rect.width()
+    // } else {
+    //     0.0
+    // };
 }

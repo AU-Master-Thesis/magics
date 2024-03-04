@@ -1,14 +1,14 @@
 use std::collections::{BTreeSet, VecDeque};
-use std::sync::{Arc, OnceLock};
+// use std::sync::{Arc, OnceLock};
 
 use crate::config::Config;
 use crate::utils::get_variable_timesteps;
 
-use super::factor::Factor;
+use super::factor::{Factor, InterRobotConnection};
 use super::factorgraph::{FactorGraph, MessagePassingMode};
 use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
-use super::{Matrix, NdarrayVectorExt, Timestep, Vector, VectorNorm};
+use super::{Matrix, NdarrayVectorExt, NodeIndex, Timestep, Vector, VectorNorm};
 use bevy::prelude::*;
 use ndarray::{array, concatenate, Axis};
 use std::collections::HashMap;
@@ -21,23 +21,43 @@ pub type RobotId = Entity;
 /// from **gbpplanner** `Globals.h`
 const SIGMA_POSE_FIXED: f64 = 1e-15;
 
+#[derive(Resource)]
+struct VariableTimestepsResource {
+    timesteps: Vec<u32>,
+}
+
+impl FromWorld for VariableTimestepsResource {
+    fn from_world(world: &mut World) -> Self {
+        let config = world.resource::<Config>();
+        let lookahead_horizon = config.robot.planning_horizon / config.simulation.t0;
+
+        Self {
+            timesteps: get_variable_timesteps(
+                lookahead_horizon as u32,
+                config.gbp.lookahead_multiple as u32,
+            ),
+        }
+    }
+}
+
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (
-                update_robot_neighbours_system,
-                delete_interrobot_factors_system,
-                create_interrobot_factors_system,
-                update_failed_comms_system,
-                // iterate_gbp_system,
-                // iterate_gbp_internal_system,
-                // iterate_gbp_external_system,
-                // update_prior_of_horizon_state_system,
-                // update_prior_of_current_state_system,
-            )
-                .chain(),
-        );
+        app.init_resource::<VariableTimestepsResource>()
+            .add_systems(
+                Update,
+                (
+                    update_robot_neighbours_system,
+                    delete_interrobot_factors_system,
+                    create_interrobot_factors_system,
+                    update_failed_comms_system,
+                    // iterate_gbp_system,
+                    // iterate_gbp_internal_system,
+                    // iterate_gbp_external_system,
+                    // update_prior_of_horizon_state_system,
+                    // update_prior_of_current_state_system,
+                )
+                    .chain(),
+            );
     }
 }
 
@@ -186,12 +206,12 @@ impl RobotBundle {
         // Create Dynamics factors between variables
         for i in 0..variable_timesteps.len() - 1 {
             // T0 is the timestep between the current state and the first planned state.
-            let delta_t = config.simulation.t0
-                * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
+            let delta_t =
+                config.simulation.t0 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
             let measurement = Vector::<f32>::zeros(config.robot.dofs);
             let dynamic_factor = Factor::new_dynamic_factor(
                 config.gbp.sigma_factor_dynamics,
-                &measurement,
+                measurement,
                 config.robot.dofs,
                 delta_t,
             );
@@ -259,9 +279,7 @@ fn update_robot_neighbours_system(
 }
 
 // FIXME: more that one interrobot is created in `create_interrobot_factors`
-fn delete_interrobot_factors_system(
-    mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
-) {
+fn delete_interrobot_factors_system(mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>) {
     // the set of robots connected with will (possibly) be mutated
     // the robots factorgraph will (possibly) be mutated
     // the other robot with an interrobot factor connected will be mutated
@@ -304,7 +322,10 @@ fn delete_interrobot_factors_system(
             }
 
             if let Err(err) = graph.as_mut().delete_interrobot_factor_connected_to(b) {
-                error!("Could not delete interrobot factor between {:?} -> {:?}, with error msg: {}", a, b, err);
+                error!(
+                    "Could not delete interrobot factor between {:?} -> {:?}, with error msg: {}",
+                    a, b, err
+                );
             }
         }
     }
@@ -313,42 +334,61 @@ fn delete_interrobot_factors_system(
 fn create_interrobot_factors_system(
     mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
     config: Res<Config>,
+    variable_timesteps: Res<VariableTimestepsResource>,
 ) {
     // a mapping between a robot and the other robots it should create a interrobot factor to
     // e.g:
     // {a -> [b, c, d], b -> [a, c], c -> [a, b], d -> [c]}
-    let mut hashmap: HashMap<Entity, Vec<Entity>> = HashMap::new();
-    // Create Interrobot factors for all timesteps excluding current state
-    for (entity, _, robotstate) in query.iter() {
-        let new_connections = robotstate
-            .ids_of_robots_within_comms_range
-            .difference(&robotstate.ids_of_robots_connected_with);
+    let new_connections_to_establish: HashMap<RobotId, Vec<RobotId>> = query
+        .iter()
+        .map(|(entity, _, robotstate)| {
+            let new_connections = robotstate
+                .ids_of_robots_within_comms_range
+                .difference(&robotstate.ids_of_robots_connected_with)
+                .cloned()
+                .collect::<Vec<_>>();
 
-        hashmap.insert(entity, new_connections.cloned().collect::<Vec<_>>());
-    }
+            (entity, new_connections)
+        })
+        .collect();
 
-    let lookahead_horizon = config.robot.planning_horizon / config.simulation.t0;
-    let variable_timesteps = get_variable_timesteps(
-        lookahead_horizon as u32,
-        config.gbp.lookahead_multiple as u32,
-    );
-    let n_variables = variable_timesteps.len();
+    let n_variables = variable_timesteps.timesteps.len();
 
-    // let mut edges_to_other_robots: HashMap<>
-    for (entity, mut factorgraph, mut robotstate) in query.iter_mut() {
-        for other_robot_id in hashmap.get(&entity).expect("the key is in the map") {
+    let variable_indices_of_each_factorgraph: HashMap<RobotId, Vec<NodeIndex>> = query
+        .iter()
+        .map(|(robot_id, factorgraph, _)| {
+            let varible_indices = factorgraph
+                .variable_indices_ordered_by_creation(1..n_variables)
+                .expect("the factorgraph has up to `n_variables` variables");
+            (robot_id, varible_indices)
+        })
+        .collect();
+
+    for (robot_id, mut factorgraph, mut robotstate) in query.iter_mut() {
+        for other_robot_id in new_connections_to_establish
+            .get(&robot_id)
+            .expect("the key is in the map")
+        {
+            let other_varible_indices = variable_indices_of_each_factorgraph
+                .get(other_robot_id)
+                .expect("the key is in the map");
             for i in 1..n_variables {
                 // TODO: do not hardcode
                 let dofs = 4;
                 let z = Vector::<f32>::zeros(dofs);
                 let eps = 0.2 * config.robot.radius;
                 let safety_radius = 2.0 * config.robot.radius + eps;
+                let connection = InterRobotConnection {
+                    id_of_robot_connected_with: *other_robot_id,
+                    index_of_connected_variable_in_other_robots_factorgraph: other_varible_indices
+                        [i - 1],
+                };
                 let interrobot_factor = Factor::new_interrobot_factor(
                     config.gbp.sigma_factor_interrobot,
                     z,
                     dofs,
                     safety_radius,
-                    *other_robot_id,
+                    connection,
                 );
                 let factor_index = factorgraph.add_factor(interrobot_factor);
                 let variable_index = factorgraph
@@ -356,74 +396,13 @@ fn create_interrobot_factors_system(
                     .expect("there should be an i'th variable");
                 factorgraph.add_edge(factor_index, variable_index);
             }
+
             robotstate
                 .ids_of_robots_connected_with
                 .insert(*other_robot_id);
         }
     }
 }
-
-/// Called `Robot::updateInterrobotFactors` in **gbpplanner**
-/// For new neighbours of a robot, create inter-robot factors if they don't exist.
-/// Delete existing inter-robot factors for faraway robots
-// fn update_interrobot_factors(
-//     mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
-//     // mut secondary_query: Query<(Entity, &mut FactorGraph, &RobotState)>,
-// ) {
-//     // 1. For every robot
-//     //    1.1 Find the ids of all the robots that it is connected to but, are outside its
-//     //        communication range.
-//     //        1.1.1 Delete the robots interrobot factor associated with the other robot
-//     //        1.1.2 Delete the interrobot factor of the other robot associated with this
-//     //        1.1.3 Delete the id from the robots list of connections
-//     //        1.1.4 Delete the current robots id from the other robots list of connections
-//     let mut updates_to_apply: HashMap<Entity, Vec<Entity>> =
-//         HashMap::with_capacity(query.iter().len());
-//     for (entity_id, factorgraph, state) in query.iter() {
-//         // 1.1
-//         let ids_of_robots_connected_with_outside_comms_range: BTreeSet<_> = state
-//             .ids_of_robots_connected_with
-//             .difference(&state.ids_of_robots_within_comms_range)
-//             .cloned()
-//             .collect();
-
-// for id in ids_of_robots_connected_with_outside_comms_range.iter() {
-//     if let Some((_, graph, _)) = secondary_query
-//         .iter_mut()
-//         .find(|(other_id, _, _)| other_id == id)
-//     {}
-
-//     // flag/store entity_id
-// }
-// state.ids_of_robots_connected_with.iter().zip(state.ids_of_robots_within_comms_range.iter()).
-// }
-
-// // Delete interrobot factors between connected neighbours not within range.
-// self.ids_of_robots_connected_with
-//     .difference(&self.ids_of_robots_within_comms_range)
-//     .for_each(|&robot_id| {
-//         if let Some(robot_ptr) = world.robot_with_id(robot_id) {
-//             self.delete_interrobot_factors(robot_ptr);
-//         }
-//         // if let Some(robot_ptr) = world.robots.iter().find(|&it| it.id == robot_id) {
-//         //     self.delete_interrobot_factors(Rc::clone(robot_ptr));
-//         // }
-//     });
-
-// // Create interrobot factors between any robot within communication range, not already
-// // connected with.
-// self.ids_of_robots_within_comms_range
-//     .difference(&self.ids_of_robots_connected_with)
-//     .for_each(|&robot_id| {
-//         if let Some(mut robot_ptr) = world.robot_with_id_mut(robot_id) {
-//             self.create_interrobot_factors(robot_ptr);
-//             // if (!sim_->symmetric_factors) sim_->robots_.at(rid)->connected_r_ids_.push_back(rid_);
-//             if !self.settings.symmetric_factors {
-//                 robot_ptr.ids_of_robots_connected_with.insert(self.id);
-//             }
-//         }
-//     });
-// }
 
 /// Called `Simulator::setCommsFailure` in **gbpplanner**
 fn update_failed_comms_system(mut query: Query<&mut RobotState>, config: Res<Config>) {
@@ -490,8 +469,7 @@ fn update_prior_of_horizon_state_system(
 ) {
     let delta_t = time.delta_seconds();
     for (entity, mut factorgraph, mut waypoints) in query.iter_mut() {
-        let Some(current_waypoint) = waypoints.0.front().map(|wp| array![wp.x, wp.y])
-        else {
+        let Some(current_waypoint) = waypoints.0.front().map(|wp| array![wp.x, wp.y]) else {
             warn!("robot {:?}, has reached its final waypoint", entity);
             continue;
         };
@@ -501,11 +479,9 @@ fn update_prior_of_horizon_state_system(
             .expect("factorgraph has a horizon variable");
         let mean_of_horizon_variable = horizon_variable.belief.mean();
         let direction_from_horizon_to_goal = current_waypoint - &mean_of_horizon_variable;
-        let distance_from_horizon_to_goal =
-            direction_from_horizon_to_goal.euclidean_norm();
-        let new_velocity =
-            f32::min(config.robot.max_speed, distance_from_horizon_to_goal)
-                * direction_from_horizon_to_goal.normalized();
+        let distance_from_horizon_to_goal = direction_from_horizon_to_goal.euclidean_norm();
+        let new_velocity = f32::min(config.robot.max_speed, distance_from_horizon_to_goal)
+            * direction_from_horizon_to_goal.normalized();
         let new_position = mean_of_horizon_variable + &new_velocity * delta_t;
 
         // Update horizon state with new pos and vel
@@ -521,8 +497,7 @@ fn update_prior_of_horizon_state_system(
         let _ = horizon_variable.change_prior(new_mean, vec![]);
 
         // NOTE: this is weird, we think
-        let horizon_has_reached_waypoint =
-            distance_from_horizon_to_goal < config.robot.radius;
+        let horizon_has_reached_waypoint = distance_from_horizon_to_goal < config.robot.radius;
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
             waypoints.0.pop_front();
         }
@@ -546,8 +521,7 @@ fn update_prior_of_current_state_system(
                 .expect("factorgraph should have a next variable");
 
             let mean_of_current_variable = current_variable.belief.mean();
-            let increment =
-                scale * (next_variable.belief.mean() - &mean_of_current_variable);
+            let increment = scale * (next_variable.belief.mean() - &mean_of_current_variable);
 
             (mean_of_current_variable, increment)
         };
