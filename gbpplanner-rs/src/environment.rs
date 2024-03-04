@@ -15,7 +15,7 @@ impl Plugin for EnvironmentPlugin {
         app.insert_resource(ClearColor(Color::rgb_u8(r, g, b)))
             .insert_resource(AmbientLight {
                 color: Color::default(),
-                brightness: 0.5,
+                brightness: 1000.0,
             })
             // .add_state::<HeightMapState>()
             .init_state::<HeightMapState>()
@@ -64,7 +64,7 @@ fn infinite_grid(
 /// `Startup` system to spawn the directional light.
 fn lighting(mut commands: Commands) {
     commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_translation(Vec3::X * 15.0 + Vec3::Z * 20.0)
+        transform: Transform::from_translation(Vec3::X * 5.0 + Vec3::Z * 8.0)
             .looking_at(Vec3::ZERO, Vec3::Z),
         ..default()
     });
