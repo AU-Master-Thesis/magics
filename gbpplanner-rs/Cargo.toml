@@ -15,6 +15,7 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+gbp_linalg = { path = "../gbp_linalg" }
 # gbp-rs = { path = "../gbp-rs" }
 # gbp-linalg = { path = "../gbp-linalg" }
 # bevy = { version = "0.12.1", default-features = true, features = [

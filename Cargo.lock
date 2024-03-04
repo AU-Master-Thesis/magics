@@ -237,6 +237,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arbitrary"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d5a26814d8dcb93b0e5a0ff3c6d80a8843bafb21b39e8e18a6f05471870e110"
+
+[[package]]
 name = "arboard"
 version = "3.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -253,6 +259,15 @@ dependencies = [
  "thiserror",
  "windows-sys 0.48.0",
  "x11rb",
+]
+
+[[package]]
+name = "arbtest"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23909d5fb517fac2a8a4c887e847dbe41dd22ec46914586f5727980d0a193fdc"
+dependencies = [
+ "arbitrary",
 ]
 
 [[package]]
@@ -2082,8 +2097,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "gbp_linalg"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "arbtest",
+ "ndarray",
+ "paste",
+ "pretty_assertions",
+]
+
+[[package]]
 name = "gbp_multivariate_normal"
 version = "0.1.0"
+dependencies = [
+ "gbp_linalg",
+ "ndarray",
+ "ndarray-inverse",
+ "pretty_assertions",
+ "thiserror",
+]
 
 [[package]]
 name = "gbpplanner-rs"
@@ -2096,6 +2129,7 @@ dependencies = [
  "catppuccin",
  "clap",
  "color-eyre",
+ "gbp_linalg",
  "itertools",
  "leafwing-input-manager",
  "ndarray",

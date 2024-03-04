@@ -5,3 +5,5 @@
 # pixi environments
 .pixi
 
+*.png
+*.dot

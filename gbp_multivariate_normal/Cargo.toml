@@ -15,5 +15,9 @@ ndarray-inverse = "0.1.9"
 ndarray.workspace = true
 thiserror.workspace = true
 
+[dev-dependencies]
+pretty_assertions = "1.4.0"
+
+
 [lints]
 workspace = true
