@@ -391,7 +391,7 @@ fn ui_binding_panel(
                         ui.end_row();
                         match action {
                             InputAction::MoveableObject(_) => {
-                                let mut map = query_moveable_object_action.single_mut();
+                                let map = query_moveable_object_action.single();
                                 for inner_action in map.iter() {
                                     ui.label(inner_action.0.to_string());
 
@@ -416,7 +416,7 @@ fn ui_binding_panel(
                                 }
                             }
                             InputAction::General(_) => {
-                                let mut map = query_general_action.single_mut();
+                                let map = query_general_action.single();
                                 for inner_action in map.iter() {
                                     ui.label(inner_action.0.to_string());
 
@@ -441,8 +441,7 @@ fn ui_binding_panel(
                                 }
                             }
                             InputAction::Camera(_) => {
-                                let mut map =
-                                    query_camera_action.iter_mut().next().unwrap();
+                                let map = query_camera_action.iter().next().unwrap();
                                 for inner_action in map.iter() {
                                     ui.label(inner_action.0.to_string());
 
@@ -467,8 +466,8 @@ fn ui_binding_panel(
                                 }
                             }
                             InputAction::Ui(_) => {
-                                let mut map = query_ui_action.single_mut();
-                                for mut inner_action in map.iter() {
+                                let map = query_ui_action.single();
+                                for inner_action in map.iter() {
                                     ui.label(inner_action.0.to_string());
 
                                     inner_action.1.iter().enumerate().for_each(
@@ -528,6 +527,7 @@ fn ui_binding_panel(
                 }
                 _ => { /* do nothing */ }
             }
+            *currently_changing = ChangingBinding::default();
         }
     }
 
