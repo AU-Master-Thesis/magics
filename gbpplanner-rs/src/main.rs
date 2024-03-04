@@ -20,7 +20,7 @@ use crate::asset_loader::AssetLoaderPlugin;
 use crate::camera::CameraPlugin;
 use crate::config::Config;
 use crate::config::FormationGroup;
-use crate::diagnostics::DiagnosticsPlugin;
+use crate::diagnostics::FpsCounterPlugin;
 use crate::environment::EnvironmentPlugin;
 use crate::factorgraph::FactorGraphPlugin;
 use crate::follow_cameras::FollowCamerasPlugin;
@@ -35,6 +35,7 @@ use crate::ui::EguiInterfacePlugin;
 use bevy::core::FrameCount;
 use bevy::prelude::*;
 
+use bevy::window::WindowResolution;
 use bevy::window::WindowTheme;
 use clap::Parser;
 
@@ -51,6 +52,9 @@ struct Cli {
     dump_default_config: bool,
     #[arg(long)]
     dump_default_formation: bool,
+    #[arg(long)]
+    /// Run the app without a window for rendering the environment
+    headless: bool,
 }
 
 fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
@@ -144,7 +148,7 @@ fn main() -> color_eyre::eyre::Result<()> {
                     ..Default::default()
                 },
             ),
-            DiagnosticsPlugin,    // **Bevy**
+            FpsCounterPlugin,     // **Bevy**
             ThemePlugin,          // Custom
             AssetLoaderPlugin,    // Custom
             EnvironmentPlugin,    // Custom
@@ -154,10 +158,10 @@ fn main() -> color_eyre::eyre::Result<()> {
             CameraPlugin,         // Custom
             FollowCamerasPlugin,  // Custom
             RobotSpawnerPlugin,   // Custom
-            FactorGraphPlugin,    // Custom
-            EguiInterfacePlugin,  // Custom
-            PlannerPlugin,        // Custom
-                                  // WorldInspectorPlugin::new()
+            // FactorGraphPlugin,    // Custom
+            EguiInterfacePlugin, // Custom
+            PlannerPlugin,       // Custom
+                                 // WorldInspectorPlugin::new()
         ))
         .add_systems(Update, make_visible)
         .run();

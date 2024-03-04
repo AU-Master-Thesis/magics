@@ -3,6 +3,7 @@ use bevy::{
     prelude::*,
     render::{
         mesh::{MeshVertexBufferLayout, PrimitiveTopology},
+        render_asset::RenderAssetUsages,
         render_resource::{
             AsBindGroup, PolygonMode, RenderPipelineDescriptor, ShaderRef,
             SpecializedMeshPipelineError,
@@ -87,6 +88,7 @@ impl From<Path> for Mesh {
 
         Mesh::new(
             PrimitiveTopology::TriangleStrip,
+            RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD
         )
         // Add the vertices positions as an attribute
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices)
@@ -150,11 +152,11 @@ fn insert_dummy_factor_graph(
     let alpha = 0.75;
     let variable_material = materials.add({
         let (r, g, b) = catppuccin_theme.flavour.blue().into();
-        Color::rgba_u8(r, g, b, (alpha * 255.0) as u8).into()
+        Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
     });
     let factor_material = materials.add({
         let (r, g, b) = catppuccin_theme.flavour.green().into();
-        Color::rgba_u8(r, g, b, (alpha * 255.0) as u8).into()
+        Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
     });
 
     let variable_positions: Vec<Vec3> = variables
@@ -177,19 +179,26 @@ fn insert_dummy_factor_graph(
     // all positions sorted by z value
     let mut all_positions = variable_positions.clone();
     all_positions.extend(factor_positions.clone());
-    all_positions.sort_by(|a, b| a.z.partial_cmp(&b.z).unwrap());
+    all_positions.sort_by(|a, b| a.z.partial_cmp(&b.z).expect("none of the operands are NAN"));
     info!("all_positions: {:?}", all_positions);
 
     let variable_mesh = meshes.add(
-        shape::Icosphere {
-            radius: 0.3,
-            subdivisions: 4,
-        }
-        .try_into()
-        .unwrap(),
+        bevy::math::primitives::Sphere::new(0.3)
+            .mesh()
+            .ico(4)
+            .expect("4 subdivisions is less than the maximum allowed of 80"),
     );
+    // let variable_mesh = meshes.add(
+    //     shape::Icosphere {
+    //         radius: 0.3,
+    //         subdivisions: 4,
+    //     }
+    //     .try_into()
+    //     .unwrap(),
+    // );
 
-    let factor_mesh = meshes.add(Mesh::from(shape::Cube { size: 0.25 }));
+    let factor_mesh = meshes.add(bevy::math::primitives::Cuboid::new(0.25, 0.25, 0.25));
+    // let factor_mesh = meshes.add(Mesh::from(shape::Cube { size: 0.25 }));
 
     for (i, variable) in factor_graph.variables.iter().enumerate() {
         println!("Spawning variable: {:?}", variable);
@@ -237,19 +246,19 @@ fn draw_lines(
     }
 
     // collect all factor and variable positions
-    let factor_positions: Vec<Vec3> =
-        query_factors.iter().map(|(_, t)| t.translation).collect();
+    let factor_positions: Vec<Vec3> = query_factors.iter().map(|(_, t)| t.translation).collect();
     let variable_positions: Vec<Vec3> =
         query_variables.iter().map(|(_, t)| t.translation).collect();
 
     // all positions sorted by z value
     let mut all_positions = variable_positions.clone();
     all_positions.extend(factor_positions.clone());
-    all_positions.sort_by(|a, b| a.z.partial_cmp(&b.z).unwrap());
+
+    all_positions.sort_by(|a, b| a.z.partial_cmp(&b.z).expect("none of the operands are NAN"));
 
     let line_material = materials.add({
         let (r, g, b) = catppuccin_theme.flavour.text().into();
-        Color::rgb_u8(r, g, b).into()
+        Color::rgb_u8(r, g, b)
     });
 
     commands.spawn((

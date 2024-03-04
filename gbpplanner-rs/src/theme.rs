@@ -103,10 +103,7 @@ impl CatppuccinThemeExt for Visuals {
             },
             // window_fill: Color32::from_gray(27),
             window_fill: Color32::from_catppuccin_colour(flavour.base()),
-            window_stroke: Stroke::new(
-                1.0,
-                Color32::from_catppuccin_colour(flavour.crust()),
-            ),
+            window_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.crust())),
 
             menu_rounding: Rounding::same(6.0),
 
@@ -119,10 +116,7 @@ impl CatppuccinThemeExt for Visuals {
                 Shadow::small_light()
             },
             resize_corner_size: 12.0,
-            text_cursor: Stroke::new(
-                2.0,
-                Color32::from_catppuccin_colour(flavour.lavender()),
-            ),
+            text_cursor: Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
             text_cursor_preview: false,
             clip_rect_margin: 3.0, // should be at least half the size of the widest frame stroke + max WidgetVisuals::expansion
             button_frame: true,
@@ -137,6 +131,7 @@ impl CatppuccinThemeExt for Visuals {
             interact_cursor: None,
 
             image_loading_spinners: true,
+            ..Default::default()
         }
     }
 }
@@ -166,7 +161,7 @@ impl Plugin for ThemePlugin {
                 (
                     toggle_theme,
                     handle_clear_color,
-                    handle_infinite_grid,
+                    // handle_infinite_grid,
                     handle_variables,
                     handle_factors,
                     handle_lines,
@@ -237,24 +232,24 @@ fn handle_clear_color(
     }
 }
 
-fn handle_infinite_grid(
-    catppuccin_theme: Res<CatppuccinTheme>,
-    windows: Query<&Window>,
-    mut theme_toggled_event: EventReader<ThemeToggledEvent>,
-    mut query_infinite_grid: Query<&mut InfiniteGridSettings>,
-) {
-    let grid_colour = catppuccin_theme.grid_colour(windows);
-    for _ in theme_toggled_event.read() {
-        if let Ok(mut settings) = query_infinite_grid.get_single_mut() {
-            settings.major_line_color = grid_colour.with_a(0.5);
-            settings.minor_line_color = grid_colour.with_a(0.25);
-            let (r, g, b) = catppuccin_theme.flavour.maroon().into();
-            settings.x_axis_color = Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8);
-            let (r, g, b) = catppuccin_theme.flavour.blue().into();
-            settings.z_axis_color = Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8);
-        }
-    }
-}
+// fn handle_infinite_grid(
+//     catppuccin_theme: Res<CatppuccinTheme>,
+//     windows: Query<&Window>,
+//     mut theme_toggled_event: EventReader<ThemeToggledEvent>,
+//     mut query_infinite_grid: Query<&mut InfiniteGridSettings>,
+// ) {
+//     let grid_colour = catppuccin_theme.grid_colour(windows);
+//     for _ in theme_toggled_event.read() {
+//         if let Ok(mut settings) = query_infinite_grid.get_single_mut() {
+//             settings.major_line_color = grid_colour.with_a(0.5);
+//             settings.minor_line_color = grid_colour.with_a(0.25);
+//             let (r, g, b) = catppuccin_theme.flavour.maroon().into();
+//             settings.x_axis_color = Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8);
+//             let (r, g, b) = catppuccin_theme.flavour.blue().into();
+//             settings.z_axis_color = Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8);
+//         }
+//     }
+// }
 
 fn handle_variables(
     catppuccin_theme: Res<CatppuccinTheme>,

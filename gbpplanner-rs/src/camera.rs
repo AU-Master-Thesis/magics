@@ -1,5 +1,6 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/camera.rs
 use bevy::prelude::*;
+use bevy_infinite_grid::GridShadowCamera;
 
 use crate::movement::{LinearMovementBundle, Local, OrbitMovementBundle};
 
@@ -24,7 +25,8 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<CameraMovementMode>()
+        app.init_state::<CameraMovementMode>()
+        // app.add_state::<CameraMovementMode>()
             .add_systems(Startup, spawn_camera);
     }
 }
@@ -40,7 +42,7 @@ fn spawn_camera(mut commands: Commands) {
         LinearMovementBundle::default(),
         OrbitMovementBundle::default(),
         Local,
-        MainCamera,
-        // GridShadowCamera,
+        // MainCamera,
+        GridShadowCamera,
     ));
 }

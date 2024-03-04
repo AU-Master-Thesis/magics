@@ -47,8 +47,7 @@ pub fn marginalise_factor_distance(
     // eprintln!("information_vector.len() = {:?}", information_vector.len());
     // eprintln!("precision_matrix.shape() = {:?}", precision_matrix.shape());
 
-    let eta_a =
-        information_vector.slice(s![seq_n(marginalisation_idx, dofs_of_variable)]);
+    let eta_a = information_vector.slice(s![seq_n(marginalisation_idx, dofs_of_variable)]);
     // eprintln!("eta_a = {:?}", eta_a);
     assert_eq!(eta_a.len(), ndofs);
     let eta_b = concatenate![
