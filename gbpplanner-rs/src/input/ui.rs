@@ -27,9 +27,7 @@ impl UiAction {
 
     fn default_keyboard_input(action: UiAction) -> Option<UserInput> {
         match action {
-            Self::ToggleLeftPanel => {
-                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyH)))
-            }
+            Self::ToggleLeftPanel => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyH))),
             Self::ToggleScaleFactor => {
                 Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyU)))
             }
@@ -69,9 +67,7 @@ fn ui_actions(
         left_panel.left_panel = !left_panel.left_panel;
     }
 
-    if action_state.just_pressed(&UiAction::ToggleScaleFactor)
-        || toggle_scale_factor.is_none()
-    {
+    if action_state.just_pressed(&UiAction::ToggleScaleFactor) || toggle_scale_factor.is_none() {
         *toggle_scale_factor = Some(!toggle_scale_factor.unwrap_or(true));
 
         if let Ok(window) = windows.get_single() {

@@ -39,18 +39,14 @@ impl MoveableObjectAction {
     fn default_keyboard_input(action: MoveableObjectAction) -> Option<UserInput> {
         match action {
             Self::Move => Some(UserInput::VirtualDPad(VirtualDPad::wasd())),
-            Self::RotateClockwise => {
-                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyE)))
-            }
+            Self::RotateClockwise => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyE))),
             Self::RotateCounterClockwise => {
                 Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyQ)))
             }
             Self::Boost => Some(UserInput::Single(InputKind::PhysicalKey(
                 KeyCode::ShiftLeft,
             ))),
-            Self::Toggle => {
-                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyF)))
-            }
+            Self::Toggle => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyF))),
         }
     }
 
@@ -62,9 +58,9 @@ impl MoveableObjectAction {
             Self::RotateClockwise => Some(UserInput::Single(InputKind::GamepadButton(
                 GamepadButtonType::RightTrigger,
             ))),
-            Self::RotateCounterClockwise => Some(UserInput::Single(
-                InputKind::GamepadButton(GamepadButtonType::LeftTrigger),
-            )),
+            Self::RotateCounterClockwise => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::LeftTrigger,
+            ))),
             Self::Boost => Some(UserInput::Single(InputKind::GamepadButton(
                 GamepadButtonType::LeftTrigger2,
             ))),
@@ -74,10 +70,7 @@ impl MoveableObjectAction {
         }
     }
 }
-fn bind_moveable_object_input(
-    mut commands: Commands,
-    query: Query<Entity, With<MoveableObject>>,
-) {
+fn bind_moveable_object_input(mut commands: Commands, query: Query<Entity, With<MoveableObject>>) {
     // Create an `InputMap` to add default inputs to
     let mut input_map = InputMap::default();
 
@@ -125,8 +118,7 @@ fn movement_actions(
     >,
 ) {
     // let action_state = query.single();
-    let Ok((action_state, mut angular_velocity, mut velocity)) = query.get_single_mut()
-    else {
+    let Ok((action_state, mut angular_velocity, mut velocity)) = query.get_single_mut() else {
         return;
     };
 

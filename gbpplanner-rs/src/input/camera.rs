@@ -68,9 +68,9 @@ impl CameraAction {
             Self::Move => Some(UserInput::Single(InputKind::DualAxis(
                 DualAxis::left_stick(),
             ))),
-            Self::ToggleMovementMode => Some(UserInput::Single(
-                InputKind::GamepadButton(GamepadButtonType::North),
-            )),
+            Self::ToggleMovementMode => Some(UserInput::Single(InputKind::GamepadButton(
+                GamepadButtonType::North,
+            ))),
             Self::ZoomIn => Some(UserInput::Single(InputKind::GamepadButton(
                 GamepadButtonType::DPadDown,
             ))),
@@ -127,14 +127,8 @@ fn camera_actions(
         With<MainCamera>,
     >,
 ) {
-    if let Ok((
-        action_state,
-        mut velocity,
-        mut angular_velocity,
-        orbit,
-        transform,
-        camera,
-    )) = query.get_single_mut()
+    if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
+        query.get_single_mut()
     {
         if !camera.is_active {
             return;
@@ -191,10 +185,8 @@ fn camera_actions(
                         //     .xy()
                         //     .normalize_or_zero();
 
-                        tmp_velocity.x =
-                            -action.x * camera::SPEED * camera_distance / 35.0;
-                        tmp_velocity.z =
-                            action.y * camera::SPEED * camera_distance / 35.0;
+                        tmp_velocity.x = -action.x * camera::SPEED * camera_distance / 35.0;
+                        tmp_velocity.z = action.y * camera::SPEED * camera_distance / 35.0;
                     }
                 }
                 CameraMovementMode::Orbit => {

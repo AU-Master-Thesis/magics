@@ -50,11 +50,11 @@ pub mod graphviz {
     impl NodeKind {
         pub fn color(&self) -> &'static str {
             match self {
-                Self::Variable { .. } => "#eff1f5", // latte base (white)
+                Self::Variable { .. } => "#eff1f5",         // latte base (white)
                 Self::InterRobotFactor { .. } => "#a6da95", // green
-                Self::DynamicFactor => "#8aadf4",   // blue
-                Self::ObstacleFactor => "#c6a0f6",  // mauve (purple)
-                Self::PoseFactor => "#ee99a0",      // maroon (red)
+                Self::DynamicFactor => "#8aadf4",           // blue
+                Self::ObstacleFactor => "#c6a0f6",          // mauve (purple)
+                Self::PoseFactor => "#ee99a0",              // maroon (red)
             }
         }
 
@@ -427,9 +427,7 @@ impl FactorGraph {
                             FactorKind::Obstacle(_) => graphviz::NodeKind::ObstacleFactor,
                             FactorKind::Pose(_) => graphviz::NodeKind::PoseFactor,
                             FactorKind::InterRobot(inner) => {
-                                graphviz::NodeKind::InterRobotFactor(
-                                    inner.connection.clone(),
-                                )
+                                graphviz::NodeKind::InterRobotFactor(inner.connection.clone())
                                 // graphviz::NodeKind::InterRobotFactor {
                                 //     other_robot_id: inner.connection.id_of_robot_connected_with,
                                 //     variable_index_in_other_robot: self.graph.neighbors(node_index).nth(0).expect("interrobot factor have exactly 1 variable node as neighbour").index()
@@ -475,8 +473,7 @@ impl FactorGraph {
                 continue;
             }
             let factor_index = node_index;
-            let adjacent_variables =
-                self.graph.neighbors(factor_index).collect::<Vec<_>>();
+            let adjacent_variables = self.graph.neighbors(factor_index).collect::<Vec<_>>();
             // let factor = self.graph[factor_index]
             //     .as_factor_mut()
             //     .expect("factor_index should point to a Factor in the graph");

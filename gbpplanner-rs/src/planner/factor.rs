@@ -23,11 +23,7 @@ trait Model {
     /// Measurement function
     /// **Note**: This method takes a mutable reference to self, because the interrobot factor
     fn measure(&mut self, state: &FactorState, x: &Vector<f32>) -> Vector<f32>;
-    fn first_order_jacobian(
-        &mut self,
-        state: &FactorState,
-        x: Vector<f32>,
-    ) -> Matrix<f32> {
+    fn first_order_jacobian(&mut self, state: &FactorState, x: Vector<f32>) -> Matrix<f32> {
         // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
         //     return jac_out;
         // };
@@ -120,9 +116,9 @@ impl Model for InterRobotFactor {
         let x_diff = {
             let offset = state.dofs / 2;
             // let mut x_diff = x.rows(0, offset) - x.rows(state.dofs, offset);
-            let mut x_diff = x.slice_axis(Axis(0), Slice::from(0..offset)).sub(
-                &x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))),
-            );
+            let mut x_diff = x
+                .slice_axis(Axis(0), Slice::from(0..offset))
+                .sub(&x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))));
             for i in 0..offset {
                 x_diff[i] += 1e-6; // Add a tiny random offset to avoid div/0 errors
             }
@@ -167,9 +163,9 @@ impl Model for InterRobotFactor {
             // let mut x_diff = x.slice_axis(Axis(0), s![0..offset])
             //     - x.slice_axis(Axis(0), s![state.dofs..(state.dofs + offset)]);
 
-            let mut x_diff = x.slice_axis(Axis(0), Slice::from(0..offset)).sub(
-                &x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))),
-            );
+            let mut x_diff = x
+                .slice_axis(Axis(0), Slice::from(0..offset))
+                .sub(&x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))));
             // let mut x_diff = x
             //     .slice_axis(Axis(0), Slice::from(0..offset))
             //     .sub(&x.slice(s![state.dofs..(state.dofs + offset), ..]));
@@ -543,8 +539,7 @@ impl FactorState {
     ) -> Self {
         // Initialise precision of the measurement function
         // this->meas_model_lambda_ = Eigen::MatrixXd::Identity(z_.rows(), z_.rows()) / pow(sigma,2.);
-        let measurement_precision =
-            Matrix::<f32>::eye(measurement.len()) / f32::powi(strength, 2);
+        let measurement_precision = Matrix::<f32>::eye(measurement.len()) / f32::powi(strength, 2);
 
         Self {
             measurement,
@@ -607,8 +602,7 @@ impl Factor {
         connection: InterRobotConnection,
     ) -> Self {
         let state = FactorState::new(measurement, strength, dofs);
-        let interrobot_factor =
-            InterRobotFactor::new(safety_radius, strength, false, connection);
+        let interrobot_factor = InterRobotFactor::new(safety_radius, strength, false, connection);
         let kind = FactorKind::InterRobot(interrobot_factor);
 
         Self::new(state, kind)
@@ -700,9 +694,10 @@ impl Factor {
                 .expect("The variable_index should point to a Variable in the graph");
 
             idx += variable.dofs;
-            let message = self.inbox.get(variable_index).expect(
-                "There should be a message from each variable connected to this factor",
-            );
+            let message = self
+                .inbox
+                .get(variable_index)
+                .expect("There should be a message from each variable connected to this factor");
 
             // TODO: how do we ensure/know state.linearisation_point is long enough to fit all message means concatenated
             // utils::nalgebra::insert_subvector(
@@ -780,7 +775,9 @@ impl Factor {
                     .as_variable()
                     .expect("The variable_index should point to a Variable in the graph");
                 if variable_index != other_variable_index {
-                    let message = self.read_message_from(*other_variable_index).expect("There should be a message from each variable connected to this factor");
+                    let message = self.read_message_from(*other_variable_index).expect(
+                        "There should be a message from each variable connected to this factor",
+                    );
                     // let slice = index_offset..index_offset + variable.dofs;
                     // factor_eta(seqN(idx_v, n_dofs)) += eta_belief;
                     // gbp_linalg::vector::add_assign_subvector(

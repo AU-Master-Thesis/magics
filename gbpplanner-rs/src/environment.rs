@@ -1,9 +1,6 @@
 use bevy::{
     prelude::*,
-    render::{
-        mesh::Indices, render_asset::RenderAssetUsages,
-        render_resource::PrimitiveTopology,
-    },
+    render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;

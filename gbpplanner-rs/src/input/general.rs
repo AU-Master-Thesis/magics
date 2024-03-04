@@ -35,12 +35,8 @@ impl GeneralAction {
 
     fn default_keyboard_input(action: GeneralAction) -> Option<UserInput> {
         match action {
-            Self::ToggleTheme => {
-                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT)))
-            }
-            Self::ExportGraph => {
-                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG)))
-            }
+            Self::ToggleTheme => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT))),
+            Self::ExportGraph => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG))),
         }
     }
 }
@@ -92,9 +88,7 @@ fn export_factorgraphs_as_graphviz(
     // A hashmap used to keep track of which variable in another robots factorgraph, is connected to a interrobot
     // factor in the current robots factorgraph.
     let mut all_external_connections =
-        HashMap::<RobotId, HashMap<usize, (RobotId, usize)>>::with_capacity(
-            query.iter().len(),
-        );
+        HashMap::<RobotId, HashMap<usize, (RobotId, usize)>>::with_capacity(query.iter().len());
 
     for (robot_id, factorgraph) in query.iter() {
         let (nodes, edges) = factorgraph.export_data();

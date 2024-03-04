@@ -226,8 +226,8 @@ fn update_position_local_orbit(
             transform.forward()
         };
 
-        let z_direction = Vec3::new(source_z_direction.x, 0.0, source_z_direction.z)
-            .normalize_or_zero();
+        let z_direction =
+            Vec3::new(source_z_direction.x, 0.0, source_z_direction.z).normalize_or_zero();
 
         // info!("velocity.value.y {:?}", velocity.value.y);
 
@@ -239,8 +239,8 @@ fn update_position_local_orbit(
 
         let zoom_direction = transform.forward();
 
-        transform.translation += from_local_translation
-            + zoom_direction * velocity.value.y * time.delta_seconds();
+        transform.translation +=
+            from_local_translation + zoom_direction * velocity.value.y * time.delta_seconds();
         orbit.origin += from_local_translation;
     }
 }
@@ -274,10 +274,7 @@ fn update_rotation_orbit(
     time: Res<Time>,
 ) {
     for (orbit, angular_velocity, mut transform) in query.iter_mut() {
-        let yaw = Quat::from_axis_angle(
-            Vec3::Y,
-            angular_velocity.value.x * time.delta_seconds(),
-        );
+        let yaw = Quat::from_axis_angle(Vec3::Y, angular_velocity.value.x * time.delta_seconds());
         let pitch = Quat::from_axis_angle(
             *transform.right(),
             -angular_velocity.value.y * time.delta_seconds(),

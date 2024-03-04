@@ -179,8 +179,7 @@ fn insert_dummy_factor_graph(
     // all positions sorted by z value
     let mut all_positions = variable_positions.clone();
     all_positions.extend(factor_positions.clone());
-    all_positions
-        .sort_by(|a, b| a.z.partial_cmp(&b.z).expect("none of the operands are NAN"));
+    all_positions.sort_by(|a, b| a.z.partial_cmp(&b.z).expect("none of the operands are NAN"));
     info!("all_positions: {:?}", all_positions);
 
     let variable_mesh = meshes.add(
@@ -247,8 +246,7 @@ fn draw_lines(
     }
 
     // collect all factor and variable positions
-    let factor_positions: Vec<Vec3> =
-        query_factors.iter().map(|(_, t)| t.translation).collect();
+    let factor_positions: Vec<Vec3> = query_factors.iter().map(|(_, t)| t.translation).collect();
     let variable_positions: Vec<Vec3> =
         query_variables.iter().map(|(_, t)| t.translation).collect();
 
@@ -256,8 +254,7 @@ fn draw_lines(
     let mut all_positions = variable_positions.clone();
     all_positions.extend(factor_positions.clone());
 
-    all_positions
-        .sort_by(|a, b| a.z.partial_cmp(&b.z).expect("none of the operands are NAN"));
+    all_positions.sort_by(|a, b| a.z.partial_cmp(&b.z).expect("none of the operands are NAN"));
 
     let line_material = materials.add({
         let (r, g, b) = catppuccin_theme.flavour.text().into();

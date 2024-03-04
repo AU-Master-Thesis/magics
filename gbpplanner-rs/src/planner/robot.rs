@@ -206,8 +206,8 @@ impl RobotBundle {
         // Create Dynamics factors between variables
         for i in 0..variable_timesteps.len() - 1 {
             // T0 is the timestep between the current state and the first planned state.
-            let delta_t = config.simulation.t0
-                * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
+            let delta_t =
+                config.simulation.t0 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
             let measurement = Vector::<f32>::zeros(config.robot.dofs);
             let dynamic_factor = Factor::new_dynamic_factor(
                 config.gbp.sigma_factor_dynamics,
@@ -279,9 +279,7 @@ fn update_robot_neighbours_system(
 }
 
 // FIXME: more that one interrobot is created in `create_interrobot_factors`
-fn delete_interrobot_factors_system(
-    mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
-) {
+fn delete_interrobot_factors_system(mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>) {
     // the set of robots connected with will (possibly) be mutated
     // the robots factorgraph will (possibly) be mutated
     // the other robot with an interrobot factor connected will be mutated
@@ -324,7 +322,10 @@ fn delete_interrobot_factors_system(
             }
 
             if let Err(err) = graph.as_mut().delete_interrobot_factor_connected_to(b) {
-                error!("Could not delete interrobot factor between {:?} -> {:?}, with error msg: {}", a, b, err);
+                error!(
+                    "Could not delete interrobot factor between {:?} -> {:?}, with error msg: {}",
+                    a, b, err
+                );
             }
         }
     }
@@ -379,8 +380,8 @@ fn create_interrobot_factors_system(
                 let safety_radius = 2.0 * config.robot.radius + eps;
                 let connection = InterRobotConnection {
                     id_of_robot_connected_with: *other_robot_id,
-                    index_of_connected_variable_in_other_robots_factorgraph:
-                        other_varible_indices[i - 1],
+                    index_of_connected_variable_in_other_robots_factorgraph: other_varible_indices
+                        [i - 1],
                 };
                 let interrobot_factor = Factor::new_interrobot_factor(
                     config.gbp.sigma_factor_interrobot,
@@ -468,8 +469,7 @@ fn update_prior_of_horizon_state_system(
 ) {
     let delta_t = time.delta_seconds();
     for (entity, mut factorgraph, mut waypoints) in query.iter_mut() {
-        let Some(current_waypoint) = waypoints.0.front().map(|wp| array![wp.x, wp.y])
-        else {
+        let Some(current_waypoint) = waypoints.0.front().map(|wp| array![wp.x, wp.y]) else {
             warn!("robot {:?}, has reached its final waypoint", entity);
             continue;
         };
@@ -479,11 +479,9 @@ fn update_prior_of_horizon_state_system(
             .expect("factorgraph has a horizon variable");
         let mean_of_horizon_variable = horizon_variable.belief.mean();
         let direction_from_horizon_to_goal = current_waypoint - &mean_of_horizon_variable;
-        let distance_from_horizon_to_goal =
-            direction_from_horizon_to_goal.euclidean_norm();
-        let new_velocity =
-            f32::min(config.robot.max_speed, distance_from_horizon_to_goal)
-                * direction_from_horizon_to_goal.normalized();
+        let distance_from_horizon_to_goal = direction_from_horizon_to_goal.euclidean_norm();
+        let new_velocity = f32::min(config.robot.max_speed, distance_from_horizon_to_goal)
+            * direction_from_horizon_to_goal.normalized();
         let new_position = mean_of_horizon_variable + &new_velocity * delta_t;
 
         // Update horizon state with new pos and vel
@@ -499,8 +497,7 @@ fn update_prior_of_horizon_state_system(
         let _ = horizon_variable.change_prior(new_mean, vec![]);
 
         // NOTE: this is weird, we think
-        let horizon_has_reached_waypoint =
-            distance_from_horizon_to_goal < config.robot.radius;
+        let horizon_has_reached_waypoint = distance_from_horizon_to_goal < config.robot.radius;
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
             waypoints.0.pop_front();
         }
@@ -524,8 +521,7 @@ fn update_prior_of_current_state_system(
                 .expect("factorgraph should have a next variable");
 
             let mean_of_current_variable = current_variable.belief.mean();
-            let increment =
-                scale * (next_variable.belief.mean() - &mean_of_current_variable);
+            let increment = scale * (next_variable.belief.mean() - &mean_of_current_variable);
 
             (mean_of_current_variable, increment)
         };

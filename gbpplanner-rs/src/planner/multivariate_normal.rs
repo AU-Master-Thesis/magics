@@ -240,8 +240,7 @@ mod tests {
     fn test_addition() {
         let n = 3;
         let mvn0 = MultivariateNormal::new(array![1., 2., 3.], Matrix::<f32>::eye(n));
-        let mvn1 =
-            MultivariateNormal::new(array![6., 5., 4.], 3. * Matrix::<f32>::eye(n));
+        let mvn1 = MultivariateNormal::new(array![6., 5., 4.], 3. * Matrix::<f32>::eye(n));
 
         let mvn2 = &mvn0 + &mvn1;
 
@@ -256,8 +255,7 @@ mod tests {
     fn test_substraction() {
         let n = 3;
         let mvn0 = MultivariateNormal::new(array![1., 2., 3.], Matrix::<f32>::eye(n));
-        let mvn1 =
-            MultivariateNormal::new(array![6., 5., 4.], 3. * Matrix::<f32>::eye(n));
+        let mvn1 = MultivariateNormal::new(array![6., 5., 4.], 3. * Matrix::<f32>::eye(n));
 
         let mvn2 = &mvn0 - &mvn1;
 
