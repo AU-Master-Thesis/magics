@@ -80,13 +80,13 @@ impl CatppuccinThemeExt for Visuals {
     fn catppuccin_flavour(flavour: Flavour) -> Visuals {
         let is_dark = flavour.base().lightness() < 0.5;
         Visuals {
-            dark_mode: true,
+            dark_mode: is_dark,
             override_text_color: Some(Color32::from_catppuccin_colour(flavour.text())),
             widgets: Widgets::default(),
             selection: Selection::default(),
             // hyperlink_color: Color32::from_rgb(90, 170, 255),
             hyperlink_color: Color32::from_catppuccin_colour(flavour.blue()),
-            faint_bg_color: Color32::from_additive_luminance(5), // visible, but barely so
+            faint_bg_color: Color32::from_catppuccin_colour(flavour.mantle()), // visible, but barely so
             // extreme_bg_color: Color32::from_gray(10), // e.g. TextEdit background
             extreme_bg_color: Color32::from_catppuccin_colour(flavour.crust()), // e.g. TextEdit background
             // code_bg_color: Color32::from_gray(64),
@@ -129,7 +129,7 @@ impl CatppuccinThemeExt for Visuals {
             collapsing_header_frame: false,
             indent_has_left_vline: true,
 
-            striped: false,
+            striped: true,
 
             slider_trailing_fill: false,
             handle_shape: HandleShape::Circle,
