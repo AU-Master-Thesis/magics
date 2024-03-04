@@ -88,7 +88,7 @@ impl From<Path> for Mesh {
 
         Mesh::new(
             PrimitiveTopology::TriangleStrip,
-            RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD
+            RenderAssetUsages::MAIN_WORLD  | RenderAssetUsages::RENDER_WORLD
         )
         // Add the vertices positions as an attribute
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices)

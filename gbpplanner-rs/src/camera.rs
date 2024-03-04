@@ -42,7 +42,7 @@ fn spawn_camera(mut commands: Commands) {
         LinearMovementBundle::default(),
         OrbitMovementBundle::default(),
         Local,
-        // MainCamera,
-        GridShadowCamera,
+        MainCamera,
+        // GridShadowCamera,
     ));
 }

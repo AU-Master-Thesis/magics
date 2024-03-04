@@ -771,7 +771,7 @@ dependencies = [
 [[package]]
 name = "bevy_infinite_grid"
 version = "0.10.0"
-source = "git+https://github.com/AU-Master-Thesis/bevy_infinite_grid?branch=main#dad58aa86d5338fa39b6e0f2dd3afd0ea0de180d"
+source = "git+https://github.com/AU-Master-Thesis/bevy_infinite_grid?branch=bevy-v0.13.0#ddd9db13a6f16858891b29d959953bb814676d03"
 dependencies = [
  "bevy",
 ]
