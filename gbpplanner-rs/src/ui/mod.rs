@@ -401,6 +401,7 @@ fn ui_binding_panel(
         .resizable(true)
         .show_animated(ctx, ui_state.left_panel, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.add_space(10.0);
                 ui.heading("Binding Panel");
                 ui.add_space(5.0);
                 ui.separator();
@@ -416,13 +417,13 @@ fn ui_binding_panel(
                             Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
                         ));
                         ui.centered_and_justified(|ui| {
-                            ui.label(RichText::new("󰌌").size(size).color(
+                            ui.label(RichText::new("󰌌").size(size + 5.0).color(
                                 Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
                             ));
                         });
 
                         ui.centered_and_justified(|ui| {
-                            ui.label(RichText::new("󰊗").size(size).color(
+                            ui.label(RichText::new("󰊗").size(size + 5.0).color(
                                 Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
                             ));
                         });
