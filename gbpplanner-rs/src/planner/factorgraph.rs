@@ -93,8 +93,32 @@ pub enum MessagePassingMode {
 
 #[derive(Debug, Clone)]
 // pub struct Message(pub MultivariateNormal<f32>);
-pub struct Message {
-    pub gaussian: MultivariateNormal<f32>,
+pub enum Message {
+    Content { gaussian: MultivariateNormal<f32> },
+    Empty(usize), // dofs
+}
+
+impl Message {
+    pub fn mean(&self) -> Vector<f32> {
+        match self {
+            Self::Content { gaussian } => *gaussian.mean(),
+            Self::Empty(dofs) => Vector::<f32>::zeros(*dofs),
+        }
+    }
+
+    pub fn precision_matrix(&self) -> Matrix<f32> {
+        match self {
+            Self::Content { gaussian } => *gaussian.precision_matrix(),
+            Self::Empty(dofs) => Matrix::<f32>::zeros((*dofs, *dofs)),
+        }
+    }
+
+    pub fn information_vector(&self) -> Vector<f32> {
+        match self {
+            Self::Content { gaussian } => *gaussian.information_vector(),
+            Self::Empty(dofs) => Vector::<f32>::zeros(*dofs),
+        }
+    }
 }
 
 // /// Overload subtraction for `Message`
@@ -114,14 +138,14 @@ pub struct Message {
 
 impl Message {
     pub fn with_dofs(dofs: usize) -> Self {
-        // let information_vector = Vector::<f32>::from_elem(dofs, 1.0 / dofs as f32);
-        // let precision_matrix = Matrix::<f32>::eye(dofs);
-        // MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
+        let information_vector = Vector::<f32>::from_elem(dofs, 1.0 / dofs as f32);
+        let precision_matrix = Matrix::<f32>::eye(dofs);
+        MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
+            .map(|gaussian| Self::Content { gaussian })
+            .expect("An identity matrix and uniform vector is a valid multivariate normal")
+        // MultivariateNormal::empty(dofs)
         //     .map(|gaussian| Self { gaussian })
-        //     .expect("An identity matrix and uniform vector is a valid multivariate normal")
-        MultivariateNormal::empty(dofs)
-            .map(|gaussian| Self { gaussian })
-            .expect("Empty `MultiVarianteNormal` is always valid")
+        //     .expect("Empty `MultiVarianteNormal` is always valid")
     }
 
     // pub fn mean(&self) -> Vector<f32> {
@@ -133,7 +157,7 @@ impl Message {
         precision_matrix: Matrix<f32>,
     ) -> gbp_multivariate_normal::Result<Self> {
         MultivariateNormal::from_mean_and_covariance(information_vector, precision_matrix)
-            .map(|gaussian| Self { gaussian })
+            .map(|gaussian| Self::Content { gaussian })
     }
 
     // pub fn zeros(dims: usize) -> Self {
@@ -144,18 +168,18 @@ impl Message {
     //     self.0.zeroize();
     // }
 
-    pub fn empty(dofs: usize) -> Self {
-        let information_vector = Vector::<f32>::from_elem(dofs, 0.0);
-        let precision_matrix = Matrix::<f32>::zeros((dofs, dofs));
-        MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
-            .map(|gaussian| Self { gaussian })
-            .expect("An identity matrix and uniform vector is a valid multivariate normal")
-    }
+    // pub fn empty(dofs: usize) -> Self {
+    //     let information_vector = Vector::<f32>::from_elem(dofs, 0.0);
+    //     let precision_matrix = Matrix::<f32>::zeros((dofs, dofs));
+    //     MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
+    //         .map(|gaussian| Self { gaussian })
+    //         .expect("An identity matrix and uniform vector is a valid multivariate normal")
+    // }
 }
 
 impl From<MultivariateNormal<f32>> for Message {
     fn from(value: MultivariateNormal<f32>) -> Self {
-        Self { gaussian: value }
+        Self::Content { gaussian: value }
     }
 }
 
@@ -309,12 +333,12 @@ impl FactorGraph {
     pub fn add_edge(&mut self, a: NodeIndex, b: NodeIndex) -> EdgeIndex {
         let dofs = 4;
         match self.graph[a] {
-            Node::Factor(ref mut factor) => factor.send_message(b, Message::empty(dofs)),
-            Node::Variable(ref mut variable) => variable.send_message(b, Message::empty(dofs)),
+            Node::Factor(ref mut factor) => factor.send_message(b, Message::Empty(dofs)),
+            Node::Variable(ref mut variable) => variable.send_message(b, Message::Empty(dofs)),
         }
         match self.graph[b] {
-            Node::Factor(ref mut factor) => factor.send_message(a, Message::empty(dofs)),
-            Node::Variable(ref mut variable) => variable.send_message(a, Message::empty(dofs)),
+            Node::Factor(ref mut factor) => factor.send_message(a, Message::Empty(dofs)),
+            Node::Variable(ref mut variable) => variable.send_message(a, Message::Empty(dofs)),
         }
         self.graph.add_edge(a, b, ())
     }
@@ -564,10 +588,8 @@ impl FactorGraph {
             //     .expect("There should be a message from the variable");
             let message_mean = factor
                 .read_message_from(variable_index)
-                .expect("There should be a message from the variable")
-                .gaussian
-                .mean()
-                .clone();
+                .map(|message| message.mean())
+                .expect("There should be a message from the variable");
 
             factor
                 .state
@@ -646,18 +668,18 @@ impl FactorGraph {
                         .read_message_from(v_idx)
                         .expect("There should be a message from the variable");
 
-                    let message_mean = message.gaussian.mean();
+                    let message_mean = message.mean();
 
                     // factor_eta += message_mean;
                     // factor_eta.add_assign(&message_mean);
                     factor_eta
                         .slice_mut(s![idx_v..idx_v + dofs])
-                        .add_assign(message_mean);
+                        .add_assign(&message_mean);
                     // factor_lam += message.0.precision_matrix;
                     // factor_lam.add_assign(&message.0.precision_matrix);
                     factor_lam
                         .slice_mut(s![idx_v..idx_v + dofs, idx_v..idx_v + dofs])
-                        .add_assign(message.gaussian.precision_matrix());
+                        .add_assign(&message.precision_matrix());
                 }
                 idx_v += dofs;
             }

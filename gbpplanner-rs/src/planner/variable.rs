@@ -111,11 +111,14 @@ impl Variable {
             .expect("the precision matrix of the prior is nonsigular");
 
         for (_, message) in self.inbox.iter() {
+            if matches!(message, Message::Empty(_)) {
+                continue;
+            }
             unsafe {
                 self.belief
-                    .add_assign_information_vector(message.gaussian.information_vector());
+                    .add_assign_information_vector(&message.information_vector());
                 self.belief
-                    .add_assign_precision_matrix(message.gaussian.precision_matrix());
+                    .add_assign_precision_matrix(&message.precision_matrix());
             }
             // self.belief.information_vector += &message.0.information_vector;
             // self.belief.precision_matrix += &message.0.precision_matrix;
@@ -140,7 +143,10 @@ impl Variable {
         self.inbox
             .iter()
             .map(|(&factor_index, received_message)| {
-                let response = Message::from(&self.belief - &received_message.gaussian);
+                let response = match received_message {
+                    Message::Empty(_) => Message::from(self.belief.clone()),
+                    Message::Content { gaussian } => Message::from(&self.belief - gaussian),
+                };
                 (factor_index, response)
             })
             .collect()

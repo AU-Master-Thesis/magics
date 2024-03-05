@@ -120,7 +120,6 @@ fn spawn_formation(
     catppuccin_theme: &Res<CatppuccinTheme>,
     variable_timesteps: &Res<VariableTimestepsResource>,
 ) {
-
     // let waypoints = formation.waypoints.iter().map(
     //     |wp| {
     //         config.simulation.world_size * (wp.shape. - 0.5)
@@ -133,7 +132,11 @@ fn spawn_formation(
         .first()
         .expect("Formation cannot have 0 waypoint entries");
 
-    let initial_positions = random_positions_on_shape(&first_wp.shape, formation.robots, config.simulation.world_size);
+    let initial_positions = random_positions_on_shape(
+        &first_wp.shape,
+        formation.robots,
+        config.simulation.world_size,
+    );
 
     // TODO: create mapped waypoints
 
@@ -180,7 +183,7 @@ fn random_positions_on_shape(shape: &Shape, amount: usize, world_size: f32) -> V
     match shape {
         Shape::Line((start, end)) => {
             let start = Vec2::from(start);
-            let end =   Vec2::from(end);
+            let end = Vec2::from(end);
             for _ in 0..amount {
                 // lerp a random point between start and end
                 // TODO: ensure no robots spawn atop each other
@@ -211,7 +214,10 @@ fn random_positions_on_shape(shape: &Shape, amount: usize, world_size: f32) -> V
         }
     }
 
-    positions.into_iter().map(|p| world_size * (p - 0.5)).collect()
+    positions
+        .into_iter()
+        .map(|p| world_size * (p - 0.5))
+        .collect()
 }
 
 #[cfg(test)]
@@ -231,7 +237,7 @@ mod tests {
         let radius = 1.0;
         let shape = Shape::Circle { radius, center };
         let n = 8;
-        let positions = random_positions_on_shape(&shape, n);
+        let positions = random_positions_on_shape(&shape, n, 100.0);
         assert!(!positions.is_empty());
         assert_eq!(positions.len(), n);
 

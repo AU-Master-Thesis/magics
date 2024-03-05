@@ -708,7 +708,7 @@ impl Factor {
             self.state
                 .linearisation_point
                 .slice_mut(s![idx..idx + variable.dofs])
-                .assign(message.gaussian.mean());
+                .assign(&message.mean());
         }
 
         // TODO: implement the rest of the update method
@@ -788,7 +788,7 @@ impl Factor {
                     // TODO: KRISTOFFER CHECK THIS
                     factor_eta
                         .slice_mut(s![index_offset..index_offset + variable.dofs])
-                        .add_assign(message.gaussian.information_vector());
+                        .add_assign(&message.information_vector());
                     // .add_assign(&message.0.mean());
                     // factor_lam(seqN(idx_v, n_dofs), seqN(idx_v, n_dofs)) += lam_belief;
                     // gbp_linalg::matrix::add_assign_submatrix(
@@ -802,7 +802,7 @@ impl Factor {
                             index_offset..index_offset + variable.dofs,
                             index_offset..index_offset + variable.dofs
                         ])
-                        .add_assign(message.gaussian.precision_matrix());
+                        .add_assign(&message.precision_matrix());
                 }
                 index_offset += other_variable.dofs;
             }

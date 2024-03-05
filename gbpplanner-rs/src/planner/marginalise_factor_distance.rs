@@ -230,11 +230,11 @@ mod tests {
         );
 
         assert_eq!(
-            marginalised_msg.gaussian.information_vector(),
+            marginalised_msg.information_vector(),
             array![0., 1., 2., 3.]
         );
         assert_eq!(
-            marginalised_msg.gaussian.precision_matrix(),
+            marginalised_msg.precision_matrix(),
             array![
                 [5., 0.2, 0., 0.],
                 [0.2, 5., 0., 0.],
@@ -265,19 +265,15 @@ mod tests {
             marginalisation_idx,
         );
 
-        assert_eq!(marginalised_msg.gaussian.information_vector().len(), ndofs);
-        assert_eq!(
-            marginalised_msg.gaussian.precision_matrix().shape(),
-            &[ndofs, ndofs]
-        );
+        assert_eq!(marginalised_msg.information_vector().len(), ndofs);
+        assert_eq!(marginalised_msg.precision_matrix().shape(), &[ndofs, ndofs]);
 
         assert_eq!(
-            marginalised_msg.gaussian.information_vector(),
+            marginalised_msg.information_vector(),
             array![1.8, 3., 4., 4.6]
         );
 
         let result = marginalised_msg
-            .gaussian
             .precision_matrix()
             .into_iter()
             .collect::<Vec<_>>();
