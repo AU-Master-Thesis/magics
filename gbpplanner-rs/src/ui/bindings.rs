@@ -76,6 +76,7 @@ impl ChangingBinding {
 
 fn binding_cooldown_system(time: Res<Time>, mut currently_changing: ResMut<ChangingBinding>) {
     if currently_changing.on_cooldown() {
+        info!("Cooldown: {}", currently_changing.cooldown);
         currently_changing.decrease_cooldown(time.delta_seconds());
     }
 }
@@ -450,6 +451,9 @@ fn change_binding_keyboard(
     mut currently_changing: ResMut<ChangingBinding>,
     mut keyboard_events: EventReader<KeyboardInput>,
 ) {
+    if !currently_changing.is_changing() {
+        return;
+    }
     // Listen for keyboard events to rebind currently changing binding
     // if there is, then rebind the map
     for event in keyboard_events.read() {
@@ -532,6 +536,9 @@ fn change_binding_gamepad(
     mut currently_changing: ResMut<ChangingBinding>,
     mut gamepad_button_events: EventReader<GamepadButtonInput>,
 ) {
+    if !currently_changing.is_changing() {
+        return;
+    }
     // Listen for gamepad button events to rebind currently changing binding
     for event in gamepad_button_events.read() {
         let button = event.button;

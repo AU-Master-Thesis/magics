@@ -169,8 +169,8 @@ fn camera_actions(
                         .axis_pair(&CameraAction::MouseMove)
                         .map(|axis| axis.xy())
                     {
-                        tmp_velocity.x = action.x * camera_distance / 50.0; // * camera::SPEED;
-                        tmp_velocity.z = action.y * camera_distance / 50.0; // * camera::SPEED;
+                        tmp_velocity.x = action.x * camera_distance / 10.0; // * camera::SPEED;
+                        tmp_velocity.z = action.y * camera_distance / 10.0; // * camera::SPEED;
                     }
                 }
                 CameraMovementMode::Orbit => {
