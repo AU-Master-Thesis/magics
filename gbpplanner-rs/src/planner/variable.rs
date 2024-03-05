@@ -104,14 +104,25 @@ impl Variable {
     ) -> HashMap<NodeIndex, Message> {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
         // TODO: wrap in unsafe block for perf:
-        self.belief
-            .update_information_vector(self.prior.information_vector());
-        self.belief
-            .update_precision_matrix(self.prior.precision_matrix())
-            .expect("the precision matrix of the prior is nonsigular");
+
+        // eprintln!("at the start");
+        // dbg!(&self.prior);
+        // dbg!(&self.belief);
+
+        unsafe {
+            self.belief
+                .set_information_vector(self.prior.information_vector());
+            self.belief
+                .set_precision_matrix(self.prior.precision_matrix());
+        }
+        // self.belief
+        //     .update_information_vector(self.prior.information_vector());
+        // self.belief
+        //     .update_precision_matrix(self.prior.precision_matrix())
+        //     .expect("the precision matrix of the prior is nonsigular");
 
         for (_, message) in self.inbox.iter() {
-            if matches!(message, Message::Empty(_)) {
+            if message.is_empty() {
                 continue;
             }
             unsafe {
@@ -123,6 +134,9 @@ impl Variable {
             // self.belief.information_vector += &message.0.information_vector;
             // self.belief.precision_matrix += &message.0.precision_matrix;
         }
+
+        // dbg!(&self.prior);
+        // dbg!(&self.belief);
 
         self.belief.update();
 

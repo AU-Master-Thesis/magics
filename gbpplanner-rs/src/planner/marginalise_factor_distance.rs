@@ -41,67 +41,61 @@ pub fn marginalise_factor_distance(
         );
     }
 
+    eprintln!(
+        "information_vector shape = {:?}, ndofs = {:?}",
+        information_vector.shape(),
+        dofs_of_variable
+    );
+    eprintln!("precision_matrix shape = {:?}", precision_matrix.shape());
+
     let ndofs = dofs_of_variable;
     let marg_idx = marginalisation_idx;
     let iv = &information_vector;
     let pm = &precision_matrix;
 
-    let eta_a = information_vector.slice(s![seq_n(marginalisation_idx, dofs_of_variable)]);
+    let eta_a = information_vector.slice(s![seq_n(marg_idx, ndofs)]);
     assert_eq!(eta_a.len(), ndofs);
-    let eta_b = concatenate![
-        Axis(0),
-        information_vector.slice(s![0..marginalisation_idx]),
-        information_vector.slice(s![marginalisation_idx + dofs_of_variable..])
-    ];
 
-    assert_eq!(eta_b.len(), information_vector.len() - ndofs);
-    let lam_aa = precision_matrix.slice(s![
-        seq_n(marginalisation_idx, dofs_of_variable),
-        seq_n(marginalisation_idx, dofs_of_variable)
-    ]);
-
-    let lam_ab = concatenate![
-        Axis(1),
-        dbg!(precision_matrix.slice(s![seq_n(marg_idx, ndofs), ..marg_idx])),
-        dbg!(precision_matrix.slice(s![seq_n(marg_idx, ndofs), marg_idx + ndofs..]))
-    ];
-
-    let lam_ba = if marg_idx + ndofs == information_vector.len() {
-        concatenate![
-            Axis(1),
-            dbg!(precision_matrix.slice(s![..marg_idx, marg_idx..marg_idx + ndofs]))
-        ]
+    let eta_b = if marg_idx == 0 {
+        information_vector.slice(s![ndofs..])
     } else {
-        concatenate![
-            Axis(1),
-            dbg!(precision_matrix.slice(s![..marg_idx, marg_idx..marg_idx + ndofs])),
-            dbg!(precision_matrix.slice(s![marg_idx + ndofs.., seq_n(marg_idx, ndofs)]))
-        ]
+        information_vector.slice(s![..marg_idx])
+    };
+    assert_eq!(eta_b.len(), information_vector.len() - ndofs);
+
+    let lam_aa = precision_matrix.slice(s![seq_n(marg_idx, ndofs), seq_n(marg_idx, ndofs)]);
+
+    let lam_ab = if marg_idx == 0 {
+        precision_matrix.slice(s![seq_n(marg_idx, ndofs), marg_idx + ndofs..])
+    } else {
+        precision_matrix.slice(s![seq_n(marg_idx, ndofs), ..marg_idx])
     };
 
-    let lam_bb = concatenate![
-        Axis(0),
-        concatenate![
-            Axis(1),
-            precision_matrix.slice(s![..marg_idx, ..marg_idx]),
-            precision_matrix.slice(s![..marg_idx, marg_idx + ndofs..])
-        ],
-        concatenate![
-            Axis(1),
-            precision_matrix.slice(s![marg_idx + ndofs.., ..marg_idx]),
-            precision_matrix.slice(s![marg_idx + ndofs.., marg_idx + ndofs..])
-        ]
-    ];
+    assert_eq!(lam_ab.shape(), &[ndofs, precision_matrix.ncols() - ndofs]);
 
-    assert_eq!(
-        lam_bb.shape(),
-        &[
-            precision_matrix.shape()[0] - ndofs,
-            precision_matrix.shape()[1] - ndofs
-        ]
-    );
+    // eprintln!("margin_idx = {}", marg_idx);
 
-    let lam_bb_inv = lam_bb.inv().expect("should have an inverse");
+    let lam_ba = if marg_idx == 0 {
+        precision_matrix.slice(s![marg_idx + ndofs.., seq_n(marg_idx, ndofs)])
+    } else {
+        precision_matrix.slice(s![..marg_idx, seq_n(marg_idx, ndofs)])
+    };
+
+    let lam_bb = if marg_idx == 0 {
+        precision_matrix.slice(s![marg_idx + ndofs.., marg_idx + ndofs..])
+    } else {
+        precision_matrix.slice(s![..marg_idx, ..marg_idx])
+    };
+
+    // assert_eq!(
+    //     lam_bb.shape(),
+    //     &[
+    //         precision_matrix.shape()[0] - ndofs,
+    //         precision_matrix.shape()[1] - ndofs
+    //     ]
+    // );
+
+    let lam_bb_inv = lam_bb.to_owned().inv().expect("should have an inverse");
     // let information_vector = (&eta_a - &lam_ab).dot(&lam_bb_inv).dot(&eta_b);
     let information_vector = &eta_a - &lam_ab.dot(&lam_bb_inv).dot(&eta_b);
     // eprintln!("information_vector = {:?}", information_vector);

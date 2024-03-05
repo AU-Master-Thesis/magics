@@ -20,7 +20,7 @@ pub type RobotId = Entity;
 
 /// Sigma for Unary pose factor on current and horizon states
 /// from **gbpplanner** `Globals.h`
-const SIGMA_POSE_FIXED: f32 = 1e-15;
+const SIGMA_POSE_FIXED: f32 = 1e-6;
 
 #[derive(Resource)]
 pub struct VariableTimestepsResource {
@@ -172,14 +172,15 @@ impl RobotBundle {
             .last()
             .expect("Know that variable_timesteps has at least one element");
 
-        let mut variable_node_indices = Vec::with_capacity(variable_timesteps.len());
-        for i in 0..variable_timesteps.len() {
+        let variable_amount = variable_timesteps.len();
+        let mut variable_node_indices = Vec::with_capacity(variable_amount);
+        for i in 0..variable_amount {
             // Set initial mean and covariance of variable interpolated between start and horizon
             let mean = start
                 + (horizon - start)
                     * (variable_timesteps[i] as f32 / last_variable_timestep as f32);
             // Start and Horizon state variables should be 'fixed' during optimisation at a timestep
-            let sigma = if i == 0 || i == variable_timesteps.len() - 1 {
+            let sigma = if i == 0 || i == variable_amount - 1 {
                 SIGMA_POSE_FIXED
             } else {
                 0.0
@@ -187,7 +188,9 @@ impl RobotBundle {
 
             let sigmas: Vector<f32> = {
                 let elem = if sigma == 0.0 {
-                    f32::MAX
+                    2e12
+                    // f32::INFINITY
+                    // 1e15
                 } else {
                     1.0 / sigma.powi(2)
                 };
@@ -195,11 +198,14 @@ impl RobotBundle {
             };
 
             let covariance = Matrix::<f32>::from_diag(&sigmas);
+            dbg!(&covariance);
             let prior = MultivariateNormal::from_mean_and_covariance(
                 array![mean.x, mean.y, 0.0, 0.0], // initial velocity (x', y') is zero
                 covariance,
             )
             .expect("the covariance is nonsingular");
+
+            dbg!(&prior);
 
             let variable = Variable::new(prior, ndofs);
             let variable_index = factorgraph.add_variable(variable);
@@ -357,13 +363,13 @@ fn create_interrobot_factors_system(
         })
         .collect();
 
-    let n_variables = variable_timesteps.timesteps.len();
+    let variable_amount = variable_timesteps.timesteps.len();
 
     let variable_indices_of_each_factorgraph: HashMap<RobotId, Vec<NodeIndex>> = query
         .iter()
         .map(|(robot_id, factorgraph, _)| {
             let varible_indices = factorgraph
-                .variable_indices_ordered_by_creation(1..n_variables)
+                .variable_indices_ordered_by_creation(1..variable_amount)
                 .expect("the factorgraph has up to `n_variables` variables");
             (robot_id, varible_indices)
         })
@@ -377,7 +383,7 @@ fn create_interrobot_factors_system(
             let other_varible_indices = variable_indices_of_each_factorgraph
                 .get(other_robot_id)
                 .expect("the key is in the map");
-            for i in 1..n_variables {
+            for i in 1..variable_amount {
                 // TODO: do not hardcode
                 let dofs = 4;
                 let z = Vector::<f32>::zeros(dofs);

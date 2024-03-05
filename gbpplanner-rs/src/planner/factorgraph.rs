@@ -101,23 +101,39 @@ pub enum Message {
 impl Message {
     pub fn mean(&self) -> Vector<f32> {
         match self {
-            Self::Content { gaussian } => *gaussian.mean(),
+            Self::Content { gaussian } => gaussian.mean().clone(),
             Self::Empty(dofs) => Vector::<f32>::zeros(*dofs),
         }
     }
 
     pub fn precision_matrix(&self) -> Matrix<f32> {
         match self {
-            Self::Content { gaussian } => *gaussian.precision_matrix(),
+            Self::Content { gaussian } => gaussian.precision_matrix().clone(),
             Self::Empty(dofs) => Matrix::<f32>::zeros((*dofs, *dofs)),
         }
     }
 
     pub fn information_vector(&self) -> Vector<f32> {
         match self {
-            Self::Content { gaussian } => *gaussian.information_vector(),
+            Self::Content { gaussian } => gaussian.information_vector().clone(),
             Self::Empty(dofs) => Vector::<f32>::zeros(*dofs),
         }
+    }
+
+    /// Returns `true` if the message is [`Content`].
+    ///
+    /// [`Content`]: Message::Content
+    #[must_use]
+    pub fn is_content(&self) -> bool {
+        matches!(self, Self::Content { .. })
+    }
+
+    /// Returns `true` if the message is [`Empty`].
+    ///
+    /// [`Empty`]: Message::Empty
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Self::Empty(..))
     }
 }
 
@@ -156,7 +172,7 @@ impl Message {
         information_vector: Vector<f32>,
         precision_matrix: Matrix<f32>,
     ) -> gbp_multivariate_normal::Result<Self> {
-        MultivariateNormal::from_mean_and_covariance(information_vector, precision_matrix)
+        MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
             .map(|gaussian| Self::Content { gaussian })
     }
 
@@ -582,10 +598,6 @@ impl FactorGraph {
         // TODO: do not hardcode
         let dofs = 4;
         for &variable_index in adjacent_variables.iter() {
-            idx += dofs;
-            // let message = factor
-            //     .read_message_from(variable_index)
-            //     .expect("There should be a message from the variable");
             let message_mean = factor
                 .read_message_from(variable_index)
                 .map(|message| message.mean())
@@ -596,6 +608,8 @@ impl FactorGraph {
                 .linearisation_point
                 .slice_mut(s![idx..idx + dofs])
                 .assign(&message_mean);
+
+            idx += dofs;
         }
 
         // *Depending on the problem*, we may need to skip computation of this factor.␍
@@ -688,7 +702,7 @@ impl FactorGraph {
             let message = marginalise_factor_distance::marginalise_factor_distance(
                 factor_eta,
                 factor_lam,
-                variable_index.index(),
+                dofs,
                 marginalisation_idx,
             );
             messages.insert(variable_index, message);

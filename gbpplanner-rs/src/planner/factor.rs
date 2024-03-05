@@ -2,10 +2,12 @@ use bevy::{log::info, render::texture::Image};
 
 // use nalgebra::{Matrix, Vector, Matrix, Vector};
 use ndarray::{array, concatenate, s, Axis, Slice};
+use num_traits::Zero;
 // use ndarray_linalg::Norm;
 use petgraph::prelude::NodeIndex;
 use std::{
     collections::HashMap,
+    env::var,
     ops::{AddAssign, Sub},
 };
 
@@ -536,6 +538,7 @@ impl FactorState {
         // linearisation_point: Vector<f32>,
         strength: f32,
         dofs: usize,
+        neighbor_amount: usize,
     ) -> Self {
         // Initialise precision of the measurement function
         // this->meas_model_lambda_ = Eigen::MatrixXd::Identity(z_.rows(), z_.rows()) / pow(sigma,2.);
@@ -544,7 +547,7 @@ impl FactorState {
         Self {
             measurement,
             measurement_precision,
-            linearisation_point: array![],
+            linearisation_point: Vector::<f32>::zeros(dofs * neighbor_amount),
             strength,
             dofs,
             cached_jacobian: array![[]],
@@ -586,7 +589,7 @@ impl Factor {
         dofs: usize,
         delta_t: f32,
     ) -> Self {
-        let mut state = FactorState::new(measurement, strength, dofs);
+        let mut state = FactorState::new(measurement, strength, dofs, 2); // Dynamic factors have 2 neighbors
         let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
         let kind = FactorKind::Dynamic(dynamic_factor);
         Self::new(state, kind)
@@ -601,7 +604,7 @@ impl Factor {
         safety_radius: f32,
         connection: InterRobotConnection,
     ) -> Self {
-        let state = FactorState::new(measurement, strength, dofs);
+        let state = FactorState::new(measurement, strength, dofs, 2); // Interrobot factors have 2 neighbors
         let interrobot_factor = InterRobotFactor::new(safety_radius, strength, false, connection);
         let kind = FactorKind::InterRobot(interrobot_factor);
 
@@ -616,13 +619,11 @@ impl Factor {
         strength: f32,
         measurement: Vector<f32>,
         dofs: usize,
-        // obstacle_sdf: Arc<image::RgbImage>,
-        // obstacle_sdf: &OnceLock<Image>,
         obstacle_sdf: &'static Image,
         world_size: f32,
     ) -> Self {
-        let state = FactorState::new(measurement, strength, dofs);
-        // let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
+        let state = FactorState::new(measurement, strength, dofs, 1); // Obstacle factors have 1 neighbor
+                                                                      // let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
         Self::new(state, kind)
