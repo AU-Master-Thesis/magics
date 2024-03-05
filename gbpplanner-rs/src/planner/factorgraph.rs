@@ -5,6 +5,8 @@ use bevy::prelude::*;
 use ndarray::s;
 use petgraph::Undirected;
 
+use crate::planner::factor;
+
 use super::factor::{Factor, FactorKind};
 // use super::multivariate_normal::MultivariateNormal;
 use super::robot::RobotId;
@@ -112,11 +114,14 @@ pub struct Message {
 
 impl Message {
     pub fn with_dofs(dofs: usize) -> Self {
-        let information_vector = Vector::<f32>::from_elem(dofs, 1.0 / dofs as f32);
-        let precision_matrix = Matrix::<f32>::eye(dofs);
-        MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
+        // let information_vector = Vector::<f32>::from_elem(dofs, 1.0 / dofs as f32);
+        // let precision_matrix = Matrix::<f32>::eye(dofs);
+        // MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
+        //     .map(|gaussian| Self { gaussian })
+        //     .expect("An identity matrix and uniform vector is a valid multivariate normal")
+        MultivariateNormal::empty(dofs)
             .map(|gaussian| Self { gaussian })
-            .expect("An identity matrix and uniform vector is a valid multivariate normal")
+            .expect("Empty `MultiVarianteNormal` is always valid")
     }
 
     // pub fn mean(&self) -> Vector<f32> {
@@ -138,6 +143,14 @@ impl Message {
     // pub fn zeroize(&mut self) {
     //     self.0.zeroize();
     // }
+
+    pub fn empty(dofs: usize) -> Self {
+        let information_vector = Vector::<f32>::from_elem(dofs, 0.0);
+        let precision_matrix = Matrix::<f32>::zeros((dofs, dofs));
+        MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
+            .map(|gaussian| Self { gaussian })
+            .expect("An identity matrix and uniform vector is a valid multivariate normal")
+    }
 }
 
 impl From<MultivariateNormal<f32>> for Message {
@@ -297,6 +310,10 @@ impl FactorGraph {
         let dofs = 4;
         match self.graph[a] {
             Node::Factor(ref mut factor) => factor.send_message(b, Message::empty(dofs)),
+            Node::Variable(ref mut variable) => variable.send_message(b, Message::empty(dofs)),
+        }
+        match self.graph[b] {
+            Node::Factor(ref mut factor) => factor.send_message(a, Message::empty(dofs)),
             Node::Variable(ref mut variable) => variable.send_message(a, Message::empty(dofs)),
         }
         self.graph.add_edge(a, b, ())
@@ -682,7 +699,22 @@ impl FactorGraph {
                 .expect("variable_index should point to a Variable in the graph");
             let factor_messages = variable.update_belief();
 
-            println!("factor_messages: {:#?}", factor_messages);
+            // KEEP: for future debugging
+            // info!(
+            //     "{} messages received by variable: {:?}",
+            //     factor_messages.len(),
+            //     variable_index
+            // );
+            // factor_messages.iter().for_each(|(factor_index, message)| {
+            //     let node = &self.graph[*factor_index];
+            //     if node.is_factor() {
+            //         info!("Message from factor: {:#?}", message);
+            //     } else if node.is_variable() {
+            //         info!("Message from variable: {:#?}", message);
+            //     }
+            // });
+
+            // println!("factor_messages: {:#?}", factor_messages);
 
             for (factor_index, message) in factor_messages {
                 let factor = self.graph[factor_index]

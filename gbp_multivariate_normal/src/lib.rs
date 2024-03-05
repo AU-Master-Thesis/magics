@@ -66,9 +66,10 @@ impl<T: Scalar> MultivariateNormal<T> {
                 precision_matrix.ncols(),
             ))
         } else {
-            if precision_matrix.det().is_zero() {
-                return Err(MultivariateNormalError::NonInvertiblePrecisionMatrix);
-            }
+            // QUESTION: Does it have to be invertible?
+            // if precision_matrix.det().is_zero() {
+            //     return Err(MultivariateNormalError::NonInvertiblePrecisionMatrix);
+            // }
             let mean = precision_matrix.dot(&information_vector);
             Ok(Self {
                 information: information_vector,
@@ -116,6 +117,29 @@ impl<T: Scalar> MultivariateNormal<T> {
                 dirty: false,
             })
         }
+    }
+
+    /// Create an empty multivariate normal distribution
+    /// Used for the initial empty message that has to be sent `Factor` -> `Variable` and vice versa
+    pub fn empty(dofs: usize) -> Result<Self> {
+        // Self {
+        //     information: Vector::zeros(0),
+        //     precision: Matrix::zeros((0, 0)),
+        //     mean: Vector::zeros(0),
+        //     dirty: false,
+        // }
+        // Ok(Self {
+        //     information: Vector::zeros(0),
+        //     precision: Matrix::zeros((0, 0)),
+        //     mean: Vector::zeros(0),
+        //     dirty: false,
+        // })
+        Ok(Self {
+            information: Vector::zeros(dofs),
+            precision: Matrix::zeros((dofs, dofs)),
+            mean: Vector::zeros(dofs),
+            dirty: false,
+        })
     }
 
     /// Returns the "dimension" of the multivariate normal distribution, which is the length of the information vector
