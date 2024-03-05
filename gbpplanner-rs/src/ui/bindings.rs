@@ -3,7 +3,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_egui::{
-    egui::{self, Color32, RichText},
+    egui::{self, panel, Color32, RichText},
     EguiContexts,
 };
 use leafwing_input_manager::{
@@ -86,10 +86,10 @@ fn ui_binding_panel(
     mut contexts: EguiContexts,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
     ui_state: ResMut<UiState>,
-    query_camera_action: Query<&InputMap<CameraAction>>,
-    query_general_action: Query<&InputMap<GeneralAction>>,
-    query_moveable_object_action: Query<&InputMap<MoveableObjectAction>>,
-    query_ui_action: Query<&InputMap<UiAction>>,
+    mut query_camera_action: Query<&mut InputMap<CameraAction>>,
+    mut query_general_action: Query<&mut InputMap<GeneralAction>>,
+    mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
+    mut query_ui_action: Query<&mut InputMap<UiAction>>,
     catppuccin: Res<CatppuccinTheme>,
     mut currently_changing: ResMut<ChangingBinding>,
 ) {
@@ -137,11 +137,16 @@ fn ui_binding_panel(
         .default_width(300.0)
         .resizable(false)
         .show_animated(ctx, ui_state.left_panel, |ui| {
+            // If the mouse if over the panel, cancel all simulation actions
+            // if ui.ui_contains_pointer() {
+            //     *currently_changing = ChangingBinding::default().with_cooldown(0.1);
+            // }
             ui.add_space(10.0);
             ui.heading("Binding Panel");
             ui.add_space(5.0);
             ui.separator();
-            egui::ScrollArea::vertical().show(ui, |ui| {
+            let panel_height = ui.available_rect_before_wrap().height();
+            egui::ScrollArea::vertical().max_height(panel_height - 80.0).drag_to_scroll(true).show(ui, |ui| {
                 ui.add_space(10.0);
                 egui::Grid::new("cool_grid")
                     .num_columns(3)
@@ -352,7 +357,82 @@ fn ui_binding_panel(
                     });
             });
 
-            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+            ui.separator();
+            ui.add_space(10.0);
+
+            ui.horizontal(|ui| {
+                if !matches!(currently_changing.action, InputAction::Undefined) {
+                    ui.columns(2, |columns| {
+                        columns[0].label(RichText::new("Currently binding:").italics().color(Color32::from_catppuccin_colour(catppuccin.flavour.overlay2())));
+                        columns[1].centered_and_justified(|ui| {
+                            let _ = ui.button(currently_changing.action.to_display_string());
+                        });
+                    });
+                } else {
+                    ui.label(RichText::new("Select a binding to change").italics().color(Color32::from_catppuccin_colour(catppuccin.flavour.overlay2())));
+                }
+            });
+
+            // buttons to cancel the currently changing binding
+            // and to unbind the currently changing binding
+            if !matches!(currently_changing.action, InputAction::Undefined) {
+                ui.add_space(5.0);
+                ui.horizontal(|ui| {
+                    ui.columns(2, |columns| {
+                        columns[0].centered_and_justified(|ui| {
+                            if ui.button("Cancel (ESC)").clicked() {
+                                *currently_changing = ChangingBinding::default();
+                            }
+                        });
+                        columns[1].centered_and_justified(|ui| {
+                            if ui.button("Unbind").clicked() {
+                                match currently_changing.action {
+                                    InputAction::Camera(action) => {
+                                        let mut map = query_camera_action.single_mut();
+                                        let bindings = map.get_mut(&action);
+                                        if let Some(bindings) = bindings {
+                                            if bindings.len() > currently_changing.binding {
+                                                bindings.remove(currently_changing.binding);
+                                            }
+                                        }
+                                    }
+                                    InputAction::General(action) => {
+                                        let mut map = query_general_action.single_mut();
+                                        let bindings = map.get_mut(&action);
+                                        if let Some(bindings) = bindings {
+                                            if bindings.len() > currently_changing.binding {
+                                                bindings.remove(currently_changing.binding);
+                                            }
+                                        }
+                                    }
+                                    InputAction::MoveableObject(action) => {
+                                        let mut map = query_moveable_object_action.single_mut();
+                                        let bindings = map.get_mut(&action);
+                                        if let Some(bindings) = bindings {
+                                            if bindings.len() > currently_changing.binding {
+                                                bindings.remove(currently_changing.binding);
+                                            }
+                                        }
+                                    }
+                                    InputAction::Ui(action) => {
+                                        let mut map = query_ui_action.single_mut();
+                                        let bindings = map.get_mut(&action);
+                                        if let Some(bindings) = bindings {
+                                            if bindings.len() > currently_changing.binding {
+                                                bindings.remove(currently_changing.binding);
+                                            }
+                                        }
+                                    }
+                                    _ => { /* do nothing */ }
+                                }
+                                *currently_changing = ChangingBinding::default();
+                            }
+                        });
+                    });
+                });
+            }
+
+            // ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         });
 
     occupied_screen_space.left = left_panel
