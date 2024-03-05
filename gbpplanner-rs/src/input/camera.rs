@@ -4,12 +4,9 @@ use strum_macros::EnumIter;
 
 use crate::ui::ChangingBinding;
 
-use super::{
-    super::{
-        camera::{self, CameraMovementMode, MainCamera},
-        movement::{AngularVelocity, Orbit, Velocity},
-    },
-    general::GeneralInputs,
+use super::super::{
+    camera::{self, CameraMovementMode, MainCamera},
+    movement::{AngularVelocity, Orbit, Velocity},
 };
 
 pub struct CameraInputPlugin;
@@ -17,7 +14,7 @@ pub struct CameraInputPlugin;
 impl Plugin for CameraInputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((InputManagerPlugin::<CameraAction>::default(),))
-            .add_systems(PostStartup, (bind_camera_input, bind_camera_switch))
+            .add_systems(PostStartup, (bind_camera_input /*bind_camera_switch*/,))
             .add_systems(Update, (camera_actions, switch_camera));
     }
 }
@@ -148,6 +145,7 @@ fn camera_actions(
         ),
         With<MainCamera>,
     >,
+    // mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
 ) {
     if currently_changing.is_changing() {
@@ -171,13 +169,6 @@ fn camera_actions(
                         .axis_pair(&CameraAction::MouseMove)
                         .map(|axis| axis.xy())
                     {
-                        // let action = action_state
-                        //     .axis_pair(&CameraAction::MouseMove)
-                        //     .unwrap()
-                        //     .xy();
-
-                        // velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
-                        // tmp_velocity = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
                         tmp_velocity.x = action.x * camera_distance / 50.0; // * camera::SPEED;
                         tmp_velocity.z = action.y * camera_distance / 50.0; // * camera::SPEED;
                     }
@@ -187,12 +178,6 @@ fn camera_actions(
                         .axis_pair(&CameraAction::MouseMove)
                         .map(|axis| axis.xy())
                     {
-                        // let action = action_state
-                        //     .axis_pair(&CameraAction::MouseMove)
-                        //     .unwrap()
-                        //     .xy();
-
-                        // angular_velocity.value = Vec3::new(-action.x, 0.0, action.y) * camera::SPEED;
                         tmp_angular_velocity.x = -action.x * 0.2; // * camera::ANGULAR_SPEED;
                         tmp_angular_velocity.y = action.y * 0.2; // * camera::ANGULAR_SPEED;
                     }
@@ -205,12 +190,6 @@ fn camera_actions(
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize_or_zero())
                     {
-                        // let action = action_state
-                        //     .clamped_axis_pair(&CameraAction::Move)
-                        //     .unwrap()
-                        //     .xy()
-                        //     .normalize_or_zero();
-
                         tmp_velocity.x = -action.x * camera::SPEED * camera_distance / 35.0;
                         tmp_velocity.z = action.y * camera::SPEED * camera_distance / 35.0;
                     }
@@ -221,12 +200,6 @@ fn camera_actions(
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize())
                     {
-                        // let action = action_state
-                        //     .clamped_axis_pair(&CameraAction::Move)
-                        //     .unwrap()
-                        //     .xy()
-                        //     .normalize();
-
                         tmp_angular_velocity.x = action.x * camera::ANGULAR_SPEED;
                         tmp_angular_velocity.y = action.y * camera::ANGULAR_SPEED;
                     }
@@ -268,25 +241,8 @@ fn camera_actions(
     }
 }
 
-fn bind_camera_switch(mut commands: Commands) {
-    let mut input_map = InputMap::default();
-    input_map.insert(
-        CameraAction::Switch,
-        UserInput::Single(InputKind::PhysicalKey(KeyCode::Tab)),
-    );
-
-    commands.spawn((
-        InputManagerBundle::with_map(input_map),
-        // InputManagerBundle::<CameraAction> {
-        //     input_map,
-        //     ..default()
-        // },
-        GeneralInputs,
-    ));
-}
-
 fn switch_camera(
-    query: Query<&ActionState<CameraAction>, With<GeneralInputs>>,
+    query: Query<&ActionState<CameraAction>>,
     mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
 ) {

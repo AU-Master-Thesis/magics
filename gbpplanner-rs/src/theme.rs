@@ -4,7 +4,7 @@ use bevy_egui::{
     egui::{
         self,
         epaint::Shadow,
-        style::{HandleShape, Selection, Widgets},
+        style::{HandleShape, Selection, WidgetVisuals, Widgets},
         Color32, Rounding, Stroke, Style, Visuals,
     },
     EguiContexts,
@@ -56,7 +56,7 @@ impl ColourExt for Colour {
     }
 }
 
-pub trait CatppuccinThemeExt {
+pub trait CatppuccinThemeVisualsExt {
     fn catppuccin_light() -> Visuals {
         Self::catppuccin_flavour(Flavour::Latte)
     }
@@ -66,28 +66,52 @@ pub trait CatppuccinThemeExt {
     fn catppuccin_flavour(flavour: Flavour) -> Visuals;
 }
 
+pub trait CatppuccinThemeWidgetsExt {
+    fn catppuccin_light() -> Widgets {
+        Self::catppuccin_flavour(Flavour::Latte)
+    }
+    fn catppuccin_dark() -> Widgets {
+        Self::catppuccin_flavour(Flavour::Macchiato)
+    }
+    fn catppuccin_flavour(flavour: Flavour) -> Widgets;
+}
+
+pub trait CatppuccinThemeSelectionExt {
+    fn catppuccin_light() -> Selection {
+        Self::catppuccin_flavour(Flavour::Latte)
+    }
+    fn catppuccin_dark() -> Selection {
+        Self::catppuccin_flavour(Flavour::Macchiato)
+    }
+    fn catppuccin_flavour(flavour: Flavour) -> Selection;
+}
+
 pub trait FromCatppuccinColourExt {
     fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color32;
+    fn from_catppuccin_colour_ref(colour: &catppuccin::Colour) -> Color32 {
+        Self::from_catppuccin_colour(*colour)
+    }
+    fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Color32;
 }
 
 impl FromCatppuccinColourExt for Color32 {
     fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color32 {
         Color32::from_rgb(colour.0, colour.1, colour.2)
     }
+    fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Color32 {
+        let (r, g, b) = colour.into();
+        Color32::from_rgba_unmultiplied(r, g, b, (alpha * 255.0) as u8)
+    }
 }
 
-impl CatppuccinThemeExt for Visuals {
+impl CatppuccinThemeVisualsExt for Visuals {
     fn catppuccin_flavour(flavour: Flavour) -> Visuals {
         let is_dark = flavour.base().lightness() < 0.5;
         Visuals {
             dark_mode: is_dark,
             override_text_color: Some(Color32::from_catppuccin_colour(flavour.text())),
-            widgets: if is_dark {
-                Widgets::default()
-            } else {
-                Widgets::light()
-            },
-            selection: Selection::default(),
+            widgets: Widgets::catppuccin_flavour(flavour),
+            selection: Selection::catppuccin_flavour(flavour),
             // hyperlink_color: Color32::from_rgb(90, 170, 255),
             hyperlink_color: Color32::from_catppuccin_colour(flavour.blue()),
             faint_bg_color: Color32::from_catppuccin_colour(flavour.mantle()), // visible, but barely so
@@ -99,7 +123,7 @@ impl CatppuccinThemeExt for Visuals {
             warn_fg_color: Color32::from_catppuccin_colour(flavour.yellow()),
             error_fg_color: Color32::from_catppuccin_colour(flavour.red()),
 
-            window_rounding: Rounding::same(6.0),
+            window_rounding: Rounding::same(10.0),
             window_shadow: if is_dark {
                 Shadow::big_dark()
             } else {
@@ -136,6 +160,62 @@ impl CatppuccinThemeExt for Visuals {
 
             image_loading_spinners: true,
             ..Default::default()
+        }
+    }
+}
+
+impl CatppuccinThemeWidgetsExt for Widgets {
+    fn catppuccin_flavour(flavour: Flavour) -> Self {
+        Self {
+            noninteractive: WidgetVisuals {
+                weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), // separators, indentation lines
+                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), // normal text color
+                rounding: Rounding::same(5.0),
+                expansion: 0.0,
+            },
+            inactive: WidgetVisuals {
+                weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke: Default::default(), // default = 0 width stroke
+                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), // button text
+                rounding: Rounding::same(5.0),
+                expansion: 0.0,
+            },
+            hovered: WidgetVisuals {
+                weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
+                bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
+                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), // e.g. hover over window edge or button
+                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding: Rounding::same(7.0),
+                expansion: 2.0,
+            },
+            active: WidgetVisuals {
+                weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                fg_stroke: Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                rounding: Rounding::same(7.0),
+                expansion: 2.0,
+            },
+            open: WidgetVisuals {
+                weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
+                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding: Rounding::same(5.0),
+                expansion: 0.0,
+            },
+        }
+    }
+}
+
+impl CatppuccinThemeSelectionExt for Selection {
+    fn catppuccin_flavour(flavour: Flavour) -> Selection {
+        Self {
+            bg_fill: Color32::from_catppuccin_colour(flavour.lavender()),
+            stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
         }
     }
 }

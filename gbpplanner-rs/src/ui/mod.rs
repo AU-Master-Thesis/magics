@@ -18,7 +18,7 @@ use leafwing_input_manager::{
 };
 use strum::IntoEnumIterator;
 
-use crate::theme::{CatppuccinTheme, CatppuccinThemeExt};
+use crate::theme::{CatppuccinTheme, CatppuccinThemeVisualsExt};
 use crate::{
     input::{CameraAction, GeneralAction, InputAction, MoveableObjectAction, UiAction},
     theme::FromCatppuccinColourExt,
@@ -387,34 +387,105 @@ fn ui_binding_panel(
     let ctx = contexts.ctx_mut();
 
     // info!("Currently changing: {:?}", currently_changing);
+    // let grid_row_color = |r: usize, style: &mut egui::style::Style| {
+    //     if r == 0 {
+    //         style.visuals.widgets.noninteractive.bg_fill = Some(Color32::from_catppuccin_colour_ref(
+    //             &catppuccin.flavour.lavender(),
+    //         ));
+    //     }
+    // };
+
+    let grid_row_color = catppuccin.flavour.mantle();
+    // let grid_title_color = catppuccin.flavour.lavender();
+    // let mut grid_title_colors = [
+    //     catppuccin.flavour.green(),
+    //     catppuccin.flavour.blue(),
+    //     catppuccin.flavour.mauve(),
+    //     catppuccin.flavour.maroon(),
+    // ]
+    // .into_iter()
+    // .cycle();
+    // title colours
+    let grid_title_colors = [
+        catppuccin.flavour.green(),
+        catppuccin.flavour.blue(),
+        catppuccin.flavour.mauve(),
+        catppuccin.flavour.maroon(),
+        catppuccin.flavour.lavender(),
+    ];
+
+    let mut gtc_iter = grid_title_colors.iter().cycle();
+
+    let mut counter = 1; // offset by 1 to account for header row
+    let mut grid_title_rows = Vec::with_capacity(InputAction::iter().count());
+    let grid_map_ranges = InputAction::iter()
+        .map(|variant| {
+            grid_title_rows.push(counter);
+            counter += 1;
+            let start = counter;
+            match variant {
+                InputAction::Camera(_) => {
+                    counter += CameraAction::iter().count();
+                }
+                InputAction::General(_) => {
+                    counter += GeneralAction::iter().count();
+                }
+                InputAction::MoveableObject(_) => {
+                    counter += MoveableObjectAction::iter().count();
+                }
+                InputAction::Ui(_) => {
+                    counter += UiAction::iter().count();
+                }
+                _ => { /* do nothing */ }
+            }
+            let end = counter;
+
+            (start..end).step_by(2)
+        })
+        .flatten()
+        .collect::<Vec<usize>>();
 
     let left_panel = egui::SidePanel::left("left_panel")
         .default_width(300.0)
-        .resizable(true)
+        .resizable(false)
         .show_animated(ctx, ui_state.left_panel, |ui| {
+            ui.add_space(10.0);
+            ui.heading("Binding Panel");
+            ui.add_space(5.0);
+            ui.separator();
             egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.heading("Binding Panel");
-                ui.add_space(5.0);
-                ui.separator();
                 ui.add_space(10.0);
                 egui::Grid::new("cool_grid")
                     .num_columns(3)
                     .min_col_width(100.0)
-                    .striped(true)
+                    // .striped(true)
                     .spacing((10.0, 10.0))
+                    .with_row_color(move |r, _| {
+                        if grid_map_ranges.iter().any(|x| *x == r) {
+                            Some(Color32::from_catppuccin_colour(grid_row_color))
+                        } else if grid_title_rows.iter().any(|x| *x == r) {
+                            // TODO: Do this better
+                            Some(Color32::from_catppuccin_colour_with_alpha(grid_title_colors[grid_title_rows.iter().position(|&e| e == r).expect("In a conditional branch that ensures this")], 0.5))
+                        } else {
+                            None
+                        }
+                    })
                     .show(ui, |ui| {
                         let size = 15.0; // pt
                         ui.label(RichText::new("Binding").size(size).color(
+                            // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
                             Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
                         ));
                         ui.centered_and_justified(|ui| {
-                            ui.label(RichText::new("󰌌").size(size).color(
+                            ui.label(RichText::new("󰌌").size(size + 5.0).color(
+                                // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
                                 Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
                             ));
                         });
 
                         ui.centered_and_justified(|ui| {
-                            ui.label(RichText::new("󰊗").size(size).color(
+                            ui.label(RichText::new("󰊗").size(size + 5.0).color(
+                                // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
                                 Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
                             ));
                         });
@@ -431,7 +502,7 @@ fn ui_binding_panel(
                                 RichText::new(action.to_string())
                                     .italics()
                                     .color(Color32::from_catppuccin_colour(
-                                        catppuccin.flavour.lavender(),
+                                        catppuccin.flavour.base(),
                                     ))
                                     .size(size),
                             );
@@ -461,8 +532,24 @@ fn ui_binding_panel(
                                                 });
                                             });
 
+                                            for extra_column in 0..(2 - inner_action.1.len()) {
+                                                ui.centered_and_justified(|ui| {
+                                                    let button_response = ui.button(RichText::new(""));
+
+                                                    if button_response.clicked() {
+                                                        *currently_changing = ChangingBinding {
+                                                            action: InputAction::MoveableObject(
+                                                                *inner_action.0,
+                                                            ),
+                                                            binding: inner_action.1.len() + extra_column,
+                                                        };
+                                                    }
+                                                });
+                                            }
+
                                             ui.end_row();
                                         }
+
                                     }
                                 }
                                 InputAction::General(_) => {
@@ -487,6 +574,22 @@ fn ui_binding_panel(
                                                     }
                                                 });
                                             });
+
+                                            for extra_column in 0..(2 - inner_action.1.len()) {
+                                                ui.centered_and_justified(|ui| {
+                                                    let button_response = ui.button(RichText::new(""));
+
+                                                    if button_response.clicked() {
+                                                        button_response.highlight();
+                                                        *currently_changing = ChangingBinding {
+                                                            action: InputAction::General(
+                                                                *inner_action.0,
+                                                            ),
+                                                            binding: inner_action.1.len() + extra_column,
+                                                        };
+                                                    }
+                                                });
+                                            }
 
                                             ui.end_row();
                                         }
@@ -515,6 +618,22 @@ fn ui_binding_panel(
                                                 });
                                             });
 
+                                            for extra_column in 0..(2 - inner_action.1.len()) {
+                                                ui.centered_and_justified(|ui| {
+                                                    let button_response = ui.button(RichText::new(""));
+
+                                                    if button_response.clicked() {
+                                                        button_response.highlight();
+                                                        *currently_changing = ChangingBinding {
+                                                            action: InputAction::Camera(
+                                                                *inner_action.0,
+                                                            ),
+                                                            binding: inner_action.1.len() + extra_column,
+                                                        };
+                                                    }
+                                                });
+                                            }
+
                                             ui.end_row();
                                         }
                                     }
@@ -542,6 +661,22 @@ fn ui_binding_panel(
                                                 });
                                             });
 
+                                            for extra_column in 0..(2 - inner_action.1.len()) {
+                                                ui.centered_and_justified(|ui| {
+                                                    let button_response = ui.button(RichText::new(""));
+
+                                                    if button_response.clicked() {
+                                                        button_response.highlight();
+                                                        *currently_changing = ChangingBinding {
+                                                            action: InputAction::Ui(
+                                                                *inner_action.0,
+                                                            ),
+                                                            binding: inner_action.1.len() + extra_column,
+                                                        };
+                                                    }
+                                                });
+                                            }
+
                                             ui.end_row();
                                         }
                                     }
@@ -567,28 +702,61 @@ fn ui_binding_panel(
         }
 
         // If the currently changing binding is not default, then change the binding
+        // let mut bindings = match currently_changing.action {
         match currently_changing.action {
             InputAction::Camera(action) => {
                 let mut map = query_camera_action.single_mut();
-                map.remove_at(&action, currently_changing.binding);
-                map.insert(action, UserInput::Single(InputKind::PhysicalKey(key_code)));
+                let bindings = map.get_mut(&action);
+                if let Some(bindings) = bindings {
+                    if bindings.len() > currently_changing.binding {
+                        bindings.remove(currently_changing.binding);
+                    }
+                    bindings.insert(
+                        currently_changing.binding,
+                        UserInput::Single(InputKind::PhysicalKey(key_code)),
+                    );
+                }
             }
             InputAction::General(action) => {
                 let mut map = query_general_action.single_mut();
-                map.remove_at(&action, currently_changing.binding);
-                map.insert(action, UserInput::Single(InputKind::PhysicalKey(key_code)));
+                let bindings = map.get_mut(&action);
+                if let Some(bindings) = bindings {
+                    if bindings.len() > currently_changing.binding {
+                        bindings.remove(currently_changing.binding);
+                    }
+                    bindings.insert(
+                        currently_changing.binding,
+                        UserInput::Single(InputKind::PhysicalKey(key_code)),
+                    );
+                }
             }
             InputAction::MoveableObject(action) => {
                 let mut map = query_moveable_object_action.single_mut();
-                map.remove_at(&action, currently_changing.binding);
-                map.insert(action, UserInput::Single(InputKind::PhysicalKey(key_code)));
+                let bindings = map.get_mut(&action);
+                if let Some(bindings) = bindings {
+                    if bindings.len() > currently_changing.binding {
+                        bindings.remove(currently_changing.binding);
+                    }
+                    bindings.insert(
+                        currently_changing.binding,
+                        UserInput::Single(InputKind::PhysicalKey(key_code)),
+                    );
+                }
             }
             InputAction::Ui(action) => {
                 let mut map = query_ui_action.single_mut();
-                map.remove_at(&action, currently_changing.binding);
-                map.insert(action, UserInput::Single(InputKind::PhysicalKey(key_code)));
+                let bindings = map.get_mut(&action);
+                if let Some(bindings) = bindings {
+                    if bindings.len() > currently_changing.binding {
+                        bindings.remove(currently_changing.binding);
+                    }
+                    bindings.insert(
+                        currently_changing.binding,
+                        UserInput::Single(InputKind::PhysicalKey(key_code)),
+                    );
+                }
             }
-            _ => { /* do nothing */ }
+            _ => { /* do nothing */ } // _ => { None }
         }
         *currently_changing = ChangingBinding::default();
     }
@@ -596,57 +764,58 @@ fn ui_binding_panel(
     for event in gamepad_button_events.read() {
         match currently_changing.action {
             InputAction::Camera(action) => {
-                // let _: Option<u32> = query_camera_action
-                //     .get_single_mut()
-                //     .ok()
-                //     .inspect(|map| {
-                //         map.remove_at(&action, currently_changing.binding);
-                //     })
-                //     .and_then(|mut map| {
-                //         map.insert(
-                //             action,
-                //             UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
-                //         );
-                //         None
-                //     });
-
                 if let Ok(mut map) = query_camera_action.get_single_mut() {
-                    // let mut map = query_camera_action.single_mut();
-                    map.remove_at(&action, currently_changing.binding);
-                    map.insert(
-                        action,
-                        UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
-                    );
+                    let bindings = map.get_mut(&action);
+                    if let Some(bindings) = bindings {
+                        if bindings.len() > currently_changing.binding {
+                            bindings.remove(currently_changing.binding);
+                        }
+                        bindings.insert(
+                            currently_changing.binding,
+                            UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
+                        );
+                    }
                 }
             }
             InputAction::General(action) => {
                 if let Ok(mut map) = query_general_action.get_single_mut() {
-                    map.remove_at(&action, currently_changing.binding);
-                    map.insert(
-                        action,
-                        UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
-                    );
+                    let bindings = map.get_mut(&action);
+                    if let Some(bindings) = bindings {
+                        if bindings.len() > currently_changing.binding {
+                            bindings.remove(currently_changing.binding);
+                        }
+                        bindings.insert(
+                            currently_changing.binding,
+                            UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
+                        );
+                    }
                 }
-                // let mut map = query_general_action.single_mut();
             }
             InputAction::MoveableObject(action) => {
-                if let Ok(mut map) = query_moveable_object_action.get_single_mut() {
-                    // let mut map = query_moveable_object_action.single_mut();
-                    map.remove_at(&action, currently_changing.binding);
-                    map.insert(
-                        action,
+                let mut map = query_moveable_object_action.single_mut();
+                let bindings = map.get_mut(&action);
+                if let Some(bindings) = bindings {
+                    if bindings.len() > currently_changing.binding {
+                        bindings.remove(currently_changing.binding);
+                    }
+                    bindings.insert(
+                        currently_changing.binding,
                         UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
                     );
                 }
             }
             InputAction::Ui(action) => {
                 if let Ok(mut map) = query_ui_action.get_single_mut() {
-                    // let mut map = query_ui_action.single_mut();
-                    map.remove_at(&action, currently_changing.binding);
-                    map.insert(
-                        action,
-                        UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
-                    );
+                    let bindings = map.get_mut(&action);
+                    if let Some(bindings) = bindings {
+                        if bindings.len() > currently_changing.binding {
+                            bindings.remove(currently_changing.binding);
+                        }
+                        bindings.insert(
+                            currently_changing.binding,
+                            UserInput::Single(InputKind::GamepadButton(event.button.button_type)),
+                        );
+                    }
                 }
             }
             _ => { /* do nothing */ }
