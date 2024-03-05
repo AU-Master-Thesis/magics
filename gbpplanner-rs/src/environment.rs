@@ -27,20 +27,8 @@ impl Plugin for EnvironmentPlugin {
 
 /// `Startup` system to spawn the an infinite grid
 /// Using the [`InfiniteGridPlugin`] from the [`bevy_infinite_grid`] crate
-fn infinite_grid(
-    mut commands: Commands,
-    catppuccin_theme: Res<CatppuccinTheme>,
-    windows: Query<&Window>,
-) {
-    let grid_colour = catppuccin_theme.grid_colour(windows);
-
-    // commands.spawn(InfiniteGridBundle {
-    //     settings: InfiniteGridSettings {
-    //         shadow_color: None,
-    //         ..default()
-    //     },
-    //     ..default()
-    // });
+fn infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinTheme>) {
+    let grid_colour = catppuccin_theme.grid_colour();
 
     commands.spawn(InfiniteGridBundle {
         settings: InfiniteGridSettings {

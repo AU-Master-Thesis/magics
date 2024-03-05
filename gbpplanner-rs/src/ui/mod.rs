@@ -1,7 +1,8 @@
-mod bindings;
+mod controls;
 mod decoration;
+mod settings;
 
-pub use bindings::ChangingBinding;
+pub use controls::ChangingBinding;
 pub use decoration::ToDisplayString;
 
 use bevy::{prelude::*, window::WindowTheme};
@@ -12,7 +13,7 @@ use bevy_egui::{
 
 use crate::theme::CatppuccinThemeVisualsExt;
 
-use self::bindings::BindingsPanelPlugin;
+use self::{controls::ControlsPanelPlugin, settings::SettingsPanelPlugin};
 
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/
@@ -31,7 +32,7 @@ impl Plugin for EguiInterfacePlugin {
             .init_resource::<UiState>()
             .add_plugins(EguiPlugin)
             .add_systems(Startup, configure_visuals_system)
-            .add_plugins(BindingsPanelPlugin);
+            .add_plugins((ControlsPanelPlugin, SettingsPanelPlugin));
     }
 }
 

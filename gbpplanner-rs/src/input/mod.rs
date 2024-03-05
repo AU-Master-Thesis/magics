@@ -96,8 +96,8 @@ impl ToDisplayString for UiAction {
     fn to_display_string(&self) -> String {
         match self {
             UiAction::ToggleLeftPanel => "Toggle Left Panel".to_string(),
+            UiAction::ToggleRightPanel => "Toggle Right Panel".to_string(),
             UiAction::ToggleScaleFactor => "Toggle Scale Factor".to_string(),
-            // UiAction::ToggleRightPanel => "Toggle Right Panel".to_string(),
         }
     }
 }

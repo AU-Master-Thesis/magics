@@ -20,17 +20,25 @@ impl Plugin for UiInputPlugin {
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter)]
 pub enum UiAction {
     ToggleLeftPanel,
+    ToggleRightPanel,
     ToggleScaleFactor,
 }
 
 impl UiAction {
     fn variants() -> &'static [Self] {
-        &[UiAction::ToggleLeftPanel, UiAction::ToggleScaleFactor]
+        &[
+            UiAction::ToggleLeftPanel,
+            UiAction::ToggleScaleFactor,
+            UiAction::ToggleRightPanel,
+        ]
     }
 
     fn default_keyboard_input(action: UiAction) -> Option<UserInput> {
         match action {
             Self::ToggleLeftPanel => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyH))),
+            Self::ToggleRightPanel => {
+                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyL)))
+            }
             Self::ToggleScaleFactor => {
                 Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyU)))
             }
@@ -42,11 +50,13 @@ impl ToString for UiAction {
     fn to_string(&self) -> String {
         match self {
             Self::ToggleLeftPanel => "Toggle Left Panel".to_string(),
+            Self::ToggleRightPanel => "Toggle Right Panel".to_string(),
             Self::ToggleScaleFactor => "Toggle Scale Factor".to_string(),
         }
     }
 }
 
+/// Necessary to implement `Default` for `EnumIter`
 impl Default for UiAction {
     fn default() -> Self {
         Self::ToggleLeftPanel
@@ -63,16 +73,11 @@ fn bind_ui_input(mut commands: Commands) {
     }
 
     commands.spawn(InputManagerBundle::with_map(input_map));
-
-    // commands.spawn((InputManagerBundle::<UiAction> {
-    //     input_map,
-    //     ..Default::default()
-    // },));
 }
 
 fn ui_actions(
     query: Query<&ActionState<UiAction>>,
-    mut left_panel: ResMut<UiState>,
+    mut ui_state: ResMut<UiState>,
     mut toggle_scale_factor: Local<Option<bool>>,
     mut egui_settings: ResMut<EguiSettings>,
     windows: Query<&Window, With<PrimaryWindow>>,
@@ -86,7 +91,11 @@ fn ui_actions(
     };
 
     if action_state.just_pressed(&UiAction::ToggleLeftPanel) {
-        left_panel.left_panel = !left_panel.left_panel;
+        ui_state.left_panel = !ui_state.left_panel;
+    }
+
+    if action_state.just_pressed(&UiAction::ToggleRightPanel) {
+        ui_state.right_panel = !ui_state.right_panel;
     }
 
     if action_state.just_pressed(&UiAction::ToggleScaleFactor) || toggle_scale_factor.is_none() {

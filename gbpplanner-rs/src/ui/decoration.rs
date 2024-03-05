@@ -4,7 +4,6 @@ use bevy::input::{
     mouse::MouseButton,
 };
 use heck::ToTitleCase;
-use itertools::Itertools;
 use leafwing_input_manager::{
     axislike::{
         AxisType, DualAxis, MouseMotionAxisType, MouseWheelAxisType, SingleAxis, VirtualAxis,
@@ -13,7 +12,6 @@ use leafwing_input_manager::{
     buttonlike::{MouseMotionDirection, MouseWheelDirection},
     user_input::{InputKind, Modifier, UserInput},
 };
-use strum::IntoEnumIterator;
 
 pub trait ToDisplayString {
     fn to_display_string(&self) -> String;

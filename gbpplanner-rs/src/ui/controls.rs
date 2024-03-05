@@ -3,7 +3,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_egui::{
-    egui::{self, panel, Color32, RichText},
+    egui::{self, Color32, RichText},
     EguiContexts,
 };
 use leafwing_input_manager::{
@@ -19,14 +19,14 @@ use crate::{
 
 use super::{OccupiedScreenSpace, ToDisplayString, UiState};
 
-pub struct BindingsPanelPlugin;
+pub struct ControlsPanelPlugin;
 
-impl Plugin for BindingsPanelPlugin {
+impl Plugin for ControlsPanelPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ChangingBinding>().add_systems(
             Update,
             (
-                ui_binding_panel,
+                ui_controls_panel,
                 change_binding_keyboard,
                 change_binding_gamepad,
                 binding_cooldown_system,
@@ -83,10 +83,10 @@ fn binding_cooldown_system(time: Res<Time>, mut currently_changing: ResMut<Chang
 
 /// `Update` **Bevy** system to render the `egui` UI
 /// Uses the `UiState` to understand which panels are open and should be rendered
-fn ui_binding_panel(
+fn ui_controls_panel(
     mut contexts: EguiContexts,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
-    ui_state: ResMut<UiState>,
+    ui_state: Res<UiState>,
     mut query_camera_action: Query<&mut InputMap<CameraAction>>,
     mut query_general_action: Query<&mut InputMap<GeneralAction>>,
     mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
@@ -139,11 +139,11 @@ fn ui_binding_panel(
         .resizable(false)
         .show_animated(ctx, ui_state.left_panel, |ui| {
             // If the mouse if over the panel, cancel all simulation actions
-            // if ui.ui_contains_pointer() {
-            //     *currently_changing = ChangingBinding::default().with_cooldown(0.1);
-            // }
+            if ui.ui_contains_pointer() {
+                *currently_changing = ChangingBinding::default().with_cooldown(0.1);
+            }
             ui.add_space(10.0);
-            ui.heading("Binding Panel");
+            ui.heading("Controls");
             ui.add_space(5.0);
             ui.separator();
             let panel_height = ui.available_rect_before_wrap().height();
