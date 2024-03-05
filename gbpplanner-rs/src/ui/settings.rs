@@ -4,9 +4,9 @@ use bevy_egui::{
     EguiContexts,
 };
 
-use crate::theme::CatppuccinTheme;
+use crate::theme::{CatppuccinTheme, ThemeEvent};
 
-use super::{OccupiedScreenSpace, UiState};
+use super::{OccupiedScreenSpace, ToDisplayString, UiState};
 
 pub struct SettingsPanelPlugin;
 
@@ -16,13 +16,24 @@ impl Plugin for SettingsPanelPlugin {
     }
 }
 
+impl ToDisplayString for catppuccin::Flavour {
+    fn to_display_string(&self) -> String {
+        match self {
+            catppuccin::Flavour::Frappe => "Frappe".to_string(),
+            catppuccin::Flavour::Latte => "Latte".to_string(),
+            catppuccin::Flavour::Macchiato => "Macchiato".to_string(),
+            catppuccin::Flavour::Mocha => "Mocha".to_string(),
+        }
+    }
+}
+
 /// **Bevy** `Update` system to display the `egui` settings panel
 fn ui_settings_panel(
     mut contexts: EguiContexts,
     mut ui_state: ResMut<UiState>,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
-    mut theme: Local<bool>,
-    mut catppuccin_theme: ResMut<CatppuccinTheme>,
+    mut theme_event: EventWriter<ThemeEvent>,
+    catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -34,25 +45,45 @@ fn ui_settings_panel(
             ui.heading("Settings");
             ui.add_space(5.0);
             ui.separator();
-            ui.checkbox(&mut ui_state.right_panel, "Right Panel");
-            // toggle_ui(ui, &mut theme);
-            ui.menu_button("Theme", |ui| {
-                ui.set_width(100.0);
-                for flavour in &[
-                    catppuccin::Flavour::Frappe,
-                    catppuccin::Flavour::Latte,
-                    catppuccin::Flavour::Macchiato,
-                    catppuccin::Flavour::Mocha,
-                ] {
-                    // if ui
-                    //     .add(egui::widgets::Button::new(flavour).fill(Color32::from_rgb(0, 0, 0)))
-                    //     .clicked()
-                    // {
-                    //     *theme = !*theme;
-                    // }
-                }
-                // ui.add(egui::widgets::Button::new("Toggle Theme").fill(Color32::from_rgb(0, 0, 0)));
-            });
+
+            egui::ScrollArea::vertical()
+                .drag_to_scroll(true)
+                .show(ui, |ui| {
+                    ui.add_space(10.0);
+                    egui::Grid::new("cool_grid")
+                        .num_columns(2)
+                        .min_col_width(100.0)
+                        .striped(false)
+                        .spacing((10.0, 10.0))
+                        .show(ui, |ui| {
+                            // toggle_ui(ui, &mut theme);
+                            ui.label("Select Theme:");
+                            ui.vertical_centered_justified(|ui| {
+                                ui.menu_button(
+                                    catppuccin_theme.flavour.to_display_string(),
+                                    |ui| {
+                                        ui.set_width(100.0);
+                                        for flavour in &[
+                                            catppuccin::Flavour::Frappe,
+                                            catppuccin::Flavour::Latte,
+                                            catppuccin::Flavour::Macchiato,
+                                            catppuccin::Flavour::Mocha,
+                                        ] {
+                                            ui.vertical_centered_justified(|ui| {
+                                                if ui.button(flavour.to_display_string()).clicked()
+                                                {
+                                                    theme_event.send(ThemeEvent(*flavour));
+                                                    ui.close_menu();
+                                                }
+                                            });
+                                        }
+                                    },
+                                );
+                            });
+                            ui.end_row();
+                            ui.label("New row");
+                        });
+                });
         });
 
     occupied_screen_space.right = right_panel
