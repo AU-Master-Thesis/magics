@@ -77,12 +77,8 @@ fn ui_actions(
     mut egui_settings: ResMut<EguiSettings>,
     windows: Query<&Window, With<PrimaryWindow>>,
     currently_changing: Res<ChangingBinding>,
-    keyboard_events: EventReader<KeyboardInput>,
 ) {
-    if keyboard_events.is_empty() {
-        return;
-    }
-    if currently_changing.is_changing() {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
     let Ok(action_state) = query.get_single() else {

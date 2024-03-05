@@ -148,7 +148,7 @@ fn camera_actions(
     // mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
 ) {
-    if currently_changing.is_changing() {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
     if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
@@ -246,7 +246,7 @@ fn switch_camera(
     mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
 ) {
-    if currently_changing.is_changing() {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
     let action_state = query.single();

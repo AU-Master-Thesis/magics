@@ -139,7 +139,7 @@ fn movement_actions(
     >,
     currently_changing: Res<ChangingBinding>,
 ) {
-    if currently_changing.is_changing() {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
     // let action_state = query.single();

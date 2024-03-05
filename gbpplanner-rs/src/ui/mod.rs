@@ -52,7 +52,15 @@ impl Plugin for EguiInterfacePlugin {
             .init_resource::<UiState>()
             .add_plugins(EguiPlugin)
             .add_systems(Startup, configure_visuals_system)
-            .add_systems(Update, ui_binding_panel);
+            .add_systems(
+                Update,
+                (
+                    ui_binding_panel,
+                    change_binding_keyboard,
+                    change_binding_gamepad,
+                    binding_cooldown_system,
+                ),
+            );
     }
 }
 
@@ -370,11 +378,42 @@ fn configure_visuals_system(mut contexts: EguiContexts, windows: Query<&Window>)
 pub struct ChangingBinding {
     pub action: InputAction,
     pub binding: usize,
+    cooldown: f32,
 }
 
 impl ChangingBinding {
+    pub fn new(action: InputAction, binding: usize) -> Self {
+        Self {
+            action,
+            binding,
+            cooldown: 0.0,
+        }
+    }
     pub fn is_changing(&self) -> bool {
         !matches!(self.action, InputAction::Undefined)
+    }
+
+    pub fn on_cooldown(&self) -> bool {
+        self.cooldown > 0.0
+    }
+
+    pub fn with_cooldown(mut self, cooldown: f32) -> Self {
+        self.cooldown = cooldown;
+        self
+    }
+
+    // Decrease the cooldown by `delta`, ensuring that it does not go below 0
+    pub fn decrease_cooldown(&mut self, delta: f32) {
+        self.cooldown -= delta;
+        if self.cooldown < 0.0 {
+            self.cooldown = 0.0;
+        }
+    }
+}
+
+fn binding_cooldown_system(time: Res<Time>, mut currently_changing: ResMut<ChangingBinding>) {
+    if currently_changing.on_cooldown() {
+        currently_changing.decrease_cooldown(time.delta_seconds());
     }
 }
 
@@ -384,37 +423,16 @@ fn ui_binding_panel(
     mut contexts: EguiContexts,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
     ui_state: ResMut<UiState>,
-    mut query_camera_action: Query<&mut InputMap<CameraAction>>,
-    mut query_general_action: Query<&mut InputMap<GeneralAction>>,
-    mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
-    mut query_ui_action: Query<&mut InputMap<UiAction>>,
+    query_camera_action: Query<&InputMap<CameraAction>>,
+    query_general_action: Query<&InputMap<GeneralAction>>,
+    query_moveable_object_action: Query<&InputMap<MoveableObjectAction>>,
+    query_ui_action: Query<&InputMap<UiAction>>,
     catppuccin: Res<CatppuccinTheme>,
     mut currently_changing: ResMut<ChangingBinding>,
-    mut keyboard_events: EventReader<KeyboardInput>,
-    mut gamepad_button_events: EventReader<GamepadButtonInput>,
 ) {
     let ctx = contexts.ctx_mut();
 
-    // info!("Currently changing: {:?}", currently_changing);
-    // let grid_row_color = |r: usize, style: &mut egui::style::Style| {
-    //     if r == 0 {
-    //         style.visuals.widgets.noninteractive.bg_fill = Some(Color32::from_catppuccin_colour_ref(
-    //             &catppuccin.flavour.lavender(),
-    //         ));
-    //     }
-    // };
-
     let grid_row_color = catppuccin.flavour.mantle();
-    // let grid_title_color = catppuccin.flavour.lavender();
-    // let mut grid_title_colors = [
-    //     catppuccin.flavour.green(),
-    //     catppuccin.flavour.blue(),
-    //     catppuccin.flavour.mauve(),
-    //     catppuccin.flavour.maroon(),
-    // ]
-    // .into_iter()
-    // .cycle();
-    // title colours
     let grid_title_colors = [
         catppuccin.flavour.green(),
         catppuccin.flavour.blue(),
@@ -422,8 +440,6 @@ fn ui_binding_panel(
         catppuccin.flavour.maroon(),
         catppuccin.flavour.lavender(),
     ];
-
-    let mut gtc_iter = grid_title_colors.iter().cycle();
 
     let mut counter = 1; // offset by 1 to account for header row
     let mut grid_title_rows = Vec::with_capacity(InputAction::iter().count());
@@ -530,13 +546,10 @@ fn ui_binding_panel(
                                                         x.to_display_string(),
                                                     ));
                                                     if button_response.clicked() {
-                                                        // button_response.highlight();
-                                                        *currently_changing = ChangingBinding {
-                                                            action: InputAction::MoveableObject(
-                                                                *inner_action.0,
-                                                            ),
-                                                            binding: i,
-                                                        };
+                                                        *currently_changing = ChangingBinding::new(
+                                                            InputAction::MoveableObject(*inner_action.0),
+                                                            i,
+                                                        );
                                                     }
                                                 });
                                             });
@@ -546,12 +559,10 @@ fn ui_binding_panel(
                                                     let button_response = ui.button(RichText::new(""));
 
                                                     if button_response.clicked() {
-                                                        *currently_changing = ChangingBinding {
-                                                            action: InputAction::MoveableObject(
-                                                                *inner_action.0,
-                                                            ),
-                                                            binding: inner_action.1.len() + extra_column,
-                                                        };
+                                                        *currently_changing = ChangingBinding::new(
+                                                            InputAction::MoveableObject(*inner_action.0),
+                                                            inner_action.1.len() + extra_column,
+                                                        );
                                                     }
                                                 });
                                             }
@@ -573,13 +584,10 @@ fn ui_binding_panel(
                                                         x.to_display_string(),
                                                     ));
                                                     if button_response.clicked() {
-                                                        // button_response.highlight();
-                                                        *currently_changing = ChangingBinding {
-                                                            action: InputAction::General(
-                                                                *inner_action.0,
-                                                            ),
-                                                            binding: i,
-                                                        };
+                                                        *currently_changing = ChangingBinding::new(
+                                                            InputAction::General(*inner_action.0),
+                                                            i,
+                                                        );
                                                     }
                                                 });
                                             });
@@ -589,13 +597,10 @@ fn ui_binding_panel(
                                                     let button_response = ui.button(RichText::new(""));
 
                                                     if button_response.clicked() {
-                                                        button_response.highlight();
-                                                        *currently_changing = ChangingBinding {
-                                                            action: InputAction::General(
-                                                                *inner_action.0,
-                                                            ),
-                                                            binding: inner_action.1.len() + extra_column,
-                                                        };
+                                                        *currently_changing = ChangingBinding::new(
+                                                            InputAction::General(*inner_action.0),
+                                                            inner_action.1.len() + extra_column,
+                                                        );
                                                     }
                                                 });
                                             }
@@ -616,13 +621,10 @@ fn ui_binding_panel(
                                                         x.to_display_string(),
                                                     ));
                                                     if button_response.clicked() {
-                                                        // button_response.highlight();
-                                                        *currently_changing = ChangingBinding {
-                                                            action: InputAction::Camera(
-                                                                *inner_action.0,
-                                                            ),
-                                                            binding: i,
-                                                        };
+                                                        *currently_changing = ChangingBinding::new(
+                                                            InputAction::Camera(*inner_action.0),
+                                                            i,
+                                                        );
                                                     }
                                                 });
                                             });
@@ -632,13 +634,10 @@ fn ui_binding_panel(
                                                     let button_response = ui.button(RichText::new(""));
 
                                                     if button_response.clicked() {
-                                                        button_response.highlight();
-                                                        *currently_changing = ChangingBinding {
-                                                            action: InputAction::Camera(
-                                                                *inner_action.0,
-                                                            ),
-                                                            binding: inner_action.1.len() + extra_column,
-                                                        };
+                                                        *currently_changing = ChangingBinding::new(
+                                                            InputAction::Camera(*inner_action.0),
+                                                            inner_action.1.len() + extra_column,
+                                                        );
                                                     }
                                                 });
                                             }
@@ -659,13 +658,10 @@ fn ui_binding_panel(
                                                         x.to_display_string(),
                                                     ));
                                                     if button_response.clicked() {
-                                                        // button_response.highlight();
-                                                        *currently_changing = ChangingBinding {
-                                                            action: InputAction::Ui(
-                                                                *inner_action.0,
-                                                            ),
-                                                            binding: i,
-                                                        };
+                                                        *currently_changing = ChangingBinding::new(
+                                                            InputAction::Ui(*inner_action.0),
+                                                            i,
+                                                        );
                                                     }
                                                 });
                                             });
@@ -675,13 +671,10 @@ fn ui_binding_panel(
                                                     let button_response = ui.button(RichText::new(""));
 
                                                     if button_response.clicked() {
-                                                        button_response.highlight();
-                                                        *currently_changing = ChangingBinding {
-                                                            action: InputAction::Ui(
-                                                                *inner_action.0,
-                                                            ),
-                                                            binding: inner_action.1.len() + extra_column,
-                                                        };
+                                                        *currently_changing = ChangingBinding::new(
+                                                            InputAction::Ui(*inner_action.0),
+                                                            inner_action.1.len() + extra_column,
+                                                        );
                                                     }
                                                 });
                                             }
@@ -699,11 +692,25 @@ fn ui_binding_panel(
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         });
 
-    // check for any input at all (keyboard, mouse, gamepad, etc.)
+    occupied_screen_space.left = left_panel
+        .map(|ref inner| inner.response.rect.width())
+        .unwrap_or(0.0);
+}
+
+/// `Update` **Bevy** system
+/// Listens for any keyboard events to rebind currently changing binding
+fn change_binding_keyboard(
+    mut query_camera_action: Query<&mut InputMap<CameraAction>>,
+    mut query_general_action: Query<&mut InputMap<GeneralAction>>,
+    mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
+    mut query_ui_action: Query<&mut InputMap<UiAction>>,
+    mut currently_changing: ResMut<ChangingBinding>,
+    mut keyboard_events: EventReader<KeyboardInput>,
+) {
+    // Listen for keyboard events to rebind currently changing binding
     // if there is, then rebind the map
     for event in keyboard_events.read() {
         let key_code = event.key_code;
-        // consume the event
 
         // If the escape key is pressed, then don't change the binding
         if matches!(key_code, KeyCode::Escape) {
@@ -767,9 +774,22 @@ fn ui_binding_panel(
             }
             _ => { /* do nothing */ } // _ => { None }
         }
-        *currently_changing = ChangingBinding::default();
-    }
 
+        *currently_changing = ChangingBinding::default().with_cooldown(0.1);
+    }
+}
+
+/// **Bevy** `Update` system
+/// Listens for any gamepad button events to rebind currently changing binding
+fn change_binding_gamepad(
+    mut query_camera_action: Query<&mut InputMap<CameraAction>>,
+    mut query_general_action: Query<&mut InputMap<GeneralAction>>,
+    mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
+    mut query_ui_action: Query<&mut InputMap<UiAction>>,
+    mut currently_changing: ResMut<ChangingBinding>,
+    mut gamepad_button_events: EventReader<GamepadButtonInput>,
+) {
+    // Listen for gamepad button events to rebind currently changing binding
     for event in gamepad_button_events.read() {
         let button = event.button;
 
@@ -829,21 +849,6 @@ fn ui_binding_panel(
             _ => { /* do nothing */ }
         }
 
-        *currently_changing = ChangingBinding::default();
+        *currently_changing = ChangingBinding::default().with_cooldown(0.1);
     }
-
-    occupied_screen_space.left = left_panel
-        .map(|ref inner| inner.response.rect.width())
-        .unwrap_or(0.0);
-
-    // occupied_screen_space.left = if left_panel.is_some() {
-    //     left_panel.unwrap().response.rect.width()
-    // } else {
-    //     0.0
-    // };
-    // occupied_screen_space.left = if left_panel.is_some() {
-    //     left_panel.unwrap().response.rect.width()
-    // } else {
-    //     0.0
-    // };
 }

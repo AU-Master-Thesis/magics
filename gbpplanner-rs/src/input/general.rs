@@ -255,7 +255,7 @@ fn general_actions_system(
     config: Res<Config>,
     currently_changing: Res<ChangingBinding>,
 ) {
-    if currently_changing.is_changing() {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
     let Ok(action_state) = query.get_single() else {
