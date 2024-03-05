@@ -294,6 +294,11 @@ impl FactorGraph {
     /// **invariants**:
     /// - Both `a` and `b` must already be in the factorgraph. Panics if any of the nodes does not exist.
     pub fn add_edge(&mut self, a: NodeIndex, b: NodeIndex) -> EdgeIndex {
+        let dofs = 4;
+        match self.graph[a] {
+            Node::Factor(ref mut factor) => factor.send_message(b, Message::empty(dofs)),
+            Node::Variable(ref mut variable) => variable.send_message(a, Message::empty(dofs)),
+        }
         self.graph.add_edge(a, b, ())
     }
 
@@ -666,7 +671,6 @@ impl FactorGraph {
     ///      - message passing modes (INTERNAL within a robot's own factorgraph or EXTERNAL between a robot and other robots):
     ///          in which case the variable or factor may or may not need to take part in GBP depending on if it's connected to another robot
     pub fn variable_iteration(&mut self, robot_id: Entity, mode: MessagePassingMode) {
-        // TODO: use rayon .par_iter()
         // for (i, (v_key, variable)) in self.variables.iter().enumerate() {
         for variable_index in self.graph.node_indices() {
             let node = &mut self.graph[variable_index];
@@ -678,7 +682,7 @@ impl FactorGraph {
                 .expect("variable_index should point to a Variable in the graph");
             let factor_messages = variable.update_belief();
 
-            println!("factor_messages: {:?}", factor_messages);
+            println!("factor_messages: {:#?}", factor_messages);
 
             for (factor_index, message) in factor_messages {
                 let factor = self.graph[factor_index]

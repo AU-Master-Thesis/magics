@@ -120,13 +120,20 @@ fn spawn_formation(
     catppuccin_theme: &Res<CatppuccinTheme>,
     variable_timesteps: &Res<VariableTimestepsResource>,
 ) {
+
+    // let waypoints = formation.waypoints.iter().map(
+    //     |wp| {
+    //         config.simulation.world_size * (wp.shape. - 0.5)
+    //     }
+    // )
+
     // spawn the formation
     let first_wp = formation
         .waypoints
         .first()
         .expect("Formation cannot have 0 waypoint entries");
 
-    let initial_positions = random_positions_on_shape(&first_wp.shape, formation.robots);
+    let initial_positions = random_positions_on_shape(&first_wp.shape, formation.robots, config.simulation.world_size);
 
     // TODO: create mapped waypoints
 
@@ -146,7 +153,7 @@ fn spawn_formation(
 
     // let lookahead_horizon =
     for position in initial_positions {
-        // TODO: Used tha actual mapped waypoints from the formation
+        // TODO: Used the actual mapped waypoints from the formation
         let waypoints = VecDeque::from(vec![position, position + Vec2::new(1.0, 1.0)]);
         commands.spawn((
             RobotBundle::new(
@@ -166,14 +173,14 @@ fn spawn_formation(
     }
 }
 
-fn random_positions_on_shape(shape: &Shape, amount: usize) -> Vec<Vec2> {
+fn random_positions_on_shape(shape: &Shape, amount: usize, world_size: f32) -> Vec<Vec2> {
     let mut rng = rand::thread_rng();
     let mut positions = Vec::with_capacity(amount);
 
     match shape {
         Shape::Line((start, end)) => {
             let start = Vec2::from(start);
-            let end = Vec2::from(end);
+            let end =   Vec2::from(end);
             for _ in 0..amount {
                 // lerp a random point between start and end
                 // TODO: ensure no robots spawn atop each other
@@ -204,7 +211,7 @@ fn random_positions_on_shape(shape: &Shape, amount: usize) -> Vec<Vec2> {
         }
     }
 
-    positions
+    positions.into_iter().map(|p| world_size * (p - 0.5)).collect()
 }
 
 #[cfg(test)]

@@ -109,8 +109,6 @@ impl Variable {
         self.belief
             .update_precision_matrix(self.prior.precision_matrix())
             .expect("the precision matrix of the prior is nonsigular");
-        // self.belief
-        //     .update_precision_matrix(self.prior.precision_matrix());
 
         for (_, message) in self.inbox.iter() {
             unsafe {
@@ -142,7 +140,6 @@ impl Variable {
         self.inbox
             .iter()
             .map(|(&factor_index, received_message)| {
-                // let response = Message(self.belief.clone()) - received_message;
                 let response = Message::from(&self.belief - &received_message.gaussian);
                 (factor_index, response)
             })

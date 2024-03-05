@@ -53,8 +53,8 @@ impl Plugin for RobotPlugin {
                     create_interrobot_factors_system,
                     update_failed_comms_system,
                     // iterate_gbp_system,
-                    // iterate_gbp_internal_system,
-                    // iterate_gbp_external_system,
+                    iterate_gbp_internal_system,
+                    iterate_gbp_external_system,
                     // update_prior_of_horizon_state_system,
                     // update_prior_of_current_state_system,
                 )
@@ -80,7 +80,7 @@ pub struct Radius(pub f32);
 #[derive(Component, Debug)]
 pub struct Waypoints(pub VecDeque<Vec2>);
 
-/// A robot's state, consiting of other robots within communication range,
+/// A robot's state, consisting of other robots within communication range,
 /// and other robots that are connected via inter-robot factors.
 #[derive(Component, Debug)]
 pub struct RobotState {
