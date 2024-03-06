@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::{
     config::Config,
     planner::{FactorGraph, NodeKind, RobotId, RobotState},
+    theme::CatppuccinTheme,
     ui::ChangingBinding,
 };
 
@@ -192,9 +193,27 @@ fn export_factorgraphs_as_graphviz(
     Some(buf)
 }
 
-fn handle_toggle_theme(theme_event: &mut EventWriter<ThemeEvent>) {
+fn handle_toggle_theme(
+    theme_event: &mut EventWriter<ThemeEvent>,
+    catppuccin_theme: Res<CatppuccinTheme>,
+) {
     info!("toggling application theme");
-    theme_event.send(ThemeEvent);
+    // theme_event.send(ThemeEvent);
+
+    match catppuccin_theme.flavour {
+        catppuccin::Flavour::Latte => {
+            theme_event.send(ThemeEvent(catppuccin::Flavour::Frappe));
+        }
+        catppuccin::Flavour::Frappe => {
+            theme_event.send(ThemeEvent(catppuccin::Flavour::Macchiato));
+        }
+        catppuccin::Flavour::Macchiato => {
+            theme_event.send(ThemeEvent(catppuccin::Flavour::Mocha));
+        }
+        catppuccin::Flavour::Mocha => {
+            theme_event.send(ThemeEvent(catppuccin::Flavour::Latte));
+        }
+    }
 }
 
 fn handle_export_graph(
@@ -255,8 +274,9 @@ fn general_actions_system(
     query_graphs: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
     currently_changing: Res<ChangingBinding>,
+    catppuccin_theme: Res<CatppuccinTheme>,
 ) {
-    if currently_changing.is_changing() {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
     let Ok(action_state) = query.get_single() else {
@@ -265,7 +285,7 @@ fn general_actions_system(
     };
 
     if action_state.just_pressed(&GeneralAction::ToggleTheme) {
-        handle_toggle_theme(&mut theme_event);
+        handle_toggle_theme(&mut theme_event, catppuccin_theme);
     }
 
     if action_state.just_pressed(&GeneralAction::ExportGraph) {

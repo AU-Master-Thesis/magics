@@ -3,7 +3,7 @@ use bevy_egui::EguiSettings;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum_macros::EnumIter;
 
-use crate::ui::ChangingBinding;
+use crate::ui::{ChangingBinding, UiScaleType};
 
 use super::super::ui::UiState;
 
@@ -20,20 +20,26 @@ impl Plugin for UiInputPlugin {
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter)]
 pub enum UiAction {
     ToggleLeftPanel,
-    ToggleScaleFactor,
+    ToggleRightPanel,
+    ChangeScaleKind,
 }
 
 impl UiAction {
     fn variants() -> &'static [Self] {
-        &[UiAction::ToggleLeftPanel, UiAction::ToggleScaleFactor]
+        &[
+            UiAction::ToggleLeftPanel,
+            UiAction::ChangeScaleKind,
+            UiAction::ToggleRightPanel,
+        ]
     }
 
     fn default_keyboard_input(action: UiAction) -> Option<UserInput> {
         match action {
             Self::ToggleLeftPanel => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyH))),
-            Self::ToggleScaleFactor => {
-                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyU)))
+            Self::ToggleRightPanel => {
+                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyL)))
             }
+            Self::ChangeScaleKind => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyU))),
         }
     }
 }
@@ -42,11 +48,13 @@ impl ToString for UiAction {
     fn to_string(&self) -> String {
         match self {
             Self::ToggleLeftPanel => "Toggle Left Panel".to_string(),
-            Self::ToggleScaleFactor => "Toggle Scale Factor".to_string(),
+            Self::ToggleRightPanel => "Toggle Right Panel".to_string(),
+            Self::ChangeScaleKind => "Toggle Scale Factor".to_string(),
         }
     }
 }
 
+/// Necessary to implement `Default` for `EnumIter`
 impl Default for UiAction {
     fn default() -> Self {
         Self::ToggleLeftPanel
@@ -63,26 +71,14 @@ fn bind_ui_input(mut commands: Commands) {
     }
 
     commands.spawn(InputManagerBundle::with_map(input_map));
-
-    // commands.spawn((InputManagerBundle::<UiAction> {
-    //     input_map,
-    //     ..Default::default()
-    // },));
 }
 
 fn ui_actions(
     query: Query<&ActionState<UiAction>>,
-    mut left_panel: ResMut<UiState>,
-    mut toggle_scale_factor: Local<Option<bool>>,
-    mut egui_settings: ResMut<EguiSettings>,
-    windows: Query<&Window, With<PrimaryWindow>>,
+    mut ui_state: ResMut<UiState>,
     currently_changing: Res<ChangingBinding>,
-    keyboard_events: EventReader<KeyboardInput>,
 ) {
-    if keyboard_events.is_empty() {
-        return;
-    }
-    if currently_changing.is_changing() {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
     let Ok(action_state) = query.get_single() else {
@@ -90,19 +86,24 @@ fn ui_actions(
     };
 
     if action_state.just_pressed(&UiAction::ToggleLeftPanel) {
-        left_panel.left_panel = !left_panel.left_panel;
+        ui_state.left_panel = !ui_state.left_panel;
     }
 
-    if action_state.just_pressed(&UiAction::ToggleScaleFactor) || toggle_scale_factor.is_none() {
-        *toggle_scale_factor = Some(!toggle_scale_factor.unwrap_or(true));
+    if action_state.just_pressed(&UiAction::ToggleRightPanel) {
+        ui_state.right_panel = !ui_state.right_panel;
+    }
 
-        if let Ok(window) = windows.get_single() {
-            let scale_factor = if toggle_scale_factor.unwrap() {
-                1.0
-            } else {
-                1.0 / window.scale_factor()
-            };
-            egui_settings.scale_factor = scale_factor;
+    if action_state.just_pressed(&UiAction::ChangeScaleKind) {
+        match ui_state.scale_type {
+            UiScaleType::None => {
+                ui_state.scale_type = UiScaleType::Custom;
+            }
+            UiScaleType::Custom => {
+                ui_state.scale_type = UiScaleType::Window;
+            }
+            UiScaleType::Window => {
+                ui_state.scale_type = UiScaleType::None;
+            }
         }
     }
 }

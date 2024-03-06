@@ -11,6 +11,7 @@ use bevy_egui::{
 };
 use bevy_infinite_grid::InfiniteGridSettings;
 use catppuccin::{Colour, Flavour};
+use color_eyre::config::Theme;
 
 use crate::factorgraph::{Factor, Line, Variable};
 
@@ -29,18 +30,19 @@ impl Default for CatppuccinTheme {
 }
 
 impl CatppuccinTheme {
-    pub fn grid_colour(&self, windows: Query<&Window>) -> Color {
-        let window = windows
-            .get_single()
-            .expect("There should be exactly one window");
-        let colour = match window.window_theme {
-            Some(WindowTheme::Light) => self.flavour.text(),
-            Some(WindowTheme::Dark) => self.flavour.crust(),
-            None => self.flavour.text(),
+    pub fn grid_colour(&self) -> Color {
+        let colour = if self.is_dark() {
+            self.flavour.crust()
+        } else {
+            self.flavour.text()
         };
 
         let (r, g, b) = colour.into();
         Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8)
+    }
+
+    pub fn is_dark(&self) -> bool {
+        self.flavour.base().lightness() < 0.5
     }
 }
 
@@ -222,11 +224,17 @@ impl CatppuccinThemeSelectionExt for Selection {
 
 /// Signal that theme should be toggled
 #[derive(Event, Debug, Copy, Clone)]
-pub struct ThemeEvent;
+pub struct ThemeEvent(pub Flavour);
+
+impl Default for ThemeEvent {
+    fn default() -> Self {
+        Self(Flavour::Macchiato)
+    }
+}
 
 /// Signal after theme has been toggled
 #[derive(Event, Debug, Copy, Clone)]
-pub struct ThemeToggledEvent;
+pub struct ThemeChangedEvent;
 
 /// Theming plugin
 pub struct ThemePlugin;
@@ -234,16 +242,16 @@ pub struct ThemePlugin;
 impl Plugin for ThemePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ThemeEvent>()
-            .add_event::<ThemeToggledEvent>()
+            .add_event::<ThemeChangedEvent>()
             .init_resource::<CatppuccinTheme>()
             .add_systems(
                 Startup,
-                set_theme(WindowTheme::Dark).run_if(theme_is_not_set),
+                set_window_theme(WindowTheme::Dark).run_if(theme_is_not_set),
             )
             .add_systems(
                 Update,
                 (
-                    toggle_theme,
+                    change_theme,
                     handle_clear_color,
                     handle_infinite_grid,
                     handle_variables,
@@ -254,76 +262,106 @@ impl Plugin for ThemePlugin {
     }
 }
 
+/// **Bevy** run criteria, checking if the window theme has been set
 fn theme_is_not_set(windows: Query<&Window>) -> bool {
     let window = windows.single();
     window.window_theme.is_none()
 }
 
-fn set_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
+/// **Bevy** `Startup` system to set the window theme
+/// Run criteria: `theme_is_not_set`
+/// Only used to set the window theme if it wasn't possible to detect from the system
+fn set_window_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
     move |mut windows: Query<&mut Window>| {
         let mut window = windows.single_mut();
         window.window_theme = Some(theme);
     }
 }
 
-fn toggle_theme(
+/// **Bevy** `Update` system to change the theme
+/// Reads `catppuccin::Flavour` from `ThemeEvent` to change the theme
+/// Emits a `ThemeChangedEvent` after the theme has been changed, to be used by other systems that actually change the colours
+fn change_theme(
     mut windows: Query<&mut Window>,
     mut theme_event: EventReader<ThemeEvent>,
     mut catppuccin_theme: ResMut<CatppuccinTheme>,
-    mut theme_toggled_event: EventWriter<ThemeToggledEvent>,
+    mut theme_toggled_event: EventWriter<ThemeChangedEvent>,
     mut contexts: EguiContexts,
 ) {
     let mut window = windows.single_mut();
-    for _ in theme_event.read() {
-        if let Some(current_theme) = window.window_theme {
-            let (window_theme, egui_style) = match current_theme {
-                WindowTheme::Light => {
-                    info!("Switching WindowTheme: Light -> Dark");
-                    catppuccin_theme.flavour = match catppuccin_theme.flavour {
-                        Flavour::Latte => Flavour::Macchiato,
-                        _ => Flavour::Latte,
-                    };
+    for theme_event in theme_event.read() {
+        let new_flavour = theme_event.0;
 
-                    (Some(WindowTheme::Dark), Visuals::catppuccin_dark())
-                }
-                WindowTheme::Dark => {
-                    info!("Switching WindowTheme: Dark -> Light");
-                    catppuccin_theme.flavour = match catppuccin_theme.flavour {
-                        Flavour::Latte => Flavour::Macchiato,
-                        _ => Flavour::Latte,
-                    };
+        let new_window_theme = match theme_event.0 {
+            Flavour::Latte => {
+                info!(
+                    "Switching theme {:?} -> {:?}",
+                    catppuccin_theme.flavour,
+                    Flavour::Latte
+                );
 
-                    (Some(WindowTheme::Light), Visuals::catppuccin_light())
-                }
-            };
-            window.window_theme = window_theme;
-            contexts
-                .ctx_mut()
-                .style_mut(|style| style.visuals = egui_style);
-            theme_toggled_event.send(ThemeToggledEvent);
-        }
+                Some(WindowTheme::Light)
+            }
+            Flavour::Frappe => {
+                info!(
+                    "Switching theme {:?} -> {:?}",
+                    catppuccin_theme.flavour,
+                    Flavour::Frappe
+                );
+
+                Some(WindowTheme::Light)
+            }
+            Flavour::Macchiato => {
+                info!(
+                    "Switching theme {:?} -> {:?}",
+                    catppuccin_theme.flavour,
+                    Flavour::Macchiato
+                );
+
+                Some(WindowTheme::Dark)
+            }
+            Flavour::Mocha => {
+                info!(
+                    "Switching theme {:?} -> {:?}",
+                    catppuccin_theme.flavour,
+                    Flavour::Mocha
+                );
+
+                Some(WindowTheme::Dark)
+            }
+        };
+        window.window_theme = new_window_theme;
+        contexts
+            .ctx_mut()
+            .style_mut(|style| style.visuals = Visuals::catppuccin_flavour(new_flavour));
+        catppuccin_theme.flavour = new_flavour;
+        theme_toggled_event.send(ThemeChangedEvent);
     }
 }
 
+/// **Bevy** `Update` system to handle the clear colour theme change
+/// Reads `ThemeChangedEvent` to know when to change the clear colour
 fn handle_clear_color(
     mut clear_color: ResMut<ClearColor>,
     catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_toggled_event: EventReader<ThemeToggledEvent>,
+    mut theme_changed_event: EventReader<ThemeChangedEvent>,
 ) {
-    for _ in theme_toggled_event.read() {
+    for _ in theme_changed_event.read() {
         let (r, g, b) = catppuccin_theme.flavour.base().into();
         *clear_color = ClearColor(Color::rgb_u8(r, g, b));
     }
 }
 
+/// **Bevy** `Update` system to handle the infinite grid theme change
+/// Reads `ThemeChangedEvent` to know when to change the infinite grid theme
 fn handle_infinite_grid(
     catppuccin_theme: Res<CatppuccinTheme>,
     windows: Query<&Window>,
-    mut theme_toggled_event: EventReader<ThemeToggledEvent>,
+    mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut query_infinite_grid: Query<&mut InfiniteGridSettings>,
 ) {
-    let grid_colour = catppuccin_theme.grid_colour(windows);
-    for _ in theme_toggled_event.read() {
+    let grid_colour = catppuccin_theme.grid_colour();
+    for _ in theme_changed_event.read() {
         if let Ok(mut settings) = query_infinite_grid.get_single_mut() {
             settings.major_line_color = grid_colour.with_a(0.5);
             settings.minor_line_color = grid_colour.with_a(0.25);
@@ -335,13 +373,15 @@ fn handle_infinite_grid(
     }
 }
 
+/// **Bevy** `Update` system to handle the variable theme change
+/// Reads `ThemeChangedEvent` to know when to change the variable colour
 fn handle_variables(
     catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_toggled_event: EventReader<ThemeToggledEvent>,
+    mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query_variable: Query<&mut Handle<StandardMaterial>, With<Variable>>,
 ) {
-    for _ in theme_toggled_event.read() {
+    for _ in theme_changed_event.read() {
         for handle in query_variable.iter_mut() {
             if let Some(material) = materials.get_mut(handle.clone()) {
                 let alpha = 0.75;
@@ -354,13 +394,15 @@ fn handle_variables(
     }
 }
 
+/// **Bevy** `Update` system to handle the factor theme change
+/// Reads `ThemeChangedEvent` to know when to change the factor colour
 fn handle_factors(
     catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_toggled_event: EventReader<ThemeToggledEvent>,
+    mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query_factor: Query<&mut Handle<StandardMaterial>, With<Factor>>,
 ) {
-    for _ in theme_toggled_event.read() {
+    for _ in theme_changed_event.read() {
         for handle in query_factor.iter_mut() {
             if let Some(material) = materials.get_mut(handle.clone()) {
                 let alpha = 0.75;
@@ -373,13 +415,15 @@ fn handle_factors(
     }
 }
 
+/// **Bevy** `Update` system to handle the line theme change
+/// Reads `ThemeChangedEvent` to know when to change the line colour
 fn handle_lines(
     catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_toggled_event: EventReader<ThemeToggledEvent>,
+    mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query_line: Query<&mut Handle<StandardMaterial>, With<Line>>,
 ) {
-    for _ in theme_toggled_event.read() {
+    for _ in theme_changed_event.read() {
         for handle in query_line.iter_mut() {
             if let Some(material) = materials.get_mut(handle.clone()) {
                 let alpha = 0.75;

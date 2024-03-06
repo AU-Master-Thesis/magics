@@ -148,7 +148,7 @@ fn camera_actions(
     // mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
 ) {
-    if currently_changing.is_changing() {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
     if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
@@ -169,8 +169,8 @@ fn camera_actions(
                         .axis_pair(&CameraAction::MouseMove)
                         .map(|axis| axis.xy())
                     {
-                        tmp_velocity.x = action.x * camera_distance / 50.0; // * camera::SPEED;
-                        tmp_velocity.z = action.y * camera_distance / 50.0; // * camera::SPEED;
+                        tmp_velocity.x = action.x * camera_distance / 10.0; // * camera::SPEED;
+                        tmp_velocity.z = action.y * camera_distance / 10.0; // * camera::SPEED;
                     }
                 }
                 CameraMovementMode::Orbit => {
@@ -246,7 +246,7 @@ fn switch_camera(
     mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
 ) {
-    if currently_changing.is_changing() {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
     let action_state = query.single();

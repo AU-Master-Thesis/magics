@@ -1,10 +1,12 @@
 pub mod formation;
 
 use bevy::ecs::system::Resource;
+use bevy::reflect::Reflect;
 pub use formation::Formation;
 pub use formation::FormationGroup;
 
 use serde::{Deserialize, Serialize};
+use struct_iterable::Iterable;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
@@ -52,7 +54,7 @@ impl Default for GraphvizSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Iterable, Reflect, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct DrawSection {
     pub communication_graph: bool,
