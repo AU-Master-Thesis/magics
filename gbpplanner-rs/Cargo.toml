@@ -26,6 +26,8 @@ bevy = { version = "0.13.0", default-features = true, features = [
 ] }
 bevy-inspector-egui = "0.23.2"
 bevy_egui = "0.25.0"
+egui_extras = { version = "0.26.2", features = ["all_loaders"] }
+image = { version = "0.24.8", default-features = false, features = ["png"] }
 leafwing-input-manager = "0.13.3"
 # bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
 bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "bevy-v0.13.0" }
@@ -43,7 +45,6 @@ rand = "0.8.5"
 itertools = "0.12.1"
 petgraph = "0.6.4"
 # nalgebra = "0.32.4"
-# image = { version = "0.24.8", default-features = false, features = ["png"] }
 ndarray = "0.15.6"
 ndarray-inverse = "0.1.9"
 # ndarray-linalg = { version = "0.16", features = ["intel-mkl-static"] } # This is the only backend variant i have gotten to work

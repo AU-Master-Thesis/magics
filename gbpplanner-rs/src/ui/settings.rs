@@ -26,8 +26,13 @@ impl Plugin for SettingsPanelPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<UiScaleEvent>()
             .add_event::<EnvironmentEvent>()
+            .add_systems(Startup, install_egui_image_loaders)
             .add_systems(Update, (ui_settings_panel, scale_ui));
     }
+}
+
+fn install_egui_image_loaders(mut egui_ctx: EguiContexts) {
+    egui_extras::install_image_loaders(egui_ctx.ctx_mut());
 }
 
 impl ToDisplayString for catppuccin::Flavour {
@@ -42,6 +47,7 @@ impl ToDisplayString for catppuccin::Flavour {
 }
 
 /// **Bevy** `Update` system to display the `egui` settings panel
+#[allow(clippy::too_many_arguments)]
 fn ui_settings_panel(
     mut contexts: EguiContexts,
     mut ui_state: ResMut<UiState>,
@@ -56,7 +62,7 @@ fn ui_settings_panel(
 
     let right_panel = egui::SidePanel::right("Settings Panel")
         .default_width(200.0)
-        .resizable(false)
+        .resizable(true)
         .show_animated(ctx, ui_state.right_panel, |ui| {
             ui.add_space(10.0);
             ui.heading("Settings");
@@ -169,6 +175,8 @@ fn ui_settings_panel(
                             }
                         });
                     });
+                    ui.add(
+                    egui::Image::new(egui::include_image!("../../../factorgraphs.png")));
                 });
         });
 
