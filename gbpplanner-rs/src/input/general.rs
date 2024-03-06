@@ -8,7 +8,8 @@ use crate::{
 };
 
 use super::super::theme::ThemeEvent;
-use bevy::prelude::*;
+use bevy::{prelude::*, tasks::IoTaskPool};
+use gbp_linalg::GbpFloat;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum_macros::EnumIter;
 
@@ -247,34 +248,39 @@ fn handle_export_graph(
     info!("exporting all factorgraphs to ./{:#?}", dot_output_path);
     std::fs::write(&dot_output_path, output.as_bytes())?;
 
-    let png_output_path = dot_output_path.with_extension("png");
+    IoTaskPool::get()
+        .spawn(async move {
+            let png_output_path = dot_output_path.with_extension("png");
+            let args = [
+                "-T",
+                "png",
+                "-o",
+                png_output_path.to_str().expect("is valid UTF8"),
+                dot_output_path.to_str().expect("is valid UTF8"),
+            ];
+            let Ok(output) = std::process::Command::new("dot").args(args).output() else {
+                error!(
+                    "failed to compile ./{:?} with dot. reason: dot was not found in $PATH",
+                    dot_output_path
+                );
+                return;
+            };
 
-    let output = std::process::Command::new("dot")
-        .args([
-            "-T",
-            "png",
-            "-o",
-            png_output_path.to_str().expect("is valid UTF8"),
-            dot_output_path.to_str().expect("is valid UTF8"),
-        ])
-        .output()?;
-
-    if output.status.success() {
-        info!(
-            "compiled {:?} to {:?} with dot",
-            dot_output_path, png_output_path
-        );
-        open::that(&png_output_path)?;
-        info!(
-            "opening the compiled graph: {:?} in the filetypes default application",
-            png_output_path
-        );
-    } else {
-        error!(
-            "attempting to compile graph with dot, returned a non-zero exit status: {:?}",
-            output
-        );
-    }
+            if output.status.success() {
+                info!(
+                    "compiled {:?} to {:?} with dot",
+                    dot_output_path, png_output_path
+                );
+                let _ = open::that(&png_output_path)
+                    .inspect_err(|e| error!("failed to open ./{:?}: {e}", png_output_path));
+            } else {
+                error!(
+                    "attempting to compile graph with dot, returned a non-zero exit status: {:?}",
+                    output
+                );
+            }
+        })
+        .detach();
 
     Ok(())
 }

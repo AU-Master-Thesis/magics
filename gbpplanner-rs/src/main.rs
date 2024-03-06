@@ -63,7 +63,7 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
     } else {
         let mut conf_paths = Vec::<PathBuf>::new();
 
-        if let Some(home) = std::env::var("HOME").ok() {
+        if let Ok(home) = std::env::var("HOME") {
             let xdg_config_home = std::path::Path::new(&home).join(".config");
             let user_config_dir = xdg_config_home.join("gbpplanner");
 
@@ -89,8 +89,21 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     let cli = Cli::parse();
 
+    if cli.dump_default_config && cli.dump_default_formation {
+        // info!("{}","you can not set --dump-default-config and --dump-default-formation at the same time!" );
+        eprintln!(
+            "you can not set --dump-default-config and --dump-default-formation at the same time!"
+        );
+        // error!(
+        //     "you can not set --dump-default-config and --dump-default-formation at the same time!"
+        // );
+        // return Err(
+        //     "you can not set --dump-default-config and --dump-default-formation at the same time!",
+        // );
+        std::process::exit(2);
+    }
+
     if cli.dump_default_formation {
-        // let default_formation = config::Formation::default();
         let default_formation = config::FormationGroup::default();
         // Write default config to stdout
         // println!("{}", toml::to_string_pretty(&default_formation)?);
@@ -110,8 +123,6 @@ fn main() -> color_eyre::eyre::Result<()> {
         let default_config = config::Config::default();
         // Write default config to stdout
         println!("{}", toml::to_string_pretty(&default_config)?);
-        // println!("{}", ron::to_string(&default_config)?);
-
         return Ok(());
     }
 
@@ -124,8 +135,8 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     // info!("Config: {:?}", config);
 
-    App::new()
-        .insert_resource(config)
+    let mut app = App::new();
+    app.insert_resource(config)
         .insert_resource(formation)
         .add_plugins((
             DefaultPlugins.set(
@@ -166,8 +177,11 @@ fn main() -> color_eyre::eyre::Result<()> {
             PlannerPlugin,        // Custom
                                   // WorldInspectorPlugin::new()
         ))
-        .add_systems(Update, make_visible)
-        .run();
+        .add_systems(Update, make_visible);
+
+    eprintln!("{:#?}", app);
+
+    app.run();
 
     Ok(())
 }

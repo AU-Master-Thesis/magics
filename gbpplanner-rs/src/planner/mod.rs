@@ -1,19 +1,20 @@
 mod factor;
 mod factorgraph;
 mod marginalise_factor_distance;
+mod message;
 mod robot;
 mod spawner;
 mod variable;
 
-pub use factorgraph::graphviz::{Node, NodeKind};
+pub use factorgraph::graphviz::NodeKind;
 pub use factorgraph::FactorGraph;
 pub use factorgraph::NodeIndex;
 pub use robot::RobotId;
 pub use robot::RobotState;
 
-use gbp_linalg::*;
+// use gbp_linalg::*;
 
-pub type Timestep = u32;
+// pub type Timestep = u32;
 
 use self::robot::RobotPlugin;
 use self::spawner::SpawnerPlugin;

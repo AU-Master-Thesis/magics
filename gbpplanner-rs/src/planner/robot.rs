@@ -1,5 +1,4 @@
 use std::collections::{BTreeSet, VecDeque};
-// use std::sync::{Arc, OnceLock};
 
 use crate::config::Config;
 use crate::utils::get_variable_timesteps;
@@ -8,10 +7,11 @@ use super::factor::{Factor, InterRobotConnection};
 use super::factorgraph::{FactorGraph, MessagePassingMode};
 // use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
-use super::{Matrix, NdarrayVectorExt, NodeIndex, Timestep, Vector, VectorNorm};
+use super::NodeIndex;
 use bevy::prelude::*;
+use gbp_linalg::prelude::*;
 use gbp_multivariate_normal::MultivariateNormal;
-use ndarray::{array, concatenate, Axis};
+use ndarray::{array, concatenate, s, Axis};
 use std::collections::HashMap;
 
 pub struct RobotPlugin;
@@ -20,11 +20,11 @@ pub type RobotId = Entity;
 
 /// Sigma for Unary pose factor on current and horizon states
 /// from **gbpplanner** `Globals.h`
-const SIGMA_POSE_FIXED: f32 = 1e-15;
+const SIGMA_POSE_FIXED: f32 = 1e-6;
 
 #[derive(Resource)]
-struct VariableTimestepsResource {
-    timesteps: Vec<u32>,
+pub struct VariableTimestepsResource {
+    pub timesteps: Vec<u32>,
 }
 
 impl FromWorld for VariableTimestepsResource {
@@ -53,10 +53,10 @@ impl Plugin for RobotPlugin {
                     create_interrobot_factors_system,
                     update_failed_comms_system,
                     // iterate_gbp_system,
-                    // iterate_gbp_internal_system,
-                    // iterate_gbp_external_system,
-                    // update_prior_of_horizon_state_system,
-                    // update_prior_of_current_state_system,
+                    iterate_gbp_internal_system,
+                    iterate_gbp_external_system,
+                    update_prior_of_horizon_state_system,
+                    update_prior_of_current_state_system,
                 )
                     .chain(),
             );
@@ -80,7 +80,7 @@ pub struct Radius(pub f32);
 #[derive(Component, Debug)]
 pub struct Waypoints(pub VecDeque<Vec2>);
 
-/// A robot's state, consiting of other robots within communication range,
+/// A robot's state, consisting of other robots within communication range,
 /// and other robots that are connected via inter-robot factors.
 #[derive(Component, Debug)]
 pub struct RobotState {
@@ -134,7 +134,7 @@ impl RobotBundle {
     pub fn new(
         mut waypoints: VecDeque<Vec2>,
         // transform: Transform,
-        variable_timesteps: &[Timestep],
+        variable_timesteps: &[u32],
         config: &Config,
         // obstacle_sdf: Arc<image::RgbImage>,
         // obstacle_sdf: &OnceLock<Image>,
@@ -172,34 +172,42 @@ impl RobotBundle {
             .last()
             .expect("Know that variable_timesteps has at least one element");
 
-        let mut variable_node_indices = Vec::with_capacity(variable_timesteps.len());
-        for i in 0..variable_timesteps.len() {
+        let variable_amount = variable_timesteps.len();
+        let mut variable_node_indices = Vec::with_capacity(variable_amount);
+        for i in 0..variable_amount {
             // Set initial mean and covariance of variable interpolated between start and horizon
             let mean = start
                 + (horizon - start)
                     * (variable_timesteps[i] as f32 / last_variable_timestep as f32);
             // Start and Horizon state variables should be 'fixed' during optimisation at a timestep
-            let sigma = if i == 0 || i == variable_timesteps.len() - 1 {
-                SIGMA_POSE_FIXED
+            let sigma = if i == 0 || i == variable_amount - 1 {
+                // SIGMA_POSE_FIXED
+                1e6
             } else {
-                0.0
+                4e9
             };
 
-            let sigmas: Vector<f32> = {
-                let elem = if sigma == 0.0 {
-                    f32::MAX
-                } else {
-                    1.0 / sigma.powi(2)
-                };
-                Vector::<f32>::from_shape_fn(ndofs, |_| elem)
-            };
+            // let sigmas: Vector<f32> = {
+            //     let elem = if sigma == 0.0 {
+            //         4e9
+            //         // f32::INFINITY
+            //         // 1e15
+            //     } else {
 
-            let covariance = Matrix::<f32>::from_diag(&sigmas);
+            //         1.0 / sigma.powi(2)
+            //     };
+            //     Vector::<f32>::from_shape_fn(ndofs, |_| elem)
+            // };
+
+            let covariance = Matrix::<Float>::from_diag_elem(ndofs, sigma);
+            dbg!(&covariance);
             let prior = MultivariateNormal::from_mean_and_covariance(
-                array![mean.x, mean.y, 0.0, 0.0], // initial velocity (x', y') is zero
+                array![mean.x as Float, mean.y as Float, 0.0, 0.0], // initial velocity (x', y') is zero
                 covariance,
             )
             .expect("the covariance is nonsingular");
+
+            dbg!(&prior);
 
             let variable = Variable::new(prior, ndofs);
             let variable_index = factorgraph.add_variable(variable);
@@ -211,12 +219,12 @@ impl RobotBundle {
             // T0 is the timestep between the current state and the first planned state.
             let delta_t =
                 config.simulation.t0 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
-            let measurement = Vector::<f32>::zeros(config.robot.dofs);
+            let measurement = Vector::<Float>::zeros(config.robot.dofs);
             let dynamic_factor = Factor::new_dynamic_factor(
-                config.gbp.sigma_factor_dynamics,
+                config.gbp.sigma_factor_dynamics as Float,
                 measurement,
                 config.robot.dofs,
-                delta_t,
+                delta_t as Float,
             );
 
             let factor_node_index = factorgraph.add_factor(dynamic_factor);
@@ -229,11 +237,11 @@ impl RobotBundle {
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
             let obstacle_factor = Factor::new_obstacle_factor(
-                config.gbp.sigma_factor_obstacle,
+                config.gbp.sigma_factor_obstacle as Float,
                 array![0.0],
                 config.robot.dofs,
                 obstacle_sdf,
-                config.simulation.world_size,
+                config.simulation.world_size as Float,
             );
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
@@ -357,13 +365,13 @@ fn create_interrobot_factors_system(
         })
         .collect();
 
-    let n_variables = variable_timesteps.timesteps.len();
+    let variable_amount = variable_timesteps.timesteps.len();
 
     let variable_indices_of_each_factorgraph: HashMap<RobotId, Vec<NodeIndex>> = query
         .iter()
         .map(|(robot_id, factorgraph, _)| {
             let varible_indices = factorgraph
-                .variable_indices_ordered_by_creation(1..n_variables)
+                .variable_indices_ordered_by_creation(1..variable_amount)
                 .expect("the factorgraph has up to `n_variables` variables");
             (robot_id, varible_indices)
         })
@@ -377,10 +385,10 @@ fn create_interrobot_factors_system(
             let other_varible_indices = variable_indices_of_each_factorgraph
                 .get(other_robot_id)
                 .expect("the key is in the map");
-            for i in 1..n_variables {
+            for i in 1..variable_amount {
                 // TODO: do not hardcode
                 let dofs = 4;
-                let z = Vector::<f32>::zeros(dofs);
+                let z = Vector::<Float>::zeros(dofs);
                 let eps = 0.2 * config.robot.radius;
                 let safety_radius = 2.0 * config.robot.radius + eps;
                 let connection = InterRobotConnection {
@@ -389,10 +397,10 @@ fn create_interrobot_factors_system(
                         [i - 1],
                 };
                 let interrobot_factor = Factor::new_interrobot_factor(
-                    config.gbp.sigma_factor_interrobot,
+                    config.gbp.sigma_factor_interrobot as Float,
                     z,
                     dofs,
-                    safety_radius,
+                    safety_radius as Float,
                     connection,
                 );
                 let factor_index = factorgraph.add_factor(interrobot_factor);
@@ -474,25 +482,45 @@ fn update_prior_of_horizon_state_system(
 ) {
     let delta_t = time.delta_seconds();
     for (entity, mut factorgraph, mut waypoints) in query.iter_mut() {
-        let Some(current_waypoint) = waypoints.0.front().map(|wp| array![wp.x, wp.y]) else {
+        let Some(current_waypoint) = waypoints
+            .0
+            .front()
+            .map(|wp| array![wp.x as Float, wp.y as Float])
+        else {
             warn!("robot {:?}, has reached its final waypoint", entity);
             continue;
         };
 
+        // let Some(horizon_variable) = factorgraph.last_variable_mut() else {
+        //     // dbg!(&factorgraph.graph);
+        //     eprintln!("#nodes = {:?}", factorgraph.node_count());
+        //     dbg!(&factorgraph.variable_indices_ordered);
+        //     // eprintln!("{:?}", factorgraph.variable_indices_ordered_by_creation());
+        //     // dbg!(&factorgraph);
+        //     std::process::exit(1);
+        // };
         let horizon_variable = factorgraph
             .last_variable_mut()
             .expect("factorgraph has a horizon variable");
+
         let mean_of_horizon_variable = horizon_variable.belief.mean();
-        let direction_from_horizon_to_goal = current_waypoint - mean_of_horizon_variable;
-        let distance_from_horizon_to_goal = direction_from_horizon_to_goal.euclidean_norm();
-        let new_velocity = f32::min(config.robot.max_speed, distance_from_horizon_to_goal)
-            * direction_from_horizon_to_goal.normalized();
-        let new_position = mean_of_horizon_variable + &new_velocity * delta_t;
+        debug_assert_eq!(mean_of_horizon_variable.len(), 4);
+        // dbg!(&current_waypoint);
+        // dbg!(&mean_of_horizon_variable);
+        let estimated_position = mean_of_horizon_variable.slice(s![..2]);
+        let horizon2goal_dir = current_waypoint - estimated_position;
+
+        let horizon2goal_dist = horizon2goal_dir.euclidean_norm();
+        let new_velocity = Float::min(config.robot.max_speed as Float, horizon2goal_dist)
+            * horizon2goal_dir.normalized();
+        let new_position = estimated_position.into_owned() + (&new_velocity * delta_t as Float);
 
         // Update horizon state with new pos and vel
         // horizon->mu_ << new_pos, new_vel;
         // horizon->change_variable_prior(horizon->mu_);
         let new_mean = concatenate![Axis(0), new_position, new_velocity];
+        debug_assert_eq!(new_mean.len(), 4);
+
         // TODO: cache the mean ...
         // horizon_variable.belief.mean()
 
@@ -502,7 +530,7 @@ fn update_prior_of_horizon_state_system(
         let _ = horizon_variable.change_prior(new_mean, vec![]);
 
         // NOTE: this is weird, we think
-        let horizon_has_reached_waypoint = distance_from_horizon_to_goal < config.robot.radius;
+        let horizon_has_reached_waypoint = horizon2goal_dist < config.robot.radius as Float;
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
             waypoints.0.pop_front();
         }
@@ -514,7 +542,8 @@ fn update_prior_of_current_state_system(
     config: Res<Config>,
     time: Res<Time>,
 ) {
-    let scale = time.delta_seconds() / config.simulation.t0;
+    let scale = 1e10 * time.delta_seconds() / config.simulation.t0;
+    dbg!(&scale);
 
     for (mut factorgraph, mut transform) in query.iter_mut() {
         let (mean_of_current_variable, increment) = {
@@ -526,7 +555,8 @@ fn update_prior_of_current_state_system(
                 .expect("factorgraph should have a next variable");
 
             let mean_of_current_variable = current_variable.belief.mean().clone();
-            let increment = scale * (next_variable.belief.mean() - &mean_of_current_variable);
+            let increment =
+                scale as Float * (next_variable.belief.mean() - &mean_of_current_variable);
 
             (mean_of_current_variable, increment)
         };
@@ -537,7 +567,8 @@ fn update_prior_of_current_state_system(
             .nth_variable_mut(0)
             .expect("factorgraph should have a current variable")
             .change_prior(mean_of_current_variable + &increment, vec![]);
-        let increment = Vec3::new(increment[0], 0.0, increment[1]);
+        let increment = Vec3::new(increment[0] as f32, 0.0, increment[1] as f32);
+        dbg!(&increment);
         transform.translation += increment;
     }
 }

@@ -37,8 +37,13 @@ impl Plugin for SettingsPanelPlugin {
         app.add_event::<UiScaleEvent>()
             .add_event::<EnvironmentEvent>()
             .add_event::<ExportGraphEvent>()
+            .add_systems(Startup, install_egui_image_loaders)
             .add_systems(Update, (ui_settings_panel, scale_ui));
     }
+}
+
+fn install_egui_image_loaders(mut egui_ctx: EguiContexts) {
+    egui_extras::install_image_loaders(egui_ctx.ctx_mut());
 }
 
 impl ToDisplayString for catppuccin::Flavour {
@@ -53,6 +58,7 @@ impl ToDisplayString for catppuccin::Flavour {
 }
 
 /// **Bevy** `Update` system to display the `egui` settings panel
+#[allow(clippy::too_many_arguments)]
 fn ui_settings_panel(
     mut contexts: EguiContexts,
     mut ui_state: ResMut<UiState>,
@@ -68,7 +74,7 @@ fn ui_settings_panel(
 
     let right_panel = egui::SidePanel::right("Settings Panel")
         .default_width(200.0)
-        .resizable(false)
+        .resizable(true)
         .show_animated(ctx, ui_state.right_panel, |ui| {
             ui.add_space(10.0);
             ui.heading("Settings");
@@ -180,26 +186,28 @@ fn ui_settings_panel(
                                     ui.end_row();
                                 }
                             });
-                    });
+                        });
                     
-                    custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.mauve())));
+                        custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.mauve())));
 
-                    egui::Grid::new("export_grid")
-                        .num_columns(2)
-                        .min_col_width(100.0)
-                        .striped(false)
-                        .spacing((10.0, 10.0))
-                        .show(ui, |ui| {
-                            // GRAPHVIZ EXPORT TOGGLE
-                            ui.label("Graphviz");
-                            custom::fill_x(ui, |ui| {
-                                if ui.button("Export").clicked() {
-                                    export_graph_event.send(ExportGraphEvent);
-                                }
-                            });
+                        egui::Grid::new("export_grid")
+                            .num_columns(2)
+                            .min_col_width(100.0)
+                            .striped(false)
+                            .spacing((10.0, 10.0))
+                            .show(ui, |ui| {
+                                // GRAPHVIZ EXPORT TOGGLE
+                                ui.label("Graphviz");
+                                custom::fill_x(ui, |ui| {
+                                    if ui.button("Export").clicked() {
+                                        export_graph_event.send(ExportGraphEvent);
+                                    }
+                                });
                         });
                         ui.add_space(10.0);
-                });
+                        ui.add(egui::Image::new(egui::include_image!("../../../factorgraphs.png")));
+                        ui.add_space(10.0);
+                    });
         });
 
     occupied_screen_space.right = right_panel
