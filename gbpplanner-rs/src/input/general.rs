@@ -4,7 +4,7 @@ use crate::{
     config::Config,
     planner::{FactorGraph, NodeKind, RobotId, RobotState},
     theme::CatppuccinTheme,
-    ui::ChangingBinding,
+    ui::{ChangingBinding, ExportGraphEvent},
 };
 
 use super::super::theme::ThemeEvent;
@@ -21,7 +21,7 @@ impl Plugin for GeneralInputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((InputManagerPlugin::<GeneralAction>::default(),))
             .add_systems(PostStartup, (bind_general_input,))
-            .add_systems(Update, (general_actions_system,));
+            .add_systems(Update, (general_actions_system, export_graph_on_event));
     }
 }
 
@@ -211,6 +211,18 @@ fn handle_toggle_theme(
         }
         catppuccin::Flavour::Mocha => {
             theme_event.send(ThemeEvent(catppuccin::Flavour::Latte));
+        }
+    }
+}
+
+fn export_graph_on_event(
+    mut theme_event: EventReader<ExportGraphEvent>,
+    query: Query<(Entity, &FactorGraph), With<RobotState>>,
+    config: Res<Config>,
+) {
+    if theme_event.read().next().is_some() {
+        if let Err(e) = handle_export_graph(query, config.as_ref()) {
+            error!("failed to export factorgraphs with error: {:?}", e);
         }
     }
 }

@@ -8,6 +8,8 @@ pub use formation::FormationGroup;
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
 
+use crate::ui::ToDisplayString;
+
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
     #[error("IO error: {0}")]
@@ -70,6 +72,28 @@ impl Default for DrawSection {
             predicted_trajectories: true,
             waypoints: true,
             uncertainty: true,
+        }
+    }
+}
+
+impl DrawSection {
+    // pub fn display_names(&self) -> impl Iterator<Item = String> + '_ {
+    //     self.iter().map(|(k, _)| match k {
+    //         "communication_graph" => "Communication".to_string(),
+    //         "predicted_trajectories" => "Trajectories".to_string(),
+    //         "waypoints" => "Waypoints".to_string(),
+    //         "uncertainty" => "Uncertainty".to_string(),
+    //         _ => "Unknown".to_string(),
+    //     })
+    // }
+
+    pub fn to_display_string(name: &str) -> String {
+        match name {
+            "communication_graph" => "Communication".to_string(),
+            "predicted_trajectories" => "Trajectories".to_string(),
+            "waypoints" => "Waypoints".to_string(),
+            "uncertainty" => "Uncertainty".to_string(),
+            _ => "Unknown".to_string(),
         }
     }
 }

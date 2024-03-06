@@ -147,216 +147,268 @@ fn ui_controls_panel(
             ui.add_space(5.0);
             ui.separator();
             let panel_height = ui.available_rect_before_wrap().height();
-            egui::ScrollArea::vertical().max_height(panel_height - 80.0).drag_to_scroll(true).show(ui, |ui| {
-                ui.add_space(10.0);
-                egui::Grid::new("cool_grid")
-                    .num_columns(3)
-                    .min_col_width(100.0)
-                    // .striped(true)
-                    .spacing((10.0, 10.0))
-                    .with_row_color(move |r, _| {
-                        if grid_map_ranges.iter().any(|x| *x == r) {
-                            Some(Color32::from_catppuccin_colour(grid_row_color))
-                        } else if grid_title_rows.iter().any(|x| *x == r) {
-                            // TODO: Do this better
-                            Some(Color32::from_catppuccin_colour_with_alpha(grid_title_colors[grid_title_rows.iter().position(|&e| e == r).expect("In a conditional branch that ensures this")], 0.5))
-                        } else {
-                            None
-                        }
-                    })
-                    .show(ui, |ui| {
-                        let size = 15.0; // pt
-                        ui.label(RichText::new("Binding").size(size).color(
-                            // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
-                            Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
-                        ));
-                        ui.centered_and_justified(|ui| {
-                            ui.label(RichText::new("󰌌").size(size + 5.0).color(
-                                // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
-                                Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
-                            ));
-                        });
-
-                        ui.centered_and_justified(|ui| {
-                            ui.label(RichText::new("󰊗").size(size + 5.0).color(
-                                // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
-                                Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
-                            ));
-                        });
-
-                        ui.end_row();
-
-                        // go through all InputAction variants, and make a title for each
-                        // then nested go through each inner variant and make a button for each
-                        for action in InputAction::iter() {
-                            if matches!(action, InputAction::Undefined) {
-                                continue;
+            egui::ScrollArea::vertical()
+                .max_height(panel_height - 80.0)
+                .drag_to_scroll(true)
+                .show(ui, |ui| {
+                    // Inside the `ScrollArea`
+                    ui.add_space(10.0);
+                    egui::Grid::new("controls_grid")
+                        .num_columns(3)
+                        .min_col_width(100.0)
+                        .spacing((10.0, 10.0))
+                        .with_row_color(move |r, _| {
+                            if grid_map_ranges.iter().any(|x| *x == r) {
+                                Some(Color32::from_catppuccin_colour(grid_row_color))
+                            } else if grid_title_rows.iter().any(|x| *x == r) {
+                                // TODO: Do this better
+                                Some(Color32::from_catppuccin_colour_with_alpha(
+                                    grid_title_colors[grid_title_rows
+                                        .iter()
+                                        .position(|&e| e == r)
+                                        .expect("In a conditional branch that ensures this")],
+                                    0.5,
+                                ))
+                            } else {
+                                None
                             }
-                            ui.label(
-                                RichText::new(action.to_string())
-                                    .italics()
-                                    .color(Color32::from_catppuccin_colour(
-                                        catppuccin.flavour.base(),
-                                    ))
-                                    .size(size),
-                            );
+                        })
+                        .show(ui, |ui| {
+                            let size = 15.0; // pt
+                            ui.label(RichText::new("Binding").size(size).color(
+                                // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
+                                Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
+                            ));
+                            ui.centered_and_justified(|ui| {
+                                ui.label(RichText::new("󰌌").size(size + 5.0).color(
+                                    // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
+                                    Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
+                                ));
+                            });
+
+                            ui.centered_and_justified(|ui| {
+                                ui.label(RichText::new("󰊗").size(size + 5.0).color(
+                                    // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
+                                    Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
+                                ));
+                            });
 
                             ui.end_row();
-                            match action {
-                                InputAction::MoveableObject(_) => {
-                                    // let map = query_moveable_object_action.single();
-                                    for map in query_moveable_object_action.iter() {
-                                        for inner_action in map.iter() {
-                                            ui.label(inner_action.0.to_string());
 
-                                            inner_action.1.iter().enumerate().for_each(|(i, x)| {
-                                                ui.centered_and_justified(|ui| {
-                                                    let button_response = ui.button(RichText::new(
-                                                        x.to_display_string(),
-                                                    ));
-                                                    if button_response.clicked() {
-                                                        *currently_changing = ChangingBinding::new(
-                                                            InputAction::MoveableObject(*inner_action.0),
-                                                            i,
-                                                        );
-                                                    }
-                                                });
-                                            });
-
-                                            for extra_column in 0..(2 - inner_action.1.len()) {
-                                                ui.centered_and_justified(|ui| {
-                                                    let button_response = ui.button(RichText::new(""));
-
-                                                    if button_response.clicked() {
-                                                        *currently_changing = ChangingBinding::new(
-                                                            InputAction::MoveableObject(*inner_action.0),
-                                                            inner_action.1.len() + extra_column,
-                                                        );
-                                                    }
-                                                });
-                                            }
-
-                                            ui.end_row();
-                                        }
-
-                                    }
+                            // go through all InputAction variants, and make a title for each
+                            // then nested go through each inner variant and make a button for each
+                            for action in InputAction::iter() {
+                                if matches!(action, InputAction::Undefined) {
+                                    continue;
                                 }
-                                InputAction::General(_) => {
-                                    // let map = query_general_action.single();
-                                    for map in query_general_action.iter() {
-                                        for inner_action in map.iter() {
-                                            ui.label(inner_action.0.to_string());
+                                ui.label(
+                                    RichText::new(action.to_string())
+                                        .italics()
+                                        .color(Color32::from_catppuccin_colour(
+                                            catppuccin.flavour.base(),
+                                        ))
+                                        .size(size),
+                                );
 
-                                            inner_action.1.iter().enumerate().for_each(|(i, x)| {
-                                                ui.centered_and_justified(|ui| {
-                                                    let button_response = ui.button(RichText::new(
-                                                        x.to_display_string(),
-                                                    ));
-                                                    if button_response.clicked() {
-                                                        *currently_changing = ChangingBinding::new(
-                                                            InputAction::General(*inner_action.0),
-                                                            i,
-                                                        );
-                                                    }
-                                                });
-                                            });
+                                ui.end_row();
+                                match action {
+                                    InputAction::MoveableObject(_) => {
+                                        // let map = query_moveable_object_action.single();
+                                        for map in query_moveable_object_action.iter() {
+                                            for inner_action in map.iter() {
+                                                ui.label(inner_action.0.to_string());
 
-                                            for extra_column in 0..(2 - inner_action.1.len()) {
-                                                ui.centered_and_justified(|ui| {
-                                                    let button_response = ui.button(RichText::new(""));
+                                                inner_action.1.iter().enumerate().for_each(
+                                                    |(i, x)| {
+                                                        ui.centered_and_justified(|ui| {
+                                                            let button_response =
+                                                                ui.button(RichText::new(
+                                                                    x.to_display_string(),
+                                                                ));
+                                                            if button_response.clicked() {
+                                                                *currently_changing =
+                                                                    ChangingBinding::new(
+                                                                        InputAction::MoveableObject(
+                                                                            *inner_action.0,
+                                                                        ),
+                                                                        i,
+                                                                    );
+                                                            }
+                                                        });
+                                                    },
+                                                );
 
-                                                    if button_response.clicked() {
-                                                        *currently_changing = ChangingBinding::new(
-                                                            InputAction::General(*inner_action.0),
-                                                            inner_action.1.len() + extra_column,
-                                                        );
-                                                    }
-                                                });
+                                                for extra_column in 0..(2 - inner_action.1.len()) {
+                                                    ui.centered_and_justified(|ui| {
+                                                        let button_response =
+                                                            ui.button(RichText::new(""));
+
+                                                        if button_response.clicked() {
+                                                            *currently_changing =
+                                                                ChangingBinding::new(
+                                                                    InputAction::MoveableObject(
+                                                                        *inner_action.0,
+                                                                    ),
+                                                                    inner_action.1.len()
+                                                                        + extra_column,
+                                                                );
+                                                        }
+                                                    });
+                                                }
+
+                                                ui.end_row();
                                             }
-
-                                            ui.end_row();
                                         }
                                     }
-                                }
-                                InputAction::Camera(_) => {
-                                    // let map = query_camera_action.iter().next().unwrap();
-                                    for map in query_camera_action.iter() {
-                                        for inner_action in map.iter() {
-                                            ui.label(inner_action.0.to_string());
+                                    InputAction::General(_) => {
+                                        // let map = query_general_action.single();
+                                        for map in query_general_action.iter() {
+                                            for inner_action in map.iter() {
+                                                ui.label(inner_action.0.to_string());
 
-                                            inner_action.1.iter().enumerate().for_each(|(i, x)| {
-                                                ui.centered_and_justified(|ui| {
-                                                    let button_response = ui.button(RichText::new(
-                                                        x.to_display_string(),
-                                                    ));
-                                                    if button_response.clicked() {
-                                                        *currently_changing = ChangingBinding::new(
-                                                            InputAction::Camera(*inner_action.0),
-                                                            i,
-                                                        );
-                                                    }
-                                                });
-                                            });
+                                                inner_action.1.iter().enumerate().for_each(
+                                                    |(i, x)| {
+                                                        ui.centered_and_justified(|ui| {
+                                                            let button_response =
+                                                                ui.button(RichText::new(
+                                                                    x.to_display_string(),
+                                                                ));
+                                                            if button_response.clicked() {
+                                                                *currently_changing =
+                                                                    ChangingBinding::new(
+                                                                        InputAction::General(
+                                                                            *inner_action.0,
+                                                                        ),
+                                                                        i,
+                                                                    );
+                                                            }
+                                                        });
+                                                    },
+                                                );
 
-                                            for extra_column in 0..(2 - inner_action.1.len()) {
-                                                ui.centered_and_justified(|ui| {
-                                                    let button_response = ui.button(RichText::new(""));
+                                                for extra_column in 0..(2 - inner_action.1.len()) {
+                                                    ui.centered_and_justified(|ui| {
+                                                        let button_response =
+                                                            ui.button(RichText::new(""));
 
-                                                    if button_response.clicked() {
-                                                        *currently_changing = ChangingBinding::new(
-                                                            InputAction::Camera(*inner_action.0),
-                                                            inner_action.1.len() + extra_column,
-                                                        );
-                                                    }
-                                                });
+                                                        if button_response.clicked() {
+                                                            *currently_changing =
+                                                                ChangingBinding::new(
+                                                                    InputAction::General(
+                                                                        *inner_action.0,
+                                                                    ),
+                                                                    inner_action.1.len()
+                                                                        + extra_column,
+                                                                );
+                                                        }
+                                                    });
+                                                }
+
+                                                ui.end_row();
                                             }
-
-                                            ui.end_row();
                                         }
                                     }
-                                }
-                                InputAction::Ui(_) => {
-                                    // let map = query_ui_action.single();
-                                    for map in query_ui_action.iter() {
-                                        for inner_action in map.iter() {
-                                            ui.label(inner_action.0.to_string());
+                                    InputAction::Camera(_) => {
+                                        // let map = query_camera_action.iter().next().unwrap();
+                                        for map in query_camera_action.iter() {
+                                            for inner_action in map.iter() {
+                                                ui.label(inner_action.0.to_string());
 
-                                            inner_action.1.iter().enumerate().for_each(|(i, x)| {
-                                                ui.centered_and_justified(|ui| {
-                                                    let button_response = ui.button(RichText::new(
-                                                        x.to_display_string(),
-                                                    ));
-                                                    if button_response.clicked() {
-                                                        *currently_changing = ChangingBinding::new(
-                                                            InputAction::Ui(*inner_action.0),
-                                                            i,
-                                                        );
-                                                    }
-                                                });
-                                            });
+                                                inner_action.1.iter().enumerate().for_each(
+                                                    |(i, x)| {
+                                                        ui.centered_and_justified(|ui| {
+                                                            let button_response =
+                                                                ui.button(RichText::new(
+                                                                    x.to_display_string(),
+                                                                ));
+                                                            if button_response.clicked() {
+                                                                *currently_changing =
+                                                                    ChangingBinding::new(
+                                                                        InputAction::Camera(
+                                                                            *inner_action.0,
+                                                                        ),
+                                                                        i,
+                                                                    );
+                                                            }
+                                                        });
+                                                    },
+                                                );
 
-                                            for extra_column in 0..(2 - inner_action.1.len()) {
-                                                ui.centered_and_justified(|ui| {
-                                                    let button_response = ui.button(RichText::new(""));
+                                                for extra_column in 0..(2 - inner_action.1.len()) {
+                                                    ui.centered_and_justified(|ui| {
+                                                        let button_response =
+                                                            ui.button(RichText::new(""));
 
-                                                    if button_response.clicked() {
-                                                        *currently_changing = ChangingBinding::new(
-                                                            InputAction::Ui(*inner_action.0),
-                                                            inner_action.1.len() + extra_column,
-                                                        );
-                                                    }
-                                                });
+                                                        if button_response.clicked() {
+                                                            *currently_changing =
+                                                                ChangingBinding::new(
+                                                                    InputAction::Camera(
+                                                                        *inner_action.0,
+                                                                    ),
+                                                                    inner_action.1.len()
+                                                                        + extra_column,
+                                                                );
+                                                        }
+                                                    });
+                                                }
+
+                                                ui.end_row();
                                             }
-
-                                            ui.end_row();
                                         }
                                     }
+                                    InputAction::Ui(_) => {
+                                        // let map = query_ui_action.single();
+                                        for map in query_ui_action.iter() {
+                                            for inner_action in map.iter() {
+                                                ui.label(inner_action.0.to_string());
+
+                                                inner_action.1.iter().enumerate().for_each(
+                                                    |(i, x)| {
+                                                        ui.centered_and_justified(|ui| {
+                                                            let button_response =
+                                                                ui.button(RichText::new(
+                                                                    x.to_display_string(),
+                                                                ));
+                                                            if button_response.clicked() {
+                                                                *currently_changing =
+                                                                    ChangingBinding::new(
+                                                                        InputAction::Ui(
+                                                                            *inner_action.0,
+                                                                        ),
+                                                                        i,
+                                                                    );
+                                                            }
+                                                        });
+                                                    },
+                                                );
+
+                                                for extra_column in 0..(2 - inner_action.1.len()) {
+                                                    ui.centered_and_justified(|ui| {
+                                                        let button_response =
+                                                            ui.button(RichText::new(""));
+
+                                                        if button_response.clicked() {
+                                                            *currently_changing =
+                                                                ChangingBinding::new(
+                                                                    InputAction::Ui(
+                                                                        *inner_action.0,
+                                                                    ),
+                                                                    inner_action.1.len()
+                                                                        + extra_column,
+                                                                );
+                                                        }
+                                                    });
+                                                }
+
+                                                ui.end_row();
+                                            }
+                                        }
+                                    }
+                                    _ => { /* do nothing */ }
                                 }
-                                _ => { /* do nothing */ }
                             }
-                        }
-                    });
-            });
+                        });
+                });
 
             ui.separator();
             ui.add_space(10.0);
@@ -364,13 +416,17 @@ fn ui_controls_panel(
             ui.horizontal(|ui| {
                 if !matches!(currently_changing.action, InputAction::Undefined) {
                     ui.columns(2, |columns| {
-                        columns[0].label(RichText::new("Currently binding:").italics().color(Color32::from_catppuccin_colour(catppuccin.flavour.overlay2())));
+                        columns[0].label(RichText::new("Currently binding:").italics().color(
+                            Color32::from_catppuccin_colour(catppuccin.flavour.overlay2()),
+                        ));
                         columns[1].centered_and_justified(|ui| {
                             let _ = ui.button(currently_changing.action.to_display_string());
                         });
                     });
                 } else {
-                    ui.label(RichText::new("Select a binding to change").italics().color(Color32::from_catppuccin_colour(catppuccin.flavour.overlay2())));
+                    ui.label(RichText::new("Select a binding to change").italics().color(
+                        Color32::from_catppuccin_colour(catppuccin.flavour.overlay2()),
+                    ));
                 }
             });
 
