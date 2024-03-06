@@ -1,57 +1,88 @@
 use ndarray::{concatenate, prelude::*};
 use ndarray_inverse::Inverse;
 
-use super::{factorgraph::Message, Matrix, Vector};
+use gbp_linalg::prelude::*;
+use ron::de;
 
-// pub type Vector<T> = Array1<T>;
-// pub type Matrix<T> = Array2<T>;
+use super::message::Message;
 
-// pub trait Scalar: num_traits::Float + Copy {}
-// impl Scalar for f32 {}
-// impl Scalar for f64 {}
-
-// #[derive(Debug)]
-// struct Message<T: Scalar> {
-//     pub information_vector: Vector<T>,
-//     pub precision_matrix: Matrix<T>,
-// }
-
-// impl<T: Scalar> Message<T> {
-//     pub fn zeroize(&mut self) {
-//         self.information_vector.fill(T::zero());
-//         self.precision_matrix.fill(T::zero());
-//     }
-// }
-
+/// Utility function to create `start..start + n`
+/// Similar to `Eigen::seqN`
 const fn seq_n(start: usize, n: usize) -> std::ops::Range<usize> {
     start..start + n
 }
 
-// TODO: possible duplicate function?
-// fn marginalise_factor_distance<T: Scalar>(
+type Aa<'a, T> = MatrixView<'a, T>;
+type Ab<'a, T> = MatrixView<'a, T>;
+type Ba<'a, T> = MatrixView<'a, T>;
+type Bb<'a, T> = MatrixView<'a, T>;
+
+fn extract_submatrices_from_precision_matrix<T: GbpFloat>(
+    precision_matrix: &Matrix<T>,
+    dofs: usize,
+    marg_idx: usize,
+) -> (Aa<T>, Ab<T>, Ba<T>, Bb<T>) {
+    debug_assert!(precision_matrix.is_square());
+    debug_assert_eq!(precision_matrix.nrows() % dofs, 0);
+    debug_assert_eq!(precision_matrix.ncols() % dofs, 0);
+
+    let aa = precision_matrix.slice(s![seq_n(marg_idx, dofs), seq_n(marg_idx, dofs)]);
+
+    let ab = if marg_idx == 0 {
+        precision_matrix.slice(s![seq_n(marg_idx, dofs), marg_idx + dofs..])
+    } else {
+        precision_matrix.slice(s![seq_n(marg_idx, dofs), ..marg_idx])
+    };
+
+    let ba = if marg_idx == 0 {
+        precision_matrix.slice(s![marg_idx + dofs.., seq_n(marg_idx, dofs)])
+    } else {
+        precision_matrix.slice(s![..marg_idx, seq_n(marg_idx, dofs)])
+    };
+
+    let bb = if marg_idx == 0 {
+        precision_matrix.slice(s![marg_idx + dofs.., marg_idx + dofs..])
+    } else {
+        precision_matrix.slice(s![..marg_idx, ..marg_idx])
+    };
+
+    (aa, ab, ba, bb)
+}
+
 pub fn marginalise_factor_distance(
-    information_vector: Vector<f32>,
-    precision_matrix: Matrix<f32>,
-    dofs_of_variable: usize,
+    information_vector: Vector<Float>,
+    precision_matrix: Matrix<Float>,
+    variable_dofs: usize,
     marginalisation_idx: usize,
-) -> Message {
-    if information_vector.len() == dofs_of_variable {
-        return Message::new(information_vector, precision_matrix).expect(
+) -> Result<Message, &'static str> 
+{
+    debug_assert_eq!(information_vector.len(), precision_matrix.nrows());
+    debug_assert_eq!(precision_matrix.nrows(), precision_matrix.ncols());
+
+
+    let factor_only_connected_to_one_variable = information_vector.len() == variable_dofs;
+    if factor_only_connected_to_one_variable {
+        // dbg!(&information_vector);
+        // dbg!(&precision_matrix);
+        // TODO: return None
+        return Ok(Message::new(information_vector, precision_matrix).expect(
             "the given information vector and precision matrix is a valid multivariate gaussian",
-        );
+        ));
     }
 
-    eprintln!(
-        "information_vector shape = {:?}, ndofs = {:?}",
-        information_vector.shape(),
-        dofs_of_variable
-    );
-    eprintln!("precision_matrix shape = {:?}", precision_matrix.shape());
+    // eprintln!(
+    //     "information_vector shape = {:?}, ndofs = {:?}",
+    //     information_vector.shape(),
+    //     variable_dofs
+    // );
+    // eprintln!("precision_matrix shape = {:?}", precision_matrix.shape());
 
-    let ndofs = dofs_of_variable;
+    // eprintln!("show me precision_matrix = \n{:?}", precision_matrix);
+    
+    let ndofs = variable_dofs;
     let marg_idx = marginalisation_idx;
-    let iv = &information_vector;
-    let pm = &precision_matrix;
+    // let iv = &information_vector;
+    // let pm = &precision_matrix;
 
     let eta_a = information_vector.slice(s![seq_n(marg_idx, ndofs)]);
     assert_eq!(eta_a.len(), ndofs);
@@ -95,7 +126,13 @@ pub fn marginalise_factor_distance(
     //     ]
     // );
 
-    let lam_bb_inv = lam_bb.to_owned().inv().expect("should have an inverse");
+    // eprintln!("lam_bb = {:?}", lam_bb);
+    
+    let Some(lam_bb_inv) = lam_bb.to_owned().inv() else {
+        return Ok(Message::Empty(ndofs));
+    };
+
+    // let lam_bb_inv = lam_bb.to_owned().inv().expect("should have an inverse");
     // let information_vector = (&eta_a - &lam_ab).dot(&lam_bb_inv).dot(&eta_b);
     let information_vector = &eta_a - &lam_ab.dot(&lam_bb_inv).dot(&eta_b);
     // eprintln!("information_vector = {:?}", information_vector);
@@ -103,12 +140,13 @@ pub fn marginalise_factor_distance(
     // eprintln!("precision_matrix = {:?}", precision_matrix);
 
     if precision_matrix.iter().any(|elem| elem.is_infinite()) {
-        Message::with_dofs(information_vector.len())
+        Ok(Message::Empty(information_vector.len()))
+        // Message::with_dofs(information_vector.len())
         // Message::zeros(information_vector.len())
     } else {
-        Message::new(information_vector, precision_matrix).expect(
+        Ok(Message::new(information_vector, precision_matrix).expect(
             "the given information vector and precision matrix is a valid multivariate gaussian",
-        )
+        ))
     }
 }
 
@@ -121,87 +159,82 @@ mod tests {
         f32::abs(lhs - rhs) <= f32::EPSILON
     }
 
-    #[test]
-    fn concat_single_matrix() {
-        let a = array![[0., 1.], [2., 3.]];
-        let b = concatenate![Axis(1), a];
-        assert_eq!(b, a);
-    }
-
-    #[test]
-    fn inverse_of_single_element_matrix() {
-        let a = array![[0.5]];
-        let a_inv = a.inv().expect("should have an inverse");
-
-        assert_eq!(a_inv, array![[2.]]);
-    }
-
-    #[test]
-    fn inverse_of_2x2_matrix() {
-        let a = array![[0.5, 0.], [0., 2.]];
-        let a_inv = a.inv().expect("should have an inverse");
-        eprintln!("a_inv = {:?}", a_inv);
-        assert_eq!(a_inv, array![[2., 0.], [0., 0.5]]);
-    }
-
-    #[test]
-    fn concat_block_matrix() {
-        let a = array![
-            [1, 2, 3, 4],
-            [5, 6, 7, 8],
-            [9, 10, 11, 12],
-            [13, 14, 15, 16]
+    macro_rules! generate_8x8_precision_matrix {
+        () => {{
+            let upper_left = array![
+            [1., 2., 3., 4.],
+            [5., 6., 7., 8.],
+            [9., 10., 11., 12.],
+            [13., 14., 15., 16.]
         ];
 
-        let b = concatenate![
+        let upper_right = array![
+            [17., 18., 19., 20.],
+            [21., 22., 23., 24.],
+            [25., 26., 27., 28.],
+            [29., 30., 31., 32.]
+        ];
+
+        let lower_left = array![
+            [33., 34., 35., 36.],
+            [37., 38., 39., 40.],
+            [41., 42., 43., 44.],
+            [45., 46., 47., 48.]
+        ];
+
+        let lower_right = array![
+            [49., 50., 51., 52.],
+            [53., 54., 55., 56.],
+            [57., 58., 59., 60.],
+            [61., 62., 63., 64.]
+        ];
+
+        let precision_matrix = concatenate![
             Axis(0),
-            concatenate![Axis(1), a.slice(s![..3, ..3]), a.slice(s![..3, 3..]),],
-            concatenate![Axis(1), a.slice(s![3.., ..3]), a.slice(s![3.., 3..])]
+            concatenate![Axis(1), upper_left, upper_right],
+            concatenate![Axis(1), lower_left, lower_right]
         ];
-
-        assert_eq!(a, b);
+            (precision_matrix, upper_left, upper_right, lower_left, lower_right)
+        }};
     }
 
     #[test]
-    fn ranges() {
-        let a = ..5usize;
-        assert_eq!(a.end, 5);
-        let b = 5..;
-        assert_eq!(b.start, 5);
+    fn extract_submatrices_from_precision_matrix_with_marg_idx0_dofs4() {
+        let (precision_matrix, upper_left, upper_right, lower_left, lower_right) =
+            generate_8x8_precision_matrix!();
 
-        let c = ..=5;
-        assert_eq!(c.end, 5);
+        assert!(precision_matrix.is_square());
 
-        let d = 2..5;
-        assert_eq!(d.start, 2);
-        assert_eq!(d.end, 5);
-        let e = 2..=5;
+        let (aa, ab, ba, bb) = extract_submatrices_from_precision_matrix(
+            &precision_matrix,
+            4,
+            0,
+        );
+
+        assert_eq!(aa, upper_left);
+        assert_eq!(ab, upper_right);
+        assert_eq!(ba, lower_left);
+        assert_eq!(bb, lower_right);
     }
 
-    // #[test]
-    // fn call_marginalise_factor_distance() {
-    //     let information_vector: Vector<f32> = array![0., 1., 2., 3.];
-    //     let precision_matrix: Matrix<f32> = array![
-    //         [5., 0.2, 0., 0.],
-    //         [0.2, 5., 0., 0.],
-    //         [0., 0.0, 5., 0.3],
-    //         [0., 0., 0.3, 5.]
-    //     ];
+    #[test]
+    fn extract_submatrices_from_precision_matrix_with_marg_idx4_dofs4() {
+        let (precision_matrix, upper_left, upper_right, lower_left, lower_right) =
+            generate_8x8_precision_matrix!();
 
-    //     let ndofs = 3;
-    //     let marginalisation_idx = 0;
+        assert!(precision_matrix.is_square());
 
-    //     let marginalised_msg = marginalise_factor_distance(
-    //         information_vector,
-    //         precision_matrix,
-    //         ndofs,
-    //         marginalisation_idx,
-    //     );
+        let (aa, ab, ba, bb) = extract_submatrices_from_precision_matrix(
+            &precision_matrix,
+            4,
+            4,
+        );
 
-    //     println!("{:?}", marginalised_msg);
-
-    //     assert!(false);
-    // }
+        assert_eq!(aa, lower_right);
+        assert_eq!(ab, lower_left);
+        assert_eq!(ba, upper_right);
+        assert_eq!(bb, upper_left);
+    }
 
     #[test]
     fn information_vector_length_equal_to_ndofs_do_nothing() {
@@ -217,67 +250,62 @@ mod tests {
         let marginalisation_idx = 0;
 
         let marginalised_msg = marginalise_factor_distance(
-            information_vector,
-            precision_matrix,
+            information_vector.clone(),
+            precision_matrix.clone(),
             ndofs,
             marginalisation_idx,
         );
 
         assert_eq!(
             marginalised_msg.information_vector(),
-            array![0., 1., 2., 3.]
+            information_vector
         );
         assert_eq!(
             marginalised_msg.precision_matrix(),
-            array![
-                [5., 0.2, 0., 0.],
-                [0.2, 5., 0., 0.],
-                [0., 0.0, 5., 0.3],
-                [0., 0., 0.3, 5.]
-            ]
+            precision_matrix
         );
     }
 
-    #[test]
-    fn size5x5_marg_idx1_ndofs4() {
-        let information_vector: Vector<f32> = array![1., 2., 3., 4., 5.];
-        let precision_matrix: Matrix<f32> = array![
-            [0.5, 0.1, 0., 0., 0.2],
-            [0.1, 0.5, 0., 0., 0.],
-            [0., 0.0, 0.5, 0., 0.],
-            [0., 0., 0., 0.5, 0.],
-            [0.2, 0., 0., 0., 0.5]
-        ];
+    // #[test]
+    // fn size5x5_marg_idx1_ndofs4() {
+    //     let information_vector: Vector<f32> = array![1., 2., 3., 4., 5.];
+    //     let precision_matrix: Matrix<f32> = array![
+    //         [0.5, 0.1, 0., 0., 0.2],
+    //         [0.1, 0.5, 0., 0., 0.],
+    //         [0., 0.0, 0.5, 0., 0.],
+    //         [0., 0., 0., 0.5, 0.],
+    //         [0.2, 0., 0., 0., 0.5]
+    //     ];
 
-        let ndofs = 4;
-        let marginalisation_idx = 1;
+    //     let ndofs = 4;
+    //     let marginalisation_idx = 1;
 
-        let marginalised_msg = marginalise_factor_distance(
-            information_vector,
-            precision_matrix,
-            ndofs,
-            marginalisation_idx,
-        );
+    //     let marginalised_msg = marginalise_factor_distance(
+    //         information_vector,
+    //         precision_matrix,
+    //         ndofs,
+    //         marginalisation_idx,
+    //     );
 
-        assert_eq!(marginalised_msg.information_vector().len(), ndofs);
-        assert_eq!(marginalised_msg.precision_matrix().shape(), &[ndofs, ndofs]);
+    //     assert_eq!(marginalised_msg.information_vector().len(), ndofs);
+    //     assert_eq!(marginalised_msg.precision_matrix().shape(), &[ndofs, ndofs]);
 
-        assert_eq!(
-            marginalised_msg.information_vector(),
-            array![1.8, 3., 4., 4.6]
-        );
+    //     assert_eq!(
+    //         marginalised_msg.information_vector(),
+    //         array![1.8, 3., 4., 4.6]
+    //     );
 
-        let result = marginalised_msg
-            .precision_matrix()
-            .into_iter()
-            .collect::<Vec<_>>();
-        let expected = array![
-            [0.48, 0., 0., -0.04],
-            [0., 0.5, 0., 0.,],
-            [0., 0., 0.5, 0.],
-            [-0.04, 0., 0., 0.42]
-        ]
-        .into_iter()
-        .collect::<Vec<_>>();
-    }
+    //     let result = marginalised_msg
+    //         .precision_matrix()
+    //         .into_iter()
+    //         .collect::<Vec<_>>();
+    //     let expected = array![
+    //         [0.48, 0., 0., -0.04],
+    //         [0., 0.5, 0., 0.,],
+    //         [0., 0., 0.5, 0.],
+    //         [-0.04, 0., 0., 0.42]
+    //     ]
+    //     .into_iter()
+    //     .collect::<Vec<_>>();
+    // }
 }

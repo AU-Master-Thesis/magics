@@ -8,6 +8,7 @@ use crate::{
 
 use super::super::theme::ThemeEvent;
 use bevy::prelude::*;
+use gbp_linalg::GbpFloat;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum_macros::EnumIter;
 

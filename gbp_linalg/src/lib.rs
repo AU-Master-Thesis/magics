@@ -1,15 +1,37 @@
 //! A small collection of extension traits and types for ndarray.
 
+pub mod prelude {
+    pub use super::{Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm, VectorView, GbpFloat, Float};
+    // pub use ndarray::array;
+}   
+
+/// Marker trait for floating point types used in GBP.
+/// - ndarray::NdFloat is a trait for floating point types that can be used with ndarray.
+/// It is implemented for f32 and f64.
+/// - Copy, is to make some of the methods more ergonomic to use.
+/// - std::iter::Sum is required by the `det()` method by `ndarray_inverse::Inverse::det()`
+/// which we use in `gbp_multivariate_normal::MultivariateNormal` to calculate the determinant of the precision matrix.
+pub trait GbpFloat : ndarray::NdFloat + Copy + std::iter::Sum {}
+
+impl GbpFloat for f32 {}
+impl GbpFloat for f64 {}
+
+/// The precision of the floating point type used in GBP.
+pub type Float = f64;
+
 // only available on nightly :(
 // pub type Vector<T> = ndarray::Array1<T: Scalar>;
 // pub type Matrix<T> = ndarray::Array2<T: Scalar>;
 pub type Vector<T> = ndarray::Array1<T>;
 pub type Matrix<T> = ndarray::Array2<T>;
+pub type VectorView<'a, T> = ndarray::ArrayView1<'a, T>;
+pub type MatrixView<'a, T> = ndarray::ArrayView2<'a, T>;
 
-pub use ndarray::array;
+// reexport array! macro
+// pub use ndarray::array;
 
 pub trait VectorNorm {
-    type Scalar: ndarray::NdFloat;
+    type Scalar: GbpFloat;
     fn euclidean_norm(&self) -> Self::Scalar;
     fn l1_norm(&self) -> Self::Scalar;
 
@@ -38,7 +60,7 @@ vector_norm_trait_impl!(f32);
 vector_norm_trait_impl!(f64);
 
 pub trait NdarrayVectorExt: Clone + VectorNorm {
-    type Scalar: ndarray::NdFloat;
+    type Scalar: GbpFloat;
     fn normalize(&mut self);
     /// Return a normalized copy of the vector.
     fn normalized(&self) -> Self {
@@ -76,6 +98,7 @@ ndarray_vector_ext_trait_impl!(f64);
 mod tests {
     use super::*;
 
+    use ndarray::array;
     use approx::assert_relative_eq;
     use arbtest::arbtest;
     use paste::paste;

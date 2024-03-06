@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
 use super::factorgraph::NodeIndex;
-use super::factorgraph::{Inbox, Message};
-use super::Vector;
+use super::message::Message;
+use super::factorgraph::Inbox;
+use gbp_linalg::{Vector, Float};
 use gbp_multivariate_normal::MultivariateNormal;
 
 /// A variable in the factor graph.
 #[derive(Debug, Clone)]
-pub struct Variable {
+pub struct Variable{
     /// Unique identifier that associates the variable with a factorgraph/robot.
     pub node_index: Option<NodeIndex>,
     /// Called `factors_` in **gbpplanner**.
@@ -17,8 +18,8 @@ pub struct Variable {
     /// In **gbpplanner** the `prior` is stored in 2 separate variables:
     /// 1. `eta_prior_` Information vector of prior on variable (essentially like a unary factor)
     /// 2. `lam_prior_` Precision matrix of prior on variable (essentially like a unary factor)
-    pub prior: MultivariateNormal<f32>,
-    pub belief: MultivariateNormal<f32>,
+    pub prior: MultivariateNormal,
+    pub belief: MultivariateNormal,
     /// Degrees of freedom. For 2D case n_dofs_ = 4 ([x,y,xdot,ydot])
     pub dofs: usize,
     /// Flag to indicate if the variable's covariance is finite, i.e. it does not contain NaNs or Infs
@@ -29,7 +30,7 @@ pub struct Variable {
 }
 
 impl Variable {
-    pub fn new(prior: MultivariateNormal<f32>, dofs: usize) -> Self {
+    pub fn new(prior: MultivariateNormal, dofs: usize) -> Self {
         // if !prior.precision_matrix().iter().all(|x| x.is_finite()) {
         //     // if (!lam_prior_.allFinite()) lam_prior_.setZero();
 
@@ -73,7 +74,7 @@ impl Variable {
     /// It updates the belief of the variable.
     pub fn change_prior(
         &mut self,
-        mean: Vector<f32>,
+        mean: Vector<Float>,
         indices_of_adjacent_factors: Vec<NodeIndex>,
     ) -> HashMap<NodeIndex, Message> {
         self.prior

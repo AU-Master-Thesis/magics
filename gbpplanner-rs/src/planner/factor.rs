@@ -1,39 +1,43 @@
 use bevy::{log::info, render::texture::Image};
 
-// use nalgebra::{Matrix, Vector, Matrix, Vector};
+use gbp_linalg::{Float, GbpFloat, Matrix, Vector, VectorNorm};
 use ndarray::{array, concatenate, s, Axis, Slice};
-use num_traits::Zero;
-// use ndarray_linalg::Norm;
+use num_traits::NumCast;
 use petgraph::prelude::NodeIndex;
 use std::{
     collections::HashMap,
-    env::var,
     ops::{AddAssign, Sub},
 };
 
 use super::{
-    factorgraph::{Graph, Inbox, Message},
+    factorgraph::{Graph, Inbox},
+    marginalise_factor_distance::marginalise_factor_distance,
+    message::Message,
     robot::RobotId,
-    Matrix, Vector, VectorNorm,
 };
 
+// TODO: make generic over f32 | f64
+// TODO: hide the state parameter from the public API, by having the `Factor` struct expose similar methods that dispatch to the `FactorState` struct.
 trait Model {
-    // TODO: maybe just return &Matrix<f32>
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<f32>) -> Matrix<f32> {
+    /// The name of the factor. Used for debugging and visualization.
+    fn name(&self) -> &'static str;
+
+    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         self.first_order_jacobian(state, x.clone())
     }
     /// Measurement function
     /// **Note**: This method takes a mutable reference to self, because the interrobot factor
-    fn measure(&mut self, state: &FactorState, x: &Vector<f32>) -> Vector<f32>;
-    fn first_order_jacobian(&mut self, state: &FactorState, x: Vector<f32>) -> Matrix<f32> {
+    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
+    fn first_order_jacobian(&mut self, state: &FactorState, x: Vector<Float>) -> Matrix<Float> {
         // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
         //     return jac_out;
         // };
 
         // Eigen::MatrixXd h0 = h_func_(X0);    // Value at lin point
         let h0 = self.measure(state, &x);
+        // dbg!(&h0);
         // Eigen::MatrixXd jac_out = Eigen::MatrixXd::Zero(h0.size(),X0.size());
-        let mut jacobian = Matrix::<f32>::zeros((h0.len(), x.len()));
+        let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
 
         //     for (int i=0; i<X0.size(); i++){
         //         Eigen::VectorXd X_copy = X0;                                    // Copy of lin point
@@ -43,17 +47,24 @@ trait Model {
         for i in 0..x.len() {
             let mut copy_of_x = x.clone();
             copy_of_x[i] += self.jacobian_delta();
-            let column = (self.measure(state, &copy_of_x) - &h0) / self.jacobian_delta();
-            // jacobian.set_column(i, &column);
-            jacobian
-                .slice_axis_mut(Axis(0), Slice::from(0..jacobian.dim().0))
-                .assign(&column);
+
+            let derivative = (self.measure(state, &copy_of_x) - &h0) / self.jacobian_delta();
+            // dbg!(&derivative);
+            jacobian.column_mut(i).assign(&derivative);
+
+            // let column = (self.measure(state, &copy_of_x) - &h0) / self.jacobian_delta();
+            // // jacobian.set_column(i, &column);
+            // jacobian
+            //     .slice_axis_mut(Axis(0), Slice::from(0..jacobian.dim().0))
+            //     .assign(&column);
         }
+
+        // eprintln!("jacobian at the end: {:#?}", jacobian);
 
         jacobian
     }
 
-    fn jacobian_delta(&self) -> f32;
+    fn jacobian_delta(&self) -> Float;
 
     /// Whether to skip this factor in the update step
     /// In gbpplanner, this is only used for the interrobot factor.
@@ -76,7 +87,7 @@ pub struct InterRobotConnection {
 #[derive(Debug, Clone, Copy)]
 pub struct InterRobotFactor {
     // TODO: constrain to be positive
-    pub safety_distance: f32,
+    pub safety_distance: Float,
     ///
     skip: bool,
     // pub id_of_robot_connected_with: RobotId,
@@ -85,8 +96,8 @@ pub struct InterRobotFactor {
 
 impl InterRobotFactor {
     pub fn new(
-        safety_distance: f32,
-        robot_radius: f32,
+        safety_distance: Float,
+        robot_radius: Float,
         skip: bool,
         connection: InterRobotConnection,
         // id_of_robot_connected_with: RobotId,
@@ -113,8 +124,11 @@ impl InterRobotFactor {
 // }
 
 impl Model for InterRobotFactor {
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<f32>) -> Matrix<f32> {
-        let mut jacobian = Matrix::zeros((state.measurement.len(), state.dofs * 2));
+    fn name(&self) -> &'static str {
+        "InterRobotFactor"
+    }
+    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
+        let mut jacobian = Matrix::zeros((state.initial_measurement.len(), state.dofs * 2));
         let x_diff = {
             let offset = state.dofs / 2;
             // let mut x_diff = x.rows(0, offset) - x.rows(state.dofs, offset);
@@ -126,6 +140,7 @@ impl Model for InterRobotFactor {
             }
             x_diff
         };
+        // let safety_distance = NumCast::from(self.safety_distance).unwrap();
         let radius = x_diff.euclidean_norm();
         if radius <= self.safety_distance {
             // TODO: why do we change the Jacobian if we are not outside the safety distance?
@@ -155,9 +170,9 @@ impl Model for InterRobotFactor {
         jacobian
     }
 
-    fn measure(&mut self, state: &FactorState, x: &Vector<f32>) -> Vector<f32> {
+    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         // let mut h = Matrix::zeros(state.measurement.nrows(), state.measurement.ncols());
-        let mut h = Vector::zeros(state.measurement.len());
+        let mut h = Vector::zeros(state.initial_measurement.len());
         let x_diff = {
             let offset = state.dofs / 2;
 
@@ -165,6 +180,7 @@ impl Model for InterRobotFactor {
             // let mut x_diff = x.slice_axis(Axis(0), s![0..offset])
             //     - x.slice_axis(Axis(0), s![state.dofs..(state.dofs + offset)]);
 
+            // TODO: use s! macro
             let mut x_diff = x
                 .slice_axis(Axis(0), Slice::from(0..offset))
                 .sub(&x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))));
@@ -194,7 +210,7 @@ impl Model for InterRobotFactor {
         h
     }
 
-    fn jacobian_delta(&self) -> f32 {
+    fn jacobian_delta(&self) -> Float {
         1e-2
     }
 
@@ -213,7 +229,7 @@ impl Model for InterRobotFactor {
                     .slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))),
             )
             .euclidean_norm();
-        self.skip = dontknow >= f32::powi(self.safety_distance, 2);
+        self.skip = dontknow >= Float::powi(self.safety_distance, 2);
 
         self.skip
     }
@@ -226,35 +242,35 @@ impl Model for InterRobotFactor {
 /// Dynamic factor: constant velocity model
 #[derive(Debug, Clone)]
 pub struct DynamicFactor {
-    cached_jacobian: Matrix<f32>,
+    cached_jacobian: Matrix<Float>,
     /// defined at src/Robot.cpp:64
-    pub delta_t: f32,
+    pub delta_t: Float,
 }
 
 impl DynamicFactor {
     #[must_use]
-    pub fn new(state: &mut FactorState, delta_t: f32) -> Self {
+    pub fn new(state: &mut FactorState, delta_t: Float) -> Self {
         let (eye, zeros) = {
             let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
-            let eye = Matrix::<f32>::eye(nrows);
-            let zeros = Matrix::<f32>::zeros((nrows, ncols));
+            let eye = Matrix::<Float>::eye(nrows);
+            let zeros = Matrix::<Float>::zeros((nrows, ncols));
             (eye, zeros)
         };
 
         #[allow(clippy::similar_names)]
-        let qc_inv = f32::powi(state.strength, -2) * &eye;
+        let qc_inv = Float::powi(state.strength, -2) * &eye;
 
         #[allow(clippy::similar_names)]
         let qi_inv = concatenate![
             Axis(0),
             concatenate![
                 Axis(1),
-                12.0 * f32::powi(delta_t, -3) * &qc_inv,
-                -6.0 * f32::powi(delta_t, -2) * &qc_inv
+                12.0 * Float::powi(delta_t, -3) * &qc_inv,
+                -6.0 * Float::powi(delta_t, -2) * &qc_inv
             ],
             concatenate![
                 Axis(1),
-                -6.0 * f32::powi(delta_t, -2) * &qc_inv,
+                -6.0 * Float::powi(delta_t, -2) * &qc_inv,
                 (4.0 / delta_t) * &qc_inv
             ]
         ];
@@ -277,11 +293,14 @@ impl DynamicFactor {
 }
 
 impl Model for DynamicFactor {
-    fn jacobian(&mut self, _state: &FactorState, x: &Vector<f32>) -> Matrix<f32> {
+    fn name(&self) -> &'static str {
+        "DynamicFactor"
+    }
+    fn jacobian(&mut self, _state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         self.cached_jacobian.clone()
     }
 
-    fn measure(&mut self, _state: &FactorState, x: &Vector<f32>) -> Vector<f32> {
+    fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         self.cached_jacobian.dot(x)
     }
 
@@ -289,7 +308,7 @@ impl Model for DynamicFactor {
         false
     }
 
-    fn jacobian_delta(&self) -> f32 {
+    fn jacobian_delta(&self) -> Float {
         1e-2
     }
 
@@ -302,13 +321,16 @@ impl Model for DynamicFactor {
 pub struct PoseFactor;
 
 impl Model for PoseFactor {
+    fn name(&self) -> &'static str {
+        "PoseFactor"
+    }
     /// Default jacobian is the first order taylor series jacobian
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<f32>) -> Matrix<f32> {
+    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         self.first_order_jacobian(state, x.clone())
     }
 
-    /// Default meaurement function is the identity function
-    fn measure(&mut self, _state: &FactorState, x: &Vector<f32>) -> Vector<f32> {
+    /// Default measurement function is the identity function
+    fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         x.clone()
     }
 
@@ -316,7 +338,7 @@ impl Model for PoseFactor {
         false
     }
 
-    fn jacobian_delta(&self) -> f32 {
+    fn jacobian_delta(&self) -> Float {
         1e-8
     }
 
@@ -330,14 +352,14 @@ pub struct ObstacleFactor {
     obstacle_sdf: &'static Image,
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy of here since
     /// `ObstacleFactor` needs this information to calculate `.jacobian_delta()` and `.measurement()`
-    world_size: f32,
+    world_size: Float,
 }
 
 impl ObstacleFactor {
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
     // fn new(obstacle_sdf: &OnceLock<Image>, world_size: f32) -> Self {
-    fn new(obstacle_sdf: &'static Image, world_size: f32) -> Self {
+    fn new(obstacle_sdf: &'static Image, world_size: Float) -> Self {
         Self {
             obstacle_sdf,
             world_size,
@@ -346,17 +368,20 @@ impl ObstacleFactor {
 }
 
 impl Model for ObstacleFactor {
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<f32>) -> Matrix<f32> {
+    fn name(&self) -> &'static str {
+        "ObstacleFactor"
+    }
+    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         // Same as PoseFactor
         self.first_order_jacobian(state, x.clone())
     }
 
-    fn measure(&mut self, state: &FactorState, x: &Vector<f32>) -> Vector<f32> {
+    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         // let obstacle_sdf = IMAGE
         //     .get()
         //     .expect("No obstacle factor should be created before the image is loaded.");
         // White areas are obstacles, so h(0) should return a 1 for these regions.
-        let scale = self.obstacle_sdf.width() as f32 / self.world_size;
+        let scale = self.obstacle_sdf.width() as Float / self.world_size;
         let pixel_x = ((x[0] + self.world_size / 2.0) * scale) as u32;
         let pixel_y = ((x[1] + self.world_size / 2.0) * scale) as u32;
         // multiply by 4 because the image is in RGBA format,
@@ -364,16 +389,16 @@ impl Model for ObstacleFactor {
         // as the image is grayscale
         let linear_index = ((self.obstacle_sdf.width() * pixel_y + pixel_x) * 4) as usize;
         let pixel = self.obstacle_sdf.data[linear_index];
-        let hsv_value = pixel as f32 / 255.0;
+        let hsv_value = pixel as Float / 255.0;
 
         array![hsv_value]
     }
 
-    fn jacobian_delta(&self) -> f32 {
+    fn jacobian_delta(&self) -> Float {
         // let obstacle_sdf = IMAGE
         //     .get()
         //     .expect("No obstacle factor should be created before the image is loaded.");
-        self.world_size / self.obstacle_sdf.width() as f32
+        self.world_size / self.obstacle_sdf.width() as Float
     }
 
     fn skip(&mut self, state: &FactorState) -> bool {
@@ -460,7 +485,15 @@ impl FactorKind {
 }
 
 impl Model for FactorKind {
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<f32>) -> Matrix<f32> {
+    fn name(&self) -> &'static str {
+        match self {
+            FactorKind::Pose(f) => f.name(),
+            FactorKind::InterRobot(f) => f.name(),
+            FactorKind::Dynamic(f) => f.name(),
+            FactorKind::Obstacle(f) => f.name(),
+        }
+    }
+    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         match self {
             FactorKind::Pose(f) => f.jacobian(state, x),
             FactorKind::InterRobot(f) => f.jacobian(state, x),
@@ -469,7 +502,7 @@ impl Model for FactorKind {
         }
     }
 
-    fn measure(&mut self, state: &FactorState, x: &Vector<f32>) -> Vector<f32> {
+    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         match self {
             FactorKind::Pose(f) => f.measure(state, x),
             FactorKind::InterRobot(f) => f.measure(state, x),
@@ -487,7 +520,7 @@ impl Model for FactorKind {
         }
     }
 
-    fn jacobian_delta(&self) -> f32 {
+    fn jacobian_delta(&self) -> Float {
         match self {
             FactorKind::Pose(f) => f.jacobian_delta(),
             FactorKind::InterRobot(f) => f.jacobian_delta(),
@@ -511,43 +544,44 @@ impl Model for FactorKind {
 #[derive(Debug, Clone)]
 pub struct FactorState {
     /// called `z_` in **gbpplanner**
-    pub measurement: Vector<f32>,
+    pub initial_measurement: Vector<Float>,
     /// called `meas_model_lambda_` in **gbpplanner**
-    pub measurement_precision: Matrix<f32>,
+    pub measurement_precision: Matrix<Float>,
     /// Stored linearisation point
-    /// called X_ in gbpplanner, they use Eigen::MatrixXd instead
-    pub linearisation_point: Vector<f32>,
+    /// called `X_` in **gbpplanner**, they use `Eigen::MatrixXd` instead
+    pub linearisation_point: Vector<Float>,
     /// Strength of the factor. Called `sigma` in gbpplanner.
     /// The factor precision $Lambda = sigma^-2 * Identify$
-    pub strength: f32,
+    pub strength: Float,
     /// Number of degrees of freedom e.g. 4 [x, y, x', y']
     pub dofs: usize,
 
     /// Cached value of the factors jacobian function
     /// called `J_` in **gbpplanner**
-    pub cached_jacobian: Matrix<f32>,
+    pub cached_jacobian: Matrix<Float>,
 
     /// Cached value of the factors jacobian function
     /// called `h_` in **gbpplanner**
-    pub cached_measurement: Vector<f32>,
+    pub cached_measurement: Vector<Float>,
 }
 
 impl FactorState {
     fn new(
-        measurement: Vector<f32>,
+        measurement: Vector<Float>,
         // linearisation_point: Vector<f32>,
-        strength: f32,
+        strength: Float,
         dofs: usize,
         neighbor_amount: usize,
     ) -> Self {
         // Initialise precision of the measurement function
         // this->meas_model_lambda_ = Eigen::MatrixXd::Identity(z_.rows(), z_.rows()) / pow(sigma,2.);
-        let measurement_precision = Matrix::<f32>::eye(measurement.len()) / f32::powi(strength, 2);
+        let measurement_precision =
+            Matrix::<Float>::eye(measurement.len()) / Float::powi(strength, 2);
 
         Self {
-            measurement,
+            initial_measurement: measurement,
             measurement_precision,
-            linearisation_point: Vector::<f32>::zeros(dofs * neighbor_amount),
+            linearisation_point: Vector::<Float>::zeros(dofs * neighbor_amount),
             strength,
             dofs,
             cached_jacobian: array![[]],
@@ -584,10 +618,10 @@ impl Factor {
     }
 
     pub fn new_dynamic_factor(
-        strength: f32,
-        measurement: Vector<f32>,
+        strength: Float,
+        measurement: Vector<Float>,
         dofs: usize,
-        delta_t: f32,
+        delta_t: Float,
     ) -> Self {
         let mut state = FactorState::new(measurement, strength, dofs, 2); // Dynamic factors have 2 neighbors
         let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
@@ -598,10 +632,10 @@ impl Factor {
     // TODO: need to store the id of the variable in the other robots factorgraph,
     // so we can visualize it with graphviz
     pub fn new_interrobot_factor(
-        strength: f32,
-        measurement: Vector<f32>,
+        strength: Float,
+        measurement: Vector<Float>,
         dofs: usize,
-        safety_radius: f32,
+        safety_radius: Float,
         connection: InterRobotConnection,
     ) -> Self {
         let state = FactorState::new(measurement, strength, dofs, 2); // Interrobot factors have 2 neighbors
@@ -616,11 +650,11 @@ impl Factor {
     }
 
     pub fn new_obstacle_factor(
-        strength: f32,
-        measurement: Vector<f32>,
+        strength: Float,
+        measurement: Vector<Float>,
         dofs: usize,
         obstacle_sdf: &'static Image,
-        world_size: f32,
+        world_size: Float,
     ) -> Self {
         let state = FactorState::new(measurement, strength, dofs, 1); // Obstacle factors have 1 neighbor
                                                                       // let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
@@ -629,15 +663,21 @@ impl Factor {
         Self::new(state, kind)
     }
 
-    pub fn jacobian(&mut self, x: &Vector<f32>) -> Matrix<f32> {
+    pub fn jacobian(&mut self, x: &Vector<Float>) -> Matrix<Float> {
         self.kind.jacobian(&self.state, x)
     }
 
-    pub fn measure(&mut self, x: &Vector<f32>) -> Vector<f32> {
-        self.kind.measure(&self.state, x)
+    pub fn measure(&mut self, x: &Vector<Float>) -> Vector<Float> {
+        self.state.cached_measurement = self.kind.measure(&self.state, x);
+        self.state.cached_measurement.clone()
     }
 
-    pub fn mark_initialized(&mut self) {
+    pub fn skip(&mut self) -> bool {
+        self.kind.skip(&self.state)
+    }
+
+    // TODO: document what this method is for
+    pub fn mark_as_initialized(&mut self) {
         self.initialized = true;
     }
 
@@ -663,260 +703,7 @@ impl Factor {
         self.inbox.get(&from)
     }
 
-    fn residual(&self) -> Vector<f32> {
-        &self.state.measurement - &self.state.cached_measurement
-    }
-
-    // Main section: Factor update:
-    // Messages from connected variables are aggregated. The beliefs are used to create the linearisation point X_.
-    // The Factor potential is calculated using h_func_ and J_func_
-    // The factor precision and information is created, and then marginalised to create outgoing messages to its connected variables.
-    // pub fn update(&mut self, factor_index: NodeIndex, graph: &mut Graph) -> bool {
-    pub fn update(
-        &mut self,
-        factor_index: NodeIndex,
-        adjacent_variables: &[NodeIndex],
-        graph: &Graph,
-    ) -> HashMap<NodeIndex, Message> {
-        // // Messages from connected variables are aggregated.
-        // // The beliefs are used to create the linearisation point X_.
-        // int idx = 0; int n_dofs;
-        // for (int v=0; v<variables_.size(); v++){
-        //     n_dofs = variables_[v]->n_dofs_;
-        //     auto& [_, __, mu_belief] = this->inbox_[variables_[v]->key_];
-        //     X_(seqN(idx, n_dofs)) = mu_belief;
-        //     idx += n_dofs;
-        // }
-        // let adjacent_variables = graph.neighbors(factor_index);
-        let mut idx = 0;
-        for variable_index in adjacent_variables {
-            let variable = graph[*variable_index]
-                .as_variable()
-                .expect("The variable_index should point to a Variable in the graph");
-
-            idx += variable.dofs;
-            let message = self
-                .inbox
-                .get(variable_index)
-                .expect("There should be a message from each variable connected to this factor");
-
-            // TODO: how do we ensure/know state.linearisation_point is long enough to fit all message means concatenated
-            // utils::nalgebra::insert_subvector(
-            //     &mut self.state.linearisation_point,
-            //     idx..idx + variable.dofs,
-            //     &message.mean(),
-            // );
-            self.state
-                .linearisation_point
-                .slice_mut(s![idx..idx + variable.dofs])
-                .assign(&message.mean());
-        }
-
-        // TODO: implement the rest of the update method
-
-        if self.kind.skip(&self.state) {
-            info!("skipping factor update early for factor with index: {factor_index:?}");
-            let messages_to_variables = adjacent_variables
-                .iter()
-                .map(|variable_index| {
-                    let message = Message::with_dofs(idx);
-                    (*variable_index, message)
-                })
-                .collect::<HashMap<_, _>>();
-
-            return messages_to_variables;
-        }
-
-        //  Update factor precision and information with incoming messages from connected variables.
-        let measurement = self
-            .kind
-            .measure(&self.state, &self.state.linearisation_point);
-
-        let linearisation_point_clone = self.state.linearisation_point.clone();
-        let jacobian = if self.kind.linear() && self.initialized {
-            self.state.cached_jacobian.clone()
-        } else {
-            self.jacobian(&linearisation_point_clone)
-        };
-
-        // Eigen::MatrixXd factor_lam_potential = J_.transpose() * meas_model_lambda_ * J_;
-        // Eigen::VectorXd factor_eta_potential = (J_.transpose() * meas_model_lambda_) * (J_ * X_ + residual());
-        // this->initialised_ = true;
-
-        // Eigen::MatrixXd factor_lam_potential = J_.transpose() * meas_model_lambda_ * J_;
-        // Eigen::VectorXd factor_eta_potential = (J_.transpose() * meas_model_lambda_) * (J_ * X_ + residual());
-
-        let factor_lam_potential = jacobian
-            .t()
-            .dot(&self.state.measurement_precision)
-            .dot(&jacobian);
-        let factor_eta_potential = (jacobian.t().dot(&self.state.measurement_precision))
-            .dot(&jacobian.dot(&(linearisation_point_clone + self.residual())));
-
-        self.initialized = true;
-
-        //  Update factor precision and information with incoming messages from connected variables.
-        let mut marginalisation_idx = 0usize;
-        let mut messages_to_variables =
-            HashMap::<NodeIndex, Message>::with_capacity(adjacent_variables.len());
-
-        for variable_index in adjacent_variables.iter() {
-            let mut factor_eta = factor_eta_potential.to_owned();
-            let mut factor_lam = factor_lam_potential.to_owned();
-
-            let variable = graph[*variable_index]
-                .as_variable()
-                .expect("The variable_index should point to a Variable in the graph");
-
-            // Combine the factor with the belief from other variables apart from the receiving variable
-
-            let mut index_offset = 0usize;
-            for other_variable_index in adjacent_variables.iter() {
-                let other_variable = graph[*other_variable_index]
-                    .as_variable()
-                    .expect("The variable_index should point to a Variable in the graph");
-                if variable_index != other_variable_index {
-                    let message = self.read_message_from(*other_variable_index).expect(
-                        "There should be a message from each variable connected to this factor",
-                    );
-                    // let slice = index_offset..index_offset + variable.dofs;
-                    // factor_eta(seqN(idx_v, n_dofs)) += eta_belief;
-                    // gbp_linalg::vector::add_assign_subvector(
-                    //     &mut factor_eta,
-                    //     index_offset,
-                    //     &message.0.information_vector,
-                    // );
-                    // TODO: KRISTOFFER CHECK THIS
-                    factor_eta
-                        .slice_mut(s![index_offset..index_offset + variable.dofs])
-                        .add_assign(&message.information_vector());
-                    // .add_assign(&message.0.mean());
-                    // factor_lam(seqN(idx_v, n_dofs), seqN(idx_v, n_dofs)) += lam_belief;
-                    // gbp_linalg::matrix::add_assign_submatrix(
-                    //     &mut factor_lam,
-                    //     (index_offset, index_offset + variable.dofs),
-                    //     &message.0.precision_matrix,
-                    // );
-                    // TODO: KRISTOFFER CHECK THIS
-                    factor_lam
-                        .slice_mut(s![
-                            index_offset..index_offset + variable.dofs,
-                            index_offset..index_offset + variable.dofs
-                        ])
-                        .add_assign(&message.precision_matrix());
-                }
-                index_offset += other_variable.dofs;
-            }
-
-            // // Marginalise the Factor Precision and Information to send to the relevant variable
-            // outbox_[var_out->key_] = marginalise_factor_dist(factor_eta, factor_lam, v_out_idx, marginalisation_idx);
-            // marginalisation_idx += var_out->n_dofs_;
-            let message_to_send = self.marginalise_factor_distance(
-                factor_eta,
-                factor_lam,
-                variable_index.index(),
-                marginalisation_idx,
-            );
-            marginalisation_idx += variable.dofs;
-            messages_to_variables.insert(*variable_index, message_to_send);
-        }
-
-        messages_to_variables
-    }
-
-    pub fn skip(&mut self) -> bool {
-        self.kind.skip(&self.state)
-    }
-
-    // /// Marginalise the factor precision and information and create the outgoing message to the variable.
-    // pub fn marginalise_factor_distance(
-    //     &mut self,
-    //     information_vector: Vector<f32>,
-    //     precision_matrix: Matrix<f32>,
-    //     // variable_index: usize
-    //     var_idx: usize,
-    //     marg_idx: usize,
-    // ) -> Message {
-    //     let dofs = self
-    //         .adjacent_variables
-    //         .get(var_idx)
-    //         .expect("var_idx is within [0, len)")
-    //         .dofs;
-
-    //     if information_vector.len() == dofs {
-    //         return Message::new(information_vector, precision_matrix);
-    //     }
-
-    //     // eta_a = eta(seqN(marg_idx, n_dofs));
-    //     let eta_a = information_vector.rows(marg_idx, dofs);
-    //     // eta_b << eta(seq(0, marg_idx - 1)), eta(seq(marg_idx + n_dofs, last));
-    //     let eta_b = {
-    //         let mut v = Vector::<f32>::zeros(information_vector.len() - dofs);
-    //         v.view_mut((0, 0), (marg_idx - 1, 0))
-    //             .copy_from(&information_vector.rows(0, marg_idx - 1));
-    //         v.view_mut((marg_idx, 0), (v.len(), 0)).copy_from(
-    //             &information_vector.rows(marg_idx + dofs, information_vector.len()),
-    //         );
-    //         v
-    //     };
-
-    //     // TODO: create some declarative macros to do this
-
-    //     let mut lam_aa = Matrix::<f32>::zeros(dofs, dofs);
-    //     let mut lam_ab = Matrix::<f32>::zeros(dofs, precision_matrix.ncols() - dofs);
-    //     let mut lam_ba = Matrix::<f32>::zeros(precision_matrix.nrows() - dofs, dofs);
-    //     let mut lam_bb = Matrix::<f32>::zeros(
-    //         precision_matrix.nrows() - dofs,
-    //         precision_matrix.ncols() - dofs,
-    //     );
-
-    //     let lam_bb_inv = lam_bb.try_inverse().expect("The matrix is invertible");
-
-    //     // let marginalised_message = Message {};
-
-    //     // marginalised_message
-    //     todo!()
-    // }
-
-    // TODO: possible duplicate function?
-    pub fn marginalise_factor_distance(
-        &self,
-        information_vector: Vector<f32>,
-        precision_matrix: Matrix<f32>,
-        dofs_of_variable: usize,
-        marginalisation_idx: usize,
-    ) -> Message {
-        if information_vector.len() == dofs_of_variable {
-            return Message::new(information_vector, precision_matrix).expect("the given information vector and precision matrix is a valid multivariate gaussian");
-        }
-
-        // Eigen::VectorXd eta_a(n_dofs);
-        // eta_a = eta(seqN(marg_idx, n_dofs));
-        let eta_a = {
-            let mut v = Vector::<f32>::zeros(dofs_of_variable);
-            // gbp_linalg::vector::override_subvector(
-            //     &mut v,
-            //     marginalisation_idx,
-            //     &information_vector,
-            // );
-            v.slice_mut(s![marginalisation_idx..])
-                .assign(&information_vector);
-            v
-        };
-        // eta_b(eta.size()-n_dofs);
-        // eta_b << eta(seq(0, marg_idx - 1)), eta(seq(marg_idx + n_dofs, last));
-        let eta_b = {
-            let mut v = Vector::<f32>::zeros(information_vector.len() - dofs_of_variable);
-            // gbp_linalg::vector::override_subvector(
-            //     &mut v,
-            //     0,
-            //     gbp_linalg::vector_view!(information_vector, 0..marginalisation_idx - 1),
-            // );
-            v.slice_mut(s![0..marginalisation_idx])
-                .assign(&information_vector.slice(s![0..marginalisation_idx]));
-            v
-        };
-
-        todo!()
+    pub fn residual(&self) -> Vector<Float> {
+        &self.state.initial_measurement - &self.state.cached_measurement
     }
 }
