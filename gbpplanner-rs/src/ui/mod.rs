@@ -67,13 +67,19 @@ impl ToDisplayString for UiScaleType {
     }
 }
 
-/// UI state to represent which `equi` panels are open
+/// UI state to represent state of `egui` stateful widgets
 #[derive(Resource)]
 pub struct UiState {
+    /// Whether the left panel is open
     pub left_panel: bool,
+    /// Whether the right panel is open
     pub right_panel: bool,
+    /// The type of UI scaling to use
     pub scale_type: UiScaleType,
+    /// When `scale_type` is `Custom`, the percentage to scale by
     pub scale_percent: usize,
+    /// Whether the environment SDF is visible
+    pub environment_sdf: bool,
 }
 
 impl Default for UiState {
@@ -83,6 +89,7 @@ impl Default for UiState {
             right_panel: false,
             scale_type: UiScaleType::default(),
             scale_percent: 100, // start at default factor 1.0 = 100%
+            environment_sdf: false,
         }
     }
 }

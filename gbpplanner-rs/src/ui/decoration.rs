@@ -13,6 +13,7 @@ use leafwing_input_manager::{
     user_input::{InputKind, Modifier, UserInput},
 };
 
+/// Convert to a `String` suitable for displaying
 pub trait ToDisplayString {
     fn to_display_string(&self) -> String;
 }

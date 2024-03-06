@@ -3,17 +3,29 @@ use bevy_egui::{
     egui::{self, Color32, RichText},
     EguiContexts, EguiSettings,
 };
+use heck::{ToPascalCase, ToTitleCase};
+use struct_iterable::Iterable;
 use strum::IntoEnumIterator;
 
-use crate::theme::{CatppuccinTheme, ThemeEvent};
+use crate::{
+    config::Config,
+    theme::{CatppuccinTheme, ThemeEvent},
+};
 
 use super::{OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
+
+#[derive(Event, Debug, Copy, Clone)]
+pub struct EnvironmentEvent;
+
+#[derive(Event, Debug, Copy, Clone)]
+pub struct UiScaleEvent;
 
 pub struct SettingsPanelPlugin;
 
 impl Plugin for SettingsPanelPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<UiScaleEvent>()
+            .add_event::<EnvironmentEvent>()
             .add_systems(Update, (ui_settings_panel, scale_ui));
     }
 }
@@ -33,9 +45,11 @@ impl ToDisplayString for catppuccin::Flavour {
 fn ui_settings_panel(
     mut contexts: EguiContexts,
     mut ui_state: ResMut<UiState>,
+    mut config: ResMut<Config>,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
     mut theme_event: EventWriter<ThemeEvent>,
     mut scale_event: EventWriter<UiScaleEvent>,
+    mut environment_event: EventWriter<EnvironmentEvent>,
     catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     let ctx = contexts.ctx_mut();
@@ -59,7 +73,7 @@ fn ui_settings_panel(
                         .striped(false)
                         .spacing((10.0, 10.0))
                         .show(ui, |ui| {
-                            // toggle_ui(ui, &mut theme);
+                            // THEME SELECTOR
                             ui.label("Theme");
                             ui.vertical_centered_justified(|ui| {
                                 ui.menu_button(
@@ -84,6 +98,8 @@ fn ui_settings_panel(
                                 );
                             });
                             ui.end_row();
+
+                            // UI SCALING TYPE SELECTOR
                             ui.label("Scale Type");
                             ui.vertical_centered_justified(|ui| {
                                 ui.menu_button(ui_state.scale_type.to_display_string(), |ui| {
@@ -100,6 +116,8 @@ fn ui_settings_panel(
                                 })
                             });
                             ui.end_row();
+
+                            // UI SCALING SLIDER
                             ui.add_enabled_ui(
                                 matches!(ui_state.scale_type, UiScaleType::Custom),
                                 |ui| {
@@ -118,7 +136,39 @@ fn ui_settings_panel(
                                 scale_event.send(UiScaleEvent);
                             }
                             ui.end_row();
+
+                            // ENVIRONMENT SDF TOGGLE
+                            // TODO: Integrate this toggle with the environment plugin
+                            ui.label("Environment");
+                            ui.vertical_centered_justified(|ui| {
+                                if toggle_ui(ui, &mut ui_state.environment_sdf).clicked() {
+                                    environment_event.send(EnvironmentEvent);
+                                }
+                            });
+                            ui.end_row();
                         });
+
+                    ui.add_space(10.0);
+                    ui.collapsing(RichText::new("Draw"), |ui| {
+                    egui::Grid::new("draw_grid")
+                        .num_columns(2)
+                        .min_col_width(100.0)
+                        .striped(false)
+                        .spacing((10.0, 10.0))
+                        .show(ui, |ui| {
+                            for (name, _) in config.draw.clone().iter() {
+                                // info!("name: {}", name);
+                                ui.label(name.to_title_case());
+                                let setting = config.draw.get_field_mut::<bool>(name).expect("Since I am iterating over the fields, I should be able to get the field");
+                                ui.vertical_centered_justified(|ui| {
+                                    if toggle_ui(ui, setting).clicked() {
+                                        // *setting = !*setting;
+                                    }
+                                });
+                                ui.end_row();
+                            }
+                        });
+                    });
                 });
         });
 
@@ -126,9 +176,6 @@ fn ui_settings_panel(
         .map(|ref inner| inner.response.rect.width())
         .unwrap_or(0.0);
 }
-
-#[derive(Event, Debug, Copy, Clone)]
-pub struct UiScaleEvent;
 
 fn scale_ui(
     mut egui_settings: ResMut<EguiSettings>,
@@ -158,7 +205,10 @@ pub fn toggle_ui(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {
     // 1. Deciding widget size:
     // You can query the `ui` how much space is available,
     // but in this example we have a fixed size widget based on the height of a standard button:
-    let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 1.0);
+    let available_x = ui.available_width();
+    let desired_y = ui.spacing().interact_size.y;
+    let desired_size = egui::vec2(available_x, desired_y);
+    // let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 1.0);
 
     // 2. Allocating space:
     // This is where we get a region of the screen assigned.
