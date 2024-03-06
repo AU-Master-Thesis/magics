@@ -1,18 +1,20 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{
     egui::{self, Color32, RichText},
-    EguiContexts,
+    EguiContexts, EguiSettings,
 };
+use strum::IntoEnumIterator;
 
 use crate::theme::{CatppuccinTheme, ThemeEvent};
 
-use super::{OccupiedScreenSpace, ToDisplayString, UiState};
+use super::{OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
 
 pub struct SettingsPanelPlugin;
 
 impl Plugin for SettingsPanelPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (ui_settings_panel,));
+        app.add_event::<UiScaleEvent>()
+            .add_systems(Update, (ui_settings_panel, scale_ui));
     }
 }
 
@@ -33,6 +35,7 @@ fn ui_settings_panel(
     mut ui_state: ResMut<UiState>,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
     mut theme_event: EventWriter<ThemeEvent>,
+    mut scale_event: EventWriter<UiScaleEvent>,
     catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     let ctx = contexts.ctx_mut();
@@ -57,7 +60,7 @@ fn ui_settings_panel(
                         .spacing((10.0, 10.0))
                         .show(ui, |ui| {
                             // toggle_ui(ui, &mut theme);
-                            ui.label("Select Theme:");
+                            ui.label("Theme");
                             ui.vertical_centered_justified(|ui| {
                                 ui.menu_button(
                                     catppuccin_theme.flavour.to_display_string(),
@@ -81,7 +84,40 @@ fn ui_settings_panel(
                                 );
                             });
                             ui.end_row();
-                            ui.label("New row");
+                            ui.label("Scale Type");
+                            ui.vertical_centered_justified(|ui| {
+                                ui.menu_button(ui_state.scale_type.to_display_string(), |ui| {
+                                    ui.set_width(100.0);
+                                    for scale in UiScaleType::iter() {
+                                        ui.vertical_centered_justified(|ui| {
+                                            if ui.button(scale.to_display_string()).clicked() {
+                                                ui_state.scale_type = scale;
+                                                scale_event.send(UiScaleEvent);
+                                                ui.close_menu();
+                                            }
+                                        });
+                                    }
+                                })
+                            });
+                            ui.end_row();
+                            ui.add_enabled_ui(
+                                matches!(ui_state.scale_type, UiScaleType::Custom),
+                                |ui| {
+                                    ui.label("Custom Scale");
+                                },
+                            );
+                            let slider_response = ui.add_enabled(
+                                matches!(ui_state.scale_type, UiScaleType::Custom),
+                                egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
+                                    .text("%")
+                                    .show_value(true),
+                            );
+                            // Only trigger ui scale update when the slider is released or lost focus
+                            // otherwise it would be imposssible to drag the slider while the ui is scaling
+                            if slider_response.drag_released() || slider_response.lost_focus() {
+                                scale_event.send(UiScaleEvent);
+                            }
+                            ui.end_row();
                         });
                 });
         });
@@ -89,6 +125,27 @@ fn ui_settings_panel(
     occupied_screen_space.right = right_panel
         .map(|ref inner| inner.response.rect.width())
         .unwrap_or(0.0);
+}
+
+#[derive(Event, Debug, Copy, Clone)]
+pub struct UiScaleEvent;
+
+fn scale_ui(
+    mut egui_settings: ResMut<EguiSettings>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    mut scale_event_reader: EventReader<UiScaleEvent>,
+    ui_state: Res<UiState>,
+) {
+    for _ in scale_event_reader.read() {
+        if let Ok(window) = windows.get_single() {
+            let scale_factor = match ui_state.scale_type {
+                UiScaleType::None => 1.0,
+                UiScaleType::Custom => ui_state.scale_percent as f32 / 100.0,
+                UiScaleType::Window => 1.0 / window.scale_factor() as f32,
+            };
+            egui_settings.scale_factor = scale_factor;
+        }
+    }
 }
 
 pub fn toggle_ui(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {

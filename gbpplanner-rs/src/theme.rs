@@ -31,15 +31,6 @@ impl Default for CatppuccinTheme {
 
 impl CatppuccinTheme {
     pub fn grid_colour(&self) -> Color {
-        // let window = windows
-        //     .get_single()
-        //     .expect("There should be exactly one window");
-        // let colour = match window.window_theme {
-        //     Some(WindowTheme::Light) => self.flavour.text(),
-        //     Some(WindowTheme::Dark) => self.flavour.crust(),
-        //     None => self.flavour.text(),
-        // };
-
         let colour = if self.is_dark() {
             self.flavour.crust()
         } else {

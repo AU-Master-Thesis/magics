@@ -10,6 +10,7 @@ use bevy_egui::{
     egui::{self, Visuals},
     EguiContexts, EguiPlugin,
 };
+use strum_macros::EnumIter;
 
 use crate::theme::CatppuccinThemeVisualsExt;
 
@@ -43,11 +44,47 @@ struct OccupiedScreenSpace {
     right: f32,
 }
 
+#[derive(EnumIter)]
+pub enum UiScaleType {
+    None,
+    Custom,
+    Window,
+}
+
+impl Default for UiScaleType {
+    fn default() -> Self {
+        Self::Custom
+    }
+}
+
+impl ToDisplayString for UiScaleType {
+    fn to_display_string(&self) -> String {
+        match self {
+            Self::None => "None".to_string(),
+            Self::Custom => "Custom".to_string(),
+            Self::Window => "Window".to_string(),
+        }
+    }
+}
+
 /// UI state to represent which `equi` panels are open
-#[derive(Default, Resource)]
+#[derive(Resource)]
 pub struct UiState {
     pub left_panel: bool,
     pub right_panel: bool,
+    pub scale_type: UiScaleType,
+    pub scale_percent: usize,
+}
+
+impl Default for UiState {
+    fn default() -> Self {
+        Self {
+            left_panel: false,
+            right_panel: false,
+            scale_type: UiScaleType::default(),
+            scale_percent: 100, // start at default factor 1.0 = 100%
+        }
+    }
 }
 
 /// `Setup` **Bevy** sytem to initialise the `egui` visuals

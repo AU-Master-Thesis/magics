@@ -3,7 +3,7 @@ use bevy_egui::EguiSettings;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum_macros::EnumIter;
 
-use crate::ui::ChangingBinding;
+use crate::ui::{ChangingBinding, UiScaleType};
 
 use super::super::ui::UiState;
 
@@ -21,14 +21,14 @@ impl Plugin for UiInputPlugin {
 pub enum UiAction {
     ToggleLeftPanel,
     ToggleRightPanel,
-    ToggleScaleFactor,
+    ChangeScaleKind,
 }
 
 impl UiAction {
     fn variants() -> &'static [Self] {
         &[
             UiAction::ToggleLeftPanel,
-            UiAction::ToggleScaleFactor,
+            UiAction::ChangeScaleKind,
             UiAction::ToggleRightPanel,
         ]
     }
@@ -39,9 +39,7 @@ impl UiAction {
             Self::ToggleRightPanel => {
                 Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyL)))
             }
-            Self::ToggleScaleFactor => {
-                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyU)))
-            }
+            Self::ChangeScaleKind => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyU))),
         }
     }
 }
@@ -51,7 +49,7 @@ impl ToString for UiAction {
         match self {
             Self::ToggleLeftPanel => "Toggle Left Panel".to_string(),
             Self::ToggleRightPanel => "Toggle Right Panel".to_string(),
-            Self::ToggleScaleFactor => "Toggle Scale Factor".to_string(),
+            Self::ChangeScaleKind => "Toggle Scale Factor".to_string(),
         }
     }
 }
@@ -78,9 +76,6 @@ fn bind_ui_input(mut commands: Commands) {
 fn ui_actions(
     query: Query<&ActionState<UiAction>>,
     mut ui_state: ResMut<UiState>,
-    mut toggle_scale_factor: Local<Option<bool>>,
-    mut egui_settings: ResMut<EguiSettings>,
-    windows: Query<&Window, With<PrimaryWindow>>,
     currently_changing: Res<ChangingBinding>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
@@ -98,16 +93,17 @@ fn ui_actions(
         ui_state.right_panel = !ui_state.right_panel;
     }
 
-    if action_state.just_pressed(&UiAction::ToggleScaleFactor) || toggle_scale_factor.is_none() {
-        *toggle_scale_factor = Some(!toggle_scale_factor.unwrap_or(true));
-
-        if let Ok(window) = windows.get_single() {
-            let scale_factor = if toggle_scale_factor.unwrap() {
-                1.0
-            } else {
-                1.0 / window.scale_factor()
-            };
-            egui_settings.scale_factor = scale_factor;
+    if action_state.just_pressed(&UiAction::ChangeScaleKind) {
+        match ui_state.scale_type {
+            UiScaleType::None => {
+                ui_state.scale_type = UiScaleType::Custom;
+            }
+            UiScaleType::Custom => {
+                ui_state.scale_type = UiScaleType::Window;
+            }
+            UiScaleType::Window => {
+                ui_state.scale_type = UiScaleType::None;
+            }
         }
     }
 }

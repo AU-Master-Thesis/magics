@@ -97,7 +97,7 @@ impl ToDisplayString for UiAction {
         match self {
             UiAction::ToggleLeftPanel => "Toggle Left Panel".to_string(),
             UiAction::ToggleRightPanel => "Toggle Right Panel".to_string(),
-            UiAction::ToggleScaleFactor => "Toggle Scale Factor".to_string(),
+            UiAction::ChangeScaleKind => "Toggle Scale Factor".to_string(),
         }
     }
 }
