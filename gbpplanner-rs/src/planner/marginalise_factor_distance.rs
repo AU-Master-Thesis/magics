@@ -54,11 +54,9 @@ pub fn marginalise_factor_distance(
     precision_matrix: Matrix<Float>,
     variable_dofs: usize,
     marginalisation_idx: usize,
-) -> Result<Message, &'static str> 
-{
+) -> Result<Message, &'static str> {
     debug_assert_eq!(information_vector.len(), precision_matrix.nrows());
     debug_assert_eq!(precision_matrix.nrows(), precision_matrix.ncols());
-
 
     let factor_only_connected_to_one_variable = information_vector.len() == variable_dofs;
     if factor_only_connected_to_one_variable {
@@ -78,7 +76,7 @@ pub fn marginalise_factor_distance(
     // eprintln!("precision_matrix shape = {:?}", precision_matrix.shape());
 
     // eprintln!("show me precision_matrix = \n{:?}", precision_matrix);
-    
+
     let ndofs = variable_dofs;
     let marg_idx = marginalisation_idx;
     // let iv = &information_vector;
@@ -127,7 +125,7 @@ pub fn marginalise_factor_distance(
     // );
 
     // eprintln!("lam_bb = {:?}", lam_bb);
-    
+
     let Some(lam_bb_inv) = lam_bb.to_owned().inv() else {
         return Ok(Message::Empty(ndofs));
     };
@@ -162,39 +160,45 @@ mod tests {
     macro_rules! generate_8x8_precision_matrix {
         () => {{
             let upper_left = array![
-            [1., 2., 3., 4.],
-            [5., 6., 7., 8.],
-            [9., 10., 11., 12.],
-            [13., 14., 15., 16.]
-        ];
+                [1., 2., 3., 4.],
+                [5., 6., 7., 8.],
+                [9., 10., 11., 12.],
+                [13., 14., 15., 16.]
+            ];
 
-        let upper_right = array![
-            [17., 18., 19., 20.],
-            [21., 22., 23., 24.],
-            [25., 26., 27., 28.],
-            [29., 30., 31., 32.]
-        ];
+            let upper_right = array![
+                [17., 18., 19., 20.],
+                [21., 22., 23., 24.],
+                [25., 26., 27., 28.],
+                [29., 30., 31., 32.]
+            ];
 
-        let lower_left = array![
-            [33., 34., 35., 36.],
-            [37., 38., 39., 40.],
-            [41., 42., 43., 44.],
-            [45., 46., 47., 48.]
-        ];
+            let lower_left = array![
+                [33., 34., 35., 36.],
+                [37., 38., 39., 40.],
+                [41., 42., 43., 44.],
+                [45., 46., 47., 48.]
+            ];
 
-        let lower_right = array![
-            [49., 50., 51., 52.],
-            [53., 54., 55., 56.],
-            [57., 58., 59., 60.],
-            [61., 62., 63., 64.]
-        ];
+            let lower_right = array![
+                [49., 50., 51., 52.],
+                [53., 54., 55., 56.],
+                [57., 58., 59., 60.],
+                [61., 62., 63., 64.]
+            ];
 
-        let precision_matrix = concatenate![
-            Axis(0),
-            concatenate![Axis(1), upper_left, upper_right],
-            concatenate![Axis(1), lower_left, lower_right]
-        ];
-            (precision_matrix, upper_left, upper_right, lower_left, lower_right)
+            let precision_matrix = concatenate![
+                Axis(0),
+                concatenate![Axis(1), upper_left, upper_right],
+                concatenate![Axis(1), lower_left, lower_right]
+            ];
+            (
+                precision_matrix,
+                upper_left,
+                upper_right,
+                lower_left,
+                lower_right,
+            )
         }};
     }
 
@@ -205,11 +209,7 @@ mod tests {
 
         assert!(precision_matrix.is_square());
 
-        let (aa, ab, ba, bb) = extract_submatrices_from_precision_matrix(
-            &precision_matrix,
-            4,
-            0,
-        );
+        let (aa, ab, ba, bb) = extract_submatrices_from_precision_matrix(&precision_matrix, 4, 0);
 
         assert_eq!(aa, upper_left);
         assert_eq!(ab, upper_right);
@@ -224,11 +224,7 @@ mod tests {
 
         assert!(precision_matrix.is_square());
 
-        let (aa, ab, ba, bb) = extract_submatrices_from_precision_matrix(
-            &precision_matrix,
-            4,
-            4,
-        );
+        let (aa, ab, ba, bb) = extract_submatrices_from_precision_matrix(&precision_matrix, 4, 4);
 
         assert_eq!(aa, lower_right);
         assert_eq!(ab, lower_left);
@@ -256,14 +252,8 @@ mod tests {
             marginalisation_idx,
         );
 
-        assert_eq!(
-            marginalised_msg.information_vector(),
-            information_vector
-        );
-        assert_eq!(
-            marginalised_msg.precision_matrix(),
-            precision_matrix
-        );
+        assert_eq!(marginalised_msg.information_vector(), information_vector);
+        assert_eq!(marginalised_msg.precision_matrix(), precision_matrix);
     }
 
     // #[test]

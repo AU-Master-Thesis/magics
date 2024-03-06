@@ -542,7 +542,8 @@ fn update_prior_of_current_state_system(
     config: Res<Config>,
     time: Res<Time>,
 ) {
-    let scale = time.delta_seconds() / config.simulation.t0;
+    let scale = 1e10 * time.delta_seconds() / config.simulation.t0;
+    dbg!(&scale);
 
     for (mut factorgraph, mut transform) in query.iter_mut() {
         let (mean_of_current_variable, increment) = {

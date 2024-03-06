@@ -1,10 +1,10 @@
 mod factor;
 mod factorgraph;
 mod marginalise_factor_distance;
+mod message;
 mod robot;
 mod spawner;
 mod variable;
-mod message;
 
 pub use factorgraph::graphviz::NodeKind;
 pub use factorgraph::FactorGraph;

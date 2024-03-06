@@ -1,9 +1,11 @@
 //! A small collection of extension traits and types for ndarray.
 
 pub mod prelude {
-    pub use super::{Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm, VectorView, GbpFloat, Float};
+    pub use super::{
+        Float, GbpFloat, Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm, VectorView,
+    };
     // pub use ndarray::array;
-}   
+}
 
 /// Marker trait for floating point types used in GBP.
 /// - ndarray::NdFloat is a trait for floating point types that can be used with ndarray.
@@ -11,7 +13,7 @@ pub mod prelude {
 /// - Copy, is to make some of the methods more ergonomic to use.
 /// - std::iter::Sum is required by the `det()` method by `ndarray_inverse::Inverse::det()`
 /// which we use in `gbp_multivariate_normal::MultivariateNormal` to calculate the determinant of the precision matrix.
-pub trait GbpFloat : ndarray::NdFloat + Copy + std::iter::Sum {}
+pub trait GbpFloat: ndarray::NdFloat + Copy + std::iter::Sum {}
 
 impl GbpFloat for f32 {}
 impl GbpFloat for f64 {}
@@ -98,9 +100,9 @@ ndarray_vector_ext_trait_impl!(f64);
 mod tests {
     use super::*;
 
-    use ndarray::array;
     use approx::assert_relative_eq;
     use arbtest::arbtest;
+    use ndarray::array;
     use paste::paste;
     use pretty_assertions::assert_eq;
 

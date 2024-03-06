@@ -1,5 +1,5 @@
 // #![warn(missing_docs)]
-use gbp_linalg::{GbpFloat, Float, Matrix, Vector};
+use gbp_linalg::{Float, GbpFloat, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
 #[derive(Debug, thiserror::Error)]
@@ -61,7 +61,7 @@ impl MultivariateNormal {
             ))
         } else {
             // if precision_matrix.det().is_zero() {
-                if precision_matrix.det() == 0.0 {
+            if precision_matrix.det() == 0.0 {
                 return Err(MultivariateNormalError::NonInvertiblePrecisionMatrix);
             }
             let mean = precision_matrix.dot(&information_vector);
@@ -87,7 +87,10 @@ impl MultivariateNormal {
     ///     Ok(())
     /// }
     /// ```
-    pub fn from_mean_and_covariance(mean: Vector<Float>, covariance: Matrix<Float>) -> Result<Self> {
+    pub fn from_mean_and_covariance(
+        mean: Vector<Float>,
+        covariance: Matrix<Float>,
+    ) -> Result<Self> {
         if !covariance.is_square() {
             Err(MultivariateNormalError::NonSquarePrecisionMatrix(
                 covariance.nrows(),
@@ -147,7 +150,7 @@ impl MultivariateNormal {
 
     pub fn update_precision_matrix(&mut self, value: &Matrix<Float>) -> Result<()> {
         // if value.det() == Float::zero() {
-            if value.det() == 0.0 {
+        if value.det() == 0.0 {
             Err(MultivariateNormalError::NonInvertiblePrecisionMatrix)
         } else {
             self.precision.clone_from(value);

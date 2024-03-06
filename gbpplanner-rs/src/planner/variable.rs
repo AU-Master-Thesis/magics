@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
+use super::factorgraph::Inbox;
 use super::factorgraph::NodeIndex;
 use super::message::Message;
-use super::factorgraph::Inbox;
-use gbp_linalg::{Vector, Float};
+use gbp_linalg::{Float, Vector};
 use gbp_multivariate_normal::MultivariateNormal;
 
 /// A variable in the factor graph.
 #[derive(Debug, Clone)]
-pub struct Variable{
+pub struct Variable {
     /// Unique identifier that associates the variable with a factorgraph/robot.
     pub node_index: Option<NodeIndex>,
     /// Called `factors_` in **gbpplanner**.

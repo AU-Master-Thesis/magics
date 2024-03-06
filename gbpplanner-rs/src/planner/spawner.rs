@@ -157,7 +157,7 @@ fn spawn_formation(
     // let lookahead_horizon =
     for position in initial_positions {
         // TODO: Used the actual mapped waypoints from the formation
-        let waypoints = VecDeque::from(vec![position, position + Vec2::new(1.0, 1.0)]);
+        let waypoints = VecDeque::from(vec![position, Vec2::ZERO]);
         commands.spawn((
             RobotBundle::new(
                    waypoints,
