@@ -2,18 +2,19 @@ use bevy::prelude::*;
 use bevy::window::WindowTheme;
 use bevy_egui::{
     egui::{
-        self,
         epaint::Shadow,
         style::{HandleShape, Selection, WidgetVisuals, Widgets},
-        Color32, Rounding, Stroke, Style, Visuals,
+        Color32, Rounding, Stroke, Visuals,
     },
     EguiContexts,
 };
 use bevy_infinite_grid::InfiniteGridSettings;
 use catppuccin::{Colour, Flavour};
-use color_eyre::config::Theme;
 
-use crate::factorgraph::{Factor, Line, Variable};
+use crate::{
+    factorgraph::{Factor, Line, Variable},
+    planner,
+};
 
 /// Catppuccin **Bevy** theme wrapper
 #[derive(Resource, Debug)]
@@ -265,7 +266,7 @@ impl Plugin for ThemePlugin {
             .init_resource::<CatppuccinTheme>()
             .add_systems(
                 Startup,
-                set_window_theme(WindowTheme::Dark).run_if(theme_is_not_set),
+                init_window_theme(WindowTheme::Dark).run_if(theme_is_not_initialised),
             )
             .add_systems(
                 Update,
@@ -276,21 +277,23 @@ impl Plugin for ThemePlugin {
                     handle_variables,
                     handle_factors,
                     handle_lines,
+                    handle_robots,
+                    handle_waypoints,
                 ),
             );
     }
 }
 
 /// **Bevy** run criteria, checking if the window theme has been set
-fn theme_is_not_set(windows: Query<&Window>) -> bool {
+fn theme_is_not_initialised(windows: Query<&Window>) -> bool {
     let window = windows.single();
     window.window_theme.is_none()
 }
 
 /// **Bevy** `Startup` system to set the window theme
-/// Run criteria: `theme_is_not_set`
+/// Run criteria: `theme_is_not_initialised`
 /// Only used to set the window theme if it wasn't possible to detect from the system
-fn set_window_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
+fn init_window_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
     move |mut windows: Query<&mut Window>| {
         let mut window = windows.single_mut();
         window.window_theme = Some(theme);
@@ -366,8 +369,9 @@ fn handle_clear_color(
     mut theme_changed_event: EventReader<ThemeChangedEvent>,
 ) {
     for _ in theme_changed_event.read() {
-        let (r, g, b) = catppuccin_theme.flavour.base().into();
-        *clear_color = ClearColor(Color::rgb_u8(r, g, b));
+        *clear_color = ClearColor(Color::from_catppuccin_colour(
+            catppuccin_theme.flavour.base(),
+        ));
     }
 }
 
@@ -375,7 +379,6 @@ fn handle_clear_color(
 /// Reads `ThemeChangedEvent` to know when to change the infinite grid theme
 fn handle_infinite_grid(
     catppuccin_theme: Res<CatppuccinTheme>,
-    windows: Query<&Window>,
     mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut query_infinite_grid: Query<&mut InfiniteGridSettings>,
 ) {
@@ -384,10 +387,10 @@ fn handle_infinite_grid(
         if let Ok(mut settings) = query_infinite_grid.get_single_mut() {
             settings.major_line_color = grid_colour.with_a(0.5);
             settings.minor_line_color = grid_colour.with_a(0.25);
-            let (r, g, b) = catppuccin_theme.flavour.maroon().into();
-            settings.x_axis_color = Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8);
-            let (r, g, b) = catppuccin_theme.flavour.blue().into();
-            settings.z_axis_color = Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8);
+            settings.x_axis_color =
+                Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.red(), 0.1);
+            settings.z_axis_color =
+                Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(), 0.1);
         }
     }
 }
@@ -403,11 +406,8 @@ fn handle_variables(
     for _ in theme_changed_event.read() {
         for handle in query_variable.iter_mut() {
             if let Some(material) = materials.get_mut(handle.clone()) {
-                let alpha = 0.75;
-                material.base_color = {
-                    let (r, g, b) = catppuccin_theme.flavour.blue().into();
-                    Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
-                };
+                material.base_color =
+                    Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(), 0.75);
             }
         }
     }
@@ -424,11 +424,10 @@ fn handle_factors(
     for _ in theme_changed_event.read() {
         for handle in query_factor.iter_mut() {
             if let Some(material) = materials.get_mut(handle.clone()) {
-                let alpha = 0.75;
-                material.base_color = {
-                    let (r, g, b) = catppuccin_theme.flavour.green().into();
-                    Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
-                };
+                material.base_color = Color::from_catppuccin_colour_with_alpha(
+                    catppuccin_theme.flavour.green(),
+                    0.75,
+                );
             }
         }
     }
@@ -445,11 +444,49 @@ fn handle_lines(
     for _ in theme_changed_event.read() {
         for handle in query_line.iter_mut() {
             if let Some(material) = materials.get_mut(handle.clone()) {
-                let alpha = 0.75;
-                material.base_color = {
-                    let (r, g, b) = catppuccin_theme.flavour.text().into();
-                    Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
-                };
+                material.base_color =
+                    Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.text(), 0.75);
+            }
+        }
+    }
+}
+
+/// **Bevy** `Update` system to handle theme change for Robots
+/// Reads `ThemeChangedEvent` to know when to change the robot colour
+fn handle_robots(
+    catppuccin_theme: Res<CatppuccinTheme>,
+    mut theme_changed_event: EventReader<ThemeChangedEvent>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut query_robot: Query<&mut Handle<StandardMaterial>, With<planner::RobotState>>,
+) {
+    for _ in theme_changed_event.read() {
+        for handle in query_robot.iter_mut() {
+            if let Some(material) = materials.get_mut(handle.clone()) {
+                material.base_color = Color::from_catppuccin_colour_with_alpha(
+                    catppuccin_theme.flavour.green(),
+                    0.75,
+                );
+            }
+        }
+    }
+}
+
+/// **Bevy** `Update` system to handle the theme change for waypoints
+/// Reads `ThemeChangedEvent` to know when to change the waypoint colour
+/// Queries all `StandardMaterial` handles with `Waypoint` components
+fn handle_waypoints(
+    catppuccin_theme: Res<CatppuccinTheme>,
+    mut theme_changed_event: EventReader<ThemeChangedEvent>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut query_waypoint: Query<&mut Handle<StandardMaterial>, With<planner::Waypoint>>,
+) {
+    for _ in theme_changed_event.read() {
+        for handle in query_waypoint.iter_mut() {
+            if let Some(material) = materials.get_mut(handle.clone()) {
+                material.base_color = Color::from_catppuccin_colour_with_alpha(
+                    catppuccin_theme.flavour.maroon(),
+                    0.75,
+                );
             }
         }
     }

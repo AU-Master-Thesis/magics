@@ -12,6 +12,7 @@ pub use factorgraph::FactorGraph;
 pub use factorgraph::NodeIndex;
 pub use robot::RobotId;
 pub use robot::RobotState;
+pub use visualiser::Waypoint;
 
 // use gbp_linalg::*;
 

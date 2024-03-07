@@ -31,6 +31,10 @@ pub struct RobotTracker {
     pub robot_id: RobotId,
 }
 
+/// A **Bevy** `Component` to mark an entity as a waypoint
+#[derive(Component)]
+pub struct Waypoint;
+
 /// A **Bevy** `Component` to mark a robot that it has a corresponding `RobotTracker` component
 /// This is for easy exclusion in queries
 #[derive(Component)]
@@ -43,9 +47,6 @@ fn init_waypoints(
     mut commands: Commands,
     query: Query<(Entity, &Waypoints), Without<RobotHasTracker>>,
     scene_assets: Res<SceneAssets>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     for (entity, waypoints) in query.iter() {
         // Mark the robot with `RobotHasTracker`
@@ -61,12 +62,11 @@ fn init_waypoints(
 
             // Spawn a `RobotTracker` component with a corresponding `PbrBundle`
             commands.spawn((
+                Waypoint,
                 RobotTracker { robot_id: entity },
                 PbrBundle {
                     mesh: scene_assets.meshes.waypoint.clone(),
                     material: scene_assets.materials.waypoint.clone(),
-                    // mesh: mesh.clone(),
-                    // material: material.clone(),
                     transform,
                     ..Default::default()
                 },
