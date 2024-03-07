@@ -10,11 +10,25 @@ use struct_iterable::Iterable;
 use strum::IntoEnumIterator;
 
 use crate::{
-    config::{Config, DrawSection},
+    config::{Config, DrawSection, DrawSetting},
     theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
 };
 
 use super::{custom, OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
+
+/// **Bevy** `Plugin` to add the settings panel to the UI
+pub struct SettingsPanelPlugin;
+
+impl Plugin for SettingsPanelPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_event::<UiScaleEvent>()
+            .add_event::<EnvironmentEvent>()
+            .add_event::<ExportGraphEvent>()
+            .add_event::<DrawSettingsEvent>()
+            .add_systems(Startup, install_egui_image_loaders)
+            .add_systems(Update, (ui_settings_panel, scale_ui));
+    }
+}
 
 /// Simple **Bevy** trigger `Event`
 /// Write to this event whenever you want to toggle the environment
@@ -31,17 +45,12 @@ pub struct UiScaleEvent;
 #[derive(Event, Debug, Copy, Clone)]
 pub struct ExportGraphEvent;
 
-/// **Bevy** `Plugin` to add the settings panel to the UI
-pub struct SettingsPanelPlugin;
-
-impl Plugin for SettingsPanelPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_event::<UiScaleEvent>()
-            .add_event::<EnvironmentEvent>()
-            .add_event::<ExportGraphEvent>()
-            .add_systems(Startup, install_egui_image_loaders)
-            .add_systems(Update, (ui_settings_panel, scale_ui));
-    }
+/// **Bevy** `Event` for the draw settings
+/// This event is triggered when a draw setting is toggled
+#[derive(Event, Debug, Clone)]
+pub struct DrawSettingsEvent {
+    pub setting: DrawSetting,
+    pub value: bool,
 }
 
 fn install_egui_image_loaders(mut egui_ctx: EguiContexts) {
@@ -70,6 +79,7 @@ fn ui_settings_panel(
     mut scale_event: EventWriter<UiScaleEvent>,
     mut environment_event: EventWriter<EnvironmentEvent>,
     mut export_graph_event: EventWriter<ExportGraphEvent>,
+    mut draw_setting_event: EventWriter<DrawSettingsEvent>,
     catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     let ctx = contexts.ctx_mut();
@@ -166,15 +176,6 @@ fn ui_settings_panel(
                             .striped(false)
                             .spacing((10.0, 10.0))
                             .show(ui, |ui| {
-                                // ENVIRONMENT SDF TOGGLE
-                                ui.label("Environment");
-                                custom::float_right(ui, |ui| {
-                                    if custom::toggle_ui(ui, &mut ui_state.environment_sdf).clicked() && ui_state.environment_sdf {
-                                        environment_event.send(EnvironmentEvent);
-                                    }
-                                });
-                                ui.end_row();
-
                                 // CONFIG DRAW SECTION
                                 // This should add a toggle for each draw setting in the config
                                 // Should be 4 toggles
@@ -183,7 +184,11 @@ fn ui_settings_panel(
                                     let setting = config.draw.get_field_mut::<bool>(name)
                                         .expect("Since I am iterating over the fields, I should be able to get the field");
                                     custom::float_right(ui, |ui| {
-                                        custom::toggle_ui(ui, setting)
+                                        if custom::toggle_ui(ui, setting).clicked() {
+                                            let setting_kind = DrawSetting::from_str(name).expect("The name of the draw section should be a valid DrawSection");
+                                            let event = DrawSettingsEvent { setting: setting_kind, value: *setting };
+                                            draw_setting_event.send(event);
+                                        }
                                     });
                                     ui.end_row();
                                 }
@@ -215,8 +220,8 @@ fn ui_settings_panel(
                                 });
                         });
                         ui.add_space(10.0);
-                        ui.add(egui::Image::new(egui::include_image!("../../../factorgraphs.png")));
-                        ui.add_space(10.0);
+                        // ui.add(egui::Image::new(egui::include_image!("../../../factorgraphs.png")));
+                        // ui.add_space(10.0);
                     });
         });
 

@@ -6,10 +6,12 @@ use itertools::Itertools;
 
 use crate::{
     asset_loader::SceneAssets,
+    config::{self, Config},
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
+    ui,
 };
 
-use super::{factor::Factor, factorgraph, robot::Waypoints, RobotId};
+use super::{robot::Waypoints, RobotId};
 
 /// A **Bevy** `Plugin` for visualising aspects of the planner
 /// Includes visualising parts of the factor graph
@@ -22,8 +24,10 @@ impl Plugin for VisualiserPlugin {
             (
                 init_waypoints,
                 update_waypoints,
+                show_or_hide_waypoints,
                 init_factorgraphs,
                 update_factorgraphs,
+                show_or_hide_factorgraphs,
                 draw_lines,
             ),
         );
@@ -224,11 +228,31 @@ fn update_factorgraphs(
                     continue;
                 }
 
-                info!("{:?}: Updating variable to {:?}", entity, v.belief.mean());
+                // info!("{:?}: Updating variable to {:?}", entity, v.belief.mean());
 
                 // else update the transform
                 let mean = v.belief.mean();
                 transform.translation = Vec3::new(mean[0] as f32, 0.0, mean[1] as f32);
+            }
+        }
+    }
+}
+
+/// A **Bevy** `Update` system
+/// Reads `DrawSettingEvent`, where if `DrawSettingEvent.setting == DrawSetting::PredictedTrajectories`
+/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the `VariableVisualiser` entities
+fn show_or_hide_factorgraphs(
+    mut query: Query<(&VariableVisualiser, &mut Visibility)>,
+    mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
+) {
+    for event in draw_setting_event.read() {
+        if matches!(event.setting, config::DrawSetting::PredictedTrajectories) {
+            for (_, mut visibility) in query.iter_mut() {
+                if event.value {
+                    *visibility = Visibility::Visible;
+                } else {
+                    *visibility = Visibility::Hidden;
+                }
             }
         }
     }
@@ -246,6 +270,8 @@ fn draw_lines(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    // should_i_draw_lines: Res<ShouldIDrawLines>,
+    config: Res<Config>,
     query_variables: Query<(&RobotTracker, &Transform), With<VariableVisualiser>>,
     query_previous_lines: Query<Entity, With<Line>>,
     factorgraph_query: Query<Entity, With<super::FactorGraph>>,
@@ -260,6 +286,11 @@ fn draw_lines(
     // TODO: Update lines instead of removing and re-adding
     for entity in query_previous_lines.iter() {
         commands.entity(entity).despawn();
+    }
+
+    // If we're not supposed to draw lines, return
+    if !config.draw.predicted_trajectories {
+        return;
     }
 
     let line_material = materials.add(Color::from_catppuccin_colour(
@@ -344,6 +375,26 @@ fn update_waypoints(
                 }
             } else {
                 info!("Robot {:?} has no more waypoints", tracker.robot_id);
+            }
+        }
+    }
+}
+
+/// A **Bevy** `Update` system
+/// Reads `DrawSettingEvent`, where if `DrawSettingEvent.setting == DrawSetting::Waypoints`
+/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the `WaypointVisualiser` entities
+fn show_or_hide_waypoints(
+    mut query: Query<(&WaypointVisualiser, &mut Visibility)>,
+    mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
+) {
+    for event in draw_setting_event.read() {
+        if matches!(event.setting, config::DrawSetting::Waypoints) {
+            for (_, mut visibility) in query.iter_mut() {
+                if event.value {
+                    *visibility = Visibility::Visible;
+                } else {
+                    *visibility = Visibility::Hidden;
+                }
             }
         }
     }

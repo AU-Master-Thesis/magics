@@ -6,6 +6,8 @@ communication-graph = true
 predicted-trajectories = true
 waypoints = true
 uncertainty = true
+paths = true
+environment = true
 
 [gbp]
 sigma-pose-fixed = 0.0000000000000010000000036274937
