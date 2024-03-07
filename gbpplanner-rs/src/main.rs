@@ -172,7 +172,7 @@ fn main() -> color_eyre::eyre::Result<()> {
             CameraPlugin,        // Custom
             FollowCamerasPlugin, // Custom
             RobotSpawnerPlugin,  // Custom
-            FactorGraphPlugin,   // Custom
+            // FactorGraphPlugin,   // Custom
             EguiInterfacePlugin, // Custom
             PlannerPlugin,       // Custom
                                  // WorldInspectorPlugin::new()

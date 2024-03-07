@@ -19,6 +19,7 @@ pub struct Materials {
     pub variable: Handle<StandardMaterial>,
     pub factor: Handle<StandardMaterial>,
     pub waypoint: Handle<StandardMaterial>,
+    pub line: Handle<StandardMaterial>,
 }
 
 /// A resource to hold all assets in a common place
@@ -106,6 +107,9 @@ fn load_assets(
             waypoint: materials.add(Color::from_catppuccin_colour_with_alpha(
                 catppuccin_theme.flavour.maroon(),
                 0.5,
+            )),
+            line: materials.add(Color::from_catppuccin_colour(
+                catppuccin_theme.flavour.text(),
             )),
         },
     }
