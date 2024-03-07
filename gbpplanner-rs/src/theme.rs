@@ -478,7 +478,7 @@ fn handle_waypoints(
     catppuccin_theme: Res<CatppuccinTheme>,
     mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query_waypoint: Query<&mut Handle<StandardMaterial>, With<planner::Waypoint>>,
+    mut query_waypoint: Query<&mut Handle<StandardMaterial>, With<planner::WaypointVisualiser>>,
 ) {
     for _ in theme_changed_event.read() {
         for handle in query_waypoint.iter_mut() {

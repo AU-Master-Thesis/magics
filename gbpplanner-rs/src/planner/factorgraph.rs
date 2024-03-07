@@ -199,7 +199,7 @@ pub struct FactorGraph {
     /// to manage the order in which variables are inserted/removed from the graph.
     /// **IMPORTANT** we have to manually ensure the invariant that `self.graph` and this field
     /// is consistent at all time.
-    pub variable_indices_ordered: VecDeque<NodeIndex>,
+    variable_indices_ordered: VecDeque<NodeIndex>,
 }
 
 impl FactorGraph {
@@ -213,6 +213,18 @@ impl FactorGraph {
             },
             variable_indices_ordered: VecDeque::new(),
         }
+    }
+
+    pub fn variables(&self) -> impl Iterator<Item = &Variable> {
+        self.graph
+            .node_indices()
+            .filter_map(move |node_index| self.graph[node_index].as_variable())
+    }
+
+    pub fn factors(&self) -> impl Iterator<Item = &Factor> {
+        self.graph
+            .node_indices()
+            .filter_map(move |node_index| self.graph[node_index].as_factor())
     }
 
     pub fn add_variable(&mut self, variable: Variable) -> NodeIndex {
