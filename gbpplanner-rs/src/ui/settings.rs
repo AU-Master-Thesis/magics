@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{
     egui::{self, Color32, RichText},
@@ -190,8 +192,10 @@ fn ui_settings_panel(
                     
                         custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.mauve())));
 
+                        let png_output_path = PathBuf::from("../../../factorgraphs").with_extension("png");
+
                         egui::Grid::new("export_grid")
-                            .num_columns(2)
+                            .num_columns(3)
                             .min_col_width(100.0)
                             .striped(false)
                             .spacing((10.0, 10.0))
@@ -201,6 +205,12 @@ fn ui_settings_panel(
                                 custom::fill_x(ui, |ui| {
                                     if ui.button("Export").clicked() {
                                         export_graph_event.send(ExportGraphEvent);
+                                    }
+                                });
+                                custom::fill_x(ui, |ui| {
+                                    if ui.button("Open").clicked() {
+                                        let _ = open::that(&png_output_path)
+                                            .inspect_err(|e| error!("failed to open ./{:?}: {e}", png_output_path));
                                     }
                                 });
                         });

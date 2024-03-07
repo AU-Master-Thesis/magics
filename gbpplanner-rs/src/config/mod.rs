@@ -40,6 +40,7 @@ pub struct GraphvizInterrbotSection {
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizSection {
     pub interrobot: GraphvizInterrbotSection,
+    pub export_location: String,
 }
 
 impl Default for GraphvizSection {
@@ -52,6 +53,7 @@ impl Default for GraphvizSection {
                     color: "red".to_string(),
                 },
             },
+            export_location: "./assets/".to_string(),
         }
     }
 }

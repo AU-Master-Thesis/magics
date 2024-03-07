@@ -36,3 +36,6 @@ random-seed = 0
 style = "dashed"
 len = 8.0
 color = "red"
+
+[graphviz]
+export-location = "./assets/export/"

@@ -162,20 +162,20 @@ fn main() -> color_eyre::eyre::Result<()> {
                     ..Default::default()
                 },
             ),
-            FpsCounterPlugin,     // **Bevy**
-            ThemePlugin,          // Custom
-            AssetLoaderPlugin,    // Custom
-            EnvironmentPlugin,    // Custom
-            MovementPlugin,       // Custom
-            InputPlugin,          // Custom
-            MoveableObjectPlugin, // Custom
-            CameraPlugin,         // Custom
-            FollowCamerasPlugin,  // Custom
-            RobotSpawnerPlugin,   // Custom
-            FactorGraphPlugin,    // Custom
-            EguiInterfacePlugin,  // Custom
-            PlannerPlugin,        // Custom
-                                  // WorldInspectorPlugin::new()
+            FpsCounterPlugin,  // **Bevy**
+            ThemePlugin,       // Custom
+            AssetLoaderPlugin, // Custom
+            EnvironmentPlugin, // Custom
+            MovementPlugin,    // Custom
+            InputPlugin,       // Custom
+            // MoveableObjectPlugin, // Custom
+            CameraPlugin,        // Custom
+            FollowCamerasPlugin, // Custom
+            RobotSpawnerPlugin,  // Custom
+            FactorGraphPlugin,   // Custom
+            EguiInterfacePlugin, // Custom
+            PlannerPlugin,       // Custom
+                                 // WorldInspectorPlugin::new()
         ))
         .add_systems(Update, make_visible);
 

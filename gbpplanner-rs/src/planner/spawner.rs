@@ -1,13 +1,13 @@
 use std::{collections::VecDeque, sync::OnceLock};
 
-use bevy::{math::primitives::Sphere, prelude::*};
+use bevy::{math::primitives::Sphere, prelude::*, scene};
 use rand::Rng;
 
 use crate::{
     asset_loader::SceneAssets,
     config::{formation::Shape, Config, Formation, FormationGroup},
     planner::robot::RobotBundle,
-    theme::CatppuccinTheme,
+    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 
 use super::robot::VariableTimestepsResource;
@@ -101,10 +101,8 @@ fn formation_handler(
                     OBSTACLE_IMAGE
                         .get()
                         .expect("obstacle image should be allocated and initialised"),
-                    &mut materials,
-                    &mut meshes,
-                    &catppuccin_theme,
                     &variable_timesteps,
+                    &scene_assets,
                 );
             }
         });
@@ -115,10 +113,8 @@ fn spawn_formation(
     formation: &Formation,
     config: &Config,
     image: &'static Image,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    catppuccin_theme: &Res<CatppuccinTheme>,
     variable_timesteps: &Res<VariableTimestepsResource>,
+    scene_assets: &Res<SceneAssets>,
 ) {
     // let waypoints = formation.waypoints.iter().map(
     //     |wp| {
@@ -140,35 +136,39 @@ fn spawn_formation(
 
     // TODO: create mapped waypoints
 
-    let variable_material = materials.add({
-        #[allow(clippy::cast_possible_truncation)]
-        let alpha = (0.75 * 255.0) as u8;
-        let (r, g, b) = catppuccin_theme.flavour.blue().into();
-        Color::rgba_u8(r, g, b, alpha)
-    });
+    // let variable_material = materials.add(Color::from_catppuccin_colour_with_alpha(
+    //     catppuccin_theme.flavour.blue(),
+    //     0.75,
+    // ));
 
-    let variable_mesh = meshes.add(
-        Sphere::new(0.3)
-            .mesh()
-            .ico(4)
-            .expect("4 subdivisions is less than the maximum allowed of 80"),
-    );
+    // let variable_mesh = meshes.add(
+    //     Sphere::new(0.3)
+    //         .mesh()
+    //         .ico(4)
+    //         .expect("4 subdivisions is less than the maximum allowed of 80"),
+    // );
 
     // let lookahead_horizon =
     for position in initial_positions {
         // TODO: Used the actual mapped waypoints from the formation
-        let waypoints = VecDeque::from(vec![position, Vec2::ZERO]);
+        let waypoints = VecDeque::from(vec![
+            position,
+            Vec2::ZERO,
+            Vec2::new(0.0, 50.0),
+            Vec2::new(50.0, 50.0),
+            Vec2::new(50.0, 0.0),
+        ]);
         commands.spawn((
             RobotBundle::new(
-                   waypoints,
+                waypoints,
                 variable_timesteps.timesteps.as_slice(),
                 config,
                 image,
             )
             .expect("Possible `RobotInitError`s should be avoided due to the formation input being validated."),
             PbrBundle {
-                mesh: variable_mesh.clone(),
-                material: variable_material.clone(),
+                mesh: scene_assets.meshes.robot.clone(),
+                material: scene_assets.materials.robot.clone(),
                 transform: Transform::from_translation(Vec3::new(position.x, 0.5, position.y)),
                 ..Default::default()
             },

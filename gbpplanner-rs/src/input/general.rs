@@ -271,8 +271,6 @@ fn handle_export_graph(
                     "compiled {:?} to {:?} with dot",
                     dot_output_path, png_output_path
                 );
-                let _ = open::that(&png_output_path)
-                    .inspect_err(|e| error!("failed to open ./{:?}: {e}", png_output_path));
             } else {
                 error!(
                     "attempting to compile graph with dot, returned a non-zero exit status: {:?}",

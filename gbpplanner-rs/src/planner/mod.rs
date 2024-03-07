@@ -5,6 +5,7 @@ mod message;
 mod robot;
 mod spawner;
 mod variable;
+mod visualiser;
 
 pub use factorgraph::graphviz::NodeKind;
 pub use factorgraph::FactorGraph;
@@ -18,12 +19,13 @@ pub use robot::RobotState;
 
 use self::robot::RobotPlugin;
 use self::spawner::SpawnerPlugin;
+use self::visualiser::VisualiserPlugin;
 use bevy::prelude::*;
 
 pub struct PlannerPlugin;
 
 impl Plugin for PlannerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((RobotPlugin, SpawnerPlugin));
+        app.add_plugins((RobotPlugin, SpawnerPlugin, VisualiserPlugin));
     }
 }

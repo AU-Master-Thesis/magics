@@ -200,14 +200,14 @@ impl RobotBundle {
             // };
 
             let covariance = Matrix::<Float>::from_diag_elem(ndofs, sigma);
-            dbg!(&covariance);
+            // dbg!(&covariance);
             let prior = MultivariateNormal::from_mean_and_covariance(
                 array![mean.x as Float, mean.y as Float, 0.0, 0.0], // initial velocity (x', y') is zero
                 covariance,
             )
             .expect("the covariance is nonsingular");
 
-            dbg!(&prior);
+            // dbg!(&prior);
 
             let variable = Variable::new(prior, ndofs);
             let variable_index = factorgraph.add_variable(variable);
@@ -532,6 +532,7 @@ fn update_prior_of_horizon_state_system(
         // NOTE: this is weird, we think
         let horizon_has_reached_waypoint = horizon2goal_dist < config.robot.radius as Float;
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
+            info!("robot {:?}, has reached its waypoint", entity);
             waypoints.0.pop_front();
         }
     }
@@ -542,8 +543,8 @@ fn update_prior_of_current_state_system(
     config: Res<Config>,
     time: Res<Time>,
 ) {
-    let scale = 1e10 * time.delta_seconds() / config.simulation.t0;
-    dbg!(&scale);
+    let scale = time.delta_seconds() / config.simulation.t0;
+    // dbg!(&scale);
 
     for (mut factorgraph, mut transform) in query.iter_mut() {
         let (mean_of_current_variable, increment) = {
@@ -568,7 +569,7 @@ fn update_prior_of_current_state_system(
             .expect("factorgraph should have a current variable")
             .change_prior(mean_of_current_variable + &increment, vec![]);
         let increment = Vec3::new(increment[0] as f32, 0.0, increment[1] as f32);
-        dbg!(&increment);
+        // dbg!(&increment);
         transform.translation += increment;
     }
 }

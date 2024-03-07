@@ -106,6 +106,25 @@ impl FromCatppuccinColourExt for Color32 {
     }
 }
 
+pub trait ColorFromCatppuccinColourExt {
+    fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color;
+    fn from_catppuccin_colour_ref(colour: &catppuccin::Colour) -> Color {
+        Color::from_catppuccin_colour(*colour)
+    }
+    fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Color;
+}
+
+impl ColorFromCatppuccinColourExt for Color {
+    fn from_catppuccin_colour(colour: catppuccin::Colour) -> Self {
+        let (r, g, b) = colour.into();
+        Color::rgb_u8(r, g, b)
+    }
+    fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Self {
+        let (r, g, b) = colour.into();
+        Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
+    }
+}
+
 impl CatppuccinThemeVisualsExt for Visuals {
     fn catppuccin_flavour(flavour: Flavour) -> Visuals {
         let is_dark = flavour.base().lightness() < 0.5;

@@ -234,8 +234,8 @@ mod tests {
 
     #[test]
     fn information_vector_length_equal_to_ndofs_do_nothing() {
-        let information_vector: Vector<f32> = array![0., 1., 2., 3.];
-        let precision_matrix: Matrix<f32> = array![
+        let information_vector: Vector<Float> = array![0., 1., 2., 3.];
+        let precision_matrix: Matrix<Float> = array![
             [5., 0.2, 0., 0.],
             [0.2, 5., 0., 0.],
             [0., 0.0, 5., 0.3],
@@ -250,7 +250,8 @@ mod tests {
             precision_matrix.clone(),
             ndofs,
             marginalisation_idx,
-        );
+        )
+        .unwrap();
 
         assert_eq!(marginalised_msg.information_vector(), information_vector);
         assert_eq!(marginalised_msg.precision_matrix(), precision_matrix);
