@@ -58,6 +58,30 @@ impl Default for GraphvizSection {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum DrawSetting {
+    CommunicationGraph,
+    PredictedTrajectories,
+    Waypoints,
+    Uncertainty,
+    Paths,
+    Environment,
+}
+
+impl DrawSetting {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "communication_graph" => Some(Self::CommunicationGraph),
+            "predicted_trajectories" => Some(Self::PredictedTrajectories),
+            "waypoints" => Some(Self::Waypoints),
+            "uncertainty" => Some(Self::Uncertainty),
+            "paths" => Some(Self::Paths),
+            "environment" => Some(Self::Environment),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Iterable, Reflect, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct DrawSection {
@@ -65,6 +89,8 @@ pub struct DrawSection {
     pub predicted_trajectories: bool,
     pub waypoints: bool,
     pub uncertainty: bool,
+    pub paths: bool,
+    pub environment: bool,
 }
 
 impl Default for DrawSection {
@@ -74,6 +100,8 @@ impl Default for DrawSection {
             predicted_trajectories: true,
             waypoints: true,
             uncertainty: true,
+            paths: true,
+            environment: true,
         }
     }
 }
@@ -95,6 +123,8 @@ impl DrawSection {
             "predicted_trajectories" => "Trajectories".to_string(),
             "waypoints" => "Waypoints".to_string(),
             "uncertainty" => "Uncertainty".to_string(),
+            "paths" => "Paths".to_string(),
+            "environment" => "Environment".to_string(),
             _ => "Unknown".to_string(),
         }
     }

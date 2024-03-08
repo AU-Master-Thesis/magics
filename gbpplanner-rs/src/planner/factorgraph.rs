@@ -305,6 +305,22 @@ impl FactorGraph {
         Factors::new(&self.graph, &self.factor_indices)
     }
 
+    // /// Returns an `Iterator` over the variable nodes in the factorgraph.
+    // /// Variable ordering is arbitrary.
+    // pub fn variables(&self) -> impl Iterator<Item = &Variable> {
+    //     self.graph
+    //         .node_indices()
+    //         .filter_map(move |node_index| self.graph[node_index].as_variable())
+    // }
+
+    /// Returns an `Iterator` over the variable nodes in the factorgraph.
+    /// Variables are ordered by creation time.
+    pub fn variables_ordered(&self) -> impl Iterator<Item = &Variable> {
+        self.variable_indices
+            .iter()
+            .filter_map(move |&node_index| self.graph[node_index].as_variable())
+    }
+
     pub fn add_variable(&mut self, variable: Variable) -> NodeIndex {
         let node_index = self.graph.add_node(Node::Variable(variable));
         self.graph[node_index].set_node_index(node_index);

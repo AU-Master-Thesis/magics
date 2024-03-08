@@ -37,6 +37,7 @@ use bevy::prelude::*;
 
 use bevy::window::WindowMode;
 use bevy::window::WindowTheme;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use clap::Parser;
 
 // use gbp_rs::factorgraph;
@@ -172,10 +173,10 @@ fn main() -> color_eyre::eyre::Result<()> {
             CameraPlugin,        // Custom
             FollowCamerasPlugin, // Custom
             RobotSpawnerPlugin,  // Custom
-            FactorGraphPlugin,   // Custom
+            // FactorGraphPlugin,   // Custom
             EguiInterfacePlugin, // Custom
             PlannerPlugin,       // Custom
-                                 // WorldInspectorPlugin::new()
+                                 // WorldInspectorPlugin::new(),
         ))
         .add_systems(Update, make_visible);
 

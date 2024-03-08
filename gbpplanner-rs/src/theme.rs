@@ -279,6 +279,7 @@ impl Plugin for ThemePlugin {
                     handle_lines,
                     handle_robots,
                     handle_waypoints,
+                    handle_variable_visualisers,
                 ),
             );
     }
@@ -402,6 +403,24 @@ fn handle_variables(
     mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query_variable: Query<&mut Handle<StandardMaterial>, With<Variable>>,
+) {
+    for _ in theme_changed_event.read() {
+        for handle in query_variable.iter_mut() {
+            if let Some(material) = materials.get_mut(handle.clone()) {
+                material.base_color =
+                    Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(), 0.75);
+            }
+        }
+    }
+}
+
+/// **Bevy** `Update` system to handle the theme change for `VariableVisualiser`
+/// Reads `ThemeChangedEvent` to know when to change the variable colour
+fn handle_variable_visualisers(
+    catppuccin_theme: Res<CatppuccinTheme>,
+    mut theme_changed_event: EventReader<ThemeChangedEvent>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut query_variable: Query<&mut Handle<StandardMaterial>, With<planner::VariableVisualiser>>,
 ) {
     for _ in theme_changed_event.read() {
         for handle in query_variable.iter_mut() {
