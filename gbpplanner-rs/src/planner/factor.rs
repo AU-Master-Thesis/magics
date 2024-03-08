@@ -35,15 +35,15 @@ trait Model {
     /// **Note**: This method takes a mutable reference to self, because the interrobot factor
     fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
 
-    fn first_order_jacobian(&mut self, state: &FactorState, x: Vector<Float>) -> Matrix<Float> {
+    fn first_order_jacobian(&mut self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
         // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
         //     return jac_out;
         // };
 
         // Eigen::MatrixXd h0 = h_func_(X0);    // Value at lin point
-        let h0 = self.measure(state, &x);
-        // dbg!(&h0);
-        // Eigen::MatrixXd jac_out = Eigen::MatrixXd::Zero(h0.size(),X0.size());
+        let h0 = self.measure(state, &x); // value at linearization point
+                                          // dbg!(&h0);
+                                          // Eigen::MatrixXd jac_out = Eigen::MatrixXd::Zero(h0.size(),X0.size());
         let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
 
         //     for (int i=0; i<X0.size(); i++){
@@ -52,21 +52,22 @@ trait Model {
         //         jac_out(Eigen::all, i) = (h_func_(X_copy) - h0) / delta_jac;    // Derivative (first order)
         //     }
         for i in 0..x.len() {
-            let mut copy_of_x = x.clone();
-            copy_of_x[i] += self.jacobian_delta();
+            // let mut copy_of_x = x.clone();
+            x[i] += self.jacobian_delta(); // perturb by delta
 
-            let derivative = (self.measure(state, &copy_of_x) - &h0) / self.jacobian_delta();
+            let derivative = (self.measure(state, &x) - &h0) / self.jacobian_delta();
             // dbg!(&derivative);
             jacobian.column_mut(i).assign(&derivative);
 
-            // let column = (self.measure(state, &copy_of_x) - &h0) / self.jacobian_delta();
-            // // jacobian.set_column(i, &column);
-            // jacobian
-            //     .slice_axis_mut(Axis(0), Slice::from(0..jacobian.dim().0))
-            //     .assign(&column);
+            x[i] -= self.jacobian_delta(); // reset the perturbation
+
+            // println!("i = {}", i);
+            // pretty_print_matrix!(&jacobian);
         }
 
         // eprintln!("jacobian at the end: {:#?}", jacobian);
+
+        // std::process::exit(1);
 
         jacobian
     }
@@ -106,6 +107,7 @@ impl InterRobotFactor {
 }
 
 impl Model for InterRobotFactor {
+    #[inline(always)]
     fn name(&self) -> &'static str {
         "InterRobotFactor"
     }
@@ -174,6 +176,7 @@ impl Model for InterRobotFactor {
         h
     }
 
+    #[inline(always)]
     fn jacobian_delta(&self) -> Float {
         1e-2
     }
@@ -193,6 +196,7 @@ impl Model for InterRobotFactor {
         self.skip
     }
 
+    #[inline(always)]
     fn linear(&self) -> bool {
         false
     }
@@ -219,7 +223,7 @@ impl DynamicFactor {
         //     (eye, zeros)
         // };
 
-        dbg!(delta_t);
+        // dbg!(delta_t);
         // dbg!(&state.strength);
         // std::process::exit(1);
         // Eigen::MatrixXd Qc_inv = pow(sigma, -2.) * I;
@@ -275,18 +279,22 @@ impl Model for DynamicFactor {
         self.cached_jacobian.clone()
     }
 
+    #[inline(always)]
     fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         self.cached_jacobian.dot(x)
     }
 
+    #[inline(always)]
     fn skip(&mut self, _state: &FactorState) -> bool {
         false
     }
 
+    #[inline(always)]
     fn jacobian_delta(&self) -> Float {
         1e-2
     }
 
+    #[inline(always)]
     fn linear(&self) -> bool {
         true
     }
@@ -296,6 +304,7 @@ impl Model for DynamicFactor {
 pub struct PoseFactor;
 
 impl Model for PoseFactor {
+    #[inline(always)]
     fn name(&self) -> &'static str {
         "PoseFactor"
     }
@@ -305,18 +314,22 @@ impl Model for PoseFactor {
     }
 
     /// Default measurement function is the identity function
+    #[inline(always)]
     fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         x.clone()
     }
 
+    #[inline(always)]
     fn skip(&mut self, _state: &FactorState) -> bool {
         false
     }
 
+    #[inline(always)]
     fn jacobian_delta(&self) -> Float {
         1e-8
     }
 
+    #[inline(always)]
     fn linear(&self) -> bool {
         false
     }
@@ -380,14 +393,17 @@ impl Model for ObstacleFactor {
         array![hsv_value]
     }
 
+    #[inline(always)]
     fn jacobian_delta(&self) -> Float {
         self.world_size / self.obstacle_sdf.width() as Float
     }
 
+    #[inline(always)]
     fn skip(&mut self, _state: &FactorState) -> bool {
         false
     }
 
+    #[inline(always)]
     fn linear(&self) -> bool {
         false
     }
@@ -646,6 +662,7 @@ impl Factor {
         Self::new(state, kind)
     }
 
+    #[inline(always)]
     pub fn jacobian(&mut self, x: &Vector<Float>) -> Matrix<Float> {
         self.kind.jacobian(&self.state, x)
     }
@@ -655,6 +672,7 @@ impl Factor {
         self.state.cached_measurement.clone()
     }
 
+    #[inline(always)]
     pub fn skip(&mut self) -> bool {
         self.kind.skip(&self.state)
     }
@@ -678,10 +696,12 @@ impl Factor {
         self.node_index.expect("I checked it was there 3 lines ago")
     }
 
+    #[inline(always)]
     pub fn send_message(&mut self, from: NodeIndex, message: Message) {
         let _ = self.inbox.insert(from, message);
     }
 
+    #[inline(always)]
     pub fn read_message_from(&mut self, from: NodeIndex) -> Option<&Message> {
         self.inbox.get(&from)
     }
