@@ -10,11 +10,8 @@ use gbp_multivariate_normal::MultivariateNormal;
 #[derive(Debug, Clone)]
 pub struct Variable {
     /// Unique identifier that associates the variable with a factorgraph/robot.
+    /// TODO: use typestate pattern to always ensure a variable has a `node_index`
     pub node_index: Option<NodeIndex>,
-    /// Called `factors_` in **gbpplanner**.
-    /// **gbpplanner** uses `std::map<Key, std::shared_ptr<Factor>>`
-    /// So we use `BTreeMap` as it provides iteration sorted by the `Key` similar to `std::map` in C++.
-    // pub adjacent_factors: BTreeMap<Key, Rc<Factor>>,
     /// In **gbpplanner** the `prior` is stored in 2 separate variables:
     /// 1. `eta_prior_` Information vector of prior on variable (essentially like a unary factor)
     /// 2. `lam_prior_` Precision matrix of prior on variable (essentially like a unary factor)
@@ -66,6 +63,7 @@ impl Variable {
         let _ = self.inbox.insert(from, message);
     }
 
+    // TODO: why never used?
     pub fn read_message_from(&mut self, from: NodeIndex) -> Option<&Message> {
         self.inbox.get(&from)
     }
@@ -83,6 +81,9 @@ impl Variable {
         // QUESTION: why cache mu?
         // mu_ = new_mu;
         // belief_ = Message {eta_, lam_, mu_};
+        // FIXME: we probably never update the belief of the variable
+        // dbg!(&self.belief);
+        self.belief = self.prior.clone();
 
         indices_of_adjacent_factors
             .into_iter()
@@ -99,7 +100,7 @@ impl Variable {
     // /***********************************************************************************************************/
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
     ///
-    pub fn update_belief(
+    pub fn update_belief_and_create_responses(
         &mut self,
         // indices_of_adjacent_factors: Vec<NodeIndex>,
     ) -> HashMap<NodeIndex, Message> {

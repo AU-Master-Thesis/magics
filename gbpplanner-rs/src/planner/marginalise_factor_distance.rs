@@ -1,4 +1,4 @@
-use ndarray::{concatenate, prelude::*};
+use ndarray::prelude::*;
 use ndarray_inverse::Inverse;
 
 use gbp_linalg::prelude::*;
@@ -151,6 +151,7 @@ pub fn marginalise_factor_distance(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ndarray::concatenate;
     use pretty_assertions::assert_eq;
 
     fn float_eq(lhs: f32, rhs: f32) -> bool {

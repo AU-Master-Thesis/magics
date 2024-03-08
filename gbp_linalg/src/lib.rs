@@ -1,8 +1,12 @@
 //! A small collection of extension traits and types for ndarray.
 
+pub mod pretty_print;
+
 pub mod prelude {
     pub use super::{
-        Float, GbpFloat, Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm, VectorView,
+        pretty_print::{PrettyPrintMatrix, PrettyPrintVector},
+        pretty_print_matrix, pretty_print_vector, Float, GbpFloat, Matrix, MatrixView,
+        NdarrayVectorExt, Vector, VectorNorm, VectorView,
     };
     // pub use ndarray::array;
 }

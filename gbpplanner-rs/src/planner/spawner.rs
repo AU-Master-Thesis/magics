@@ -151,13 +151,16 @@ fn spawn_formation(
     // let lookahead_horizon =
     for position in initial_positions {
         // TODO: Used the actual mapped waypoints from the formation
-        let waypoints = VecDeque::from(vec![
-            position,
-            Vec2::ZERO,
-            Vec2::new(0.0, 50.0),
-            Vec2::new(50.0, 50.0),
-            Vec2::new(50.0, 0.0),
-        ]);
+        // TODO: add velocity to wa
+        let wp = {
+            let mut wp = Vec4::ZERO;
+            wp.x = position.x;
+            wp.y = position.y;
+            wp.z = config.robot.max_speed;
+            wp
+        };
+        let waypoints = [wp, Vec4::ZERO].iter().cloned().collect::<VecDeque<_>>();
+        // let waypoints = VecDeque::from(vec![position, Vec2::ZERO]);
         commands.spawn((
             RobotBundle::new(
                 waypoints,
