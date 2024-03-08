@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    follow_cameras::FollowCameraMe,
+    environment::follow_cameras::FollowCameraMe,
     movement::{
         AngularMovementBundle, AngularVelocity, LinearMovementBundle, Local, MovementBundle,
         Velocity,

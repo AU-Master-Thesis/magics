@@ -1,10 +1,7 @@
 mod asset_loader;
-mod camera;
 mod config;
-mod diagnostics;
 mod environment;
 mod factorgraph;
-mod follow_cameras;
 mod input;
 mod moveable_object;
 mod movement;
@@ -17,13 +14,9 @@ mod utils;
 use std::path::PathBuf;
 
 use crate::asset_loader::AssetLoaderPlugin;
-use crate::camera::CameraPlugin;
 use crate::config::Config;
 use crate::config::FormationGroup;
-use crate::diagnostics::FpsCounterPlugin;
 use crate::environment::EnvironmentPlugin;
-use crate::factorgraph::FactorGraphPlugin;
-use crate::follow_cameras::FollowCamerasPlugin;
 use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
 use crate::movement::MovementPlugin;
@@ -37,7 +30,6 @@ use bevy::prelude::*;
 
 use bevy::window::WindowMode;
 use bevy::window::WindowTheme;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use clap::Parser;
 
 // use gbp_rs::factorgraph;
@@ -163,16 +155,16 @@ fn main() -> color_eyre::eyre::Result<()> {
                     ..Default::default()
                 },
             ),
-            FpsCounterPlugin,  // **Bevy**
+            // FpsCounterPlugin,  // **Bevy**
             ThemePlugin,       // Custom
             AssetLoaderPlugin, // Custom
             EnvironmentPlugin, // Custom
             MovementPlugin,    // Custom
             InputPlugin,       // Custom
             // MoveableObjectPlugin, // Custom
-            CameraPlugin,        // Custom
-            FollowCamerasPlugin, // Custom
-            RobotSpawnerPlugin,  // Custom
+            // CameraPlugin,        // Custom
+            // FollowCamerasPlugin, // Custom
+            RobotSpawnerPlugin, // Custom
             // FactorGraphPlugin,   // Custom
             EguiInterfacePlugin, // Custom
             PlannerPlugin,       // Custom

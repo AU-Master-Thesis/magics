@@ -8,9 +8,9 @@ use catppuccin::Flavour;
 
 use crate::{asset_loader::SceneAssets, config, theme::CatppuccinTheme, ui};
 
-pub struct EnvironmentPlugin;
+pub struct MapPlugin;
 
-impl Plugin for EnvironmentPlugin {
+impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         let (r, g, b) = Flavour::Macchiato.base().into();
         app.insert_resource(ClearColor(Color::rgb_u8(r, g, b)))
