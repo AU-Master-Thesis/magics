@@ -102,7 +102,7 @@ fn ui_settings_exclusive(world: &mut World) {
 /// **Bevy** `Update` system to display the `egui` settings panel
 #[allow(clippy::too_many_arguments)]
 fn ui_settings_panel(
-    mut contexts: &mut Context,
+    contexts: &mut Context,
     // mut ui_state: ResMut<UiState>,
     mut ui_state: Mut<UiState>,
     // mut config: ResMut<Config>,
@@ -264,7 +264,16 @@ fn ui_settings_panel(
 
                         // INSPECTOR
                         custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.maroon())));
-                        bevy_inspector::ui_for_world(world, ui);
+                        // bevy_inspector::ui_for_world(world, ui);
+                        ui.collapsing("Entities", |ui| {
+                            bevy_inspector::ui_for_world_entities(world, ui);
+                        });
+                        ui.collapsing("Resources", |ui| {
+                            bevy_inspector::ui_for_resources(world, ui);
+                        });
+                        ui.collapsing("Assets", |ui| {
+                            bevy_inspector::ui_for_all_assets(world, ui);
+                        });
                     });
         });
 
