@@ -35,28 +35,25 @@ impl Variable {
         // }
         Self {
             node_index: None,
-            // key,
-            // adjacent_factors: BTreeMap::new(),
             prior: prior.clone(),
             belief: prior,
             dofs,
-            // valid: false,
             inbox: Inbox::new(),
         }
     }
 
     pub fn set_node_index(&mut self, node_index: NodeIndex) {
-        if self.node_index.is_some() {
-            panic!("The node index is already set");
+        match self.node_index {
+            Some(_) => panic!("The node index is already set"),
+            None => self.node_index = Some(node_index),
         }
-        self.node_index = Some(node_index);
     }
 
     pub fn get_node_index(&self) -> NodeIndex {
-        if self.node_index.is_none() {
-            panic!("The node index has not been set");
+        match self.node_index {
+            Some(node_index) => node_index,
+            None => panic!("The node index has not been set"),
         }
-        self.node_index.expect("I checked it was there 3 lines ago")
     }
 
     pub fn send_message(&mut self, from: NodeIndex, message: Message) {
@@ -100,16 +97,9 @@ impl Variable {
     // /***********************************************************************************************************/
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
     ///
-    pub fn update_belief_and_create_responses(
-        &mut self,
-        // indices_of_adjacent_factors: Vec<NodeIndex>,
-    ) -> HashMap<NodeIndex, Message> {
+    pub fn update_belief_and_create_responses(&mut self) -> HashMap<NodeIndex, Message> {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
         // TODO: wrap in unsafe block for perf:
-
-        // eprintln!("at the start");
-        // dbg!(&self.prior);
-        // dbg!(&self.belief);
 
         unsafe {
             self.belief
@@ -117,11 +107,6 @@ impl Variable {
             self.belief
                 .set_precision_matrix(self.prior.precision_matrix());
         }
-        // self.belief
-        //     .update_information_vector(self.prior.information_vector());
-        // self.belief
-        //     .update_precision_matrix(self.prior.precision_matrix())
-        //     .expect("the precision matrix of the prior is nonsigular");
 
         for (_, message) in self.inbox.iter() {
             if message.is_empty() {
@@ -133,13 +118,10 @@ impl Variable {
                 self.belief
                     .add_assign_precision_matrix(&message.precision_matrix());
             }
-            // self.belief.information_vector += &message.0.information_vector;
-            // self.belief.precision_matrix += &message.0.precision_matrix;
         }
 
-        // dbg!(&self.prior);
-        // dbg!(&self.belief);
-
+        // Update the internal invariant of the belief, needed after the previous call to {add_assign,set}_{information_vector,precision_matrix}
+        // which violates that the mean, information vector and precision matrix are consistent, for performance reasons.
         self.belief.update();
 
         // TODO: update self.sigma_ with covariance

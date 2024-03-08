@@ -1,6 +1,6 @@
-use bevy::{log::info, render::texture::Image};
+use bevy::render::texture::Image;
 
-use gbp_linalg::{Float, GbpFloat, Matrix, Vector, VectorNorm};
+use gbp_linalg::{Float, Matrix, Vector, VectorNorm};
 use ndarray::{array, concatenate, s, Axis, Slice};
 use num_traits::NumCast;
 use petgraph::prelude::NodeIndex;
@@ -9,12 +9,7 @@ use std::{
     ops::{AddAssign, Sub},
 };
 
-use super::{
-    factorgraph::{Graph, Inbox},
-    marginalise_factor_distance::marginalise_factor_distance,
-    message::Message,
-    robot::RobotId,
-};
+use super::{factorgraph::Inbox, message::Message, robot::RobotId};
 
 // TODO: make generic over f32 | f64
 // TODO: hide the state parameter from the public API, by having the `Factor` struct expose similar methods that dispatch to the `FactorState` struct.
@@ -22,12 +17,24 @@ trait Model {
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
 
+    fn jacobian_delta(&self) -> Float;
+
+    /// Whether to skip this factor in the update step
+    /// In gbpplanner, this is only used for the interrobot factor.
+    /// The other factors are always included in the update step.
+    fn skip(&mut self, state: &FactorState) -> bool;
+
+    /// Whether the factor is linear or non-linear
+    fn linear(&self) -> bool;
+
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         self.first_order_jacobian(state, x.clone())
     }
+
     /// Measurement function
     /// **Note**: This method takes a mutable reference to self, because the interrobot factor
     fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
+
     fn first_order_jacobian(&mut self, state: &FactorState, x: Vector<Float>) -> Matrix<Float> {
         // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
         //     return jac_out;
@@ -63,15 +70,6 @@ trait Model {
 
         jacobian
     }
-
-    fn jacobian_delta(&self) -> Float;
-
-    /// Whether to skip this factor in the update step
-    /// In gbpplanner, this is only used for the interrobot factor.
-    /// The other factors are always included in the update step.
-    fn skip(&mut self, state: &FactorState) -> bool;
-
-    fn linear(&self) -> bool;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -95,102 +93,73 @@ pub struct InterRobotFactor {
 }
 
 impl InterRobotFactor {
+    #[must_use]
     pub fn new(
-        safety_distance: Float,
         robot_radius: Float,
-        skip: bool,
+        // skip: bool,
         connection: InterRobotConnection,
-        // id_of_robot_connected_with: RobotId,
     ) -> Self {
         let epsilon = 0.2 * robot_radius;
 
         Self {
             safety_distance: 2.0 * robot_radius + epsilon,
-            skip,
+            skip: false,
             connection,
-            // id_of_robot_connected_with,
         }
     }
 }
-
-// pub trait Norm {
-//     fn norm(&self) -> f32;
-// }
-
-// impl Norm for ndarray::Array1<f32> {
-//     fn norm(&self) -> f32 {
-//         self.iter().map(|x| f32::powi(*x, 2)).sum()
-//     }
-// }
 
 impl Model for InterRobotFactor {
     fn name(&self) -> &'static str {
         "InterRobotFactor"
     }
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
-        let mut jacobian = Matrix::zeros((state.initial_measurement.len(), state.dofs * 2));
+        let mut jacobian =
+            Matrix::<Float>::zeros((state.initial_measurement.len(), state.dofs * 2));
         let x_diff = {
             let offset = state.dofs / 2;
-            // let mut x_diff = x.rows(0, offset) - x.rows(state.dofs, offset);
             let mut x_diff = x
-                .slice_axis(Axis(0), Slice::from(0..offset))
-                .sub(&x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))));
+                .slice(s![..offset])
+                .sub(&x.slice(s![state.dofs..state.dofs + offset]));
+
+            // NOTE: In gbplanner, they weight this by the robot id, why they do this is unclear
+            // as a robot id should be unique, and not have any semantics of distance/weight.
             for i in 0..offset {
-                x_diff[i] += 1e-6; // Add a tiny random offset to avoid div/0 errors
+                x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as Float;
+                // Add a tiny random offset to avoid div/0 errors
             }
             x_diff
         };
-        // let safety_distance = NumCast::from(self.safety_distance).unwrap();
+
         let radius = x_diff.euclidean_norm();
         if radius <= self.safety_distance {
             // TODO: why do we change the Jacobian if we are not outside the safety distance?
-            // jacobian
-            //     .view_mut((0, 0), (0, state.dofs / 2))
-            //     .copy_from(&(-1.0 / self.safety_distance / radius * &x_diff));
-            // jacobian.slice_mut(s![0..(state.dofs / 2), 0..(state.dofs / 2)]) =
-            //     &(-1.0 / self.safety_distance / radius * &x_diff);
+
+            // J(0, seqN(0, n_dofs_ / 2)) = -1.f / safety_distance_ / r * X_diff;
             jacobian
-                .slice_mut(s![0..(state.dofs / 2), 0..(state.dofs / 2)])
+                .slice_mut(s![0, ..state.dofs / 2])
                 .assign(&(-1.0 / self.safety_distance / radius * &x_diff));
 
-            // jacobian
-            //     .view_mut((0, state.dofs), (0, state.dofs + state.dofs / 2))
-            //     .copy_from(&(1.0 / self.safety_distance / radius * &x_diff));
-            // jacobian.slice_mut(s![
-            //     0..(state.dofs / 2),
-            //     state.dofs..state.dofs + (state.dofs / 2)
-            // ]) = &(1.0 / self.safety_distance / radius * &x_diff);
+            // J(0, seqN(n_dofs_, n_dofs_ / 2)) = 1.f / safety_distance_ / r * X_diff;
             jacobian
-                .slice_mut(s![
-                    0..(state.dofs / 2),
-                    state.dofs..state.dofs + (state.dofs / 2)
-                ])
+                .slice_mut(s![0, state.dofs..state.dofs + (state.dofs / 2)])
                 .assign(&(1.0 / self.safety_distance / radius * &x_diff));
         }
         jacobian
     }
 
     fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
-        // let mut h = Matrix::zeros(state.measurement.nrows(), state.measurement.ncols());
-        let mut h = Vector::zeros(state.initial_measurement.len());
+        let mut h = Vector::<Float>::zeros(state.initial_measurement.len());
         let x_diff = {
             let offset = state.dofs / 2;
-
-            // let mut x_diff = x.rows(0, offset) - x.rows(state.dofs, offset);
-            // let mut x_diff = x.slice_axis(Axis(0), s![0..offset])
-            //     - x.slice_axis(Axis(0), s![state.dofs..(state.dofs + offset)]);
-
-            // TODO: use s! macro
             let mut x_diff = x
-                .slice_axis(Axis(0), Slice::from(0..offset))
-                .sub(&x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))));
-            // let mut x_diff = x
-            //     .slice_axis(Axis(0), Slice::from(0..offset))
-            //     .sub(&x.slice(s![state.dofs..(state.dofs + offset), ..]));
+                .slice(s![..offset])
+                .sub(&x.slice(s![state.dofs..state.dofs + offset]));
             // NOTE: In gbplanner, they weight this by the robot id, why they do this is unclear
             // as a robot id should be unique, and not have any semantics of distance/weight.
             for i in 0..offset {
-                x_diff[i] += 1e-6; // Add a tiny random offset to avoid div/0 errors
+                x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as Float;
+                // Add a tiny random offset to avoid div/0 errors
             }
             x_diff
         };
@@ -200,7 +169,6 @@ impl Model for InterRobotFactor {
             self.skip = false;
             // gbpplanner: h(0) = 1.f*(1 - r/safety_distance_);
             // NOTE: in Eigen, indexing a matrix with a single index corresponds to indexing the matrix as a flattened array in column-major order.
-
             // h[(0, 0)] = 1.0 * (1.0 - radius / self.safety_distance);
             h[0] = 1.0 * (1.0 - radius / self.safety_distance);
         } else {
@@ -215,22 +183,17 @@ impl Model for InterRobotFactor {
     }
 
     fn skip(&mut self, state: &FactorState) -> bool {
-        // this->skip_flag = ( (X_(seqN(0,n_dofs_/2)) - X_(seqN(n_dofs_, n_dofs_/2))).squaredNorm() >= safety_distance_*safety_distance_ );␍
+        // this->skip_flag = ( (X_(seqN(0,n_dofs_/2)) - X_(seqN(n_dofs_, n_dofs_/2))).squaredNorm() >= safety_distance_*safety_distance_ );
         let offset = state.dofs / 2;
-        // TODO: give a better name to this term of the inequality
-        // let dontknow = (state.linearisation_point.rows(0, offset)
-        //     - state.linearisation_point.rows(state.dofs, offset))
-        let dontknow = state
-            .linearisation_point
-            .slice_axis(Axis(0), Slice::from(0..offset))
-            .sub(
-                &state
-                    .linearisation_point
-                    .slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))),
-            )
-            .euclidean_norm();
-        self.skip = dontknow >= Float::powi(self.safety_distance, 2);
 
+        let v = state.linearisation_point.slice(s![..offset]).sub(
+            &state
+                .linearisation_point
+                .slice(s![state.dofs..state.dofs + offset]),
+        );
+        let squared_norm = v.mapv(|x| x.powi(2)).sum();
+
+        self.skip = squared_norm >= Float::powi(self.safety_distance, 2);
         self.skip
     }
 
@@ -639,7 +602,7 @@ impl Factor {
         connection: InterRobotConnection,
     ) -> Self {
         let state = FactorState::new(measurement, strength, dofs, 2); // Interrobot factors have 2 neighbors
-        let interrobot_factor = InterRobotFactor::new(safety_radius, strength, false, connection);
+        let interrobot_factor = InterRobotFactor::new(safety_radius, connection);
         let kind = FactorKind::InterRobot(interrobot_factor);
 
         Self::new(state, kind)
