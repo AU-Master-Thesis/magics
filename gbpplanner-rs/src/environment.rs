@@ -1,4 +1,5 @@
 use bevy::{
+    math::primitives,
     prelude::*,
     render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
 };
@@ -20,8 +21,8 @@ impl Plugin for EnvironmentPlugin {
             // .add_state::<HeightMapState>()
             .init_state::<HeightMapState>()
             .add_plugins(InfiniteGridPlugin)
-            .add_systems(Startup, (infinite_grid, lighting))
-            .add_systems(Update, (obstacles.run_if(environment_png_is_loaded), show_or_hide_height_map));
+            .add_systems(Startup, (infinite_grid, lighting, flat_map))
+            .add_systems(Update, (obstacles.run_if(environment_png_is_loaded), show_or_hide_height_map, show_or_hide_flat_map));
     }
 }
 
@@ -67,6 +68,66 @@ pub enum HeightMapState {
     #[default]
     Waiting,
     Generated,
+}
+
+/// **Bevy** [`Component`] to represent the flat map.
+/// Serves as a marker to identify the flat map entity.
+#[derive(Component)]
+pub struct FlatMap;
+
+/// **Bevy** [`Startup`] system
+/// Makes a simple quad plane to show the map png.
+fn flat_map(
+    mut commands: Commands,
+    scene_assets: Res<SceneAssets>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    config: Res<config::Config>,
+) {
+    let material_handle = materials.add(StandardMaterial {
+        base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
+        ..default()
+    });
+
+    let size = config.simulation.world_size;
+    let mesh = Mesh::from(primitives::Rectangle::new(size, size));
+
+    // Spawn an entity with the mesh and material, and position it in 3D space
+    commands.spawn((
+        FlatMap,
+        PbrBundle {
+            mesh: meshes.add(mesh),
+            material: material_handle,
+            visibility: if config.visualisation.draw.flat_map {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
+            transform: Transform::from_xyz(0.0, -0.1, 0.0)
+                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+            ..default()
+        },
+    ));
+}
+
+/// **Bevy** [`Update`] system
+/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting == DrawSetting::flat_map`
+/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`VariableVisualiser`] entities
+fn show_or_hide_flat_map(
+    mut query: Query<(&FlatMap, &mut Visibility)>,
+    mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
+) {
+    for event in draw_setting_event.read() {
+        if matches!(event.setting, config::DrawSetting::FlatMap) {
+            for (_, mut visibility) in query.iter_mut() {
+                if event.value {
+                    *visibility = Visibility::Visible;
+                } else {
+                    *visibility = Visibility::Hidden;
+                }
+            }
+        }
+    }
 }
 
 /// **Bevy** run criteria
@@ -209,7 +270,7 @@ pub struct HeightMap;
 
 /// **Bevy** [`Update`] system
 /// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting == DrawSetting::height_map`
-/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`VariableVisualiser`] entities
+/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`HeightMap`] entities
 fn show_or_hide_height_map(
     mut query: Query<(&HeightMap, &mut Visibility)>,
     mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
