@@ -6,13 +6,13 @@ objects = 0.5
 height-map = 1.0
 
 [visualisation.draw]
-communication-graph = false
+communication-graph = true
 predicted-trajectories = true
 waypoints = true
 uncertainty = false
 paths = false
 height-map = false
-flat-map = true
+flat-map = false
 
 [gbp]
 sigma-pose-fixed = 0.0000000000000010000000036274937
