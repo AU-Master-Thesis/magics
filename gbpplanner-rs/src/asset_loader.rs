@@ -13,6 +13,7 @@ pub struct Meshes {
     pub variable: Handle<Mesh>,
     pub factor: Handle<Mesh>,
     pub waypoint: Handle<Mesh>,
+    pub plane: Handle<Mesh>,
 }
 
 // A sub-category of the [`SceneAssets`] [`Resource`] to hold all materials
@@ -23,6 +24,7 @@ pub struct Materials {
     pub factor: Handle<StandardMaterial>,
     pub waypoint: Handle<StandardMaterial>,
     pub line: Handle<StandardMaterial>,
+    pub transparent: Handle<StandardMaterial>,
 }
 
 /// **Bevy** [`Resource`] to hold all assets in a common place
@@ -89,6 +91,10 @@ fn load_assets(
                     .ico(4)
                     .expect("4 subdivisions is less than the maximum allowed of 80"),
             ),
+            plane: meshes.add(Mesh::from(bevy::math::primitives::Rectangle::new(
+                config.simulation.world_size,
+                config.simulation.world_size,
+            ))),
         },
         // Materials
         materials: Materials {
@@ -110,6 +116,7 @@ fn load_assets(
             line: materials.add(Color::from_catppuccin_colour(
                 catppuccin_theme.flavour.text(),
             )),
+            transparent: materials.add(Color::rgba_u8(0, 0, 0, 0)),
         },
     }
 }

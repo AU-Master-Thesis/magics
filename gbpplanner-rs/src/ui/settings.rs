@@ -12,6 +12,7 @@ use strum::IntoEnumIterator;
 
 use crate::{
     config::{Config, DrawSection, DrawSetting},
+    environment::cursor::CursorCoordinates,
     theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
 };
 
@@ -85,14 +86,17 @@ fn ui_settings_exclusive(world: &mut World) {
         world.resource_scope(|world, config: Mut<Config>| {
             world.resource_scope(|world, occupied_screen_space: Mut<OccupiedScreenSpace>| {
                 world.resource_scope(|world, catppuccin_theme: Mut<CatppuccinTheme>| {
-                    ui_settings_panel(
-                        egui_context.get_mut(),
-                        ui_state,
-                        config,
-                        occupied_screen_space,
-                        catppuccin_theme,
-                        world,
-                    );
+                    world.resource_scope(|world, cursor_coordinates: Mut<CursorCoordinates>| {
+                        ui_settings_panel(
+                            egui_context.get_mut(),
+                            ui_state,
+                            config,
+                            occupied_screen_space,
+                            cursor_coordinates,
+                            catppuccin_theme,
+                            world,
+                        );
+                    });
                 });
             });
         });
@@ -103,17 +107,10 @@ fn ui_settings_exclusive(world: &mut World) {
 #[allow(clippy::too_many_arguments)]
 fn ui_settings_panel(
     contexts: &mut Context,
-    // mut ui_state: ResMut<UiState>,
     mut ui_state: Mut<UiState>,
-    // mut config: ResMut<Config>,
     mut config: Mut<Config>,
-    // mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
     mut occupied_screen_space: Mut<OccupiedScreenSpace>,
-    // mut theme_event: EventWriter<ThemeEvent>,
-    // mut scale_event: EventWriter<UiScaleEvent>,
-    // mut environment_event: EventWriter<EnvironmentEvent>,
-    // mut export_graph_event: EventWriter<ExportGraphEvent>,
-    // mut draw_setting_event: EventWriter<DrawSettingsEvent>,
+    cursor_coordinates: Mut<CursorCoordinates>,
     catppuccin_theme: Mut<CatppuccinTheme>,
     world: &mut World,
 ) {
@@ -237,34 +234,34 @@ fn ui_settings_panel(
 
                         let png_output_path = PathBuf::from("../../../factorgraphs").with_extension("png");
 
-                        egui::Grid::new("export_grid")
-                            .num_columns(3)
-                            .min_col_width(100.0)
-                            .striped(false)
-                            .spacing((10.0, 10.0))
-                            .show(ui, |ui| {
-                                // GRAPHVIZ EXPORT TOGGLE
-                                ui.label("Graphviz");
-                                custom::fill_x(ui, |ui| {
-                                    if ui.button("Export").clicked() {
-                                        world.send_event::<ExportGraphEvent>(ExportGraphEvent);
-                                        // export_graph_event.send(ExportGraphEvent);
-                                    }
-                                });
-                                custom::fill_x(ui, |ui| {
-                                    if ui.button("Open").clicked() {
-                                        let _ = open::that(&png_output_path)
-                                            .inspect_err(|e| error!("failed to open ./{:?}: {e}", png_output_path));
-                                    }
-                                });
+                        custom::grid(ui, "export_grid", 3, |ui| {
+                            // GRAPHVIZ EXPORT TOGGLE
+                            ui.label("Graphviz");
+                            custom::fill_x(ui, |ui| {
+                                if ui.button("Export").clicked() {
+                                    world.send_event::<ExportGraphEvent>(ExportGraphEvent);
+                                    // export_graph_event.send(ExportGraphEvent);
+                                }
+                            });
+                            custom::fill_x(ui, |ui| {
+                                if ui.button("Open").clicked() {
+                                    let _ = open::that(&png_output_path)
+                                        .inspect_err(|e| error!("failed to open ./{:?}: {e}", png_output_path));
+                                }
+                            });
                         });
+
                         ui.add_space(10.0);
                         // ui.add(egui::Image::new(egui::include_image!("../../../factorgraphs.png")));
                         // ui.add_space(10.0);
 
                         // INSPECTOR
                         custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.maroon())));
-                        // bevy_inspector::ui_for_world(world, ui);
+                        custom::grid(ui, "inspector_grid", 3, |ui| {
+                            ui.label("Cursor");
+                            ui.label(egui::RichText::new(format!("x: {:7.2}", cursor_coordinates.local().x)).monospace());
+                            ui.label(egui::RichText::new(format!("y: {:7.2}", cursor_coordinates.local().y)).monospace());
+                        });
                         ui.collapsing("Entities", |ui| {
                             bevy_inspector::ui_for_world_entities(world, ui);
                         });

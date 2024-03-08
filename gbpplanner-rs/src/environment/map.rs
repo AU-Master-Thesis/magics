@@ -2,6 +2,7 @@ use bevy::{
     math::primitives,
     prelude::*,
     render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
+    scene,
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
@@ -16,7 +17,7 @@ impl Plugin for MapPlugin {
         app.insert_resource(ClearColor(Color::rgb_u8(r, g, b)))
             .insert_resource(AmbientLight {
                 color: Color::default(),
-                brightness: 1000.0,
+                brightness: 10000.0,
             })
             // .add_state::<HeightMapState>()
             .init_state::<HeightMapState>()
@@ -80,7 +81,6 @@ pub struct FlatMap;
 fn flat_map(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,
-    mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<config::Config>,
 ) {
@@ -89,14 +89,11 @@ fn flat_map(
         ..default()
     });
 
-    let size = config.simulation.world_size;
-    let mesh = Mesh::from(primitives::Rectangle::new(size, size));
-
     // Spawn an entity with the mesh and material, and position it in 3D space
     commands.spawn((
         FlatMap,
         PbrBundle {
-            mesh: meshes.add(mesh),
+            mesh: scene_assets.meshes.plane.clone(),
             material: material_handle,
             visibility: if config.visualisation.draw.flat_map {
                 Visibility::Visible
