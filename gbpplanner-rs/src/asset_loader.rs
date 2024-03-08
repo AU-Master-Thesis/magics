@@ -6,7 +6,7 @@ use crate::{
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 
-/// A sub-category of the `SceneAssets` `Resource` to hold all meshes
+/// A sub-category of the [`SceneAssets`] [`Resource`] to hold all meshes
 #[derive(Debug, Default)]
 pub struct Meshes {
     pub robot: Handle<Mesh>,
@@ -15,7 +15,7 @@ pub struct Meshes {
     pub waypoint: Handle<Mesh>,
 }
 
-// A sub-category of the `SceneAssets` `Resource` to hold all materials
+// A sub-category of the [`SceneAssets`] [`Resource`] to hold all materials
 #[derive(Debug, Default)]
 pub struct Materials {
     pub robot: Handle<StandardMaterial>,
@@ -25,8 +25,8 @@ pub struct Materials {
     pub line: Handle<StandardMaterial>,
 }
 
-/// A resource to hold all assets in a common place
-/// Good practice to load assets once, and then reference them by their `Handle`
+/// **Bevy** [`Resource`] to hold all assets in a common place
+/// Good practice to load assets once, and then reference them by their [`Handle`]s
 #[derive(Resource, Debug, Default)]
 pub struct SceneAssets {
     pub main_font: Handle<Font>,
@@ -34,8 +34,6 @@ pub struct SceneAssets {
     pub object: Handle<Scene>,
     pub obstacle_image_raw: Handle<Image>,
     pub obstacle_image_sdf: Handle<Image>,
-    // pub waypoint_material: Handle<StandardMaterial>,
-    // pub waypoint_mesh: Handle<Mesh>,
     pub meshes: Meshes,
     pub materials: Materials,
 }
@@ -49,7 +47,8 @@ impl Plugin for AssetLoaderPlugin {
     }
 }
 
-/// `PreStartup` system to load assets as soon as possible
+/// **Bevy** [`PreStartup`] system
+/// Loads static assets as soon as possible
 fn load_assets(
     mut scene_assets: ResMut<SceneAssets>,
     asset_server: Res<AssetServer>,
@@ -69,12 +68,7 @@ fn load_assets(
         // obstacle_image_raw: asset_server.load("imgs/simple.png"),
         obstacle_image_raw: asset_server.load(format!("imgs/{}.png", config.environment)),
         obstacle_image_sdf: asset_server.load(format!("imgs/{}_sdf.png", config.environment)),
-        // waypoint material
-        // waypoint_material: materials.add(Color::from_catppuccin_colour_with_alpha(
-        //     catppuccin_theme.flavour.maroon(),
-        //     0.75,
-        // )),
-        // waypoint mesh
+        // Meshes
         meshes: Meshes {
             robot: meshes.add(
                 Sphere::new(1.0)
@@ -96,6 +90,7 @@ fn load_assets(
                     .expect("4 subdivisions is less than the maximum allowed of 80"),
             ),
         },
+        // Materials
         materials: Materials {
             robot: materials.add(Color::from_catppuccin_colour(
                 catppuccin_theme.flavour.green(),

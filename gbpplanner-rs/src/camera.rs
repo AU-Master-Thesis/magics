@@ -26,7 +26,6 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<CameraMovementMode>()
-        // app.add_state::<CameraMovementMode>()
             .add_systems(Startup, spawn_camera);
     }
 }
