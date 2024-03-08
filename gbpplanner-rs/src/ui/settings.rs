@@ -2,10 +2,10 @@ use std::path::PathBuf;
 
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{
-    egui::{self, Color32, RichText},
+    egui::{self, Color32},
     EguiContexts, EguiSettings,
 };
-use heck::ToTitleCase;
+
 use struct_iterable::Iterable;
 use strum::IntoEnumIterator;
 
@@ -166,9 +166,7 @@ fn ui_settings_panel(
                             }
                             ui.end_row();
                         });
-                    
                     custom::subheading(ui, "Draw", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.blue())));
-                    
                     egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
                         egui::Grid::new("draw_grid")
                             .num_columns(2)
@@ -179,9 +177,9 @@ fn ui_settings_panel(
                                 // CONFIG DRAW SECTION
                                 // This should add a toggle for each draw setting in the config
                                 // Should be 4 toggles
-                                for (name, _) in config.draw.clone().iter() {
+                                for (name, _) in config.visualisation.draw.clone().iter() {
                                     ui.label(DrawSection::to_display_string(name));
-                                    let setting = config.draw.get_field_mut::<bool>(name)
+                                    let setting = config.visualisation.draw.get_field_mut::<bool>(name)
                                         .expect("Since I am iterating over the fields, I should be able to get the field");
                                     custom::float_right(ui, |ui| {
                                         if custom::toggle_ui(ui, setting).clicked() {
@@ -194,7 +192,6 @@ fn ui_settings_panel(
                                 }
                             });
                         });
-                    
                         custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.mauve())));
 
                         let png_output_path = PathBuf::from("../../../factorgraphs").with_extension("png");

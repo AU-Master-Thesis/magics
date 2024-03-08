@@ -1,7 +1,10 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/asset_loader.rs
 use bevy::prelude::*;
 
-use crate::theme::{CatppuccinTheme, ColorFromCatppuccinColourExt};
+use crate::{
+    config::Config,
+    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
+};
 
 /// A sub-category of the `SceneAssets` `Resource` to hold all meshes
 #[derive(Debug, Default)]
@@ -53,6 +56,7 @@ fn load_assets(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     catppuccin_theme: Res<CatppuccinTheme>,
+    config: Res<Config>,
 ) {
     *scene_assets = SceneAssets {
         // Load the main font
@@ -63,8 +67,8 @@ fn load_assets(
         object: asset_server.load("models/box.glb#Scene0"),
         // environment images
         // obstacle_image_raw: asset_server.load("imgs/simple.png"),
-        obstacle_image_raw: asset_server.load("imgs/very_clutter.png"),
-        obstacle_image_sdf: asset_server.load("imgs/very_clutter_sdf.png"),
+        obstacle_image_raw: asset_server.load(format!("imgs/{}.png", config.environment)),
+        obstacle_image_sdf: asset_server.load(format!("imgs/{}_sdf.png", config.environment)),
         // waypoint material
         // waypoint_material: materials.add(Color::from_catppuccin_colour_with_alpha(
         //     catppuccin_theme.flavour.maroon(),

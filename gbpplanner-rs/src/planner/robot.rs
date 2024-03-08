@@ -586,15 +586,15 @@ fn update_prior_of_current_state_system(
             let index = current_variable.node_index.unwrap();
 
             let mean_of_current_variable = current_variable.belief.mean().clone();
-            dbg!(&mean_of_current_variable);
-            dbg!(&next_variable.belief.mean());
+            // dbg!(&mean_of_current_variable);
+            // dbg!(&next_variable.belief.mean());
             let increment =
                 scale as Float * (next_variable.belief.mean() - &mean_of_current_variable);
 
             (index, mean_of_current_variable, increment)
         };
 
-        dbg!(&increment);
+        // dbg!(&increment);
         // TODO: create a separate method on Variable so we do not have to abuse the interface, and call it with a empty
         // vector, and get an empty HashMap as a return value.
         factorgraph.change_prior_of_variable(

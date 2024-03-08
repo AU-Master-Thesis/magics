@@ -2,10 +2,7 @@ use std::collections::HashMap;
 use std::ops::{AddAssign, Range};
 
 use bevy::prelude::*;
-use gbp_linalg::{
-    pretty_print::{self, *},
-    pretty_print_matrix, pretty_print_vector, Float, Vector,
-};
+use gbp_linalg::{Float, Vector};
 use ndarray::s;
 use num_traits::Zero;
 use petgraph::Undirected;
@@ -571,13 +568,13 @@ impl FactorGraph {
         let jacobian = factor.jacobian(&factor.state.linearisation_point.clone());
 
         // eprintln!("jacobian =");
-        pretty_print_matrix!(&jacobian);
+        // pretty_print_matrix!(&jacobian);
         // jacobian.pretty_print();
         // eprintln!("factor.state.measurement_precision =");
         // factor.state.measurement_precision.pretty_print();
         // eprintln!("factor.state.linearisation_point =");
         // pretty_print::pre
-        pretty_print_vector!(&factor.state.linearisation_point);
+        // pretty_print_vector!(&factor.state.linearisation_point);
         // factor.state.linearisation_point.pretty_print();
 
         let factor_lam_potential = jacobian
@@ -592,14 +589,14 @@ impl FactorGraph {
         factor.mark_as_initialized();
 
         // eprintln!("factor_eta_potential =");
-        pretty_print_vector!(&factor_eta_potential);
+        // pretty_print_vector!(&factor_eta_potential);
         // factor_eta_potential.pretty_print();
         // eprintln!("factor_lam_potential =");
-        pretty_print_matrix!(&factor_lam_potential);
+        // pretty_print_matrix!(&factor_lam_potential);
         // factor_lam_potential.pretty_print();
 
         if factor_eta_potential.iter().all(|x| x.is_zero()) {
-            warn!("The factor {:?} has a zero potential", factor_index);
+            // warn!("The factor {:?} has a zero potential", factor_index);
             let messages = adjacent_variables
                 .iter()
                 .map(|&variable_index| {
@@ -645,17 +642,17 @@ impl FactorGraph {
             }
 
             // eprintln!("factor_eta =");
-            pretty_print_vector!(&factor_eta);
+            // pretty_print_vector!(&factor_eta);
             // factor_eta.pretty_print();
             // eprintln!("factor_lam =");
-            pretty_print_matrix!(&factor_lam);
+            // pretty_print_matrix!(&factor_lam);
             // factor_lam.pretty_print();
             // dbg!(&factor_eta);
             // dbg!(&factor_lam);
 
-            if adjacent_variables.iter().len() > 1 {
-                std::process::exit(1);
-            }
+            // if adjacent_variables.iter().len() > 1 {
+            // std::process::exit(1);
+            // }
 
             // Marginalise the Factor Precision and Information to send to the relevant variable
             let message = if message_is_empty {

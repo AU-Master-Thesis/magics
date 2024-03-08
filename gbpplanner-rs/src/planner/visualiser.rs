@@ -173,6 +173,7 @@ fn init_factorgraphs(
     mut commands: Commands,
     query: Query<(Entity, &super::FactorGraph), Without<HasFactorGraphVisualiser>>,
     scene_assets: Res<SceneAssets>,
+    config: Res<Config>,
 ) {
     for (entity, factorgraph) in query.iter() {
         // Mark the robot with `HasFactorGraphVisualiser` to exclude next time
@@ -183,7 +184,11 @@ fn init_factorgraphs(
             .enumerate()
             .for_each(|(i, v)| {
                 let mean = v.belief.mean();
-                let transform = Vec3::new(mean[0] as f32, 0.0, mean[1] as f32);
+                let transform = Vec3::new(
+                    mean[0] as f32,
+                    config.visualisation.height.objects,
+                    mean[1] as f32,
+                );
 
                 // info!("{:?}: Initialising variable at {:?}", entity, transform);
 
@@ -212,6 +217,7 @@ fn init_factorgraphs(
 fn update_factorgraphs(
     mut tracker_query: Query<(&RobotTracker, &mut Transform), With<VariableVisualiser>>,
     factorgraph_query: Query<(Entity, &super::FactorGraph)>,
+    config: Res<Config>,
 ) {
     // Update the `RobotTracker` components
     for (tracker, mut transform) in tracker_query.iter_mut() {
@@ -232,7 +238,11 @@ fn update_factorgraphs(
 
                 // else update the transform
                 let mean = v.belief.mean();
-                transform.translation = Vec3::new(mean[0] as f32, 0.0, mean[1] as f32);
+                transform.translation = Vec3::new(
+                    mean[0] as f32,
+                    config.visualisation.height.objects,
+                    mean[1] as f32,
+                );
             }
         }
     }
@@ -289,7 +299,7 @@ fn draw_lines(
     }
 
     // If we're not supposed to draw lines, return
-    if !config.draw.predicted_trajectories {
+    if !config.visualisation.draw.predicted_trajectories {
         return;
     }
 
@@ -326,6 +336,7 @@ fn init_waypoints(
     mut commands: Commands,
     query: Query<(Entity, &Waypoints), Without<HasWaypointVisualiser>>,
     scene_assets: Res<SceneAssets>,
+    config: Res<Config>,
 ) {
     for (entity, waypoints) in query.iter() {
         // Mark the robot with `RobotHasTracker` to exclude next time
@@ -334,8 +345,11 @@ fn init_waypoints(
         if let Some(next_waypoint) = waypoints.0.front() {
             // info!("Next waypoint: {:?}", next_waypoint);
 
-            let transform =
-                Transform::from_translation(Vec3::new(next_waypoint.x, 0.0, next_waypoint.y));
+            let transform = Transform::from_translation(Vec3::new(
+                next_waypoint.x,
+                config.visualisation.height.objects,
+                next_waypoint.y,
+            ));
             info!("{:?}: Initialising waypoints at {:?}", entity, transform);
 
             // Spawn a `RobotTracker` component with a corresponding `PbrBundle`
@@ -361,6 +375,7 @@ fn init_waypoints(
 fn update_waypoints(
     mut tracker_query: Query<(&RobotTracker, &mut Transform), With<WaypointVisualiser>>,
     robots_query: Query<(Entity, &Waypoints)>,
+    config: Res<Config>,
 ) {
     // Update the `RobotTracker` components
     for (tracker, mut transform) in tracker_query.iter_mut() {
@@ -371,10 +386,14 @@ fn update_waypoints(
                     // to match the `Waypoints` component
 
                     // info!("{:?}: Updating waypoints to {:?}", entity, next_waypoint);
-                    transform.translation = Vec3::new(next_waypoint.x, 0.0, next_waypoint.y);
+                    transform.translation = Vec3::new(
+                        next_waypoint.x,
+                        config.visualisation.height.objects,
+                        next_waypoint.y,
+                    );
                 }
             } else {
-                info!("Robot {:?} has no more waypoints", tracker.robot_id);
+                // info!("Robot {:?} has no more waypoints", tracker.robot_id);
             }
         }
     }
