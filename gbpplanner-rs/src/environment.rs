@@ -192,6 +192,11 @@ fn obstacles(
         PbrBundle {
             mesh: meshes.add(mesh),
             material: material_handle,
+            visibility: if config.visualisation.draw.height_map {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
             ..default()
         },
     ));
