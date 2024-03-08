@@ -2,10 +2,10 @@ use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum_macros::EnumIter;
 
-use crate::ui::ChangingBinding;
+use crate::{environment, ui::ChangingBinding};
 
 use super::super::{
-    camera::{self, CameraMovementMode, MainCamera},
+    environment::camera::{self, CameraMovementMode, MainCamera},
     movement::{AngularVelocity, Orbit, Velocity},
 };
 
@@ -169,8 +169,8 @@ fn camera_actions(
                         .axis_pair(&CameraAction::MouseMove)
                         .map(|axis| axis.xy())
                     {
-                        tmp_velocity.x = action.x * camera_distance / 10.0; // * camera::SPEED;
-                        tmp_velocity.z = action.y * camera_distance / 10.0; // * camera::SPEED;
+                        tmp_velocity.x = action.x * camera_distance / 10.0; // * environment::camera::SPEED;
+                        tmp_velocity.z = action.y * camera_distance / 10.0; // * environment::camera::SPEED;
                     }
                 }
                 CameraMovementMode::Orbit => {
@@ -178,8 +178,8 @@ fn camera_actions(
                         .axis_pair(&CameraAction::MouseMove)
                         .map(|axis| axis.xy())
                     {
-                        tmp_angular_velocity.x = -action.x * 0.2; // * camera::ANGULAR_SPEED;
-                        tmp_angular_velocity.y = action.y * 0.2; // * camera::ANGULAR_SPEED;
+                        tmp_angular_velocity.x = -action.x * 0.2; // * environment::camera::ANGULAR_SPEED;
+                        tmp_angular_velocity.y = action.y * 0.2; // * environment::camera::ANGULAR_SPEED;
                     }
                 }
             }
@@ -190,8 +190,10 @@ fn camera_actions(
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize_or_zero())
                     {
-                        tmp_velocity.x = -action.x * camera::SPEED * camera_distance / 35.0;
-                        tmp_velocity.z = action.y * camera::SPEED * camera_distance / 35.0;
+                        tmp_velocity.x =
+                            -action.x * environment::camera::SPEED * camera_distance / 35.0;
+                        tmp_velocity.z =
+                            action.y * environment::camera::SPEED * camera_distance / 35.0;
                     }
                 }
                 CameraMovementMode::Orbit => {
@@ -200,8 +202,8 @@ fn camera_actions(
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize())
                     {
-                        tmp_angular_velocity.x = action.x * camera::ANGULAR_SPEED;
-                        tmp_angular_velocity.y = action.y * camera::ANGULAR_SPEED;
+                        tmp_angular_velocity.x = action.x * environment::camera::ANGULAR_SPEED;
+                        tmp_angular_velocity.y = action.y * environment::camera::ANGULAR_SPEED;
                     }
                 }
             }
@@ -214,10 +216,10 @@ fn camera_actions(
 
         if action_state.pressed(&CameraAction::ZoomIn) {
             // info!("Zooming in");
-            tmp_velocity.y = -camera::SPEED * camera_distance / 10.0;
+            tmp_velocity.y = -environment::camera::SPEED * camera_distance / 10.0;
         } else if action_state.pressed(&CameraAction::ZoomOut) {
             // info!("Zooming out");
-            tmp_velocity.y = camera::SPEED * camera_distance / 10.0;
+            tmp_velocity.y = environment::camera::SPEED * camera_distance / 10.0;
         } else {
             tmp_velocity.y = 0.0;
         }

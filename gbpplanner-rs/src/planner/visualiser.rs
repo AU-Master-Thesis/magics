@@ -11,7 +11,7 @@ use crate::{
     ui,
 };
 
-use super::{robot::Waypoints, RobotId};
+use super::{robot::Waypoints, RobotId, RobotState};
 
 /// A **Bevy** `Plugin` for visualising aspects of the planner
 /// Includes visualising parts of the factor graph
@@ -29,6 +29,9 @@ impl Plugin for VisualiserPlugin {
                 update_factorgraphs,
                 show_or_hide_factorgraphs,
                 draw_lines,
+                // init_communication_graph, // TODO: when [`Path`] is no updatable
+                draw_communication_graph,
+                // show_or_hide_communication_graph, // TODO: when [`Path`] is no updatable
             ),
         );
     }
@@ -63,31 +66,42 @@ impl RobotTracker {
     }
 }
 
-/// A **Bevy** `Component` to mark an entity as a visualised waypoint
+/// A **Bevy** [`Component`] to mark an entity as a visualised waypoint
 #[derive(Component)]
 pub struct WaypointVisualiser;
 
-/// A **Bevy** `Component` to mark an entity as a visualised factor graph
+/// A **Bevy** [`Component`] to mark an entity as a visualised factor graph
 #[derive(Component)]
 pub struct VariableVisualiser;
 
-/// A **Bevy** `Component` to mark a robot that it has a corresponding `WaypointVis` entity
+/// A **Bevy** [`Component`] to mark an entity as a visualised communication graph
+#[derive(Component)]
+pub struct CommunicationGraphVisualiser;
+
+/// A **Bevy** [`Component`] to mark a robot that it has a corresponding `WaypointVis` entity
 /// Useful for easy exclusion in queries
 #[derive(Component)]
 pub struct HasWaypointVisualiser;
 
-/// A **Bevy** `Component` to mark a robot that it has a corresponding `FactorGraphVis` entity
+/// A **Bevy** [`Component`] to mark a robot that it has a corresponding `FactorGraphVis` entity
 /// Useful for easy exclusion in queries
 #[derive(Component)]
 pub struct HasFactorGraphVisualiser;
 
-/// A marker component for lines
+/// A **Bevy** marker [`Component`] for lines
 /// Generally used to identify previously spawned lines,
 /// so they can be updated or removed
-#[derive(Component, Debug)]
+#[derive(Component)]
 pub struct Line;
 
-/// A list of vertices defining a path
+/// A **Bevy** marker [`Component`] for a line segment
+/// Generally used to identify previously spawned line segments,
+/// so they can be updated or removed
+#[derive(Component)]
+pub struct LineSegment;
+
+/// A **Bevy** [`Component`] for drawing a path or line
+/// Contains a list of points and a width used to construct a mesh
 #[derive(Debug, Clone)]
 struct Path {
     points: Vec<Vec3>,
@@ -166,13 +180,14 @@ impl From<Path> for Mesh {
     }
 }
 
-/// A **Bevy** `Update` system
-/// Initialises each new `FactorGraph` component to have a matching `PbrBundle` and `FactorGraphVisualiser` component
-/// I.e. if the `FactorGraph` component already has a `FactorGraphVisualiser`, it will be ignored
+/// A **Bevy** [`Update`] system
+/// Initialises each new [`FactorGraph`] component to have a matching [`PbrBundle`] and [`FactorGraphVisualiser`] component
+/// I.e. if the [`FactorGraph`] component already has a [`FactorGraphVisualiser`], it will be ignored
 fn init_factorgraphs(
     mut commands: Commands,
     query: Query<(Entity, &super::FactorGraph), Without<HasFactorGraphVisualiser>>,
     scene_assets: Res<SceneAssets>,
+    config: Res<Config>,
 ) {
     for (entity, factorgraph) in query.iter() {
         // Mark the robot with `HasFactorGraphVisualiser` to exclude next time
@@ -183,7 +198,11 @@ fn init_factorgraphs(
             .enumerate()
             .for_each(|(i, v)| {
                 let mean = v.belief.mean();
-                let transform = Vec3::new(mean[0] as f32, 0.0, mean[1] as f32);
+                let transform = Vec3::new(
+                    mean[0] as f32,
+                    config.visualisation.height.objects,
+                    mean[1] as f32,
+                );
 
                 // info!("{:?}: Initialising variable at {:?}", entity, transform);
 
@@ -204,14 +223,15 @@ fn init_factorgraphs(
     }
 }
 
-/// A **Bevy** `Update` system
-/// Updates the `Transform`s of all `FactorGraphVisualiser` entities
-/// Done by cross-referencing with the `FactorGraph` components
-/// that have matching `Entity` with the `RobotTracker.robot_id`
-/// and variables in the `FactorGraph` that have matching `RobotTracker.variable_id`
+/// A **Bevy** [`Update`] system
+/// Updates the [`Transform`]s of all [`FactorGraphVisualiser`] entities
+/// Done by cross-referencing with the [`FactorGraph`] components
+/// that have matching [`Entity`] with the `RobotTracker.robot_id`
+/// and variables in the [`FactorGraph`] that have matching `RobotTracker.variable_id`
 fn update_factorgraphs(
     mut tracker_query: Query<(&RobotTracker, &mut Transform), With<VariableVisualiser>>,
     factorgraph_query: Query<(Entity, &super::FactorGraph)>,
+    config: Res<Config>,
 ) {
     // Update the `RobotTracker` components
     for (tracker, mut transform) in tracker_query.iter_mut() {
@@ -232,15 +252,19 @@ fn update_factorgraphs(
 
                 // else update the transform
                 let mean = v.belief.mean();
-                transform.translation = Vec3::new(mean[0] as f32, 0.0, mean[1] as f32);
+                transform.translation = Vec3::new(
+                    mean[0] as f32,
+                    config.visualisation.height.objects,
+                    mean[1] as f32,
+                );
             }
         }
     }
 }
 
-/// A **Bevy** `Update` system
-/// Reads `DrawSettingEvent`, where if `DrawSettingEvent.setting == DrawSetting::PredictedTrajectories`
-/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the `VariableVisualiser` entities
+/// A **Bevy** [`Update`] system
+/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting == DrawSetting::PredictedTrajectories`
+/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`VariableVisualiser`] entities
 fn show_or_hide_factorgraphs(
     mut query: Query<(&VariableVisualiser, &mut Visibility)>,
     mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
@@ -258,12 +282,12 @@ fn show_or_hide_factorgraphs(
     }
 }
 
-/// A **Bevy** `Update` system
+/// A **Bevy** [`Update`] system
 /// Draws lines between all variables in each factor graph
 ///
 /// Despawns old lines, and spawns new lines
 ///
-/// Queries variables by `RobotTracker` with the `FactorGraphVisualiser` component
+/// Queries variables by [`RobotTracker`] with the [`FactorGraphVisualiser`] component
 /// as initialised by the `init_factorgraphs` system
 /// -> Will return if this query is empty
 fn draw_lines(
@@ -289,7 +313,7 @@ fn draw_lines(
     }
 
     // If we're not supposed to draw lines, return
-    if !config.draw.predicted_trajectories {
+    if !config.visualisation.draw.predicted_trajectories {
         return;
     }
 
@@ -319,13 +343,14 @@ fn draw_lines(
     }
 }
 
-/// A **Bevy** `Update` system
-/// Initialises each new `Waypoints` component to have a matching `PbrBundle` and `RobotTracker` component
-/// I.e. if the `Waypoints` component already has a `RobotTracker`, it will be ignored
+/// A **Bevy** [`Update`] system
+/// Initialises each new [`Waypoints`] component to have a matching [`PbrBundle`] and [`RobotTracker`] component
+/// I.e. if the [`Waypoints`] component already has a [`RobotTracker`], it will be ignored
 fn init_waypoints(
     mut commands: Commands,
     query: Query<(Entity, &Waypoints), Without<HasWaypointVisualiser>>,
     scene_assets: Res<SceneAssets>,
+    config: Res<Config>,
 ) {
     for (entity, waypoints) in query.iter() {
         // Mark the robot with `RobotHasTracker` to exclude next time
@@ -334,8 +359,11 @@ fn init_waypoints(
         if let Some(next_waypoint) = waypoints.0.front() {
             // info!("Next waypoint: {:?}", next_waypoint);
 
-            let transform =
-                Transform::from_translation(Vec3::new(next_waypoint.x, 0.0, next_waypoint.y));
+            let transform = Transform::from_translation(Vec3::new(
+                next_waypoint.x,
+                config.visualisation.height.objects,
+                next_waypoint.y,
+            ));
             info!("{:?}: Initialising waypoints at {:?}", entity, transform);
 
             // Spawn a `RobotTracker` component with a corresponding `PbrBundle`
@@ -355,12 +383,13 @@ fn init_waypoints(
     }
 }
 
-/// A **Bevy** `Update` system
-/// Updates the `Transform`s of all `WaypointVisualiser` entities
-/// Done by cross-referencing `Entity` with the `RobotTracker.robot_id`
+/// A **Bevy** [`Update`] system
+/// Updates the [`Transform`]s of all [`WaypointVisualiser`] entities
+/// Done by cross-referencing [`Entity`] with the `RobotTracker.robot_id`
 fn update_waypoints(
     mut tracker_query: Query<(&RobotTracker, &mut Transform), With<WaypointVisualiser>>,
     robots_query: Query<(Entity, &Waypoints)>,
+    config: Res<Config>,
 ) {
     // Update the `RobotTracker` components
     for (tracker, mut transform) in tracker_query.iter_mut() {
@@ -371,18 +400,22 @@ fn update_waypoints(
                     // to match the `Waypoints` component
 
                     // info!("{:?}: Updating waypoints to {:?}", entity, next_waypoint);
-                    transform.translation = Vec3::new(next_waypoint.x, 0.0, next_waypoint.y);
+                    transform.translation = Vec3::new(
+                        next_waypoint.x,
+                        config.visualisation.height.objects,
+                        next_waypoint.y,
+                    );
                 }
             } else {
-                info!("Robot {:?} has no more waypoints", tracker.robot_id);
+                // info!("Robot {:?} has no more waypoints", tracker.robot_id);
             }
         }
     }
 }
 
-/// A **Bevy** `Update` system
-/// Reads `DrawSettingEvent`, where if `DrawSettingEvent.setting == DrawSetting::Waypoints`
-/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the `WaypointVisualiser` entities
+/// A **Bevy** [`Update`] system
+/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting == DrawSetting::Waypoints`
+/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`WaypointVisualiser`] entities
 fn show_or_hide_waypoints(
     mut query: Query<(&WaypointVisualiser, &mut Visibility)>,
     mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
@@ -396,6 +429,84 @@ fn show_or_hide_waypoints(
                     *visibility = Visibility::Hidden;
                 }
             }
+        }
+    }
+}
+
+/// A **Bevy** [`Update`] system
+/// Draws the communication graph with a [`Path`], through a [`PbrBundle`] and [`CommunicationGraphVisualiser`] component
+///
+/// Draws a line segment between each robot and its neighbours
+/// A robot is a neighbour if it is within the communication range `config.communication.range`
+///
+/// However, if the robot's comms are off `RobotState.interrobot_comms_active == false`, it will not draw a line segment
+fn draw_communication_graph(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    query_previous_line_segments: Query<Entity, With<LineSegment>>,
+    robots_query: Query<(Entity, &RobotState, &Transform)>,
+    config: Res<Config>,
+    catppuccin_theme: Res<CatppuccinTheme>,
+) {
+    // If there are no robots, return
+    if robots_query.iter().count() == 0 {
+        return;
+    }
+
+    // Remove previous lines
+    query_previous_line_segments.iter().for_each(|entity| {
+        commands.entity(entity).despawn();
+    });
+
+    // If we're not supposed to draw the communication graph, return
+    if !config.visualisation.draw.communication_graph {
+        return;
+    }
+
+    let line_material = materials.add(Color::from_catppuccin_colour(
+        catppuccin_theme.flavour.teal(),
+    ));
+
+    // TODO: Don't double-draw lines from and to the same two robots
+    for (robot_id, robot_state, transform) in robots_query.iter() {
+        if !robot_state.interrobot_comms_active {
+            continue;
+        }
+
+        // Find all neighbour transforms within the communication range
+        // but filter out all robots that do not have comms on
+        let neighbours = robots_query
+            .iter()
+            .filter(|(other_robot_id, other_robot_state, _)| {
+                robot_id != *other_robot_id && !other_robot_state.interrobot_comms_active
+            })
+            .filter_map(|(_, _, other_transform)| {
+                let distance = transform.translation.distance(other_transform.translation);
+                if distance < config.robot.communication.radius {
+                    Some(other_transform.translation)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<Vec3>>();
+
+        if neighbours.is_empty() {
+            continue;
+        }
+
+        // Make a line for each neighbour
+        for neighbour_transform in neighbours {
+            let line = Path::new(vec![transform.translation, neighbour_transform]).with_width(0.2);
+            commands.spawn((
+                PbrBundle {
+                    mesh: meshes.add(Mesh::from(line)),
+                    material: line_material.clone(),
+                    transform: Transform::default(),
+                    ..Default::default()
+                },
+                LineSegment,
+            ));
         }
     }
 }

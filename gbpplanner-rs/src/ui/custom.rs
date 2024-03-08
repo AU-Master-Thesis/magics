@@ -106,3 +106,17 @@ pub fn toggle_ui(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {
     // (hovered, clicked, ...) and maybe show a tooltip:
     response
 }
+
+pub fn grid<R>(
+    ui: &mut egui::Ui,
+    name: &str,
+    cols: usize,
+    add_contents: impl FnOnce(&mut Ui) -> R,
+) -> InnerResponse<R> {
+    egui::Grid::new(name)
+        .num_columns(cols)
+        .min_col_width(100.0)
+        .striped(false)
+        .spacing((10.0, 10.0))
+        .show(ui, add_contents)
+}

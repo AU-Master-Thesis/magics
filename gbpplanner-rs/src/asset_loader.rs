@@ -1,18 +1,22 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/asset_loader.rs
 use bevy::prelude::*;
 
-use crate::theme::{CatppuccinTheme, ColorFromCatppuccinColourExt};
+use crate::{
+    config::Config,
+    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
+};
 
-/// A sub-category of the `SceneAssets` `Resource` to hold all meshes
+/// A sub-category of the [`SceneAssets`] [`Resource`] to hold all meshes
 #[derive(Debug, Default)]
 pub struct Meshes {
     pub robot: Handle<Mesh>,
     pub variable: Handle<Mesh>,
     pub factor: Handle<Mesh>,
     pub waypoint: Handle<Mesh>,
+    pub plane: Handle<Mesh>,
 }
 
-// A sub-category of the `SceneAssets` `Resource` to hold all materials
+// A sub-category of the [`SceneAssets`] [`Resource`] to hold all materials
 #[derive(Debug, Default)]
 pub struct Materials {
     pub robot: Handle<StandardMaterial>,
@@ -20,10 +24,11 @@ pub struct Materials {
     pub factor: Handle<StandardMaterial>,
     pub waypoint: Handle<StandardMaterial>,
     pub line: Handle<StandardMaterial>,
+    pub transparent: Handle<StandardMaterial>,
 }
 
-/// A resource to hold all assets in a common place
-/// Good practice to load assets once, and then reference them by their `Handle`
+/// **Bevy** [`Resource`] to hold all assets in a common place
+/// Good practice to load assets once, and then reference them by their [`Handle`]s
 #[derive(Resource, Debug, Default)]
 pub struct SceneAssets {
     pub main_font: Handle<Font>,
@@ -31,8 +36,6 @@ pub struct SceneAssets {
     pub object: Handle<Scene>,
     pub obstacle_image_raw: Handle<Image>,
     pub obstacle_image_sdf: Handle<Image>,
-    // pub waypoint_material: Handle<StandardMaterial>,
-    // pub waypoint_mesh: Handle<Mesh>,
     pub meshes: Meshes,
     pub materials: Materials,
 }
@@ -46,13 +49,15 @@ impl Plugin for AssetLoaderPlugin {
     }
 }
 
-/// `PreStartup` system to load assets as soon as possible
+/// **Bevy** [`PreStartup`] system
+/// Loads static assets as soon as possible
 fn load_assets(
     mut scene_assets: ResMut<SceneAssets>,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     catppuccin_theme: Res<CatppuccinTheme>,
+    config: Res<Config>,
 ) {
     *scene_assets = SceneAssets {
         // Load the main font
@@ -63,14 +68,9 @@ fn load_assets(
         object: asset_server.load("models/box.glb#Scene0"),
         // environment images
         // obstacle_image_raw: asset_server.load("imgs/simple.png"),
-        obstacle_image_raw: asset_server.load("imgs/very_clutter.png"),
-        obstacle_image_sdf: asset_server.load("imgs/very_clutter_sdf.png"),
-        // waypoint material
-        // waypoint_material: materials.add(Color::from_catppuccin_colour_with_alpha(
-        //     catppuccin_theme.flavour.maroon(),
-        //     0.75,
-        // )),
-        // waypoint mesh
+        obstacle_image_raw: asset_server.load(format!("imgs/{}.png", config.environment)),
+        obstacle_image_sdf: asset_server.load(format!("imgs/{}_sdf.png", config.environment)),
+        // Meshes
         meshes: Meshes {
             robot: meshes.add(
                 Sphere::new(1.0)
@@ -91,7 +91,12 @@ fn load_assets(
                     .ico(4)
                     .expect("4 subdivisions is less than the maximum allowed of 80"),
             ),
+            plane: meshes.add(Mesh::from(bevy::math::primitives::Rectangle::new(
+                config.simulation.world_size,
+                config.simulation.world_size,
+            ))),
         },
+        // Materials
         materials: Materials {
             robot: materials.add(Color::from_catppuccin_colour(
                 catppuccin_theme.flavour.green(),
@@ -111,6 +116,7 @@ fn load_assets(
             line: materials.add(Color::from_catppuccin_colour(
                 catppuccin_theme.flavour.text(),
             )),
+            transparent: materials.add(Color::rgba_u8(0, 0, 0, 0)),
         },
     }
 }

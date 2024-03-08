@@ -58,6 +58,38 @@ impl Default for GraphvizSection {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct HeighSection {
+    pub objects: f32,
+    pub height_map: f32,
+}
+
+impl Default for HeighSection {
+    fn default() -> Self {
+        Self {
+            objects: 0.5,
+            height_map: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct VisualisationSection {
+    pub height: HeighSection,
+    pub draw: DrawSection,
+}
+
+impl Default for VisualisationSection {
+    fn default() -> Self {
+        Self {
+            height: HeighSection::default(),
+            draw: DrawSection::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum DrawSetting {
     CommunicationGraph,
@@ -65,7 +97,8 @@ pub enum DrawSetting {
     Waypoints,
     Uncertainty,
     Paths,
-    Environment,
+    HeightMap,
+    FlatMap,
 }
 
 impl DrawSetting {
@@ -76,7 +109,8 @@ impl DrawSetting {
             "waypoints" => Some(Self::Waypoints),
             "uncertainty" => Some(Self::Uncertainty),
             "paths" => Some(Self::Paths),
-            "environment" => Some(Self::Environment),
+            "height_map" => Some(Self::HeightMap),
+            "flat_map" => Some(Self::FlatMap),
             _ => None,
         }
     }
@@ -90,33 +124,25 @@ pub struct DrawSection {
     pub waypoints: bool,
     pub uncertainty: bool,
     pub paths: bool,
-    pub environment: bool,
+    pub height_map: bool,
+    pub flat_map: bool,
 }
 
 impl Default for DrawSection {
     fn default() -> Self {
         Self {
-            communication_graph: true,
+            communication_graph: false,
             predicted_trajectories: true,
             waypoints: true,
-            uncertainty: true,
-            paths: true,
-            environment: true,
+            uncertainty: false,
+            paths: false,
+            height_map: false,
+            flat_map: true,
         }
     }
 }
 
 impl DrawSection {
-    // pub fn display_names(&self) -> impl Iterator<Item = String> + '_ {
-    //     self.iter().map(|(k, _)| match k {
-    //         "communication_graph" => "Communication".to_string(),
-    //         "predicted_trajectories" => "Trajectories".to_string(),
-    //         "waypoints" => "Waypoints".to_string(),
-    //         "uncertainty" => "Uncertainty".to_string(),
-    //         _ => "Unknown".to_string(),
-    //     })
-    // }
-
     pub fn to_display_string(name: &str) -> String {
         match name {
             "communication_graph" => "Communication".to_string(),
@@ -124,7 +150,8 @@ impl DrawSection {
             "waypoints" => "Waypoints".to_string(),
             "uncertainty" => "Uncertainty".to_string(),
             "paths" => "Paths".to_string(),
-            "environment" => "Environment".to_string(),
+            "height_map" => "Height Map".to_string(),
+            "flat_map" => "Flat Map".to_string(),
             _ => "Unknown".to_string(),
         }
     }
@@ -259,7 +286,7 @@ pub struct Config {
     /// Path to the **.png** containing the environment sdf
     pub environment: String,
     pub formation_group: String,
-    pub draw: DrawSection,
+    pub visualisation: VisualisationSection,
     pub gbp: GbpSection,
     pub robot: RobotSection,
     pub simulation: SimulationSection,
@@ -279,7 +306,7 @@ impl Default for Config {
         Self {
             environment: default_environment,
             formation_group: default_formation_group,
-            draw: DrawSection::default(),
+            visualisation: VisualisationSection::default(),
             gbp: GbpSection::default(),
             robot: RobotSection::default(),
             simulation: SimulationSection::default(),

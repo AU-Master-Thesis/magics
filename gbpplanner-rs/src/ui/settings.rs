@@ -2,15 +2,17 @@ use std::path::PathBuf;
 
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{
-    egui::{self, Color32, RichText},
-    EguiContexts, EguiSettings,
+    egui::{self, Color32, Context},
+    EguiContext, EguiContexts, EguiSettings,
 };
-use heck::ToTitleCase;
+
+use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
 use struct_iterable::Iterable;
 use strum::IntoEnumIterator;
 
 use crate::{
     config::{Config, DrawSection, DrawSetting},
+    environment::cursor::CursorCoordinates,
     theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
 };
 
@@ -26,7 +28,8 @@ impl Plugin for SettingsPanelPlugin {
             .add_event::<ExportGraphEvent>()
             .add_event::<DrawSettingsEvent>()
             .add_systems(Startup, install_egui_image_loaders)
-            .add_systems(Update, (ui_settings_panel, scale_ui));
+            .add_systems(Update, (ui_settings_exclusive, scale_ui))
+            .add_plugins(DefaultInspectorConfigPlugin);
     }
 }
 
@@ -68,21 +71,52 @@ impl ToDisplayString for catppuccin::Flavour {
     }
 }
 
+fn ui_settings_exclusive(world: &mut World) {
+    // query for all the things ui_settings_panel needs
+    let Ok(contexts) = world
+        .query_filtered::<&EguiContext, With<PrimaryWindow>>()
+        .get_single(world)
+    else {
+        return;
+    };
+
+    let mut egui_context = contexts.clone();
+
+    world.resource_scope(|world, ui_state: Mut<UiState>| {
+        world.resource_scope(|world, config: Mut<Config>| {
+            world.resource_scope(|world, occupied_screen_space: Mut<OccupiedScreenSpace>| {
+                world.resource_scope(|world, catppuccin_theme: Mut<CatppuccinTheme>| {
+                    world.resource_scope(|world, cursor_coordinates: Mut<CursorCoordinates>| {
+                        ui_settings_panel(
+                            egui_context.get_mut(),
+                            ui_state,
+                            config,
+                            occupied_screen_space,
+                            cursor_coordinates,
+                            catppuccin_theme,
+                            world,
+                        );
+                    });
+                });
+            });
+        });
+    });
+}
+
 /// **Bevy** `Update` system to display the `egui` settings panel
 #[allow(clippy::too_many_arguments)]
 fn ui_settings_panel(
-    mut contexts: EguiContexts,
-    mut ui_state: ResMut<UiState>,
-    mut config: ResMut<Config>,
-    mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
-    mut theme_event: EventWriter<ThemeEvent>,
-    mut scale_event: EventWriter<UiScaleEvent>,
-    mut environment_event: EventWriter<EnvironmentEvent>,
-    mut export_graph_event: EventWriter<ExportGraphEvent>,
-    mut draw_setting_event: EventWriter<DrawSettingsEvent>,
-    catppuccin_theme: Res<CatppuccinTheme>,
+    contexts: &mut Context,
+    mut ui_state: Mut<UiState>,
+    mut config: Mut<Config>,
+    mut occupied_screen_space: Mut<OccupiedScreenSpace>,
+    cursor_coordinates: Mut<CursorCoordinates>,
+    catppuccin_theme: Mut<CatppuccinTheme>,
+    world: &mut World,
 ) {
-    let ctx = contexts.ctx_mut();
+    // let ctx = contexts.ctx_mut();
+    // let ctx = contexts.get_mut();
+    let ctx = contexts;
 
     let right_panel = egui::SidePanel::right("Settings Panel")
         .default_width(200.0)
@@ -119,7 +153,8 @@ fn ui_settings_panel(
                                             ui.vertical_centered_justified(|ui| {
                                                 if ui.button(flavour.to_display_string()).clicked()
                                                 {
-                                                    theme_event.send(ThemeEvent(*flavour));
+                                                    world.send_event::<ThemeEvent>(ThemeEvent(*flavour));
+                                                    // theme_event.send(ThemeEvent(*flavour));
                                                     ui.close_menu();
                                                 }
                                             });
@@ -137,7 +172,8 @@ fn ui_settings_panel(
                                         ui.vertical_centered_justified(|ui| {
                                             if ui.button(scale.to_display_string()).clicked() {
                                                 ui_state.scale_type = scale;
-                                                scale_event.send(UiScaleEvent);
+                                                world.send_event::<UiScaleEvent>(UiScaleEvent);
+                                                // scale_event.send(UiScaleEvent);
                                                 ui.close_menu();
                                             }
                                         });
@@ -162,13 +198,12 @@ fn ui_settings_panel(
                             // Only trigger ui scale update when the slider is released or lost focus
                             // otherwise it would be imposssible to drag the slider while the ui is scaling
                             if slider_response.drag_released() || slider_response.lost_focus() {
-                                scale_event.send(UiScaleEvent);
+                                world.send_event::<UiScaleEvent>(UiScaleEvent);
+                                // scale_event.send(UiScaleEvent);
                             }
                             ui.end_row();
                         });
-                    
                     custom::subheading(ui, "Draw", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.blue())));
-                    
                     egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
                         egui::Grid::new("draw_grid")
                             .num_columns(2)
@@ -179,49 +214,63 @@ fn ui_settings_panel(
                                 // CONFIG DRAW SECTION
                                 // This should add a toggle for each draw setting in the config
                                 // Should be 4 toggles
-                                for (name, _) in config.draw.clone().iter() {
+                                for (name, _) in config.visualisation.draw.clone().iter() {
                                     ui.label(DrawSection::to_display_string(name));
-                                    let setting = config.draw.get_field_mut::<bool>(name)
+                                    let setting = config.visualisation.draw.get_field_mut::<bool>(name)
                                         .expect("Since I am iterating over the fields, I should be able to get the field");
                                     custom::float_right(ui, |ui| {
                                         if custom::toggle_ui(ui, setting).clicked() {
                                             let setting_kind = DrawSetting::from_str(name).expect("The name of the draw section should be a valid DrawSection");
                                             let event = DrawSettingsEvent { setting: setting_kind, value: *setting };
-                                            draw_setting_event.send(event);
+                                            world.send_event::<DrawSettingsEvent>(event);
+                                            // draw_setting_event.send(event);
                                         }
                                     });
                                     ui.end_row();
                                 }
                             });
                         });
-                    
                         custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.mauve())));
 
                         let png_output_path = PathBuf::from("../../../factorgraphs").with_extension("png");
 
-                        egui::Grid::new("export_grid")
-                            .num_columns(3)
-                            .min_col_width(100.0)
-                            .striped(false)
-                            .spacing((10.0, 10.0))
-                            .show(ui, |ui| {
-                                // GRAPHVIZ EXPORT TOGGLE
-                                ui.label("Graphviz");
-                                custom::fill_x(ui, |ui| {
-                                    if ui.button("Export").clicked() {
-                                        export_graph_event.send(ExportGraphEvent);
-                                    }
-                                });
-                                custom::fill_x(ui, |ui| {
-                                    if ui.button("Open").clicked() {
-                                        let _ = open::that(&png_output_path)
-                                            .inspect_err(|e| error!("failed to open ./{:?}: {e}", png_output_path));
-                                    }
-                                });
+                        custom::grid(ui, "export_grid", 3, |ui| {
+                            // GRAPHVIZ EXPORT TOGGLE
+                            ui.label("Graphviz");
+                            custom::fill_x(ui, |ui| {
+                                if ui.button("Export").clicked() {
+                                    world.send_event::<ExportGraphEvent>(ExportGraphEvent);
+                                    // export_graph_event.send(ExportGraphEvent);
+                                }
+                            });
+                            custom::fill_x(ui, |ui| {
+                                if ui.button("Open").clicked() {
+                                    let _ = open::that(&png_output_path)
+                                        .inspect_err(|e| error!("failed to open ./{:?}: {e}", png_output_path));
+                                }
+                            });
                         });
+
                         ui.add_space(10.0);
                         // ui.add(egui::Image::new(egui::include_image!("../../../factorgraphs.png")));
                         // ui.add_space(10.0);
+
+                        // INSPECTOR
+                        custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.maroon())));
+                        custom::grid(ui, "inspector_grid", 3, |ui| {
+                            ui.label("Cursor");
+                            ui.label(egui::RichText::new(format!("x: {:7.2}", cursor_coordinates.local().x)).monospace());
+                            ui.label(egui::RichText::new(format!("y: {:7.2}", cursor_coordinates.local().y)).monospace());
+                        });
+                        ui.collapsing("Entities", |ui| {
+                            bevy_inspector::ui_for_world_entities(world, ui);
+                        });
+                        ui.collapsing("Resources", |ui| {
+                            bevy_inspector::ui_for_resources(world, ui);
+                        });
+                        ui.collapsing("Assets", |ui| {
+                            bevy_inspector::ui_for_all_assets(world, ui);
+                        });
                     });
         });
 

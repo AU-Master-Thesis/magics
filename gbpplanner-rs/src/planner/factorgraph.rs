@@ -2,10 +2,7 @@ use std::collections::HashMap;
 use std::ops::{AddAssign, Range};
 
 use bevy::prelude::*;
-use gbp_linalg::{
-    pretty_print::{self, *},
-    pretty_print_matrix, pretty_print_vector, Float, Vector,
-};
+use gbp_linalg::{Float, Vector};
 use ndarray::s;
 use num_traits::Zero;
 use petgraph::Undirected;
@@ -599,7 +596,7 @@ impl FactorGraph {
         // factor_lam_potential.pretty_print();
 
         if factor_eta_potential.iter().all(|x| x.is_zero()) {
-            warn!("The factor {:?} has a zero potential", factor_index);
+            // warn!("The factor {:?} has a zero potential", factor_index);
             let messages = adjacent_variables
                 .iter()
                 .map(|&variable_index| {
@@ -645,17 +642,17 @@ impl FactorGraph {
             }
 
             // eprintln!("factor_eta =");
-            pretty_print_vector!(&factor_eta);
+            // pretty_print_vector!(&factor_eta);
             // factor_eta.pretty_print();
             // eprintln!("factor_lam =");
-            pretty_print_matrix!(&factor_lam);
+            // pretty_print_matrix!(&factor_lam);
             // factor_lam.pretty_print();
             // dbg!(&factor_eta);
             // dbg!(&factor_lam);
 
-            if adjacent_variables.iter().len() > 1 {
-                std::process::exit(1);
-            }
+            // if adjacent_variables.iter().len() > 1 {
+            // std::process::exit(1);
+            // }
 
             // Marginalise the Factor Precision and Information to send to the relevant variable
             let message = if message_is_empty {

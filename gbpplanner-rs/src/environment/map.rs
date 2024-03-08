@@ -1,32 +1,34 @@
 use bevy::{
+    math::primitives,
     prelude::*,
     render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
+    scene,
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
 
-use crate::{asset_loader::SceneAssets, theme::CatppuccinTheme};
+use crate::{asset_loader::SceneAssets, config, theme::CatppuccinTheme, ui};
 
-pub struct EnvironmentPlugin;
+pub struct MapPlugin;
 
-impl Plugin for EnvironmentPlugin {
+impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         let (r, g, b) = Flavour::Macchiato.base().into();
         app.insert_resource(ClearColor(Color::rgb_u8(r, g, b)))
             .insert_resource(AmbientLight {
                 color: Color::default(),
-                brightness: 1000.0,
+                brightness: 10000.0,
             })
             // .add_state::<HeightMapState>()
             .init_state::<HeightMapState>()
             .add_plugins(InfiniteGridPlugin)
-            .add_systems(Startup, (infinite_grid, lighting));
-        // .add_systems(Update, obstacles.run_if(environment_png_is_loaded));
+            .add_systems(Startup, (infinite_grid, lighting, flat_map))
+            .add_systems(Update, (obstacles.run_if(environment_png_is_loaded), show_or_hide_height_map, show_or_hide_flat_map));
     }
 }
 
-/// `Startup` system to spawn the an infinite grid
-/// Using the [`InfiniteGridPlugin`] from the [`bevy_infinite_grid`] crate
+/// **Bevy** [`Startup`] system to spawn the an infinite grid
+/// Using the [`InfiniteGridPlugin`] from the `bevy_infinite_grid` crate
 fn infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinTheme>) {
     let grid_colour = catppuccin_theme.grid_colour();
 
@@ -49,7 +51,8 @@ fn infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinTheme>)
     });
 }
 
-/// `Startup` system to spawn the directional light.
+/// **Bevy** [`Startup`] system
+/// Spawns a directional light.
 fn lighting(mut commands: Commands) {
     commands.spawn(DirectionalLightBundle {
         transform: Transform::from_translation(Vec3::X * 5.0 + Vec3::Z * 8.0)
@@ -58,7 +61,7 @@ fn lighting(mut commands: Commands) {
     });
 }
 
-/// **Bevy** `State` representing whether the heightmap.
+/// **Bevy** [`State`] representing whether the heightmap.
 /// 1. is `Waiting` for the image asset to be loaded.
 /// 2. has been `Generated` from the image asset.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -68,8 +71,65 @@ pub enum HeightMapState {
     Generated,
 }
 
-/// Function to check if the environment image asset has been loaded.
-/// used as a run criteria for the `obstacles` system.
+/// **Bevy** [`Component`] to represent the flat map.
+/// Serves as a marker to identify the flat map entity.
+#[derive(Component)]
+pub struct FlatMap;
+
+/// **Bevy** [`Startup`] system
+/// Makes a simple quad plane to show the map png.
+fn flat_map(
+    mut commands: Commands,
+    scene_assets: Res<SceneAssets>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    config: Res<config::Config>,
+) {
+    let material_handle = materials.add(StandardMaterial {
+        base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
+        ..default()
+    });
+
+    // Spawn an entity with the mesh and material, and position it in 3D space
+    commands.spawn((
+        FlatMap,
+        PbrBundle {
+            mesh: scene_assets.meshes.plane.clone(),
+            material: material_handle,
+            visibility: if config.visualisation.draw.flat_map {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
+            transform: Transform::from_xyz(0.0, -0.1, 0.0)
+                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+            ..default()
+        },
+    ));
+}
+
+/// **Bevy** [`Update`] system
+/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting == DrawSetting::flat_map`
+/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`VariableVisualiser`] entities
+fn show_or_hide_flat_map(
+    mut query: Query<(&FlatMap, &mut Visibility)>,
+    mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
+) {
+    for event in draw_setting_event.read() {
+        if matches!(event.setting, config::DrawSetting::FlatMap) {
+            for (_, mut visibility) in query.iter_mut() {
+                if event.value {
+                    *visibility = Visibility::Visible;
+                } else {
+                    *visibility = Visibility::Hidden;
+                }
+            }
+        }
+    }
+}
+
+/// **Bevy** run criteria
+/// Checks whether the environment image asset has been loaded.
+/// used as a run criteria for the [`obstacles`] system.
 fn environment_png_is_loaded(
     state: Res<State<HeightMapState>>,
     scene_assets: Res<SceneAssets>,
@@ -84,7 +144,8 @@ fn environment_png_is_loaded(
     false
 }
 
-/// `Update` system to spawn the heightmap obstacles as soon as the obstacle image is loaded.
+/// **Bevy** [`Update`] system
+/// Spawn the heightmap obstacles as soon as the obstacle image is loaded by using the `environment_png_is_loaded` run criteria.
 fn obstacles(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,
@@ -92,6 +153,7 @@ fn obstacles(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut next_state: ResMut<NextState<HeightMapState>>,
+    config: Res<config::Config>,
 ) {
     let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) else {
         return;
@@ -106,8 +168,8 @@ fn obstacles(
 
     let vertices_count = width * height;
     let triangle_count = (width - 1) * (height - 1) * 6;
-    let extent = 100.0;
-    let intensity = 0.5;
+    let extent = config.simulation.world_size;
+    let intensity = config.visualisation.height.height_map;
 
     info!("image.texture_descriptor.size.width: {}", width);
     info!("image.texture_descriptor.size.height: {}", height);
@@ -141,7 +203,7 @@ fn obstacles(
 
             let pos = [
                 (w_f32 - width as f32 / 2.) * extent as f32 / width as f32,
-                heightmap[d * width + w] * intensity,
+                heightmap[d * width + w] * intensity - 0.1,
                 (d_f32 - height as f32 / 2.) * extent as f32 / height as f32,
             ];
             positions.push(pos);
@@ -183,9 +245,42 @@ fn obstacles(
         ..default()
     });
 
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(mesh),
-        material: material_handle,
-        ..default()
-    });
+    commands.spawn((
+        HeightMap,
+        PbrBundle {
+            mesh: meshes.add(mesh),
+            material: material_handle,
+            visibility: if config.visualisation.draw.height_map {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
+            ..default()
+        },
+    ));
+}
+
+/// **Bevy** [`Component`] to represent the heightmap.
+/// Serves as a marker to identify the heightmap entity.
+#[derive(Component)]
+pub struct HeightMap;
+
+/// **Bevy** [`Update`] system
+/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting == DrawSetting::height_map`
+/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`HeightMap`] entities
+fn show_or_hide_height_map(
+    mut query: Query<(&HeightMap, &mut Visibility)>,
+    mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
+) {
+    for event in draw_setting_event.read() {
+        if matches!(event.setting, config::DrawSetting::HeightMap) {
+            for (_, mut visibility) in query.iter_mut() {
+                if event.value {
+                    *visibility = Visibility::Visible;
+                } else {
+                    *visibility = Visibility::Hidden;
+                }
+            }
+        }
+    }
 }

@@ -1,13 +1,18 @@
-environment = "./gbpplanner-rs/assets/imgs/junction.png"
+environment = "junction"
 formation_group = "./config/formation.ron"
 
-[draw]
+[visualisation.height]
+objects = 0.5
+height-map = 1.0
+
+[visualisation.draw]
 communication-graph = true
 predicted-trajectories = true
 waypoints = true
-uncertainty = true
-paths = true
-environment = true
+uncertainty = false
+paths = false
+height-map = false
+flat-map = false
 
 [gbp]
 sigma-pose-fixed = 0.0000000000000010000000036274937

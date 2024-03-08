@@ -3,14 +3,14 @@
     (
       repeat: false,
       delay: 0.5,
-      robots: 1,
+      robots: 10,
       waypoints: [
         (
           shape: line(((
-            x: 0.4,
+            x: 0.0,
             y: 0.0,
           ), (
-            x: 0.6,
+            x: 1.0,
             y: 0.0,
           ))),
           r#placement-strategy: random,

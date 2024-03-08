@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use crate::{
     asset_loader::SceneAssets,
-    follow_cameras::FollowCameraMe,
+    environment,
     movement::{Local, MovingObjectBundle},
     robot_spawner::RobotSpawnedEvent,
 };
@@ -67,7 +67,7 @@ fn spawn(
                 ..default()
             },
             MoveableObject,
-            FollowCameraMe {
+            environment::follow_cameras::FollowCameraMe {
                 offset: Some(offset),
             },
             Local,
@@ -77,7 +77,7 @@ fn spawn(
     event_writer.send(RobotSpawnedEvent {
         entity,
         transform,
-        follow_camera_flag: FollowCameraMe {
+        follow_camera_flag: environment::follow_cameras::FollowCameraMe {
             offset: Some(offset),
         },
     });
