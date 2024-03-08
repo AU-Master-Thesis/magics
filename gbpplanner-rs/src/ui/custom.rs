@@ -110,26 +110,30 @@ pub fn toggle_ui(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {
 }
 
 /// Label with a rounded rectangle background
-pub fn rect_label(ui: &mut egui::Ui, text: String) {
-    // let text = RichText::new(text);
-
+pub fn rect_label(
+    ui: &mut egui::Ui,
+    text: String,
+    interact: Option<egui::Sense>,
+) -> egui::Response {
     let available_width = ui.available_width();
     let desired_y = ui.spacing().interact_size.y;
 
     let desired_size = egui::vec2(available_width, desired_y);
 
-    let (rect, mut response) = ui.allocate_exact_size(desired_size, egui::Sense::click());
+    let interaction = interact.unwrap_or(egui::Sense::focusable_noninteractive());
+    let (rect, mut response) = ui.allocate_exact_size(desired_size, interaction);
 
     if response.clicked() {
         response.mark_changed();
-        // copy to clipboard
-        ui.output_mut(|o| {
-            o.copied_text = text.to_string();
-        })
     }
 
     if ui.is_rect_visible(rect) {
-        let visuals = ui.style().interact_selectable(&response, false);
+        let visuals = if interact.is_none() {
+            ui.style().visuals.widgets.noninteractive
+        } else {
+            ui.style().interact_selectable(&response, false)
+        };
+        // let visuals = ui.style().interact_selectable(&response, false);
 
         let rect = rect.expand(visuals.expansion);
         let radius = visuals.rounding;
@@ -143,14 +147,9 @@ pub fn rect_label(ui: &mut egui::Ui, text: String) {
             FontId::default(),
             visuals.text_color(),
         );
-
-        // ui.label(text);
     }
 
-    // let visuals = ui.style().interact_selectable(&response, false);
-
-    // let rect = rect.expand(visuals.expansion);
-    // let radius = visuals.rounding;
+    response
 }
 
 pub fn grid<R>(

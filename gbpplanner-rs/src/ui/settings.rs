@@ -259,21 +259,31 @@ fn ui_settings_panel(
                         custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.maroon())));
                         custom::grid(ui, "inspector_grid", 3, |ui| {
                             ui.label("Cursor");
-                            // ui.label(egui::RichText::new(format!("x: {:7.2}", cursor_coordinates.local().x)).monospace());
-                            // custom::rect_label(ui, egui::RichText::new(format!("x: {:7.2}", cursor_coordinates.local().x)).monospace());
+                            // y coordinate
                             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                                 ui.label("x:");
-                                custom::rect_label(ui, format!("{:7.2}", cursor_coordinates.local().x));
+                                let x_coordinate = format!("{:7.2}", cursor_coordinates.local().x);
+                                if custom::rect_label(ui, x_coordinate.clone(), None).clicked() {
+                                    ui.output_mut(|o| {
+                                        // this will only work if `interact = Some(egui::Sense::click())` or similar
+                                        o.copied_text = x_coordinate.to_string();
+                                    })
+                                }
                             });
-                            // custom::rect_label(ui, format!("x: {:7.2}", cursor_coordinates.local().x));
-                            // ui.label(egui::RichText::new(format!("y: {:7.2}", cursor_coordinates.local().y)).monospace());
-                            // custom::rect_label(ui, egui::RichText::new(format!("y: {:7.2}", cursor_coordinates.local().y)).monospace());
+                            // x coordinate
                             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                                 ui.label("y:");
-                                custom::rect_label(ui, format!("{:7.2}", cursor_coordinates.local().y));
+                                let y_coordinate = format!("{:7.2}", cursor_coordinates.local().y);
+                                if custom::rect_label(ui, y_coordinate.clone(), None).clicked() {
+                                    ui.output_mut(|o| {
+                                        // this will only work if `interact = Some(egui::Sense::click())` or similar
+                                        o.copied_text = y_coordinate.to_string();
+                                    })
+                                }
                             });
                             // custom::rect_label(ui, format!("y: {:7.2}", cursor_coordinates.local().y));
                         });
+                        ui.separator();
                         ui.collapsing("Entities", |ui| {
                             bevy_inspector::ui_for_world_entities(world, ui);
                         });

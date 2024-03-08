@@ -50,8 +50,8 @@ fn init_ground_plane(mut commands: Commands, scene_assets: Res<SceneAssets>) {
         PbrBundle {
             transform: Transform::default(),
             mesh: scene_assets.meshes.plane.clone(),
-            //.with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
             material: scene_assets.materials.waypoint.clone(),
+            visibility: Visibility::Hidden,
             ..default()
         },
     ));

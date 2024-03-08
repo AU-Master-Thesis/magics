@@ -17,7 +17,7 @@ impl Plugin for MapPlugin {
         app.insert_resource(ClearColor(Color::rgb_u8(r, g, b)))
             .insert_resource(AmbientLight {
                 color: Color::default(),
-                brightness: 10000.0,
+                brightness: 1000.0,
             })
             // .add_state::<HeightMapState>()
             .init_state::<HeightMapState>()
