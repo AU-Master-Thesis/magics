@@ -471,7 +471,6 @@ fn draw_communication_graph(
     // TODO: Don't double-draw lines from and to the same two robots
     for (robot_id, robot_state, transform) in robots_query.iter() {
         if !robot_state.interrobot_comms_active {
-            info!("Robot {:?} has comms off", robot_id);
             continue;
         }
 
@@ -493,16 +492,11 @@ fn draw_communication_graph(
             .collect::<Vec<Vec3>>();
 
         if neighbours.is_empty() {
-            info!("Robot {:?} has no neighbours", robot_id);
             continue;
         }
 
         // Make a line for each neighbour
         for neighbour_transform in neighbours {
-            info!(
-                "Drawing line between {:?} and {:?}",
-                transform.translation, neighbour_transform
-            );
             let line = Path::new(vec![transform.translation, neighbour_transform]).with_width(0.2);
             commands.spawn((
                 PbrBundle {
