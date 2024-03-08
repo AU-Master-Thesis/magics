@@ -1,7 +1,6 @@
 //! Pretty printing of matrices and vectors. Useful for debugging and visualizing the data.
 
-// TODO: create a macro for pretty printing, that can take the name of the matrix, and
-// print its name and size in the top border of the pretty print.
+// TODO: automatically determine the width of the cell based on the number with the most digits in the matrix
 
 use super::prelude::*;
 

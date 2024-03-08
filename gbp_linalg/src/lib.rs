@@ -2,10 +2,14 @@
 
 // pub mod pretty_print;
 
+mod pretty_print;
+
 pub mod prelude {
     pub use super::{
-        Float, GbpFloat, Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm, VectorView,
+        pretty_print::*, Float, GbpFloat, Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm,
+        VectorView,
     };
+
     // pub use ndarray::array;
 }
 

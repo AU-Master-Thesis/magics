@@ -1,6 +1,6 @@
-use bevy::{log::info, render::texture::Image};
+use bevy::render::texture::Image;
 
-use gbp_linalg::{Float, GbpFloat, Matrix, Vector, VectorNorm};
+use gbp_linalg::{pretty_print_matrix, Float, Matrix, Vector, VectorNorm};
 use ndarray::{array, concatenate, s, Axis, Slice};
 use num_traits::NumCast;
 use petgraph::prelude::NodeIndex;
@@ -9,60 +9,13 @@ use std::{
     ops::{AddAssign, Sub},
 };
 
-use super::{
-    factorgraph::{Graph, Inbox},
-    marginalise_factor_distance::marginalise_factor_distance,
-    message::Message,
-    robot::RobotId,
-};
+use super::{factorgraph::Inbox, message::Message, robot::RobotId};
 
 // TODO: make generic over f32 | f64
 // TODO: hide the state parameter from the public API, by having the `Factor` struct expose similar methods that dispatch to the `FactorState` struct.
 trait Model {
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
-
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
-        self.first_order_jacobian(state, x.clone())
-    }
-    /// Measurement function
-    /// **Note**: This method takes a mutable reference to self, because the interrobot factor
-    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
-    fn first_order_jacobian(&mut self, state: &FactorState, x: Vector<Float>) -> Matrix<Float> {
-        // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
-        //     return jac_out;
-        // };
-
-        // Eigen::MatrixXd h0 = h_func_(X0);    // Value at lin point
-        let h0 = self.measure(state, &x);
-        // dbg!(&h0);
-        // Eigen::MatrixXd jac_out = Eigen::MatrixXd::Zero(h0.size(),X0.size());
-        let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
-
-        //     for (int i=0; i<X0.size(); i++){
-        //         Eigen::VectorXd X_copy = X0;                                    // Copy of lin point
-        //         X_copy(i) += delta_jac;                                         // Perturb by delta
-        //         jac_out(Eigen::all, i) = (h_func_(X_copy) - h0) / delta_jac;    // Derivative (first order)
-        //     }
-        for i in 0..x.len() {
-            let mut copy_of_x = x.clone();
-            copy_of_x[i] += self.jacobian_delta();
-
-            let derivative = (self.measure(state, &copy_of_x) - &h0) / self.jacobian_delta();
-            // dbg!(&derivative);
-            jacobian.column_mut(i).assign(&derivative);
-
-            // let column = (self.measure(state, &copy_of_x) - &h0) / self.jacobian_delta();
-            // // jacobian.set_column(i, &column);
-            // jacobian
-            //     .slice_axis_mut(Axis(0), Slice::from(0..jacobian.dim().0))
-            //     .assign(&column);
-        }
-
-        // eprintln!("jacobian at the end: {:#?}", jacobian);
-
-        jacobian
-    }
 
     fn jacobian_delta(&self) -> Float;
 
@@ -71,7 +24,53 @@ trait Model {
     /// The other factors are always included in the update step.
     fn skip(&mut self, state: &FactorState) -> bool;
 
+    /// Whether the factor is linear or non-linear
     fn linear(&self) -> bool;
+
+    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
+        self.first_order_jacobian(state, x.clone())
+    }
+
+    /// Measurement function
+    /// **Note**: This method takes a mutable reference to self, because the interrobot factor
+    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
+
+    fn first_order_jacobian(&mut self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
+        // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
+        //     return jac_out;
+        // };
+
+        // Eigen::MatrixXd h0 = h_func_(X0);    // Value at lin point
+        let h0 = self.measure(state, &x); // value at linearization point
+                                          // dbg!(&h0);
+                                          // Eigen::MatrixXd jac_out = Eigen::MatrixXd::Zero(h0.size(),X0.size());
+        let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
+
+        //     for (int i=0; i<X0.size(); i++){
+        //         Eigen::VectorXd X_copy = X0;                                    // Copy of lin point
+        //         X_copy(i) += delta_jac;                                         // Perturb by delta
+        //         jac_out(Eigen::all, i) = (h_func_(X_copy) - h0) / delta_jac;    // Derivative (first order)
+        //     }
+        for i in 0..x.len() {
+            // let mut copy_of_x = x.clone();
+            x[i] += self.jacobian_delta(); // perturb by delta
+
+            let derivative = (self.measure(state, &x) - &h0) / self.jacobian_delta();
+            // dbg!(&derivative);
+            jacobian.column_mut(i).assign(&derivative);
+
+            x[i] -= self.jacobian_delta(); // reset the perturbation
+
+            // println!("i = {}", i);
+            // pretty_print_matrix!(&jacobian);
+        }
+
+        // eprintln!("jacobian at the end: {:#?}", jacobian);
+
+        // std::process::exit(1);
+
+        jacobian
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -95,102 +94,70 @@ pub struct InterRobotFactor {
 }
 
 impl InterRobotFactor {
-    pub fn new(
-        safety_distance: Float,
-        robot_radius: Float,
-        skip: bool,
-        connection: InterRobotConnection,
-        // id_of_robot_connected_with: RobotId,
-    ) -> Self {
+    #[must_use]
+    pub fn new(robot_radius: Float, connection: InterRobotConnection) -> Self {
         let epsilon = 0.2 * robot_radius;
 
         Self {
             safety_distance: 2.0 * robot_radius + epsilon,
-            skip,
+            skip: false,
             connection,
-            // id_of_robot_connected_with,
         }
     }
 }
 
-// pub trait Norm {
-//     fn norm(&self) -> f32;
-// }
-
-// impl Norm for ndarray::Array1<f32> {
-//     fn norm(&self) -> f32 {
-//         self.iter().map(|x| f32::powi(*x, 2)).sum()
-//     }
-// }
-
 impl Model for InterRobotFactor {
+    #[inline(always)]
     fn name(&self) -> &'static str {
         "InterRobotFactor"
     }
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
-        let mut jacobian = Matrix::zeros((state.initial_measurement.len(), state.dofs * 2));
+        let mut jacobian =
+            Matrix::<Float>::zeros((state.initial_measurement.len(), state.dofs * 2));
         let x_diff = {
             let offset = state.dofs / 2;
-            // let mut x_diff = x.rows(0, offset) - x.rows(state.dofs, offset);
             let mut x_diff = x
-                .slice_axis(Axis(0), Slice::from(0..offset))
-                .sub(&x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))));
+                .slice(s![..offset])
+                .sub(&x.slice(s![state.dofs..state.dofs + offset]));
+
+            // NOTE: In gbplanner, they weight this by the robot id, why they do this is unclear
+            // as a robot id should be unique, and not have any semantics of distance/weight.
             for i in 0..offset {
-                x_diff[i] += 1e-6; // Add a tiny random offset to avoid div/0 errors
+                x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as Float;
+                // Add a tiny random offset to avoid div/0 errors
             }
             x_diff
         };
-        // let safety_distance = NumCast::from(self.safety_distance).unwrap();
+
         let radius = x_diff.euclidean_norm();
         if radius <= self.safety_distance {
             // TODO: why do we change the Jacobian if we are not outside the safety distance?
-            // jacobian
-            //     .view_mut((0, 0), (0, state.dofs / 2))
-            //     .copy_from(&(-1.0 / self.safety_distance / radius * &x_diff));
-            // jacobian.slice_mut(s![0..(state.dofs / 2), 0..(state.dofs / 2)]) =
-            //     &(-1.0 / self.safety_distance / radius * &x_diff);
+
+            // J(0, seqN(0, n_dofs_ / 2)) = -1.f / safety_distance_ / r * X_diff;
             jacobian
-                .slice_mut(s![0..(state.dofs / 2), 0..(state.dofs / 2)])
+                .slice_mut(s![0, ..state.dofs / 2])
                 .assign(&(-1.0 / self.safety_distance / radius * &x_diff));
 
-            // jacobian
-            //     .view_mut((0, state.dofs), (0, state.dofs + state.dofs / 2))
-            //     .copy_from(&(1.0 / self.safety_distance / radius * &x_diff));
-            // jacobian.slice_mut(s![
-            //     0..(state.dofs / 2),
-            //     state.dofs..state.dofs + (state.dofs / 2)
-            // ]) = &(1.0 / self.safety_distance / radius * &x_diff);
+            // J(0, seqN(n_dofs_, n_dofs_ / 2)) = 1.f / safety_distance_ / r * X_diff;
             jacobian
-                .slice_mut(s![
-                    0..(state.dofs / 2),
-                    state.dofs..state.dofs + (state.dofs / 2)
-                ])
+                .slice_mut(s![0, state.dofs..state.dofs + (state.dofs / 2)])
                 .assign(&(1.0 / self.safety_distance / radius * &x_diff));
         }
         jacobian
     }
 
     fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
-        // let mut h = Matrix::zeros(state.measurement.nrows(), state.measurement.ncols());
-        let mut h = Vector::zeros(state.initial_measurement.len());
+        let mut h = Vector::<Float>::zeros(state.initial_measurement.len());
         let x_diff = {
             let offset = state.dofs / 2;
-
-            // let mut x_diff = x.rows(0, offset) - x.rows(state.dofs, offset);
-            // let mut x_diff = x.slice_axis(Axis(0), s![0..offset])
-            //     - x.slice_axis(Axis(0), s![state.dofs..(state.dofs + offset)]);
-
-            // TODO: use s! macro
             let mut x_diff = x
-                .slice_axis(Axis(0), Slice::from(0..offset))
-                .sub(&x.slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))));
-            // let mut x_diff = x
-            //     .slice_axis(Axis(0), Slice::from(0..offset))
-            //     .sub(&x.slice(s![state.dofs..(state.dofs + offset), ..]));
+                .slice(s![..offset])
+                .sub(&x.slice(s![state.dofs..state.dofs + offset]));
             // NOTE: In gbplanner, they weight this by the robot id, why they do this is unclear
             // as a robot id should be unique, and not have any semantics of distance/weight.
             for i in 0..offset {
-                x_diff[i] += 1e-6; // Add a tiny random offset to avoid div/0 errors
+                x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as Float;
+                // Add a tiny random offset to avoid div/0 errors
             }
             x_diff
         };
@@ -200,7 +167,6 @@ impl Model for InterRobotFactor {
             self.skip = false;
             // gbpplanner: h(0) = 1.f*(1 - r/safety_distance_);
             // NOTE: in Eigen, indexing a matrix with a single index corresponds to indexing the matrix as a flattened array in column-major order.
-
             // h[(0, 0)] = 1.0 * (1.0 - radius / self.safety_distance);
             h[0] = 1.0 * (1.0 - radius / self.safety_distance);
         } else {
@@ -210,30 +176,27 @@ impl Model for InterRobotFactor {
         h
     }
 
+    #[inline(always)]
     fn jacobian_delta(&self) -> Float {
         1e-2
     }
 
     fn skip(&mut self, state: &FactorState) -> bool {
-        // this->skip_flag = ( (X_(seqN(0,n_dofs_/2)) - X_(seqN(n_dofs_, n_dofs_/2))).squaredNorm() >= safety_distance_*safety_distance_ );␍
+        // this->skip_flag = ( (X_(seqN(0,n_dofs_/2)) - X_(seqN(n_dofs_, n_dofs_/2))).squaredNorm() >= safety_distance_*safety_distance_ );
         let offset = state.dofs / 2;
-        // TODO: give a better name to this term of the inequality
-        // let dontknow = (state.linearisation_point.rows(0, offset)
-        //     - state.linearisation_point.rows(state.dofs, offset))
-        let dontknow = state
-            .linearisation_point
-            .slice_axis(Axis(0), Slice::from(0..offset))
-            .sub(
-                &state
-                    .linearisation_point
-                    .slice_axis(Axis(0), Slice::from(state.dofs..(state.dofs + offset))),
-            )
-            .euclidean_norm();
-        self.skip = dontknow >= Float::powi(self.safety_distance, 2);
 
+        let v = state.linearisation_point.slice(s![..offset]).sub(
+            &state
+                .linearisation_point
+                .slice(s![state.dofs..state.dofs + offset]),
+        );
+        let squared_norm = v.mapv(|x| x.powi(2)).sum();
+
+        self.skip = squared_norm >= Float::powi(self.safety_distance, 2);
         self.skip
     }
 
+    #[inline(always)]
     fn linear(&self) -> bool {
         false
     }
@@ -243,22 +206,30 @@ impl Model for InterRobotFactor {
 #[derive(Debug, Clone)]
 pub struct DynamicFactor {
     cached_jacobian: Matrix<Float>,
-    /// defined at src/Robot.cpp:64
-    pub delta_t: Float,
+    // / defined at src/Robot.cpp:64
+    // / TODO: not use beyond `::new()`
+    // pub delta_t: Float,
 }
 
 impl DynamicFactor {
     #[must_use]
     pub fn new(state: &mut FactorState, delta_t: Float) -> Self {
-        let (eye, zeros) = {
-            let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
-            let eye = Matrix::<Float>::eye(nrows);
-            let zeros = Matrix::<Float>::zeros((nrows, ncols));
-            (eye, zeros)
-        };
+        let eye = Matrix::<Float>::eye(state.dofs / 2);
+        let zeros = Matrix::<Float>::zeros((state.dofs / 2, state.dofs / 2));
+        // let (eye, zeros) = {
+        //     let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
+        //     let eye = Matrix::<Float>::eye(nrows);
+        //     let zeros = Matrix::<Float>::zeros((nrows, ncols));
+        //     (eye, zeros)
+        // };
 
+        // dbg!(delta_t);
+        // dbg!(&state.strength);
+        // std::process::exit(1);
+        // Eigen::MatrixXd Qc_inv = pow(sigma, -2.) * I;
         #[allow(clippy::similar_names)]
         let qc_inv = Float::powi(state.strength, -2) * &eye;
+        // pretty_print_matrix!(&qc_inv);
 
         #[allow(clippy::similar_names)]
         let qi_inv = concatenate![
@@ -274,7 +245,11 @@ impl DynamicFactor {
                 (4.0 / delta_t) * &qc_inv
             ]
         ];
-        assert_eq!(qi_inv.shape(), &[state.dofs, state.dofs]);
+        debug_assert_eq!(qi_inv.shape(), &[state.dofs, state.dofs]);
+
+        // pretty_print_matrix!(&qi_inv);
+
+        // std::process::exit(1);
 
         state.measurement_precision = qi_inv;
 
@@ -283,11 +258,15 @@ impl DynamicFactor {
             concatenate![Axis(1), eye, delta_t * &eye, -1.0 * &eye, zeros],
             concatenate![Axis(1), zeros, eye, zeros, -1.0 * &eye]
         ];
-        assert_eq!(cached_jacobian.shape(), &[state.dofs, state.dofs * 2]);
+        debug_assert_eq!(cached_jacobian.shape(), &[state.dofs, state.dofs * 2]);
+
+        // pretty_print_matrix!(&cached_jacobian);
+
+        // std::process::exit(1);
 
         Self {
             cached_jacobian,
-            delta_t,
+            // delta_t,
         }
     }
 }
@@ -296,22 +275,26 @@ impl Model for DynamicFactor {
     fn name(&self) -> &'static str {
         "DynamicFactor"
     }
-    fn jacobian(&mut self, _state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
+    fn jacobian(&mut self, _state: &FactorState, _x: &Vector<Float>) -> Matrix<Float> {
         self.cached_jacobian.clone()
     }
 
+    #[inline(always)]
     fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         self.cached_jacobian.dot(x)
     }
 
+    #[inline(always)]
     fn skip(&mut self, _state: &FactorState) -> bool {
         false
     }
 
+    #[inline(always)]
     fn jacobian_delta(&self) -> Float {
         1e-2
     }
 
+    #[inline(always)]
     fn linear(&self) -> bool {
         true
     }
@@ -321,6 +304,7 @@ impl Model for DynamicFactor {
 pub struct PoseFactor;
 
 impl Model for PoseFactor {
+    #[inline(always)]
     fn name(&self) -> &'static str {
         "PoseFactor"
     }
@@ -330,18 +314,22 @@ impl Model for PoseFactor {
     }
 
     /// Default measurement function is the identity function
+    #[inline(always)]
     fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         x.clone()
     }
 
+    #[inline(always)]
     fn skip(&mut self, _state: &FactorState) -> bool {
         false
     }
 
+    #[inline(always)]
     fn jacobian_delta(&self) -> Float {
         1e-8
     }
 
+    #[inline(always)]
     fn linear(&self) -> bool {
         false
     }
@@ -349,6 +337,7 @@ impl Model for PoseFactor {
 
 #[derive(Debug, Clone)]
 pub struct ObstacleFactor {
+    /// The signed distance field of the environment
     obstacle_sdf: &'static Image,
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy of here since
     /// `ObstacleFactor` needs this information to calculate `.jacobian_delta()` and `.measurement()`
@@ -358,7 +347,6 @@ pub struct ObstacleFactor {
 impl ObstacleFactor {
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
-    // fn new(obstacle_sdf: &OnceLock<Image>, world_size: f32) -> Self {
     fn new(obstacle_sdf: &'static Image, world_size: Float) -> Self {
         Self {
             obstacle_sdf,
@@ -373,38 +361,49 @@ impl Model for ObstacleFactor {
     }
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         // Same as PoseFactor
+        // TODO: change to not clone x
         self.first_order_jacobian(state, x.clone())
     }
 
-    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
-        // let obstacle_sdf = IMAGE
-        //     .get()
-        //     .expect("No obstacle factor should be created before the image is loaded.");
+    fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         // White areas are obstacles, so h(0) should return a 1 for these regions.
         let scale = self.obstacle_sdf.width() as Float / self.world_size;
-        let pixel_x = ((x[0] + self.world_size / 2.0) * scale) as u32;
-        let pixel_y = ((x[1] + self.world_size / 2.0) * scale) as u32;
+        // println!("obstacle_sdf.size: {:?}", self.obstacle_sdf.size());
+        // dbg!(&self.world_size);
+        let offset = self.world_size / 2.0;
+        let pixel_x = ((x[0] + offset) * scale) as u32;
+        let pixel_y = ((x[1] + offset) * scale) as u32;
+        // assert_eq!((self.obstacle_sdf.width() * self.obstacle_sdf.height() * 4) as usize, self.obstacle_sdf.data.len());
         // multiply by 4 because the image is in RGBA format,
         // and we simply use th R channel to determine value,
         // as the image is grayscale
+        // TODO: assert that the image's data is laid out in row-major order
         let linear_index = ((self.obstacle_sdf.width() * pixel_y + pixel_x) * 4) as usize;
-        let pixel = self.obstacle_sdf.data[linear_index];
-        let hsv_value = pixel as Float / 255.0;
+        let red = self.obstacle_sdf.data[linear_index];
+        // NOTE: do 1.0 - red to invert the value, as the obstacle sdf is white where there are obstacles
+        // in gbpplanner, they do not do the inversion here, but instead invert the entire image, when they
+        // load it from disk.
+        let hsv_value = 1.0 - red as Float / 255.0;
+        // let hsv_value = pixel as Float / 255.0;
+        // if hsv_value <= 0.5 {
+        //     println!("image(x={}, y={}).z {} (scale = {})", pixel_x, pixel_y, hsv_value, scale);
+        // }
+        // dbg!(hsv_value);
 
         array![hsv_value]
     }
 
+    #[inline(always)]
     fn jacobian_delta(&self) -> Float {
-        // let obstacle_sdf = IMAGE
-        //     .get()
-        //     .expect("No obstacle factor should be created before the image is loaded.");
         self.world_size / self.obstacle_sdf.width() as Float
     }
 
-    fn skip(&mut self, state: &FactorState) -> bool {
+    #[inline(always)]
+    fn skip(&mut self, _state: &FactorState) -> bool {
         false
     }
 
+    #[inline(always)]
     fn linear(&self) -> bool {
         false
     }
@@ -639,7 +638,7 @@ impl Factor {
         connection: InterRobotConnection,
     ) -> Self {
         let state = FactorState::new(measurement, strength, dofs, 2); // Interrobot factors have 2 neighbors
-        let interrobot_factor = InterRobotFactor::new(safety_radius, strength, false, connection);
+        let interrobot_factor = InterRobotFactor::new(safety_radius, connection);
         let kind = FactorKind::InterRobot(interrobot_factor);
 
         Self::new(state, kind)
@@ -663,6 +662,7 @@ impl Factor {
         Self::new(state, kind)
     }
 
+    #[inline(always)]
     pub fn jacobian(&mut self, x: &Vector<Float>) -> Matrix<Float> {
         self.kind.jacobian(&self.state, x)
     }
@@ -672,6 +672,7 @@ impl Factor {
         self.state.cached_measurement.clone()
     }
 
+    #[inline(always)]
     pub fn skip(&mut self) -> bool {
         self.kind.skip(&self.state)
     }
@@ -695,10 +696,12 @@ impl Factor {
         self.node_index.expect("I checked it was there 3 lines ago")
     }
 
+    #[inline(always)]
     pub fn send_message(&mut self, from: NodeIndex, message: Message) {
         let _ = self.inbox.insert(from, message);
     }
 
+    #[inline(always)]
     pub fn read_message_from(&mut self, from: NodeIndex) -> Option<&Message> {
         self.inbox.get(&from)
     }
