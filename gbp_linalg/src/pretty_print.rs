@@ -1,5 +1,7 @@
 //! Pretty printing of matrices and vectors. Useful for debugging and visualizing the data.
 
+// TODO: automatically determine the width of the cell based on the number with the most digits in the matrix
+
 use super::prelude::*;
 
 const CELL_WIDTH: usize = 14;

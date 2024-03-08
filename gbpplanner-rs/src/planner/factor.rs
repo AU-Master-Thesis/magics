@@ -1,6 +1,6 @@
 use bevy::render::texture::Image;
 
-use gbp_linalg::{Float, Matrix, Vector, VectorNorm};
+use gbp_linalg::{pretty_print_matrix, Float, Matrix, Vector, VectorNorm};
 use ndarray::{array, concatenate, s, Axis, Slice};
 use num_traits::NumCast;
 use petgraph::prelude::NodeIndex;
@@ -94,11 +94,7 @@ pub struct InterRobotFactor {
 
 impl InterRobotFactor {
     #[must_use]
-    pub fn new(
-        robot_radius: Float,
-        // skip: bool,
-        connection: InterRobotConnection,
-    ) -> Self {
+    pub fn new(robot_radius: Float, connection: InterRobotConnection) -> Self {
         let epsilon = 0.2 * robot_radius;
 
         Self {
@@ -206,22 +202,30 @@ impl Model for InterRobotFactor {
 #[derive(Debug, Clone)]
 pub struct DynamicFactor {
     cached_jacobian: Matrix<Float>,
-    /// defined at src/Robot.cpp:64
-    pub delta_t: Float,
+    // / defined at src/Robot.cpp:64
+    // / TODO: not use beyond `::new()`
+    // pub delta_t: Float,
 }
 
 impl DynamicFactor {
     #[must_use]
     pub fn new(state: &mut FactorState, delta_t: Float) -> Self {
-        let (eye, zeros) = {
-            let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
-            let eye = Matrix::<Float>::eye(nrows);
-            let zeros = Matrix::<Float>::zeros((nrows, ncols));
-            (eye, zeros)
-        };
+        let eye = Matrix::<Float>::eye(state.dofs / 2);
+        let zeros = Matrix::<Float>::zeros((state.dofs / 2, state.dofs / 2));
+        // let (eye, zeros) = {
+        //     let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
+        //     let eye = Matrix::<Float>::eye(nrows);
+        //     let zeros = Matrix::<Float>::zeros((nrows, ncols));
+        //     (eye, zeros)
+        // };
 
+        dbg!(delta_t);
+        // dbg!(&state.strength);
+        // std::process::exit(1);
+        // Eigen::MatrixXd Qc_inv = pow(sigma, -2.) * I;
         #[allow(clippy::similar_names)]
         let qc_inv = Float::powi(state.strength, -2) * &eye;
+        // pretty_print_matrix!(&qc_inv);
 
         #[allow(clippy::similar_names)]
         let qi_inv = concatenate![
@@ -237,7 +241,11 @@ impl DynamicFactor {
                 (4.0 / delta_t) * &qc_inv
             ]
         ];
-        assert_eq!(qi_inv.shape(), &[state.dofs, state.dofs]);
+        debug_assert_eq!(qi_inv.shape(), &[state.dofs, state.dofs]);
+
+        // pretty_print_matrix!(&qi_inv);
+
+        // std::process::exit(1);
 
         state.measurement_precision = qi_inv;
 
@@ -246,11 +254,15 @@ impl DynamicFactor {
             concatenate![Axis(1), eye, delta_t * &eye, -1.0 * &eye, zeros],
             concatenate![Axis(1), zeros, eye, zeros, -1.0 * &eye]
         ];
-        assert_eq!(cached_jacobian.shape(), &[state.dofs, state.dofs * 2]);
+        debug_assert_eq!(cached_jacobian.shape(), &[state.dofs, state.dofs * 2]);
+
+        // pretty_print_matrix!(&cached_jacobian);
+
+        // std::process::exit(1);
 
         Self {
             cached_jacobian,
-            delta_t,
+            // delta_t,
         }
     }
 }
@@ -259,7 +271,7 @@ impl Model for DynamicFactor {
     fn name(&self) -> &'static str {
         "DynamicFactor"
     }
-    fn jacobian(&mut self, _state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
+    fn jacobian(&mut self, _state: &FactorState, _x: &Vector<Float>) -> Matrix<Float> {
         self.cached_jacobian.clone()
     }
 
@@ -312,6 +324,7 @@ impl Model for PoseFactor {
 
 #[derive(Debug, Clone)]
 pub struct ObstacleFactor {
+    /// The signed distance field of the environment
     obstacle_sdf: &'static Image,
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy of here since
     /// `ObstacleFactor` needs this information to calculate `.jacobian_delta()` and `.measurement()`
@@ -321,7 +334,6 @@ pub struct ObstacleFactor {
 impl ObstacleFactor {
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
-    // fn new(obstacle_sdf: &OnceLock<Image>, world_size: f32) -> Self {
     fn new(obstacle_sdf: &'static Image, world_size: Float) -> Self {
         Self {
             obstacle_sdf,
@@ -336,35 +348,43 @@ impl Model for ObstacleFactor {
     }
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         // Same as PoseFactor
+        // TODO: change to not clone x
         self.first_order_jacobian(state, x.clone())
     }
 
-    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
-        // let obstacle_sdf = IMAGE
-        //     .get()
-        //     .expect("No obstacle factor should be created before the image is loaded.");
+    fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         // White areas are obstacles, so h(0) should return a 1 for these regions.
         let scale = self.obstacle_sdf.width() as Float / self.world_size;
-        let pixel_x = ((x[0] + self.world_size / 2.0) * scale) as u32;
-        let pixel_y = ((x[1] + self.world_size / 2.0) * scale) as u32;
+        // println!("obstacle_sdf.size: {:?}", self.obstacle_sdf.size());
+        // dbg!(&self.world_size);
+        let offset = self.world_size / 2.0;
+        let pixel_x = ((x[0] + offset) * scale) as u32;
+        let pixel_y = ((x[1] + offset) * scale) as u32;
+        // assert_eq!((self.obstacle_sdf.width() * self.obstacle_sdf.height() * 4) as usize, self.obstacle_sdf.data.len());
         // multiply by 4 because the image is in RGBA format,
         // and we simply use th R channel to determine value,
         // as the image is grayscale
+        // TODO: assert that the image's data is laid out in row-major order
         let linear_index = ((self.obstacle_sdf.width() * pixel_y + pixel_x) * 4) as usize;
-        let pixel = self.obstacle_sdf.data[linear_index];
-        let hsv_value = pixel as Float / 255.0;
+        let red = self.obstacle_sdf.data[linear_index];
+        // NOTE: do 1.0 - red to invert the value, as the obstacle sdf is white where there are obstacles
+        // in gbpplanner, they do not do the inversion here, but instead invert the entire image, when they
+        // load it from disk.
+        let hsv_value = 1.0 - red as Float / 255.0;
+        // let hsv_value = pixel as Float / 255.0;
+        // if hsv_value <= 0.5 {
+        //     println!("image(x={}, y={}).z {} (scale = {})", pixel_x, pixel_y, hsv_value, scale);
+        // }
+        // dbg!(hsv_value);
 
         array![hsv_value]
     }
 
     fn jacobian_delta(&self) -> Float {
-        // let obstacle_sdf = IMAGE
-        //     .get()
-        //     .expect("No obstacle factor should be created before the image is loaded.");
         self.world_size / self.obstacle_sdf.width() as Float
     }
 
-    fn skip(&mut self, state: &FactorState) -> bool {
+    fn skip(&mut self, _state: &FactorState) -> bool {
         false
     }
 

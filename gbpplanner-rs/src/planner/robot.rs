@@ -214,6 +214,9 @@ impl RobotBundle {
             // T0 is the timestep between the current state and the first planned state.
             let delta_t =
                 config.simulation.t0 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
+            // dbg!(delta_t);
+            // println!("delta_t = {} i = {}", delta_t, i);
+            // dbg!(&variable_timesteps);
             let measurement = Vector::<Float>::zeros(config.robot.dofs);
             let dynamic_factor = Factor::new_dynamic_factor(
                 config.gbp.sigma_factor_dynamics as Float,

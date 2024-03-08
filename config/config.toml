@@ -29,7 +29,7 @@ radius = 20.0
 failure-rate = 0.0
 
 [simulation]
-t0 = 0.2
+t0 = 0.25
 max-time = 10000.0
 world-size = 100.0
 random-seed = 0

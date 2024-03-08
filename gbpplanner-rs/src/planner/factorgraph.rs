@@ -571,13 +571,13 @@ impl FactorGraph {
         let jacobian = factor.jacobian(&factor.state.linearisation_point.clone());
 
         // eprintln!("jacobian =");
-        pretty_print_matrix!(&jacobian);
+        // pretty_print_matrix!(&jacobian);
         // jacobian.pretty_print();
         // eprintln!("factor.state.measurement_precision =");
         // factor.state.measurement_precision.pretty_print();
         // eprintln!("factor.state.linearisation_point =");
         // pretty_print::pre
-        pretty_print_vector!(&factor.state.linearisation_point);
+        // pretty_print_vector!(&factor.state.linearisation_point);
         // factor.state.linearisation_point.pretty_print();
 
         let factor_lam_potential = jacobian
@@ -592,10 +592,10 @@ impl FactorGraph {
         factor.mark_as_initialized();
 
         // eprintln!("factor_eta_potential =");
-        pretty_print_vector!(&factor_eta_potential);
+        // pretty_print_vector!(&factor_eta_potential);
         // factor_eta_potential.pretty_print();
         // eprintln!("factor_lam_potential =");
-        pretty_print_matrix!(&factor_lam_potential);
+        // pretty_print_matrix!(&factor_lam_potential);
         // factor_lam_potential.pretty_print();
 
         if factor_eta_potential.iter().all(|x| x.is_zero()) {
