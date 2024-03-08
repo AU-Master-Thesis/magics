@@ -259,8 +259,20 @@ fn ui_settings_panel(
                         custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.maroon())));
                         custom::grid(ui, "inspector_grid", 3, |ui| {
                             ui.label("Cursor");
-                            ui.label(egui::RichText::new(format!("x: {:7.2}", cursor_coordinates.local().x)).monospace());
-                            ui.label(egui::RichText::new(format!("y: {:7.2}", cursor_coordinates.local().y)).monospace());
+                            // ui.label(egui::RichText::new(format!("x: {:7.2}", cursor_coordinates.local().x)).monospace());
+                            // custom::rect_label(ui, egui::RichText::new(format!("x: {:7.2}", cursor_coordinates.local().x)).monospace());
+                            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                ui.label("x:");
+                                custom::rect_label(ui, format!("{:7.2}", cursor_coordinates.local().x));
+                            });
+                            // custom::rect_label(ui, format!("x: {:7.2}", cursor_coordinates.local().x));
+                            // ui.label(egui::RichText::new(format!("y: {:7.2}", cursor_coordinates.local().y)).monospace());
+                            // custom::rect_label(ui, egui::RichText::new(format!("y: {:7.2}", cursor_coordinates.local().y)).monospace());
+                            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                ui.label("y:");
+                                custom::rect_label(ui, format!("{:7.2}", cursor_coordinates.local().y));
+                            });
+                            // custom::rect_label(ui, format!("y: {:7.2}", cursor_coordinates.local().y));
                         });
                         ui.collapsing("Entities", |ui| {
                             bevy_inspector::ui_for_world_entities(world, ui);

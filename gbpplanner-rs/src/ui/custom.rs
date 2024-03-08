@@ -1,4 +1,6 @@
-use bevy_egui::egui::{self, Align, Color32, Direction, InnerResponse, Layout, RichText, Ui};
+use bevy_egui::egui::{
+    self, Align, Align2, Color32, Direction, FontId, InnerResponse, Layout, RichText, Ui,
+};
 
 /// A simple function to float a widget to the right
 pub fn float_right<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -105,6 +107,50 @@ pub fn toggle_ui(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {
     // All done! Return the interaction response so the user can check what happened
     // (hovered, clicked, ...) and maybe show a tooltip:
     response
+}
+
+/// Label with a rounded rectangle background
+pub fn rect_label(ui: &mut egui::Ui, text: String) {
+    // let text = RichText::new(text);
+
+    let available_width = ui.available_width();
+    let desired_y = ui.spacing().interact_size.y;
+
+    let desired_size = egui::vec2(available_width, desired_y);
+
+    let (rect, mut response) = ui.allocate_exact_size(desired_size, egui::Sense::click());
+
+    if response.clicked() {
+        response.mark_changed();
+        // copy to clipboard
+        ui.output_mut(|o| {
+            o.copied_text = text.to_string();
+        })
+    }
+
+    if ui.is_rect_visible(rect) {
+        let visuals = ui.style().interact_selectable(&response, false);
+
+        let rect = rect.expand(visuals.expansion);
+        let radius = visuals.rounding;
+
+        ui.painter()
+            .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
+        ui.painter().text(
+            rect.center(),
+            Align2::CENTER_CENTER,
+            text,
+            FontId::default(),
+            visuals.text_color(),
+        );
+
+        // ui.label(text);
+    }
+
+    // let visuals = ui.style().interact_selectable(&response, false);
+
+    // let rect = rect.expand(visuals.expansion);
+    // let radius = visuals.rounding;
 }
 
 pub fn grid<R>(
