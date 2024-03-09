@@ -39,17 +39,23 @@ use clap::Parser;
 #[derive(Parser)]
 #[clap(version, author, about)]
 struct Cli {
-    /// Sets a custom config file
-    #[arg(short, long, value_name = "FILE")]
+    /// Specify the configuration file to use, overrides the normal configuration file resolution
+    #[arg(short, long, value_name = "CONFIG_FILE")]
     config: Option<std::path::PathBuf>,
 
     #[arg(long)]
+    /// Dump the default config to stdout
     dump_default_config: bool,
     #[arg(long)]
+    /// Dump the default formation config to stdout
     dump_default_formation: bool,
     #[arg(long)]
     /// Run the app without a window for rendering the environment
     headless: bool,
+
+    #[arg(short, long)]
+    /// Start the app in fullscreen mode
+    fullscreen: bool,
 }
 
 fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
@@ -85,16 +91,9 @@ fn main() -> color_eyre::eyre::Result<()> {
     let cli = Cli::parse();
 
     if cli.dump_default_config && cli.dump_default_formation {
-        // info!("{}","you can not set --dump-default-config and --dump-default-formation at the same time!" );
         eprintln!(
             "you can not set --dump-default-config and --dump-default-formation at the same time!"
         );
-        // error!(
-        //     "you can not set --dump-default-config and --dump-default-formation at the same time!"
-        // );
-        // return Err(
-        //     "you can not set --dump-default-config and --dump-default-formation at the same time!",
-        // );
         std::process::exit(2);
     }
 
@@ -121,14 +120,9 @@ fn main() -> color_eyre::eyre::Result<()> {
         return Ok(());
     }
 
-    // let config = Config::parse(&cli.config.unwrap())?;
     let config = read_config(&cli)?;
     let formation_file_path = PathBuf::from(&config.formation_group.clone());
     let formation = FormationGroup::from_file(&formation_file_path)?;
-
-    // let config = read_config(&cli)?;
-
-    // info!("Config: {:?}", config);
 
     let mut app = App::new();
     app.insert_resource(config)
@@ -141,7 +135,11 @@ fn main() -> color_eyre::eyre::Result<()> {
                         title: "GBP Planner".into(),
                         // resolution: (1280.0, 720.0).into(),
                         // mode: WindowMode::BorderlessFullscreen,
-                        mode: WindowMode::Windowed,
+                        mode: if cli.fullscreen {
+                            WindowMode::BorderlessFullscreen
+                        } else {
+                            WindowMode::Windowed
+                        },
                         // mode: WindowMode::Fullscreen,
                         // present_mode: PresentMode::AutoVsync,
                         // fit_canvas_to_parent: true,
@@ -175,7 +173,7 @@ fn main() -> color_eyre::eyre::Result<()> {
         ))
         .add_systems(Update, make_visible);
 
-    eprintln!("{:#?}", app);
+    // eprintln!("{:#?}", app);
 
     app.run();
 
