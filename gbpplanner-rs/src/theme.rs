@@ -39,6 +39,7 @@ impl CatppuccinTheme {
         };
 
         let (r, g, b) = colour.into();
+        #[allow(clippy::cast_possible_truncation)]
         Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8)
     }
 
@@ -103,6 +104,7 @@ impl FromCatppuccinColourExt for Color32 {
     }
     fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Color32 {
         let (r, g, b) = colour.into();
+        #[allow(clippy::cast_possible_truncation)]
         Color32::from_rgba_unmultiplied(r, g, b, (alpha * 255.0) as u8)
     }
 }
@@ -122,6 +124,7 @@ impl ColorFromCatppuccinColourExt for Color {
     }
     fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Self {
         let (r, g, b) = colour.into();
+        #[allow(clippy::cast_possible_truncation)]
         Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
     }
 }
@@ -306,58 +309,26 @@ fn init_window_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
 /// Emits a `ThemeChangedEvent` after the theme has been changed, to be used by other systems that actually change the colours
 fn change_theme(
     mut windows: Query<&mut Window>,
-    mut theme_event: EventReader<ThemeEvent>,
+    mut theme_event_reader: EventReader<ThemeEvent>,
     mut catppuccin_theme: ResMut<CatppuccinTheme>,
     mut theme_toggled_event: EventWriter<ThemeChangedEvent>,
     mut contexts: EguiContexts,
 ) {
     let mut window = windows.single_mut();
-    for theme_event in theme_event.read() {
-        let new_flavour = theme_event.0;
-
-        let new_window_theme = match theme_event.0 {
-            Flavour::Latte => {
-                info!(
-                    "Switching theme {:?} -> {:?}",
-                    catppuccin_theme.flavour,
-                    Flavour::Latte
-                );
-
-                Some(WindowTheme::Light)
-            }
-            Flavour::Frappe => {
-                info!(
-                    "Switching theme {:?} -> {:?}",
-                    catppuccin_theme.flavour,
-                    Flavour::Frappe
-                );
-
-                Some(WindowTheme::Light)
-            }
-            Flavour::Macchiato => {
-                info!(
-                    "Switching theme {:?} -> {:?}",
-                    catppuccin_theme.flavour,
-                    Flavour::Macchiato
-                );
-
-                Some(WindowTheme::Dark)
-            }
-            Flavour::Mocha => {
-                info!(
-                    "Switching theme {:?} -> {:?}",
-                    catppuccin_theme.flavour,
-                    Flavour::Mocha
-                );
-
-                Some(WindowTheme::Dark)
-            }
+    for ThemeEvent(new_flavour) in theme_event_reader.read() {
+        let new_window_theme = match new_flavour {
+            Flavour::Latte | Flavour::Frappe => WindowTheme::Light,
+            Flavour::Macchiato | Flavour::Mocha => WindowTheme::Dark,
         };
-        window.window_theme = new_window_theme;
+        info!(
+            "switching theme {:?} -> {:?}",
+            catppuccin_theme.flavour, new_flavour
+        );
+        window.window_theme = Some(new_window_theme);
         contexts
             .ctx_mut()
-            .style_mut(|style| style.visuals = Visuals::catppuccin_flavour(new_flavour));
-        catppuccin_theme.flavour = new_flavour;
+            .style_mut(|style| style.visuals = Visuals::catppuccin_flavour(*new_flavour));
+        catppuccin_theme.flavour = *new_flavour;
         theme_toggled_event.send(ThemeChangedEvent);
     }
 }

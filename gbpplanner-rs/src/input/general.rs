@@ -194,34 +194,27 @@ fn export_factorgraphs_as_graphviz(
 }
 
 fn handle_toggle_theme(
-    theme_event: &mut EventWriter<ThemeEvent>,
+    theme_event_writer: &mut EventWriter<ThemeEvent>,
     catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     info!("toggling application theme");
-    // theme_event.send(ThemeEvent);
 
-    match catppuccin_theme.flavour {
-        catppuccin::Flavour::Latte => {
-            theme_event.send(ThemeEvent(catppuccin::Flavour::Frappe));
-        }
-        catppuccin::Flavour::Frappe => {
-            theme_event.send(ThemeEvent(catppuccin::Flavour::Macchiato));
-        }
-        catppuccin::Flavour::Macchiato => {
-            theme_event.send(ThemeEvent(catppuccin::Flavour::Mocha));
-        }
-        catppuccin::Flavour::Mocha => {
-            theme_event.send(ThemeEvent(catppuccin::Flavour::Latte));
-        }
-    }
+    let next_theme = match catppuccin_theme.flavour {
+        catppuccin::Flavour::Latte => catppuccin::Flavour::Frappe,
+        catppuccin::Flavour::Frappe => catppuccin::Flavour::Macchiato,
+        catppuccin::Flavour::Macchiato => catppuccin::Flavour::Mocha,
+        catppuccin::Flavour::Mocha => catppuccin::Flavour::Latte,
+    };
+
+    theme_event_writer.send(ThemeEvent(next_theme));
 }
 
 fn export_graph_on_event(
-    mut theme_event: EventReader<ExportGraphEvent>,
+    mut theme_event_reader: EventReader<ExportGraphEvent>,
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
 ) {
-    if theme_event.read().next().is_some() {
+    if theme_event_reader.read().next().is_some() {
         if let Err(e) = handle_export_graph(query, config.as_ref()) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
