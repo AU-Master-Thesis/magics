@@ -67,19 +67,23 @@ impl Variable {
 
     /// Change the prior of the variable.
     /// It updates the belief of the variable.
+    /// The prior acts as the pose factor
     pub fn change_prior(
         &mut self,
-        mean: Vector<Float>,
+        mean: &Vector<Float>,
         indices_of_adjacent_factors: Vec<NodeIndex>,
     ) -> HashMap<NodeIndex, Message> {
         self.prior
-            .update_information_vector(&self.prior.precision_matrix().dot(&mean));
-        // self.prior.information_vector = self.prior.precision_matrix.dot(&mean);
+            .update_information_vector(&self.prior.precision_matrix().dot(mean));
+        // self.prior.information_vector = self.prior.precision_matrix.dotTHIS.(&mean);
         // QUESTION: why cache mu?
         // mu_ = new_mu;
         // belief_ = Message {eta_, lam_, mu_};
         // FIXME: we probably never update the belief of the variable
         // dbg!(&self.belief);
+
+        // NOTE: this IS DIFFERENT FROM gbpplanner
+
         self.belief = self.prior.clone();
 
         indices_of_adjacent_factors
@@ -96,11 +100,11 @@ impl Variable {
     // // Finally the outgoing messages to factors is created.
     // /***********************************************************************************************************/
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
-    ///
+    /// called `Variable::update_belief` in **gbpplanner**
     pub fn update_belief_and_create_responses(&mut self) -> HashMap<NodeIndex, Message> {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
-        // TODO: wrap in unsafe block for perf:
 
+        // TODO: wrap in unsafe block for perf:
         unsafe {
             self.belief
                 .set_information_vector(self.prior.information_vector());
@@ -108,15 +112,22 @@ impl Variable {
                 .set_precision_matrix(self.prior.precision_matrix());
         }
 
+        // Go through received messages and update belief
         for (_, message) in self.inbox.iter() {
-            if message.is_empty() {
+            let Some(normal) = message.payload() else {
+                // empty message
                 continue;
-            }
+            };
+            // if message.is_empty() {
+            //     continue;
+            // }
             unsafe {
+                // self.belief.add_assign_information_vector(&message.information_vector());
                 self.belief
-                    .add_assign_information_vector(&message.information_vector());
+                    .add_assign_information_vector(normal.information_vector());
+                // self.belief.add_assign_precision_matrix(&message.precision_matrix());
                 self.belief
-                    .add_assign_precision_matrix(&message.precision_matrix());
+                    .add_assign_precision_matrix(normal.precision_matrix());
             }
         }
 
@@ -124,13 +135,6 @@ impl Variable {
         // which violates that the mean, information vector and precision matrix are consistent, for performance reasons.
         self.belief.update();
 
-        // TODO: update self.sigma_ with covariance
-        // -> Seems to not be useful
-
-        // Update belief
-        // println!("precision matrix: {:?}", self.belief.precision_matrix);
-
-        // if let Some(covariance) = self.belief.precision_matrix().inv() {
         // let valid = self.belief.covariance().iter().all(|x| x.is_finite());
         // if valid {
         // TODO: is this meaningful?
@@ -141,10 +145,14 @@ impl Variable {
         self.inbox
             .iter()
             .map(|(&factor_index, received_message)| {
-                let response = match received_message {
-                    Message::Empty(_) => Message::from(self.belief.clone()),
-                    Message::Content { gaussian } => Message::from(&self.belief - gaussian),
-                };
+                let response = received_message.payload().map_or_else(
+                    || Message::from(self.belief.clone()),
+                    |gaussian| Message::from(&self.belief - gaussian),
+                );
+                // let response = match received_message {
+                //     Message::Empty(_) => Message::from(self.belief.clone()),
+                //     Message::Content { gaussian } => Message::from(&self.belief - gaussian),
+                // };
                 (factor_index, response)
             })
             .collect()
