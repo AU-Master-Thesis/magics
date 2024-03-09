@@ -8,6 +8,7 @@ mod movement;
 mod planner;
 mod robot_spawner;
 mod theme;
+mod toggle_fullscreen;
 mod ui;
 mod utils;
 
@@ -23,6 +24,7 @@ use crate::movement::MovementPlugin;
 use crate::planner::PlannerPlugin;
 use crate::robot_spawner::RobotSpawnerPlugin;
 use crate::theme::ThemePlugin;
+use crate::toggle_fullscreen::ToggleFullscreenPlugin;
 use crate::ui::EguiInterfacePlugin;
 
 use bevy::core::FrameCount;
@@ -161,6 +163,7 @@ fn main() -> color_eyre::eyre::Result<()> {
             EnvironmentPlugin, // Custom
             MovementPlugin,    // Custom
             InputPlugin,       // Custom
+            ToggleFullscreenPlugin,
             // MoveableObjectPlugin, // Custom
             // CameraPlugin,        // Custom
             // FollowCamerasPlugin, // Custom
