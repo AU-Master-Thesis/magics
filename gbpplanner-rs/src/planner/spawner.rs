@@ -137,7 +137,7 @@ fn spawn_formation(
     // TODO: create mapped waypoints
 
     // let variable_material = materials.add(Color::from_catppuccin_colour_with_alpha(
-    //     catppuccin_theme.flavour.blue(),
+    //     catppuccin_theme.blue(),
     //     0.75,
     // ));
 

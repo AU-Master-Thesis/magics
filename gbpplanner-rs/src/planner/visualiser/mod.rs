@@ -1,6 +1,7 @@
-pub(crate) mod communication;
+mod communication;
 pub(crate) mod factorgraphs;
-pub(crate) mod uncertainty;
+mod tracer;
+mod uncertainty;
 pub(crate) mod waypoints;
 
 const Z_FIGHTING_OFFSET: f32 = 0.04;

@@ -96,13 +96,13 @@ fn ui_controls_panel(
 ) {
     let ctx = contexts.ctx_mut();
 
-    let grid_row_color = catppuccin.flavour.mantle();
+    let grid_row_color = catppuccin.mantle();
     let grid_title_colors = [
-        catppuccin.flavour.green(),
-        catppuccin.flavour.blue(),
-        catppuccin.flavour.mauve(),
-        catppuccin.flavour.maroon(),
-        catppuccin.flavour.lavender(),
+        catppuccin.green(),
+        catppuccin.blue(),
+        catppuccin.mauve(),
+        catppuccin.maroon(),
+        catppuccin.lavender(),
     ];
 
     let mut counter = 1; // offset by 1 to account for header row
@@ -176,20 +176,20 @@ fn ui_controls_panel(
                         .show(ui, |ui| {
                             let size = 15.0; // pt
                             ui.label(RichText::new("Binding").size(size).color(
-                                // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
-                                Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
+                                // Color32::from_catppuccin_colour_with_alpha(catppuccin.lavender(), 0.5),
+                                Color32::from_catppuccin_colour(catppuccin.lavender()),
                             ));
                             ui.centered_and_justified(|ui| {
                                 ui.label(RichText::new("󰌌").size(size + 5.0).color(
-                                    // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
-                                    Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
+                                    // Color32::from_catppuccin_colour_with_alpha(catppuccin.lavender(), 0.5),
+                                    Color32::from_catppuccin_colour(catppuccin.lavender()),
                                 ));
                             });
 
                             ui.centered_and_justified(|ui| {
                                 ui.label(RichText::new("󰊗").size(size + 5.0).color(
-                                    // Color32::from_catppuccin_colour_with_alpha(catppuccin.flavour.lavender(), 0.5),
-                                    Color32::from_catppuccin_colour(catppuccin.flavour.lavender()),
+                                    // Color32::from_catppuccin_colour_with_alpha(catppuccin.lavender(), 0.5),
+                                    Color32::from_catppuccin_colour(catppuccin.lavender()),
                                 ));
                             });
 
@@ -204,9 +204,7 @@ fn ui_controls_panel(
                                 ui.label(
                                     RichText::new(action.to_string())
                                         .italics()
-                                        .color(Color32::from_catppuccin_colour(
-                                            catppuccin.flavour.base(),
-                                        ))
+                                        .color(Color32::from_catppuccin_colour(catppuccin.base()))
                                         .size(size),
                                 );
 
@@ -416,17 +414,21 @@ fn ui_controls_panel(
             ui.horizontal(|ui| {
                 if !matches!(currently_changing.action, InputAction::Undefined) {
                     ui.columns(2, |columns| {
-                        columns[0].label(RichText::new("Currently binding:").italics().color(
-                            Color32::from_catppuccin_colour(catppuccin.flavour.overlay2()),
-                        ));
+                        columns[0].label(
+                            RichText::new("Currently binding:")
+                                .italics()
+                                .color(Color32::from_catppuccin_colour(catppuccin.overlay2())),
+                        );
                         columns[1].centered_and_justified(|ui| {
                             let _ = ui.button(currently_changing.action.to_display_string());
                         });
                     });
                 } else {
-                    ui.label(RichText::new("Select a binding to change").italics().color(
-                        Color32::from_catppuccin_colour(catppuccin.flavour.overlay2()),
-                    ));
+                    ui.label(
+                        RichText::new("Select a binding to change")
+                            .italics()
+                            .color(Color32::from_catppuccin_colour(catppuccin.overlay2())),
+                    );
                 }
             });
 

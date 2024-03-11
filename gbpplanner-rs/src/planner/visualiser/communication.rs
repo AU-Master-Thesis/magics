@@ -33,6 +33,7 @@ pub struct CommunicationGraphVisualiser;
 ///
 /// However, if the robot's comms are off `RobotState.interrobot_comms_active == false`, it will not draw a line segment
 fn draw_communication_graph(
+    mut gizmos: Gizmos,
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -58,9 +59,7 @@ fn draw_communication_graph(
     }
 
     // necessary to remake the line material, as it needs to change with the theme
-    let line_material = materials.add(Color::from_catppuccin_colour(
-        catppuccin_theme.flavour.yellow(),
-    ));
+    let line_material = materials.add(Color::from_catppuccin_colour(catppuccin_theme.yellow()));
 
     // TODO: Don't double-draw lines from and to the same two robots
     for (robot_id, robot_state, transform) in robots_query.iter() {
@@ -104,6 +103,12 @@ fn draw_communication_graph(
                 },
                 LineSegment,
             ));
+            // gizmos.primitive_3d(
+            //     Polyline3d::<100>::new(vec![transform.translation, neighbour_transform]),
+            //     Vec3::ZERO,
+            //     Quat::IDENTITY,
+            //     Color::from_catppuccin_colour(catppuccin_theme.yellow()),
+            // );
         }
     }
 }

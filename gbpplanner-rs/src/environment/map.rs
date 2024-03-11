@@ -38,11 +38,11 @@ fn infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinTheme>)
             major_line_color: grid_colour,
             minor_line_color: grid_colour,
             x_axis_color: {
-                let (r, g, b) = catppuccin_theme.flavour.maroon().into();
+                let (r, g, b) = catppuccin_theme.maroon().into();
                 Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8)
             },
             z_axis_color: {
-                let (r, g, b) = catppuccin_theme.flavour.blue().into();
+                let (r, g, b) = catppuccin_theme.blue().into();
                 Color::rgba_u8(r, g, b, (0.1 * 255.0) as u8)
             },
             ..default()

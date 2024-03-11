@@ -9,7 +9,7 @@ use bevy_egui::{
     EguiContexts,
 };
 use bevy_infinite_grid::InfiniteGridSettings;
-use catppuccin::{Colour, Flavour};
+use catppuccin::{Colour, Flavour, FlavourColours};
 
 use crate::{
     factorgraph::{Factor, Line, Variable},
@@ -30,6 +30,32 @@ impl Default for CatppuccinTheme {
     }
 }
 
+// macro_rules! impl_colour_method {
+//     ($x:ident) => (
+//         pub const fn $x(self) -> $crate::Colour {
+//             self.colours().$x
+//         }
+//     );
+//     ($x:ident, $($y:ident),+ $(,)?) => (
+//         pub const fn $x(self) -> $crate::Colour {
+//             self.colours().$x
+//         }
+
+//         impl_colour_method!($($y),+);
+//     );
+// }
+
+// macro to implement all colour getters on `CatppuccinTheme` itself
+macro_rules! impl_colour_getters {
+    ($($x:ident),+ $(,)?) => (
+        $(
+            pub const fn $x(&self) -> Colour {
+                self.flavour.$x()
+            }
+        )+
+    );
+}
+
 impl CatppuccinTheme {
     pub fn grid_colour(&self) -> Color {
         let colour = if self.is_dark() {
@@ -46,6 +72,19 @@ impl CatppuccinTheme {
     pub fn is_dark(&self) -> bool {
         self.flavour.base().lightness() < 0.5
     }
+
+    /// Get iterator over all colours:
+    /// `[rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green, teal, sky, sapphire,
+    /// blue, lavender]`
+    pub fn colours(&self) -> FlavourColours {
+        self.flavour.colours()
+    }
+
+    impl_colour_getters!(
+        rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green, teal, sky, sapphire,
+        blue, lavender, text, subtext1, subtext0, overlay2, overlay1, overlay0, surface2, surface1,
+        surface0, base, mantle, crust,
+    );
 }
 
 pub trait ColourExt {

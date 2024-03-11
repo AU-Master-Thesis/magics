@@ -101,34 +101,29 @@ fn load_assets(
         },
         // Materials
         materials: Materials {
-            robot: materials.add(Color::from_catppuccin_colour(
-                catppuccin_theme.flavour.green(),
-            )),
+            robot: materials.add(Color::from_catppuccin_colour(catppuccin_theme.green())),
             variable: materials.add(Color::from_catppuccin_colour_with_alpha(
-                catppuccin_theme.flavour.blue(),
+                catppuccin_theme.blue(),
                 0.75,
             )),
             factor: materials.add(Color::from_catppuccin_colour_with_alpha(
-                catppuccin_theme.flavour.mauve(),
+                catppuccin_theme.mauve(),
                 0.75,
             )),
             waypoint: materials.add(Color::from_catppuccin_colour_with_alpha(
-                catppuccin_theme.flavour.maroon(),
+                catppuccin_theme.maroon(),
                 0.5,
             )),
-            line: materials.add(Color::from_catppuccin_colour(
-                catppuccin_theme.flavour.text(),
-            )),
-            communication_graph: materials.add(Color::from_catppuccin_colour(
-                catppuccin_theme.flavour.yellow(),
-            )),
+            line: materials.add(Color::from_catppuccin_colour(catppuccin_theme.text())),
+            communication_graph: materials
+                .add(Color::from_catppuccin_colour(catppuccin_theme.yellow())),
             transparent: materials.add(Color::rgba_u8(0, 0, 0, 0)),
             uncertainty: materials.add(Color::from_catppuccin_colour_with_alpha(
-                catppuccin_theme.flavour.teal(),
+                catppuccin_theme.teal(),
                 0.2,
             )),
             uncertainty_unattenable: materials.add(Color::from_catppuccin_colour_with_alpha(
-                catppuccin_theme.flavour.maroon(),
+                catppuccin_theme.maroon(),
                 0.2,
             )),
         },

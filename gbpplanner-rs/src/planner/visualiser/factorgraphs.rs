@@ -169,9 +169,7 @@ fn draw_lines(
         return;
     }
 
-    let line_material = materials.add(Color::from_catppuccin_colour(
-        catppuccin_theme.flavour.text(),
-    ));
+    let line_material = materials.add(Color::from_catppuccin_colour(catppuccin_theme.text()));
 
     for entity in factorgraph_query.iter() {
         let positions = query_variables

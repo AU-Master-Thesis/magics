@@ -151,11 +151,11 @@ fn insert_dummy_factor_graph(
 
     let alpha = 0.75;
     let variable_material = materials.add({
-        let (r, g, b) = catppuccin_theme.flavour.blue().into();
+        let (r, g, b) = catppuccin_theme.blue().into();
         Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
     });
     let factor_material = materials.add({
-        let (r, g, b) = catppuccin_theme.flavour.green().into();
+        let (r, g, b) = catppuccin_theme.green().into();
         Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
     });
 
@@ -257,7 +257,7 @@ fn draw_lines(
     all_positions.sort_by(|a, b| a.z.partial_cmp(&b.z).expect("none of the operands are NAN"));
 
     let line_material = materials.add({
-        let (r, g, b) = catppuccin_theme.flavour.text().into();
+        let (r, g, b) = catppuccin_theme.text().into();
         Color::rgb_u8(r, g, b)
     });
 
