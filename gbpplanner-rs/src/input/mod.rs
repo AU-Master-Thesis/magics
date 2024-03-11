@@ -67,6 +67,7 @@ impl ToDisplayString for CameraAction {
             CameraAction::ZoomIn => "Zoom In".to_string(),
             CameraAction::ZoomOut => "Zoom Out".to_string(),
             CameraAction::Switch => "Switch Camera".to_string(),
+            CameraAction::Reset => "Reset Camera".to_string(),
         }
     }
 }

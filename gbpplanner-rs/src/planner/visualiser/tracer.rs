@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::visibility};
 
 use crate::{
+    config::Config,
     planner::{RobotId, RobotState},
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
@@ -43,12 +44,13 @@ fn draw_traces(
     // mut commands: Commands,
     // mut materials: ResMut<Assets<ColorMaterial>>,
     catppuccin_theme: Res<CatppuccinTheme>,
+    config: Res<Config>,
 ) {
-    for (robot_id, trace) in traces.0.iter() {
-        // use `robot_id` to generate a unique color for each robot
-        // let hue = (robot_id.index() as f32 * 10.0 % 360.0) / 360.0;
-        // let color = Color::hsl(hue, 0.8, 0.8);
+    if !config.visualisation.draw.paths {
+        return;
+    }
 
+    for (robot_id, trace) in traces.0.iter() {
         let colours = catppuccin_theme.colours().into_iter().collect::<Vec<_>>();
         let index = robot_id.index() as usize % 14;
         let color = colours[index];

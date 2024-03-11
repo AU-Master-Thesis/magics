@@ -1,8 +1,12 @@
 use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use crate::{environment, ui::ChangingBinding};
+use crate::{
+    environment::{self, camera::CameraResetEvent},
+    ui::ChangingBinding,
+};
 
 use super::super::{
     environment::camera::{self, CameraMovementMode, MainCamera},
@@ -27,6 +31,7 @@ pub enum CameraAction {
     ZoomIn,
     ZoomOut,
     Switch,
+    Reset,
 }
 
 impl ToString for CameraAction {
@@ -38,6 +43,7 @@ impl ToString for CameraAction {
             Self::ZoomIn => "Zoom In".to_string(),
             Self::ZoomOut => "Zoom Out".to_string(),
             Self::Switch => "Switch".to_string(),
+            Self::Reset => "Reset".to_string(),
         }
     }
 }
@@ -49,12 +55,6 @@ impl Default for CameraAction {
 }
 
 impl CameraAction {
-    fn variants() -> &'static [Self] {
-        #[allow(clippy::enum_glob_use)]
-        use CameraAction::*;
-        &[Move, MouseMove, ToggleMovementMode, ZoomIn, ZoomOut, Switch]
-    }
-
     fn default_mouse_input(action: CameraAction) -> Option<UserInput> {
         match action {
             Self::MouseMove => Some(UserInput::Chord(vec![
@@ -78,6 +78,7 @@ impl CameraAction {
                 Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyC)))
             }
             Self::Switch => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::Tab))),
+            Self::Reset => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyR))),
             _ => None,
         }
     }
@@ -107,7 +108,7 @@ impl CameraAction {
 fn bind_camera_input(mut commands: Commands, query: Query<Entity, With<MainCamera>>) {
     let mut input_map = InputMap::default();
 
-    for &action in CameraAction::variants() {
+    for action in CameraAction::iter() {
         if let Some(input) = CameraAction::default_mouse_input(action) {
             input_map.insert(action, input);
         }
@@ -123,11 +124,6 @@ fn bind_camera_input(mut commands: Commands, query: Query<Entity, With<MainCamer
         commands
             .entity(entity)
             .insert(InputManagerBundle::with_map(input_map));
-        // .insert(InputManagerBundle::<CameraAction> {
-        //     input_map,
-        //     ..default()
-        // }
-        // );
     }
 }
 
@@ -147,6 +143,7 @@ fn camera_actions(
     >,
     // mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
+    mut camera_reset_event: EventWriter<CameraResetEvent>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
@@ -157,6 +154,11 @@ fn camera_actions(
         if !camera.is_active {
             return;
         }
+
+        if action_state.just_pressed(&CameraAction::Reset) {
+            camera_reset_event.send(CameraResetEvent);
+        }
+
         let mut tmp_velocity = Vec3::ZERO;
         let mut tmp_angular_velocity = Vec3::ZERO;
         let camera_distance = transform.translation.distance(orbit.origin);
