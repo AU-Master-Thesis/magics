@@ -24,7 +24,10 @@ pub struct Materials {
     pub factor: Handle<StandardMaterial>,
     pub waypoint: Handle<StandardMaterial>,
     pub line: Handle<StandardMaterial>,
+    pub communication_graph: Handle<StandardMaterial>,
     pub transparent: Handle<StandardMaterial>,
+    pub uncertainty: Handle<StandardMaterial>,
+    pub uncertainty_unattenable: Handle<StandardMaterial>,
 }
 
 /// **Bevy** [`Resource`] to hold all assets in a common place
@@ -116,7 +119,18 @@ fn load_assets(
             line: materials.add(Color::from_catppuccin_colour(
                 catppuccin_theme.flavour.text(),
             )),
+            communication_graph: materials.add(Color::from_catppuccin_colour(
+                catppuccin_theme.flavour.yellow(),
+            )),
             transparent: materials.add(Color::rgba_u8(0, 0, 0, 0)),
+            uncertainty: materials.add(Color::from_catppuccin_colour_with_alpha(
+                catppuccin_theme.flavour.teal(),
+                0.2,
+            )),
+            uncertainty_unattenable: materials.add(Color::from_catppuccin_colour_with_alpha(
+                catppuccin_theme.flavour.maroon(),
+                0.2,
+            )),
         },
     }
 }

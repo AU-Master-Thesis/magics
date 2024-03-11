@@ -1,6 +1,7 @@
 use bevy::{
     prelude::*,
     render::{mesh::PrimitiveTopology, render_asset::RenderAssetUsages},
+    scene,
 };
 use itertools::Itertools;
 
@@ -32,6 +33,9 @@ impl Plugin for VisualiserPlugin {
                 // init_communication_graph, // TODO: when [`Path`] is no updatable
                 draw_communication_graph,
                 // show_or_hide_communication_graph, // TODO: when [`Path`] is no updatable
+                init_uncertainty,
+                update_uncertainty,
+                show_or_hide_uncertainty,
             ),
         );
     }
@@ -66,27 +70,36 @@ impl RobotTracker {
     }
 }
 
-/// A **Bevy** [`Component`] to mark an entity as a visualised waypoint
+/// A **Bevy** [`Component`] to mark an entity as a visualised _waypoint_
 #[derive(Component)]
 pub struct WaypointVisualiser;
 
-/// A **Bevy** [`Component`] to mark an entity as a visualised factor graph
+/// A **Bevy** [`Component`] to mark an entity as a visualised _factor graph_
 #[derive(Component)]
 pub struct VariableVisualiser;
 
-/// A **Bevy** [`Component`] to mark an entity as a visualised communication graph
+/// A **Bevy** [`Component`] to mark an entity as a visualised _communication graph_
 #[derive(Component)]
 pub struct CommunicationGraphVisualiser;
 
+/// A **Bevy** [`Component`] to mark an entity as visualised _uncertainty_ gaussian
+#[derive(Component)]
+pub struct UncertaintyVisualiser;
+
 /// A **Bevy** [`Component`] to mark a robot that it has a corresponding `WaypointVis` entity
-/// Useful for easy exclusion in queries
+/// Useful for easy _exclusion_ in queries
 #[derive(Component)]
 pub struct HasWaypointVisualiser;
 
 /// A **Bevy** [`Component`] to mark a robot that it has a corresponding `FactorGraphVis` entity
-/// Useful for easy exclusion in queries
+/// Useful for easy _exclusion_ in queries
 #[derive(Component)]
 pub struct HasFactorGraphVisualiser;
+
+/// A **Bevy** [`Component`] to mark a robot that it has a corresponding `UncertaintyVis` entity
+/// Useful for easy _exclusion_ in queries
+#[derive(Component)]
+pub struct HasUncertaintyVisualiser;
 
 /// A **Bevy** marker [`Component`] for lines
 /// Generally used to identify previously spawned lines,
@@ -177,6 +190,178 @@ impl From<Path> for Mesh {
         )
         // Add the vertices positions as an attribute
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices)
+    }
+}
+
+/// A **Bevy** [`Update`] system
+/// Initialises each new [`FactorGraph`] components to have a matching 2D circle and [`UncertaintyVisualiser`] component
+/// I.e. if the [`FactorGraph`] component already has a [`HasUncertaintyVisualiser`], it will be ignored
+fn init_uncertainty(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    query: Query<(Entity, &super::FactorGraph), Without<HasUncertaintyVisualiser>>,
+    scene_assets: Res<SceneAssets>,
+    config: Res<Config>,
+) {
+    query.iter().for_each(|(entity, factorgraph)| {
+        // Mark the robot with `HasUncertaintyVisualiser` to exclude next time
+        commands.entity(entity).insert(HasUncertaintyVisualiser);
+
+        factorgraph.variables().for_each(|v| {
+            let mean = v.belief.mean();
+            let transform = Vec3::new(
+                mean[0] as f32,
+                config.visualisation.height.objects - super::Z_FIGHTING_OFFSET, // just under the lines (z-fighting prevention)
+                mean[1] as f32,
+            );
+
+            let covariance = v.belief.covariance();
+
+            let mut attenable = true;
+            let mesh = meshes.add(Ellipse::new(
+                // pick `x` from the covariance diagonal, but cap it at 10.0
+                if covariance.diag()[0] > 20.0 {
+                    attenable = false;
+                    config.visualisation.uncertainty.max_radius
+                } else {
+                    covariance.diag()[0] as f32
+                },
+                // pick `y` from the covariance diagonal, but cap it at 10.0
+                if covariance.diag()[1] > 20.0 {
+                    attenable = false;
+                    config.visualisation.uncertainty.max_radius
+                } else {
+                    covariance.diag()[1] as f32
+                },
+            ));
+
+            info!(
+                "{:?}: Initialising uncertainty at {:?}, with covariance {:?}",
+                entity, transform, covariance
+            );
+
+            // Spawn a `UncertaintyVisualiser` component with a corresponding 2D circle
+            commands.spawn((
+                RobotTracker::new(entity).with_variable_id(v.get_node_index().index()),
+                UncertaintyVisualiser,
+                PbrBundle {
+                    mesh,
+                    material: if attenable {
+                        scene_assets.materials.uncertainty.clone()
+                    } else {
+                        scene_assets.materials.uncertainty_unattenable.clone()
+                    },
+                    transform: Transform::from_translation(transform)
+                        .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+                    visibility: if config.visualisation.draw.uncertainty {
+                        Visibility::Visible
+                    } else {
+                        Visibility::Hidden
+                    },
+                    ..Default::default()
+                },
+            ));
+        });
+    });
+}
+
+/// A **Bevy** [`Update`] system
+/// Updates the [`Transform`]s of all [`UncertaintyVisualiser`] entities
+/// Update the shape and potentially the material of the [`UncertaintyVisualiser`] entities, depending on how the covariance has changed
+///
+/// Done by cross-referencing with the [`FactorGraph`] components
+/// that have matching [`Entity`] with the `RobotTracker.robot_id`
+/// and variables in the [`FactorGraph`] that have matching `RobotTracker.variable_id`
+fn update_uncertainty(
+    mut tracker_query: Query<
+        (
+            &RobotTracker,
+            &mut Transform,
+            &mut Handle<Mesh>,
+            &mut Handle<StandardMaterial>,
+        ),
+        With<UncertaintyVisualiser>,
+    >,
+    factorgraph_query: Query<(Entity, &super::FactorGraph)>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    config: Res<Config>,
+    scene_assets: Res<SceneAssets>,
+) {
+    // Update the `RobotTracker` components
+    for (tracker, mut transform, mut mesh, mut material) in tracker_query.iter_mut() {
+        for (entity, factorgraph) in factorgraph_query.iter() {
+            // continue if we're not looking at the right robot
+            if tracker.robot_id != entity {
+                continue;
+            }
+
+            // else look through the variables
+            for v in factorgraph.variables() {
+                // continue if we're not looking at the right variable
+                if v.get_node_index().index() != tracker.variable_id {
+                    continue;
+                }
+
+                let mean = v.belief.mean();
+                let covariance = v.belief.covariance();
+
+                let mut attenable = true;
+                let new_mesh = meshes.add(Ellipse::new(
+                    // pick `x` from the covariance diagonal, but cap it at 10.0
+                    if covariance.diag()[0] > 20.0 {
+                        attenable = false;
+                        config.visualisation.uncertainty.max_radius
+                    } else {
+                        covariance.diag()[0] as f32
+                    },
+                    // pick `y` from the covariance diagonal, but cap it at 10.0
+                    if covariance.diag()[1] > 20.0 {
+                        attenable = false;
+                        config.visualisation.uncertainty.max_radius
+                    } else {
+                        covariance.diag()[1] as f32
+                    },
+                ));
+
+                // info!("{:?}: Updating uncertainty at {:?}, with covariance {:?}", entity, transform, covariance);
+
+                // else update the transform
+                *transform = Transform::from_translation(Vec3::new(
+                    mean[0] as f32,
+                    config.visualisation.height.objects + 2.0 * super::Z_FIGHTING_OFFSET, // just under the lines (z-fighting prevention)
+                    mean[1] as f32,
+                ))
+                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
+
+                // update the mesh and material
+                *mesh = new_mesh;
+                *material = if attenable {
+                    scene_assets.materials.uncertainty.clone()
+                } else {
+                    scene_assets.materials.uncertainty_unattenable.clone()
+                };
+            }
+        }
+    }
+}
+
+/// A **Bevy** [`Update`] system
+/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting == DrawSetting::Uncertainty`
+/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`UncertaintyVisualiser`] entities
+fn show_or_hide_uncertainty(
+    mut query: Query<(&UncertaintyVisualiser, &mut Visibility)>,
+    mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
+) {
+    for event in draw_setting_event.read() {
+        if matches!(event.setting, config::DrawSetting::Uncertainty) {
+            for (_, mut visibility) in query.iter_mut() {
+                if event.value {
+                    *visibility = Visibility::Visible;
+                } else {
+                    *visibility = Visibility::Hidden;
+                }
+            }
+        }
     }
 }
 
@@ -344,8 +529,8 @@ fn draw_lines(
 }
 
 /// A **Bevy** [`Update`] system
-/// Initialises each new [`Waypoints`] component to have a matching [`PbrBundle`] and [`RobotTracker`] component
-/// I.e. if the [`Waypoints`] component already has a [`RobotTracker`], it will be ignored
+/// Initialises each new [`Waypoints`] component to have a matching [`PbrBundle`] and [`WaypointVisualiser`] component
+/// I.e. if the [`Waypoints`] component already has a [`HasWaypointVisualiser`], it will be ignored
 fn init_waypoints(
     mut commands: Commands,
     query: Query<(Entity, &Waypoints), Without<HasWaypointVisualiser>>,
@@ -448,6 +633,7 @@ fn draw_communication_graph(
     robots_query: Query<(Entity, &RobotState, &Transform)>,
     config: Res<Config>,
     catppuccin_theme: Res<CatppuccinTheme>,
+    scene_assets: Res<SceneAssets>,
 ) {
     // If there are no robots, return
     if robots_query.iter().count() == 0 {
@@ -464,22 +650,23 @@ fn draw_communication_graph(
         return;
     }
 
+    // necessary to remake the line material, as it needs to change with the theme
     let line_material = materials.add(Color::from_catppuccin_colour(
-        catppuccin_theme.flavour.teal(),
+        catppuccin_theme.flavour.yellow(),
     ));
 
     // TODO: Don't double-draw lines from and to the same two robots
     for (robot_id, robot_state, transform) in robots_query.iter() {
-        if !robot_state.interrobot_comms_active {
-            continue;
-        }
+        // if !robot_state.interrobot_comms_active {
+        //     continue;
+        // }
 
         // Find all neighbour transforms within the communication range
         // but filter out all robots that do not have comms on
         let neighbours = robots_query
             .iter()
             .filter(|(other_robot_id, other_robot_state, _)| {
-                robot_id != *other_robot_id && !other_robot_state.interrobot_comms_active
+                robot_id != *other_robot_id //&& !other_robot_state.interrobot_comms_active
             })
             .filter_map(|(_, _, other_transform)| {
                 let distance = transform.translation.distance(other_transform.translation);
@@ -497,12 +684,15 @@ fn draw_communication_graph(
 
         // Make a line for each neighbour
         for neighbour_transform in neighbours {
-            let line = Path::new(vec![transform.translation, neighbour_transform]).with_width(0.2);
+            let line = Path::new(vec![
+                transform.translation + Vec3::new(0.0, super::Z_FIGHTING_OFFSET, 0.0),
+                neighbour_transform + Vec3::new(0.0, super::Z_FIGHTING_OFFSET, 0.0),
+            ])
+            .with_width(0.2);
             commands.spawn((
                 PbrBundle {
                     mesh: meshes.add(Mesh::from(line)),
                     material: line_material.clone(),
-                    transform: Transform::default(),
                     ..Default::default()
                 },
                 LineSegment,

@@ -24,6 +24,8 @@ use self::spawner::SpawnerPlugin;
 use self::visualiser::VisualiserPlugin;
 use bevy::prelude::*;
 
+const Z_FIGHTING_OFFSET: f32 = 0.04;
+
 pub struct PlannerPlugin;
 
 impl Plugin for PlannerPlugin {

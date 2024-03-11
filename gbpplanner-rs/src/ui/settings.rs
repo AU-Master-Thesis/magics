@@ -283,6 +283,9 @@ fn ui_settings_panel(
                             });
                             // custom::rect_label(ui, format!("y: {:7.2}", cursor_coordinates.local().y));
                         });
+
+                        ui.add_space(2.5);
+
                         ui.separator();
                         ui.collapsing("Entities", |ui| {
                             bevy_inspector::ui_for_world_entities(world, ui);

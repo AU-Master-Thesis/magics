@@ -76,9 +76,22 @@ impl Default for HeighSection {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub struct UncertaintySection {
+    pub max_radius: f32,
+}
+
+impl Default for UncertaintySection {
+    fn default() -> Self {
+        Self { max_radius: 5.0 }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct VisualisationSection {
     pub height: HeighSection,
     pub draw: DrawSection,
+    pub uncertainty: UncertaintySection,
 }
 
 impl Default for VisualisationSection {
@@ -86,6 +99,7 @@ impl Default for VisualisationSection {
         Self {
             height: HeighSection::default(),
             draw: DrawSection::default(),
+            uncertainty: UncertaintySection::default(),
         }
     }
 }

@@ -146,7 +146,7 @@ impl RobotBundle {
             return Err(RobotInitError::NoVariableTimesteps);
         }
 
-        dbg!(&waypoints);
+        // dbg!(&waypoints);
 
         let start = waypoints
             .pop_front()
@@ -204,7 +204,7 @@ impl RobotBundle {
             // dbg!(&prior);
 
             let variable = Variable::new(prior, ndofs);
-            dbg!(&variable);
+            // dbg!(&variable);
             let variable_index = factorgraph.add_variable(variable);
             variable_node_indices.push(variable_index);
         }
