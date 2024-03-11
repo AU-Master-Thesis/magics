@@ -2,7 +2,7 @@ mod factor;
 mod factorgraph;
 mod marginalise_factor_distance;
 mod message;
-mod robot;
+pub mod robot;
 mod spawner;
 mod variable;
 mod visualiser;
@@ -12,8 +12,8 @@ pub use factorgraph::FactorGraph;
 pub use factorgraph::NodeIndex;
 pub use robot::RobotId;
 pub use robot::RobotState;
-pub use visualiser::VariableVisualiser;
-pub use visualiser::WaypointVisualiser;
+pub use visualiser::factorgraphs::VariableVisualiser;
+pub use visualiser::waypoints::WaypointVisualiser;
 
 // use gbp_linalg::*;
 
@@ -23,8 +23,6 @@ use self::robot::RobotPlugin;
 use self::spawner::SpawnerPlugin;
 use self::visualiser::VisualiserPlugin;
 use bevy::prelude::*;
-
-const Z_FIGHTING_OFFSET: f32 = 0.04;
 
 pub struct PlannerPlugin;
 

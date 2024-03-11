@@ -1,5 +1,5 @@
-mod asset_loader;
-mod config;
+pub(crate) mod asset_loader;
+pub(crate) mod config;
 mod environment;
 mod factorgraph;
 mod input;
@@ -7,10 +7,10 @@ mod moveable_object;
 mod movement;
 mod planner;
 mod robot_spawner;
-mod theme;
+pub(crate) mod theme;
 mod toggle_fullscreen;
-mod ui;
-mod utils;
+pub(crate) mod ui;
+pub(crate) mod utils;
 
 use std::path::PathBuf;
 
