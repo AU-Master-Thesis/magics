@@ -41,7 +41,6 @@ fn draw_communication_graph(
     robots_query: Query<(Entity, &RobotState, &Transform)>,
     config: Res<Config>,
     catppuccin_theme: Res<CatppuccinTheme>,
-    scene_assets: Res<SceneAssets>,
 ) {
     // If there are no robots, return
     if robots_query.iter().count() == 0 {
@@ -63,16 +62,16 @@ fn draw_communication_graph(
 
     // TODO: Don't double-draw lines from and to the same two robots
     for (robot_id, robot_state, transform) in robots_query.iter() {
-        // if !robot_state.interrobot_comms_active {
-        //     continue;
-        // }
+        if !robot_state.interrobot_comms_active {
+            continue;
+        }
 
         // Find all neighbour transforms within the communication range
         // but filter out all robots that do not have comms on
         let neighbours = robots_query
             .iter()
             .filter(|(other_robot_id, other_robot_state, _)| {
-                robot_id != *other_robot_id //&& !other_robot_state.interrobot_comms_active
+                robot_id != *other_robot_id && !other_robot_state.interrobot_comms_active
             })
             .filter_map(|(_, _, other_transform)| {
                 let distance = transform.translation.distance(other_transform.translation);

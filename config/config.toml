@@ -1,6 +1,9 @@
 environment = "junction"
 formation_group = "./config/formation.ron"
 
+[interaction]
+ui-focus-cancels-inputs = true
+
 [visualisation.uncertainty]
 max-radius = 2.5
 

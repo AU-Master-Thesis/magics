@@ -16,7 +16,7 @@ use crate::{
     theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
 };
 
-use super::{custom, OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
+use super::{custom, ChangingBinding, OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
 
 /// **Bevy** `Plugin` to add the settings panel to the UI
 pub struct SettingsPanelPlugin;
@@ -87,15 +87,18 @@ fn ui_settings_exclusive(world: &mut World) {
             world.resource_scope(|world, occupied_screen_space: Mut<OccupiedScreenSpace>| {
                 world.resource_scope(|world, catppuccin_theme: Mut<CatppuccinTheme>| {
                     world.resource_scope(|world, cursor_coordinates: Mut<CursorCoordinates>| {
-                        ui_settings_panel(
-                            egui_context.get_mut(),
-                            ui_state,
-                            config,
-                            occupied_screen_space,
-                            cursor_coordinates,
-                            catppuccin_theme,
-                            world,
-                        );
+                        world.resource_scope(|world, currently_changing: Mut<ChangingBinding>| {
+                            ui_settings_panel(
+                                egui_context.get_mut(),
+                                ui_state,
+                                config,
+                                occupied_screen_space,
+                                cursor_coordinates,
+                                catppuccin_theme,
+                                world,
+                                currently_changing,
+                            );
+                        });
                     });
                 });
             });
@@ -113,15 +116,30 @@ fn ui_settings_panel(
     cursor_coordinates: Mut<CursorCoordinates>,
     catppuccin_theme: Mut<CatppuccinTheme>,
     world: &mut World,
+    mut currently_changing: Mut<ChangingBinding>,
 ) {
     // let ctx = contexts.ctx_mut();
     // let ctx = contexts.get_mut();
     let ctx = contexts;
 
+    let mut title_colors = [
+        catppuccin_theme.green(),
+        catppuccin_theme.blue(),
+        catppuccin_theme.mauve(),
+        catppuccin_theme.maroon(),
+        catppuccin_theme.lavender(),
+    ]
+    .into_iter()
+    .cycle();
+
     let right_panel = egui::SidePanel::right("Settings Panel")
-        .default_width(200.0)
-        .resizable(true)
+        // .default_width(200.0)
+        // .resizable(true)
         .show_animated(ctx, ui_state.right_panel, |ui| {
+            if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs {
+                currently_changing.refresh_cooldown();
+            }
+
             ui.add_space(10.0);
             ui.heading("Settings");
             ui.add_space(5.0);
@@ -131,12 +149,8 @@ fn ui_settings_panel(
                 .drag_to_scroll(true)
                 .show(ui, |ui| {
                     ui.add_space(10.0);
-                    custom::subheading(ui, "General", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.green())));
-                    egui::Grid::new("cool_grid")
-                        .num_columns(2)
-                        .min_col_width(100.0)
-                        .striped(false)
-                        .spacing((10.0, 10.0))
+                    custom::subheading(ui, "General", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
+                    custom::grid("settings_general_grid", 2)
                         .show(ui, |ui| {
                             // THEME SELECTOR
                             ui.label("Theme");
@@ -189,21 +203,24 @@ fn ui_settings_panel(
                                     ui.label("Custom Scale");
                                 },
                             );
-                            let slider_response = ui.add_enabled(
-                                matches!(ui_state.scale_type, UiScaleType::Custom),
-                                egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
-                                    .text("%")
-                                    .show_value(true),
-                            );
+                            let slider_response = custom::fill_x(ui, |ui| {
+                                ui.add_enabled(
+                                    matches!(ui_state.scale_type, UiScaleType::Custom),
+                                    egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
+                                        .text("%")
+                                        .show_value(true),
+                                )
+                            });
                             // Only trigger ui scale update when the slider is released or lost focus
                             // otherwise it would be imposssible to drag the slider while the ui is scaling
-                            if slider_response.drag_released() || slider_response.lost_focus() {
+                            if slider_response.response.drag_released() || slider_response.response.lost_focus() {
                                 world.send_event::<UiScaleEvent>(UiScaleEvent);
                                 // scale_event.send(UiScaleEvent);
                             }
+
                             ui.end_row();
                         });
-                    custom::subheading(ui, "Draw", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.blue())));
+                    custom::subheading(ui, "Draw", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
                     egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
                         egui::Grid::new("draw_grid")
                             .num_columns(2)
@@ -230,11 +247,11 @@ fn ui_settings_panel(
                                 }
                             });
                         });
-                        custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.mauve())));
+                        custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
 
                         let png_output_path = PathBuf::from("../../../factorgraphs").with_extension("png");
 
-                        custom::grid(ui, "export_grid", 3, |ui| {
+                        custom::grid( "export_grid", 3).show(ui, |ui| {
                             // GRAPHVIZ EXPORT TOGGLE
                             ui.label("Graphviz");
                             custom::fill_x(ui, |ui| {
@@ -256,8 +273,8 @@ fn ui_settings_panel(
                         // ui.add_space(10.0);
 
                         // INSPECTOR
-                        custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(catppuccin_theme.flavour.maroon())));
-                        custom::grid(ui, "inspector_grid", 3, |ui| {
+                        custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
+                        custom::grid("inspector_grid", 3).show(ui, |ui| {
                             ui.label("Cursor");
                             // y coordinate
                             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
@@ -296,6 +313,16 @@ fn ui_settings_panel(
                         ui.collapsing("Assets", |ui| {
                             bevy_inspector::ui_for_all_assets(world, ui);
                         });
+
+                        custom::subheading(ui, "Other", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
+                        custom::grid("other_grid", 2).show(ui, |ui| {
+                            ui.label("UI Focus Cancels Inputs");
+                            custom::float_right(ui, |ui| {
+                                custom::toggle_ui(ui, &mut config.interaction.ui_focus_cancels_inputs)
+                            });
+                        });
+
+                        ui.add_space(10.0);
                     });
         });
 

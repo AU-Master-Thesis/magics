@@ -295,12 +295,28 @@ impl Default for RobotSection {
     }
 }
 
+/// Interaction Section
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct InteractionSection {
+    pub ui_focus_cancels_inputs: bool,
+}
+
+impl Default for InteractionSection {
+    fn default() -> Self {
+        Self {
+            ui_focus_cancels_inputs: true,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Resource)]
 pub struct Config {
     /// Path to the **.png** containing the environment sdf
     pub environment: String,
     pub formation_group: String,
     pub visualisation: VisualisationSection,
+    pub interaction: InteractionSection,
     pub gbp: GbpSection,
     pub robot: RobotSection,
     pub simulation: SimulationSection,
@@ -321,6 +337,7 @@ impl Default for Config {
             environment: default_environment,
             formation_group: default_formation_group,
             visualisation: VisualisationSection::default(),
+            interaction: InteractionSection::default(),
             gbp: GbpSection::default(),
             robot: RobotSection::default(),
             simulation: SimulationSection::default(),

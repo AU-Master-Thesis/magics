@@ -3,21 +3,24 @@ use bevy::{
     prelude::*,
 };
 use bevy_egui::{
-    egui::{self, Color32, RichText},
+    egui::{self, Color32, Layout, Rect, RichText, Sense, Vec2, Vec2b},
     EguiContexts,
 };
+use egui_extras::{Column, TableBuilder};
 use leafwing_input_manager::{
     input_map::InputMap,
     user_input::{InputKind, UserInput},
+    Actionlike,
 };
 use strum::IntoEnumIterator;
 
 use crate::{
+    config::Config,
     input::{CameraAction, GeneralAction, InputAction, MoveableObjectAction, UiAction},
     theme::{CatppuccinTheme, FromCatppuccinColourExt},
 };
 
-use super::{OccupiedScreenSpace, ToDisplayString, UiState};
+use super::{custom, OccupiedScreenSpace, ToDisplayString, UiState};
 
 pub struct ControlsPanelPlugin;
 
@@ -72,11 +75,16 @@ impl ChangingBinding {
             self.cooldown = 0.0;
         }
     }
+
+    // Refresh the cooldown
+    pub fn refresh_cooldown(&mut self) {
+        self.cooldown = 0.1;
+    }
 }
 
 fn binding_cooldown_system(time: Res<Time>, mut currently_changing: ResMut<ChangingBinding>) {
     if currently_changing.on_cooldown() {
-        info!("Cooldown: {}", currently_changing.cooldown);
+        // info!("Cooldown: {}", currently_changing.cooldown);
         currently_changing.decrease_cooldown(time.delta_seconds());
     }
 }
@@ -91,19 +99,29 @@ fn ui_controls_panel(
     mut query_general_action: Query<&mut InputMap<GeneralAction>>,
     mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
     mut query_ui_action: Query<&mut InputMap<UiAction>>,
-    catppuccin: Res<CatppuccinTheme>,
+    catppuccin_theme: Res<CatppuccinTheme>,
     mut currently_changing: ResMut<ChangingBinding>,
+    config: Res<Config>,
 ) {
     let ctx = contexts.ctx_mut();
 
-    let grid_row_color = catppuccin.mantle();
+    let grid_row_color = catppuccin_theme.mantle();
     let grid_title_colors = [
-        catppuccin.green(),
-        catppuccin.blue(),
-        catppuccin.mauve(),
-        catppuccin.maroon(),
-        catppuccin.lavender(),
+        catppuccin_theme.green(),
+        catppuccin_theme.blue(),
+        catppuccin_theme.mauve(),
+        catppuccin_theme.maroon(),
+        catppuccin_theme.lavender(),
     ];
+    let mut title_colors = [
+        catppuccin_theme.green(),
+        catppuccin_theme.blue(),
+        catppuccin_theme.mauve(),
+        catppuccin_theme.maroon(),
+        catppuccin_theme.lavender(),
+    ]
+    .into_iter()
+    .cycle();
 
     let mut counter = 1; // offset by 1 to account for header row
     let mut grid_title_rows = Vec::with_capacity(InputAction::iter().count());
@@ -138,10 +156,11 @@ fn ui_controls_panel(
         .default_width(300.0)
         .resizable(false)
         .show_animated(ctx, ui_state.left_panel, |ui| {
-            // If the mouse if over the panel, cancel all simulation actions
-            if ui.ui_contains_pointer() {
-                *currently_changing = ChangingBinding::default().with_cooldown(0.1);
+            if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs
+            {
+                currently_changing.refresh_cooldown();
             }
+
             ui.add_space(10.0);
             ui.heading("Controls");
             ui.add_space(5.0);
@@ -153,260 +172,374 @@ fn ui_controls_panel(
                 .show(ui, |ui| {
                     // Inside the `ScrollArea`
                     ui.add_space(10.0);
-                    egui::Grid::new("controls_grid")
-                        .num_columns(3)
-                        .min_col_width(100.0)
-                        .spacing((10.0, 10.0))
-                        .with_row_color(move |r, _| {
-                            if grid_map_ranges.iter().any(|x| *x == r) {
-                                Some(Color32::from_catppuccin_colour(grid_row_color))
-                            } else if grid_title_rows.iter().any(|x| *x == r) {
-                                // TODO: Do this better
-                                Some(Color32::from_catppuccin_colour_with_alpha(
-                                    grid_title_colors[grid_title_rows
-                                        .iter()
-                                        .position(|&e| e == r)
-                                        .expect("In a conditional branch that ensures this")],
-                                    0.5,
-                                ))
-                            } else {
-                                None
-                            }
-                        })
-                        .show(ui, |ui| {
-                            let size = 15.0; // pt
-                            ui.label(RichText::new("Binding").size(size).color(
-                                // Color32::from_catppuccin_colour_with_alpha(catppuccin.lavender(), 0.5),
-                                Color32::from_catppuccin_colour(catppuccin.lavender()),
-                            ));
-                            ui.centered_and_justified(|ui| {
-                                ui.label(RichText::new("󰌌").size(size + 5.0).color(
-                                    // Color32::from_catppuccin_colour_with_alpha(catppuccin.lavender(), 0.5),
-                                    Color32::from_catppuccin_colour(catppuccin.lavender()),
-                                ));
+                    // egui::Grid::new("controls_grid")
+                    //     .num_columns(3)
+                    //     .min_col_width(100.0)
+                    //     .spacing((10.0, 10.0))
+                    //     .with_row_color(move |r, _| {
+                    //         if grid_map_ranges.iter().any(|x| *x == r) {
+                    //             Some(Color32::from_catppuccin_colour(grid_row_color))
+                    //         } else if grid_title_rows.iter().any(|x| *x == r) {
+                    //             // TODO: Do this better
+                    //             Some(Color32::from_catppuccin_colour_with_alpha(
+                    //                 grid_title_colors[grid_title_rows
+                    //                     .iter()
+                    //                     .position(|&e| e == r)
+                    //                     .expect("In a conditional branch that ensures this")],
+                    //                 // title_colors.next().expect("From cycle iterator"),
+                    //                 0.5,
+                    //             ))
+                    //         } else {
+                    //             None
+                    //         }
+                    //     })
+                    //     .show(ui, |ui| {
+
+                    // let row_height = 35.0;
+                    // let first_col_width = 200.0;
+                    // let binding_col_width = 100.0;
+                    // let spacing = 5.0;
+
+                    // custom::grid("title_grid", 3).show(ui, |ui| {
+                    //     let size = 15.0; // pt
+                    //     ui.label(RichText::new("Binding").size(size).color(
+                    //         Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
+                    //     ));
+                    //     ui.centered_and_justified(|ui| {
+                    //         ui.label(RichText::new("󰌌").size(size + 5.0).color(
+                    //             Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
+                    //         ));
+                    //     });
+
+                    //     ui.centered_and_justified(|ui| {
+                    //         ui.label(RichText::new("󰊗").size(size + 5.0).color(
+                    //             Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
+                    //         ));
+                    //     });
+                    // });
+
+                    let size = 15.0; // pt
+                    
+                    ui.push_id("binding_header_table", |ui| {
+                        custom::binding_table(ui)
+                            .striped(false)
+                            .body(|mut body| {
+                            body.row(custom::ROW_HEIGHT, |mut row| {
+                                row.col(|col| {
+                                    custom::center_y(col, |col| {
+                                        col.label(RichText::new("Binding").size(size).color(
+                                            Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
+                                        ));
+                                    });
+                                });
+                                row.col(|col| {
+                                    custom::fill_x(col, |col| {
+                                        col.label(RichText::new("󰌌").size(size + 5.0).color(
+                                            Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
+                                        ));
+                                    });
+                                });
+                                row.col(|col| {
+                                    custom::fill_x(col, |col| {
+                                        col.label(RichText::new("󰊗").size(size + 5.0).color(
+                                            Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
+                                        ));
+                                    });
+                                });
                             });
-
-                            ui.centered_and_justified(|ui| {
-                                ui.label(RichText::new("󰊗").size(size + 5.0).color(
-                                    // Color32::from_catppuccin_colour_with_alpha(catppuccin.lavender(), 0.5),
-                                    Color32::from_catppuccin_colour(catppuccin.lavender()),
-                                ));
-                            });
-
-                            ui.end_row();
-
-                            // go through all InputAction variants, and make a title for each
-                            // then nested go through each inner variant and make a button for each
-                            for action in InputAction::iter() {
-                                if matches!(action, InputAction::Undefined) {
-                                    continue;
-                                }
-                                ui.label(
-                                    RichText::new(action.to_string())
-                                        .italics()
-                                        .color(Color32::from_catppuccin_colour(catppuccin.base()))
-                                        .size(size),
-                                );
-
-                                ui.end_row();
-                                match action {
-                                    InputAction::MoveableObject(_) => {
-                                        // let map = query_moveable_object_action.single();
-                                        for map in query_moveable_object_action.iter() {
-                                            for inner_action in map.iter() {
-                                                ui.label(inner_action.0.to_string());
-
-                                                inner_action.1.iter().enumerate().for_each(
-                                                    |(i, x)| {
-                                                        ui.centered_and_justified(|ui| {
-                                                            let button_response =
-                                                                ui.button(RichText::new(
-                                                                    x.to_display_string(),
-                                                                ));
-                                                            if button_response.clicked() {
-                                                                *currently_changing =
-                                                                    ChangingBinding::new(
-                                                                        InputAction::MoveableObject(
-                                                                            *inner_action.0,
-                                                                        ),
-                                                                        i,
-                                                                    );
-                                                            }
-                                                        });
-                                                    },
-                                                );
-
-                                                for extra_column in 0..(2 - inner_action.1.len()) {
-                                                    ui.centered_and_justified(|ui| {
-                                                        let button_response =
-                                                            ui.button(RichText::new(""));
-
-                                                        if button_response.clicked() {
-                                                            *currently_changing =
-                                                                ChangingBinding::new(
-                                                                    InputAction::MoveableObject(
-                                                                        *inner_action.0,
-                                                                    ),
-                                                                    inner_action.1.len()
-                                                                        + extra_column,
-                                                                );
-                                                        }
-                                                    });
-                                                }
-
-                                                ui.end_row();
-                                            }
-                                        }
-                                    }
-                                    InputAction::General(_) => {
-                                        // let map = query_general_action.single();
-                                        for map in query_general_action.iter() {
-                                            for inner_action in map.iter() {
-                                                ui.label(inner_action.0.to_string());
-
-                                                inner_action.1.iter().enumerate().for_each(
-                                                    |(i, x)| {
-                                                        ui.centered_and_justified(|ui| {
-                                                            let button_response =
-                                                                ui.button(RichText::new(
-                                                                    x.to_display_string(),
-                                                                ));
-                                                            if button_response.clicked() {
-                                                                *currently_changing =
-                                                                    ChangingBinding::new(
-                                                                        InputAction::General(
-                                                                            *inner_action.0,
-                                                                        ),
-                                                                        i,
-                                                                    );
-                                                            }
-                                                        });
-                                                    },
-                                                );
-
-                                                for extra_column in 0..(2 - inner_action.1.len()) {
-                                                    ui.centered_and_justified(|ui| {
-                                                        let button_response =
-                                                            ui.button(RichText::new(""));
-
-                                                        if button_response.clicked() {
-                                                            *currently_changing =
-                                                                ChangingBinding::new(
-                                                                    InputAction::General(
-                                                                        *inner_action.0,
-                                                                    ),
-                                                                    inner_action.1.len()
-                                                                        + extra_column,
-                                                                );
-                                                        }
-                                                    });
-                                                }
-
-                                                ui.end_row();
-                                            }
-                                        }
-                                    }
-                                    InputAction::Camera(_) => {
-                                        // let map = query_camera_action.iter().next().unwrap();
-                                        for map in query_camera_action.iter() {
-                                            for inner_action in map.iter() {
-                                                ui.label(inner_action.0.to_string());
-
-                                                inner_action.1.iter().enumerate().for_each(
-                                                    |(i, x)| {
-                                                        ui.centered_and_justified(|ui| {
-                                                            let button_response =
-                                                                ui.button(RichText::new(
-                                                                    x.to_display_string(),
-                                                                ));
-                                                            if button_response.clicked() {
-                                                                *currently_changing =
-                                                                    ChangingBinding::new(
-                                                                        InputAction::Camera(
-                                                                            *inner_action.0,
-                                                                        ),
-                                                                        i,
-                                                                    );
-                                                            }
-                                                        });
-                                                    },
-                                                );
-
-                                                for extra_column in 0..(2 - inner_action.1.len()) {
-                                                    ui.centered_and_justified(|ui| {
-                                                        let button_response =
-                                                            ui.button(RichText::new(""));
-
-                                                        if button_response.clicked() {
-                                                            *currently_changing =
-                                                                ChangingBinding::new(
-                                                                    InputAction::Camera(
-                                                                        *inner_action.0,
-                                                                    ),
-                                                                    inner_action.1.len()
-                                                                        + extra_column,
-                                                                );
-                                                        }
-                                                    });
-                                                }
-
-                                                ui.end_row();
-                                            }
-                                        }
-                                    }
-                                    InputAction::Ui(_) => {
-                                        // let map = query_ui_action.single();
-                                        for map in query_ui_action.iter() {
-                                            for inner_action in map.iter() {
-                                                ui.label(inner_action.0.to_string());
-
-                                                inner_action.1.iter().enumerate().for_each(
-                                                    |(i, x)| {
-                                                        ui.centered_and_justified(|ui| {
-                                                            let button_response =
-                                                                ui.button(RichText::new(
-                                                                    x.to_display_string(),
-                                                                ));
-                                                            if button_response.clicked() {
-                                                                *currently_changing =
-                                                                    ChangingBinding::new(
-                                                                        InputAction::Ui(
-                                                                            *inner_action.0,
-                                                                        ),
-                                                                        i,
-                                                                    );
-                                                            }
-                                                        });
-                                                    },
-                                                );
-
-                                                for extra_column in 0..(2 - inner_action.1.len()) {
-                                                    ui.centered_and_justified(|ui| {
-                                                        let button_response =
-                                                            ui.button(RichText::new(""));
-
-                                                        if button_response.clicked() {
-                                                            *currently_changing =
-                                                                ChangingBinding::new(
-                                                                    InputAction::Ui(
-                                                                        *inner_action.0,
-                                                                    ),
-                                                                    inner_action.1.len()
-                                                                        + extra_column,
-                                                                );
-                                                        }
-                                                    });
-                                                }
-
-                                                ui.end_row();
-                                            }
-                                        }
-                                    }
-                                    _ => { /* do nothing */ }
-                                }
-                            }
                         });
+                    });
+
+                    // go through all InputAction variants, and make a title for each
+                    // then nested go through each inner variant and make a button for each
+
+                    for action in InputAction::iter() {
+                        if matches!(action, InputAction::Undefined) {
+                            continue;
+                        }
+                        match action {
+                            InputAction::MoveableObject(_) => {
+                                if query_moveable_object_action.iter().count() != 0 {
+                                    custom::subheading(
+                                        ui,
+                                        action.to_string().as_str(),
+                                        Some(Color32::from_catppuccin_colour(
+                                            title_colors.next().expect("From cycle iterator"),
+                                        )),
+                                    );
+                                }
+
+                                ui.push_id(format!("{}_table", action.to_string()), |ui| {
+                                    custom::binding_table(ui)
+                                        .body(|body| {
+                                            // for map in query_moveable_object_action.iter() {
+    
+                                            if let Ok(map) =
+                                                query_moveable_object_action.get_single_mut()
+                                            {
+                                                body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
+                                                    let row_index = row.index();
+                                                    
+                                                    let inner_action =
+                                                        map.iter().nth(row_index).expect(
+                                                            "Table row amount is equal to map length",
+                                                        );
+    
+                                                    row.col(|col| {
+                                                        col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
+                                                            col.label(inner_action.0.to_string());
+                                                        });
+                                                    });
+                                                    
+                                                    for r in 0..2 {
+                                                        let button_content = inner_action.1
+                                                            .get(r)
+                                                            .map_or_else(
+                                                                || "".to_string(),
+                                                                |ia| ia.to_display_string(),
+                                                        );
+
+                                                        row.col(|col| {
+                                                            col.add_space(custom::SPACING);
+                                                            let (rect, _) = col.allocate_exact_size(
+                                                                Vec2::new(
+                                                                    custom::BINDING_COL_WIDTH - 2.0 * custom::SPACING,
+                                                                    custom::ROW_HEIGHT - 2.0 * custom::SPACING
+                                                                ), Sense::hover());
+                                                            col.allocate_ui_at_rect(rect, |ui| {
+                                                                custom::fill_x(ui, |ui| {
+                                                                    if ui.button(RichText::new(
+                                                                        button_content,
+                                                                        )).clicked() {
+                                                                        *currently_changing =
+                                                                            ChangingBinding::new(
+                                                                                InputAction::MoveableObject(
+                                                                                    *inner_action.0,
+                                                                                ),
+                                                                                r,
+                                                                            );
+                                                                    }
+                                                                });
+                                                            });
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        });
+                                });
+                            }
+                            InputAction::General(_) => {
+                                if query_general_action.iter().count() != 0 {
+                                    custom::subheading(
+                                        ui,
+                                        action.to_string().as_str(),
+                                        Some(Color32::from_catppuccin_colour(
+                                            title_colors.next().expect("From cycle iterator"),
+                                        )),
+                                    );
+                                }
+                                
+                                ui.push_id(format!("{}_table", action.to_string()), |ui| {
+                                    custom::binding_table(ui)
+                                        .body(|body| {
+                                            // for map in query_general_action.iter() {
+    
+                                            if let Ok(map) = query_general_action.get_single_mut() {
+                                                body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
+                                                    let row_index = row.index();
+                                                    
+                                                    let inner_action =
+                                                        map.iter().nth(row_index).expect(
+                                                            "Table row amount is equal to map length",
+                                                        );
+    
+                                                    row.col(|col| {
+                                                        col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
+                                                            col.label(inner_action.0.to_string());
+                                                        });
+                                                    });
+    
+                                                    for r in 0..2 {
+                                                        let button_content = inner_action.1
+                                                            .get(r)
+                                                            .map_or_else(
+                                                                || "".to_string(),
+                                                                |ia| ia.to_display_string(),
+                                                        );
+
+                                                        row.col(|col| {
+                                                            col.add_space(custom::SPACING);
+                                                            let (rect, _) = col.allocate_exact_size(
+                                                                Vec2::new(
+                                                                    custom::BINDING_COL_WIDTH - 2.0 * custom::SPACING,
+                                                                    custom::ROW_HEIGHT - 2.0 * custom::SPACING
+                                                                ), Sense::hover());
+                                                            col.allocate_ui_at_rect(rect, |ui| {
+                                                                custom::fill_x(ui, |ui| {
+                                                                    if ui.button(RichText::new(
+                                                                        button_content,
+                                                                        )).clicked() {
+                                                                        *currently_changing =
+                                                                            ChangingBinding::new(
+                                                                                InputAction::General(
+                                                                                    *inner_action.0,
+                                                                                ),
+                                                                                r,
+                                                                            );
+                                                                    }
+                                                                });
+                                                            });
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        });
+                                });
+                            }
+                            InputAction::Camera(_) => {
+                                if query_camera_action.iter().count() != 0 {
+                                    custom::subheading(
+                                        ui,
+                                        action.to_string().as_str(),
+                                        Some(Color32::from_catppuccin_colour(
+                                            title_colors.next().expect("From cycle iterator"),
+                                        )),
+                                    );
+                                }
+                                
+                                ui.push_id(format!("{}_table", action.to_string()), |ui| {
+                                    custom::binding_table(ui)
+                                        .body(|body| {
+                                            // for map in query_camera_action.iter() {
+    
+                                            if let Ok(map) = query_camera_action.get_single_mut() {
+                                                body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
+                                                    let row_index = row.index();
+                                                    
+                                                    let inner_action =
+                                                        map.iter().nth(row_index).expect(
+                                                            "Table row amount is equal to map length",
+                                                        );
+    
+                                                    row.col(|col| {
+                                                        col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
+                                                            col.label(inner_action.0.to_string());
+                                                        });
+                                                    });
+                                                    
+                                                    for r in 0..2 {
+                                                        let button_content = inner_action.1
+                                                            .get(r)
+                                                            .map_or_else(
+                                                                || "".to_string(),
+                                                                |ia| ia.to_display_string(),
+                                                        );
+
+                                                        row.col(|col| {
+                                                            col.add_space(custom::SPACING);
+                                                            let (rect, _) = col.allocate_exact_size(
+                                                                Vec2::new(
+                                                                    custom::BINDING_COL_WIDTH - 2.0 * custom::SPACING,
+                                                                    custom::ROW_HEIGHT - 2.0 * custom::SPACING
+                                                                ), Sense::hover());
+                                                            col.allocate_ui_at_rect(rect, |ui| {
+                                                                custom::fill_x(ui, |ui| {
+                                                                    if ui.button(RichText::new(
+                                                                        button_content,
+                                                                        )).clicked() {
+                                                                        *currently_changing =
+                                                                            ChangingBinding::new(
+                                                                                InputAction::Camera(
+                                                                                    *inner_action.0,
+                                                                                ),
+                                                                                r,
+                                                                            );
+                                                                    }
+                                                                });
+                                                            });
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        });
+                                });
+                            }
+                            InputAction::Ui(_) => {
+                                if query_ui_action.iter().count() != 0 {
+                                    custom::subheading(
+                                        ui,
+                                        action.to_string().as_str(),
+                                        Some(Color32::from_catppuccin_colour(
+                                            title_colors.next().expect("From cycle iterator"),
+                                        )),
+                                    );
+                                }
+                                
+                                ui.push_id(format!("{}_table", action.to_string()), |ui| {
+                                    custom::binding_table(ui)
+                                        .body(|body| {
+                                            // for map in query_ui_action.iter() {
+    
+                                            if let Ok(map) = query_ui_action.get_single_mut() {
+                                                body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
+                                                    let row_index = row.index();
+                                                    
+                                                    let inner_action =
+                                                        map.iter().nth(row_index).expect(
+                                                            "Table row amount is equal to map length",
+                                                        );
+    
+                                                    row.col(|col| {
+                                                        col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
+                                                            col.label(inner_action.0.to_string());
+                                                        });
+                                                    });
+    
+                                                    // inner_action.1.iter().enumerate().for_each(
+                                                    for r in 0..2 {
+                                                        let button_content = inner_action.1
+                                                            .get(r)
+                                                            .map_or_else(
+                                                                || "".to_string(),
+                                                                |ia| ia.to_display_string(),
+                                                        );
+
+                                                        // |(i, x)| {
+                                                            row.col(|col| {
+                                                                col.add_space(custom::SPACING);
+                                                                let (rect, _) = col.allocate_exact_size(
+                                                                    Vec2::new(
+                                                                        custom::BINDING_COL_WIDTH - 2.0 * custom::SPACING,
+                                                                        custom::ROW_HEIGHT - 2.0 * custom::SPACING
+                                                                    ), Sense::hover());
+                                                                col.allocate_ui_at_rect(rect, |ui| {
+                                                                    custom::fill_x(ui, |ui| {
+                                                                        if ui.button(RichText::new(
+                                                                            button_content,
+                                                                            )).clicked() {
+                                                                            *currently_changing =
+                                                                                ChangingBinding::new(
+                                                                                    InputAction::Ui(
+                                                                                        *inner_action.0,
+                                                                                    ),
+                                                                                    r,
+                                                                                );
+                                                                        }
+                                                                    });
+                                                                });
+                                                            });
+                                                        // };
+                                                    }
+                                                });
+                                            }
+                                        });
+                                });
+                            }
+                            _ => { /* do nothing */ }
+                        }
+                    }
                 });
+            // });
 
             ui.separator();
             ui.add_space(10.0);
@@ -415,9 +548,9 @@ fn ui_controls_panel(
                 if !matches!(currently_changing.action, InputAction::Undefined) {
                     ui.columns(2, |columns| {
                         columns[0].label(
-                            RichText::new("Currently binding:")
-                                .italics()
-                                .color(Color32::from_catppuccin_colour(catppuccin.overlay2())),
+                            RichText::new("Currently binding:").italics().color(
+                                Color32::from_catppuccin_colour(catppuccin_theme.overlay2()),
+                            ),
                         );
                         columns[1].centered_and_justified(|ui| {
                             let _ = ui.button(currently_changing.action.to_display_string());
@@ -427,7 +560,7 @@ fn ui_controls_panel(
                     ui.label(
                         RichText::new("Select a binding to change")
                             .italics()
-                            .color(Color32::from_catppuccin_colour(catppuccin.overlay2())),
+                            .color(Color32::from_catppuccin_colour(catppuccin_theme.overlay2())),
                     );
                 }
             });
@@ -490,9 +623,10 @@ fn ui_controls_panel(
                     });
                 });
             }
-
-            // ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         });
+
+    // ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+    // });
 
     occupied_screen_space.left = left_panel
         .map(|ref inner| inner.response.rect.width())

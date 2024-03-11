@@ -1,6 +1,9 @@
 use bevy_egui::egui::{
-    self, Align, Align2, Color32, Direction, FontId, InnerResponse, Layout, RichText, Ui,
+    self, Align, Align2, Color32, Direction, FontId, Grid, InnerResponse, Layout, RichText, Ui,
+    Vec2b,
 };
+
+use egui_extras::{Column, TableBuilder};
 
 /// A simple function to float a widget to the right
 pub fn float_right<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
@@ -15,9 +18,14 @@ pub fn float_left<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> In
 /// A simple function to make a widget fill the available space in x
 pub fn fill_x<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
     ui.with_layout(
-        Layout::centered_and_justified(Direction::RightToLeft),
+        Layout::centered_and_justified(Direction::TopDown),
         add_contents,
     )
+}
+
+// A function to simplify vertically centering a widget
+pub fn center_y<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
+    ui.with_layout(Layout::left_to_right(Align::Center), add_contents)
 }
 
 /// A separator with color and space before and after
@@ -152,16 +160,29 @@ pub fn rect_label(
     response
 }
 
-pub fn grid<R>(
-    ui: &mut egui::Ui,
+pub fn grid(
+    // ui: &mut egui::Ui,
     name: &str,
     cols: usize,
-    add_contents: impl FnOnce(&mut Ui) -> R,
-) -> InnerResponse<R> {
-    egui::Grid::new(name)
+    // add_contents: impl FnOnce(&mut Ui) -> R,
+) -> Grid {
+    Grid::new(name)
         .num_columns(cols)
         .min_col_width(100.0)
         .striped(false)
         .spacing((10.0, 10.0))
-        .show(ui, add_contents)
+    // .show(ui, add_contents)
+}
+
+pub(crate) const ROW_HEIGHT: f32 = 35.0;
+pub(crate) const FIRST_COL_WIDTH: f32 = 200.0;
+pub(crate) const BINDING_COL_WIDTH: f32 = 100.0;
+pub(crate) const SPACING: f32 = 5.0;
+
+pub fn binding_table<'a>(ui: &'a mut Ui) -> TableBuilder<'a> {
+    TableBuilder::new(ui)
+        .column(Column::exact(FIRST_COL_WIDTH))
+        .columns(Column::exact(BINDING_COL_WIDTH), 2)
+        .vscroll(false)
+        .auto_shrink(Vec2b::new(false, true))
 }
