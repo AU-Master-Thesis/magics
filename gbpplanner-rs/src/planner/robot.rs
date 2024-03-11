@@ -9,7 +9,7 @@ use super::factorgraph::{FactorGraph, MessagePassingMode};
 use super::variable::Variable;
 use super::NodeIndex;
 use bevy::prelude::*;
-use gbp_linalg::prelude::*;
+use gbp_linalg::{prelude::*, pretty_print_matrix};
 use gbp_multivariate_normal::MultivariateNormal;
 use ndarray::{array, concatenate, s, Axis};
 use std::collections::HashMap;
@@ -52,14 +52,25 @@ impl Plugin for RobotPlugin {
                     delete_interrobot_factors_system,
                     create_interrobot_factors_system,
                     update_failed_comms_system,
-                    // iterate_gbp_system,
                     iterate_gbp_internal_system,
-                    // iterate_gbp_external_system,
+                    iterate_gbp_external_system,
                     update_prior_of_horizon_state_system,
                     update_prior_of_current_state_system,
                 )
                     .chain(),
             );
+
+        info!("built RobotPlugin, added:");
+        eprintln!(" - Resource: VariableTimestepsResource");
+        eprintln!(" - system:Update");
+        eprintln!("   - update_robot_neighbours_system");
+        eprintln!("   - delete_interrobot_factors_system");
+        eprintln!("   - create_interrobot_factors_system");
+        eprintln!("   - update_failed_comms_system");
+        eprintln!("   - iterate_gbp_internal_system");
+        eprintln!("   - iterate_gbp_external_system");
+        eprintln!("   - update_prior_of_horizon_state_system");
+        eprintln!("   - update_prior_of_current_state_system");
     }
 }
 
@@ -108,7 +119,7 @@ impl RobotState {
     }
 }
 
-#[derive(Bundle)]
+#[derive(Bundle, Debug)]
 pub struct RobotBundle {
     /// The factor graph that the robot is part of, and uses to perform GBP message passing.
     pub factorgraph: FactorGraph,
@@ -173,11 +184,10 @@ impl RobotBundle {
 
         let n_variables = variable_timesteps.len();
         let mut variable_node_indices = Vec::with_capacity(n_variables);
-        for i in 0..n_variables {
+        for (i, &variable_timestep) in variable_timesteps.iter().enumerate().take(n_variables) {
             // Set initial mean and covariance of variable interpolated between start and horizon
             let mean = start
-                + (horizon - start)
-                    * (variable_timesteps[i] as f32 / last_variable_timestep as f32);
+                + (horizon - start) * (variable_timestep as f32 / last_variable_timestep as f32);
 
             let sigma = if i == 0 || i == n_variables - 1 {
                 // Start and Horizon state variables should be 'fixed' during optimisation at a timestep
@@ -187,24 +197,43 @@ impl RobotBundle {
                 4e9
             };
 
-            let covariance = Matrix::<Float>::from_diag_elem(ndofs, sigma);
+            let precision_matrix = Matrix::<Float>::from_diag_elem(ndofs, sigma);
+            pretty_print_matrix!(&precision_matrix);
+
+            // let covariance = Matrix::<Float>::from_diag_elem(ndofs, sigma);
             // dbg!(&covariance);
-            let prior = MultivariateNormal::from_mean_and_covariance(
-                // array![mean.x as Float, mean.y as Float, 0.0, 0.0], // initial velocity (x', y') is zero
-                array![
-                    mean.x as Float,
-                    mean.y as Float,
-                    mean.z as Float,
-                    mean.w as Float
-                ], // initial velocity (x', y') is zero
-                covariance,
+            //
+            // pretty_print_matrix!(&covariance);
+
+            let mean = array![
+                mean.x as Float,
+                mean.y as Float,
+                mean.z as Float,
+                mean.w as Float
+            ];
+            let information_vector = precision_matrix.dot(&mean);
+            let prior = MultivariateNormal::from_information_and_precision(
+                information_vector,
+                precision_matrix,
             )
-            .expect("the covariance is nonsingular");
+            .expect("the precision matrix is nonsingular");
+
+            // let prior = MultivariateNormal::from_mean_and_covariance(
+            //     // array![mean.x as Float, mean.y as Float, 0.0, 0.0], // initial velocity (x', y') is zero
+            //     array![
+            //         mean.x as Float,
+            //         mean.y as Float,
+            //         mean.z as Float,
+            //         mean.w as Float
+            //     ], // initial velocity (x', y') is zero
+            //     covariance,
+            // )
+            // .expect("the covariance is nonsingular");
 
             // dbg!(&prior);
 
             let variable = Variable::new(prior, ndofs);
-            dbg!(&variable);
+            // dbg!(&variable);
             let variable_index = factorgraph.add_variable(variable);
             variable_node_indices.push(variable_index);
         }
@@ -247,6 +276,8 @@ impl RobotBundle {
         }
 
         // std::process::exit(0);
+
+        // dbg!(&factorgraph);
 
         Ok(Self {
             factorgraph,
@@ -430,58 +461,53 @@ macro_rules! iterate_gbp_impl {
     ($name:ident, $mode:expr) => {
         fn $name(
             mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
-            config: Res<Config>,
+            // config: Res<Config>,
         ) {
-            query
-                .par_iter_mut()
-                .for_each(|(robot_id, mut factorgraph)| {
-                    factorgraph.variable_iteration(robot_id, $mode);
-                });
-            query
-                .par_iter_mut()
-                .for_each(|(robot_id, mut factorgraph)| {
-                    factorgraph.factor_iteration(robot_id, $mode);
-                });
-            // for (robot_id, mut factorgraph) in query.par_iter_mut() {
-            //     factorgraph.factor_iteration(robot_id, $mode);
-            // }
-            // for (robot_id, mut factorgraph) in query.iter_mut() {
-            //     factorgraph.variable_iteration(robot_id, $mode);
-            // }
+            // query
+            //     .par_iter_mut()
+            //     .for_each(|(robot_id, mut factorgraph)| {
+            //         factorgraph.variable_iteration(robot_id, $mode);
+            //     });
+            // query
+            //     .par_iter_mut()
+            //     .for_each(|(robot_id, mut factorgraph)| {
+            //         factorgraph.factor_iteration(robot_id, $mode);
+            //     });
+            for (robot_id, mut factorgraph) in query.iter_mut() {
+                factorgraph.factor_iteration(robot_id, $mode);
+            }
+            for (robot_id, mut factorgraph) in query.iter_mut() {
+                factorgraph.variable_iteration(robot_id, $mode);
+            }
         }
     };
 }
 
-pub fn iterate_gbp_internal_system(
-    mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
-    config: Res<Config>,
-) {
-    for (robot_id, mut factorgraph) in query.iter_mut() {
-        factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
-    }
+// pub fn iterate_gbp_internal_system(
+//     mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
+//     config: Res<Config>,
+// ) {
+//     for (robot_id, mut factorgraph) in query.iter_mut() {
+//         factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
+//     }
+//
+//     for (robot_id, mut factorgraph) in query.iter_mut() {
+//         factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
+//     }
+//
+//     // query
+//     //     .par_iter_mut()
+//     //     .for_each(|(robot_id, mut factorgraph)| {
+//     //         factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
+//     //     });
+//     // query
+//     //     .par_iter_mut()
+//     //     .for_each(|(robot_id, mut factorgraph)| {
+//     //         factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
+//     //     });
+// }
 
-    for (robot_id, mut factorgraph) in query.iter_mut() {
-        factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
-    }
-
-    if query.iter().len() != 0 {
-        // eprintln!("query.iter().len() = {:?}", query.iter().len());
-        // std::process::exit(0);
-    }
-
-    // query
-    //     .par_iter_mut()
-    //     .for_each(|(robot_id, mut factorgraph)| {
-    //         factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
-    //     });
-    // query
-    //     .par_iter_mut()
-    //     .for_each(|(robot_id, mut factorgraph)| {
-    //         factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
-    //     });
-}
-
-// iterate_gbp_impl!(iterate_gbp_internal_system, MessagePassingMode::Internal);
+iterate_gbp_impl!(iterate_gbp_internal_system, MessagePassingMode::Internal);
 iterate_gbp_impl!(iterate_gbp_external_system, MessagePassingMode::External);
 
 // fn iterate_gbp_system(
@@ -512,7 +538,6 @@ fn update_prior_of_horizon_state_system(
     time: Res<Time>,
 ) {
     let delta_t = time.delta_seconds();
-    // eprintln!("delta_t = {:?}", delta_t);
     for (entity, mut factorgraph, mut waypoints) in query.iter_mut() {
         let Some(current_waypoint) = waypoints
             .0
@@ -535,6 +560,8 @@ fn update_prior_of_horizon_state_system(
             // dbg!(&current_waypoint);
             // dbg!(&mean_of_horizon_variable);
             let estimated_position = mean_of_horizon_variable.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
+            dbg!(&estimated_position);
+            dbg!(&current_waypoint);
             let horizon2goal_dir = current_waypoint - estimated_position;
             let horizon2goal_dist = horizon2goal_dir.euclidean_norm();
 
@@ -550,6 +577,11 @@ fn update_prior_of_horizon_state_system(
             (index, new_mean, horizon2goal_dist)
         };
 
+        println!(
+            "index = {:?}, horizon2goal_dist = {:?}",
+            index, horizon2goal_dist
+        );
+
         // TODO: cache the mean ...
         // horizon_variable.belief.mean()
 
@@ -559,6 +591,10 @@ fn update_prior_of_horizon_state_system(
         // vector, and get an empty HashMap as a return value.
         // let _ = horizon_variable.change_prior(new_mean, vec![]);
 
+        println!(
+            "horizon2goal_dist = {:?}, config.robot.radius = {:?}",
+            horizon2goal_dist, config.robot.radius
+        );
         // NOTE: this is weird, we think
         let horizon_has_reached_waypoint = horizon2goal_dist < config.robot.radius as Float;
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {

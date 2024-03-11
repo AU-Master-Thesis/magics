@@ -17,6 +17,7 @@ use crate::asset_loader::AssetLoaderPlugin;
 use crate::config::Config;
 use crate::config::FormationGroup;
 use crate::environment::EnvironmentPlugin;
+use crate::factorgraph::FactorGraphPlugin;
 use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
 use crate::movement::MovementPlugin;
@@ -26,8 +27,11 @@ use crate::theme::ThemePlugin;
 use crate::ui::EguiInterfacePlugin;
 
 use bevy::core::FrameCount;
+use bevy::log::tracing_subscriber::Layer;
+use bevy::log::LogPlugin;
 use bevy::prelude::*;
 
+use bevy::utils::tracing::Subscriber;
 use bevy::window::WindowMode;
 use bevy::window::WindowTheme;
 use clap::Parser;
@@ -76,6 +80,23 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
         Err(color_eyre::eyre::eyre!("No config file found"))
     }
 }
+
+// struct CustomLayer;
+
+// impl <S: Subscriber> Layer<S> for CustomLayer {
+//     fn on_event(&self, event: &bevy::utils::tracing::Event<'_>, _ctx: bevy::log::tracing_subscriber::layer::Context<'_, S>) {
+//         // println!("CustomLayer: {:?}", event);
+//         // eprintln!("CustomLayer: {:?}", event);
+//         // info!("CustomLayer: {:?}", event);
+//         // error!("CustomLayer: {:?}", event);
+//         if event.metadata().name() == "present_frames" {
+//             return;
+//         }
+
+
+//     }
+// }
+
 
 fn main() -> color_eyre::eyre::Result<()> {
     color_eyre::install()?;
@@ -128,35 +149,48 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     // info!("Config: {:?}", config);
 
+    let default_plugins = DefaultPlugins.set(
+        WindowPlugin {
+            primary_window: Some(Window {
+                title: "GBP Planner".into(),
+                // resolution: (1280.0, 720.0).into(),
+                // mode: WindowMode::BorderlessFullscreen,
+                mode: WindowMode::Windowed,
+                // present_mode: PresentMode::AutoVsync,
+                // fit_canvas_to_parent: true,
+                // prevent_default_event_handling: false,
+                window_theme: Some(WindowTheme::Dark),
+                // enable_buttons: bevy::window::EnableButtons {
+                //     maximize: false,
+                //     ..Default::default()
+                // },
+                visible: false,
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+    );
+    // .set(
+    //     LogPlugin {
+    //         // level: bevy::log::Level::ERROR,
+    //         // filter: "wgpu=error,bevy_render=info,bevy_ecs=trace".into(),
+    //         // update_subscriber: None,
+    //         update_subscriber: Some(|subscriber| {
+    //             Box::new(subscriber.with(CustomLayer))
+    //         })
+    //         , ..default()
+    //         // ..Default::default()
+    //     },
+    // );
+    
+
     let mut app = App::new();
     app.insert_resource(config)
         .insert_resource(formation)
         .add_plugins((
-            DefaultPlugins.set(
-                // **Bevy**
-                WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "GBP Planner".into(),
-                        // resolution: (1280.0, 720.0).into(),
-                        // mode: WindowMode::BorderlessFullscreen,
-                        mode: WindowMode::Windowed,
-                        // mode: WindowMode::Fullscreen,
-                        // present_mode: PresentMode::AutoVsync,
-                        // fit_canvas_to_parent: true,
-                        // prevent_default_event_handling: false,
-                        window_theme: Some(WindowTheme::Dark),
-                        // enable_buttons: bevy::window::EnableButtons {
-                        //     maximize: false,
-                        //     ..Default::default()
-                        // },
-                        visible: false,
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                },
-            ),
-            // FpsCounterPlugin,  // **Bevy**
+            default_plugins,
             ThemePlugin,       // Custom
+            // FpsCounterPlugin,  // **Bevy**
             AssetLoaderPlugin, // Custom
             EnvironmentPlugin, // Custom
             MovementPlugin,    // Custom
@@ -170,15 +204,17 @@ fn main() -> color_eyre::eyre::Result<()> {
             PlannerPlugin,       // Custom
                                  // WorldInspectorPlugin::new(),
         ))
+        // .add_systems(PostStartup, make_visible);
         .add_systems(Update, make_visible);
 
-    eprintln!("{:#?}", app);
+    // eprintln!("{:#?}", app);
 
     app.run();
 
     Ok(())
 }
 
+/// Make the window visible after a few frames to avoid a complete black frame before rendering.
 fn make_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) {
     // The delay may be different for your app or system.
     if frames.0 == 3 {

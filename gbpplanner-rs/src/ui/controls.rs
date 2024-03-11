@@ -108,7 +108,7 @@ fn ui_controls_panel(
     let mut counter = 1; // offset by 1 to account for header row
     let mut grid_title_rows = Vec::with_capacity(InputAction::iter().count());
     let grid_map_ranges = InputAction::iter()
-        .map(|variant| {
+        .flat_map(|variant| {
             grid_title_rows.push(counter);
             counter += 1;
             let start = counter;
@@ -131,7 +131,7 @@ fn ui_controls_panel(
 
             (start..end).step_by(2)
         })
-        .flatten()
+        // .flatten()
         .collect::<Vec<usize>>();
 
     let left_panel = egui::SidePanel::left("left_panel")

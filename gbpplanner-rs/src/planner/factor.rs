@@ -335,13 +335,24 @@ impl Model for PoseFactor {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ObstacleFactor {
     /// The signed distance field of the environment
     obstacle_sdf: &'static Image,
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy of here since
     /// `ObstacleFactor` needs this information to calculate `.jacobian_delta()` and `.measurement()`
     world_size: Float,
+}
+
+impl std::fmt::Debug for ObstacleFactor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ObstacleFactor")
+            // .field("obstacle_sdf", &self.obstacle_sdf)
+            .field("world_size", &self.world_size)
+            .finish()
+
+        // f.debug_struct("ObstacleFactor").field("obstacle_sdf", &self.obstacle_sdf).field("world_size", &self.world_size).finish()
+    }
 }
 
 impl ObstacleFactor {
@@ -371,8 +382,10 @@ impl Model for ObstacleFactor {
         // println!("obstacle_sdf.size: {:?}", self.obstacle_sdf.size());
         // dbg!(&self.world_size);
         let offset = self.world_size / 2.0;
+        dbg!(offset);
         let pixel_x = ((x[0] + offset) * scale) as u32;
         let pixel_y = ((x[1] + offset) * scale) as u32;
+        dbg!(pixel_x, pixel_y);
         // assert_eq!((self.obstacle_sdf.width() * self.obstacle_sdf.height() * 4) as usize, self.obstacle_sdf.data.len());
         // multiply by 4 because the image is in RGBA format,
         // and we simply use th R channel to determine value,
@@ -660,6 +673,11 @@ impl Factor {
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
         Self::new(state, kind)
+    }
+
+    #[inline(always)]
+    pub fn name(&self) -> &'static str {
+        self.kind.name()
     }
 
     #[inline(always)]

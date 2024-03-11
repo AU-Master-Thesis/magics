@@ -2206,6 +2206,7 @@ dependencies = [
  "approx",
  "arbtest",
  "ndarray",
+ "num-traits",
  "paste",
  "pretty_assertions",
 ]

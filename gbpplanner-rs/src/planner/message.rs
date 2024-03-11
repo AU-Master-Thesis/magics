@@ -72,6 +72,11 @@ impl Message {
         self.payload.is_none()
     }
 
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.dofs
+    }
+
     /// Take the inner `MultivariateNormal` from the message.
     /// Leaving the message in an empty state.
     #[inline]
@@ -104,7 +109,8 @@ impl Message {
     }
 
     pub fn new(normal: MultivariateNormal) -> Self {
-        Self { payload: Some(normal), dofs: normal.len() }
+        let dofs = normal.len();
+        Self { payload: Some(normal), dofs }
     }
 
     // pub fn new(
@@ -134,7 +140,7 @@ impl Message {
 
 impl From<MultivariateNormal> for Message {
     fn from(value: MultivariateNormal) -> Self {
-        Self { payload: Some(value), dofs: value.len() }
-        // Self::Content { gaussian: value }
+        let dofs = value.len();
+        Self { payload: Some(value), dofs }
     }
 }

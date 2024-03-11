@@ -1,8 +1,8 @@
+use gbp_multivariate_normal::MultivariateNormal;
 use ndarray::prelude::*;
 use ndarray_inverse::Inverse;
 
-use gbp_linalg::prelude::*;
-use ron::de;
+use gbp_linalg::{prelude::*, pretty_print_matrix, pretty_print_vector};
 
 use super::message::Message;
 
@@ -55,17 +55,30 @@ pub fn marginalise_factor_distance(
     variable_dofs: usize,
     marginalisation_idx: usize,
 ) -> Result<Message, &'static str> {
+    let ndofs = variable_dofs;
+    let marg_idx = marginalisation_idx;
+
     debug_assert_eq!(information_vector.len(), precision_matrix.nrows());
     debug_assert_eq!(precision_matrix.nrows(), precision_matrix.ncols());
+    pretty_print_vector!(&information_vector);
+    pretty_print_matrix!(&precision_matrix);
 
     let factor_only_connected_to_one_variable = information_vector.len() == variable_dofs;
     if factor_only_connected_to_one_variable {
         // dbg!(&information_vector);
         // dbg!(&precision_matrix);
         // TODO: return None
-        return Ok(Message::new(information_vector, precision_matrix).expect(
+        let mvn = MultivariateNormal::from_information_and_precision(
+            information_vector,
+            precision_matrix,
+        )
+        .inspect_err(|_| {
+            // pretty_print_matrix!(&precision_matrix);
+        })
+        .expect(
             "the given information vector and precision matrix is a valid multivariate gaussian",
-        ));
+        );
+        return Ok(Message::new(mvn));
     }
 
     // eprintln!(
@@ -77,8 +90,6 @@ pub fn marginalise_factor_distance(
 
     // eprintln!("show me precision_matrix = \n{:?}", precision_matrix);
 
-    let ndofs = variable_dofs;
-    let marg_idx = marginalisation_idx;
     // let iv = &information_vector;
     // let pm = &precision_matrix;
 
@@ -127,7 +138,7 @@ pub fn marginalise_factor_distance(
     // eprintln!("lam_bb = {:?}", lam_bb);
 
     let Some(lam_bb_inv) = lam_bb.to_owned().inv() else {
-        return Ok(Message::Empty(ndofs));
+        return Ok(Message::empty(ndofs));
     };
 
     // let lam_bb_inv = lam_bb.to_owned().inv().expect("should have an inverse");
@@ -138,13 +149,18 @@ pub fn marginalise_factor_distance(
     // eprintln!("precision_matrix = {:?}", precision_matrix);
 
     if precision_matrix.iter().any(|elem| elem.is_infinite()) {
-        Ok(Message::Empty(information_vector.len()))
+        Ok(Message::empty(information_vector.len()))
         // Message::with_dofs(information_vector.len())
         // Message::zeros(information_vector.len())
     } else {
-        Ok(Message::new(information_vector, precision_matrix).expect(
+        let mvn = MultivariateNormal::from_information_and_precision(
+            information_vector,
+            precision_matrix,
+        )
+        .expect(
             "the given information vector and precision matrix is a valid multivariate gaussian",
-        ))
+        );
+        Ok(Message::new(mvn))
     }
 }
 
@@ -246,7 +262,7 @@ mod tests {
         let ndofs = 4;
         let marginalisation_idx = 0;
 
-        let marginalised_msg = marginalise_factor_distance(
+        let mut marginalised_msg = marginalise_factor_distance(
             information_vector.clone(),
             precision_matrix.clone(),
             ndofs,
@@ -254,8 +270,10 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(marginalised_msg.information_vector(), information_vector);
-        assert_eq!(marginalised_msg.precision_matrix(), precision_matrix);
+        let mvn = marginalised_msg.take().unwrap();
+
+        assert_eq!(mvn.information_vector(), information_vector);
+        assert_eq!(mvn.precision_matrix(), precision_matrix);
     }
 
     // #[test]

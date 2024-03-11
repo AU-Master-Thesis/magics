@@ -1,10 +1,31 @@
 use std::collections::HashMap;
 
+use crate::utils::Indent;
+use crate::utils::PrettyPrint;
+
 use super::factorgraph::Inbox;
 use super::factorgraph::NodeIndex;
 use super::message::Message;
 use gbp_linalg::{Float, Vector};
 use gbp_multivariate_normal::MultivariateNormal;
+
+// NOTE: attempt at the typestate pattern
+// pub struct UninsertedVariable {
+//     prior: MultivariateNormal,
+//     dofs: usize,
+// }
+//
+// impl UninsertedVariable {
+//     pub fn insert(self, node_index: NodeIndex) -> Variable {
+//         Variable {
+//             node_index,
+//             prior: self.prior,
+//             belief: self.prior.clone(),
+//             dofs: self.dofs,
+//             inbox: Inbox::new(),
+//         }
+//     }
+// }
 
 /// A variable in the factor graph.
 #[derive(Debug, Clone)]
@@ -12,6 +33,7 @@ pub struct Variable {
     /// Unique identifier that associates the variable with a factorgraph/robot.
     /// TODO: use typestate pattern to always ensure a variable has a `node_index`
     pub node_index: Option<NodeIndex>,
+    // pub node_index: NodeIndex,
     /// In **gbpplanner** the `prior` is stored in 2 separate variables:
     /// 1. `eta_prior_` Information vector of prior on variable (essentially like a unary factor)
     /// 2. `lam_prior_` Precision matrix of prior on variable (essentially like a unary factor)
@@ -27,6 +49,19 @@ pub struct Variable {
 }
 
 impl Variable {
+    #[must_use]
+
+    // pub fn new(prior: MultivariateNormal, dofs: usize) -> UninsertedVariable {
+    //     UninsertedVariable { prior, dofs }
+    //     // Self {
+    //     //     node_index: None,
+    //     //     prior: prior.clone(),
+    //     //     belief: prior,
+    //     //     dofs,
+    //     //     inbox: Inbox::new(),
+    //     // }
+    // }
+
     pub fn new(prior: MultivariateNormal, dofs: usize) -> Self {
         // if !prior.precision_matrix().iter().all(|x| x.is_finite()) {
         //     // if (!lam_prior_.allFinite()) lam_prior_.setZero();
@@ -156,5 +191,25 @@ impl Variable {
                 (factor_index, response)
             })
             .collect()
+    }
+}
+
+// // TODO: turn into a trait
+// pub fn pretty_print(&self, indent: usize) {
+//     let indent = " ".repeat(indent);
+//     const RESET: &str = "\x1b[0m";
+//     const RED: &str = "\x1b[31m";
+//     const GREEN: &str = "\x1b[32m";
+//     const YELLOW: &str = "\x1b[33m";
+//     const BLUE: &str = "\x1b[34m";
+//
+//     println!("{}{}Varible{} {{", indent, BLUE, RESET);
+//
+//     println!("{}}}", indent);
+// }
+//
+impl PrettyPrint for Variable {
+    fn pretty_format(&self, indent: Indent) -> String {
+        todo!()
     }
 }
