@@ -82,7 +82,7 @@ impl ChangingBinding {
     }
 }
 
-fn binding_cooldown_system(time: Res<Time>, mut currently_changing: ResMut<ChangingBinding>) {
+fn binding_cooldown_system(time: Res<Time<Real>>, mut currently_changing: ResMut<ChangingBinding>) {
     if currently_changing.on_cooldown() {
         // info!("Cooldown: {}", currently_changing.cooldown);
         currently_changing.decrease_cooldown(time.delta_seconds());

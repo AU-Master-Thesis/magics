@@ -174,7 +174,7 @@ impl Plugin for MovementPlugin {
     }
 }
 
-fn update_velocity(mut query: Query<(&Acceleration, &mut Velocity)>, time: Res<Time>) {
+fn update_velocity(mut query: Query<(&Acceleration, &mut Velocity)>, time: Res<Time<Real>>) {
     for (acceleration, mut velocity) in query.iter_mut() {
         velocity.value += acceleration.value * time.delta_seconds();
     }
@@ -183,7 +183,7 @@ fn update_velocity(mut query: Query<(&Acceleration, &mut Velocity)>, time: Res<T
 #[allow(clippy::type_complexity)]
 fn update_position(
     mut query: Query<(&Velocity, &mut Transform), (Without<Orbit>, Without<Local>)>,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
 ) {
     for (velocity, mut transform) in query.iter_mut() {
         if velocity.value.abs_diff_eq(Vec3::ZERO, std::f32::EPSILON) {
@@ -196,7 +196,7 @@ fn update_position(
 #[allow(clippy::type_complexity)]
 fn update_position_local(
     mut query: Query<(&Velocity, &mut Transform), (With<Local>, Without<Orbit>)>,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
 ) {
     for (velocity, mut transform) in query.iter_mut() {
         if velocity.value.abs_diff_eq(Vec3::ZERO, std::f32::EPSILON) {
@@ -212,7 +212,7 @@ fn update_position_local(
 
 fn update_position_local_orbit(
     mut query: Query<(&mut Orbit, &Velocity, &mut Transform), With<Local>>,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
 ) {
     // translate both the orbit.origin point and the transform
     for (mut orbit, velocity, mut transform) in query.iter_mut() {
@@ -247,7 +247,7 @@ fn update_position_local_orbit(
 
 fn update_angular_velocity(
     mut query: Query<(&AngularAcceleration, &mut AngularVelocity)>,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
 ) {
     for (angular_acceleration, mut angular_velocity) in query.iter_mut() {
         angular_velocity.value += angular_acceleration.value * time.delta_seconds();
@@ -256,7 +256,7 @@ fn update_angular_velocity(
 
 fn update_rotation(
     mut query: Query<(&AngularVelocity, &mut Transform), Without<Orbit>>,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
 ) {
     for (angular_velocity, mut transform) in query.iter_mut() {
         let q = Quat::from_euler(
@@ -271,7 +271,7 @@ fn update_rotation(
 
 fn update_rotation_orbit(
     mut query: Query<(&Orbit, &AngularVelocity, &mut Transform)>,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
 ) {
     for (orbit, angular_velocity, mut transform) in query.iter_mut() {
         let yaw = Quat::from_axis_angle(Vec3::Y, angular_velocity.value.x * time.delta_seconds());

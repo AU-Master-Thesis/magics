@@ -1,12 +1,13 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{
-    egui::{self, Color32, Context},
+    egui::{self, Color32, Context, RichText},
     EguiContext, EguiContexts, EguiSettings,
 };
 
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
+use catppuccin::Colour;
 use struct_iterable::Iterable;
 use strum::IntoEnumIterator;
 
@@ -14,6 +15,7 @@ use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
     input::ScreenShotEvent,
+    planner::PausePlay,
     theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
 };
 
@@ -89,22 +91,48 @@ fn ui_settings_exclusive(world: &mut World) {
                 world.resource_scope(|world, catppuccin_theme: Mut<CatppuccinTheme>| {
                     world.resource_scope(|world, cursor_coordinates: Mut<CursorCoordinates>| {
                         world.resource_scope(|world, currently_changing: Mut<ChangingBinding>| {
-                            ui_settings_panel(
-                                egui_context.get_mut(),
-                                ui_state,
-                                config,
-                                occupied_screen_space,
-                                cursor_coordinates,
-                                catppuccin_theme,
-                                world,
-                                currently_changing,
-                            );
+                            world.resource_scope(|world, pause_play: Mut<PausePlay>| {
+                                world.resource_scope(|world, time: Mut<Time<Virtual>>| {
+                                    world.resource_scope(|world, time_fixed: Mut<Time<Fixed>>| {
+                                        ui_settings_panel(
+                                            egui_context.get_mut(),
+                                            ui_state,
+                                            config,
+                                            occupied_screen_space,
+                                            cursor_coordinates,
+                                            catppuccin_theme,
+                                            world,
+                                            currently_changing,
+                                            pause_play,
+                                            time,
+                                            time_fixed,
+                                        );
+                                    });
+                                });
+                            });
                         });
                     });
                 });
             });
         });
     });
+}
+
+struct TitleColors {
+    colors: [Colour; 5],
+    current: usize,
+}
+
+impl TitleColors {
+    pub fn new(colors: [Colour; 5]) -> Self {
+        Self { colors, current: 0 }
+    }
+
+    pub fn next(&mut self) -> Colour {
+        let color = self.colors[self.current];
+        self.current = (self.current + 1) % self.colors.len();
+        color
+    }
 }
 
 /// **Bevy** `Update` system to display the `egui` settings panel
@@ -118,24 +146,35 @@ fn ui_settings_panel(
     catppuccin_theme: Mut<CatppuccinTheme>,
     world: &mut World,
     mut currently_changing: Mut<ChangingBinding>,
+    mut pause_play: Mut<PausePlay>,
+    mut time: Mut<Time<Virtual>>,
+    mut time_fixed: Mut<Time<Fixed>>,
 ) {
     // let ctx = contexts.ctx_mut();
     // let ctx = contexts.get_mut();
     let ctx = contexts;
 
-    let mut title_colors = [
+    // let mut title_colors = [
+    //     catppuccin_theme.green(),
+    //     catppuccin_theme.blue(),
+    //     catppuccin_theme.mauve(),
+    //     catppuccin_theme.maroon(),
+    //     catppuccin_theme.lavender(),
+    // ]
+    // .into_iter()
+    // .cycle();
+
+    let mut title_colors = TitleColors::new([
         catppuccin_theme.green(),
         catppuccin_theme.blue(),
         catppuccin_theme.mauve(),
         catppuccin_theme.maroon(),
         catppuccin_theme.lavender(),
-    ]
-    .into_iter()
-    .cycle();
+    ]);
 
     let right_panel = egui::SidePanel::right("Settings Panel")
         // .default_width(200.0)
-        // .resizable(true)
+        .resizable(false)
         .show_animated(ctx, ui_state.right_panel, |ui| {
             if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs {
                 currently_changing.refresh_cooldown();
@@ -150,7 +189,7 @@ fn ui_settings_panel(
                 .drag_to_scroll(true)
                 .show(ui, |ui| {
                     ui.add_space(10.0);
-                    custom::subheading(ui, "General", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
+                    custom::subheading(ui, "General", Some(Color32::from_catppuccin_colour(title_colors.next())));
                     custom::grid("settings_general_grid", 2)
                         .show(ui, |ui| {
                         // THEME SELECTOR
@@ -204,17 +243,16 @@ fn ui_settings_panel(
                                 ui.label("Custom Scale");
                             },
                         );
-                        let slider_response = custom::fill_x(ui, |ui| {
+                        let slider_response =
                             ui.add_enabled(
                                 matches!(ui_state.scale_type, UiScaleType::Custom),
                                 egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
                                     .text("%")
                                     .show_value(true),
-                            )
-                        });
+                            );
                         // Only trigger ui scale update when the slider is released or lost focus
                         // otherwise it would be imposssible to drag the slider while the ui is scaling
-                        if slider_response.response.drag_released() || slider_response.response.lost_focus() {
+                        if slider_response.drag_released() || slider_response.lost_focus() {
                             world.send_event::<UiScaleEvent>(UiScaleEvent);
                             // scale_event.send(UiScaleEvent);
                         }
@@ -223,19 +261,15 @@ fn ui_settings_panel(
 
                         ui.label("Take Screenhot");
                         custom::fill_x(ui, |ui| {
-                            if ui.button("Take Screenshot").clicked() {
+                            if ui.button("").clicked() {
                                 world.send_event::<ScreenShotEvent>(ScreenShotEvent);
                             }
                         });
                     });
 
-                    custom::subheading(ui, "Draw", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
+                    custom::subheading(ui, "Draw", Some(Color32::from_catppuccin_colour(title_colors.next())));
                     egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
-                        egui::Grid::new("draw_grid")
-                            .num_columns(2)
-                            .min_col_width(100.0)
-                            .striped(false)
-                            .spacing((10.0, 10.0))
+                        custom::grid("draw_grid", 2)
                             .show(ui, |ui| {
                                 // CONFIG DRAW SECTION
                                 // This should add a toggle for each draw setting in the config
@@ -256,15 +290,64 @@ fn ui_settings_panel(
                                 }
                             });
                         });
-                        custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
+                        custom::subheading(ui, "Simulation", Some(Color32::from_catppuccin_colour(title_colors.next())));
+                        custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
+                            ui.label("Simulation Time");
+                            custom::rect_label(ui, format!("{:.2}", time_fixed.elapsed_seconds()), None);
+                            ui.end_row();
 
-                        let png_output_path = PathBuf::from("../../../factorgraphs").with_extension("png");
+                            // slider for simulation time between 0 and 100
+                            ui.label("Simulation Speed");
+                            //slider for simulation speed (time scale) between 0.1 and 10
+                            let slider_response =
+                                ui.add(egui::Slider::new(&mut config.simulation.time_scale, 0.1..=5.0).text("x").show_value(true));
+                            if slider_response.drag_released() || slider_response.lost_focus() {
+                                // time.set_time_scale(config.simulation.time_scale);
+                                info!("Time scale: {}", config.simulation.time_scale);
+                                time.set_relative_speed(config.simulation.time_scale);
+                            }
+                            ui.end_row();
+
+                            ui.label("Manual Controls");
+
+                            custom::grid("manual_controls_settings_grid", 2).show(ui,|ui| {
+
+                                // step forward button
+                                custom::fill_x(ui, |ui| {
+                                    if ui.button(RichText::new("󰒭").size(25.0)).on_hover_text("Step forward one step in the simulation").clicked() {
+                                        let step_size = config.simulation.manual_step_factor as f32 / config.simulation.hz as f32;
+                                        time_fixed.advance_by(Duration::from_secs_f32(step_size));
+                                    }
+                                });
+                                // pause/play button
+                                let pause_play_text = if pause_play.is_paused() { "" } else { "" };
+                                custom::fill_x(ui, |ui| {
+                                    if ui.button(pause_play_text).on_hover_text("Play or pause the simulation").clicked() {
+                                        // pause_play_event.send(PausePlayEvent);
+                                        pause_play.toggle();
+                                        if pause_play.is_paused() {
+                                            time.unpause();
+                                        } else {
+                                            time.pause();
+                                        }
+                                    }
+                                });
+
+                                // ui.end_row();
+                            });
+                            // ui.end_row();
+                        });
+
+                        custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(title_colors.next())));
+
+                        let png_output_path = PathBuf::from("./factorgraphs").with_extension("png");
 
                         custom::grid( "export_grid", 3).show(ui, |ui| {
                             // GRAPHVIZ EXPORT TOGGLE
                             ui.label("Graphviz");
                             custom::fill_x(ui, |ui| {
                                 if ui.button("Export").clicked() {
+                                    // world.send_event::<ExportGraphEvent>(ExportGraphEvent(Some(png_output_path)));
                                     world.send_event::<ExportGraphEvent>(ExportGraphEvent);
                                     // export_graph_event.send(ExportGraphEvent);
                                 }
@@ -282,7 +365,7 @@ fn ui_settings_panel(
                         // ui.add_space(10.0);
 
                         // INSPECTOR
-                        custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
+                        custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(title_colors.next())));
                         custom::grid("inspector_grid", 3).show(ui, |ui| {
                             ui.label("Cursor");
                             // y coordinate
@@ -323,7 +406,7 @@ fn ui_settings_panel(
                             bevy_inspector::ui_for_all_assets(world, ui);
                         });
 
-                        custom::subheading(ui, "Other", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
+                        custom::subheading(ui, "Other", Some(Color32::from_catppuccin_colour(title_colors.next())));
                         custom::grid("other_grid", 2).show(ui, |ui| {
                             ui.label("UI Focus Cancels Inputs");
                             custom::float_right(ui, |ui| {

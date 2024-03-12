@@ -184,6 +184,18 @@ pub struct SimulationSection {
     /// SI unit: s
     pub max_time: f32,
 
+    /// The relative scale of time in the simulation.
+    /// 1.0 means real-time, 0.5 means half-speed, 2.0 means double-speed, etc.
+    pub time_scale: f32,
+
+    /// How many steps of size 1.0 / hz to take when manually stepping the simulation.
+    /// SI unit: s
+    pub manual_step_factor: usize,
+
+    /// The fixed time step size to be used in the simulation.
+    /// SI unit: s
+    pub hz: f64,
+
     /// The side length of the smallest square that contains the entire simulated environment.
     /// Size of the environment in meters.
     /// SI unit: m
@@ -196,12 +208,13 @@ pub struct SimulationSection {
 impl Default for SimulationSection {
     fn default() -> Self {
         Self {
-            // num_robots: 1,
-            // timestep: 0.01,
             t0: 0.0,
             max_time: 10000.0,
+            time_scale: 1.0,
+            manual_step_factor: 1,
+            hz: 60.0,
             world_size: 100.0,
-            random_seed: 0usize,
+            random_seed: 0,
         }
     }
 }

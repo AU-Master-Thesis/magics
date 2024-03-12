@@ -97,7 +97,7 @@ impl Default for UiState {
     }
 }
 
-/// `Setup` **Bevy** sytem to initialise the `egui` visuals
+/// `Setup` **Bevy** system to initialise the `egui` visuals
 /// This is where the **default** for `egui` is set
 fn configure_visuals_system(mut contexts: EguiContexts, windows: Query<&Window>) {
     let window = windows.single();
