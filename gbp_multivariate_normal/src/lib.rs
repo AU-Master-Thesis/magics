@@ -2,6 +2,8 @@
 use gbp_linalg::{Float, GbpFloat, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
+pub mod dummy_normal;
+
 #[derive(Debug, thiserror::Error)]
 pub enum MultivariateNormalError {
     #[error("the precision matrix is not square, it has shape {0}x{1}")]
@@ -137,16 +139,6 @@ impl MultivariateNormal {
         self.information.clone_from(value);
         self.update();
     }
-
-    // pub fn update_precision_matrix(mut self, value: &Matrix<T>) -> Result<Self> {
-    //     if value.det() == T::zero() {
-    //         Err(MultivariateNormalError::NonInvertiblePrecisionMatrix)
-    //     } else {
-    //         self.precision.clone_from(value);
-    //         self.update();
-    //         Ok(self)
-    //     }
-    // }
 
     pub fn update_precision_matrix(&mut self, value: &Matrix<Float>) -> Result<()> {
         // if value.det() == Float::zero() {

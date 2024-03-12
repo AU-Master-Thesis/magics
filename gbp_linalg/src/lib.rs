@@ -1,16 +1,12 @@
 //! A small collection of extension traits and types for ndarray.
 
-// pub mod pretty_print;
-
-mod pretty_print;
+pub mod pretty_print;
 
 pub mod prelude {
     pub use super::{
         pretty_print::*, Float, GbpFloat, Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm,
         VectorView,
     };
-
-    // pub use ndarray::array;
 }
 
 /// Marker trait for floating point types used in GBP.
@@ -34,9 +30,6 @@ pub type Vector<T> = ndarray::Array1<T>;
 pub type Matrix<T> = ndarray::Array2<T>;
 pub type VectorView<'a, T> = ndarray::ArrayView1<'a, T>;
 pub type MatrixView<'a, T> = ndarray::ArrayView2<'a, T>;
-
-// reexport array! macro
-// pub use ndarray::array;
 
 pub trait VectorNorm {
     type Scalar: GbpFloat;

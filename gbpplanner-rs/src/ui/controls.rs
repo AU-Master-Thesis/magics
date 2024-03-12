@@ -126,7 +126,7 @@ fn ui_controls_panel(
     let mut counter = 1; // offset by 1 to account for header row
     let mut grid_title_rows = Vec::with_capacity(InputAction::iter().count());
     let grid_map_ranges = InputAction::iter()
-        .map(|variant| {
+        .flat_map(|variant| {
             grid_title_rows.push(counter);
             counter += 1;
             let start = counter;
@@ -149,7 +149,7 @@ fn ui_controls_panel(
 
             (start..end).step_by(2)
         })
-        .flatten()
+        // .flatten()
         .collect::<Vec<usize>>();
 
     let left_panel = egui::SidePanel::left("left_panel")
@@ -219,7 +219,7 @@ fn ui_controls_panel(
                     // });
 
                     let size = 15.0; // pt
-                    
+
                     ui.push_id("binding_header_table", |ui| {
                         custom::binding_table(ui)
                             .striped(false)
@@ -273,24 +273,24 @@ fn ui_controls_panel(
                                     custom::binding_table(ui)
                                         .body(|body| {
                                             // for map in query_moveable_object_action.iter() {
-    
+
                                             if let Ok(map) =
                                                 query_moveable_object_action.get_single_mut()
                                             {
                                                 body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
                                                     let row_index = row.index();
-                                                    
+
                                                     let inner_action =
                                                         map.iter().nth(row_index).expect(
                                                             "Table row amount is equal to map length",
                                                         );
-    
+
                                                     row.col(|col| {
                                                         col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
                                                             col.label(inner_action.0.to_string());
                                                         });
                                                     });
-                                                    
+
                                                     for r in 0..2 {
                                                         let button_content = inner_action.1
                                                             .get(r)
@@ -338,27 +338,27 @@ fn ui_controls_panel(
                                         )),
                                     );
                                 }
-                                
+
                                 ui.push_id(format!("{}_table", action.to_string()), |ui| {
                                     custom::binding_table(ui)
                                         .body(|body| {
                                             // for map in query_general_action.iter() {
-    
+
                                             if let Ok(map) = query_general_action.get_single_mut() {
                                                 body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
                                                     let row_index = row.index();
-                                                    
+
                                                     let inner_action =
                                                         map.iter().nth(row_index).expect(
                                                             "Table row amount is equal to map length",
                                                         );
-    
+
                                                     row.col(|col| {
                                                         col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
                                                             col.label(inner_action.0.to_string());
                                                         });
                                                     });
-    
+
                                                     for r in 0..2 {
                                                         let button_content = inner_action.1
                                                             .get(r)
@@ -406,27 +406,27 @@ fn ui_controls_panel(
                                         )),
                                     );
                                 }
-                                
+
                                 ui.push_id(format!("{}_table", action.to_string()), |ui| {
                                     custom::binding_table(ui)
                                         .body(|body| {
                                             // for map in query_camera_action.iter() {
-    
+
                                             if let Ok(map) = query_camera_action.get_single_mut() {
                                                 body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
                                                     let row_index = row.index();
-                                                    
+
                                                     let inner_action =
                                                         map.iter().nth(row_index).expect(
                                                             "Table row amount is equal to map length",
                                                         );
-    
+
                                                     row.col(|col| {
                                                         col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
                                                             col.label(inner_action.0.to_string());
                                                         });
                                                     });
-                                                    
+
                                                     for r in 0..2 {
                                                         let button_content = inner_action.1
                                                             .get(r)
@@ -474,27 +474,27 @@ fn ui_controls_panel(
                                         )),
                                     );
                                 }
-                                
+
                                 ui.push_id(format!("{}_table", action.to_string()), |ui| {
                                     custom::binding_table(ui)
                                         .body(|body| {
                                             // for map in query_ui_action.iter() {
-    
+
                                             if let Ok(map) = query_ui_action.get_single_mut() {
                                                 body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
                                                     let row_index = row.index();
-                                                    
+
                                                     let inner_action =
                                                         map.iter().nth(row_index).expect(
                                                             "Table row amount is equal to map length",
                                                         );
-    
+
                                                     row.col(|col| {
                                                         col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
                                                             col.label(inner_action.0.to_string());
                                                         });
                                                     });
-    
+
                                                     // inner_action.1.iter().enumerate().for_each(
                                                     for r in 0..2 {
                                                         let button_content = inner_action.1

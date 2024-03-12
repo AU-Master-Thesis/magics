@@ -13,6 +13,7 @@ impl Plugin for FollowCamerasPlugin {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Component)]
 pub struct PID {
     pub p: f32,
@@ -31,15 +32,9 @@ impl Default for PID {
 }
 
 /// `Component` to tag an entity to be followed by a `FollowCamera`
-#[derive(Component, Debug, Clone, Copy)]
+#[derive(Component, Debug, Default, Clone, Copy)]
 pub struct FollowCameraMe {
     pub offset: Option<Vec3>,
-}
-
-impl Default for FollowCameraMe {
-    fn default() -> Self {
-        Self { offset: None }
-    }
 }
 
 /// `Component` to store the settings for a `FollowCamera`

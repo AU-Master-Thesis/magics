@@ -8,8 +8,6 @@ pub use formation::FormationGroup;
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
 
-use crate::ui::ToDisplayString;
-
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
     #[error("IO error: {0}")]
@@ -60,12 +58,12 @@ impl Default for GraphvizSection {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct HeighSection {
+pub struct HeightSection {
     pub objects: f32,
     pub height_map: f32,
 }
 
-impl Default for HeighSection {
+impl Default for HeightSection {
     fn default() -> Self {
         Self {
             objects: 0.5,
@@ -86,23 +84,23 @@ impl Default for UncertaintySection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct VisualisationSection {
-    pub height: HeighSection,
+    pub height: HeightSection,
     pub draw: DrawSection,
     pub uncertainty: UncertaintySection,
 }
 
-impl Default for VisualisationSection {
-    fn default() -> Self {
-        Self {
-            height: HeighSection::default(),
-            draw: DrawSection::default(),
-            uncertainty: UncertaintySection::default(),
-        }
-    }
-}
+// impl Default for VisualisationSection {
+//     fn default() -> Self {
+//         Self {
+//             height: HeighSection::default(),
+//             draw: DrawSection::default(),
+//             uncertainty: UncertaintySection::default(),
+//         }
+//     }
+// }
 
 #[derive(Debug, Clone)]
 pub enum DrawSetting {

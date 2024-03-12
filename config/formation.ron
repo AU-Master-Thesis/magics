@@ -2,39 +2,49 @@
   formations: [
     (
       repeat: false,
-      delay: 0.5,
-      robots: 10,
+      delay: 1.0,
+      robots: 3,
       waypoints: [
         (
           shape: line(((
-            x: 0.0,
-            y: 0.0,
+            x: 0.35,
+            y: 0,
           ), (
-            x: 1.0,
-            y: 0.0,
+            x: 0.45,
+            y: 0,
           ))),
-          r#placement-strategy: random,
+          r#placement-strategy: equal,
         ),
         (
           shape: line(((
-            x: 0.4,
-            y: 0.4,
+            x: 0.35,
+            y: 0.5,
           ), (
-            x: 0.6,
-            y: 0.6,
+            x: 0.45,
+            y: 0.5,
           ))),
           r#placement-strategy: map,
         ),
-        (
-          shape: line(((
-            x: 0.0,
-            y: 0.4,
-          ), (
-            x: 0.0,
-            y: 0.6,
-          ))),
-          r#placement-strategy: map,
-        ),
+        // (
+        //   shape: line(((
+        //     x: 0.4,
+        //     y: 0.4,
+        //   ), (
+        //     x: 0.6,
+        //     y: 0.6,
+        //   ))),
+        //   r#placement-strategy: map,
+        // ),
+        // (
+        //   shape: line(((
+        //     x: 0.0,
+        //     y: 0.4,
+        //   ), (
+        //     x: 0.0,
+        //     y: 0.6,
+        //   ))),
+        //   r#placement-strategy: map,
+        // ),
       ],
     ),
   ],

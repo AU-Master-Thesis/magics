@@ -13,8 +13,8 @@ use strum::IntoEnumIterator;
 use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
-    theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
     input::ScreenShotEvent,
+    theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
 };
 
 use super::{custom, ChangingBinding, OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
@@ -209,7 +209,7 @@ fn ui_settings_panel(
                                 matches!(ui_state.scale_type, UiScaleType::Custom),
                                 egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
                                     .text("%")
-                                    .show_value(true),  
+                                    .show_value(true),
                             )
                         });
                         // Only trigger ui scale update when the slider is released or lost focus
@@ -351,7 +351,7 @@ fn scale_ui(
             let scale_factor = match ui_state.scale_type {
                 UiScaleType::None => 1.0,
                 UiScaleType::Custom => ui_state.scale_percent as f32 / 100.0,
-                UiScaleType::Window => 1.0 / window.scale_factor() as f32,
+                UiScaleType::Window => 1.0 / window.scale_factor(),
             };
             egui_settings.scale_factor = scale_factor;
         }

@@ -88,20 +88,20 @@ impl Default for AngularMovementBundle {
     }
 }
 
-#[derive(Bundle)]
+#[derive(Bundle, Default)]
 pub struct MovementBundle {
     pub linear_movement: LinearMovementBundle,
     pub angular_movement: AngularMovementBundle,
 }
 
-impl Default for MovementBundle {
-    fn default() -> Self {
-        Self {
-            linear_movement: LinearMovementBundle::default(),
-            angular_movement: AngularMovementBundle::default(),
-        }
-    }
-}
+// impl Default for MovementBundle {
+//     fn default() -> Self {
+//         Self {
+//             linear_movement: LinearMovementBundle::default(),
+//             angular_movement: AngularMovementBundle::default(),
+//         }
+//     }
+// }
 
 #[derive(Bundle)]
 pub struct MovingObjectBundle {
@@ -120,22 +120,22 @@ impl Default for MovingObjectBundle {
     }
 }
 
-#[derive(Bundle)]
+#[derive(Bundle, Default)]
 pub struct MovingMeshBundle {
     pub linear_movement: LinearMovementBundle,
     pub angular_movement: AngularMovementBundle,
     pub model: PbrBundle,
 }
 
-impl Default for MovingMeshBundle {
-    fn default() -> Self {
-        Self {
-            linear_movement: Default::default(),
-            angular_movement: Default::default(),
-            model: Default::default(),
-        }
-    }
-}
+// impl Default for MovingMeshBundle {
+//     fn default() -> Self {
+//         Self {
+//             linear_movement: Default::default(),
+//             angular_movement: Default::default(),
+//             model: Default::default(),
+//         }
+//     }
+// }
 
 #[derive(Bundle)]
 pub struct OrbitMovementBundle {

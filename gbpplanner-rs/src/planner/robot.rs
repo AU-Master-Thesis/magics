@@ -9,7 +9,7 @@ use super::factorgraph::{FactorGraph, MessagePassingMode};
 use super::variable::Variable;
 use super::NodeIndex;
 use bevy::prelude::*;
-use gbp_linalg::prelude::*;
+use gbp_linalg::{prelude::*, pretty_print_matrix};
 use gbp_multivariate_normal::MultivariateNormal;
 use ndarray::{array, concatenate, s, Axis};
 use std::collections::HashMap;
@@ -18,9 +18,9 @@ pub struct RobotPlugin;
 
 pub type RobotId = Entity;
 
-/// Sigma for Unary pose factor on current and horizon states
-/// from **gbpplanner** `Globals.h`
-const SIGMA_POSE_FIXED: f32 = 1e-6;
+// /// Sigma for Unary pose factor on current and horizon states
+// /// from **gbpplanner** `Globals.h`
+// const SIGMA_POSE_FIXED: f32 = 1e-6;
 
 #[derive(Resource)]
 pub struct VariableTimestepsResource {
@@ -52,14 +52,25 @@ impl Plugin for RobotPlugin {
                     delete_interrobot_factors_system,
                     create_interrobot_factors_system,
                     update_failed_comms_system,
-                    // iterate_gbp_system,
                     iterate_gbp_internal_system,
-                    // iterate_gbp_external_system,
+                    iterate_gbp_external_system,
                     update_prior_of_horizon_state_system,
                     update_prior_of_current_state_system,
                 )
                     .chain(),
             );
+
+        info!("built RobotPlugin, added:");
+        eprintln!(" - Resource: VariableTimestepsResource");
+        eprintln!(" - system:Update");
+        eprintln!("   - update_robot_neighbours_system");
+        eprintln!("   - delete_interrobot_factors_system");
+        eprintln!("   - create_interrobot_factors_system");
+        eprintln!("   - update_failed_comms_system");
+        eprintln!("   - iterate_gbp_internal_system");
+        eprintln!("   - iterate_gbp_external_system");
+        eprintln!("   - update_prior_of_horizon_state_system");
+        eprintln!("   - update_prior_of_current_state_system");
     }
 }
 
@@ -108,7 +119,7 @@ impl RobotState {
     }
 }
 
-#[derive(Bundle)]
+#[derive(Bundle, Debug)]
 pub struct RobotBundle {
     /// The factor graph that the robot is part of, and uses to perform GBP message passing.
     pub factorgraph: FactorGraph,
@@ -173,38 +184,57 @@ impl RobotBundle {
 
         let n_variables = variable_timesteps.len();
         let mut variable_node_indices = Vec::with_capacity(n_variables);
-        for i in 0..n_variables {
+        for (i, &variable_timestep) in variable_timesteps.iter().enumerate().take(n_variables) {
             // Set initial mean and covariance of variable interpolated between start and horizon
             let mean = start
-                + (horizon - start)
-                    * (variable_timesteps[i] as f32 / last_variable_timestep as f32);
+                + (horizon - start) * (variable_timestep as f32 / last_variable_timestep as f32);
 
             let sigma = if i == 0 || i == n_variables - 1 {
                 // Start and Horizon state variables should be 'fixed' during optimisation at a timestep
                 // SIGMA_POSE_FIXED
                 1e30
             } else {
-                4e9
+                // 4e9
+                Float::INFINITY
             };
 
-            let covariance = Matrix::<Float>::from_diag_elem(ndofs, sigma);
+            let precision_matrix = Matrix::<Float>::from_diag_elem(ndofs, sigma);
+            pretty_print_matrix!(&precision_matrix);
+
+            // let covariance = Matrix::<Float>::from_diag_elem(ndofs, sigma);
             // dbg!(&covariance);
-            let prior = MultivariateNormal::from_mean_and_covariance(
-                // array![mean.x as Float, mean.y as Float, 0.0, 0.0], // initial velocity (x', y') is zero
-                array![
-                    mean.x as Float,
-                    mean.y as Float,
-                    mean.z as Float,
-                    mean.w as Float
-                ], // initial velocity (x', y') is zero
-                covariance,
-            )
-            .expect("the covariance is nonsingular");
+            //
+            // pretty_print_matrix!(&covariance);
+
+            let mean = array![
+                mean.x as Float,
+                mean.y as Float,
+                mean.z as Float,
+                mean.w as Float
+            ];
+            // let information_vector = precision_matrix.dot(&mean);
+            // let prior = MultivariateNormal::from_information_and_precision(
+            //     information_vector,
+            //     precision_matrix,
+            // )
+            // .expect("the precision matrix is nonsingular");
+
+            // let prior = MultivariateNormal::from_mean_and_covariance(
+            //     // array![mean.x as Float, mean.y as Float, 0.0, 0.0], // initial velocity (x', y') is zero
+            //     array![
+            //         mean.x as Float,
+            //         mean.y as Float,
+            //         mean.z as Float,
+            //         mean.w as Float
+            //     ], // initial velocity (x', y') is zero
+            //     covariance,
+            // )
+            // .expect("the covariance is nonsingular");
 
             // dbg!(&prior);
 
-            let variable = Variable::new(prior, ndofs);
-            // dbg!(&variable);
+            // let variable = Variable::new(prior, ndofs);
+            let variable = Variable::new(mean, precision_matrix, ndofs);
             let variable_index = factorgraph.add_variable(variable);
             variable_node_indices.push(variable_index);
         }
@@ -248,11 +278,12 @@ impl RobotBundle {
 
         // std::process::exit(0);
 
+        // dbg!(&factorgraph);
+
         Ok(Self {
             factorgraph,
             radius: Radius(config.robot.radius),
             state: RobotState::new(),
-            // transform,
             waypoints: Waypoints(waypoints),
         })
     }
@@ -366,13 +397,13 @@ fn create_interrobot_factors_system(
         })
         .collect();
 
-    let variable_amount = variable_timesteps.timesteps.len();
+    let number_of_variables = variable_timesteps.timesteps.len();
 
     let variable_indices_of_each_factorgraph: HashMap<RobotId, Vec<NodeIndex>> = query
         .iter()
         .map(|(robot_id, factorgraph, _)| {
             let variable_indices = factorgraph
-                .variable_indices_ordered_by_creation(1..variable_amount)
+                .variable_indices_ordered_by_creation(1..number_of_variables)
                 .expect("the factorgraph has up to `n_variables` variables");
             (robot_id, variable_indices)
         })
@@ -386,7 +417,7 @@ fn create_interrobot_factors_system(
             let other_variable_indices = variable_indices_of_each_factorgraph
                 .get(other_robot_id)
                 .expect("the key is in the map");
-            for i in 1..variable_amount {
+            for i in 1..number_of_variables {
                 // TODO: do not hardcode
                 let dofs = 4;
                 let z = Vector::<Float>::zeros(dofs);
@@ -397,6 +428,7 @@ fn create_interrobot_factors_system(
                     index_of_connected_variable_in_other_robots_factorgraph: other_variable_indices
                         [i - 1],
                 };
+                // TODO: notify the variable that it is connected to another robot
                 let interrobot_factor = Factor::new_interrobot_factor(
                     config.gbp.sigma_factor_interrobot as Float,
                     z,
@@ -408,7 +440,7 @@ fn create_interrobot_factors_system(
                 let variable_index = factorgraph
                     .nth_variable_index(i)
                     .expect("there should be an i'th variable");
-                factorgraph.add_edge(factor_index, variable_index);
+                factorgraph.add_edge(variable_index, factor_index);
             }
 
             robotstate
@@ -430,59 +462,76 @@ macro_rules! iterate_gbp_impl {
     ($name:ident, $mode:expr) => {
         fn $name(
             mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
-            config: Res<Config>,
+            // config: Res<Config>,
         ) {
-            query
-                .par_iter_mut()
-                .for_each(|(robot_id, mut factorgraph)| {
-                    factorgraph.variable_iteration(robot_id, $mode);
-                });
-            query
-                .par_iter_mut()
-                .for_each(|(robot_id, mut factorgraph)| {
-                    factorgraph.factor_iteration(robot_id, $mode);
-                });
-            // for (robot_id, mut factorgraph) in query.par_iter_mut() {
-            //     factorgraph.factor_iteration(robot_id, $mode);
-            // }
-            // for (robot_id, mut factorgraph) in query.iter_mut() {
-            //     factorgraph.variable_iteration(robot_id, $mode);
-            // }
+            // query
+            //     .par_iter_mut()
+            //     .for_each(|(robot_id, mut factorgraph)| {
+            //         factorgraph.variable_iteration(robot_id, $mode);
+            //     });
+            // query
+            //     .par_iter_mut()
+            //     .for_each(|(robot_id, mut factorgraph)| {
+            //         factorgraph.factor_iteration(robot_id, $mode);
+            //     });
+            for (robot_id, mut factorgraph) in query.iter_mut() {
+                factorgraph.factor_iteration(robot_id, $mode);
+            }
+            for (robot_id, mut factorgraph) in query.iter_mut() {
+                factorgraph.variable_iteration(robot_id, $mode);
+            }
         }
     };
 }
 
-pub fn iterate_gbp_internal_system(
-    mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
-    config: Res<Config>,
-) {
-    for (robot_id, mut factorgraph) in query.iter_mut() {
-        factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
-    }
+fn iterate_gbp_internal_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
+    let mode = MessagePassingMode::Internal;
 
     for (robot_id, mut factorgraph) in query.iter_mut() {
-        factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
+        factorgraph.factor_iteration(robot_id, mode);
     }
-
-    if query.iter().len() != 0 {
-        // eprintln!("query.iter().len() = {:?}", query.iter().len());
-        // std::process::exit(0);
+    for (robot_id, mut factorgraph) in query.iter_mut() {
+        factorgraph.variable_iteration(robot_id, mode);
     }
-
-    // query
-    //     .par_iter_mut()
-    //     .for_each(|(robot_id, mut factorgraph)| {
-    //         factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
-    //     });
-    // query
-    //     .par_iter_mut()
-    //     .for_each(|(robot_id, mut factorgraph)| {
-    //         factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
-    //     });
 }
 
+fn iterate_gbp_external_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
+    let mode = MessagePassingMode::External;
+
+    for (robot_id, mut factorgraph) in query.iter_mut() {
+        factorgraph.factor_iteration(robot_id, mode);
+    }
+    for (robot_id, mut factorgraph) in query.iter_mut() {
+        factorgraph.variable_iteration(robot_id, mode);
+    }
+}
+
+// pub fn iterate_gbp_internal_system(
+//     mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
+//     config: Res<Config>,
+// ) {
+//     for (robot_id, mut factorgraph) in query.iter_mut() {
+//         factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
+//     }
+//
+//     for (robot_id, mut factorgraph) in query.iter_mut() {
+//         factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
+//     }
+//
+//     // query
+//     //     .par_iter_mut()
+//     //     .for_each(|(robot_id, mut factorgraph)| {
+//     //         factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
+//     //     });
+//     // query
+//     //     .par_iter_mut()
+//     //     .for_each(|(robot_id, mut factorgraph)| {
+//     //         factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
+//     //     });
+// }
+
 // iterate_gbp_impl!(iterate_gbp_internal_system, MessagePassingMode::Internal);
-iterate_gbp_impl!(iterate_gbp_external_system, MessagePassingMode::External);
+// iterate_gbp_impl!(iterate_gbp_external_system, MessagePassingMode::External);
 
 // fn iterate_gbp_system(
 //     mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
@@ -512,7 +561,6 @@ fn update_prior_of_horizon_state_system(
     time: Res<Time>,
 ) {
     let delta_t = time.delta_seconds();
-    // eprintln!("delta_t = {:?}", delta_t);
     for (entity, mut factorgraph, mut waypoints) in query.iter_mut() {
         let Some(current_waypoint) = waypoints
             .0
@@ -524,17 +572,20 @@ fn update_prior_of_horizon_state_system(
         };
 
         let (index, new_mean, horizon2goal_dist) = {
-            let horizon_variable = factorgraph
+            let (index, horizon_variable) = factorgraph
                 .last_variable()
                 .expect("factorgraph has a horizon variable");
 
-            let index = horizon_variable.node_index.unwrap();
+            // let index = horizon_variable.node_index.unwrap();
 
-            let mean_of_horizon_variable = horizon_variable.belief.mean();
+            // let mean_of_horizon_variable = horizon_variable.belief.mean();
+            let mean_of_horizon_variable = &horizon_variable.mu;
             debug_assert_eq!(mean_of_horizon_variable.len(), 4);
             // dbg!(&current_waypoint);
             // dbg!(&mean_of_horizon_variable);
             let estimated_position = mean_of_horizon_variable.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
+            dbg!(&estimated_position);
+            dbg!(&current_waypoint);
             let horizon2goal_dir = current_waypoint - estimated_position;
             let horizon2goal_dist = horizon2goal_dir.euclidean_norm();
 
@@ -550,6 +601,11 @@ fn update_prior_of_horizon_state_system(
             (index, new_mean, horizon2goal_dist)
         };
 
+        println!(
+            "index = {:?}, horizon2goal_dist = {:?}",
+            index, horizon2goal_dist
+        );
+
         // TODO: cache the mean ...
         // horizon_variable.belief.mean()
 
@@ -559,6 +615,10 @@ fn update_prior_of_horizon_state_system(
         // vector, and get an empty HashMap as a return value.
         // let _ = horizon_variable.change_prior(new_mean, vec![]);
 
+        println!(
+            "horizon2goal_dist = {:?}, config.robot.radius = {:?}",
+            horizon2goal_dist, config.robot.radius
+        );
         // NOTE: this is weird, we think
         let horizon_has_reached_waypoint = horizon2goal_dist < config.robot.radius as Float;
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
@@ -575,26 +635,21 @@ fn update_prior_of_current_state_system(
     time: Res<Time>,
 ) {
     let scale = time.delta_seconds() / config.simulation.t0;
-    // dbg!(&scale);
 
     for (mut factorgraph, mut transform) in query.iter_mut() {
         let (current_variable_index, mean_of_current_variable, increment) = {
-            let current_variable = factorgraph
+            let (current_index, current_variable) = factorgraph
                 .nth_variable(0)
                 .expect("factorgraph should have a current variable");
-            let next_variable = factorgraph
+            let (_, next_variable) = factorgraph
                 .nth_variable(1)
                 .expect("factorgraph should have a next variable");
 
-            let index = current_variable.node_index.unwrap();
+            // let mean_of_current_variable = current_variable.belief.mean().clone();
+            let mean_of_current_variable = current_variable.mu.clone();
+            let increment = scale as Float * (&next_variable.mu - &mean_of_current_variable);
 
-            let mean_of_current_variable = current_variable.belief.mean().clone();
-            // dbg!(&mean_of_current_variable);
-            // dbg!(&next_variable.belief.mean());
-            let increment =
-                scale as Float * (next_variable.belief.mean() - &mean_of_current_variable);
-
-            (index, mean_of_current_variable, increment)
+            (current_index, mean_of_current_variable, increment)
         };
 
         // dbg!(&increment);
@@ -604,8 +659,8 @@ fn update_prior_of_current_state_system(
             current_variable_index,
             mean_of_current_variable + &increment,
         );
+        #[allow(clippy::cast_possible_truncation)]
         let increment = Vec3::new(increment[0] as f32, 0.0, increment[1] as f32);
-        // dbg!(&increment);
         transform.translation += increment;
     }
 }

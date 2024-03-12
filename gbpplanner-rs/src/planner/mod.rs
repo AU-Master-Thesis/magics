@@ -15,10 +15,6 @@ pub use robot::RobotState;
 pub use visualiser::factorgraphs::VariableVisualiser;
 pub use visualiser::waypoints::WaypointVisualiser;
 
-// use gbp_linalg::*;
-
-// pub type Timestep = u32;
-
 use self::robot::RobotPlugin;
 use self::spawner::SpawnerPlugin;
 use self::visualiser::VisualiserPlugin;
@@ -29,5 +25,6 @@ pub struct PlannerPlugin;
 impl Plugin for PlannerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((RobotPlugin, SpawnerPlugin, VisualiserPlugin));
+        info!("built PlannerPlugin, added RobotPlugin, SpawnerPlugin, VisualiserPlugin");
     }
 }

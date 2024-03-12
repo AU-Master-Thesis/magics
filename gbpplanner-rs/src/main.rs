@@ -18,6 +18,7 @@ use crate::asset_loader::AssetLoaderPlugin;
 use crate::config::Config;
 use crate::config::FormationGroup;
 use crate::environment::EnvironmentPlugin;
+use crate::factorgraph::FactorGraphPlugin;
 use crate::input::InputPlugin;
 use crate::moveable_object::MoveableObjectPlugin;
 use crate::movement::MovementPlugin;
@@ -28,8 +29,11 @@ use crate::toggle_fullscreen::ToggleFullscreenPlugin;
 use crate::ui::EguiInterfacePlugin;
 
 use bevy::core::FrameCount;
+use bevy::log::tracing_subscriber::Layer;
+use bevy::log::LogPlugin;
 use bevy::prelude::*;
 
+use bevy::utils::tracing::Subscriber;
 use bevy::window::WindowMode;
 use bevy::window::WindowTheme;
 use clap::Parser;
@@ -85,6 +89,21 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
     }
 }
 
+// struct CustomLayer;
+
+// impl <S: Subscriber> Layer<S> for CustomLayer {
+//     fn on_event(&self, event: &bevy::utils::tracing::Event<'_>, _ctx: bevy::log::tracing_subscriber::layer::Context<'_, S>) {
+//         // println!("CustomLayer: {:?}", event);
+//         // eprintln!("CustomLayer: {:?}", event);
+//         // info!("CustomLayer: {:?}", event);
+//         // error!("CustomLayer: {:?}", event);
+//         if event.metadata().name() == "present_frames" {
+//             return;
+//         }
+
+//     }
+// }
+
 fn main() -> color_eyre::eyre::Result<()> {
     color_eyre::install()?;
 
@@ -135,11 +154,7 @@ fn main() -> color_eyre::eyre::Result<()> {
                         title: "GBP Planner".into(),
                         // resolution: (1280.0, 720.0).into(),
                         // mode: WindowMode::BorderlessFullscreen,
-                        mode: if cli.fullscreen {
-                            WindowMode::BorderlessFullscreen
-                        } else {
-                            WindowMode::Windowed
-                        },
+                        mode: WindowMode::Windowed,
                         // mode: WindowMode::Fullscreen,
                         // present_mode: PresentMode::AutoVsync,
                         // fit_canvas_to_parent: true,
@@ -156,7 +171,7 @@ fn main() -> color_eyre::eyre::Result<()> {
                 },
             ),
             // FpsCounterPlugin,  // **Bevy**
-            ThemePlugin,       // Custom
+            ThemePlugin, // Custom
             AssetLoaderPlugin, // Custom
             EnvironmentPlugin, // Custom
             MovementPlugin,    // Custom
@@ -171,6 +186,7 @@ fn main() -> color_eyre::eyre::Result<()> {
             PlannerPlugin,       // Custom
                                  // WorldInspectorPlugin::new(),
         ))
+        // .add_systems(PostStartup, make_visible);
         .add_systems(Update, make_visible);
 
     // eprintln!("{:#?}", app);
@@ -180,6 +196,7 @@ fn main() -> color_eyre::eyre::Result<()> {
     Ok(())
 }
 
+/// Make the window visible after a few frames to avoid a complete black frame before rendering.
 fn make_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) {
     // The delay may be different for your app or system.
     if frames.0 == 3 {

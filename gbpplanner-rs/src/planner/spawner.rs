@@ -220,6 +220,7 @@ fn random_positions_on_shape(shape: &Shape, amount: usize, world_size: f32) -> V
     positions
         .into_iter()
         .map(|p| world_size * (p - 0.5))
+        // .map(|p| world_size * (p))
         .collect()
 }
 

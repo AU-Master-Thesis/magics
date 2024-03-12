@@ -3,6 +3,8 @@ use crate::{asset_loader::SceneAssets, config::Config};
 
 use bevy::prelude::*;
 
+use gbp_linalg::pretty_print_matrix;
+
 pub struct UncertaintyVisualiserPlugin;
 
 impl Plugin for UncertaintyVisualiserPlugin {
@@ -41,12 +43,12 @@ fn init_uncertainty(
         // Mark the robot with `HasUncertaintyVisualiser` to exclude next time
         commands.entity(entity).insert(HasUncertaintyVisualiser);
 
-        factorgraph.variables().for_each(|v| {
-            let mean = v.belief.mean();
+        factorgraph.variables().for_each(|(index, v)| {
+            // let mean = v.belief.mean();
             let transform = Vec3::new(
-                mean[0] as f32,
+                v.mu[0] as f32,
                 config.visualisation.height.objects - 2.0 * Z_FIGHTING_OFFSET, // just under the lines (z-fighting prevention)
-                mean[1] as f32,
+                v.mu[1] as f32,
             );
 
             // if the covariance is too large, we won't be able to visualise it
@@ -60,7 +62,7 @@ fn init_uncertainty(
             //  [b, c, _, _],
             //  [_, _, _, _],
             //  [_, _, _, _]]
-            let covariance = v.belief.covariance();
+            let covariance = &v.sigma;
 
             // half major axis λ₁ and half minor axis λ₂
             // λ₁ = (a + c) / 2 + √((a - c)² / 4 + b²)
@@ -106,7 +108,7 @@ fn init_uncertainty(
 
             // Spawn a `UncertaintyVisualiser` component with a corresponding 2D circle
             commands.spawn((
-                RobotTracker::new(entity).with_variable_id(v.get_node_index().index()),
+                RobotTracker::new(entity).with_variable_id(index.index()),
                 UncertaintyVisualiser,
                 PbrBundle {
                     mesh,
@@ -159,14 +161,15 @@ fn update_uncertainty(
             }
 
             // else look through the variables
-            for v in factorgraph.variables() {
+            for (index, v) in factorgraph.variables() {
                 // continue if we're not looking at the right variable
-                if v.get_node_index().index() != tracker.variable_id {
+                if index.index() != tracker.variable_id {
                     continue;
                 }
 
-                let mean = v.belief.mean();
-                let covariance = v.belief.covariance();
+                let mean = &v.mu;
+                let covariance = &v.sigma;
+                // pretty_print_matrix!(covariance);
 
                 let mut attenable = true;
                 let new_mesh = meshes.add(Ellipse::new(

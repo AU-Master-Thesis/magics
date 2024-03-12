@@ -69,6 +69,7 @@
           ];
           buildInputs =
             [
+              nodejs
               just
               d2
               graphviz

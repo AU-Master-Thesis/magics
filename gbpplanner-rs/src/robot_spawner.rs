@@ -20,18 +20,11 @@ pub struct RobotSpawnedEvent {
 #[derive(Component)]
 struct Robot;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, States)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash, States)]
 pub struct RobotsState {
     pub amount: usize,
 }
 
-impl Default for RobotsState {
-    fn default() -> Self {
-        Self { amount: 0 }
-    }
-}
-
-// Define the plugin
 pub struct RobotSpawnerPlugin;
 
 impl Plugin for RobotSpawnerPlugin {
@@ -83,7 +76,7 @@ fn spawn_robot_periodically(
                 PbrBundle {
                     mesh,
                     material,
-                    transform: transform.clone(),
+                    transform,
                     ..Default::default()
                 },
                 MovementBundle {
@@ -102,7 +95,7 @@ fn spawn_robot_periodically(
                 },
                 Local,
                 Robot,
-                follow_camera_flag.clone(),
+                follow_camera_flag,
             ))
             .id();
 

@@ -1,4 +1,4 @@
-use bevy::render::texture::Image;
+use bevy::{log::warn, render::texture::Image};
 
 use gbp_linalg::{pretty_print_matrix, Float, Matrix, Vector, VectorNorm};
 use ndarray::{array, concatenate, s, Axis, Slice};
@@ -224,7 +224,7 @@ impl DynamicFactor {
         // };
 
         // dbg!(delta_t);
-        // dbg!(&state.strength);
+        // :(&state.strength);
         // std::process::exit(1);
         // Eigen::MatrixXd Qc_inv = pow(sigma, -2.) * I;
         #[allow(clippy::similar_names)]
@@ -335,13 +335,24 @@ impl Model for PoseFactor {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ObstacleFactor {
     /// The signed distance field of the environment
     obstacle_sdf: &'static Image,
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy of here since
     /// `ObstacleFactor` needs this information to calculate `.jacobian_delta()` and `.measurement()`
     world_size: Float,
+}
+
+impl std::fmt::Debug for ObstacleFactor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ObstacleFactor")
+            // .field("obstacle_sdf", &self.obstacle_sdf)
+            .field("world_size", &self.world_size)
+            .finish()
+
+        // f.debug_struct("ObstacleFactor").field("obstacle_sdf", &self.obstacle_sdf).field("world_size", &self.world_size).finish()
+    }
 }
 
 impl ObstacleFactor {
@@ -366,13 +377,33 @@ impl Model for ObstacleFactor {
     }
 
     fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+        debug_assert!(x.len() >= 2, "x.len() = {}", x.len());
         // White areas are obstacles, so h(0) should return a 1 for these regions.
         let scale = self.obstacle_sdf.width() as Float / self.world_size;
-        // println!("obstacle_sdf.size: {:?}", self.obstacle_sdf.size());
-        // dbg!(&self.world_size);
+        // let offset = (self.world_size / 2.0) as usize;
         let offset = self.world_size / 2.0;
+        if (x[0] + offset) * scale > self.obstacle_sdf.width() as Float {
+            warn!(
+                "x[0] + offset = {}, scale = {}, width = {}",
+                (x[0] + offset) * scale,
+                scale,
+                self.obstacle_sdf.width()
+            );
+            return array![0.0];
+        }
+        if (x[1] + offset) * scale > self.obstacle_sdf.height() as Float {
+            warn!(
+                "x[1] + offset = {}, scale = {}, height = {}",
+                (x[1] + offset) * scale,
+                scale,
+                self.obstacle_sdf.height()
+            );
+            return array![0.0];
+        }
+        // dbg!(offset);
         let pixel_x = ((x[0] + offset) * scale) as u32;
         let pixel_y = ((x[1] + offset) * scale) as u32;
+        // dbg!(pixel_x, pixel_y);
         // assert_eq!((self.obstacle_sdf.width() * self.obstacle_sdf.height() * 4) as usize, self.obstacle_sdf.data.len());
         // multiply by 4 because the image is in RGBA format,
         // and we simply use th R channel to determine value,
@@ -660,6 +691,11 @@ impl Factor {
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
         Self::new(state, kind)
+    }
+
+    #[inline(always)]
+    pub fn name(&self) -> &'static str {
+        self.kind.name()
     }
 
     #[inline(always)]
