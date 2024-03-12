@@ -49,8 +49,6 @@ pub struct Variable {
 }
 
 impl Variable {
-    #[must_use]
-
     // pub fn new(prior: MultivariateNormal, dofs: usize) -> UninsertedVariable {
     //     UninsertedVariable { prior, dofs }
     //     // Self {
@@ -62,14 +60,13 @@ impl Variable {
     //     // }
     // }
 
-    pub fn new(prior: MultivariateNormal, dofs: usize) -> Self {
-        // if !prior.precision_matrix().iter().all(|x| x.is_finite()) {
-        //     // if (!lam_prior_.allFinite()) lam_prior_.setZero();
-
-        //     prior.precision_matrix.fill(0.0);
-        // }
+    #[must_use]
+    pub fn new(mut prior: MultivariateNormal, dofs: usize) -> Self {
+        // if (!lam_prior_.allFinite()) lam_prior_.setZero();
+        if !prior.precision_matrix().iter().all(|x| x.is_finite()) {
+            prior.precision_matrix().fill(0.0);
+        }
         Self {
-            // node_index: None,
             prior: prior.clone(),
             belief: prior,
             dofs,

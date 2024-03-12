@@ -1,4 +1,4 @@
-use bevy::render::texture::Image;
+use bevy::{log::warn, render::texture::Image};
 
 use gbp_linalg::{pretty_print_matrix, Float, Matrix, Vector, VectorNorm};
 use ndarray::{array, concatenate, s, Axis, Slice};
@@ -377,12 +377,30 @@ impl Model for ObstacleFactor {
     }
 
     fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+        debug_assert!(x.len() >= 2, "x.len() = {}", x.len());
         // White areas are obstacles, so h(0) should return a 1 for these regions.
         let scale = self.obstacle_sdf.width() as Float / self.world_size;
-        // println!("obstacle_sdf.size: {:?}", self.obstacle_sdf.size());
-        // dbg!(&self.world_size);
-        let offset = self.world_size / 2.0;
-        dbg!(offset);
+        // let offset = (self.world_size / 2.0) as usize;
+        let offset = (self.world_size / 2.0);
+        if (x[0] + offset) * scale > self.obstacle_sdf.width() as Float {
+            warn!(
+                "x[0] + offset = {}, scale = {}, width = {}",
+                (x[0] + offset) * scale,
+                scale,
+                self.obstacle_sdf.width()
+            );
+            return array![0.0];
+        }
+        if (x[1] + offset) * scale > self.obstacle_sdf.height() as Float {
+            warn!(
+                "x[1] + offset = {}, scale = {}, height = {}",
+                (x[1] + offset) * scale,
+                scale,
+                self.obstacle_sdf.height()
+            );
+            return array![0.0];
+        }
+        // dbg!(offset);
         let pixel_x = ((x[0] + offset) * scale) as u32;
         let pixel_y = ((x[1] + offset) * scale) as u32;
         dbg!(pixel_x, pixel_y);

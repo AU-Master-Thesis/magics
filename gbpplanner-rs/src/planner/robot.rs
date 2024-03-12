@@ -397,13 +397,13 @@ fn create_interrobot_factors_system(
         })
         .collect();
 
-    let variable_amount = variable_timesteps.timesteps.len();
+    let number_of_variables = variable_timesteps.timesteps.len();
 
     let variable_indices_of_each_factorgraph: HashMap<RobotId, Vec<NodeIndex>> = query
         .iter()
         .map(|(robot_id, factorgraph, _)| {
             let variable_indices = factorgraph
-                .variable_indices_ordered_by_creation(1..variable_amount)
+                .variable_indices_ordered_by_creation(1..number_of_variables)
                 .expect("the factorgraph has up to `n_variables` variables");
             (robot_id, variable_indices)
         })
@@ -417,7 +417,7 @@ fn create_interrobot_factors_system(
             let other_variable_indices = variable_indices_of_each_factorgraph
                 .get(other_robot_id)
                 .expect("the key is in the map");
-            for i in 1..variable_amount {
+            for i in 1..number_of_variables {
                 // TODO: do not hardcode
                 let dofs = 4;
                 let z = Vector::<Float>::zeros(dofs);
@@ -428,6 +428,7 @@ fn create_interrobot_factors_system(
                     index_of_connected_variable_in_other_robots_factorgraph: other_variable_indices
                         [i - 1],
                 };
+                // TODO: notify the variable that it is connected to another robot
                 let interrobot_factor = Factor::new_interrobot_factor(
                     config.gbp.sigma_factor_interrobot as Float,
                     z,
@@ -611,22 +612,17 @@ fn update_prior_of_current_state_system(
     time: Res<Time>,
 ) {
     let scale = time.delta_seconds() / config.simulation.t0;
-    // dbg!(&scale);
 
     for (mut factorgraph, mut transform) in query.iter_mut() {
         let (current_variable_index, mean_of_current_variable, increment) = {
             let (current_index, current_variable) = factorgraph
                 .nth_variable(0)
                 .expect("factorgraph should have a current variable");
-            let (next_index, next_variable) = factorgraph
+            let (_, next_variable) = factorgraph
                 .nth_variable(1)
                 .expect("factorgraph should have a next variable");
 
-            // let index = current_variable.node_index.unwrap();
-
             let mean_of_current_variable = current_variable.belief.mean().clone();
-            // dbg!(&mean_of_current_variable);
-            // dbg!(&next_variable.belief.mean());
             let increment =
                 scale as Float * (next_variable.belief.mean() - &mean_of_current_variable);
 
@@ -640,8 +636,8 @@ fn update_prior_of_current_state_system(
             current_variable_index,
             mean_of_current_variable + &increment,
         );
+        #[allow(clippy::cast_possible_truncation)]
         let increment = Vec3::new(increment[0] as f32, 0.0, increment[1] as f32);
-        // dbg!(&increment);
         transform.translation += increment;
     }
 }
