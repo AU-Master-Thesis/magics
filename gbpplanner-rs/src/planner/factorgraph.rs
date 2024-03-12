@@ -67,6 +67,7 @@ pub mod graphviz {
             }
         }
 
+        // TODO: return a float
         pub fn width(&self) -> &'static str {
             match self {
                 Self::Variable { .. } => "0.8",
@@ -436,7 +437,8 @@ impl FactorGraph {
                             }
                         },
                         Node::Variable(variable) => {
-                            let mean = variable.belief.mean();
+                            // let mean = variable.belief.mean();
+                            let mean = &variable.mu;
                             graphviz::NodeKind::Variable {
                                 x: mean[0] as f32,
                                 y: mean[1] as f32,

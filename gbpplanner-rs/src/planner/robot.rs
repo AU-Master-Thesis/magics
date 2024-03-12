@@ -194,7 +194,8 @@ impl RobotBundle {
                 // SIGMA_POSE_FIXED
                 1e30
             } else {
-                4e9
+                // 4e9
+                Float::INFINITY
             };
 
             let precision_matrix = Matrix::<Float>::from_diag_elem(ndofs, sigma);
@@ -211,12 +212,12 @@ impl RobotBundle {
                 mean.z as Float,
                 mean.w as Float
             ];
-            let information_vector = precision_matrix.dot(&mean);
-            let prior = MultivariateNormal::from_information_and_precision(
-                information_vector,
-                precision_matrix,
-            )
-            .expect("the precision matrix is nonsingular");
+            // let information_vector = precision_matrix.dot(&mean);
+            // let prior = MultivariateNormal::from_information_and_precision(
+            //     information_vector,
+            //     precision_matrix,
+            // )
+            // .expect("the precision matrix is nonsingular");
 
             // let prior = MultivariateNormal::from_mean_and_covariance(
             //     // array![mean.x as Float, mean.y as Float, 0.0, 0.0], // initial velocity (x', y') is zero
@@ -232,7 +233,8 @@ impl RobotBundle {
 
             // dbg!(&prior);
 
-            let variable = Variable::new(prior, ndofs);
+            // let variable = Variable::new(prior, ndofs);
+            let variable = Variable::new(mean, precision_matrix, ndofs);
             // dbg!(&variable);
             let variable_index = factorgraph.add_variable(variable);
             variable_node_indices.push(variable_index);
@@ -556,7 +558,8 @@ fn update_prior_of_horizon_state_system(
 
             // let index = horizon_variable.node_index.unwrap();
 
-            let mean_of_horizon_variable = horizon_variable.belief.mean();
+            // let mean_of_horizon_variable = horizon_variable.belief.mean();
+            let mean_of_horizon_variable = &horizon_variable.mu;
             debug_assert_eq!(mean_of_horizon_variable.len(), 4);
             // dbg!(&current_waypoint);
             // dbg!(&mean_of_horizon_variable);
@@ -622,9 +625,9 @@ fn update_prior_of_current_state_system(
                 .nth_variable(1)
                 .expect("factorgraph should have a next variable");
 
-            let mean_of_current_variable = current_variable.belief.mean().clone();
-            let increment =
-                scale as Float * (next_variable.belief.mean() - &mean_of_current_variable);
+            // let mean_of_current_variable = current_variable.belief.mean().clone();
+            let mean_of_current_variable = current_variable.mu.clone();
+            let increment = scale as Float * (&next_variable.mu - &mean_of_current_variable);
 
             (current_index, mean_of_current_variable, increment)
         };

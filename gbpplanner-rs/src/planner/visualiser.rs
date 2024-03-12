@@ -198,11 +198,12 @@ fn init_factorgraphs(
             .variables()
             .enumerate()
             .for_each(|(i, (index, v))| {
-                let mean = v.belief.mean();
+                // let mean = v.belief.mean();
+                // let mean = v.mu;
                 let transform = Vec3::new(
-                    mean[0] as f32,
+                    v.mu[0] as f32,
                     config.visualisation.height.objects,
-                    mean[1] as f32,
+                    v.mu[1] as f32,
                 );
 
                 // info!("{:?}: Initialising variable at {:?}", entity, transform);
@@ -252,11 +253,12 @@ fn update_factorgraphs(
                 // info!("{:?}: Updating variable to {:?}", entity, v.belief.mean());
 
                 // else update the transform
-                let mean = v.belief.mean();
+                // let mean = v.belief.mean();
+                // let mean = v.mu;
                 transform.translation = Vec3::new(
-                    mean[0] as f32,
+                    v.mu[0] as f32,
                     config.visualisation.height.objects,
-                    mean[1] as f32,
+                    v.mu[1] as f32,
                 );
             }
         }

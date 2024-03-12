@@ -60,25 +60,27 @@ pub fn marginalise_factor_distance(
 
     debug_assert_eq!(information_vector.len(), precision_matrix.nrows());
     debug_assert_eq!(precision_matrix.nrows(), precision_matrix.ncols());
-    pretty_print_vector!(&information_vector);
-    pretty_print_matrix!(&precision_matrix);
+    // pretty_print_vector!(&information_vector);
+    // pretty_print_matrix!(&precision_matrix);
 
     let factor_only_connected_to_one_variable = information_vector.len() == variable_dofs;
     if factor_only_connected_to_one_variable {
+        let mu = Vector::<Float>::zeros(information_vector.len());
+        return Ok(Message::new(information_vector, precision_matrix, mu));
         // dbg!(&information_vector);
         // dbg!(&precision_matrix);
         // TODO: return None
-        let mvn = MultivariateNormal::from_information_and_precision(
-            information_vector,
-            precision_matrix,
-        )
-        .inspect_err(|_| {
-            // pretty_print_matrix!(&precision_matrix);
-        })
-        .expect(
-            "the given information vector and precision matrix is a valid multivariate gaussian",
-        );
-        return Ok(Message::new(mvn));
+        // let mvn = MultivariateNormal::from_information_and_precision(
+        //     information_vector,
+        //     precision_matrix,
+        // )
+        // .inspect_err(|_| {
+        //     // pretty_print_matrix!(&precision_matrix);
+        // })
+        // .expect(
+        //     "the given information vector and precision matrix is a valid multivariate gaussian",
+        // );
+        // return Ok(Message::new(mvn));
     }
 
     // eprintln!(
@@ -153,14 +155,17 @@ pub fn marginalise_factor_distance(
         // Message::with_dofs(information_vector.len())
         // Message::zeros(information_vector.len())
     } else {
-        let mvn = MultivariateNormal::from_information_and_precision(
-            information_vector,
-            precision_matrix,
-        )
-        .expect(
-            "the given information vector and precision matrix is a valid multivariate gaussian",
-        );
-        Ok(Message::new(mvn))
+        let mu = Vector::<Float>::zeros(information_vector.len());
+        Ok(Message::new(information_vector, precision_matrix, mu))
+
+        // let mvn = MultivariateNormal::from_information_and_precision(
+        //     information_vector,
+        //     precision_matrix,
+        // )
+        // .expect(
+        //     "the given information vector and precision matrix is a valid multivariate gaussian",
+        // );
+        // Ok(Message::new(mvn))
     }
 }
 

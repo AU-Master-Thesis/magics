@@ -8,29 +8,42 @@ use gbp_multivariate_normal::MultivariateNormal;
 //     Empty(usize), // dofs
 // }
 
+// type Payload = MultivariateNormal;
+
+#[derive(Debug, Clone)]
+pub struct Payload {
+    pub eta: Vector<Float>,
+    pub lam: Matrix<Float>,
+    pub mu: Vector<Float>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Message {
     // TODO: wrap in Cow<'_> to avoid cloning when sending messages from variables to factors,
     // as the messages are identical.
-    payload: Option<MultivariateNormal>,
+    // payload: Option<MultivariateNormal>,
+    payload: Option<Payload>,
     dofs: usize,
 }
 
 impl Message {
     pub fn mean(&self) -> Option<&Vector<Float>> {
-        self.payload.as_ref().map(|gaussian| gaussian.mean())
+        // self.payload.as_ref().map(|gaussian| gaussian.mean())
+        self.payload.as_ref().map(|payload| &payload.mu)
     }
 
     pub fn precision_matrix(&self) -> Option<&Matrix<Float>> {
         self.payload
             .as_ref()
-            .map(|gaussian| gaussian.precision_matrix())
+            // .map(|gaussian| gaussian.precision_matrix())
+            .map(|payload| &payload.lam)
     }
 
     pub fn information_vector(&self) -> Option<&Vector<Float>> {
         self.payload
             .as_ref()
-            .map(|gaussian| gaussian.information_vector())
+            // .map(|gaussian| gaussian.information_vector())
+            .map(|payload| &payload.eta)
     }
 
     // pub fn mean(&self) -> Vector<Float> {
@@ -83,12 +96,12 @@ impl Message {
     /// Take the inner `MultivariateNormal` from the message.
     /// Leaving the message in an empty state.
     #[inline]
-    pub fn take(&mut self) -> Option<MultivariateNormal> {
+    pub fn take(&mut self) -> Option<Payload> {
         self.payload.take()
     }
 
     #[inline]
-    pub fn payload(&self) -> Option<&MultivariateNormal> {
+    pub fn payload(&self) -> Option<&Payload> {
         self.payload.as_ref()
     }
 
@@ -114,13 +127,21 @@ impl Message {
         }
     }
 
-    pub fn new(normal: MultivariateNormal) -> Self {
-        let dofs = normal.len();
+    pub fn new(eta: Vector<Float>, lam: Matrix<Float>, mu: Vector<Float>) -> Self {
+        let dofs = eta.len();
         Self {
-            payload: Some(normal),
+            payload: Some(Payload { eta, lam, mu }),
             dofs,
         }
     }
+
+    // pub fn new(normal: MultivariateNormal) -> Self {
+    //     let dofs = normal.len();
+    //     Self {
+    //         payload: Some(normal),
+    //         dofs,
+    //     }
+    // }
 
     // pub fn new(
     //     information_vector: Vector<Float>,
@@ -146,13 +167,13 @@ impl Message {
     //         .expect("An identity matrix and uniform vector is a valid multivariate normal")
     // }
 }
-
-impl From<MultivariateNormal> for Message {
-    fn from(value: MultivariateNormal) -> Self {
-        let dofs = value.len();
-        Self {
-            payload: Some(value),
-            dofs,
-        }
-    }
-}
+//
+// impl From<MultivariateNormal> for Message {
+//     fn from(value: MultivariateNormal) -> Self {
+//         let dofs = value.len();
+//         Self {
+//             payload: Some(value),
+//             dofs,
+//         }
+//     }
+// }
