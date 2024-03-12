@@ -28,6 +28,32 @@ pub struct PlannerPlugin;
 
 impl Plugin for PlannerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((RobotPlugin, SpawnerPlugin, VisualiserPlugin));
+        app.init_resource::<PausePlay>().add_plugins((
+            RobotPlugin,
+            SpawnerPlugin,
+            VisualiserPlugin,
+        ));
+    }
+}
+
+/// **Bevy** [`Resource`] for pausing or playing the simulation
+#[derive(Default, Resource)]
+pub struct PausePlay(bool);
+
+impl PausePlay {
+    pub fn pause(&mut self) {
+        self.0 = false;
+    }
+
+    pub fn play(&mut self) {
+        self.0 = true;
+    }
+
+    pub fn toggle(&mut self) {
+        self.0 = !self.0;
+    }
+
+    pub fn is_paused(&self) -> bool {
+        !self.0
     }
 }

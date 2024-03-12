@@ -125,8 +125,9 @@ fn main() -> color_eyre::eyre::Result<()> {
     let formation = FormationGroup::from_file(&formation_file_path)?;
 
     let mut app = App::new();
-    app.insert_resource(config)
-        .insert_resource(formation)
+    app.insert_resource(formation)
+        .insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
+        .insert_resource(config)
         .add_plugins((
             DefaultPlugins.set(
                 // **Bevy**

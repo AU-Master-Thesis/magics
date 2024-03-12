@@ -23,6 +23,11 @@ pub fn fill_x<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerR
     )
 }
 
+// /// A function to fill in both x and y
+// pub fn fill<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
+//     ui.vertical_centered_justified(add_contents)
+// }
+
 // A function to simplify vertically centering a widget
 pub fn center_y<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
     ui.with_layout(Layout::left_to_right(Align::Center), add_contents)

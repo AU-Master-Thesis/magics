@@ -46,7 +46,7 @@ impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<VariableTimestepsResource>()
             .add_systems(
-                Update,
+                FixedUpdate,
                 (
                     update_robot_neighbours_system,
                     delete_interrobot_factors_system,
@@ -58,7 +58,8 @@ impl Plugin for RobotPlugin {
                     update_prior_of_horizon_state_system,
                     update_prior_of_current_state_system,
                 )
-                    .chain(),
+                    .chain()
+                    .run_if(time_is_not_paused),
             );
     }
 }
@@ -566,6 +567,11 @@ fn update_prior_of_horizon_state_system(
             waypoints.0.pop_front();
         }
     }
+}
+
+/// run criteria if time is not paused
+fn time_is_not_paused(time: Res<Time<Virtual>>) -> bool {
+    !time.is_paused()
 }
 
 /// Called `Robot::updateCurrent` in **gbpplanner**
