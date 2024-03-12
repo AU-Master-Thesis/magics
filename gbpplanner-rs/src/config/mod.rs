@@ -8,7 +8,6 @@ pub use formation::FormationGroup;
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
 
-
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
     #[error("IO error: {0}")]

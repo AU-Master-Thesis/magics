@@ -76,7 +76,7 @@ fn spawn_robot_periodically(
                 PbrBundle {
                     mesh,
                     material,
-                    transform: transform,
+                    transform,
                     ..Default::default()
                 },
                 MovementBundle {

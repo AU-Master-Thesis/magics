@@ -15,7 +15,6 @@ pub use robot::RobotState;
 pub use visualiser::VariableVisualiser;
 pub use visualiser::WaypointVisualiser;
 
-
 use self::robot::RobotPlugin;
 use self::spawner::SpawnerPlugin;
 use self::visualiser::VisualiserPlugin;

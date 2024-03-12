@@ -119,18 +119,18 @@ pub enum EdgeConnection {
 // }
 
 impl Node {
-    pub fn set_node_index(&mut self, index: NodeIndex) {
-        match self {
-            Self::Factor(factor) => factor.set_node_index(index),
-            Self::Variable(variable) => variable.set_node_index(index),
-        }
-    }
-    pub fn get_node_index(&mut self) -> NodeIndex {
-        match self {
-            Self::Factor(factor) => factor.get_node_index(),
-            Self::Variable(variable) => variable.get_node_index(),
-        }
-    }
+    // pub fn set_node_index(&mut self, index: NodeIndex) {
+    //     match self {
+    //         Self::Factor(factor) => factor.set_node_index(index),
+    //         Self::Variable(variable) => variable.set_node_index(index),
+    //     }
+    // }
+    // pub fn get_node_index(&mut self) -> NodeIndex {
+    //     match self {
+    //         Self::Factor(factor) => factor.get_node_index(),
+    //         Self::Variable(variable) => variable.get_node_index(),
+    //     }
+    // }
 
     /// Returns `true` if the node is [`Factor`].
     ///
@@ -200,6 +200,7 @@ pub type Graph = petgraph::graph::Graph<Node, (), Undirected, u32>;
 /// Record type used to keep track of how many factors and variables
 /// there are in the factorgraph. We keep track of these counts internally in the
 /// factorgraph, such a query for the counts, is **O(1)**.
+/// TODO: redundant now
 #[derive(Debug, Clone, Copy)]
 pub struct NodeCount {
     pub factors: usize,
@@ -212,8 +213,8 @@ pub struct NodeCount {
 pub struct FactorGraph {
     /// The underlying graph data structure
     graph: Graph,
-    /// tracks how many variable and factor nodes there are in the graph.
-    node_count: NodeCount,
+    // / tracks how many variable and factor nodes there are in the graph.
+    // node_count: NodeCount,
     /// In **gbpplanner** the sequence in which variables are inserted/created in the graph
     /// is meaningful. `self.graph` does not capture this ordering, so we use an extra queue
     /// to manage the order in which variables are inserted/removed from the graph.
@@ -238,13 +239,12 @@ impl<'a> Factors<'a> {
 }
 
 impl<'a> Iterator for Factors<'a> {
-    type Item = &'a Factor;
+    type Item = (NodeIndex, &'a Factor);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.factor_indices
-            .next()
-            .map(|&index| &self.graph[index])
-            .and_then(Node::as_factor)
+        let &index = self.factor_indices.next()?;
+        let node = &self.graph[index];
+        node.as_factor().map(|factor| (index, factor))
     }
 }
 
@@ -263,13 +263,12 @@ impl<'a> Variables<'a> {
 }
 
 impl<'a> Iterator for Variables<'a> {
-    type Item = &'a Variable;
+    type Item = (NodeIndex, &'a Variable);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.variable_indices
-            .next()
-            .map(|&index| &self.graph[index])
-            .and_then(Node::as_variable)
+        let &index = self.variable_indices.next()?;
+        let node = &self.graph[index];
+        node.as_variable().map(|variable| (index, variable))
     }
 }
 
@@ -278,26 +277,14 @@ impl FactorGraph {
     pub fn new() -> Self {
         Self {
             graph: Graph::new_undirected(),
-            node_count: NodeCount {
-                factors: 0usize,
-                variables: 0usize,
-            },
+            // node_count: NodeCount {
+            //     factors: 0usize,
+            //     variables: 0usize,
+            // },
             variable_indices: Vec::new(),
             factor_indices: Vec::new(),
         }
     }
-
-    // pub fn variables(&self) -> impl Iterator<Item = &Variable> {
-    //     self.graph
-    //         .node_indices()
-    //         .filter_map(move |node_index| self.graph[node_index].as_variable())
-    // }
-
-    // pub fn factors(&self) -> impl Iterator<Item = &Factor> {
-    //     self.graph
-    //         .node_indices()
-    //         .filter_map(move |node_index| self.graph[node_index].as_factor())
-    // }
 
     pub fn variables(&self) -> Variables<'_> {
         Variables::new(&self.graph, &self.variable_indices)
@@ -306,14 +293,6 @@ impl FactorGraph {
     pub fn factors(&self) -> Factors<'_> {
         Factors::new(&self.graph, &self.factor_indices)
     }
-
-    // /// Returns an `Iterator` over the variable nodes in the factorgraph.
-    // /// Variable ordering is arbitrary.
-    // pub fn variables(&self) -> impl Iterator<Item = &Variable> {
-    //     self.graph
-    //         .node_indices()
-    //         .filter_map(move |node_index| self.graph[node_index].as_variable())
-    // }
 
     /// Returns an `Iterator` over the variable nodes in the factorgraph.
     /// Variables are ordered by creation time.
@@ -325,16 +304,16 @@ impl FactorGraph {
 
     pub fn add_variable(&mut self, variable: Variable) -> NodeIndex {
         let node_index = self.graph.add_node(Node::Variable(variable));
-        self.graph[node_index].set_node_index(node_index);
+        // self.graph[node_index].set_node_index(node_index);
         self.variable_indices.push(node_index);
-        self.node_count.variables += 1;
+        // self.node_count.variables += 1;
         node_index
     }
 
     pub fn add_factor(&mut self, factor: Factor) -> NodeIndex {
         let node_index = self.graph.add_node(Node::Factor(factor));
-        self.graph[node_index].set_node_index(node_index);
-        self.node_count.factors += 1;
+        // self.graph[node_index].set_node_index(node_index);
+        // self.node_count.factors += 1;
         self.factor_indices.push(node_index);
         node_index
     }
@@ -355,11 +334,6 @@ impl FactorGraph {
             Node::Variable(ref mut variable) => variable.send_message(a, Message::empty(dofs)),
         }
         self.graph.add_edge(a, b, ())
-    }
-
-    pub fn is_disjoint(&self) -> bool {
-        unimplemented!()
-        // petgraph::algo::is_cyclic_directed(&self.graph)
     }
 
     /// Number of nodes in the factorgraph
@@ -396,9 +370,11 @@ impl FactorGraph {
     /// A count over the number of variables and factors in the factorgraph
     ///
     /// **Computes in O(1) time**
-    #[inline(always)]
     pub fn node_count(&self) -> NodeCount {
-        self.node_count
+        NodeCount {
+            factors: self.factor_indices.len(),
+            variables: self.variable_indices.len(),
+        }
     }
 
     #[inline(always)]
@@ -406,24 +382,26 @@ impl FactorGraph {
         self.variable_indices.get(index).copied()
     }
 
-    pub fn nth_variable(&self, index: usize) -> Option<&Variable> {
+    pub fn nth_variable(&self, index: usize) -> Option<(NodeIndex, &Variable)> {
         let variable_index = self.nth_variable_index(index)?;
         let node = &self.graph[variable_index];
-        node.as_variable()
+        let variable = node.as_variable()?;
+        Some((variable_index, variable))
     }
 
-    pub fn nth_variable_mut(&mut self, index: usize) -> Option<&mut Variable> {
+    pub fn nth_variable_mut(&mut self, index: usize) -> Option<(NodeIndex, &mut Variable)> {
         let variable_index = self.nth_variable_index(index)?;
         let node = &mut self.graph[variable_index];
-        node.as_variable_mut()
+        let variable = node.as_variable_mut()?;
+        Some((variable_index, variable))
     }
 
-    pub fn first_variable(&self) -> Option<&Variable> {
+    pub fn first_variable(&self) -> Option<(NodeIndex, &Variable)> {
         self.nth_variable(0usize)
     }
 
     #[inline(always)]
-    pub fn last_variable(&self) -> Option<&Variable> {
+    pub fn last_variable(&self) -> Option<(NodeIndex, &Variable)> {
         if self.variable_indices.is_empty() {
             None
         } else {
@@ -432,7 +410,7 @@ impl FactorGraph {
     }
 
     #[inline(always)]
-    pub fn last_variable_mut(&mut self) -> Option<&mut Variable> {
+    pub fn last_variable_mut(&mut self) -> Option<(NodeIndex, &mut Variable)> {
         if self.variable_indices.is_empty() {
             None
         } else {

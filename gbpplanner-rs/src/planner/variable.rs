@@ -32,7 +32,7 @@ use gbp_multivariate_normal::MultivariateNormal;
 pub struct Variable {
     /// Unique identifier that associates the variable with a factorgraph/robot.
     /// TODO: use typestate pattern to always ensure a variable has a `node_index`
-    pub node_index: Option<NodeIndex>,
+    // pub node_index: Option<NodeIndex>,
     // pub node_index: NodeIndex,
     /// In **gbpplanner** the `prior` is stored in 2 separate variables:
     /// 1. `eta_prior_` Information vector of prior on variable (essentially like a unary factor)
@@ -69,27 +69,27 @@ impl Variable {
         //     prior.precision_matrix.fill(0.0);
         // }
         Self {
-            node_index: None,
+            // node_index: None,
             prior: prior.clone(),
             belief: prior,
             dofs,
             inbox: Inbox::new(),
         }
     }
-
-    pub fn set_node_index(&mut self, node_index: NodeIndex) {
-        match self.node_index {
-            Some(_) => panic!("The node index is already set"),
-            None => self.node_index = Some(node_index),
-        }
-    }
-
-    pub fn get_node_index(&self) -> NodeIndex {
-        match self.node_index {
-            Some(node_index) => node_index,
-            None => panic!("The node index has not been set"),
-        }
-    }
+    //
+    // pub fn set_node_index(&mut self, node_index: NodeIndex) {
+    //     match self.node_index {
+    //         Some(_) => panic!("The node index is already set"),
+    //         None => self.node_index = Some(node_index),
+    //     }
+    // }
+    //
+    // pub fn get_node_index(&self) -> NodeIndex {
+    //     match self.node_index {
+    //         Some(node_index) => node_index,
+    //         None => panic!("The node index has not been set"),
+    //     }
+    // }
 
     pub fn send_message(&mut self, from: NodeIndex, message: Message) {
         let _ = self.inbox.insert(from, message);

@@ -93,10 +93,8 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
 //             return;
 //         }
 
-
 //     }
 // }
-
 
 fn main() -> color_eyre::eyre::Result<()> {
     color_eyre::install()?;
@@ -149,27 +147,25 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     // info!("Config: {:?}", config);
 
-    let default_plugins = DefaultPlugins.set(
-        WindowPlugin {
-            primary_window: Some(Window {
-                title: "GBP Planner".into(),
-                // resolution: (1280.0, 720.0).into(),
-                // mode: WindowMode::BorderlessFullscreen,
-                mode: WindowMode::Windowed,
-                // present_mode: PresentMode::AutoVsync,
-                // fit_canvas_to_parent: true,
-                // prevent_default_event_handling: false,
-                window_theme: Some(WindowTheme::Dark),
-                // enable_buttons: bevy::window::EnableButtons {
-                //     maximize: false,
-                //     ..Default::default()
-                // },
-                visible: false,
-                ..Default::default()
-            }),
+    let default_plugins = DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "GBP Planner".into(),
+            // resolution: (1280.0, 720.0).into(),
+            // mode: WindowMode::BorderlessFullscreen,
+            mode: WindowMode::Windowed,
+            // present_mode: PresentMode::AutoVsync,
+            // fit_canvas_to_parent: true,
+            // prevent_default_event_handling: false,
+            window_theme: Some(WindowTheme::Dark),
+            // enable_buttons: bevy::window::EnableButtons {
+            //     maximize: false,
+            //     ..Default::default()
+            // },
+            visible: false,
             ..Default::default()
-        },
-    );
+        }),
+        ..Default::default()
+    });
     // .set(
     //     LogPlugin {
     //         // level: bevy::log::Level::ERROR,
@@ -182,7 +178,6 @@ fn main() -> color_eyre::eyre::Result<()> {
     //         // ..Default::default()
     //     },
     // );
-    
 
     let mut app = App::new();
     app.insert_resource(config)

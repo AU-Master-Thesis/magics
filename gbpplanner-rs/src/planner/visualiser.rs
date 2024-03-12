@@ -194,9 +194,10 @@ fn init_factorgraphs(
         commands.entity(entity).insert(HasFactorGraphVisualiser);
 
         factorgraph
-            .variables_ordered()
+            // .variables_ordered()
+            .variables()
             .enumerate()
-            .for_each(|(i, v)| {
+            .for_each(|(i, (index, v))| {
                 let mean = v.belief.mean();
                 let transform = Vec3::new(
                     mean[0] as f32,
@@ -209,7 +210,7 @@ fn init_factorgraphs(
                 // Spawn a `FactorGraphVisualiser` component with a corresponding `PbrBundle`
                 commands.spawn((
                     RobotTracker::new(entity)
-                        .with_variable_id(v.get_node_index().index())
+                        .with_variable_id(index.index())
                         .with_order(i),
                     VariableVisualiser,
                     PbrBundle {
@@ -242,9 +243,9 @@ fn update_factorgraphs(
             }
 
             // else look through the variables
-            for v in factorgraph.variables() {
+            for (index, v) in factorgraph.variables() {
                 // continue if we're not looking at the right variable
-                if v.get_node_index().index() != tracker.variable_id {
+                if index.index() != tracker.variable_id {
                     continue;
                 }
 

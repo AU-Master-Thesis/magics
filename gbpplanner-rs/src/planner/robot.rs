@@ -549,11 +549,11 @@ fn update_prior_of_horizon_state_system(
         };
 
         let (index, new_mean, horizon2goal_dist) = {
-            let horizon_variable = factorgraph
+            let (index, horizon_variable) = factorgraph
                 .last_variable()
                 .expect("factorgraph has a horizon variable");
 
-            let index = horizon_variable.node_index.unwrap();
+            // let index = horizon_variable.node_index.unwrap();
 
             let mean_of_horizon_variable = horizon_variable.belief.mean();
             debug_assert_eq!(mean_of_horizon_variable.len(), 4);
@@ -615,14 +615,14 @@ fn update_prior_of_current_state_system(
 
     for (mut factorgraph, mut transform) in query.iter_mut() {
         let (current_variable_index, mean_of_current_variable, increment) = {
-            let current_variable = factorgraph
+            let (current_index, current_variable) = factorgraph
                 .nth_variable(0)
                 .expect("factorgraph should have a current variable");
-            let next_variable = factorgraph
+            let (next_index, next_variable) = factorgraph
                 .nth_variable(1)
                 .expect("factorgraph should have a next variable");
 
-            let index = current_variable.node_index.unwrap();
+            // let index = current_variable.node_index.unwrap();
 
             let mean_of_current_variable = current_variable.belief.mean().clone();
             // dbg!(&mean_of_current_variable);
@@ -630,7 +630,7 @@ fn update_prior_of_current_state_system(
             let increment =
                 scale as Float * (next_variable.belief.mean() - &mean_of_current_variable);
 
-            (index, mean_of_current_variable, increment)
+            (current_index, mean_of_current_variable, increment)
         };
 
         // dbg!(&increment);

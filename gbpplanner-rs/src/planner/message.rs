@@ -17,17 +17,20 @@ pub struct Message {
 }
 
 impl Message {
-
     pub fn mean(&self) -> Option<&Vector<Float>> {
         self.payload.as_ref().map(|gaussian| gaussian.mean())
     }
 
     pub fn precision_matrix(&self) -> Option<&Matrix<Float>> {
-        self.payload.as_ref().map(|gaussian| gaussian.precision_matrix())
+        self.payload
+            .as_ref()
+            .map(|gaussian| gaussian.precision_matrix())
     }
 
     pub fn information_vector(&self) -> Option<&Vector<Float>> {
-        self.payload.as_ref().map(|gaussian| gaussian.information_vector())
+        self.payload
+            .as_ref()
+            .map(|gaussian| gaussian.information_vector())
     }
 
     // pub fn mean(&self) -> Vector<Float> {
@@ -105,12 +108,18 @@ impl Message {
     // }
 
     pub fn empty(dofs: usize) -> Self {
-        Self { payload: None, dofs }
+        Self {
+            payload: None,
+            dofs,
+        }
     }
 
     pub fn new(normal: MultivariateNormal) -> Self {
         let dofs = normal.len();
-        Self { payload: Some(normal), dofs }
+        Self {
+            payload: Some(normal),
+            dofs,
+        }
     }
 
     // pub fn new(
@@ -141,6 +150,9 @@ impl Message {
 impl From<MultivariateNormal> for Message {
     fn from(value: MultivariateNormal) -> Self {
         let dofs = value.len();
-        Self { payload: Some(value), dofs }
+        Self {
+            payload: Some(value),
+            dofs,
+        }
     }
 }

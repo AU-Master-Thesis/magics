@@ -25,7 +25,9 @@ impl Plugin for SpawnerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, init_repeat_resource)
             .add_systems(Update, formation_handler);
-        info!("built SpawnerPlugin, added Startup(init_repeat_resource), Update(formation_handler)");
+        info!(
+            "built SpawnerPlugin, added Startup(init_repeat_resource), Update(formation_handler)"
+        );
     }
 }
 
