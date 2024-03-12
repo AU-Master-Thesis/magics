@@ -8,7 +8,7 @@ use super::factorgraph::NodeIndex;
 use super::message::Message;
 use gbp_linalg::Matrix;
 use gbp_linalg::{Float, Vector};
-use gbp_multivariate_normal::dummy_normal::DummyNormal;
+// use gbp_multivariate_normal::dummy_normal::DummyNormal;
 use gbp_multivariate_normal::MultivariateNormal;
 use ndarray_inverse::Inverse;
 
