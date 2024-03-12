@@ -49,25 +49,55 @@ fn init_uncertainty(
                 mean[1] as f32,
             );
 
+            // if the covariance is too large, we won't be able to visualise it
+            // however, with this check, we can visualise it in a different colour
+            // such that the user knows that the uncertainty is too large, and
+            // that the size/shape of the visualisation is not accurate
+            let mut attenable = true;
+
+            // covariance matrix
+            // [[a, b, _, _],
+            //  [b, c, _, _],
+            //  [_, _, _, _],
+            //  [_, _, _, _]]
             let covariance = v.belief.covariance();
 
-            let mut attenable = true;
+            // half major axis λ₁ and half minor axis λ₂
+            // λ₁ = (a + c) / 2 + √((a - c)² / 4 + b²)
+            // λ₂ = (a + c) / 2 - √((a - c)² / 4 + b²)
+            let half_major_axis = (covariance[(0, 0)] + covariance[(1, 1)]) / 2.0
+                + ((covariance[(0, 0)] - covariance[(1, 1)]).powi(2) / 4.0
+                    + covariance[(0, 1)].powi(2))
+                .sqrt();
+            let half_minor_axis = (covariance[(0, 0)] + covariance[(1, 1)]) / 2.0
+                - ((covariance[(0, 0)] - covariance[(1, 1)]).powi(2) / 4.0
+                    + covariance[(0, 1)].powi(2))
+                .sqrt();
+
+            // angle of the major axis with the x-axis
+            // θ = arctan²(λ₁ - a, b)
+            let angle = (half_major_axis - covariance[(0, 0)]).atan2(covariance[(0, 1)]) as f32;
+
             let mesh = meshes.add(Ellipse::new(
                 // pick `x` from the covariance diagonal, but cap it at 10.0
-                if covariance.diag()[0] > 20.0 {
+                if half_major_axis > 20.0 {
                     attenable = false;
                     config.visualisation.uncertainty.max_radius
                 } else {
                     covariance.diag()[0] as f32
                 },
                 // pick `y` from the covariance diagonal, but cap it at 10.0
-                if covariance.diag()[1] > 20.0 {
+                if half_minor_axis > 20.0 {
                     attenable = false;
                     config.visualisation.uncertainty.max_radius
                 } else {
                     covariance.diag()[1] as f32
                 },
             ));
+
+            let mut transform = Transform::from_translation(transform)
+                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
+            transform.rotate_y(angle);
 
             info!(
                 "{:?}: Initialising uncertainty at {:?}, with covariance {:?}",
@@ -85,8 +115,7 @@ fn init_uncertainty(
                     } else {
                         scene_assets.materials.uncertainty_unattenable.clone()
                     },
-                    transform: Transform::from_translation(transform)
-                        .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+                    transform,
                     visibility: if config.visualisation.draw.uncertainty {
                         Visibility::Visible
                     } else {

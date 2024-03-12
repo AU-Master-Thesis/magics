@@ -14,6 +14,7 @@ use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
     theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
+    input::ScreenShotEvent,
 };
 
 use super::{custom, ChangingBinding, OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
@@ -152,74 +153,82 @@ fn ui_settings_panel(
                     custom::subheading(ui, "General", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
                     custom::grid("settings_general_grid", 2)
                         .show(ui, |ui| {
-                            // THEME SELECTOR
-                            ui.label("Theme");
-                            ui.vertical_centered_justified(|ui| {
-                                ui.menu_button(
-                                    catppuccin_theme.flavour.to_display_string(),
-                                    |ui| {
-                                        for flavour in &[
-                                            catppuccin::Flavour::Frappe,
-                                            catppuccin::Flavour::Latte,
-                                            catppuccin::Flavour::Macchiato,
-                                            catppuccin::Flavour::Mocha,
-                                        ] {
-                                            ui.vertical_centered_justified(|ui| {
-                                                if ui.button(flavour.to_display_string()).clicked()
-                                                {
-                                                    world.send_event::<ThemeEvent>(ThemeEvent(*flavour));
-                                                    // theme_event.send(ThemeEvent(*flavour));
-                                                    ui.close_menu();
-                                                }
-                                            });
-                                        }
-                                    },
-                                );
-                            });
-                            ui.end_row();
-
-                            // UI SCALING TYPE SELECTOR
-                            ui.label("Scale Type");
-                            ui.vertical_centered_justified(|ui| {
-                                ui.menu_button(ui_state.scale_type.to_display_string(), |ui| {
-                                    for scale in UiScaleType::iter() {
+                        // THEME SELECTOR
+                        ui.label("Theme");
+                        ui.vertical_centered_justified(|ui| {
+                            ui.menu_button(
+                                catppuccin_theme.flavour.to_display_string(),
+                                |ui| {
+                                    for flavour in &[
+                                        catppuccin::Flavour::Frappe,
+                                        catppuccin::Flavour::Latte,
+                                        catppuccin::Flavour::Macchiato,
+                                        catppuccin::Flavour::Mocha,
+                                    ] {
                                         ui.vertical_centered_justified(|ui| {
-                                            if ui.button(scale.to_display_string()).clicked() {
-                                                ui_state.scale_type = scale;
-                                                world.send_event::<UiScaleEvent>(UiScaleEvent);
-                                                // scale_event.send(UiScaleEvent);
+                                            if ui.button(flavour.to_display_string()).clicked()
+                                            {
+                                                world.send_event::<ThemeEvent>(ThemeEvent(*flavour));
+                                                // theme_event.send(ThemeEvent(*flavour));
                                                 ui.close_menu();
                                             }
                                         });
                                     }
-                                })
-                            });
-                            ui.end_row();
-
-                            // UI SCALING SLIDER
-                            ui.add_enabled_ui(
-                                matches!(ui_state.scale_type, UiScaleType::Custom),
-                                |ui| {
-                                    ui.label("Custom Scale");
                                 },
                             );
-                            let slider_response = custom::fill_x(ui, |ui| {
-                                ui.add_enabled(
-                                    matches!(ui_state.scale_type, UiScaleType::Custom),
-                                    egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
-                                        .text("%")
-                                        .show_value(true),
-                                )
-                            });
-                            // Only trigger ui scale update when the slider is released or lost focus
-                            // otherwise it would be imposssible to drag the slider while the ui is scaling
-                            if slider_response.response.drag_released() || slider_response.response.lost_focus() {
-                                world.send_event::<UiScaleEvent>(UiScaleEvent);
-                                // scale_event.send(UiScaleEvent);
-                            }
-
-                            ui.end_row();
                         });
+                        ui.end_row();
+
+                        // UI SCALING TYPE SELECTOR
+                        ui.label("Scale Type");
+                        ui.vertical_centered_justified(|ui| {
+                            ui.menu_button(ui_state.scale_type.to_display_string(), |ui| {
+                                for scale in UiScaleType::iter() {
+                                    ui.vertical_centered_justified(|ui| {
+                                        if ui.button(scale.to_display_string()).clicked() {
+                                            ui_state.scale_type = scale;
+                                            world.send_event::<UiScaleEvent>(UiScaleEvent);
+                                            // scale_event.send(UiScaleEvent);
+                                            ui.close_menu();
+                                        }
+                                    });
+                                }
+                            })
+                        });
+                        ui.end_row();
+
+                        // UI SCALING SLIDER
+                        ui.add_enabled_ui(
+                            matches!(ui_state.scale_type, UiScaleType::Custom),
+                            |ui| {
+                                ui.label("Custom Scale");
+                            },
+                        );
+                        let slider_response = custom::fill_x(ui, |ui| {
+                            ui.add_enabled(
+                                matches!(ui_state.scale_type, UiScaleType::Custom),
+                                egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
+                                    .text("%")
+                                    .show_value(true),  
+                            )
+                        });
+                        // Only trigger ui scale update when the slider is released or lost focus
+                        // otherwise it would be imposssible to drag the slider while the ui is scaling
+                        if slider_response.response.drag_released() || slider_response.response.lost_focus() {
+                            world.send_event::<UiScaleEvent>(UiScaleEvent);
+                            // scale_event.send(UiScaleEvent);
+                        }
+
+                        ui.end_row();
+
+                        ui.label("Take Screenhot");
+                        custom::fill_x(ui, |ui| {
+                            if ui.button("Take Screenshot").clicked() {
+                                world.send_event::<ScreenShotEvent>(ScreenShotEvent);
+                            }
+                        });
+                    });
+
                     custom::subheading(ui, "Draw", Some(Color32::from_catppuccin_colour(title_colors.next().expect("From cycle iterator"))));
                     egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
                         egui::Grid::new("draw_grid")

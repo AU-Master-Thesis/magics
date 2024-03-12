@@ -8,10 +8,11 @@ mod ui;
 
 use crate::ui::ToDisplayString;
 
-pub use self::camera::CameraAction;
-pub use self::general::GeneralAction;
-pub use self::moveable_object::MoveableObjectAction;
-pub use self::ui::UiAction;
+pub use camera::CameraAction;
+pub use general::GeneralAction;
+pub use general::ScreenShotEvent;
+pub use moveable_object::MoveableObjectAction;
+pub use ui::UiAction;
 
 use self::{
     camera::CameraInputPlugin, general::GeneralInputPlugin,
@@ -77,6 +78,7 @@ impl ToDisplayString for GeneralAction {
         match self {
             GeneralAction::ToggleTheme => "Toggle Theme".to_string(),
             GeneralAction::ExportGraph => "Export Graph".to_string(),
+            GeneralAction::ScreenShot => "Take Screenshot".to_string(),
         }
     }
 }

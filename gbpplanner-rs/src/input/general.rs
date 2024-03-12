@@ -9,8 +9,10 @@ use crate::{
 
 use super::super::theme::ThemeEvent;
 use bevy::{prelude::*, tasks::IoTaskPool};
+use bevy::{render::view::screenshot::ScreenshotManager, window::PrimaryWindow};
 use gbp_linalg::GbpFloat;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 #[derive(Component)]
@@ -20,9 +22,18 @@ pub struct GeneralInputPlugin;
 
 impl Plugin for GeneralInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((InputManagerPlugin::<GeneralAction>::default(),))
+        app.add_event::<ScreenShotEvent>()
+            .add_plugins((InputManagerPlugin::<GeneralAction>::default(),))
             .add_systems(PostStartup, (bind_general_input,))
-            .add_systems(Update, (general_actions_system, export_graph_on_event));
+            .add_systems(
+                Update,
+                (
+                    general_actions_system,
+                    export_graph_on_event,
+                    screenshot,
+                    handle_screen_shot_event,
+                ),
+            );
     }
 }
 
@@ -30,6 +41,7 @@ impl Plugin for GeneralInputPlugin {
 pub enum GeneralAction {
     ToggleTheme,
     ExportGraph,
+    ScreenShot,
 }
 
 impl ToString for GeneralAction {
@@ -37,6 +49,7 @@ impl ToString for GeneralAction {
         match self {
             Self::ToggleTheme => "Toggle Theme".to_string(),
             Self::ExportGraph => "Export Graph".to_string(),
+            Self::ScreenShot => "Take Screenshot".to_string(),
         }
     }
 }
@@ -48,14 +61,15 @@ impl Default for GeneralAction {
 }
 
 impl GeneralAction {
-    fn variants() -> &'static [Self] {
-        &[GeneralAction::ToggleTheme, GeneralAction::ExportGraph]
-    }
-
     fn default_keyboard_input(action: GeneralAction) -> Option<UserInput> {
         match action {
             Self::ToggleTheme => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT))),
             Self::ExportGraph => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG))),
+            Self::ScreenShot => Some(UserInput::modified(
+                Modifier::Control,
+                InputKind::PhysicalKey(KeyCode::KeyS),
+            )),
+            // Self::ScreenShot => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::Space))),
         }
     }
 }
@@ -63,7 +77,7 @@ impl GeneralAction {
 fn bind_general_input(mut commands: Commands) {
     let mut input_map = InputMap::default();
 
-    for &action in GeneralAction::variants() {
+    for action in GeneralAction::iter() {
         if let Some(input) = GeneralAction::default_keyboard_input(action) {
             input_map.insert(action, input);
         }
@@ -300,5 +314,51 @@ fn general_actions_system(
         if let Err(e) = handle_export_graph(query_graphs, config.as_ref()) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
+    }
+}
+
+/// Signal to take a screenshot
+#[derive(Event, Debug, Copy, Clone)]
+pub struct ScreenShotEvent;
+
+fn screenshot(
+    query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
+    currently_changing: Res<ChangingBinding>,
+    mut screen_shot_event: EventWriter<ScreenShotEvent>,
+) {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
+        return;
+    }
+
+    let Ok(action_state) = query.get_single() else {
+        warn!("screenshot was called without an action state!");
+        return;
+    };
+
+    if action_state.just_pressed(&GeneralAction::ScreenShot) {
+        screen_shot_event.send(ScreenShotEvent);
+    }
+}
+
+fn handle_screen_shot_event(
+    mut screenshot_manager: ResMut<ScreenshotManager>,
+    main_window: Query<Entity, With<PrimaryWindow>>,
+    mut counter: Local<usize>,
+    mut screen_shot_event: EventReader<ScreenShotEvent>,
+) {
+    for _ in screen_shot_event.read() {
+        info!("taking screenshot");
+        let path = format!("screenshot_{:03}.png", *counter);
+        *counter += 1;
+
+        let Ok(window) = main_window.get_single() else {
+            warn!("screenshot was called without a main window!");
+            return;
+        };
+
+        info!("Saving screenshot to ./{:#?}", path);
+        screenshot_manager
+            .save_screenshot_to_disk(window, path)
+            .expect("failed to save screenshot");
     }
 }
