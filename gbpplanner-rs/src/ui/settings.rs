@@ -247,7 +247,7 @@ fn ui_settings_panel(
                         );
 
                         ui.spacing_mut().slider_width = ui.available_width()
-                        - (custom::SLIDER_EXTRA + custom::SPACING * 5.0);
+                        - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                         let slider_response =
                             ui.add_enabled(
                                 matches!(ui_state.scale_type, UiScaleType::Custom),
@@ -305,7 +305,7 @@ fn ui_settings_panel(
                             ui.label("Simulation Speed");
                             //slider for simulation speed (time scale) between 0.1 and 10
                             ui.spacing_mut().slider_width = ui.available_width()
-                                    - (custom::SLIDER_EXTRA + custom::SPACING * 5.0);
+                                    - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                             let slider_response =
                                 ui.add(egui::Slider::new(&mut config.simulation.time_scale, 0.1..=5.0).text("x").show_value(true));
                             if slider_response.drag_released() || slider_response.lost_focus() {

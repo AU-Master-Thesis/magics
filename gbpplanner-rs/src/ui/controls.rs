@@ -182,55 +182,58 @@ fn ui_controls_panel(
                     );
                     ui.push_id("sensitivity_table", |ui| {
                         custom::sens_table(ui).body(|mut body| {
-                            body.row(custom::ROW_HEIGHT, |mut row| {
+                            body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
                                 row.col(|col| {
                                     col.label("Object Movement");
                                 });
                                 row.col(|col| {
                                     col.spacing_mut().slider_width = col.available_width()
-                                        - (custom::SLIDER_EXTRA + custom::SPACING);
+                                        - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                                     col.add(
                                         egui::Slider::new(
                                             &mut object_sensitivity.move_sensitivity,
                                             0.0..=2.0,
                                         )
                                         .show_value(true)
-                                        .custom_formatter(|x, _| format!("{:.0}%", x * 100.0)),
+                                        .custom_formatter(|x, _| format!("{:.0}", x * 100.0))
+                                        .text("%"),
                                     );
                                 });
                             });
 
-                            body.row(custom::ROW_HEIGHT, |mut row| {
+                            body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
                                 row.col(|col| {
                                     col.label("Object Rotation");
                                 });
                                 row.col(|col| {
                                     col.spacing_mut().slider_width = col.available_width()
-                                        - (custom::SLIDER_EXTRA + custom::SPACING);
+                                        - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                                     col.add(
                                         egui::Slider::new(
                                             &mut object_sensitivity.rotate_sensitivity,
                                             0.0..=2.0,
                                         )
                                         .show_value(true)
-                                        .custom_formatter(|x, _| format!("{:.0}%", x * 100.0)),
+                                        .custom_formatter(|x, _| format!("{:.0}", x * 100.0))
+                                        .text("%"),
                                     );
                                 });
                             });
-                            body.row(custom::ROW_HEIGHT, |mut row| {
+                            body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
                                 row.col(|col| {
                                     col.label("Camera Movement");
                                 });
                                 row.col(|col| {
                                     col.spacing_mut().slider_width = col.available_width()
-                                        - (custom::SLIDER_EXTRA + custom::SPACING);
+                                        - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                                     col.add(
                                         egui::Slider::new(
                                             &mut camera_sensitivity.move_sensitivity,
                                             0.0..=2.0,
                                         )
                                         .show_value(true)
-                                        .custom_formatter(|x, _| format!("{:.0}%", x * 100.0)),
+                                        .custom_formatter(|x, _| format!("{:.0}", x * 100.0))
+                                        .text("%"),
                                     );
                                 });
                             });
