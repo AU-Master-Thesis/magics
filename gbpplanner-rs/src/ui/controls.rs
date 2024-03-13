@@ -3,14 +3,13 @@ use bevy::{
     prelude::*,
 };
 use bevy_egui::{
-    egui::{self, Color32, Layout, Rect, RichText, Sense, Vec2, Vec2b},
+    egui::{self, Color32, Layout, RichText, Sense, Vec2},
     EguiContexts,
 };
-use egui_extras::{Column, TableBuilder};
+
 use leafwing_input_manager::{
     input_map::InputMap,
     user_input::{InputKind, UserInput},
-    Actionlike,
 };
 use strum::IntoEnumIterator;
 
@@ -41,8 +40,9 @@ impl Plugin for ControlsPanelPlugin {
     }
 }
 
-/// **Bevy** `Resource` to store the currently changing binding
+/// **Bevy** [`Resource`] to store the currently changing binding
 /// If this is not `default`, then all input will be captured and the binding will be updated
+/// Blocks ALL actions (including UI actions) while changing a binding
 #[derive(Debug, Default, Resource)]
 pub struct ChangingBinding {
     pub action: InputAction,
@@ -97,7 +97,7 @@ fn binding_cooldown_system(time: Res<Time<Real>>, mut currently_changing: ResMut
 fn ui_controls_panel(
     mut contexts: EguiContexts,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
-    ui_state: Res<UiState>,
+    mut ui_state: ResMut<UiState>,
     mut query_camera_action: Query<&mut InputMap<CameraAction>>,
     mut query_general_action: Query<&mut InputMap<GeneralAction>>,
     mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
@@ -110,14 +110,14 @@ fn ui_controls_panel(
 ) {
     let ctx = contexts.ctx_mut();
 
-    let grid_row_color = catppuccin_theme.mantle();
-    let grid_title_colors = [
-        catppuccin_theme.green(),
-        catppuccin_theme.blue(),
-        catppuccin_theme.mauve(),
-        catppuccin_theme.maroon(),
-        catppuccin_theme.lavender(),
-    ];
+    // let grid_row_color = catppuccin_theme.mantle();
+    // let grid_title_colors = [
+    //     catppuccin_theme.green(),
+    //     catppuccin_theme.blue(),
+    //     catppuccin_theme.mauve(),
+    //     catppuccin_theme.maroon(),
+    //     catppuccin_theme.lavender(),
+    // ];
     let mut title_colors = [
         catppuccin_theme.green(),
         catppuccin_theme.blue(),
@@ -128,34 +128,34 @@ fn ui_controls_panel(
     .into_iter()
     .cycle();
 
-    let mut counter = 1; // offset by 1 to account for header row
-    let mut grid_title_rows = Vec::with_capacity(InputAction::iter().count());
-    let grid_map_ranges = InputAction::iter()
-        .flat_map(|variant| {
-            grid_title_rows.push(counter);
-            counter += 1;
-            let start = counter;
-            match variant {
-                InputAction::Camera(_) => {
-                    counter += CameraAction::iter().count();
-                }
-                InputAction::General(_) => {
-                    counter += GeneralAction::iter().count();
-                }
-                InputAction::MoveableObject(_) => {
-                    counter += MoveableObjectAction::iter().count();
-                }
-                InputAction::Ui(_) => {
-                    counter += UiAction::iter().count();
-                }
-                _ => { /* do nothing */ }
-            }
-            let end = counter;
+    // let mut counter = 1; // offset by 1 to account for header row
+    // let mut grid_title_rows = Vec::with_capacity(InputAction::iter().count());
+    // let grid_map_ranges = InputAction::iter()
+    //     .flat_map(|variant| {
+    //         grid_title_rows.push(counter);
+    //         counter += 1;
+    //         let start = counter;
+    //         match variant {
+    //             InputAction::Camera(_) => {
+    //                 counter += CameraAction::iter().count();
+    //             }
+    //             InputAction::General(_) => {
+    //                 counter += GeneralAction::iter().count();
+    //             }
+    //             InputAction::MoveableObject(_) => {
+    //                 counter += MoveableObjectAction::iter().count();
+    //             }
+    //             InputAction::Ui(_) => {
+    //                 counter += UiAction::iter().count();
+    //             }
+    //             _ => { /* do nothing */ }
+    //         }
+    //         let end = counter;
 
-            (start..end).step_by(2)
-        })
-        // .flatten()
-        .collect::<Vec<usize>>();
+    //         (start..end).step_by(2)
+    //     })
+    //     // .flatten()
+    //     .collect::<Vec<usize>>();
 
     let left_panel = egui::SidePanel::left("left_panel")
         .default_width(300.0)
@@ -163,7 +163,9 @@ fn ui_controls_panel(
         .show_animated(ctx, ui_state.left_panel, |ui| {
             if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs
             {
-                currently_changing.refresh_cooldown();
+                ui_state.mouse_over.left_panel = true;
+            } else {
+                ui_state.mouse_over.left_panel = false;
             }
 
             custom::heading(ui, "Controls", None);

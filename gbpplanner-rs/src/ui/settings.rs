@@ -177,7 +177,9 @@ fn ui_settings_panel(
         .resizable(false)
         .show_animated(ctx, ui_state.right_panel, |ui| {
             if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs {
-                currently_changing.refresh_cooldown();
+                ui_state.mouse_over.right_panel = true;
+            } else {
+                ui_state.mouse_over.right_panel = false;
             }
 
             ui.add_space(10.0);

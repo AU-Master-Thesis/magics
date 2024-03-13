@@ -32,11 +32,31 @@ pub struct EguiInterfacePlugin;
 
 impl Plugin for EguiInterfacePlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<OccupiedScreenSpace>()
+        app.init_resource::<ActionBlock>()
+            .init_resource::<OccupiedScreenSpace>()
             .init_resource::<UiState>()
-            .add_plugins(EguiPlugin)
-            .add_systems(Startup, configure_visuals_system)
-            .add_plugins((ControlsPanelPlugin, SettingsPanelPlugin));
+            .add_plugins((EguiPlugin, ControlsPanelPlugin, SettingsPanelPlugin))
+            .add_systems(Startup, configure_visuals)
+            .add_systems(Update, action_block);
+    }
+}
+
+/// **Bevy** [`Resource`] to block actions from being performed
+/// Blocks actions (except for UI actions) while hovering a UI element
+#[derive(Debug, Default, Resource)]
+pub struct ActionBlock(bool);
+
+impl ActionBlock {
+    pub fn block(&mut self) {
+        self.0 = true;
+    }
+
+    pub fn unblock(&mut self) {
+        self.0 = false;
+    }
+
+    pub fn is_blocked(&self) -> bool {
+        self.0
     }
 }
 
@@ -70,6 +90,12 @@ impl ToDisplayString for UiScaleType {
     }
 }
 
+#[derive(Default)]
+pub struct MouseOverPanel {
+    pub left_panel: bool,
+    pub right_panel: bool,
+}
+
 /// UI state to represent state of `egui` stateful widgets
 #[derive(Resource)]
 pub struct UiState {
@@ -83,6 +109,7 @@ pub struct UiState {
     pub scale_percent: usize,
     // /// Whether the environment SDF is visible
     // pub environment_sdf: bool,
+    pub mouse_over: MouseOverPanel,
 }
 
 impl Default for UiState {
@@ -92,14 +119,15 @@ impl Default for UiState {
             right_panel: false,
             scale_type: UiScaleType::default(),
             scale_percent: 100, // start at default factor 1.0 = 100%
-                                // environment_sdf: false,
+            // environment_sdf: false,
+            mouse_over: MouseOverPanel::default(),
         }
     }
 }
 
 /// `Setup` **Bevy** system to initialise the `egui` visuals
 /// This is where the **default** for `egui` is set
-fn configure_visuals_system(mut contexts: EguiContexts, windows: Query<&Window>) {
+fn configure_visuals(mut contexts: EguiContexts, windows: Query<&Window>) {
     let window = windows.single();
     contexts.ctx_mut().set_visuals(match window.window_theme {
         Some(WindowTheme::Dark) => Visuals::catppuccin_dark(),
@@ -132,4 +160,14 @@ fn configure_visuals_system(mut contexts: EguiContexts, windows: Query<&Window>)
         .insert(0, "JetBrainsMonoNerdFont-Regular".to_owned());
 
     contexts.ctx_mut().set_fonts(fonts);
+}
+
+fn action_block(mut action_block: ResMut<ActionBlock>, ui_state: Res<UiState>) {
+    if (ui_state.left_panel && ui_state.mouse_over.left_panel)
+        || (ui_state.right_panel && ui_state.mouse_over.right_panel)
+    {
+        action_block.block();
+    } else {
+        action_block.unblock();
+    }
 }

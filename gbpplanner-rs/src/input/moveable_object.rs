@@ -3,7 +3,7 @@ use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use crate::ui::ChangingBinding;
+use crate::ui::{ActionBlock, ChangingBinding};
 
 use super::super::{
     moveable_object::{self, MoveableObject, MoveableObjectMovementState},
@@ -136,15 +136,21 @@ fn movement_actions(
         With<MoveableObject>,
     >,
     currently_changing: Res<ChangingBinding>,
+    action_block: Res<ActionBlock>,
     sensitivity: Res<MoveableObjectSensitivity>,
 ) {
-    if currently_changing.on_cooldown() || currently_changing.is_changing() {
-        return;
-    }
-    // let action_state = query.single();
     let Ok((action_state, mut angular_velocity, mut velocity)) = query.get_single_mut() else {
         return;
     };
+
+    if currently_changing.on_cooldown()
+        || currently_changing.is_changing()
+        || action_block.is_blocked()
+    {
+        velocity.value = Vec3::ZERO;
+        angular_velocity.value = Vec3::ZERO;
+        return;
+    }
 
     // When the default input for `MoveableObjectAction::Move` is pressed, print the clamped direction of the axis
     if action_state.pressed(&MoveableObjectAction::Move) {

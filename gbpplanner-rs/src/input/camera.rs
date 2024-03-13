@@ -5,7 +5,7 @@ use strum_macros::EnumIter;
 
 use crate::{
     environment::{self, camera::CameraResetEvent},
-    ui::ChangingBinding,
+    ui::{ActionBlock, ChangingBinding},
 };
 
 use super::super::{
@@ -160,6 +160,7 @@ fn camera_actions(
     >,
     // mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
+    action_block: Res<ActionBlock>,
     mut camera_reset_event: EventWriter<CameraResetEvent>,
     sensitivity: Res<CameraSensitivity>,
     // mut window: Query<&PrimaryWindow>,
@@ -168,7 +169,11 @@ fn camera_actions(
     if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
         query.get_single_mut()
     {
-        if currently_changing.on_cooldown() || currently_changing.is_changing() {
+        // if currently_changing.on_cooldown() || currently_changing.is_changing() {
+        if currently_changing.on_cooldown()
+            || currently_changing.is_changing()
+            || action_block.is_blocked()
+        {
             velocity.value = Vec3::ZERO;
             angular_velocity.value = Vec3::ZERO;
             return;
