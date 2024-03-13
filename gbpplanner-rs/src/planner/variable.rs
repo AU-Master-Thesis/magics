@@ -3,22 +3,27 @@ use std::collections::HashMap;
 use crate::utils::Indent;
 use crate::utils::PrettyPrint;
 
-use super::factorgraph::Inbox;
+use super::factorgraph::FactorId;
+use super::factorgraph::FactorIndex;
+use super::factorgraph::MessagesFromFactors;
+use super::factorgraph::MessagesFromVariables;
+use super::factorgraph::MessagesToFactors;
 use super::factorgraph::NodeIndex;
 use super::message::Eta;
 use super::message::Lam;
 use super::message::Message;
 use super::message::Mu;
+use super::RobotId;
 use gbp_linalg::pretty_print_matrix;
 use gbp_linalg::Matrix;
 use gbp_linalg::{Float, Vector};
 // use gbp_multivariate_normal::dummy_normal::DummyNormal;
 use gbp_multivariate_normal::MultivariateNormal;
 use ndarray_inverse::Inverse;
-use tap::Tap;
+// use tap::Tap;
 
 /// A variable in the factor graph.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Variable {
     /// In **gbpplanner** the `prior` is stored in 2 separate variables:
     /// 1. `eta_prior_` Information vector of prior on variable (essentially like a unary factor)
@@ -39,7 +44,7 @@ pub struct Variable {
     /// In gbpplanner it is used to control if a variable can be rendered.
     // pub valid: bool,
     /// Mailbox for incoming message storage
-    inbox: Inbox,
+    inbox: MessagesToFactors,
 }
 
 impl Variable {
@@ -81,7 +86,7 @@ impl Variable {
             lam,
             mu: mu_prior,
             sigma,
-            inbox: Inbox::new(),
+            inbox: MessagesToFactors::new(),
         }
 
         //
@@ -110,12 +115,12 @@ impl Variable {
     //     }
     // }
 
-    pub fn send_message(&mut self, from: NodeIndex, message: Message) {
+    pub fn send_message(&mut self, from: FactorId, message: Message) {
         let _ = self.inbox.insert(from, message);
     }
 
     // TODO: why never used?
-    pub fn read_message_from(&mut self, from: NodeIndex) -> Option<&Message> {
+    pub fn read_message_from(&mut self, from: FactorId) -> Option<&Message> {
         self.inbox.get(&from)
     }
 
@@ -125,34 +130,21 @@ impl Variable {
     /// Called `Variable::change_variable_prior` in **gbpplanner**
     pub fn change_prior(
         &mut self,
-        mean: &Vector<Float>,
-        indices_of_adjacent_factors: Vec<NodeIndex>,
-    ) -> HashMap<NodeIndex, Message> {
-        self.eta_prior = self.lam_prior.dot(mean);
-        self.mu = mean.clone();
+        mean: Vector<Float>,
+        ids_of_adjacent_factors: Vec<FactorId>,
+    ) -> MessagesFromVariables {
+        self.eta_prior = self.lam_prior.dot(&mean);
+        self.mu = mean;
 
-        // self.prior
-        //     .update_information_vector(&self.prior.precision_matrix().dot(mean));
-        // self.prior.information_vector = self.prior.precision_matrix.dotTHIS.(&mean);
-        // QUESTION: why cache mu?
-        // mu_ = new_mu;
-        // belief_ = Message {eta_, lam_, mu_};
-        // FIXME: we probably never update the belief of the variable
-        // dbg!(&self.belief);
-
-        // NOTE: this IS DIFFERENT FROM gbpplanner
-
-        // self.belief = self.prior.clone();
-
-        indices_of_adjacent_factors
+        ids_of_adjacent_factors
             .into_iter()
-            .map(|factor_index| {
+            .map(|factor_id| {
                 let message = Message::new(
                     Eta(self.eta.clone()),
                     Lam(self.lam.clone()),
                     Mu(self.mu.clone()),
                 );
-                (factor_index, message)
+                (factor_id, message)
             })
             .collect()
     }
@@ -165,7 +157,7 @@ impl Variable {
     // /***********************************************************************************************************/
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
     /// called `Variable::update_belief` in **gbpplanner**
-    pub fn update_belief_and_create_responses(&mut self) -> HashMap<NodeIndex, Message> {
+    pub fn update_belief_and_create_responses(&mut self) -> MessagesFromVariables {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
         self.eta = self.eta_prior.clone();
         self.lam = self.lam_prior.clone();

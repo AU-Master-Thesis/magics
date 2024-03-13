@@ -20,7 +20,7 @@ license = "MIT"
 
 [workspace.dependencies]
 ndarray = "0.15.6"
-thiserror = "1.0.56"
+thiserror = "1.0.58"
 
 [workspace.lints.rust]
 # unsafe_code = "forbid"

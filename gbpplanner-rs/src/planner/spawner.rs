@@ -10,7 +10,10 @@ use crate::{
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 
-use super::robot::VariableTimestepsResource;
+use super::{
+    robot::{MakeMeARobot, VariableTimestepsResource},
+    RobotState,
+};
 
 // pub static IMAGE: OnceLock<Image> = OnceLock::new();
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
@@ -161,8 +164,12 @@ fn spawn_formation(
         };
         let waypoints = [wp, Vec4::ZERO].iter().cloned().collect::<VecDeque<_>>();
         // let waypoints = VecDeque::from(vec![position, Vec2::ZERO]);
-        commands.spawn((
+        let mut entity = commands.spawn_empty();
+        let robot_id = entity.id();
+
+        entity.insert((
             RobotBundle::new(
+                robot_id,
                 waypoints,
                 variable_timesteps.timesteps.as_slice(),
                 config,

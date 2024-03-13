@@ -52,8 +52,7 @@ impl Plugin for RobotPlugin {
                     delete_interrobot_factors_system,
                     create_interrobot_factors_system,
                     update_failed_comms_system,
-                    iterate_gbp_internal_system,
-                    iterate_gbp_external_system,
+                    iterate_gbp_system,
                     update_prior_of_horizon_state_system,
                     update_prior_of_current_state_system,
                 )
@@ -145,6 +144,7 @@ pub struct RobotBundle {
 impl RobotBundle {
     #[must_use = "Constructor responsible for creating the robots factorgraph"]
     pub fn new(
+        robot_id: RobotId,
         mut waypoints: VecDeque<Vec4>,
         variable_timesteps: &[u32],
         config: &Config,
@@ -257,8 +257,8 @@ impl RobotBundle {
             );
 
             let factor_node_index = factorgraph.add_factor(dynamic_factor);
-            let _ = factorgraph.add_edge(variable_node_indices[i], factor_node_index);
-            let _ = factorgraph.add_edge(variable_node_indices[i + 1], factor_node_index);
+            let _ = factorgraph.add_edge(robot_id, variable_node_indices[i], factor_node_index);
+            let _ = factorgraph.add_edge(robot_id, variable_node_indices[i + 1], factor_node_index);
         }
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
@@ -274,7 +274,7 @@ impl RobotBundle {
             );
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
-            let _ = factorgraph.add_edge(variable_node_indices[i], factor_node_index);
+            let _ = factorgraph.add_edge(robot_id, variable_node_indices[i], factor_node_index);
         }
 
         // std::process::exit(0);
@@ -429,7 +429,6 @@ fn create_interrobot_factors_system(
                     index_of_connected_variable_in_other_robots_factorgraph: other_variable_indices
                         [i - 1],
                 };
-                // TODO: notify the variable that it is connected to another robot
                 let interrobot_factor = Factor::new_interrobot_factor(
                     config.gbp.sigma_factor_interrobot as Float,
                     z,
@@ -442,6 +441,8 @@ fn create_interrobot_factors_system(
                     .nth_variable_index(i)
                     .expect("there should be an i'th variable");
                 factorgraph.add_edge(variable_index, factor_index);
+
+                // TODO: notify the variable that it is connected to another robot
             }
 
             robotstate
@@ -485,28 +486,69 @@ macro_rules! iterate_gbp_impl {
     };
 }
 
-fn iterate_gbp_internal_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
-    let mode = MessagePassingMode::Internal;
+fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
+    let messages_to_external_variables = query
+        .iter_mut()
+        .map(|(robot_id, mut factorgraph)| factorgraph.factor_iteration(robot_id))
+        .collect::<Vec<_>>();
 
-    for (robot_id, mut factorgraph) in query.iter_mut() {
-        factorgraph.factor_iteration(robot_id, mode);
+    // Send messages to external variables
+    for batch in messages_to_external_variables {
+        for ((robot_id, variable_index), message) in batch {
+            let (_, external_factorgraph) = query
+                .iter_mut()
+                .find(|(id, _)| *id == robot_id)
+                .expect("the robot_id should be in the query, as it was just iterated over");
+
+            external_factorgraph
+                .variable(variable_index)
+                .send_message(message);
+        }
     }
-    for (robot_id, mut factorgraph) in query.iter_mut() {
-        factorgraph.variable_iteration(robot_id, mode);
+
+    let messages_to_external_factors = query
+        .iter_mut()
+        .map(|(robot_id, mut factorgraph)| factorgraph.variable_iteration(robot_id))
+        .collect::<Vec<_>>();
+
+    // Send messages to external factors
+
+    for batch in messages_to_external_factors {
+        for ((robot_id, factor_index), message) in batch {
+            let (_, external_factorgraph) = query
+                .iter_mut()
+                .find(|(id, _)| *id == robot_id)
+                .expect("the robot_id should be in the query, as it was just iterated over");
+
+            external_factorgraph
+                .factor(factor_index)
+                .send_message(message);
+        }
     }
 }
 
-fn iterate_gbp_external_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
-    let mode = MessagePassingMode::External;
-
-    for (robot_id, mut factorgraph) in query.iter_mut() {
-        factorgraph.factor_iteration(robot_id, mode);
-    }
-    for (robot_id, mut factorgraph) in query.iter_mut() {
-        factorgraph.variable_iteration(robot_id, mode);
-    }
-}
-
+// fn iterate_gbp_internal_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
+//     let mode = MessagePassingMode::Internal;
+//
+//     for (robot_id, mut factorgraph) in query.iter_mut() {
+//         factorgraph.factor_iteration(robot_id, mode);
+//     }
+//     for (robot_id, mut factorgraph) in query.iter_mut() {
+//         factorgraph.variable_iteration(robot_id, mode);
+//     }
+// }
+//
+// fn iterate_gbp_external_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
+//     let mode = MessagePassingMode::External;
+//
+//     for (robot_id, mut factorgraph) in query.iter_mut() {
+//         factorgraph.factor_iteration(robot_id, mode);
+//     }
+//     for (robot_id, mut factorgraph) in query.iter_mut() {
+//         factorgraph.variable_iteration(robot_id, mode);
+//     }
+// }
+//
 // pub fn iterate_gbp_internal_system(
 //     mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
 //     config: Res<Config>,

@@ -1,15 +1,18 @@
 use bevy::{log::warn, render::texture::Image};
 
-use gbp_linalg::{pretty_print_matrix, Float, Matrix, Vector, VectorNorm};
-use ndarray::{array, concatenate, s, Axis, Slice};
-use num_traits::NumCast;
+use gbp_linalg::{Float, Matrix, Vector, VectorNorm};
+use ndarray::{array, concatenate, s, Axis};
 use petgraph::prelude::NodeIndex;
 use std::{
     collections::HashMap,
     ops::{AddAssign, Sub},
 };
 
-use super::{factorgraph::Inbox, message::Message, robot::RobotId};
+use super::{
+    factorgraph::{MessagesFromFactors, MessagesFromVariables, VariableId},
+    message::Message,
+    robot::RobotId,
+};
 
 // TODO: make generic over f32 | f64
 // TODO: hide the state parameter from the public API, by having the `Factor` struct expose similar methods that dispatch to the `FactorState` struct.
@@ -629,7 +632,7 @@ pub struct Factor {
     /// Variant storing the specialized behavior of each Factor kind.
     pub kind: FactorKind,
     /// Mailbox for incoming message storage
-    inbox: Inbox,
+    inbox: MessagesFromFactors,
 
     /// Set to true after the first call to self.update()
     /// TODO: move to FactorState
@@ -642,7 +645,7 @@ impl Factor {
             node_index: None,
             state,
             kind,
-            inbox: Inbox::new(),
+            inbox: MessagesFromFactors::new(),
             initialized: false,
         }
     }
@@ -733,12 +736,12 @@ impl Factor {
     }
 
     #[inline(always)]
-    pub fn send_message(&mut self, from: NodeIndex, message: Message) {
+    pub fn send_message(&mut self, from: VariableId, message: Message) {
         let _ = self.inbox.insert(from, message);
     }
 
     #[inline(always)]
-    pub fn read_message_from(&mut self, from: NodeIndex) -> Option<&Message> {
+    pub fn read_message_from(&mut self, from: VariableId) -> Option<&Message> {
         self.inbox.get(&from)
     }
 
