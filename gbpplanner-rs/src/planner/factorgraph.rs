@@ -69,11 +69,10 @@ pub mod graphviz {
             }
         }
 
-        // TODO: return a float
-        pub fn width(&self) -> &'static str {
+        pub fn width(&self) -> f64 {
             match self {
-                Self::Variable { .. } => "0.8",
-                _ => "0.2",
+                Self::Variable { .. } => 0.8,
+                _ => 0.2,
             }
         }
     }
