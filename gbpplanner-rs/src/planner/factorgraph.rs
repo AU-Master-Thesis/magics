@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::ops::{AddAssign, Range};
 
+use bevy::app::DynEq;
 use bevy::prelude::*;
 use gbp_linalg::{Float, Matrix, Vector};
 use ndarray::s;
@@ -32,7 +33,7 @@ pub mod graphviz {
             self.kind.shape()
         }
 
-        pub fn width(&self) -> &'static str {
+        pub fn width(&self) -> f64 {
             self.kind.width()
         }
     }
@@ -83,14 +84,14 @@ pub mod graphviz {
     }
 }
 
-// TODO: implement for each and use
-pub trait FactorGraphNode {
-    fn messages_received(&self) -> usize;
-    fn messages_sent(&self) -> usize;
-
-    fn send_message(&mut self, from: NodeIndex, message: Message);
-    fn read_message_from(&self, from: NodeIndex) -> Option<&Message>;
-}
+// // TODO: implement for each and use
+// pub trait FactorGraphNode {
+//     fn messages_received(&self) -> usize;
+//     fn messages_sent(&self) -> usize;
+//
+//     fn send_message(&mut self, from: NodeIndex, message: Message);
+//     fn read_message_from(&self, from: NodeIndex) -> Option<&Message>;
+// }
 
 /// How the messages are passed between factors and variables in the connected factorgraphs.
 #[derive(Debug, Clone, Copy)]
@@ -243,13 +244,15 @@ impl Node {
 /// we make an alias for it here, such that it is easier to use the same
 /// index type across modules, as the various node index types `petgraph`
 /// are not interchangeable.
-pub type NodeIndex = petgraph::graph::NodeIndex;
+pub type NodeIndex = petgraph::stable_graph::NodeIndex;
 // pub type VariableIndex = NodeIndex;
 // pub type FactorIndex = NodeIndex;
 /// The type used to represent indices into the nodes of the factorgraph.
-pub type EdgeIndex = petgraph::graph::EdgeIndex;
+pub type EdgeIndex = petgraph::stable_graph::EdgeIndex;
 /// A factorgraph is an undirected graph
-pub type Graph = petgraph::graph::Graph<Node, (), Undirected, u32>;
+// pub type Graph = petgraph::graph::Graph<Node, (), Undirected, u32>;
+
+pub type Graph = petgraph::stable_graph::StableGraph<Node, (), Undirected, u32>;
 // pub type Graph<T> = petgraph::graph::Graph<Node<T>, (), Undirected>;
 
 /// Record type used to keep track of how many factors and variables
@@ -318,18 +321,19 @@ impl<'a> Variables<'a> {
 }
 
 impl<'a> Iterator for Variables<'a> {
-    type Item = (NodeIndex, &'a Variable);
+    type Item = (VariableIndex, &'a Variable);
 
     fn next(&mut self) -> Option<Self::Item> {
         let &index = self.variable_indices.next()?;
         let node = &self.graph[index];
-        node.as_variable().map(|variable| (index, variable))
+        node.as_variable()
+            .map(|variable| (VariableIndex(index), variable))
     }
 }
 
 struct AdjacentVariables<'a> {
     graph: &'a Graph,
-    adjacent_variables: petgraph::graph::Neighbors<'a, ()>,
+    adjacent_variables: petgraph::stable_graph::Neighbors<'a, ()>,
 }
 
 impl<'a> AdjacentVariables<'a> {
@@ -536,6 +540,30 @@ impl FactorGraph {
         } else {
             self.nth_variable_mut(self.variable_indices.len() - 1)
         }
+    }
+
+    fn factor(&self, index: FactorIndex) -> &Factor {
+        self.graph[index.as_node_index()]
+            .as_factor()
+            .expect("A factor index should point to a Factor in the graph")
+    }
+
+    fn factor_mut(&mut self, index: FactorIndex) -> &mut Factor {
+        self.graph[index.as_node_index()]
+            .as_factor_mut()
+            .expect("A factor index should point to a Factor in the graph")
+    }
+
+    fn variable(&self, index: VariableIndex) -> &Variable {
+        self.graph[index.as_node_index()]
+            .as_variable()
+            .expect("A variable index should point to a Variable in the graph")
+    }
+
+    fn variable_mut(&mut self, index: VariableIndex) -> &mut Variable {
+        self.graph[index.as_node_index()]
+            .as_variable_mut()
+            .expect("A variable index should point to a Variable in the graph")
     }
 
     pub fn export_data(&self) -> (Vec<graphviz::Node>, Vec<graphviz::Edge>) {
@@ -751,53 +779,56 @@ impl FactorGraph {
 
     /// Variable Iteration in Gaussian Belief Propagation (GBP).
     /// For each variable in the factorgraph:
-    ///  - Messages are collected from the outboxes of each of the connected factors
-    ///  - Variable belief is updated and outgoing message in the variable's outbox is created.
-    ///
-    ///  * Note: we deal with cases where the variable/factor iteration may need to be skipped:
-    ///      - communications failure modes:
-    ///          if interrobot_comms_active_ is false, variables and factors connected to
-    ///          other robots should not take part in GBP iterations,
-    ///      - message passing modes (INTERNAL within a robot's own factorgraph or EXTERNAL between a robot and other robots):
-    ///          in which case the variable or factor may or may not need to take part in GBP depending on if it's connected to another robot
-    pub fn variable_iteration(&mut self, robot_id: RobotId) {
-        // TODO: send messages to connected interrobot factors in other robots factorgraphs
-        for variable_index in self.graph.node_indices() {
-            let node = &mut self.graph[variable_index];
-            if node.is_factor() {
-                continue;
-            }
-            let variable = node
-                .as_variable_mut()
-                .expect("variable_index should point to a Variable in the graph");
-
+    /// 1. Use received messages from connected factors to update the variable belief
+    /// 2. Create and send outgoing messages to the connected factors
+    /// # Arguments
+    /// * `robot_id` - The id of the robot that this factorgraph belongs to
+    /// # Returns
+    /// Messages that need to be sent to any externally connected factors
+    /// This can be empty if there are no externally connected factors
+    /// A [`FactorGraph`] does not have a handle to the factorgraphs of other robots, so it cannot send messages to them.
+    /// It is up to the caller of this method to send the messages to the correct robot.
+    /// # Panics
+    /// This method panics if a variable has not received any messages from its connected factors.
+    /// As this indicates that the factorgraph is not correctly constructed.
+    pub fn variable_iteration(&mut self, robot_id: RobotId) -> MessagesToFactors {
+        let mut messages_to_external_factors = HashMap::new();
+        for (variable_index, variable) in self.variables() {
             let factor_messages = variable.update_belief_and_create_responses();
             if factor_messages.is_empty() {
-                error!(
-                    "The variable {:?} did not receive any messages from its connected factors",
+                panic!(
+                    "The robot {:?} with variable {:?} did not receive any messages from its connected factors",
+                    robot_id,
                     variable_index
                 );
-                continue;
             }
 
-            // dbg!(&factor_messages);
-            // send the messages to the connected factors
-            for (factor_index, message) in factor_messages {
-                let factor = self.graph[factor_index]
-                    .as_factor_mut()
-                    .expect("The variable can only send messages to factors");
-                factor.send_message(variable_index, message);
+            for (factor_id, message) in factor_messages {
+                if factor_id.0 == robot_id {
+                    // Send the messages to the connected factors within the same factorgraph
+                    let factor = self.factor_mut(factor_id.1);
+                    factor.send_message((robot_id, variable_index), message);
+                } else {
+                    messages_to_external_factors.insert(factor_id, message);
+                }
             }
         }
+
+        messages_to_external_factors
     }
 
-    pub fn change_prior_of_variable(&mut self, variable_index: NodeIndex, new_mean: Vector<Float>) {
-        let indices_of_adjacent_factors = self.graph.neighbors(variable_index).collect::<Vec<_>>();
-        let variable = self.graph[variable_index]
-            .as_variable_mut()
-            .expect("variable_index should point to a Variable in the graph");
+    pub fn change_prior_of_variable(
+        &mut self,
+        variable_index: VariableIndex,
+        new_mean: Vector<Float>,
+    ) {
+        let variable = self.variable_mut(variable_index);
+        let indices_of_adjacent_factors = self
+            .graph
+            .neighbors(variable_index.as_node_index())
+            .collect::<Vec<_>>();
 
-        let factor_messages = variable.change_prior(&new_mean, indices_of_adjacent_factors);
+        let factor_messages = variable.change_prior(new_mean, indices_of_adjacent_factors);
 
         for (factor_index, message) in factor_messages {
             let factor = self.graph[factor_index]
