@@ -16,7 +16,10 @@ use strum::IntoEnumIterator;
 
 use crate::{
     config::Config,
-    input::{CameraAction, GeneralAction, InputAction, MoveableObjectAction, UiAction},
+    input::{
+        CameraAction, CameraSensitivity, GeneralAction, InputAction, MoveableObjectAction,
+        MoveableObjectSensitivity, UiAction,
+    },
     theme::{CatppuccinTheme, FromCatppuccinColourExt},
 };
 
@@ -102,6 +105,8 @@ fn ui_controls_panel(
     catppuccin_theme: Res<CatppuccinTheme>,
     mut currently_changing: ResMut<ChangingBinding>,
     config: Res<Config>,
+    mut object_sensitivity: ResMut<MoveableObjectSensitivity>,
+    mut camera_sensitivity: ResMut<CameraSensitivity>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -161,386 +166,454 @@ fn ui_controls_panel(
                 currently_changing.refresh_cooldown();
             }
 
-            ui.add_space(10.0);
-            ui.heading("Controls");
-            ui.add_space(5.0);
-            ui.separator();
+            custom::heading(ui, "Controls", None);
+
             let panel_height = ui.available_rect_before_wrap().height();
             egui::ScrollArea::vertical()
                 .max_height(panel_height - 80.0)
                 .drag_to_scroll(true)
                 .show(ui, |ui| {
-                    // Inside the `ScrollArea`
-                    ui.add_space(10.0);
-                    // egui::Grid::new("controls_grid")
-                    //     .num_columns(3)
-                    //     .min_col_width(100.0)
-                    //     .spacing((10.0, 10.0))
-                    //     .with_row_color(move |r, _| {
-                    //         if grid_map_ranges.iter().any(|x| *x == r) {
-                    //             Some(Color32::from_catppuccin_colour(grid_row_color))
-                    //         } else if grid_title_rows.iter().any(|x| *x == r) {
-                    //             // TODO: Do this better
-                    //             Some(Color32::from_catppuccin_colour_with_alpha(
-                    //                 grid_title_colors[grid_title_rows
-                    //                     .iter()
-                    //                     .position(|&e| e == r)
-                    //                     .expect("In a conditional branch that ensures this")],
-                    //                 // title_colors.next().expect("From cycle iterator"),
-                    //                 0.5,
-                    //             ))
-                    //         } else {
-                    //             None
-                    //         }
-                    //     })
-                    //     .show(ui, |ui| {
-
-                    // let row_height = 35.0;
-                    // let first_col_width = 200.0;
-                    // let binding_col_width = 100.0;
-                    // let spacing = 5.0;
-
-                    // custom::grid("title_grid", 3).show(ui, |ui| {
-                    //     let size = 15.0; // pt
-                    //     ui.label(RichText::new("Binding").size(size).color(
-                    //         Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
-                    //     ));
-                    //     ui.centered_and_justified(|ui| {
-                    //         ui.label(RichText::new("󰌌").size(size + 5.0).color(
-                    //             Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
-                    //         ));
-                    //     });
-
-                    //     ui.centered_and_justified(|ui| {
-                    //         ui.label(RichText::new("󰊗").size(size + 5.0).color(
-                    //             Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
-                    //         ));
-                    //     });
-                    // });
-
-                    let size = 15.0; // pt
-
-                    ui.push_id("binding_header_table", |ui| {
-                        custom::binding_table(ui)
-                            .striped(false)
-                            .body(|mut body| {
+                    custom::subheading(
+                        ui,
+                        "Sensitivity",
+                        Some(Color32::from_catppuccin_colour(catppuccin_theme.lavender())),
+                    );
+                    ui.push_id("sensitivity_table", |ui| {
+                        custom::sens_table(ui).body(|mut body| {
                             body.row(custom::ROW_HEIGHT, |mut row| {
                                 row.col(|col| {
-                                    custom::center_y(col, |col| {
-                                        col.label(RichText::new("Binding").size(size).color(
-                                            Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
-                                        ));
-                                    });
+                                    col.label("Object Movement");
                                 });
                                 row.col(|col| {
-                                    custom::fill_x(col, |col| {
-                                        col.label(RichText::new("󰌌").size(size + 5.0).color(
-                                            Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
-                                        ));
-                                    });
+                                    col.add(
+                                        egui::Slider::new(
+                                            &mut object_sensitivity.move_sensitivity,
+                                            0.0..=2.0,
+                                        )
+                                        .show_value(true)
+                                        .custom_formatter(|x, _| format!("{:.0}%", x * 100.0)),
+                                    );
+                                });
+                            });
+
+                            body.row(custom::ROW_HEIGHT, |mut row| {
+                                row.col(|col| {
+                                    col.label("Object Rotation");
                                 });
                                 row.col(|col| {
-                                    custom::fill_x(col, |col| {
-                                        col.label(RichText::new("󰊗").size(size + 5.0).color(
-                                            Color32::from_catppuccin_colour(catppuccin_theme.lavender()),
-                                        ));
+                                    col.add(
+                                        egui::Slider::new(
+                                            &mut object_sensitivity.rotate_sensitivity,
+                                            0.0..=2.0,
+                                        )
+                                        .show_value(true)
+                                        .custom_formatter(|x, _| format!("{:.0}%", x * 100.0)),
+                                    );
+                                });
+                            });
+                            body.row(custom::ROW_HEIGHT, |mut row| {
+                                row.col(|col| {
+                                    col.label("Camera Movement");
+                                });
+                                row.col(|col| {
+                                    col.add(
+                                        egui::Slider::new(
+                                            &mut camera_sensitivity.move_sensitivity,
+                                            0.0..=2.0,
+                                        )
+                                        .show_value(true)
+                                        .custom_formatter(|x, _| format!("{:.0}%", x * 100.0)),
+                                    );
+                                });
+                            });
+                        });
+
+                        custom::separator(ui, None, Some(5.0), Some(5.0));
+
+                        let size = 15.0; // pt
+
+                        ui.push_id("binding_header_table", |ui| {
+                            custom::binding_table(ui).striped(false).body(|mut body| {
+                                body.row(custom::BINDING_ROW_HEIGHT, |mut row| {
+                                    row.col(|col| {
+                                        custom::center_y(col, |col| {
+                                            col.label(RichText::new("Binding").size(size).color(
+                                                Color32::from_catppuccin_colour(
+                                                    catppuccin_theme.lavender(),
+                                                ),
+                                            ));
+                                        });
+                                    });
+                                    row.col(|col| {
+                                        custom::fill_x(col, |col| {
+                                            col.label(RichText::new("󰌌").size(size + 5.0).color(
+                                                Color32::from_catppuccin_colour(
+                                                    catppuccin_theme.lavender(),
+                                                ),
+                                            ));
+                                        });
+                                    });
+                                    row.col(|col| {
+                                        custom::fill_x(col, |col| {
+                                            col.label(RichText::new("󰊗").size(size + 5.0).color(
+                                                Color32::from_catppuccin_colour(
+                                                    catppuccin_theme.lavender(),
+                                                ),
+                                            ));
+                                        });
                                     });
                                 });
                             });
                         });
-                    });
 
-                    // go through all InputAction variants, and make a title for each
-                    // then nested go through each inner variant and make a button for each
+                        // go through all InputAction variants, and make a title for each
+                        // then nested go through each inner variant and make a button for each
 
-                    for action in InputAction::iter() {
-                        if matches!(action, InputAction::Undefined) {
-                            continue;
-                        }
-                        match action {
-                            InputAction::MoveableObject(_) => {
-                                if query_moveable_object_action.iter().count() != 0 {
-                                    custom::subheading(
-                                        ui,
-                                        action.to_string().as_str(),
-                                        Some(Color32::from_catppuccin_colour(
-                                            title_colors.next().expect("From cycle iterator"),
-                                        )),
-                                    );
-                                }
+                        for action in InputAction::iter() {
+                            if matches!(action, InputAction::Undefined) {
+                                continue;
+                            }
+                            match action {
+                                InputAction::MoveableObject(_) => {
+                                    if query_moveable_object_action.iter().count() != 0 {
+                                        custom::subheading(
+                                            ui,
+                                            action.to_string().as_str(),
+                                            Some(Color32::from_catppuccin_colour(
+                                                title_colors.next().expect("From cycle iterator"),
+                                            )),
+                                        );
+                                    }
 
-                                ui.push_id(format!("{}_table", action.to_string()), |ui| {
-                                    custom::binding_table(ui)
-                                        .body(|body| {
+                                    ui.push_id(format!("{}_table", action.to_string()), |ui| {
+                                        custom::binding_table(ui).body(|body| {
                                             // for map in query_moveable_object_action.iter() {
 
                                             if let Ok(map) =
                                                 query_moveable_object_action.get_single_mut()
                                             {
-                                                body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
-                                                    let row_index = row.index();
+                                                body.rows(
+                                                    custom::BINDING_ROW_HEIGHT,
+                                                    map.iter().count(),
+                                                    |mut row| {
+                                                        let row_index = row.index();
 
-                                                    let inner_action =
-                                                        map.iter().nth(row_index).expect(
-                                                            "Table row amount is equal to map length",
-                                                        );
-
-                                                    row.col(|col| {
-                                                        col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
-                                                            col.label(inner_action.0.to_string());
-                                                        });
-                                                    });
-
-                                                    for r in 0..2 {
-                                                        let button_content = inner_action.1
-                                                            .get(r)
-                                                            .map_or_else(
-                                                                || "".to_string(),
-                                                                |ia| ia.to_display_string(),
-                                                        );
+                                                        let inner_action =
+                                                map.iter().nth(row_index).expect(
+                                                    "Table row amount is equal to map length",
+                                                );
 
                                                         row.col(|col| {
-                                                            col.add_space(custom::SPACING);
-                                                            let (rect, _) = col.allocate_exact_size(
-                                                                Vec2::new(
-                                                                    custom::BINDING_COL_WIDTH - 2.0 * custom::SPACING,
-                                                                    custom::ROW_HEIGHT - 2.0 * custom::SPACING
-                                                                ), Sense::hover());
-                                                            col.allocate_ui_at_rect(rect, |ui| {
-                                                                custom::fill_x(ui, |ui| {
-                                                                    if ui.button(RichText::new(
-                                                                        button_content,
-                                                                        )).clicked() {
-                                                                        *currently_changing =
-                                                                            ChangingBinding::new(
-                                                                                InputAction::MoveableObject(
-                                                                                    *inner_action.0,
-                                                                                ),
-                                                                                r,
-                                                                            );
-                                                                    }
-                                                                });
-                                                            });
+                                                            col.with_layout(
+                                                                Layout::left_to_right(
+                                                                    egui::Align::Center,
+                                                                ),
+                                                                |col| {
+                                                                    col.label(
+                                                                        inner_action.0.to_string(),
+                                                                    );
+                                                                },
+                                                            );
                                                         });
-                                                    }
-                                                });
+
+                                                        for r in 0..2 {
+                                                            let button_content =
+                                                                inner_action.1.get(r).map_or_else(
+                                                                    || "".to_string(),
+                                                                    |ia| ia.to_display_string(),
+                                                                );
+
+                                                            row.col(|col| {
+                                                                col.add_space(custom::SPACING);
+                                                                let (rect, _) = col
+                                                                    .allocate_exact_size(
+                                                                    Vec2::new(
+                                                                        custom::BINDING_COL_WIDTH
+                                                                            - 2.0 * custom::SPACING,
+                                                                        custom::BINDING_ROW_HEIGHT
+                                                                            - 2.0 * custom::SPACING,
+                                                                    ),
+                                                                    Sense::hover(),
+                                                                );
+                                                                col.allocate_ui_at_rect(rect, |ui| {
+                                                        custom::fill_x(ui, |ui| {
+                                                            if ui.button(RichText::new(
+                                                                button_content,
+                                                                )).clicked() {
+                                                                *currently_changing =
+                                                                    ChangingBinding::new(
+                                                                        InputAction::MoveableObject(
+                                                                            *inner_action.0,
+                                                                        ),
+                                                                        r,
+                                                                    );
+                                                            }
+                                                        });
+                                                    });
+                                                            });
+                                                        }
+                                                    },
+                                                );
                                             }
                                         });
-                                });
-                            }
-                            InputAction::General(_) => {
-                                if query_general_action.iter().count() != 0 {
-                                    custom::subheading(
-                                        ui,
-                                        action.to_string().as_str(),
-                                        Some(Color32::from_catppuccin_colour(
-                                            title_colors.next().expect("From cycle iterator"),
-                                        )),
-                                    );
+                                    });
                                 }
+                                InputAction::General(_) => {
+                                    if query_general_action.iter().count() != 0 {
+                                        custom::subheading(
+                                            ui,
+                                            action.to_string().as_str(),
+                                            Some(Color32::from_catppuccin_colour(
+                                                title_colors.next().expect("From cycle iterator"),
+                                            )),
+                                        );
+                                    }
 
-                                ui.push_id(format!("{}_table", action.to_string()), |ui| {
-                                    custom::binding_table(ui)
-                                        .body(|body| {
+                                    ui.push_id(format!("{}_table", action.to_string()), |ui| {
+                                        custom::binding_table(ui).body(|body| {
                                             // for map in query_general_action.iter() {
 
                                             if let Ok(map) = query_general_action.get_single_mut() {
-                                                body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
-                                                    let row_index = row.index();
+                                                body.rows(
+                                                    custom::BINDING_ROW_HEIGHT,
+                                                    map.iter().count(),
+                                                    |mut row| {
+                                                        let row_index = row.index();
 
-                                                    let inner_action =
-                                                        map.iter().nth(row_index).expect(
-                                                            "Table row amount is equal to map length",
-                                                        );
-
-                                                    row.col(|col| {
-                                                        col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
-                                                            col.label(inner_action.0.to_string());
-                                                        });
-                                                    });
-
-                                                    for r in 0..2 {
-                                                        let button_content = inner_action.1
-                                                            .get(r)
-                                                            .map_or_else(
-                                                                || "".to_string(),
-                                                                |ia| ia.to_display_string(),
-                                                        );
+                                                        let inner_action =
+                                                map.iter().nth(row_index).expect(
+                                                    "Table row amount is equal to map length",
+                                                );
 
                                                         row.col(|col| {
-                                                            col.add_space(custom::SPACING);
-                                                            let (rect, _) = col.allocate_exact_size(
-                                                                Vec2::new(
-                                                                    custom::BINDING_COL_WIDTH - 2.0 * custom::SPACING,
-                                                                    custom::ROW_HEIGHT - 2.0 * custom::SPACING
-                                                                ), Sense::hover());
-                                                            col.allocate_ui_at_rect(rect, |ui| {
-                                                                custom::fill_x(ui, |ui| {
-                                                                    if ui.button(RichText::new(
-                                                                        button_content,
-                                                                        )).clicked() {
-                                                                        *currently_changing =
-                                                                            ChangingBinding::new(
-                                                                                InputAction::General(
-                                                                                    *inner_action.0,
-                                                                                ),
-                                                                                r,
-                                                                            );
-                                                                    }
-                                                                });
-                                                            });
+                                                            col.with_layout(
+                                                                Layout::left_to_right(
+                                                                    egui::Align::Center,
+                                                                ),
+                                                                |col| {
+                                                                    col.label(
+                                                                        inner_action.0.to_string(),
+                                                                    );
+                                                                },
+                                                            );
                                                         });
-                                                    }
-                                                });
+
+                                                        for r in 0..2 {
+                                                            let button_content =
+                                                                inner_action.1.get(r).map_or_else(
+                                                                    || "".to_string(),
+                                                                    |ia| ia.to_display_string(),
+                                                                );
+
+                                                            row.col(|col| {
+                                                                col.add_space(custom::SPACING);
+                                                                let (rect, _) = col
+                                                                    .allocate_exact_size(
+                                                                    Vec2::new(
+                                                                        custom::BINDING_COL_WIDTH
+                                                                            - 2.0 * custom::SPACING,
+                                                                        custom::BINDING_ROW_HEIGHT
+                                                                            - 2.0 * custom::SPACING,
+                                                                    ),
+                                                                    Sense::hover(),
+                                                                );
+                                                                col.allocate_ui_at_rect(rect, |ui| {
+                                                        custom::fill_x(ui, |ui| {
+                                                            if ui.button(RichText::new(
+                                                                button_content,
+                                                                )).clicked() {
+                                                                *currently_changing =
+                                                                    ChangingBinding::new(
+                                                                        InputAction::General(
+                                                                            *inner_action.0,
+                                                                        ),
+                                                                        r,
+                                                                    );
+                                                            }
+                                                        });
+                                                    });
+                                                            });
+                                                        }
+                                                    },
+                                                );
                                             }
                                         });
-                                });
-                            }
-                            InputAction::Camera(_) => {
-                                if query_camera_action.iter().count() != 0 {
-                                    custom::subheading(
-                                        ui,
-                                        action.to_string().as_str(),
-                                        Some(Color32::from_catppuccin_colour(
-                                            title_colors.next().expect("From cycle iterator"),
-                                        )),
-                                    );
+                                    });
                                 }
+                                InputAction::Camera(_) => {
+                                    if query_camera_action.iter().count() != 0 {
+                                        custom::subheading(
+                                            ui,
+                                            action.to_string().as_str(),
+                                            Some(Color32::from_catppuccin_colour(
+                                                title_colors.next().expect("From cycle iterator"),
+                                            )),
+                                        );
+                                    }
 
-                                ui.push_id(format!("{}_table", action.to_string()), |ui| {
-                                    custom::binding_table(ui)
-                                        .body(|body| {
+                                    ui.push_id(format!("{}_table", action.to_string()), |ui| {
+                                        custom::binding_table(ui).body(|body| {
                                             // for map in query_camera_action.iter() {
 
                                             if let Ok(map) = query_camera_action.get_single_mut() {
-                                                body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
-                                                    let row_index = row.index();
+                                                body.rows(
+                                                    custom::BINDING_ROW_HEIGHT,
+                                                    map.iter().count(),
+                                                    |mut row| {
+                                                        let row_index = row.index();
 
-                                                    let inner_action =
-                                                        map.iter().nth(row_index).expect(
-                                                            "Table row amount is equal to map length",
-                                                        );
-
-                                                    row.col(|col| {
-                                                        col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
-                                                            col.label(inner_action.0.to_string());
-                                                        });
-                                                    });
-
-                                                    for r in 0..2 {
-                                                        let button_content = inner_action.1
-                                                            .get(r)
-                                                            .map_or_else(
-                                                                || "".to_string(),
-                                                                |ia| ia.to_display_string(),
-                                                        );
+                                                        let inner_action =
+                                                map.iter().nth(row_index).expect(
+                                                    "Table row amount is equal to map length",
+                                                );
 
                                                         row.col(|col| {
-                                                            col.add_space(custom::SPACING);
-                                                            let (rect, _) = col.allocate_exact_size(
-                                                                Vec2::new(
-                                                                    custom::BINDING_COL_WIDTH - 2.0 * custom::SPACING,
-                                                                    custom::ROW_HEIGHT - 2.0 * custom::SPACING
-                                                                ), Sense::hover());
-                                                            col.allocate_ui_at_rect(rect, |ui| {
-                                                                custom::fill_x(ui, |ui| {
-                                                                    if ui.button(RichText::new(
-                                                                        button_content,
-                                                                        )).clicked() {
-                                                                        *currently_changing =
-                                                                            ChangingBinding::new(
-                                                                                InputAction::Camera(
-                                                                                    *inner_action.0,
-                                                                                ),
-                                                                                r,
-                                                                            );
-                                                                    }
-                                                                });
-                                                            });
+                                                            col.with_layout(
+                                                                Layout::left_to_right(
+                                                                    egui::Align::Center,
+                                                                ),
+                                                                |col| {
+                                                                    col.label(
+                                                                        inner_action.0.to_string(),
+                                                                    );
+                                                                },
+                                                            );
                                                         });
-                                                    }
-                                                });
+
+                                                        for r in 0..2 {
+                                                            let button_content =
+                                                                inner_action.1.get(r).map_or_else(
+                                                                    || "".to_string(),
+                                                                    |ia| ia.to_display_string(),
+                                                                );
+
+                                                            row.col(|col| {
+                                                                col.add_space(custom::SPACING);
+                                                                let (rect, _) = col
+                                                                    .allocate_exact_size(
+                                                                    Vec2::new(
+                                                                        custom::BINDING_COL_WIDTH
+                                                                            - 2.0 * custom::SPACING,
+                                                                        custom::BINDING_ROW_HEIGHT
+                                                                            - 2.0 * custom::SPACING,
+                                                                    ),
+                                                                    Sense::hover(),
+                                                                );
+                                                                col.allocate_ui_at_rect(rect, |ui| {
+                                                        custom::fill_x(ui, |ui| {
+                                                            if ui.button(RichText::new(
+                                                                button_content,
+                                                                )).clicked() {
+                                                                *currently_changing =
+                                                                    ChangingBinding::new(
+                                                                        InputAction::Camera(
+                                                                            *inner_action.0,
+                                                                        ),
+                                                                        r,
+                                                                    );
+                                                            }
+                                                        });
+                                                    });
+                                                            });
+                                                        }
+                                                    },
+                                                );
                                             }
                                         });
-                                });
-                            }
-                            InputAction::Ui(_) => {
-                                if query_ui_action.iter().count() != 0 {
-                                    custom::subheading(
-                                        ui,
-                                        action.to_string().as_str(),
-                                        Some(Color32::from_catppuccin_colour(
-                                            title_colors.next().expect("From cycle iterator"),
-                                        )),
-                                    );
+                                    });
                                 }
+                                InputAction::Ui(_) => {
+                                    if query_ui_action.iter().count() != 0 {
+                                        custom::subheading(
+                                            ui,
+                                            action.to_string().as_str(),
+                                            Some(Color32::from_catppuccin_colour(
+                                                title_colors.next().expect("From cycle iterator"),
+                                            )),
+                                        );
+                                    }
 
-                                ui.push_id(format!("{}_table", action.to_string()), |ui| {
-                                    custom::binding_table(ui)
-                                        .body(|body| {
+                                    ui.push_id(format!("{}_table", action.to_string()), |ui| {
+                                        custom::binding_table(ui).body(|body| {
                                             // for map in query_ui_action.iter() {
 
                                             if let Ok(map) = query_ui_action.get_single_mut() {
-                                                body.rows(custom::ROW_HEIGHT, map.iter().count(), |mut row| {
-                                                    let row_index = row.index();
+                                                body.rows(
+                                                    custom::BINDING_ROW_HEIGHT,
+                                                    map.iter().count(),
+                                                    |mut row| {
+                                                        let row_index = row.index();
 
-                                                    let inner_action =
-                                                        map.iter().nth(row_index).expect(
-                                                            "Table row amount is equal to map length",
-                                                        );
+                                                        let inner_action =
+                                                map.iter().nth(row_index).expect(
+                                                    "Table row amount is equal to map length",
+                                                );
 
-                                                    row.col(|col| {
-                                                        col.with_layout(Layout::left_to_right(egui::Align::Center), |col| {
-                                                            col.label(inner_action.0.to_string());
+                                                        row.col(|col| {
+                                                            col.with_layout(
+                                                                Layout::left_to_right(
+                                                                    egui::Align::Center,
+                                                                ),
+                                                                |col| {
+                                                                    col.label(
+                                                                        inner_action.0.to_string(),
+                                                                    );
+                                                                },
+                                                            );
                                                         });
-                                                    });
 
-                                                    // inner_action.1.iter().enumerate().for_each(
-                                                    for r in 0..2 {
-                                                        let button_content = inner_action.1
-                                                            .get(r)
-                                                            .map_or_else(
-                                                                || "".to_string(),
-                                                                |ia| ia.to_display_string(),
-                                                        );
+                                                        // inner_action.1.iter().enumerate().for_each(
+                                                        for r in 0..2 {
+                                                            let button_content =
+                                                                inner_action.1.get(r).map_or_else(
+                                                                    || "".to_string(),
+                                                                    |ia| ia.to_display_string(),
+                                                                );
 
-                                                        // |(i, x)| {
+                                                            // |(i, x)| {
                                                             row.col(|col| {
                                                                 col.add_space(custom::SPACING);
-                                                                let (rect, _) = col.allocate_exact_size(
+                                                                let (rect, _) = col
+                                                                    .allocate_exact_size(
                                                                     Vec2::new(
-                                                                        custom::BINDING_COL_WIDTH - 2.0 * custom::SPACING,
-                                                                        custom::ROW_HEIGHT - 2.0 * custom::SPACING
-                                                                    ), Sense::hover());
+                                                                        custom::BINDING_COL_WIDTH
+                                                                            - 2.0 * custom::SPACING,
+                                                                        custom::BINDING_ROW_HEIGHT
+                                                                            - 2.0 * custom::SPACING,
+                                                                    ),
+                                                                    Sense::hover(),
+                                                                );
                                                                 col.allocate_ui_at_rect(rect, |ui| {
-                                                                    custom::fill_x(ui, |ui| {
-                                                                        if ui.button(RichText::new(
-                                                                            button_content,
-                                                                            )).clicked() {
-                                                                            *currently_changing =
-                                                                                ChangingBinding::new(
-                                                                                    InputAction::Ui(
-                                                                                        *inner_action.0,
-                                                                                    ),
-                                                                                    r,
-                                                                                );
-                                                                        }
-                                                                    });
-                                                                });
+                                                            custom::fill_x(ui, |ui| {
+                                                                if ui.button(RichText::new(
+                                                                    button_content,
+                                                                    )).clicked() {
+                                                                    *currently_changing =
+                                                                        ChangingBinding::new(
+                                                                            InputAction::Ui(
+                                                                                *inner_action.0,
+                                                                            ),
+                                                                            r,
+                                                                        );
+                                                                }
                                                             });
-                                                        // };
-                                                    }
-                                                });
+                                                        });
+                                                            });
+                                                            // };
+                                                        }
+                                                    },
+                                                );
                                             }
                                         });
-                                });
+                                    });
+                                }
+                                _ => { /* do nothing */ }
                             }
-                            _ => { /* do nothing */ }
                         }
-                    }
+                    });
                 });
-            // });
 
+            // CURRENT CHANGING BINDING INFO
             ui.separator();
             ui.add_space(10.0);
 
@@ -624,9 +697,6 @@ fn ui_controls_panel(
                 });
             }
         });
-
-    // ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
-    // });
 
     occupied_screen_space.left = left_panel
         .map(|ref inner| inner.response.rect.width())

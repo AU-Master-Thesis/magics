@@ -179,7 +179,8 @@ pub fn grid(
     // .show(ui, add_contents)
 }
 
-pub(crate) const ROW_HEIGHT: f32 = 35.0;
+pub(crate) const ROW_HEIGHT: f32 = 20.0;
+pub(crate) const BINDING_ROW_HEIGHT: f32 = 35.0;
 pub(crate) const FIRST_COL_WIDTH: f32 = 200.0;
 pub(crate) const BINDING_COL_WIDTH: f32 = 100.0;
 pub(crate) const SPACING: f32 = 5.0;
@@ -190,4 +191,13 @@ pub fn binding_table<'a>(ui: &'a mut Ui) -> TableBuilder<'a> {
         .columns(Column::exact(BINDING_COL_WIDTH), 2)
         .vscroll(false)
         .auto_shrink(Vec2b::new(false, true))
+}
+
+pub fn sens_table<'a>(ui: &'a mut Ui) -> TableBuilder<'a> {
+    TableBuilder::new(ui)
+        .column(Column::exact(FIRST_COL_WIDTH))
+        .column(Column::exact(BINDING_COL_WIDTH * 2.0))
+        .vscroll(false)
+        .auto_shrink(Vec2b::new(false, true))
+        .striped(false)
 }

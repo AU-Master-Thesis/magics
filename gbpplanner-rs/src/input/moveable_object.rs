@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 use crate::ui::ChangingBinding;
@@ -13,9 +14,28 @@ pub struct MoveableObjectInputPlugin;
 
 impl Plugin for MoveableObjectInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((InputManagerPlugin::<MoveableObjectAction>::default(),))
+        app.init_resource::<MoveableObjectSensitivity>()
+            .add_plugins((InputManagerPlugin::<MoveableObjectAction>::default(),))
             .add_systems(PostStartup, (bind_moveable_object_input,))
             .add_systems(Update, (movement_actions,));
+    }
+}
+
+/// **Bevy** [`Resource`] for the sensitivity of the movement of the [`MoveableObject`]
+/// Works as a scaling factor for the movement and rotation of the [`MoveableObject`]
+/// Defaults to 1.0 for both `move_sensitivity` and `rotate_sensitivity`
+#[derive(Resource)]
+pub struct MoveableObjectSensitivity {
+    pub move_sensitivity: f32,
+    pub rotate_sensitivity: f32,
+}
+
+impl Default for MoveableObjectSensitivity {
+    fn default() -> Self {
+        Self {
+            move_sensitivity: 1.0,
+            rotate_sensitivity: 1.0,
+        }
     }
 }
 
@@ -47,16 +67,6 @@ impl Default for MoveableObjectAction {
 }
 
 impl MoveableObjectAction {
-    fn variants() -> &'static [MoveableObjectAction] {
-        &[
-            MoveableObjectAction::Move,
-            MoveableObjectAction::RotateClockwise,
-            MoveableObjectAction::RotateCounterClockwise,
-            MoveableObjectAction::Boost,
-            MoveableObjectAction::Toggle,
-        ]
-    }
-
     fn default_keyboard_input(action: MoveableObjectAction) -> Option<UserInput> {
         match action {
             Self::Move => Some(UserInput::VirtualDPad(VirtualDPad::wasd())),
@@ -98,15 +108,7 @@ fn bind_moveable_object_input(mut commands: Commands, query: Query<Entity, With<
     // Loop through each action in `MoveableObjectAction` and get the default `UserInput`,
     // then insert each default input into input_map
 
-    // // input_map.insert()
-    // for &action in &[
-    //     MoveableObjectAction::Move,
-    //     MoveableObjectAction::RotateClockwise,
-    //     MoveableObjectAction::RotateCounterClockwise,
-    //     MoveableObjectAction::Boost,
-    //     MoveableObjectAction::Toggle,
-    // ] {
-    for &action in MoveableObjectAction::variants() {
+    for action in MoveableObjectAction::iter() {
         if let Some(input) = MoveableObjectAction::default_keyboard_input(action) {
             input_map.insert(action, input);
         }
@@ -119,10 +121,6 @@ fn bind_moveable_object_input(mut commands: Commands, query: Query<Entity, With<
         commands
             .entity(entity)
             .insert(InputManagerBundle::with_map(input_map));
-        // .insert(InputManagerBundle::<MoveableObjectAction> {
-        //     input_map,
-        //     ..default()
-        // });
     }
 }
 
@@ -138,6 +136,7 @@ fn movement_actions(
         With<MoveableObject>,
     >,
     currently_changing: Res<ChangingBinding>,
+    sensitivity: Res<MoveableObjectSensitivity>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
@@ -158,13 +157,8 @@ fn movement_actions(
             .clamped_axis_pair(&MoveableObjectAction::Move)
             .map(|axis| axis.xy().normalize_or_zero())
         {
-            // let action = action_state
-            //     .clamped_axis_pair(&MoveableObjectAction::Move)
-            //     .unwrap()
-            //     .xy()
-            //     .normalize_or_zero();
-
-            velocity.value = Vec3::new(-action.x, 0.0, action.y) * scale;
+            velocity.value =
+                Vec3::new(-action.x, 0.0, action.y) * scale * sensitivity.move_sensitivity;
         }
     } else {
         velocity.value = Vec3::ZERO;
@@ -203,7 +197,7 @@ fn movement_actions(
 
     angular_velocity.value = Vec3::new(
         0.0,
-        rotation * rotation_scale * moveable_object::ANGULAR_SPEED,
+        rotation * rotation_scale * moveable_object::ANGULAR_SPEED * sensitivity.rotate_sensitivity,
         0.0,
     );
 }

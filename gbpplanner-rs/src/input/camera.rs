@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -17,9 +17,26 @@ pub struct CameraInputPlugin;
 
 impl Plugin for CameraInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((InputManagerPlugin::<CameraAction>::default(),))
+        app.init_resource::<CameraSensitivity>()
+            .add_plugins((InputManagerPlugin::<CameraAction>::default(),))
             .add_systems(PostStartup, (bind_camera_input /*bind_camera_switch*/,))
             .add_systems(Update, (camera_actions, switch_camera));
+    }
+}
+
+/// **Bevy** [`Resource`] for the sensitivity of the movement of the [`MoveableObject`]
+/// Works as a scaling factor for the movement and rotation of the [`MoveableObject`]
+/// Defaults to 1.0 for both `move_sensitivity` and `rotate_sensitivity`
+#[derive(Resource)]
+pub struct CameraSensitivity {
+    pub move_sensitivity: f32,
+}
+
+impl Default for CameraSensitivity {
+    fn default() -> Self {
+        Self {
+            move_sensitivity: 1.0,
+        }
     }
 }
 
@@ -144,13 +161,19 @@ fn camera_actions(
     // mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
     mut camera_reset_event: EventWriter<CameraResetEvent>,
+    sensitivity: Res<CameraSensitivity>,
+    // mut window: Query<&PrimaryWindow>,
+    windows: Query<&Window>,
 ) {
-    if currently_changing.on_cooldown() || currently_changing.is_changing() {
-        return;
-    }
     if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
         query.get_single_mut()
     {
+        if currently_changing.on_cooldown() || currently_changing.is_changing() {
+            velocity.value = Vec3::ZERO;
+            angular_velocity.value = Vec3::ZERO;
+            return;
+        }
+
         if !camera.is_active {
             return;
         }
@@ -163,6 +186,8 @@ fn camera_actions(
         let mut tmp_angular_velocity = Vec3::ZERO;
         let camera_distance = transform.translation.distance(orbit.origin);
 
+        let window = windows.single();
+
         if action_state.pressed(&CameraAction::MouseMove) {
             // info!("Mouse move camera");
             match state.get() {
@@ -171,8 +196,14 @@ fn camera_actions(
                         .axis_pair(&CameraAction::MouseMove)
                         .map(|axis| axis.xy())
                     {
-                        tmp_velocity.x = action.x * camera_distance / 10.0; // * environment::camera::SPEED;
-                        tmp_velocity.z = action.y * camera_distance / 10.0; // * environment::camera::SPEED;
+                        tmp_velocity.x =
+                            action.x * camera_distance * sensitivity.move_sensitivity / 10.0;
+                        // * environment::camera::SPEED;
+                        // * windows_height_scaling
+                        tmp_velocity.z =
+                            action.y * camera_distance * sensitivity.move_sensitivity / 10.0;
+                        // * windows_height_scaling
+                        // * environment::camera::SPEED;
                     }
                 }
                 CameraMovementMode::Orbit => {
@@ -180,8 +211,12 @@ fn camera_actions(
                         .axis_pair(&CameraAction::MouseMove)
                         .map(|axis| axis.xy())
                     {
-                        tmp_angular_velocity.x = -action.x * 0.2; // * environment::camera::ANGULAR_SPEED;
-                        tmp_angular_velocity.y = action.y * 0.2; // * environment::camera::ANGULAR_SPEED;
+                        tmp_angular_velocity.x = -action.x * sensitivity.move_sensitivity / 10.0;
+                        // * environment::camera::ANGULAR_SPEED;
+                        // * windows_height_scaling
+                        tmp_angular_velocity.y = action.y * sensitivity.move_sensitivity / 10.0;
+                        // * environment::camera::ANGULAR_SPEED;
+                        // * windows_height_scaling
                     }
                 }
             }
@@ -192,10 +227,16 @@ fn camera_actions(
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize_or_zero())
                     {
-                        tmp_velocity.x =
-                            -action.x * environment::camera::SPEED * camera_distance / 35.0;
-                        tmp_velocity.z =
-                            action.y * environment::camera::SPEED * camera_distance / 35.0;
+                        tmp_velocity.x = -action.x
+                            * environment::camera::SPEED
+                            * camera_distance
+                            * sensitivity.move_sensitivity
+                            / 35.0;
+                        tmp_velocity.z = action.y
+                            * environment::camera::SPEED
+                            * camera_distance
+                            * sensitivity.move_sensitivity
+                            / 35.0;
                     }
                 }
                 CameraMovementMode::Orbit => {
@@ -204,8 +245,12 @@ fn camera_actions(
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize())
                     {
-                        tmp_angular_velocity.x = action.x * environment::camera::ANGULAR_SPEED;
-                        tmp_angular_velocity.y = action.y * environment::camera::ANGULAR_SPEED;
+                        tmp_angular_velocity.x = action.x
+                            * environment::camera::ANGULAR_SPEED
+                            * sensitivity.move_sensitivity;
+                        tmp_angular_velocity.y = action.y
+                            * environment::camera::ANGULAR_SPEED
+                            * sensitivity.move_sensitivity;
                     }
                 }
             }

@@ -313,11 +313,13 @@ fn ui_settings_panel(
                             custom::grid("manual_controls_settings_grid", 2).show(ui,|ui| {
 
                                 // step forward button
-                                custom::fill_x(ui, |ui| {
-                                    if ui.button(RichText::new("󰒭").size(25.0)).on_hover_text("Step forward one step in the simulation").clicked() {
-                                        let step_size = config.simulation.manual_step_factor as f32 / config.simulation.hz as f32;
-                                        time_fixed.advance_by(Duration::from_secs_f32(step_size));
-                                    }
+                                ui.add_enabled_ui(!pause_play.is_paused(), |ui| {
+                                    custom::fill_x(ui, |ui| {
+                                        if ui.button(RichText::new("󰒭").size(25.0)).on_hover_text("Step forward one step in the simulation").clicked() {
+                                            let step_size = config.simulation.manual_step_factor as f32 / config.simulation.hz as f32;
+                                            time_fixed.advance_by(Duration::from_secs_f32(step_size));
+                                        }
+                                    });
                                 });
                                 // pause/play button
                                 let pause_play_text = if pause_play.is_paused() { "" } else { "" };

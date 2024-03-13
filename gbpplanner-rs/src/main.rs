@@ -163,7 +163,7 @@ fn main() -> color_eyre::eyre::Result<()> {
             MovementPlugin,    // Custom
             InputPlugin,       // Custom
             ToggleFullscreenPlugin,
-            // MoveableObjectPlugin, // Custom
+            MoveableObjectPlugin, // Custom
             // CameraPlugin,        // Custom
             // FollowCamerasPlugin, // Custom
             RobotSpawnerPlugin, // Custom

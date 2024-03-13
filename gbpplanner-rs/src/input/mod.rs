@@ -9,9 +9,11 @@ mod ui;
 use crate::ui::ToDisplayString;
 
 pub use camera::CameraAction;
+pub use camera::CameraSensitivity;
 pub use general::GeneralAction;
 pub use general::ScreenShotEvent;
 pub use moveable_object::MoveableObjectAction;
+pub use moveable_object::MoveableObjectSensitivity;
 pub use ui::UiAction;
 
 use self::{
@@ -111,7 +113,7 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             CameraInputPlugin,
-            // MoveableObjectInputPlugin,
+            MoveableObjectInputPlugin,
             GeneralInputPlugin,
             UiInputPlugin,
         ));

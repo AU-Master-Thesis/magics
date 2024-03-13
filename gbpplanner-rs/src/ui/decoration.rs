@@ -99,9 +99,9 @@ impl ToDisplayString for MouseWheelDirection {
 impl ToDisplayString for MouseButton {
     fn to_display_string(&self) -> String {
         match self {
-            MouseButton::Left => "Left".to_string(),
-            MouseButton::Right => "Right".to_string(),
-            MouseButton::Middle => "Middle".to_string(),
+            MouseButton::Left => "LMB".to_string(),
+            MouseButton::Right => "RMB".to_string(),
+            MouseButton::Middle => "MMB".to_string(),
             MouseButton::Other(x) => format!("Mouse {}", x).to_string(),
             _ => unreachable!(),
         }
@@ -112,7 +112,7 @@ impl ToDisplayString for Modifier {
     fn to_display_string(&self) -> String {
         match self {
             Modifier::Alt => "Alt".to_string(),
-            Modifier::Control => "Control".to_string(),
+            Modifier::Control => "Ctrl".to_string(),
             Modifier::Shift => "Shift".to_string(),
             Modifier::Super => "Super".to_string(),
         }
