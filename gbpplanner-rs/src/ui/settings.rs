@@ -173,7 +173,7 @@ fn ui_settings_panel(
     ]);
 
     let right_panel = egui::SidePanel::right("Settings Panel")
-        // .default_width(200.0)
+        .default_width(200.0)
         .resizable(false)
         .show_animated(ctx, ui_state.right_panel, |ui| {
             if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs {
@@ -245,6 +245,9 @@ fn ui_settings_panel(
                                 ui.label("Custom Scale");
                             },
                         );
+
+                        ui.spacing_mut().slider_width = ui.available_width()
+                        - (custom::SLIDER_EXTRA + custom::SPACING * 5.0);
                         let slider_response =
                             ui.add_enabled(
                                 matches!(ui_state.scale_type, UiScaleType::Custom),
@@ -256,7 +259,6 @@ fn ui_settings_panel(
                         // otherwise it would be imposssible to drag the slider while the ui is scaling
                         if slider_response.drag_released() || slider_response.lost_focus() {
                             world.send_event::<UiScaleEvent>(UiScaleEvent);
-                            // scale_event.send(UiScaleEvent);
                         }
 
                         ui.end_row();
@@ -267,10 +269,11 @@ fn ui_settings_panel(
                                 world.send_event::<ScreenShotEvent>(ScreenShotEvent);
                             }
                         });
+                        ui.end_row();
                     });
 
                     custom::subheading(ui, "Draw", Some(Color32::from_catppuccin_colour(title_colors.next())));
-                    egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
+                    // egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
                         custom::grid("draw_grid", 2)
                             .show(ui, |ui| {
                                 // CONFIG DRAW SECTION
@@ -291,7 +294,7 @@ fn ui_settings_panel(
                                     ui.end_row();
                                 }
                             });
-                        });
+                        // });
                         custom::subheading(ui, "Simulation", Some(Color32::from_catppuccin_colour(title_colors.next())));
                         custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
                             ui.label("Simulation Time");
@@ -301,6 +304,8 @@ fn ui_settings_panel(
                             // slider for simulation time between 0 and 100
                             ui.label("Simulation Speed");
                             //slider for simulation speed (time scale) between 0.1 and 10
+                            ui.spacing_mut().slider_width = ui.available_width()
+                                    - (custom::SLIDER_EXTRA + custom::SPACING * 5.0);
                             let slider_response =
                                 ui.add(egui::Slider::new(&mut config.simulation.time_scale, 0.1..=5.0).text("x").show_value(true));
                             if slider_response.drag_released() || slider_response.lost_focus() {

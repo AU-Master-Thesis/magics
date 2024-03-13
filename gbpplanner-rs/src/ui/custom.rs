@@ -184,6 +184,7 @@ pub(crate) const BINDING_ROW_HEIGHT: f32 = 35.0;
 pub(crate) const FIRST_COL_WIDTH: f32 = 200.0;
 pub(crate) const BINDING_COL_WIDTH: f32 = 100.0;
 pub(crate) const SPACING: f32 = 5.0;
+pub(crate) const SLIDER_EXTRA: f32 = 45.0;
 
 pub fn binding_table<'a>(ui: &'a mut Ui) -> TableBuilder<'a> {
     TableBuilder::new(ui)

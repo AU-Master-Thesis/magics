@@ -187,6 +187,8 @@ fn ui_controls_panel(
                                     col.label("Object Movement");
                                 });
                                 row.col(|col| {
+                                    col.spacing_mut().slider_width = col.available_width()
+                                        - (custom::SLIDER_EXTRA + custom::SPACING);
                                     col.add(
                                         egui::Slider::new(
                                             &mut object_sensitivity.move_sensitivity,
@@ -203,6 +205,8 @@ fn ui_controls_panel(
                                     col.label("Object Rotation");
                                 });
                                 row.col(|col| {
+                                    col.spacing_mut().slider_width = col.available_width()
+                                        - (custom::SLIDER_EXTRA + custom::SPACING);
                                     col.add(
                                         egui::Slider::new(
                                             &mut object_sensitivity.rotate_sensitivity,
@@ -218,6 +222,8 @@ fn ui_controls_panel(
                                     col.label("Camera Movement");
                                 });
                                 row.col(|col| {
+                                    col.spacing_mut().slider_width = col.available_width()
+                                        - (custom::SLIDER_EXTRA + custom::SPACING);
                                     col.add(
                                         egui::Slider::new(
                                             &mut camera_sensitivity.move_sensitivity,
