@@ -2,8 +2,6 @@
 use gbp_linalg::{Float, GbpFloat, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
-pub mod dummy_normal;
-
 #[derive(Debug, thiserror::Error)]
 pub enum MultivariateNormalError {
     #[error("the precision matrix is not square, it has shape {0}x{1}")]
