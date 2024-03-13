@@ -144,6 +144,7 @@ fn show_or_hide_factorgraphs(
 /// as initialised by the `init_factorgraphs` system
 /// -> Will return if this query is empty
 fn draw_lines(
+    mut gizmos: Gizmos,
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -181,7 +182,7 @@ fn draw_lines(
             .map(|(_, t)| t.translation)
             .collect::<Vec<Vec3>>();
 
-        let line = Path::new(positions).with_width(0.2);
+        let line = Path::new(positions.clone()).with_width(0.2);
 
         commands.spawn((
             PbrBundle {
@@ -191,5 +192,12 @@ fn draw_lines(
             },
             Line,
         ));
+
+        gizmos.primitive_3d(
+            Polyline3d::<100>::new(positions),
+            Vec3::ZERO,
+            Quat::IDENTITY,
+            Color::from_catppuccin_colour(catppuccin_theme.text()),
+        );
     }
 }

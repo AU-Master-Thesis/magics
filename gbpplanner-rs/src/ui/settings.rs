@@ -94,18 +94,23 @@ fn ui_settings_exclusive(world: &mut World) {
                             world.resource_scope(|world, pause_play: Mut<PausePlay>| {
                                 world.resource_scope(|world, time: Mut<Time<Virtual>>| {
                                     world.resource_scope(|world, time_fixed: Mut<Time<Fixed>>| {
-                                        ui_settings_panel(
-                                            egui_context.get_mut(),
-                                            ui_state,
-                                            config,
-                                            occupied_screen_space,
-                                            cursor_coordinates,
-                                            catppuccin_theme,
-                                            world,
-                                            currently_changing,
-                                            pause_play,
-                                            time,
-                                            time_fixed,
+                                        world.resource_scope(
+                                            |world, config_store: Mut<GizmoConfigStore>| {
+                                                ui_settings_panel(
+                                                    egui_context.get_mut(),
+                                                    ui_state,
+                                                    config,
+                                                    occupied_screen_space,
+                                                    cursor_coordinates,
+                                                    catppuccin_theme,
+                                                    world,
+                                                    currently_changing,
+                                                    pause_play,
+                                                    time,
+                                                    time_fixed,
+                                                    config_store,
+                                                );
+                                            },
                                         );
                                     });
                                 });
@@ -149,20 +154,9 @@ fn ui_settings_panel(
     mut pause_play: Mut<PausePlay>,
     mut time: Mut<Time<Virtual>>,
     mut time_fixed: Mut<Time<Fixed>>,
+    mut config_store: Mut<GizmoConfigStore>,
 ) {
-    // let ctx = contexts.ctx_mut();
-    // let ctx = contexts.get_mut();
     let ctx = contexts;
-
-    // let mut title_colors = [
-    //     catppuccin_theme.green(),
-    //     catppuccin_theme.blue(),
-    //     catppuccin_theme.mauve(),
-    //     catppuccin_theme.maroon(),
-    //     catppuccin_theme.lavender(),
-    // ]
-    // .into_iter()
-    // .cycle();
 
     let mut title_colors = TitleColors::new([
         catppuccin_theme.green(),
@@ -274,157 +268,164 @@ fn ui_settings_panel(
 
                     custom::subheading(ui, "Draw", Some(Color32::from_catppuccin_colour(title_colors.next())));
                     // egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
-                        custom::grid("draw_grid", 2)
-                            .show(ui, |ui| {
-                                // CONFIG DRAW SECTION
-                                // This should add a toggle for each draw setting in the config
-                                // Should be 4 toggles
-                                for (name, _) in config.visualisation.draw.clone().iter() {
-                                    ui.label(DrawSection::to_display_string(name));
-                                    let setting = config.visualisation.draw.get_field_mut::<bool>(name)
-                                        .expect("Since I am iterating over the fields, I should be able to get the field");
-                                    custom::float_right(ui, |ui| {
-                                        if custom::toggle_ui(ui, setting).clicked() {
-                                            let setting_kind = DrawSetting::from_str(name).expect("The name of the draw section should be a valid DrawSection");
-                                            let event = DrawSettingsEvent { setting: setting_kind, value: *setting };
-                                            world.send_event::<DrawSettingsEvent>(event);
-                                            // draw_setting_event.send(event);
-                                        }
-                                    });
-                                    ui.end_row();
-                                }
-                            });
-                        // });
-                        custom::subheading(ui, "Simulation", Some(Color32::from_catppuccin_colour(title_colors.next())));
-                        custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
-                            ui.label("Simulation Time");
-                            custom::rect_label(ui, format!("{:.2}", time_fixed.elapsed_seconds()), None);
-                            ui.end_row();
-
-                            // slider for simulation time between 0 and 100
-                            ui.label("Simulation Speed");
-                            //slider for simulation speed (time scale) between 0.1 and 10
-                            ui.spacing_mut().slider_width = ui.available_width()
-                                    - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                            let slider_response =
-                                ui.add(egui::Slider::new(&mut config.simulation.time_scale, 0.1..=5.0).text("x").show_value(true));
-                            if slider_response.drag_released() || slider_response.lost_focus() {
-                                // time.set_time_scale(config.simulation.time_scale);
-                                info!("Time scale: {}", config.simulation.time_scale);
-                                time.set_relative_speed(config.simulation.time_scale);
-                            }
-                            ui.end_row();
-
-                            ui.label("Manual Controls");
-
-                            custom::grid("manual_controls_settings_grid", 2).show(ui,|ui| {
-
-                                // step forward button
-                                ui.add_enabled_ui(!pause_play.is_paused(), |ui| {
-                                    custom::fill_x(ui, |ui| {
-                                        if ui.button(RichText::new("󰒭").size(25.0)).on_hover_text("Step forward one step in the simulation").clicked() {
-                                            let step_size = config.simulation.manual_step_factor as f32 / config.simulation.hz as f32;
-                                            time_fixed.advance_by(Duration::from_secs_f32(step_size));
-                                        }
-                                    });
-                                });
-                                // pause/play button
-                                let pause_play_text = if pause_play.is_paused() { "" } else { "" };
-                                custom::fill_x(ui, |ui| {
-                                    if ui.button(pause_play_text).on_hover_text("Play or pause the simulation").clicked() {
-                                        // pause_play_event.send(PausePlayEvent);
-                                        pause_play.toggle();
-                                        if pause_play.is_paused() {
-                                            time.unpause();
-                                        } else {
-                                            time.pause();
-                                        }
+                    custom::grid("draw_grid", 2)
+                        .show(ui, |ui| {
+                            // CONFIG DRAW SECTION
+                            // This should add a toggle for each draw setting in the config
+                            // Should be 4 toggles
+                            for (name, _) in config.visualisation.draw.clone().iter() {
+                                ui.label(DrawSection::to_display_string(name));
+                                let setting = config.visualisation.draw.get_field_mut::<bool>(name)
+                                    .expect("Since I am iterating over the fields, I should be able to get the field");
+                                custom::float_right(ui, |ui| {
+                                    if custom::toggle_ui(ui, setting).clicked() {
+                                        let setting_kind = DrawSetting::from_str(name).expect("The name of the draw section should be a valid DrawSection");
+                                        let event = DrawSettingsEvent { setting: setting_kind, value: *setting };
+                                        world.send_event::<DrawSettingsEvent>(event);
+                                        // draw_setting_event.send(event);
                                     }
                                 });
+                                ui.end_row();
+                            }
 
-                                // ui.end_row();
+                            // GIZMOS
+                            let (gizmo_config, _) = config_store.config_mut::<DefaultGizmoConfigGroup>();
+                            ui.label("Gizmos");
+                            custom::float_right(ui, |ui| {
+                                custom::toggle_ui(ui, &mut gizmo_config.enabled);
                             });
+                        });
+
+                    custom::subheading(ui, "Simulation", Some(Color32::from_catppuccin_colour(title_colors.next())));
+                    custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
+                        ui.label("Simulation Time");
+                        custom::rect_label(ui, format!("{:.2}", time_fixed.elapsed_seconds()), None);
+                        ui.end_row();
+
+                        // slider for simulation time between 0 and 100
+                        ui.label("Simulation Speed");
+                        //slider for simulation speed (time scale) between 0.1 and 10
+                        ui.spacing_mut().slider_width = ui.available_width()
+                                - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                        let slider_response =
+                            ui.add(egui::Slider::new(&mut config.simulation.time_scale, 0.1..=5.0).text("x").show_value(true));
+                        if slider_response.drag_released() || slider_response.lost_focus() {
+                            // time.set_time_scale(config.simulation.time_scale);
+                            info!("Time scale: {}", config.simulation.time_scale);
+                            time.set_relative_speed(config.simulation.time_scale);
+                        }
+                        ui.end_row();
+
+                        ui.label("Manual Controls");
+
+                        custom::grid("manual_controls_settings_grid", 2).show(ui,|ui| {
+
+                            // step forward button
+                            ui.add_enabled_ui(!pause_play.is_paused(), |ui| {
+                                custom::fill_x(ui, |ui| {
+                                    if ui.button(RichText::new("󰒭").size(25.0)).on_hover_text("Step forward one step in the simulation").clicked() {
+                                        let step_size = config.simulation.manual_step_factor as f32 / config.simulation.hz as f32;
+                                        time_fixed.advance_by(Duration::from_secs_f32(step_size));
+                                    }
+                                });
+                            });
+                            // pause/play button
+                            let pause_play_text = if pause_play.is_paused() { "" } else { "" };
+                            custom::fill_x(ui, |ui| {
+                                if ui.button(pause_play_text).on_hover_text("Play or pause the simulation").clicked() {
+                                    // pause_play_event.send(PausePlayEvent);
+                                    pause_play.toggle();
+                                    if pause_play.is_paused() {
+                                        time.unpause();
+                                    } else {
+                                        time.pause();
+                                    }
+                                }
+                            });
+
                             // ui.end_row();
                         });
-
-                        custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(title_colors.next())));
-
-                        let png_output_path = PathBuf::from("./factorgraphs").with_extension("png");
-
-                        custom::grid( "export_grid", 3).show(ui, |ui| {
-                            // GRAPHVIZ EXPORT TOGGLE
-                            ui.label("Graphviz");
-                            custom::fill_x(ui, |ui| {
-                                if ui.button("Export").clicked() {
-                                    // world.send_event::<ExportGraphEvent>(ExportGraphEvent(Some(png_output_path)));
-                                    world.send_event::<ExportGraphEvent>(ExportGraphEvent);
-                                    // export_graph_event.send(ExportGraphEvent);
-                                }
-                            });
-                            custom::fill_x(ui, |ui| {
-                                if ui.button("Open").clicked() {
-                                    let _ = open::that(&png_output_path)
-                                        .inspect_err(|e| error!("failed to open ./{:?}: {e}", png_output_path));
-                                }
-                            });
-                        });
-
-                        ui.add_space(10.0);
-                        // ui.add(egui::Image::new(egui::include_image!("../../../factorgraphs.png")));
-                        // ui.add_space(10.0);
-
-                        // INSPECTOR
-                        custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(title_colors.next())));
-                        custom::grid("inspector_grid", 3).show(ui, |ui| {
-                            ui.label("Cursor");
-                            // y coordinate
-                            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                                ui.label("x:");
-                                let x_coordinate = format!("{:7.2}", cursor_coordinates.local().x);
-                                if custom::rect_label(ui, x_coordinate.clone(), None).clicked() {
-                                    ui.output_mut(|o| {
-                                        // this will only work if `interact = Some(egui::Sense::click())` or similar
-                                        o.copied_text = x_coordinate.to_string();
-                                    })
-                                }
-                            });
-                            // x coordinate
-                            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                                ui.label("y:");
-                                let y_coordinate = format!("{:7.2}", cursor_coordinates.local().y);
-                                if custom::rect_label(ui, y_coordinate.clone(), None).clicked() {
-                                    ui.output_mut(|o| {
-                                        // this will only work if `interact = Some(egui::Sense::click())` or similar
-                                        o.copied_text = y_coordinate.to_string();
-                                    })
-                                }
-                            });
-                            // custom::rect_label(ui, format!("y: {:7.2}", cursor_coordinates.local().y));
-                        });
-
-                        ui.add_space(2.5);
-
-                        ui.separator();
-                        ui.collapsing("Entities", |ui| {
-                            bevy_inspector::ui_for_world_entities(world, ui);
-                        });
-                        ui.collapsing("Resources", |ui| {
-                            bevy_inspector::ui_for_resources(world, ui);
-                        });
-                        ui.collapsing("Assets", |ui| {
-                            bevy_inspector::ui_for_all_assets(world, ui);
-                        });
-
-                        custom::subheading(ui, "Other", Some(Color32::from_catppuccin_colour(title_colors.next())));
-                        custom::grid("other_grid", 2).show(ui, |ui| {
-                            ui.label("UI Focus Cancels Inputs");
-                            custom::float_right(ui, |ui| {
-                                custom::toggle_ui(ui, &mut config.interaction.ui_focus_cancels_inputs)
-                            });
-                        });
-
-                        ui.add_space(10.0);
+                        // ui.end_row();
                     });
+
+                    custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(title_colors.next())));
+
+                    let png_output_path = PathBuf::from("./factorgraphs").with_extension("png");
+
+                    custom::grid( "export_grid", 3).show(ui, |ui| {
+                        // GRAPHVIZ EXPORT TOGGLE
+                        ui.label("Graphviz");
+                        custom::fill_x(ui, |ui| {
+                            if ui.button("Export").clicked() {
+                                // world.send_event::<ExportGraphEvent>(ExportGraphEvent(Some(png_output_path)));
+                                world.send_event::<ExportGraphEvent>(ExportGraphEvent);
+                                // export_graph_event.send(ExportGraphEvent);
+                            }
+                        });
+                        custom::fill_x(ui, |ui| {
+                            if ui.button("Open").clicked() {
+                                let _ = open::that(&png_output_path)
+                                    .inspect_err(|e| error!("failed to open ./{:?}: {e}", png_output_path));
+                            }
+                        });
+                    });
+
+                    ui.add_space(10.0);
+                    // ui.add(egui::Image::new(egui::include_image!("../../../factorgraphs.png")));
+                    // ui.add_space(10.0);
+
+                    // INSPECTOR
+                    custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(title_colors.next())));
+                    custom::grid("inspector_grid", 3).show(ui, |ui| {
+                        ui.label("Cursor");
+                        // y coordinate
+                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.label("x:");
+                            let x_coordinate = format!("{:7.2}", cursor_coordinates.local().x);
+                            if custom::rect_label(ui, x_coordinate.clone(), None).clicked() {
+                                ui.output_mut(|o| {
+                                    // this will only work if `interact = Some(egui::Sense::click())` or similar
+                                    o.copied_text = x_coordinate.to_string();
+                                })
+                            }
+                        });
+                        // x coordinate
+                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.label("y:");
+                            let y_coordinate = format!("{:7.2}", cursor_coordinates.local().y);
+                            if custom::rect_label(ui, y_coordinate.clone(), None).clicked() {
+                                ui.output_mut(|o| {
+                                    // this will only work if `interact = Some(egui::Sense::click())` or similar
+                                    o.copied_text = y_coordinate.to_string();
+                                })
+                            }
+                        });
+                        // custom::rect_label(ui, format!("y: {:7.2}", cursor_coordinates.local().y));
+                    });
+
+                    ui.add_space(2.5);
+
+                    ui.separator();
+                    ui.collapsing("Entities", |ui| {
+                        bevy_inspector::ui_for_world_entities(world, ui);
+                    });
+                    ui.collapsing("Resources", |ui| {
+                        bevy_inspector::ui_for_resources(world, ui);
+                    });
+                    ui.collapsing("Assets", |ui| {
+                        bevy_inspector::ui_for_all_assets(world, ui);
+                    });
+
+                    custom::subheading(ui, "Other", Some(Color32::from_catppuccin_colour(title_colors.next())));
+                    custom::grid("other_grid", 2).show(ui, |ui| {
+                        ui.label("UI Focus Cancels Inputs");
+                        custom::float_right(ui, |ui| {
+                            custom::toggle_ui(ui, &mut config.interaction.ui_focus_cancels_inputs)
+                        });
+                    });
+
+                    ui.add_space(10.0);
+                });
         });
 
     occupied_screen_space.right = right_panel

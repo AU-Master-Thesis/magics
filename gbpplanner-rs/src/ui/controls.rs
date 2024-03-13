@@ -1,5 +1,5 @@
 use bevy::{
-    input::{gamepad::GamepadButtonInput, keyboard::KeyboardInput},
+    input::{gamepad::GamepadButtonInput, keyboard::KeyboardInput, mouse::MouseButtonInput},
     prelude::*,
 };
 use bevy_egui::{
@@ -34,6 +34,7 @@ impl Plugin for ControlsPanelPlugin {
                 ui_controls_panel,
                 change_binding_keyboard,
                 change_binding_gamepad,
+                change_binding_mouse,
                 binding_cooldown_system,
             ),
         );
@@ -714,7 +715,7 @@ fn ui_controls_panel(
         .unwrap_or(0.0);
 }
 
-/// `Update` **Bevy** system
+/// **Bevy** [`Update`] system
 /// Listens for any keyboard events to rebind currently changing binding
 fn change_binding_keyboard(
     mut query_camera_action: Query<&mut InputMap<CameraAction>>,
@@ -728,8 +729,7 @@ fn change_binding_keyboard(
         return;
     }
     // Listen for keyboard events to rebind currently changing binding
-    // if there is, then rebind the map
-    for event in keyboard_events.read() {
+    if let Some(event) = keyboard_events.read().next() {
         let key_code = event.key_code;
 
         // If the escape key is pressed, then don't change the binding
@@ -737,69 +737,21 @@ fn change_binding_keyboard(
             *currently_changing = ChangingBinding::default();
         }
 
-        // If the currently changing binding is not default, then change the binding
-        // let mut bindings = match currently_changing.action {
-        match currently_changing.action {
-            InputAction::Camera(action) => {
-                let mut map = query_camera_action.single_mut();
-                let bindings = map.get_mut(&action);
-                if let Some(bindings) = bindings {
-                    if bindings.len() > currently_changing.binding {
-                        bindings.remove(currently_changing.binding);
-                    }
-                    bindings.insert(
-                        currently_changing.binding,
-                        UserInput::Single(InputKind::PhysicalKey(key_code)),
-                    );
-                }
-            }
-            InputAction::General(action) => {
-                let mut map = query_general_action.single_mut();
-                let bindings = map.get_mut(&action);
-                if let Some(bindings) = bindings {
-                    if bindings.len() > currently_changing.binding {
-                        bindings.remove(currently_changing.binding);
-                    }
-                    bindings.insert(
-                        currently_changing.binding,
-                        UserInput::Single(InputKind::PhysicalKey(key_code)),
-                    );
-                }
-            }
-            InputAction::MoveableObject(action) => {
-                let mut map = query_moveable_object_action.single_mut();
-                let bindings = map.get_mut(&action);
-                if let Some(bindings) = bindings {
-                    if bindings.len() > currently_changing.binding {
-                        bindings.remove(currently_changing.binding);
-                    }
-                    bindings.insert(
-                        currently_changing.binding,
-                        UserInput::Single(InputKind::PhysicalKey(key_code)),
-                    );
-                }
-            }
-            InputAction::Ui(action) => {
-                let mut map = query_ui_action.single_mut();
-                let bindings = map.get_mut(&action);
-                if let Some(bindings) = bindings {
-                    if bindings.len() > currently_changing.binding {
-                        bindings.remove(currently_changing.binding);
-                    }
-                    bindings.insert(
-                        currently_changing.binding,
-                        UserInput::Single(InputKind::PhysicalKey(key_code)),
-                    );
-                }
-            }
-            _ => { /* do nothing */ } // _ => { None }
-        }
+        rebind(
+            // currently_changing.action,
+            &mut currently_changing,
+            UserInput::Single(InputKind::PhysicalKey(key_code)),
+            query_camera_action,
+            query_general_action,
+            query_moveable_object_action,
+            query_ui_action,
+        );
 
         *currently_changing = ChangingBinding::default().with_cooldown(0.1);
     }
 }
 
-/// **Bevy** `Update` system
+/// **Bevy** [`Update`] system
 /// Listens for any gamepad button events to rebind currently changing binding
 fn change_binding_gamepad(
     mut query_camera_action: Query<&mut InputMap<CameraAction>>,
@@ -813,65 +765,113 @@ fn change_binding_gamepad(
         return;
     }
     // Listen for gamepad button events to rebind currently changing binding
-    for event in gamepad_button_events.read() {
+    if let Some(event) = gamepad_button_events.read().next() {
         let button = event.button;
 
-        match currently_changing.action {
-            InputAction::Camera(action) => {
-                let mut map = query_camera_action.single_mut();
-                let bindings = map.get_mut(&action);
-                if let Some(bindings) = bindings {
-                    if bindings.len() > currently_changing.binding {
-                        bindings.remove(currently_changing.binding);
-                    }
-                    bindings.insert(
-                        currently_changing.binding,
-                        UserInput::Single(InputKind::GamepadButton(button.button_type)),
-                    );
-                }
-            }
-            InputAction::General(action) => {
-                let mut map = query_general_action.single_mut();
-                let bindings = map.get_mut(&action);
-                if let Some(bindings) = bindings {
-                    if bindings.len() > currently_changing.binding {
-                        bindings.remove(currently_changing.binding);
-                    }
-                    bindings.insert(
-                        currently_changing.binding,
-                        UserInput::Single(InputKind::GamepadButton(button.button_type)),
-                    );
-                }
-            }
-            InputAction::MoveableObject(action) => {
-                let mut map = query_moveable_object_action.single_mut();
-                let bindings = map.get_mut(&action);
-                if let Some(bindings) = bindings {
-                    if bindings.len() > currently_changing.binding {
-                        bindings.remove(currently_changing.binding);
-                    }
-                    bindings.insert(
-                        currently_changing.binding,
-                        UserInput::Single(InputKind::GamepadButton(button.button_type)),
-                    );
-                }
-            }
-            InputAction::Ui(action) => {
-                let mut map = query_ui_action.single_mut();
-                let bindings = map.get_mut(&action);
-                if let Some(bindings) = bindings {
-                    if bindings.len() > currently_changing.binding {
-                        bindings.remove(currently_changing.binding);
-                    }
-                    bindings.insert(
-                        currently_changing.binding,
-                        UserInput::Single(InputKind::GamepadButton(button.button_type)),
-                    );
-                }
-            }
-            _ => { /* do nothing */ }
-        }
+        rebind(
+            // currently_changing.action,
+            &mut currently_changing,
+            UserInput::Single(InputKind::GamepadButton(button.button_type)),
+            query_camera_action,
+            query_general_action,
+            query_moveable_object_action,
+            query_ui_action,
+        );
 
         *currently_changing = ChangingBinding::default().with_cooldown(0.1);
+    }
+}
+
+/// **Bevy** [`Update`] system
+/// Listens for mouse button events to rebind currently changing binding
+fn change_binding_mouse(
+    mut query_camera_action: Query<&mut InputMap<CameraAction>>,
+    mut query_general_action: Query<&mut InputMap<GeneralAction>>,
+    mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
+    mut query_ui_action: Query<&mut InputMap<UiAction>>,
+    mut currently_changing: ResMut<ChangingBinding>,
+    mut mouse_button_events: EventReader<MouseButtonInput>,
+) {
+    if !currently_changing.is_changing() {
+        return;
+    }
+    // Listen for mouse button events to rebind currently changing binding
+    if let Some(event) = mouse_button_events.read().next() {
+        let button = event.button;
+
+        rebind(
+            // currently_changing.action,
+            &mut currently_changing,
+            UserInput::Single(InputKind::Mouse(button)),
+            query_camera_action,
+            query_general_action,
+            query_moveable_object_action,
+            query_ui_action,
+        );
+
+        *currently_changing = ChangingBinding::default().with_cooldown(0.1);
+    }
+}
+
+fn rebind(
+    // action: InputAction,
+    currently_changing: &mut ChangingBinding,
+    new_binding: UserInput,
+    mut query_camera_action: Query<&mut InputMap<CameraAction>>,
+    mut query_general_action: Query<&mut InputMap<GeneralAction>>,
+    mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
+    mut query_ui_action: Query<&mut InputMap<UiAction>>,
+) {
+    // let action = currently_changing.action;
+    match currently_changing.action {
+        InputAction::Camera(action) => {
+            let Ok(mut map) = query_camera_action.get_single_mut() else {
+                return;
+            };
+            let bindings = map.get_mut(&action);
+            if let Some(bindings) = bindings {
+                if bindings.len() > currently_changing.binding {
+                    bindings.remove(currently_changing.binding);
+                }
+                bindings.insert(currently_changing.binding, new_binding);
+            }
+        }
+        InputAction::General(action) => {
+            let Ok(mut map) = query_general_action.get_single_mut() else {
+                return;
+            };
+            let bindings = map.get_mut(&action);
+            if let Some(bindings) = bindings {
+                if bindings.len() > currently_changing.binding {
+                    bindings.remove(currently_changing.binding);
+                }
+                bindings.insert(currently_changing.binding, new_binding);
+            }
+        }
+        InputAction::MoveableObject(action) => {
+            let Ok(mut map) = query_moveable_object_action.get_single_mut() else {
+                return;
+            };
+            let bindings = map.get_mut(&action);
+            if let Some(bindings) = bindings {
+                if bindings.len() > currently_changing.binding {
+                    bindings.remove(currently_changing.binding);
+                }
+                bindings.insert(currently_changing.binding, new_binding);
+            }
+        }
+        InputAction::Ui(action) => {
+            let Ok(mut map) = query_ui_action.get_single_mut() else {
+                return;
+            };
+            let bindings = map.get_mut(&action);
+            if let Some(bindings) = bindings {
+                if bindings.len() > currently_changing.binding {
+                    bindings.remove(currently_changing.binding);
+                }
+                bindings.insert(currently_changing.binding, new_binding);
+            }
+        }
+        _ => { /* do nothing */ }
     }
 }
