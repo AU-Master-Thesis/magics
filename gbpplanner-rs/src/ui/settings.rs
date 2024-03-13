@@ -176,10 +176,7 @@ fn ui_settings_panel(
                 ui_state.mouse_over.right_panel = false;
             }
 
-            ui.add_space(10.0);
-            ui.heading("Settings");
-            ui.add_space(5.0);
-            ui.separator();
+            custom::heading(ui, "Settings", None);
 
             egui::ScrollArea::vertical()
                 .drag_to_scroll(true)

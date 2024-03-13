@@ -111,14 +111,6 @@ fn ui_controls_panel(
 ) {
     let ctx = contexts.ctx_mut();
 
-    // let grid_row_color = catppuccin_theme.mantle();
-    // let grid_title_colors = [
-    //     catppuccin_theme.green(),
-    //     catppuccin_theme.blue(),
-    //     catppuccin_theme.mauve(),
-    //     catppuccin_theme.maroon(),
-    //     catppuccin_theme.lavender(),
-    // ];
     let mut title_colors = [
         catppuccin_theme.green(),
         catppuccin_theme.blue(),
@@ -128,35 +120,6 @@ fn ui_controls_panel(
     ]
     .into_iter()
     .cycle();
-
-    // let mut counter = 1; // offset by 1 to account for header row
-    // let mut grid_title_rows = Vec::with_capacity(InputAction::iter().count());
-    // let grid_map_ranges = InputAction::iter()
-    //     .flat_map(|variant| {
-    //         grid_title_rows.push(counter);
-    //         counter += 1;
-    //         let start = counter;
-    //         match variant {
-    //             InputAction::Camera(_) => {
-    //                 counter += CameraAction::iter().count();
-    //             }
-    //             InputAction::General(_) => {
-    //                 counter += GeneralAction::iter().count();
-    //             }
-    //             InputAction::MoveableObject(_) => {
-    //                 counter += MoveableObjectAction::iter().count();
-    //             }
-    //             InputAction::Ui(_) => {
-    //                 counter += UiAction::iter().count();
-    //             }
-    //             _ => { /* do nothing */ }
-    //         }
-    //         let end = counter;
-
-    //         (start..end).step_by(2)
-    //     })
-    //     // .flatten()
-    //     .collect::<Vec<usize>>();
 
     let left_panel = egui::SidePanel::left("left_panel")
         .default_width(300.0)

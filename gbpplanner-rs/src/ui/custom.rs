@@ -50,6 +50,7 @@ pub fn separator(
 
 /// A heading with color and a separator after
 pub fn heading(ui: &mut Ui, text: &str, color: Option<Color32>) {
+    ui.add_space(10.0);
     ui.heading(RichText::new(text).color(color.unwrap_or(ui.visuals().text_color())));
     separator(ui, color, Some(5.0), Some(0.0));
 }
