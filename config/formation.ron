@@ -3,7 +3,7 @@
     (
       repeat: false,
       delay: 1.0,
-      robots: 3,
+      robots: 2,
       waypoints: [
         (
           shape: line(((

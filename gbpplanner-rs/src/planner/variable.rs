@@ -8,6 +8,8 @@ use super::message::Lam;
 use super::message::Message;
 use super::message::Mu;
 use super::RobotId;
+use bevy::log::info;
+use bevy::log::warn;
 use gbp_linalg::pretty_print_matrix;
 use gbp_linalg::Matrix;
 use gbp_linalg::{Float, Vector};
@@ -110,6 +112,9 @@ impl Variable {
     // }
 
     pub fn send_message(&mut self, from: FactorId, message: Message) {
+        if message.is_empty() {
+            warn!("Empty message received from factor {:?}", from);
+        }
         let _ = self.inbox.insert(from, message);
     }
 
@@ -165,7 +170,7 @@ impl Variable {
         for (_, message) in self.inbox.iter() {
             let Some(payload) = message.payload() else {
                 // empty message
-                // println!("skipping empty message");
+                // info!("skipping empty message");
                 continue;
             };
             self.eta = &self.eta + &payload.eta;

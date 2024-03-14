@@ -747,6 +747,9 @@ impl Factor {
 
     #[inline(always)]
     pub fn send_message(&mut self, from: VariableId, message: Message) {
+        if message.is_empty() {
+            warn!("received an empty message from {:?}", from);
+        }
         let _ = self.inbox.insert(from, message);
     }
 

@@ -46,7 +46,8 @@ impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<VariableTimestepsResource>()
             .add_systems(
-                FixedUpdate,
+                // FixedUpdate,
+                Update,
                 (
                     update_robot_neighbours_system,
                     delete_interrobot_factors_system,
@@ -324,33 +325,34 @@ fn update_robot_neighbours_system(
     }
 }
 
-// FIXME: more that one interrobot is created in `create_interrobot_factors`
 fn delete_interrobot_factors_system(mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>) {
     // the set of robots connected with will (possibly) be mutated
     // the robots factorgraph will (possibly) be mutated
     // the other robot with an interrobot factor connected will be mutated
 
-    let mut interrobot_factors_to_delete: HashMap<Entity, Entity> = HashMap::new();
-    for (entity, _, mut robotstate) in query.iter_mut() {
+    let mut robots_to_delete_interrobot_factors_between: HashMap<RobotId, RobotId> = HashMap::new();
+
+    for (robot_id, _, mut robotstate) in query.iter_mut() {
         let ids_of_robots_connected_with_outside_comms_range: BTreeSet<_> = robotstate
             .ids_of_robots_connected_with
             .difference(&robotstate.ids_of_robots_within_comms_range)
             .cloned()
             .collect();
 
-        interrobot_factors_to_delete.extend(
+        robots_to_delete_interrobot_factors_between.extend(
             ids_of_robots_connected_with_outside_comms_range
                 .iter()
-                .map(|id| (entity, *id)),
+                .map(|id| (robot_id, *id)),
         );
 
-        let robotstate = robotstate.as_mut();
         for id in ids_of_robots_connected_with_outside_comms_range {
             robotstate.ids_of_robots_connected_with.remove(&id);
         }
     }
 
-    for (a, b) in interrobot_factors_to_delete {
+    dbg!(&robots_to_delete_interrobot_factors_between);
+
+    for (robot1, robot2) in robots_to_delete_interrobot_factors_between {
         // Will delete both interrobot factors as,
         // (a, b)
         // (a, c)
@@ -361,16 +363,21 @@ fn delete_interrobot_factors_system(mut query: Query<(Entity, &mut FactorGraph, 
         // etc.
         // deletes a's interrobot factor connecting to b, a -> b
         // deletes b's interrobot factor connecting to a, b -> a
-        // TODO: use par_iter_mut
-        for (entity, mut graph, _) in query.iter_mut() {
-            if entity != a {
-                continue;
-            }
+        let mut factorgraph1 = query
+            .iter_mut()
+            .find(|(id, _, _)| *id == robot1)
+            .expect("the robot1 should be in the query")
+            .1;
 
-            if let Err(err) = graph.as_mut().delete_interrobot_factor_connected_to(b) {
+        match factorgraph1.delete_interrobot_factors_connected_to(robot2) {
+            Ok(_) => info!(
+                "Deleted interrobot factor between factorgraph {:?} and {:?}",
+                robot1, robot2
+            ),
+            Err(err) => {
                 error!(
                     "Could not delete interrobot factor between {:?} -> {:?}, with error msg: {}",
-                    a, b, err
+                    robot1, robot2, err
                 );
             }
         }
@@ -502,32 +509,6 @@ fn update_failed_comms_system(mut query: Query<&mut RobotState>, config: Res<Con
     }
 }
 
-macro_rules! iterate_gbp_impl {
-    ($name:ident, $mode:expr) => {
-        fn $name(
-            mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
-            // config: Res<Config>,
-        ) {
-            // query
-            //     .par_iter_mut()
-            //     .for_each(|(robot_id, mut factorgraph)| {
-            //         factorgraph.variable_iteration(robot_id, $mode);
-            //     });
-            // query
-            //     .par_iter_mut()
-            //     .for_each(|(robot_id, mut factorgraph)| {
-            //         factorgraph.factor_iteration(robot_id, $mode);
-            //     });
-            for (robot_id, mut factorgraph) in query.iter_mut() {
-                factorgraph.factor_iteration(robot_id, $mode);
-            }
-            for (robot_id, mut factorgraph) in query.iter_mut() {
-                factorgraph.variable_iteration(robot_id, $mode);
-            }
-        }
-    };
-}
-
 fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
     let messages_to_external_variables = query
         .iter_mut()
@@ -541,10 +522,12 @@ fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotSta
             .find(|(id, _)| *id == message.to.factorgraph_id)
             .expect("the factorgraph_id of the receiving variable should exist in the world");
 
-        info!(
-            "sending message from {:?} to {:?}",
-            message.from, message.to
-        );
+        // info!(
+        //     "sending message from {:?} to {:?}",
+        //     message.from, message.to
+        // );
+
+        // dbg!(&message);
         external_factorgraph
             .variable_mut(message.to.variable_index)
             .send_message(message.from, message.message.clone());
@@ -562,10 +545,12 @@ fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotSta
             .find(|(id, _)| *id == message.to.factorgraph_id)
             .expect("the factorgraph_id of the receiving factor should exist in the world");
 
-        info!(
-            "sending message from {:?} to {:?}",
-            message.from, message.to
-        );
+        // info!(
+        //     "sending message from {:?} to {:?}",
+        //     message.from, message.to
+        // );
+        //
+        // dbg!(&message);
         external_factorgraph
             .factor_mut(message.to.factor_index)
             .send_message(message.from, message.message.clone());
