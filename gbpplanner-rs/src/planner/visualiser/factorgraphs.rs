@@ -59,7 +59,7 @@ fn init_factorgraphs(
                 // Spawn a `FactorGraphVisualiser` component with a corresponding `PbrBundle`
                 commands.spawn((
                     RobotTracker::new(entity)
-                        .with_variable_id(index.index())
+                        .with_variable_id(index.into())
                         .with_order(i),
                     VariableVisualiser,
                     PbrBundle {
@@ -94,7 +94,7 @@ fn update_factorgraphs(
             // else look through the variables
             for (index, v) in factorgraph.variables() {
                 // continue if we're not looking at the right variable
-                if index.index() != tracker.variable_id {
+                if usize::from(index) != tracker.variable_id {
                     continue;
                 }
 

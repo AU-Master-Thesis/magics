@@ -108,7 +108,7 @@ fn init_uncertainty(
 
             // Spawn a `UncertaintyVisualiser` component with a corresponding 2D circle
             commands.spawn((
-                RobotTracker::new(entity).with_variable_id(index.index()),
+                RobotTracker::new(entity).with_variable_id(index.into()),
                 UncertaintyVisualiser,
                 PbrBundle {
                     mesh,
@@ -163,7 +163,7 @@ fn update_uncertainty(
             // else look through the variables
             for (index, v) in factorgraph.variables() {
                 // continue if we're not looking at the right variable
-                if index.index() != tracker.variable_id {
+                if usize::from(index) != tracker.variable_id {
                     continue;
                 }
 

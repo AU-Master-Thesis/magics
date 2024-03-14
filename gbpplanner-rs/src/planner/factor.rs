@@ -632,7 +632,7 @@ pub struct Factor {
     /// Variant storing the specialized behavior of each Factor kind.
     pub kind: FactorKind,
     /// Mailbox for incoming message storage
-    inbox: MessagesFromFactors,
+    pub inbox: MessagesFromFactors,
 
     /// Set to true after the first call to self.update()
     /// TODO: move to FactorState

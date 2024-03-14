@@ -10,10 +10,7 @@ use crate::{
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 
-use super::{
-    robot::{MakeMeARobot, VariableTimestepsResource},
-    RobotState,
-};
+use super::{robot::VariableTimestepsResource, RobotState};
 
 // pub static IMAGE: OnceLock<Image> = OnceLock::new();
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();

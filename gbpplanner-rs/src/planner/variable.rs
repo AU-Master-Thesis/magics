@@ -1,14 +1,8 @@
-use std::collections::HashMap;
-
 use crate::utils::Indent;
 use crate::utils::PrettyPrint;
 
-use super::factorgraph::FactorId;
-use super::factorgraph::FactorIndex;
-use super::factorgraph::MessagesFromFactors;
-use super::factorgraph::MessagesFromVariables;
-use super::factorgraph::MessagesToFactors;
-use super::factorgraph::NodeIndex;
+use super::factorgraph::{FactorId, FactorIndex};
+use super::factorgraph::{MessagesFromVariables, MessagesToFactors, NodeIndex};
 use super::message::Eta;
 use super::message::Lam;
 use super::message::Message;
@@ -128,23 +122,19 @@ impl Variable {
     /// It updates the belief of the variable.
     /// The prior acts as the pose factor
     /// Called `Variable::change_variable_prior` in **gbpplanner**
-    pub fn change_prior(
-        &mut self,
-        mean: Vector<Float>,
-        ids_of_adjacent_factors: Vec<FactorId>,
-    ) -> MessagesFromVariables {
+    pub fn change_prior(&mut self, mean: Vector<Float>) -> MessagesFromVariables {
         self.eta_prior = self.lam_prior.dot(&mean);
         self.mu = mean;
 
-        ids_of_adjacent_factors
-            .into_iter()
+        self.inbox
+            .keys()
             .map(|factor_id| {
                 let message = Message::new(
                     Eta(self.eta.clone()),
                     Lam(self.lam.clone()),
                     Mu(self.mu.clone()),
                 );
-                (factor_id, message)
+                (*factor_id, message)
             })
             .collect()
     }
