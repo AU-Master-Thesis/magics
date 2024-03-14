@@ -195,7 +195,17 @@ impl Model for InterRobotFactor {
         );
         let squared_norm = v.mapv(|x| x.powi(2)).sum();
 
-        self.skip = squared_norm >= Float::powi(self.safety_distance, 2);
+        let skip = squared_norm >= Float::powi(self.safety_distance, 2);
+        if self.skip != skip {
+            warn!(
+                "skip = {}, squared_norm = {} safety_distance^2 = {}",
+                skip,
+                squared_norm,
+                Float::powi(self.safety_distance, 2)
+            );
+        }
+        self.skip = skip;
+        // self.skip = squared_norm >= Float::powi(self.safety_distance, 2);
         self.skip
     }
 

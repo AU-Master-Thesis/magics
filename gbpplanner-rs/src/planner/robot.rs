@@ -4,7 +4,7 @@ use crate::config::Config;
 use crate::utils::get_variable_timesteps;
 
 use super::factor::{Factor, InterRobotConnection};
-use super::factorgraph::{FactorGraph, MessagePassingMode};
+use super::factorgraph::{FactorGraph, FactorId, MessagePassingMode, VariableId};
 // use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
 use super::NodeIndex;
@@ -410,6 +410,8 @@ fn create_interrobot_factors_system(
         })
         .collect();
 
+    let mut external_edges_to_add = Vec::new();
+
     for (robot_id, mut factorgraph, mut robotstate) in query.iter_mut() {
         for other_robot_id in new_connections_to_establish
             .get(&robot_id)
@@ -442,6 +444,8 @@ fn create_interrobot_factors_system(
                     .expect("there should be an i'th variable");
                 factorgraph.add_internal_edge(variable_index, factor_index);
 
+                external_edges_to_add.push((robot_id, factor_index, *other_robot_id, i));
+
                 // TODO: notify the variable that it is connected to another robot
             }
 
@@ -449,6 +453,44 @@ fn create_interrobot_factors_system(
                 .ids_of_robots_connected_with
                 .insert(*other_robot_id);
         }
+    }
+
+    let mut temp = Vec::new();
+
+    for (robot_id, factor_index, other_robot_id, i) in external_edges_to_add {
+        let mut other_factorgraph = query
+            .iter_mut()
+            .find(|(id, _, _)| *id == other_robot_id)
+            .expect("the other_robot_id should be in the query")
+            .1;
+        other_factorgraph.add_external_edge(FactorId::new(robot_id, factor_index), i);
+
+        let (nth_variable_index, nth_variable) = other_factorgraph
+            .nth_variable(i)
+            .expect("the i'th variable should exist");
+        let variable_message = nth_variable.prepare_message();
+        let variable_id = VariableId::new(other_robot_id, nth_variable_index);
+
+        temp.push((robot_id, factor_index, variable_message, variable_id));
+
+        // factorgraph.factor_mut(factor_index).send_message(
+        //     FactorId::new(
+        //         other_robot_id,
+        //         other_factorgraph.nth_variable_index(i).unwrap(),
+        //     ),
+        //     variable_message,
+        // );
+    }
+
+    for (robot_id, factor_index, variable_message, variable_id) in temp {
+        let mut factorgraph = query
+            .iter_mut()
+            .find(|(id, _, _)| *id == robot_id)
+            .expect("the robot_id should be in the query")
+            .1;
+        factorgraph
+            .factor_mut(factor_index)
+            .send_message(variable_id, variable_message);
     }
 }
 
@@ -499,6 +541,10 @@ fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotSta
             .find(|(id, _)| *id == message.to.factorgraph_id)
             .expect("the factorgraph_id of the receiving variable should exist in the world");
 
+        info!(
+            "sending message from {:?} to {:?}",
+            message.from, message.to
+        );
         external_factorgraph
             .variable_mut(message.to.variable_index)
             .send_message(message.from, message.message.clone());
@@ -506,7 +552,7 @@ fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotSta
 
     let messages_to_external_factors = query
         .iter_mut()
-        .map(|(robot_id, mut factorgraph)| factorgraph.variable_iteration())
+        .map(|(_, mut factorgraph)| factorgraph.variable_iteration())
         .collect::<Vec<_>>();
 
     // Send messages to external factors
@@ -516,6 +562,10 @@ fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotSta
             .find(|(id, _)| *id == message.to.factorgraph_id)
             .expect("the factorgraph_id of the receiving factor should exist in the world");
 
+        info!(
+            "sending message from {:?} to {:?}",
+            message.from, message.to
+        );
         external_factorgraph
             .factor_mut(message.to.factor_index)
             .send_message(message.from, message.message.clone());
@@ -652,10 +702,10 @@ fn update_prior_of_horizon_state_system(
             (index, new_mean, horizon2goal_dist)
         };
 
-        println!(
-            "index = {:?}, horizon2goal_dist = {:?}",
-            variable_index, horizon2goal_dist
-        );
+        // println!(
+        //     "index = {:?}, horizon2goal_dist = {:?}",
+        //     variable_index, horizon2goal_dist
+        // );
 
         // TODO: cache the mean ...
         // horizon_variable.belief.mean()
@@ -666,10 +716,10 @@ fn update_prior_of_horizon_state_system(
         // vector, and get an empty HashMap as a return value.
         // let _ = horizon_variable.change_prior(new_mean, vec![]);
 
-        println!(
-            "horizon2goal_dist = {:?}, config.robot.radius = {:?}",
-            horizon2goal_dist, config.robot.radius
-        );
+        // println!(
+        //     "horizon2goal_dist = {:?}, config.robot.radius = {:?}",
+        //     horizon2goal_dist, config.robot.radius
+        // );
         // NOTE: this is weird, we think
         let horizon_has_reached_waypoint = horizon2goal_dist < config.robot.radius as Float;
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {

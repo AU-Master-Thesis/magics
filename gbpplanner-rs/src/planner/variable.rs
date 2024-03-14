@@ -128,15 +128,16 @@ impl Variable {
 
         self.inbox
             .keys()
-            .map(|factor_id| {
-                let message = Message::new(
-                    Eta(self.eta.clone()),
-                    Lam(self.lam.clone()),
-                    Mu(self.mu.clone()),
-                );
-                (*factor_id, message)
-            })
+            .map(|factor_id| (*factor_id, self.prepare_message()))
             .collect()
+    }
+
+    pub fn prepare_message(&self) -> Message {
+        Message::new(
+            Eta(self.eta.clone()),
+            Lam(self.lam.clone()),
+            Mu(self.mu.clone()),
+        )
     }
 
     // /***********************************************************************************************************/

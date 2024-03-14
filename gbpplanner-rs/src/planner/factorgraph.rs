@@ -562,6 +562,18 @@ impl FactorGraph {
         )
     }
 
+    pub fn add_external_edge(&mut self, factor_id: FactorId, nth_variable_index: usize) {
+        let variable_index = self
+            .nth_variable_index(nth_variable_index)
+            .expect("The variable index does not exist");
+        let variable = self.graph[variable_index.as_node_index()]
+            .as_variable_mut()
+            .expect("The variable index does not point to a variable node");
+
+        let dofs = 4;
+        variable.send_message(factor_id, Message::empty(dofs));
+    }
+
     /// Number of nodes in the factorgraph
     ///
     /// **Computes in O(1) time**
@@ -925,39 +937,37 @@ impl FactorGraph {
             if node.is_factor() {
                 continue;
             }
-                
-                let variable = node
-                    .as_variable_mut()
-                    .expect("variable_index should point to a Variable in the graph");
-                let variable_index = VariableIndex(node_index);
-                let factor_messages = variable.update_belief_and_create_responses();
-                if factor_messages.is_empty() {
-                    panic!(
+
+            let variable = node
+                .as_variable_mut()
+                .expect("variable_index should point to a Variable in the graph");
+            let variable_index = VariableIndex(node_index);
+            let factor_messages = variable.update_belief_and_create_responses();
+            if factor_messages.is_empty() {
+                panic!(
                         "The factorgraph {:?} with variable {:?} did not receive any messages from its connected factors",
                         self.id,
                         variable_index
                     );
-                }
-    
-                let variable_id = VariableId::new(self.id, variable_index);
-                for (factor_id, message) in factor_messages {
-                    let in_internal_graph = factor_id.factorgraph_id == self.id;
-                    if in_internal_graph {
-                        // Send the messages to the connected factors within the same factorgraph
-                        let factor = self.graph[factor_id.factor_index.as_node_index()]
-                            .as_factor_mut()
-                            .expect("A factor can only have variables as neighbors");
-                        factor.send_message(variable_id, message);
-                    } else {
-                        messages_to_external_factors.push(VariableToFactorMessage {
-                            from: variable_id,
-                            to: factor_id,
-                            message,
-                        });
-                    }
-                }
+            }
 
-            
+            let variable_id = VariableId::new(self.id, variable_index);
+            for (factor_id, message) in factor_messages {
+                let in_internal_graph = factor_id.factorgraph_id == self.id;
+                if in_internal_graph {
+                    // Send the messages to the connected factors within the same factorgraph
+                    let factor = self.graph[factor_id.factor_index.as_node_index()]
+                        .as_factor_mut()
+                        .expect("A factor can only have variables as neighbors");
+                    factor.send_message(variable_id, message);
+                } else {
+                    messages_to_external_factors.push(VariableToFactorMessage {
+                        from: variable_id,
+                        to: factor_id,
+                        message,
+                    });
+                }
+            }
         }
 
         // for (variable_index, variable) in self.variables_mut() {
