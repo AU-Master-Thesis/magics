@@ -40,7 +40,7 @@ pub struct Variable {
     /// In gbpplanner it is used to control if a variable can be rendered.
     // pub valid: bool,
     /// Mailbox for incoming message storage
-    inbox: MessagesToFactors,
+    pub inbox: MessagesToFactors,
 }
 
 impl Variable {
@@ -158,14 +158,6 @@ impl Variable {
         self.eta = self.eta_prior.clone();
         self.lam = self.lam_prior.clone();
 
-        // // TODO: wrap in unsafe block for perf:
-        // unsafe {
-        //     self.belief
-        //         .set_information_vector(self.prior.information_vector());
-        //     self.belief
-        //         .set_precision_matrix(self.prior.precision_matrix());
-        // }
-
         // Go through received messages and update belief
         for (_, message) in self.inbox.iter() {
             let Some(payload) = message.payload() else {
@@ -175,24 +167,11 @@ impl Variable {
             };
             self.eta = &self.eta + &payload.eta;
             self.lam = &self.lam + &payload.lam;
-            // if message.is_empty() {
-            //     continue;
-            // }
-            // unsafe {
-            //     // self.belief.add_assign_information_vector(&message.information_vector());
-            //     self.belief
-            //         .add_assign_information_vector(normal.information_vector());
-            //     // self.belief.add_assign_precision_matrix(&message.precision_matrix());
-            //     self.belief
-            //         .add_assign_precision_matrix(normal.precision_matrix());
-            // }
         }
 
-        // pretty_print_matrix!(&self.lam);
         // Update belief
         self.sigma = self
             .lam
-            // .tap(|it| pretty_print_matrix!(it))
             .inv()
             .unwrap_or_else(|| Matrix::<Float>::zeros((self.dofs, self.dofs)));
         let valid = self.sigma.iter().all(|x| x.is_finite());
@@ -200,20 +179,9 @@ impl Variable {
             self.mu = self.sigma.dot(&self.eta);
         }
 
-        // Update the internal invariant of the belief, needed after the previous call to {add_assign,set}_{information_vector,precision_matrix}
-        // which violates that the mean, information vector and precision matrix are consistent, for performance reasons.
-        // self.belief.update();
-
-        // let valid = self.belief.covariance().iter().all(|x| x.is_finite());
-        // if valid {
-        // TODO: is this meaningful?
-        // if (valid_) mu_ = sigma_ * eta_;
-        // }
-        // }
-
         self.inbox
             .iter()
-            .map(|(&factor_index, received_message)| {
+            .map(|(&factor_id, received_message)| {
                 let response = received_message.payload().map_or_else(
                     || {
                         Message::new(
@@ -230,7 +198,7 @@ impl Variable {
                         )
                     },
                 );
-                (factor_index, response)
+                (factor_id, response)
             })
             .collect()
     }

@@ -577,9 +577,10 @@ impl FactorGraph {
 
         let dofs = 4;
         info!(
-            "adding external edge from {:?} to {:?}",
-            variable_index, factor_id
+            "adding external edge from {:?} to {:?} in factorgraph {:?}",
+            variable_index, factor_id, self.id
         );
+        // std::process::exit(0);
         variable.send_message(factor_id, Message::empty(dofs));
     }
 
@@ -737,8 +738,8 @@ impl FactorGraph {
     pub fn factor_iteration(&mut self) -> Vec<FactorToVariableMessage> {
         // TODO: calculate capacity beforehand
         let mut messages_to_external_variables = Vec::new();
-        for factor_index in self.graph.node_indices().collect::<Vec<_>>() {
-            let node = &mut self.graph[factor_index];
+        for node_index in self.graph.node_indices().collect::<Vec<_>>() {
+            let node = &mut self.graph[node_index];
             if node.is_variable() {
                 continue;
             }
@@ -746,16 +747,16 @@ impl FactorGraph {
             // TODO: somehow pass the messages from each of the connected variables to the factor
             // instead of the variable indices, as this factorgraph does not have access to
             // variables in other factorgraphs.
-            let variable_messages = self.update_factor(FactorIndex(factor_index));
+            let variable_messages = self.update_factor(FactorIndex(node_index));
             if variable_messages.is_empty() {
                 panic!(
                         "The factorgraph {:?} with factor {:?} did not receive any messages from its connected variables",
                         self.id,
-                        factor_index
+                        node_index
                     );
             }
 
-            let factor_id = FactorId::new(self.id, FactorIndex(factor_index));
+            let factor_id = FactorId::new(self.id, FactorIndex(node_index));
             for (variable_id, message) in variable_messages {
                 let in_internal_graph = variable_id.factorgraph_id == self.id;
                 if in_internal_graph {
@@ -877,37 +878,6 @@ impl FactorGraph {
             marginalisation_idx += dofs;
         }
 
-        // for &variable_id in adjacent_variables.iter() {
-        //     let mut factor_eta = factor_eta_potential.clone();
-        //     let mut factor_lambda = factor_lambda_potential.clone();
-        //
-        //     for (j, &other_variable_id) in adjacent_variables.iter().enumerate() {
-        //         if other_variable_id != variable_id {
-        //             let message = factor
-        //                 .read_message_from(other_variable_id)
-        //                 .expect("There should be a message from the variable");
-        //
-        //             let message_mean = message.mean().unwrap_or_else(|| &empty_mean);
-        //             let message_precision = message
-        //                 .precision_matrix()
-        //                 .unwrap_or_else(|| &empty_precision);
-        //             factor_eta
-        //                 .slice_mut(s![j * dofs..(j + 1) * dofs])
-        //                 .add_assign(message_mean);
-        //             factor_lambda
-        //                 .slice_mut(s![j * dofs..(j + 1) * dofs, j * dofs..(j + 1) * dofs])
-        //                 .add_assign(message_precision);
-        //         }
-        //     }
-        //
-        //     let message =
-        //         marginalise_factor_distance(factor_eta, factor_lambda, dofs, marginalisation_idx)
-        //             .unwrap();
-        //     messages.insert(variable_id, message);
-        //     marginalisation_idx += dofs;
-        // }
-
-        // dbg!(messages.keys().collect::<Vec<_>>());
         messages
     }
 
@@ -954,6 +924,10 @@ impl FactorGraph {
                     // Send the messages to the connected factors within the same factorgraph
                     // dbg!(&factor_id);
                     // dbg!(&self);
+                    println!(
+                        "trying to access factor with id: {:?} in factorgraph {:?}",
+                        factor_id, self.id
+                    );
                     let factor = self.graph[factor_id.factor_index.as_node_index()]
                         .as_factor_mut()
                         .expect("A factor can only have variables as neighbors");
@@ -968,33 +942,6 @@ impl FactorGraph {
             }
         }
 
-        // for (variable_index, variable) in self.variables_mut() {
-        //     let factor_messages = variable.update_belief_and_create_responses();
-        //     if factor_messages.is_empty() {
-        //         panic!(
-        //             "The factorgraph {:?} with variable {:?} did not receive any messages from its connected factors",
-        //             self.id,
-        //             variable_index
-        //         );
-        //     }
-
-        //     let variable_id = VariableId::new(self.id, variable_index);
-        //     for (factor_id, message) in factor_messages {
-        //         let in_internal_graph = factor_id.factorgraph_id == self.id;
-        //         if in_internal_graph {
-        //             // Send the messages to the connected factors within the same factorgraph
-        //             let factor = self.factor_mut(factor_id.factor_index);
-        //             factor.send_message(variable_id, message);
-        //         } else {
-        //             messages_to_external_factors.push(VariableToFactorMessage {
-        //                 from: variable_id,
-        //                 to: factor_id,
-        //                 message,
-        //             });
-        //         }
-        //     }
-        // }
-
         messages_to_external_factors
     }
 
@@ -1006,21 +953,7 @@ impl FactorGraph {
         let variable_id = VariableId::new(self.id, variable_index);
         let variable = self.variable_mut(variable_id.variable_index);
 
-        // let ids_of_adjacent_factors = self
-        //     .graph
-        //     .neighbors(variable_index.as_node_index())
-        //     .map(|node_index| {
-        //         let node = &self.graph[node_index];
-        //         if let NodeKind::Factor(factor) = &node.kind {
-        //             (node.robot_id, node_index.into())
-        //         } else {
-        //             panic!("The variable can only send messages to factors");
-        //         }
-        //     })
-        //     .collect::<Vec<_>>();
-
         let factor_messages = variable.change_prior(new_mean);
-
         let mut messages_to_external_factors: Vec<FactorToVariableMessage> = Vec::new();
 
         for (factor_id, message) in factor_messages {
@@ -1034,7 +967,6 @@ impl FactorGraph {
                     to: variable_id,
                     message,
                 });
-                // messages_to_external_factors.insert(factor_id, message);
             }
         }
 
@@ -1045,12 +977,21 @@ impl FactorGraph {
         &mut self,
         other: RobotId,
     ) -> Result<(), &'static str> {
-        // Find all interrobot factors connected to the robot with id `other`
+        // 1. Find all interrobot factors connected to the robot with id `other`
         // and remove them from the graph
 
+        let mut factor_indices_to_remove = Vec::new();
+
         for node_index in self.graph.node_indices().collect::<Vec<_>>() {
-            let node = &self.graph[node_index];
+            let node = &mut self.graph[node_index];
             if node.is_variable() {
+                // 2. remove the the message from the external factor
+                let variable = node
+                    .as_variable_mut()
+                    .expect("A variable index should point to a Variable in the graph");
+                variable
+                    .inbox
+                    .retain(|factor_id, _| factor_id.factorgraph_id != other);
                 continue;
             }
 
@@ -1066,9 +1007,46 @@ impl FactorGraph {
                 self.graph.remove_node(node_index).expect(
                     "The node index was retrieved from the graph in the previous statement",
                 );
+
+                self.factor_indices.retain(|&idx| idx != node_index);
+
+                factor_indices_to_remove.push(FactorIndex(node_index));
             }
         }
+
+        for node_index in self.graph.node_indices().collect::<Vec<_>>() {
+            let node = &mut self.graph[node_index];
+            if !node.is_variable() {
+                continue;
+            }
+
+            let variable = node
+                .as_variable_mut()
+                .expect("A variable index should point to a Variable in the graph");
+
+            for factor_index in &factor_indices_to_remove {
+                variable
+                    .inbox
+                    .remove(&FactorId::new(self.id, *factor_index));
+            }
+        }
+
         Ok(())
+    }
+
+    pub(crate) fn delete_messages_from_interrobot_factor_at(&mut self, other: RobotId) {
+        for node_index in self.graph.node_indices().collect::<Vec<_>>() {
+            let node = &mut self.graph[node_index];
+            let Some(variable) = node.as_variable_mut() else {
+                continue;
+            };
+            println!("robot id {:?}", other);
+            println!("before {:?}", variable.inbox.keys().collect::<Vec<_>>());
+            variable
+                .inbox
+                .retain(|factor_id, _| factor_id.factorgraph_id != other);
+            println!("after  {:?}", variable.inbox.keys().collect::<Vec<_>>());
+        }
     }
 
     // fn adjacent_variables(&self, factor_index: FactorIndex) -> AdjacentVariables<'_> {

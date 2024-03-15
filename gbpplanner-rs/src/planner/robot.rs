@@ -381,6 +381,14 @@ fn delete_interrobot_factors_system(mut query: Query<(Entity, &mut FactorGraph, 
                 );
             }
         }
+
+        let mut factorgraph2 = query
+            .iter_mut()
+            .find(|(id, _, _)| *id == robot2)
+            .expect("the robot2 should be in the query")
+            .1;
+
+        factorgraph2.delete_messages_from_interrobot_factor_at(robot1);
     }
 }
 
@@ -532,6 +540,14 @@ fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotSta
             .variable_mut(message.to.variable_index)
             .send_message(message.from, message.message.clone());
     }
+
+    // for (robot_id, factorgraph) in query.iter_mut() {
+    //     println!(
+    //         "robot_id: {:?} factorgraph.id: {:?}",
+    //         robot_id,
+    //         factorgraph.id()
+    //     );
+    // }
 
     let messages_to_external_factors = query
         .iter_mut()
