@@ -49,13 +49,13 @@ impl Plugin for RobotPlugin {
                 // FixedUpdate,
                 Update,
                 (
-                    update_robot_neighbours_system,
-                    delete_interrobot_factors_system,
-                    create_interrobot_factors_system,
-                    update_failed_comms_system,
-                    iterate_gbp_system,
-                    update_prior_of_horizon_state_system,
-                    update_prior_of_current_state_system,
+                    update_robot_neighbours,
+                    delete_interrobot_factors,
+                    create_interrobot_factors,
+                    update_failed_comms,
+                    iterate_gbp,
+                    update_prior_of_horizon_state,
+                    update_prior_of_current_state,
                 )
                     .chain()
                     .run_if(time_is_not_paused),
@@ -292,7 +292,7 @@ impl RobotBundle {
 }
 
 /// Called `Simulator::calculateRobotNeighbours` in **gbpplanner**
-fn update_robot_neighbours_system(
+fn update_robot_neighbours(
     // query: Query<(Entity, &Transform, &mut RobotState)>,
     robots: Query<(Entity, &Transform), With<RobotState>>,
     mut states: Query<(Entity, &Transform, &mut RobotState)>,
@@ -319,13 +319,10 @@ fn update_robot_neighbours_system(
                 }
             })
             .collect();
-        // .for_each(|other_entity_id| {
-        //     state.ids_of_robots_within_comms_range.push(other_entity_id)
-        // });
     }
 }
 
-fn delete_interrobot_factors_system(mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>) {
+fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>) {
     // the set of robots connected with will (possibly) be mutated
     // the robots factorgraph will (possibly) be mutated
     // the other robot with an interrobot factor connected will be mutated
@@ -350,7 +347,7 @@ fn delete_interrobot_factors_system(mut query: Query<(Entity, &mut FactorGraph, 
         }
     }
 
-    dbg!(&robots_to_delete_interrobot_factors_between);
+    // dbg!(&robots_to_delete_interrobot_factors_between);
 
     for (robot1, robot2) in robots_to_delete_interrobot_factors_between {
         // Will delete both interrobot factors as,
@@ -392,7 +389,7 @@ fn delete_interrobot_factors_system(mut query: Query<(Entity, &mut FactorGraph, 
     }
 }
 
-fn create_interrobot_factors_system(
+fn create_interrobot_factors(
     mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
     config: Res<Config>,
     variable_timesteps: Res<VariableTimestepsResource>,
@@ -510,14 +507,14 @@ fn create_interrobot_factors_system(
 }
 
 /// Called `Simulator::setCommsFailure` in **gbpplanner**
-fn update_failed_comms_system(mut query: Query<&mut RobotState>, config: Res<Config>) {
+fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
     for mut state in query.iter_mut() {
         state.interrobot_comms_active =
             config.robot.communication.failure_rate > rand::random::<f32>();
     }
 }
 
-fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
+fn iterate_gbp(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
     let messages_to_external_variables = query
         .iter_mut()
         .map(|(robot_id, mut factorgraph)| factorgraph.factor_iteration())
@@ -530,24 +527,10 @@ fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotSta
             .find(|(id, _)| *id == message.to.factorgraph_id)
             .expect("the factorgraph_id of the receiving variable should exist in the world");
 
-        // info!(
-        //     "sending message from {:?} to {:?}",
-        //     message.from, message.to
-        // );
-
-        // dbg!(&message);
         external_factorgraph
             .variable_mut(message.to.variable_index)
             .send_message(message.from, message.message.clone());
     }
-
-    // for (robot_id, factorgraph) in query.iter_mut() {
-    //     println!(
-    //         "robot_id: {:?} factorgraph.id: {:?}",
-    //         robot_id,
-    //         factorgraph.id()
-    //     );
-    // }
 
     let messages_to_external_factors = query
         .iter_mut()
@@ -561,136 +544,42 @@ fn iterate_gbp_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotSta
             .find(|(id, _)| *id == message.to.factorgraph_id)
             .expect("the factorgraph_id of the receiving factor should exist in the world");
 
-        // info!(
-        //     "sending message from {:?} to {:?}",
-        //     message.from, message.to
-        // );
-        //
-        // dbg!(&message);
         external_factorgraph
             .factor_mut(message.to.factor_index)
             .send_message(message.from, message.message.clone());
     }
-
-    // for batch in messages_to_external_factors {
-    //     for ((robot_id, factor_index), message) in batch {
-    //         let (_, external_factorgraph) = query
-    //             .iter_mut()
-    //             .find(|(id, _)| *id == robot_id)
-    //             .expect("the robot_id should be in the query, as it was just iterated over");
-    //
-    //         external_factorgraph
-    //             .factor(factor_index)
-    //             .send_message(message);
-    //     }
-    // }
 }
 
-// fn iterate_gbp_internal_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
-//     let mode = MessagePassingMode::Internal;
-//
-//     for (robot_id, mut factorgraph) in query.iter_mut() {
-//         factorgraph.factor_iteration(robot_id, mode);
-//     }
-//     for (robot_id, mut factorgraph) in query.iter_mut() {
-//         factorgraph.variable_iteration(robot_id, mode);
-//     }
-// }
-//
-// fn iterate_gbp_external_system(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
-//     let mode = MessagePassingMode::External;
-//
-//     for (robot_id, mut factorgraph) in query.iter_mut() {
-//         factorgraph.factor_iteration(robot_id, mode);
-//     }
-//     for (robot_id, mut factorgraph) in query.iter_mut() {
-//         factorgraph.variable_iteration(robot_id, mode);
-//     }
-// }
-//
-// pub fn iterate_gbp_internal_system(
-//     mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
-//     config: Res<Config>,
-// ) {
-//     for (robot_id, mut factorgraph) in query.iter_mut() {
-//         factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
-//     }
-//
-//     for (robot_id, mut factorgraph) in query.iter_mut() {
-//         factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
-//     }
-//
-//     // query
-//     //     .par_iter_mut()
-//     //     .for_each(|(robot_id, mut factorgraph)| {
-//     //         factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
-//     //     });
-//     // query
-//     //     .par_iter_mut()
-//     //     .for_each(|(robot_id, mut factorgraph)| {
-//     //         factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
-//     //     });
-// }
-
-// iterate_gbp_impl!(iterate_gbp_internal_system, MessagePassingMode::Internal);
-// iterate_gbp_impl!(iterate_gbp_external_system, MessagePassingMode::External);
-
-// fn iterate_gbp_system(
-//     mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
-//     config: Res<Config>,
-// ) {
-
-//     query.par_iter_mut().for_each(|(robot_id, mut factorgraph)| {
-//         factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
-//     });
-//     query.par_iter_mut().for_each(|(robot_id, mut factorgraph)| {
-//         factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
-//     });
-//     // for (robot_id, mut factorgraph) in query.par_iter_mut() {
-//     //     factorgraph.factor_iteration(robot_id, MessagePassingMode::Internal);
-//     // }
-//     // for (robot_id, mut factorgraph) in query.iter_mut() {
-//     //     factorgraph.variable_iteration(robot_id, MessagePassingMode::Internal);
-//     // }
-// }
-
-// fn iterate_gbp(query: Query<&mut FactorGraph>, config: Res<Config>) {}
-
 /// Called `Robot::updateHorizon` in **gbpplanner**
-fn update_prior_of_horizon_state_system(
+fn update_prior_of_horizon_state(
     mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints), With<RobotState>>,
     config: Res<Config>,
     time: Res<Time>,
 ) {
     let delta_t = time.delta_seconds();
-    for (entity, mut factorgraph, mut waypoints) in query.iter_mut() {
+    let mut all_messages_to_external_factors = Vec::new();
+    for (robot_id, mut factorgraph, mut waypoints) in query.iter_mut() {
         let Some(current_waypoint) = waypoints
             .0
             .front()
             .map(|wp| array![wp.x as Float, wp.y as Float])
         else {
-            warn_once!("robot {:?}, has reached its final waypoint", entity);
+            warn_once!("robot {:?}, has reached its final waypoint", robot_id);
             continue;
         };
 
+        // TODO: simplify this
         let (variable_index, new_mean, horizon2goal_dist) = {
-            let (index, horizon_variable) = factorgraph
+            let (variable_index, horizon_variable) = factorgraph
                 .last_variable()
                 .expect("factorgraph has a horizon variable");
 
-            // let index = horizon_variable.node_index.unwrap();
-
-            // let mean_of_horizon_variable = horizon_variable.belief.mean();
-            let mean_of_horizon_variable = &horizon_variable.mu;
-            debug_assert_eq!(mean_of_horizon_variable.len(), 4);
-            // dbg!(&current_waypoint);
-            // dbg!(&mean_of_horizon_variable);
-            let estimated_position = mean_of_horizon_variable.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
-                                                                              // dbg!(&estimated_position);
-                                                                              // dbg!(&current_waypoint);
+            debug_assert_eq!(horizon_variable.mu.len(), 4);
+            let estimated_position = horizon_variable.mu.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
             let horizon2goal_dir = current_waypoint - estimated_position;
             let horizon2goal_dist = horizon2goal_dir.euclidean_norm();
 
+            // Slow down if close to goal
             let new_velocity = Float::min(config.robot.max_speed as Float, horizon2goal_dist)
                 * horizon2goal_dir.normalized();
             let new_position = estimated_position.into_owned() + (&new_velocity * delta_t as Float);
@@ -700,33 +589,37 @@ fn update_prior_of_horizon_state_system(
             // horizon->change_variable_prior(horizon->mu_);
             let new_mean = concatenate![Axis(0), new_position, new_velocity];
             debug_assert_eq!(new_mean.len(), 4);
-            (index, new_mean, horizon2goal_dist)
+            (variable_index, new_mean, horizon2goal_dist)
         };
 
-        // println!(
-        //     "index = {:?}, horizon2goal_dist = {:?}",
-        //     variable_index, horizon2goal_dist
-        // );
+        let (_, horizon_variable) = factorgraph
+            .last_variable_mut()
+            .expect("factorgraph has a horizon variable");
 
-        // TODO: cache the mean ...
-        // horizon_variable.belief.mean()
+        horizon_variable.mu.clone_from(&new_mean);
 
-        // TODO: create a separate method on Variable so we do not have to abuse the interface, and call it with a empty
+        let messages_to_external_factors =
+            factorgraph.change_prior_of_variable(variable_index, new_mean);
+        all_messages_to_external_factors.extend(messages_to_external_factors);
 
-        factorgraph.change_prior_of_variable(variable_index, new_mean);
-        // vector, and get an empty HashMap as a return value.
-        // let _ = horizon_variable.change_prior(new_mean, vec![]);
-
-        // println!(
-        //     "horizon2goal_dist = {:?}, config.robot.radius = {:?}",
-        //     horizon2goal_dist, config.robot.radius
-        // );
         // NOTE: this is weird, we think
         let horizon_has_reached_waypoint = horizon2goal_dist < config.robot.radius as Float;
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
-            info!("robot {:?}, has reached its waypoint", entity);
+            info!("robot {:?}, has reached its waypoint", robot_id);
             waypoints.0.pop_front();
         }
+    }
+
+    // Send messages to external factors
+    for message in all_messages_to_external_factors {
+        let (_, mut external_factorgraph) = query
+            .iter_mut()
+            .find(|(id, _)| *id == message.to.factorgraph_id)
+            .expect("the factorgraph_id of the receiving factor should exist in the world");
+
+        external_factorgraph
+            .factor_mut(message.to.)
+            .send_message(message.from, message.message.clone());
     }
 }
 
@@ -736,7 +629,7 @@ fn time_is_not_paused(time: Res<Time<Virtual>>) -> bool {
 }
 
 /// Called `Robot::updateCurrent` in **gbpplanner**
-fn update_prior_of_current_state_system(
+fn update_prior_of_current_state(
     mut query: Query<(&mut FactorGraph, &mut Transform), With<RobotState>>,
     config: Res<Config>,
     time: Res<Time>,

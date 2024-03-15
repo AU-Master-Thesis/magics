@@ -153,7 +153,7 @@ impl Variable {
     // /***********************************************************************************************************/
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
     /// called `Variable::update_belief` in **gbpplanner**
-    pub fn update_belief_and_create_responses(&mut self) -> MessagesFromVariables {
+    pub fn update_belief_and_create_factor_responses(&mut self) -> MessagesFromVariables {
         // Collect messages from all other factors, begin by "collecting message from pose factor prior"
         self.eta = self.eta_prior.clone();
         self.lam = self.lam_prior.clone();
