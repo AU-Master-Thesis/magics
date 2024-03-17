@@ -3,14 +3,13 @@ use std::{collections::VecDeque, sync::OnceLock};
 use bevy::{math::primitives::Sphere, prelude::*, scene};
 use rand::Rng;
 
+use super::{robot::VariableTimestepsResource, RobotState};
 use crate::{
     asset_loader::SceneAssets,
     config::{formation::Shape, Config, Formation, FormationGroup},
     planner::robot::RobotBundle,
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
-
-use super::{robot::VariableTimestepsResource, RobotState};
 
 // pub static IMAGE: OnceLock<Image> = OnceLock::new();
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
@@ -41,8 +40,8 @@ fn init_repeat_resource(mut commands: Commands, formation_group: Res<FormationGr
 //     scene_assets: Res<SceneAssets>,
 // ) {
 //     // only continue if the image has been loaded
-//     let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else {
-//         return;
+//     let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else
+// {         return;
 //     };
 
 //     let _ = IMAGE.get_or_init(|| image.clone());
@@ -54,14 +53,15 @@ fn init_repeat_resource(mut commands: Commands, formation_group: Res<FormationGr
 //     mut image_assets: ResMut<Assets<Image>>,
 // ) {
 //     // only continue if the image has been loaded
-//     let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else {
-//         return;
+//     let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else
+// {         return;
 //     };
 
 //     let _ = IMAGE.get_or_init(|| image.clone());
 // }
 
-/// Spawn relevant formations at each time step according to the `FormationGroup` resource.
+/// Spawn relevant formations at each time step according to the
+/// `FormationGroup` resource.
 fn formation_handler(
     mut commands: Commands,
     formation_group: Res<FormationGroup>,
@@ -136,7 +136,8 @@ fn spawn_formation(
 
     // TODO: create mapped waypoints
 
-    // let variable_material = materials.add(Color::from_catppuccin_colour_with_alpha(
+    // let variable_material =
+    // materials.add(Color::from_catppuccin_colour_with_alpha(
     //     catppuccin_theme.blue(),
     //     0.75,
     // ));
@@ -172,7 +173,10 @@ fn spawn_formation(
                 config,
                 image,
             )
-            .expect("Possible `RobotInitError`s should be avoided due to the formation input being validated."),
+            .expect(
+                "Possible `RobotInitError`s should be avoided due to the formation input being \
+                 validated.",
+            ),
             PbrBundle {
                 mesh: scene_assets.meshes.robot.clone(),
                 material: scene_assets.materials.robot.clone(),
@@ -216,7 +220,8 @@ fn random_positions_on_shape(shape: &Shape, amount: usize, world_size: f32) -> V
             // TODO: implement
             // Something about making the line segments between the points and then
             // randomly selecting a point along the total length of the line segments
-            // and then finding the point on the line segment that is that distance from the start
+            // and then finding the point on the line segment that is that distance from the
+            // start
             todo!();
         }
     }
@@ -231,9 +236,8 @@ fn random_positions_on_shape(shape: &Shape, amount: usize, world_size: f32) -> V
 #[cfg(test)]
 mod tests {
 
-    use crate::config::formation::Point;
-
     use super::*;
+    use crate::config::formation::Point;
 
     fn f32_eq(a: f32, b: f32) -> bool {
         f32::abs(a - b) <= f32::EPSILON

@@ -6,13 +6,13 @@ use bevy_egui::{
     egui::{self, Color32, Layout, RichText, Sense, Vec2},
     EguiContexts,
 };
-
 use leafwing_input_manager::{
     input_map::InputMap,
     user_input::{InputKind, UserInput},
 };
 use strum::IntoEnumIterator;
 
+use super::{custom, OccupiedScreenSpace, ToDisplayString, UiState};
 use crate::{
     config::Config,
     input::{
@@ -21,8 +21,6 @@ use crate::{
     },
     theme::{CatppuccinTheme, FromCatppuccinColourExt},
 };
-
-use super::{custom, OccupiedScreenSpace, ToDisplayString, UiState};
 
 pub struct ControlsPanelPlugin;
 
@@ -42,13 +40,14 @@ impl Plugin for ControlsPanelPlugin {
 }
 
 /// **Bevy** [`Resource`] to store the currently changing binding
-/// If this is not `default`, then all input will be captured and the binding will be updated
-/// Blocks ALL actions (including UI actions) while changing a binding
+/// If this is not `default`, then all input will be captured and the binding
+/// will be updated Blocks ALL actions (including UI actions) while changing a
+/// binding
 #[derive(Debug, Default, Resource)]
 pub struct ChangingBinding {
-    pub action: InputAction,
+    pub action:  InputAction,
     pub binding: usize,
-    cooldown: f32,
+    cooldown:    f32,
 }
 
 impl ChangingBinding {
@@ -59,6 +58,7 @@ impl ChangingBinding {
             cooldown: 0.0,
         }
     }
+
     pub fn is_changing(&self) -> bool {
         !matches!(self.action, InputAction::Undefined)
     }
@@ -94,7 +94,8 @@ fn binding_cooldown_system(time: Res<Time<Real>>, mut currently_changing: ResMut
 }
 
 /// `Update` **Bevy** system to render the `egui` UI
-/// Uses the `UiState` to understand which panels are open and should be rendered
+/// Uses the `UiState` to understand which panels are open and should be
+/// rendered
 fn ui_controls_panel(
     mut contexts: EguiContexts,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
@@ -274,9 +275,10 @@ fn ui_controls_panel(
                                                         let row_index = row.index();
 
                                                         let inner_action =
-                                                map.iter().nth(row_index).expect(
-                                                    "Table row amount is equal to map length",
-                                                );
+                                                            map.iter().nth(row_index).expect(
+                                                                "Table row amount is equal to map \
+                                                                 length",
+                                                            );
 
                                                         row.col(|col| {
                                                             col.with_layout(
@@ -356,9 +358,10 @@ fn ui_controls_panel(
                                                         let row_index = row.index();
 
                                                         let inner_action =
-                                                map.iter().nth(row_index).expect(
-                                                    "Table row amount is equal to map length",
-                                                );
+                                                            map.iter().nth(row_index).expect(
+                                                                "Table row amount is equal to map \
+                                                                 length",
+                                                            );
 
                                                         row.col(|col| {
                                                             col.with_layout(
@@ -438,9 +441,10 @@ fn ui_controls_panel(
                                                         let row_index = row.index();
 
                                                         let inner_action =
-                                                map.iter().nth(row_index).expect(
-                                                    "Table row amount is equal to map length",
-                                                );
+                                                            map.iter().nth(row_index).expect(
+                                                                "Table row amount is equal to map \
+                                                                 length",
+                                                            );
 
                                                         row.col(|col| {
                                                             col.with_layout(
@@ -520,9 +524,10 @@ fn ui_controls_panel(
                                                         let row_index = row.index();
 
                                                         let inner_action =
-                                                map.iter().nth(row_index).expect(
-                                                    "Table row amount is equal to map length",
-                                                );
+                                                            map.iter().nth(row_index).expect(
+                                                                "Table row amount is equal to map \
+                                                                 length",
+                                                            );
 
                                                         row.col(|col| {
                                                             col.with_layout(
@@ -537,7 +542,8 @@ fn ui_controls_panel(
                                                             );
                                                         });
 
-                                                        // inner_action.1.iter().enumerate().for_each(
+                                                        // inner_action.1.iter().enumerate().
+                                                        // for_each(
                                                         for r in 0..2 {
                                                             let button_content =
                                                                 inner_action.1.get(r).map_or_else(

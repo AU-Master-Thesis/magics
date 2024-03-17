@@ -1,11 +1,11 @@
+use bevy::prelude::*;
+
 use super::{super::robot::Waypoints, RobotTracker};
 use crate::{
     asset_loader::SceneAssets,
     config::{Config, DrawSetting},
     ui::DrawSettingsEvent,
 };
-
-use bevy::prelude::*;
 
 pub struct WaypointVisualiserPlugin;
 
@@ -22,14 +22,15 @@ impl Plugin for WaypointVisualiserPlugin {
 #[derive(Component)]
 pub struct WaypointVisualiser;
 
-/// A **Bevy** [`Component`] to mark a robot that it has a corresponding `WaypointVis` entity
-/// Useful for easy _exclusion_ in queries
+/// A **Bevy** [`Component`] to mark a robot that it has a corresponding
+/// `WaypointVis` entity Useful for easy _exclusion_ in queries
 #[derive(Component)]
 pub struct HasWaypointVisualiser;
 
 /// A **Bevy** [`Update`] system
-/// Initialises each new [`Waypoints`] component to have a matching [`PbrBundle`] and [`WaypointVisualiser`] component
-/// I.e. if the [`Waypoints`] component already has a [`HasWaypointVisualiser`], it will be ignored
+/// Initialises each new [`Waypoints`] component to have a matching
+/// [`PbrBundle`] and [`WaypointVisualiser`] component I.e. if the [`Waypoints`]
+/// component already has a [`HasWaypointVisualiser`], it will be ignored
 fn init_waypoints(
     mut commands: Commands,
     query: Query<(Entity, &Waypoints), Without<HasWaypointVisualiser>>,
@@ -98,8 +99,9 @@ fn update_waypoints(
 }
 
 /// A **Bevy** [`Update`] system
-/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting == DrawSetting::Waypoints`
-/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`WaypointVisualiser`] entities
+/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting ==
+/// DrawSetting::Waypoints` the boolean `DrawSettingEvent.value` will be used to
+/// set the visibility of the [`WaypointVisualiser`] entities
 fn show_or_hide_waypoints(
     mut query: Query<(&WaypointVisualiser, &mut Visibility)>,
     mut draw_setting_event: EventReader<DrawSettingsEvent>,
@@ -107,7 +109,7 @@ fn show_or_hide_waypoints(
     for event in draw_setting_event.read() {
         if matches!(event.setting, DrawSetting::Waypoints) {
             for (_, mut visibility) in query.iter_mut() {
-                if event.value {
+                if event.draw {
                     *visibility = Visibility::Visible;
                 } else {
                     *visibility = Visibility::Hidden;

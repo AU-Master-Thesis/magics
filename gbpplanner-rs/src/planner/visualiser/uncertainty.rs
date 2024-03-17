@@ -1,9 +1,8 @@
+use bevy::prelude::*;
+use gbp_linalg::pretty_print_matrix;
+
 use super::{super::FactorGraph, RobotTracker, Z_FIGHTING_OFFSET};
 use crate::{asset_loader::SceneAssets, config::Config};
-
-use bevy::prelude::*;
-
-use gbp_linalg::pretty_print_matrix;
 
 pub struct UncertaintyVisualiserPlugin;
 
@@ -20,18 +19,20 @@ impl Plugin for UncertaintyVisualiserPlugin {
     }
 }
 
-/// A **Bevy** [`Component`] to mark an entity as visualised _uncertainty_ gaussian
+/// A **Bevy** [`Component`] to mark an entity as visualised _uncertainty_
+/// gaussian
 #[derive(Component)]
 pub struct UncertaintyVisualiser;
 
-/// A **Bevy** [`Component`] to mark a robot that it has a corresponding `UncertaintyVis` entity
-/// Useful for easy _exclusion_ in queries
+/// A **Bevy** [`Component`] to mark a robot that it has a corresponding
+/// `UncertaintyVis` entity Useful for easy _exclusion_ in queries
 #[derive(Component)]
 pub struct HasUncertaintyVisualiser;
 
 /// A **Bevy** [`Update`] system
-/// Initialises each new [`FactorGraph`] components to have a matching 2D circle and [`UncertaintyVisualiser`] component
-/// I.e. if the [`FactorGraph`] component already has a [`HasUncertaintyVisualiser`], it will be ignored
+/// Initialises each new [`FactorGraph`] components to have a matching 2D circle
+/// and [`UncertaintyVisualiser`] component I.e. if the [`FactorGraph`]
+/// component already has a [`HasUncertaintyVisualiser`], it will be ignored
 fn init_uncertainty(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -47,7 +48,9 @@ fn init_uncertainty(
             // let mean = v.belief.mean();
             let transform = Vec3::new(
                 v.mu[0] as f32,
-                config.visualisation.height.objects - 2.0 * Z_FIGHTING_OFFSET, // just under the lines (z-fighting prevention)
+                config.visualisation.height.objects - 2.0 * Z_FIGHTING_OFFSET, /* just under the
+                                                                                * lines (z-fighting
+                                                                                * prevention) */
                 v.mu[1] as f32,
             );
 
@@ -132,11 +135,14 @@ fn init_uncertainty(
 
 /// A **Bevy** [`Update`] system
 /// Updates the [`Transform`]s of all [`UncertaintyVisualiser`] entities
-/// Update the shape and potentially the material of the [`UncertaintyVisualiser`] entities, depending on how the covariance has changed
+/// Update the shape and potentially the material of the
+/// [`UncertaintyVisualiser`] entities, depending on how the covariance has
+/// changed
 ///
 /// Done by cross-referencing with the [`FactorGraph`] components
 /// that have matching [`Entity`] with the `RobotTracker.robot_id`
-/// and variables in the [`FactorGraph`] that have matching `RobotTracker.variable_id`
+/// and variables in the [`FactorGraph`] that have matching
+/// `RobotTracker.variable_id`
 fn update_uncertainty(
     mut tracker_query: Query<
         (
@@ -189,7 +195,8 @@ fn update_uncertainty(
                     },
                 ));
 
-                // info!("{:?}: Updating uncertainty at {:?}, with covariance {:?}", entity, transform, covariance);
+                // info!("{:?}: Updating uncertainty at {:?}, with covariance {:?}", entity,
+                // transform, covariance);
 
                 // else update the transform
                 *transform = Transform::from_translation(Vec3::new(
@@ -212,8 +219,9 @@ fn update_uncertainty(
 }
 
 /// A **Bevy** [`Update`] system
-/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting == DrawSetting::Uncertainty`
-/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`UncertaintyVisualiser`] entities
+/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting ==
+/// DrawSetting::Uncertainty` the boolean `DrawSettingEvent.value` will be used
+/// to set the visibility of the [`UncertaintyVisualiser`] entities
 fn show_or_hide_uncertainty(
     mut query: Query<(&UncertaintyVisualiser, &mut Visibility)>,
     mut draw_setting_event: EventReader<crate::ui::DrawSettingsEvent>,
@@ -221,7 +229,7 @@ fn show_or_hide_uncertainty(
     for event in draw_setting_event.read() {
         if matches!(event.setting, crate::config::DrawSetting::Uncertainty) {
             for (_, mut visibility) in query.iter_mut() {
-                if event.value {
+                if event.draw {
                     *visibility = Visibility::Visible;
                 } else {
                     *visibility = Visibility::Hidden;

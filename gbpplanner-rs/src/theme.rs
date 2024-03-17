@@ -1,5 +1,4 @@
-use bevy::prelude::*;
-use bevy::window::WindowTheme;
+use bevy::{prelude::*, window::WindowTheme};
 use bevy_egui::{
     egui::{
         epaint::Shadow,
@@ -57,6 +56,12 @@ macro_rules! impl_colour_getters {
 }
 
 impl CatppuccinTheme {
+    impl_colour_getters!(
+        rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green, teal, sky, sapphire,
+        blue, lavender, text, subtext1, subtext0, overlay2, overlay1, overlay0, surface2, surface1,
+        surface0, base, mantle, crust,
+    );
+
     pub fn grid_colour(&self) -> Color {
         let colour = if self.is_dark() {
             self.flavour.crust()
@@ -74,17 +79,11 @@ impl CatppuccinTheme {
     }
 
     /// Get iterator over all colours:
-    /// `[rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green, teal, sky, sapphire,
-    /// blue, lavender]`
+    /// `[rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green,
+    /// teal, sky, sapphire, blue, lavender]`
     pub fn colours(&self) -> FlavourColours {
         self.flavour.colours()
     }
-
-    impl_colour_getters!(
-        rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green, teal, sky, sapphire,
-        blue, lavender, text, subtext1, subtext0, overlay2, overlay1, overlay0, surface2, surface1,
-        surface0, base, mantle, crust,
-    );
 }
 
 pub trait ColourExt {
@@ -141,6 +140,7 @@ impl FromCatppuccinColourExt for Color32 {
     fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color32 {
         Color32::from_rgb(colour.0, colour.1, colour.2)
     }
+
     fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Color32 {
         let (r, g, b) = colour.into();
         #[allow(clippy::cast_possible_truncation)]
@@ -161,6 +161,7 @@ impl ColorFromCatppuccinColourExt for Color {
         let (r, g, b) = colour.into();
         Color::rgb_u8(r, g, b)
     }
+
     fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Self {
         let (r, g, b) = colour.into();
         #[allow(clippy::cast_possible_truncation)]
@@ -178,9 +179,11 @@ impl CatppuccinThemeVisualsExt for Visuals {
             selection: Selection::catppuccin_flavour(flavour),
             // hyperlink_color: Color32::from_rgb(90, 170, 255),
             hyperlink_color: Color32::from_catppuccin_colour(flavour.blue()),
-            faint_bg_color: Color32::from_catppuccin_colour(flavour.mantle()), // visible, but barely so
+            faint_bg_color: Color32::from_catppuccin_colour(flavour.mantle()), /* visible, but
+                                                                                * barely so */
             // extreme_bg_color: Color32::from_gray(10), // e.g. TextEdit background
-            extreme_bg_color: Color32::from_catppuccin_colour(flavour.crust()), // e.g. TextEdit background
+            extreme_bg_color: Color32::from_catppuccin_colour(flavour.crust()), /* e.g. TextEdit
+                                                                                 * background */
             // code_bg_color: Color32::from_gray(64),
             code_bg_color: Color32::from_catppuccin_colour(flavour.mantle()),
             // warn_fg_color: Color32::from_rgb(255, 143, 0), // orange
@@ -210,7 +213,8 @@ impl CatppuccinThemeVisualsExt for Visuals {
             resize_corner_size: 12.0,
             text_cursor: Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
             text_cursor_preview: false,
-            clip_rect_margin: 3.0, // should be at least half the size of the widest frame stroke + max WidgetVisuals::expansion
+            clip_rect_margin: 3.0, /* should be at least half the size of the widest frame stroke
+                                    * + max WidgetVisuals::expansion */
             button_frame: true,
             collapsing_header_frame: false,
             indent_has_left_vline: true,
@@ -233,43 +237,43 @@ impl CatppuccinThemeWidgetsExt for Widgets {
         Self {
             noninteractive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), // separators, indentation lines
-                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), // normal text color
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), /* separators, indentation lines */
+                fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), /* normal text color */
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
-            inactive: WidgetVisuals {
+            inactive:       WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke: Default::default(), // default = 0 width stroke
-                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), // button text
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke:    Default::default(), // default = 0 width stroke
+                fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), /* button text */
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
-            hovered: WidgetVisuals {
+            hovered:        WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), // e.g. hover over window edge or button
-                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding: Rounding::same(7.0),
-                expansion: 2.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface2()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), /* e.g. hover over window edge or button */
+                fg_stroke:    Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding:     Rounding::same(7.0),
+                expansion:    2.0,
             },
-            active: WidgetVisuals {
+            active:         WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                fg_stroke: Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                rounding: Rounding::same(7.0),
-                expansion: 2.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                fg_stroke:    Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                rounding:     Rounding::same(7.0),
+                expansion:    2.0,
             },
-            open: WidgetVisuals {
+            open:           WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
-                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
+                fg_stroke:    Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
         }
     }
@@ -279,7 +283,7 @@ impl CatppuccinThemeSelectionExt for Selection {
     fn catppuccin_flavour(flavour: Flavour) -> Selection {
         Self {
             bg_fill: Color32::from_catppuccin_colour(flavour.lavender()),
-            stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
+            stroke:  Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
         }
     }
 }
@@ -335,7 +339,8 @@ fn theme_is_not_initialised(windows: Query<&Window>) -> bool {
 
 /// **Bevy** `Startup` system to set the window theme
 /// Run criteria: `theme_is_not_initialised`
-/// Only used to set the window theme if it wasn't possible to detect from the system
+/// Only used to set the window theme if it wasn't possible to detect from the
+/// system
 fn init_window_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
     move |mut windows: Query<&mut Window>| {
         let mut window = windows.single_mut();
@@ -345,7 +350,8 @@ fn init_window_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
 
 /// **Bevy** `Update` system to change the theme
 /// Reads `catppuccin::Flavour` from `ThemeEvent` to change the theme
-/// Emits a `ThemeChangedEvent` after the theme has been changed, to be used by other systems that actually change the colours
+/// Emits a `ThemeChangedEvent` after the theme has been changed, to be used by
+/// other systems that actually change the colours
 fn change_theme(
     mut windows: Query<&mut Window>,
     mut theme_event_reader: EventReader<ThemeEvent>,

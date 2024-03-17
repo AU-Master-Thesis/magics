@@ -1,4 +1,5 @@
-//! Pretty printing of matrices and vectors. Useful for debugging and visualizing the contents of a matrix or vector.
+//! Pretty printing of matrices and vectors. Useful for debugging and
+//! visualizing the contents of a matrix or vector.
 
 use super::prelude::*;
 
@@ -73,7 +74,8 @@ fn float_color(f: f64) -> &'static str {
 }
 
 /// Pretty print a matrix.
-/// Not intended to be used directly. Use the [`pretty_print_matrix!`] macro instead.
+/// Not intended to be used directly. Use the [`pretty_print_matrix!`] macro
+/// instead.
 pub fn _pretty_print_matrix<T, M>(
     matrix: &M,
     name: Option<&str>,
@@ -119,7 +121,7 @@ pub fn _pretty_print_matrix<T, M>(
 
     // print the top border
     if let Some(name) = name {
-        //handle if name is longer than cell_columns
+        // handle if name is longer than cell_columns
         if name.len() + dims.len() - 2 > total_width {
             println!("{}:{}{}{}", name, MAGENTA_TEXT, dims, RESET_TEXT);
             println!(

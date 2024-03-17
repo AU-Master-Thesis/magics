@@ -42,7 +42,7 @@ pub struct FollowCameraMe {
 pub struct FollowCameraSettings {
     pub target: Entity,
     pub offset: Vec3,
-    pub pid: PID,
+    pub pid:    PID,
 }
 
 impl FollowCameraSettings {
@@ -69,7 +69,7 @@ pub struct FollowCameraBundle {
     pub settings: FollowCameraSettings,
     pub movement: OrbitMovementBundle,
     pub velocity: Velocity,
-    pub camera: Camera3dBundle,
+    pub camera:   Camera3dBundle,
 }
 
 impl FollowCameraBundle {
@@ -92,7 +92,7 @@ impl FollowCameraBundle {
             settings: FollowCameraSettings::new(entity).with_offset(offset),
             movement: OrbitMovementBundle::default(),
             velocity: Velocity::new(Vec3::ZERO),
-            camera: Camera3dBundle {
+            camera:   Camera3dBundle {
                 transform: Transform::from_translation(target.translation + offset)
                     .looking_at(target.translation, Vec3::Y),
                 camera: Camera {
@@ -105,7 +105,8 @@ impl FollowCameraBundle {
     }
 }
 
-/// `Update` system to add a `FollowCamera` to any entity with a tagged to be followed with a `FollowCameraMe` component
+/// `Update` system to add a `FollowCamera` to any entity with a tagged to be
+/// followed with a `FollowCameraMe` component
 fn add_follow_cameras(
     mut commands: Commands,
     // query: Query<(Entity, &Transform), With<FollowCameraMe>>,
@@ -132,7 +133,8 @@ fn add_follow_cameras(
 }
 
 /// `Update` system to move all cameras tagged with the `FollowCamera` component
-/// Queries for all targets with `Transforms` and their corresponding cameras with `FollowCameraSettings` to move cameras correctly
+/// Queries for all targets with `Transforms` and their corresponding cameras
+/// with `FollowCameraSettings` to move cameras correctly
 fn move_cameras(
     mut query_cameras: Query<(&mut Transform, &FollowCameraSettings), With<Camera>>,
     query_targets: Query<(Entity, &Transform), (With<FollowCameraMe>, Without<Camera>)>,

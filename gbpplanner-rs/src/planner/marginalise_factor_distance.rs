@@ -1,12 +1,10 @@
+use gbp_linalg::{prelude::*, pretty_print_matrix, pretty_print_vector};
 use gbp_multivariate_normal::MultivariateNormal;
 use ndarray::prelude::*;
 use ndarray_inverse::Inverse;
 
-use gbp_linalg::{prelude::*, pretty_print_matrix, pretty_print_vector};
-
-use crate::planner::message::{Eta, Lam, Mu};
-
 use super::message::Message;
+use crate::planner::message::{Eta, Lam, Mu};
 
 /// Utility function to create `start..start + n`
 /// Similar to `Eigen::seqN`
@@ -84,8 +82,8 @@ pub fn marginalise_factor_distance(
         //     // pretty_print_matrix!(&precision_matrix);
         // })
         // .expect(
-        //     "the given information vector and precision matrix is a valid multivariate gaussian",
-        // );
+        //     "the given information vector and precision matrix is a valid
+        // multivariate gaussian", );
         // return Ok(Message::new(mvn));
     }
 
@@ -173,17 +171,18 @@ pub fn marginalise_factor_distance(
         //     precision_matrix,
         // )
         // .expect(
-        //     "the given information vector and precision matrix is a valid multivariate gaussian",
-        // );
+        //     "the given information vector and precision matrix is a valid
+        // multivariate gaussian", );
         // Ok(Message::new(mvn))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use ndarray::concatenate;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     fn float_eq(lhs: f32, rhs: f32) -> bool {
         f32::abs(lhs - rhs) <= f32::EPSILON
@@ -191,12 +190,9 @@ mod tests {
 
     macro_rules! generate_8x8_precision_matrix {
         () => {{
-            let upper_left = array![
-                [1., 2., 3., 4.],
-                [5., 6., 7., 8.],
-                [9., 10., 11., 12.],
-                [13., 14., 15., 16.]
-            ];
+            let upper_left = array![[1., 2., 3., 4.], [5., 6., 7., 8.], [9., 10., 11., 12.], [
+                13., 14., 15., 16.
+            ]];
 
             let upper_right = array![
                 [17., 18., 19., 20.],
@@ -268,12 +264,10 @@ mod tests {
     fn information_vector_length_equal_to_ndofs_do_nothing() {
         #![allow(clippy::unwrap_used)]
         let information_vector: Vector<Float> = array![0., 1., 2., 3.];
-        let precision_matrix: Matrix<Float> = array![
-            [5., 0.2, 0., 0.],
-            [0.2, 5., 0., 0.],
-            [0., 0.0, 5., 0.3],
-            [0., 0., 0.3, 5.]
-        ];
+        let precision_matrix: Matrix<Float> =
+            array![[5., 0.2, 0., 0.], [0.2, 5., 0., 0.], [0., 0.0, 5., 0.3], [
+                0., 0., 0.3, 5.
+            ]];
 
         let ndofs = 4;
         let marginalisation_idx = 0;
@@ -314,7 +308,8 @@ mod tests {
     //     );
 
     //     assert_eq!(marginalised_msg.information_vector().len(), ndofs);
-    //     assert_eq!(marginalised_msg.precision_matrix().shape(), &[ndofs, ndofs]);
+    //     assert_eq!(marginalised_msg.precision_matrix().shape(), &[ndofs,
+    // ndofs]);
 
     //     assert_eq!(
     //         marginalised_msg.information_vector(),

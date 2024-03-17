@@ -116,7 +116,8 @@ macro_rules! polygon {
     }}
 }
 
-/// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x: $x2, y: $y2}))`
+/// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x: $x2,
+/// y: $y2}))`
 #[macro_export]
 macro_rules! line {
     [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
@@ -127,7 +128,7 @@ macro_rules! line {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Waypoint {
-    pub shape: Shape,
+    pub shape:              Shape,
     pub placement_strategy: PlacementStrategy,
 }
 
@@ -137,7 +138,10 @@ pub enum FormationError {
     NegativeTime,
     #[error("Shape error: {0}")]
     ShapeError(#[from] ShapeError),
-    #[error("At least two waypoints needs to be given, as the first and last waypoint represent the start and end for the formation")]
+    #[error(
+        "At least two waypoints needs to be given, as the first and last waypoint represent the \
+         start and end for the formation"
+    )]
     LessThanTwoWaypoints,
     #[error("FormationGroup has no formations")]
     NoFormations,
@@ -148,14 +152,16 @@ pub enum FormationError {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Formation {
-    /// If true then then a new formation instance will be spawned every [`Self::delay`].
-    /// If false, a single formation will be spawned after [`Self::delay`]
-    pub repeat: bool,
-    /// The delay from the start of the simulation after which the formation should spawn.
-    /// If [`Self::repeat`] is true, then `delay` is interpreted as a timeout between every formation spawn.
-    pub delay: f32,
+    /// If true then then a new formation instance will be spawned every
+    /// [`Self::delay`]. If false, a single formation will be spawned after
+    /// [`Self::delay`]
+    pub repeat:    bool,
+    /// The delay from the start of the simulation after which the formation
+    /// should spawn. If [`Self::repeat`] is true, then `delay` is
+    /// interpreted as a timeout between every formation spawn.
+    pub delay:     f32,
     /// Number of robots to spawn
-    pub robots: usize,
+    pub robots:    usize,
     /// A list of waypoints.
     /// `NOTE` The first waypoint is assumed to be the spawning point.
     /// < 2 waypoints is an invalid state
@@ -165,24 +171,24 @@ pub struct Formation {
 impl Default for Formation {
     fn default() -> Self {
         Self {
-            repeat: false,
-            delay: 5.0,
-            robots: 3,
+            repeat:    false,
+            delay:     5.0,
+            robots:    3,
             waypoints: vec![
                 Waypoint {
                     placement_strategy: PlacementStrategy::Random,
                     // shape: polygon![(0.4, 0.0), (0.6, 0.0)],
-                    shape: line![(0.4, 0.0), (0.6, 0.0)],
+                    shape:              line![(0.4, 0.0), (0.6, 0.0)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
                     // shape: polygon![(0.4, 0.4), (0.6, 0.6)],
-                    shape: line![(0.4, 0.4), (0.6, 0.6)],
+                    shape:              line![(0.4, 0.4), (0.6, 0.6)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
                     // shape: polygon![(0.0, 0.4), (0.0, 0.6)],
-                    shape: line![(0.0, 0.4), (0.0, 0.6)],
+                    shape:              line![(0.0, 0.4), (0.0, 0.6)],
                 },
             ],
         }
@@ -384,7 +390,10 @@ mod tests {
         fn one_waypoint_is_invalid() {
             let invalid = Formation {
                 waypoints: vec![Waypoint {
-                    shape: Shape::Line((Point { x: 0.0, y: 0.0 }, Point { x: 0.4, y: 0.4 })),
+                    shape:              Shape::Line((Point { x: 0.0, y: 0.0 }, Point {
+                        x: 0.4,
+                        y: 0.4,
+                    })),
                     placement_strategy: PlacementStrategy::Random,
                 }],
                 ..Default::default()
@@ -441,8 +450,9 @@ mod tests {
 
         mod polygon_macro {
 
-            use super::*;
             use pretty_assertions::assert_eq;
+
+            use super::*;
 
             fn float_eq(lhs: f32, rhs: f32) -> bool {
                 f32::abs(lhs - rhs) <= f32::EPSILON

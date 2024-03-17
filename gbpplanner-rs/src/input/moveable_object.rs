@@ -3,12 +3,11 @@ use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use crate::ui::{ActionBlock, ChangingBinding};
-
 use super::super::{
     moveable_object::{self, MoveableObject, MoveableObjectMovementState},
     movement::{AngularVelocity, Velocity},
 };
+use crate::ui::{ActionBlock, ChangingBinding};
 
 pub struct MoveableObjectInputPlugin;
 
@@ -21,19 +20,20 @@ impl Plugin for MoveableObjectInputPlugin {
     }
 }
 
-/// **Bevy** [`Resource`] for the sensitivity of the movement of the [`MoveableObject`]
-/// Works as a scaling factor for the movement and rotation of the [`MoveableObject`]
-/// Defaults to 1.0 for both `move_sensitivity` and `rotate_sensitivity`
+/// **Bevy** [`Resource`] for the sensitivity of the movement of the
+/// [`MoveableObject`] Works as a scaling factor for the movement and rotation
+/// of the [`MoveableObject`] Defaults to 1.0 for both `move_sensitivity` and
+/// `rotate_sensitivity`
 #[derive(Resource)]
 pub struct MoveableObjectSensitivity {
-    pub move_sensitivity: f32,
+    pub move_sensitivity:   f32,
     pub rotate_sensitivity: f32,
 }
 
 impl Default for MoveableObjectSensitivity {
     fn default() -> Self {
         Self {
-            move_sensitivity: 1.0,
+            move_sensitivity:   1.0,
             rotate_sensitivity: 1.0,
         }
     }
@@ -105,8 +105,8 @@ fn bind_moveable_object_input(mut commands: Commands, query: Query<Entity, With<
     // Create an `InputMap` to add default inputs to
     let mut input_map = InputMap::default();
 
-    // Loop through each action in `MoveableObjectAction` and get the default `UserInput`,
-    // then insert each default input into input_map
+    // Loop through each action in `MoveableObjectAction` and get the default
+    // `UserInput`, then insert each default input into input_map
 
     for action in MoveableObjectAction::iter() {
         if let Some(input) = MoveableObjectAction::default_keyboard_input(action) {
@@ -152,7 +152,8 @@ fn movement_actions(
         return;
     }
 
-    // When the default input for `MoveableObjectAction::Move` is pressed, print the clamped direction of the axis
+    // When the default input for `MoveableObjectAction::Move` is pressed, print the
+    // clamped direction of the axis
     if action_state.pressed(&MoveableObjectAction::Move) {
         let scale = match state.get() {
             MoveableObjectMovementState::Default => moveable_object::SPEED,
@@ -170,9 +171,10 @@ fn movement_actions(
         velocity.value = Vec3::ZERO;
     }
 
-    // When the default input for `MoveableObjectAction::Boost` is pressed, print "Using Boost!"
-    // Using `just_pressed`, to only trigger once, even if held down, as we want a toggling behaviour
-    // -> use `pressed`, if a while-held behaviour is desired
+    // When the default input for `MoveableObjectAction::Boost` is pressed, print
+    // "Using Boost!" Using `just_pressed`, to only trigger once, even if held
+    // down, as we want a toggling behaviour -> use `pressed`, if a while-held
+    // behaviour is desired
     if action_state.just_pressed(&MoveableObjectAction::Boost) {
         // info!("Using Boost!");
         match state.get() {

@@ -6,20 +6,16 @@ mod general;
 mod moveable_object;
 mod ui;
 
-use crate::ui::ToDisplayString;
-
-pub use camera::CameraAction;
-pub use camera::CameraSensitivity;
-pub use general::GeneralAction;
-pub use general::ScreenShotEvent;
-pub use moveable_object::MoveableObjectAction;
-pub use moveable_object::MoveableObjectSensitivity;
+pub use camera::{CameraAction, CameraSensitivity};
+pub use general::{GeneralAction, ScreenShotEvent};
+pub use moveable_object::{MoveableObjectAction, MoveableObjectSensitivity};
 pub use ui::UiAction;
 
 use self::{
     camera::CameraInputPlugin, general::GeneralInputPlugin,
     moveable_object::MoveableObjectInputPlugin, ui::UiInputPlugin,
 };
+use crate::ui::ToDisplayString;
 
 /// Enumeration to collect the different kinds of input bindings
 #[derive(Debug, EnumIter)]

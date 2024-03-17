@@ -14,44 +14,46 @@ pub(crate) mod utils;
 
 use std::path::PathBuf;
 
-use crate::asset_loader::AssetLoaderPlugin;
-use crate::config::Config;
-use crate::config::FormationGroup;
-use crate::environment::EnvironmentPlugin;
-use crate::input::InputPlugin;
-use crate::moveable_object::MoveableObjectPlugin;
-use crate::movement::MovementPlugin;
-use crate::planner::PlannerPlugin;
-use crate::robot_spawner::RobotSpawnerPlugin;
-use crate::theme::ThemePlugin;
-use crate::toggle_fullscreen::ToggleFullscreenPlugin;
-use crate::ui::EguiInterfacePlugin;
-
-use bevy::core::FrameCount;
-use bevy::prelude::*;
-
-use bevy::window::WindowMode;
-use bevy::window::WindowTheme;
+use bevy::{
+    core::FrameCount,
+    prelude::*,
+    window::{WindowMode, WindowTheme},
+};
 use clap::Parser;
+
+use crate::{
+    asset_loader::AssetLoaderPlugin,
+    config::{Config, FormationGroup},
+    environment::EnvironmentPlugin,
+    input::InputPlugin,
+    moveable_object::MoveableObjectPlugin,
+    movement::MovementPlugin,
+    planner::PlannerPlugin,
+    robot_spawner::RobotSpawnerPlugin,
+    theme::ThemePlugin,
+    toggle_fullscreen::ToggleFullscreenPlugin,
+    ui::EguiInterfacePlugin,
+};
 
 // use gbp_rs::factorgraph;
 
 #[derive(Parser)]
 #[clap(version, author, about)]
 struct Cli {
-    /// Specify the configuration file to use, overrides the normal configuration file resolution
+    /// Specify the configuration file to use, overrides the normal
+    /// configuration file resolution
     #[arg(short, long, value_name = "CONFIG_FILE")]
     config: Option<std::path::PathBuf>,
 
     #[arg(long)]
     /// Dump the default config to stdout
-    dump_default_config: bool,
+    dump_default_config:    bool,
     #[arg(long)]
     /// Dump the default formation config to stdout
     dump_default_formation: bool,
     #[arg(long)]
     /// Run the app without a window for rendering the environment
-    headless: bool,
+    headless:               bool,
 
     #[arg(short, long)]
     /// Start the app in fullscreen mode
@@ -169,8 +171,8 @@ fn main() -> color_eyre::eyre::Result<()> {
             RobotSpawnerPlugin, // Custom
             // FactorGraphPlugin,   // Custom
             EguiInterfacePlugin, // Custom
-            PlannerPlugin,       // Custom
-                                 // WorldInspectorPlugin::new(),
+            PlannerPlugin,       /* Custom
+                                  * WorldInspectorPlugin::new(), */
         ))
         .add_systems(Update, make_visible);
 
@@ -184,8 +186,8 @@ fn main() -> color_eyre::eyre::Result<()> {
 fn make_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) {
     // The delay may be different for your app or system.
     if frames.0 == 3 {
-        // At this point the gpu is ready to show the app so we can make the window visible.
-        // Alternatively, you could toggle the visibility in Startup.
+        // At this point the gpu is ready to show the app so we can make the window
+        // visible. Alternatively, you could toggle the visibility in Startup.
         // It will work, but it will have one white frame before it starts rendering
         window.single_mut().visible = true;
     }

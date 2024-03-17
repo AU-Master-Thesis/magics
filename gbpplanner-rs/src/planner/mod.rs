@@ -7,18 +7,12 @@ mod spawner;
 mod variable;
 mod visualiser;
 
-pub use factorgraph::graphviz::NodeKind;
-pub use factorgraph::FactorGraph;
-pub use factorgraph::NodeIndex;
-pub use robot::RobotId;
-pub use robot::RobotState;
-pub use visualiser::factorgraphs::VariableVisualiser;
-pub use visualiser::waypoints::WaypointVisualiser;
-
-use self::robot::RobotPlugin;
-use self::spawner::SpawnerPlugin;
-use self::visualiser::VisualiserPlugin;
 use bevy::prelude::*;
+pub use factorgraph::{graphviz::NodeKind, FactorGraph, NodeIndex};
+pub use robot::{RobotId, RobotState};
+pub use visualiser::{factorgraphs::VariableVisualiser, waypoints::WaypointVisualiser};
+
+use self::{robot::RobotPlugin, spawner::SpawnerPlugin, visualiser::VisualiserPlugin};
 
 pub struct PlannerPlugin;
 

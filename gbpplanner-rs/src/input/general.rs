@@ -1,19 +1,21 @@
 use std::collections::HashMap;
 
+use bevy::{
+    prelude::*, render::view::screenshot::ScreenshotManager, tasks::IoTaskPool,
+    window::PrimaryWindow,
+};
+use gbp_linalg::GbpFloat;
+use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
+
+use super::super::theme::ThemeEvent;
 use crate::{
     config::Config,
     planner::{FactorGraph, NodeKind, RobotId, RobotState},
     theme::CatppuccinTheme,
     ui::{ChangingBinding, ExportGraphEvent},
 };
-
-use super::super::theme::ThemeEvent;
-use bevy::{prelude::*, tasks::IoTaskPool};
-use bevy::{render::view::screenshot::ScreenshotManager, window::PrimaryWindow};
-use gbp_linalg::GbpFloat;
-use leafwing_input_manager::{prelude::*, user_input::InputKind};
-use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
 
 #[derive(Component)]
 pub struct GeneralInputs;
@@ -117,8 +119,8 @@ fn export_factorgraphs_as_graphviz(
     append_line_to_output("  node [style=filled];");
     append_line_to_output("  layout=neato;");
 
-    // A hashmap used to keep track of which variable in another robots factorgraph, is connected to a interrobot
-    // factor in the current robots factorgraph.
+    // A hashmap used to keep track of which variable in another robots factorgraph,
+    // is connected to a interrobot factor in the current robots factorgraph.
     let mut all_external_connections =
         HashMap::<RobotId, HashMap<usize, (RobotId, usize)>>::with_capacity(query.iter().len());
 
@@ -187,7 +189,8 @@ fn export_factorgraphs_as_graphviz(
         all_external_connections.insert(robot_id, external_connections);
     }
 
-    // Add edges between interrobot factors and the variable they are connected to in another robots graph
+    // Add edges between interrobot factors and the variable they are connected to
+    // in another robots graph
     for (from_robot_id, from_connections) in all_external_connections.iter() {
         for (from_factor, (to_robot_id, to_variable_index)) in from_connections.iter() {
             append_line_to_output(&format!(

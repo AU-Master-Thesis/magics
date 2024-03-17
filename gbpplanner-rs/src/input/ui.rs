@@ -3,9 +3,8 @@ use bevy_egui::EguiSettings;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum_macros::EnumIter;
 
-use crate::ui::{ChangingBinding, UiScaleType};
-
 use super::super::ui::UiState;
+use crate::ui::{ChangingBinding, UiScaleType};
 
 pub struct UiInputPlugin;
 

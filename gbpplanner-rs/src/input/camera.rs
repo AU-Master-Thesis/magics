@@ -3,14 +3,13 @@ use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use crate::{
-    environment::{self, camera::CameraResetEvent},
-    ui::{ActionBlock, ChangingBinding},
-};
-
 use super::super::{
     environment::camera::{self, CameraMovementMode, MainCamera},
     movement::{AngularVelocity, Orbit, Velocity},
+};
+use crate::{
+    environment::{self, camera::CameraResetEvent},
+    ui::{ActionBlock, ChangingBinding},
 };
 
 pub struct CameraInputPlugin;
@@ -19,14 +18,15 @@ impl Plugin for CameraInputPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CameraSensitivity>()
             .add_plugins((InputManagerPlugin::<CameraAction>::default(),))
-            .add_systems(PostStartup, (bind_camera_input /*bind_camera_switch*/,))
+            .add_systems(PostStartup, (bind_camera_input /* bind_camera_switch */,))
             .add_systems(Update, (camera_actions, switch_camera));
     }
 }
 
-/// **Bevy** [`Resource`] for the sensitivity of the movement of the [`MoveableObject`]
-/// Works as a scaling factor for the movement and rotation of the [`MoveableObject`]
-/// Defaults to 1.0 for both `move_sensitivity` and `rotate_sensitivity`
+/// **Bevy** [`Resource`] for the sensitivity of the movement of the
+/// [`MoveableObject`] Works as a scaling factor for the movement and rotation
+/// of the [`MoveableObject`] Defaults to 1.0 for both `move_sensitivity` and
+/// `rotate_sensitivity`
 #[derive(Resource)]
 pub struct CameraSensitivity {
     pub move_sensitivity: f32,
