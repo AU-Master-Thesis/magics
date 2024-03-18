@@ -242,7 +242,6 @@ impl Default for GbpSection {
             sigma_factor_obstacle:   0.01,
             iterations_per_timestep: 10,
             lookahead_multiple:      3,
-            // damping: 0.0
         }
     }
 }

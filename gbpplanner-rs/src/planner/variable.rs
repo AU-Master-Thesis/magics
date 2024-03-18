@@ -126,7 +126,7 @@ impl Variable {
     pub fn change_prior(&mut self, mean: Vector<Float>) -> MessagesFromVariables {
         self.eta_prior = self.lam_prior.dot(&mean);
         self.mu = mean;
-        dbg!(&self.mu);
+        // dbg!(&self.mu);
 
         let messages: MessagesFromVariables = self
             .inbox
@@ -184,7 +184,7 @@ impl Variable {
         self.valid = valid;
         if self.valid {
             self.mu = self.sigma.dot(&self.eta);
-            dbg!(&self.mu);
+            // dbg!(&self.mu);
         }
 
         self.inbox

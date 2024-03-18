@@ -218,7 +218,7 @@ mod tests {
                             // To lazy to handle NaNs ¯\_(ツ)_/¯
                             return Ok(());
                         }
-                        eprintln!("BEFORE: v: {:#?} .len() = {}, .mag = {}", v, v.len(), mag);
+                        // eprintln!("BEFORE: v: {:#?} .len() = {}, .mag = {}", v, v.len(), mag);
 
                         let vn = v.normalized();
                         let expected = &v / mag;
@@ -227,7 +227,7 @@ mod tests {
 
                         v.normalize();
 
-                        eprintln!("AFTER: v: {:#?}, .mag = {}", v, v.euclidean_norm());
+                        // eprintln!("AFTER: v: {:#?}, .mag = {}", v, v.euclidean_norm());
 
                         // compare each element of the normalized vector with the expected values
                         assert!(v.iter().zip(expected.iter()).all(|(a, b)| float_eq(*a, *b)));

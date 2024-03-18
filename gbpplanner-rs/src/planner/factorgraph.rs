@@ -527,6 +527,10 @@ impl FactorGraph {
             kind:     NodeKind::Factor(factor),
         };
         let node_index = self.graph.add_node(node);
+        self.graph[node_index]
+            .as_factor_mut()
+            .unwrap()
+            .set_node_index(node_index);
         self.factor_indices.push(node_index);
         node_index.into()
     }
@@ -595,7 +599,6 @@ impl FactorGraph {
             "adding external edge from {:?} to {:?} in factorgraph {:?}",
             variable_index, factor_id, self.id
         );
-        // std::process::exit(0);
         variable.send_message(factor_id, Message::empty(dofs));
     }
 
@@ -1062,12 +1065,13 @@ impl FactorGraph {
             let Some(variable) = node.as_variable_mut() else {
                 continue;
             };
-            println!("robot id {:?}", other);
-            println!("before {:?}", variable.inbox.keys().collect::<Vec<_>>());
+            // println!("robot id {:?}", other);
+            // println!("before {:?}", variable.inbox.keys().collect::<Vec<_>>());
             variable
                 .inbox
                 .retain(|factor_id, _| factor_id.factorgraph_id != other);
-            println!("after  {:?}", variable.inbox.keys().collect::<Vec<_>>());
+            // println!("after  {:?}",
+            // variable.inbox.keys().collect::<Vec<_>>());
         }
     }
 }

@@ -3,13 +3,16 @@ use std::{
     ops::{AddAssign, Sub},
 };
 
-use bevy::{log::warn, render::texture::Image};
+use bevy::{
+    log::{info, warn},
+    render::texture::Image,
+};
 use gbp_linalg::{Float, Matrix, Vector, VectorNorm};
 use ndarray::{array, concatenate, s, Axis};
 use petgraph::prelude::NodeIndex;
 
 use super::{
-    factorgraph::{MessagesFromFactors, MessagesFromVariables, MessagesToVariables, VariableId},
+    factorgraph::{MessagesFromFactors, MessagesToVariables, VariableId},
     message::Message,
     robot::RobotId,
 };
@@ -42,38 +45,15 @@ trait Model {
     fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
 
     fn first_order_jacobian(&mut self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
-        // Eigen::MatrixXd Factor::jacobianFirstOrder(const Eigen::VectorXd& X0){
-        //     return jac_out;
-        // };
-
-        // Eigen::MatrixXd h0 = h_func_(X0);    // Value at lin point
         let h0 = self.measure(state, &x); // value at linearization point
-                                          // dbg!(&h0);
-                                          // Eigen::MatrixXd jac_out = Eigen::MatrixXd::Zero(h0.size(),X0.size());
         let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
 
-        //     for (int i=0; i<X0.size(); i++){
-        //         Eigen::VectorXd X_copy = X0;                                    //
-        // Copy of lin point         X_copy(i) += delta_jac;
-        // // Perturb by delta         jac_out(Eigen::all, i) = (h_func_(X_copy)
-        // - h0) / delta_jac;    // Derivative (first order)     }
         for i in 0..x.len() {
-            // let mut copy_of_x = x.clone();
             x[i] += self.jacobian_delta(); // perturb by delta
-
-            let derivative = (self.measure(state, &x) - &h0) / self.jacobian_delta();
-            // dbg!(&derivative);
-            jacobian.column_mut(i).assign(&derivative);
-
+            let derivatives = (self.measure(state, &x) - &h0) / self.jacobian_delta();
+            jacobian.column_mut(i).assign(&derivatives);
             x[i] -= self.jacobian_delta(); // reset the perturbation
-
-            // println!("i = {}", i);
-            // pretty_print_matrix!(&jacobian);
         }
-
-        // eprintln!("jacobian at the end: {:#?}", jacobian);
-
-        // std::process::exit(1);
 
         jacobian
     }
@@ -85,6 +65,22 @@ pub struct InterRobotConnection {
     pub index_of_connected_variable_in_other_robots_factorgraph: NodeIndex,
 }
 
+impl InterRobotConnection {
+    #[must_use]
+    pub fn new(
+        id_of_robot_connected_with: RobotId,
+        index_of_connected_variable_in_other_robots_factorgraph: NodeIndex,
+    ) -> Self {
+        Self {
+            id_of_robot_connected_with,
+            index_of_connected_variable_in_other_robots_factorgraph,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Skip(bool);
+
 /// Interrobot factor: for avoidance of other robots
 /// This factor results in a high energy or cost if two robots are planning to
 /// be in the same position at the same timestep (collision). This factor is
@@ -93,23 +89,35 @@ pub struct InterRobotConnection {
 #[derive(Debug, Clone, Copy)]
 pub struct InterRobotFactor {
     // TODO: constrain to be positive
-    pub safety_distance: Float,
-    ///
-    skip:                bool,
-    // pub id_of_robot_connected_with: RobotId,
-    pub connection:      InterRobotConnection,
+    safety_distance: Float,
+    // skip:            Skip,
+    skip:            bool,
+    pub connection:  InterRobotConnection,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InterRobotFactorError {
+    #[error("The robot radius must be positive, but it was {0}")]
+    NegativeRobotRadius(Float),
 }
 
 impl InterRobotFactor {
     #[must_use]
-    pub fn new(robot_radius: Float, connection: InterRobotConnection) -> Self {
+    pub fn new(
+        robot_radius: Float,
+        connection: InterRobotConnection,
+    ) -> Result<Self, InterRobotFactorError> {
+        if robot_radius < 0.0 {
+            return Err(InterRobotFactorError::NegativeRobotRadius(robot_radius));
+        }
         let epsilon = 0.2 * robot_radius;
 
-        Self {
+        Ok(Self {
             safety_distance: 2.0 * robot_radius + epsilon,
+            // skip: Skip(false),
             skip: false,
             connection,
-        }
+        })
     }
 }
 
@@ -167,21 +175,44 @@ impl Model for InterRobotFactor {
             // unclear as a robot id should be unique, and not have any
             // semantics of distance/weight.
             for i in 0..offset {
-                x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as Float;
                 // Add a tiny random offset to avoid div/0 errors
+                x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as Float;
             }
             x_diff
         };
 
         let radius = x_diff.euclidean_norm();
+        let within_safety_distance = radius <= self.safety_distance;
+        // match (self.skip, within_safety_distance) {
+        //     (Skip(true), true) => {}
+        //     (Skip(true), false) => {}
+        //     (Skip(false), true) => {
+        //         self.skip = Skip(true);
+        //         info!("skip = true, radius = {}", radius);
+        //     }
+        //     (Skip(false), false) => {}
+        // };
         if radius <= self.safety_distance {
+            if self.skip {
+                info!(
+                    "within safety distance, radius = {}, setting self.skip to false",
+                    radius
+                );
+            }
             self.skip = false;
             // gbpplanner: h(0) = 1.f*(1 - r/safety_distance_);
             // NOTE: in Eigen, indexing a matrix with a single index corresponds to indexing
             // the matrix as a flattened array in column-major order.
             // h[(0, 0)] = 1.0 * (1.0 - radius / self.safety_distance);
             h[0] = 1.0 * (1.0 - radius / self.safety_distance);
+            println!("h = {}", h);
         } else {
+            if !self.skip {
+                info!(
+                    "outside safety distance, radius = {}, setting self.skip to true",
+                    radius
+                );
+            }
             self.skip = true;
         }
 
@@ -695,12 +726,12 @@ impl Factor {
         dofs: usize,
         safety_radius: Float,
         connection: InterRobotConnection,
-    ) -> Self {
+    ) -> Result<Self, InterRobotFactorError> {
         let state = FactorState::new(measurement, strength, dofs, 2); // Interrobot factors have 2 neighbors
-        let interrobot_factor = InterRobotFactor::new(safety_radius, connection);
+        let interrobot_factor = InterRobotFactor::new(safety_radius, connection)?;
         let kind = FactorKind::InterRobot(interrobot_factor);
 
-        Self::new(state, kind)
+        Ok(Self::new(state, kind))
     }
 
     pub fn new_pose_factor() -> Self {

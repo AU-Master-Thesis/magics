@@ -265,19 +265,19 @@ impl RobotBundle {
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
 
-        // #[allow(clippy::needless_range_loop)]
-        // for i in 1..variable_timesteps.len() - 1 {
-        //     let obstacle_factor = Factor::new_obstacle_factor(
-        //         config.gbp.sigma_factor_obstacle as Float,
-        //         array![0.0],
-        //         config.robot.dofs,
-        //         obstacle_sdf,
-        //         config.simulation.world_size as Float,
-        //     );
-        //
-        //     let factor_node_index = factorgraph.add_factor(obstacle_factor);
-        //     let _ = factorgraph.add_internal_edge(variable_node_indices[i],
-        // factor_node_index); }
+        #[allow(clippy::needless_range_loop)]
+        for i in 1..variable_timesteps.len() - 1 {
+            let obstacle_factor = Factor::new_obstacle_factor(
+                config.gbp.sigma_factor_obstacle as Float,
+                array![0.0],
+                config.robot.dofs,
+                obstacle_sdf,
+                config.simulation.world_size as Float,
+            );
+
+            let factor_node_index = factorgraph.add_factor(obstacle_factor);
+            let _ = factorgraph.add_internal_edge(variable_node_indices[i], factor_node_index);
+        }
 
         Ok(Self {
             factorgraph,
@@ -289,31 +289,24 @@ impl RobotBundle {
 }
 
 /// Called `Simulator::calculateRobotNeighbours` in **gbpplanner**
-
 fn update_robot_neighbours(
-    // query: Query<(Entity, &Transform, &mut RobotState)>,
     robots: Query<(Entity, &Transform), With<RobotState>>,
-    mut states: Query<(Entity, &Transform, &mut RobotState)>,
+    mut query: Query<(Entity, &Transform, &mut RobotState)>,
     config: Res<Config>,
 ) {
     // TODO: use kdtree to speed up, and to have something in the report
-    for (entity_id, transform, mut robotstate) in states.iter_mut() {
-        // TODO: maybe use clear() instead
-        // unsafe {
-        //     state.ids_of_robots_within_comms_range.set_len(0);
-        // }
-        // TODO: reuse memory of ids_of_robots_within_comms_range
+    for (robot_id, transform, mut robotstate) in query.iter_mut() {
         robotstate.ids_of_robots_within_comms_range = robots
             .iter()
-            .filter_map(|(other_entity_id, other_transform)| {
-                // Do not compute the distance to self
-                if other_entity_id == entity_id
+            .filter_map(|(other_robot_id, other_transform)| {
+                if other_robot_id == robot_id
                     || config.robot.communication.radius
                         < transform.translation.distance(other_transform.translation)
                 {
+                    // Do not compute the distance to self
                     None
                 } else {
-                    Some(other_entity_id)
+                    Some(other_robot_id)
                 }
             })
             .collect();
@@ -433,20 +426,13 @@ fn create_interrobot_factors(
                 .expect("the key is in the map");
 
             for i in 1..number_of_variables {
-                // TODO: do not hardcode
                 let dofs = 4;
-
                 let z = Vector::<Float>::zeros(dofs);
-
                 let eps = 0.2 * config.robot.radius;
-
                 let safety_radius = 2.0 * config.robot.radius + eps;
-
-                let connection = InterRobotConnection {
-                    id_of_robot_connected_with: *other_robot_id,
-                    index_of_connected_variable_in_other_robots_factorgraph: other_variable_indices
-                        [i - 1],
-                };
+                // TODO: should it be i - 1 or i?
+                let connection =
+                    InterRobotConnection::new(*other_robot_id, other_variable_indices[i - 1]);
 
                 let interrobot_factor = Factor::new_interrobot_factor(
                     config.gbp.sigma_factor_interrobot as Float,
@@ -454,7 +440,8 @@ fn create_interrobot_factors(
                     dofs,
                     safety_radius as Float,
                     connection,
-                );
+                )
+                .expect("safe radius is positive and finite");
 
                 let factor_index = factorgraph.add_factor(interrobot_factor);
 
@@ -463,11 +450,7 @@ fn create_interrobot_factors(
                     .expect("there should be an i'th variable");
 
                 factorgraph.add_internal_edge(variable_index, factor_index);
-
                 external_edges_to_add.push((robot_id, factor_index, *other_robot_id, i));
-
-                // TODO: notify the variable that it is connected to another
-                // robot
             }
 
             robotstate
@@ -492,18 +475,9 @@ fn create_interrobot_factors(
             .expect("the i'th variable should exist");
 
         let variable_message = nth_variable.prepare_message();
-
         let variable_id = VariableId::new(other_robot_id, nth_variable_index);
 
         temp.push((robot_id, factor_index, variable_message, variable_id));
-
-        // factorgraph.factor_mut(factor_index).send_message(
-        //     FactorId::new(
-        //         other_robot_id,
-        //         other_factorgraph.nth_variable_index(i).unwrap(),
-        //     ),
-        //     variable_message,
-        // );
     }
 
     for (robot_id, factor_index, variable_message, variable_id) in temp {
@@ -516,6 +490,10 @@ fn create_interrobot_factors(
         factorgraph
             .factor_mut(factor_index)
             .send_message(variable_id, variable_message);
+        info!(
+            "sent initial message from {:?} to {:?}",
+            robot_id, variable_id
+        );
     }
 }
 
@@ -528,39 +506,44 @@ fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
     }
 }
 
-fn iterate_gbp(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>) {
-    let messages_to_external_variables = query
-        .iter_mut()
-        .map(|(robot_id, mut factorgraph)| factorgraph.factor_iteration())
-        .collect::<Vec<_>>();
-
-    // Send messages to external variables
-    for message in messages_to_external_variables.iter().flatten() {
-        let (_, mut external_factorgraph) = query
+fn iterate_gbp(
+    mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
+    config: Res<Config>,
+) {
+    for _ in 0..config.gbp.iterations_per_timestep {
+        let messages_to_external_variables = query
             .iter_mut()
-            .find(|(id, _)| *id == message.to.factorgraph_id)
-            .expect("the factorgraph_id of the receiving variable should exist in the world");
+            .map(|(_, mut factorgraph)| factorgraph.factor_iteration())
+            .collect::<Vec<_>>();
 
-        external_factorgraph
-            .variable_mut(message.to.variable_index)
-            .send_message(message.from, message.message.clone());
-    }
+        // Send messages to external variables
+        for message in messages_to_external_variables.iter().flatten() {
+            let (_, mut external_factorgraph) = query
+                .iter_mut()
+                .find(|(id, _)| *id == message.to.factorgraph_id)
+                .expect("the factorgraph_id of the receiving variable should exist in the world");
 
-    let messages_to_external_factors = query
-        .iter_mut()
-        .map(|(_, mut factorgraph)| factorgraph.variable_iteration())
-        .collect::<Vec<_>>();
+            external_factorgraph
+                .variable_mut(message.to.variable_index)
+                .send_message(message.from, message.message.clone());
+        }
 
-    // Send messages to external factors
-    for message in messages_to_external_factors.iter().flatten() {
-        let (_, mut external_factorgraph) = query
+        let messages_to_external_factors = query
             .iter_mut()
-            .find(|(id, _)| *id == message.to.factorgraph_id)
-            .expect("the factorgraph_id of the receiving factor should exist in the world");
+            .map(|(_, mut factorgraph)| factorgraph.variable_iteration())
+            .collect::<Vec<_>>();
 
-        external_factorgraph
-            .factor_mut(message.to.factor_index)
-            .send_message(message.from, message.message.clone());
+        // Send messages to external factors
+        for message in messages_to_external_factors.iter().flatten() {
+            let (_, mut external_factorgraph) = query
+                .iter_mut()
+                .find(|(id, _)| *id == message.to.factorgraph_id)
+                .expect("the factorgraph_id of the receiving factor should exist in the world");
+
+            external_factorgraph
+                .factor_mut(message.to.factor_index)
+                .send_message(message.from, message.message.clone());
+        }
     }
 }
 
