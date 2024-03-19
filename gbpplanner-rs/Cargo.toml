@@ -1,6 +1,5 @@
 [package]
 name = "gbpplanner-rs"
-# version = "0.1.0"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -8,18 +7,13 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
-
-# [[bin]]
-
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 gbp_linalg = { path = "../gbp_linalg" }
 gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
-# gbp-rs = { path = "../gbp-rs" }
-# gbp-linalg = { path = "../gbp-linalg" }
-# bevy = { version = "0.12.1", default-features = true, features = [
+gbp_formation = { path = "../gbp_formation" }
+
 bevy = { version = "0.13.0", default-features = true, features = [
   # "wayland",
   # "dynamic_linking",
@@ -32,25 +26,23 @@ leafwing-input-manager = "0.13.3"
 # bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
 bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "bevy-v0.13.0" }
 # bevy_mesh_terrain = "0.6.1"
-heck = "0.4.1"
+heck = "0.5.0"
 struct_iterable = "0.1.1"
 catppuccin = "1.4.0"
 
 toml = "0.8.8"
 serde = { version = "1.0.196", features = ["derive"] }
-thiserror = "1.0.56"
+thiserror.workspace = true
+anyhow.workspace = true
 clap = { version = "4.4.18", features = ["derive"] }
-color-eyre = "0.6.2"
+# color-eyre = "0.6.2"
 rand = "0.8.5"
 itertools = "0.12.1"
 petgraph = "0.6.4"
-# nalgebra = "0.32.4"
 ndarray = "0.15.6"
 ndarray-inverse = "0.1.9"
-# ndarray-linalg = { version = "0.16", features = ["intel-mkl-static"] } # This is the only backend variant i have gotten to work
 num-traits = "0.2.18"
 ron = "0.8.1"
-# tap = "1.0.1"
 strum = "0.26.1"
 strum_macros = "0.26.1"
 open = "5.1.0"

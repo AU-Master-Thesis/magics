@@ -35,8 +35,6 @@ use crate::{
     ui::EguiInterfacePlugin,
 };
 
-// use gbp_rs::factorgraph;
-
 #[derive(Parser)]
 #[clap(version, author, about)]
 struct Cli {
@@ -60,7 +58,8 @@ struct Cli {
     fullscreen: bool,
 }
 
-fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
+// fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
+fn read_config(cli: &Cli) -> anyhow::Result<Config> {
     if let Some(config_path) = &cli.config {
         Ok(Config::from_file(config_path)?)
     } else {
@@ -83,13 +82,15 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
             }
         }
 
-        Err(color_eyre::eyre::eyre!("No config file found"))
+        anyhow::bail!("No config file found");
+        // Err(color_eyre::eyre::eyre!("No config file found"))
     }
 }
 
-fn main() -> color_eyre::eyre::Result<()> {
-    color_eyre::install()?;
+// fn main() -> color_eyre::eyre::Result<()> {
+//     color_eyre::install()?;
 
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     if cli.dump_default_config && cli.dump_default_formation {
@@ -100,10 +101,8 @@ fn main() -> color_eyre::eyre::Result<()> {
     }
 
     if cli.dump_default_formation {
-        let default_formation = config::FormationGroup::default();
         // Write default config to stdout
-        // println!("{}", toml::to_string_pretty(&default_formation)?);
-        // println!("{}", ron::to_string(&default_formation)?);
+        let default_formation = config::FormationGroup::default();
         println!(
             "{}",
             ron::ser::to_string_pretty(
@@ -126,6 +125,14 @@ fn main() -> color_eyre::eyre::Result<()> {
     let formation_file_path = PathBuf::from(&config.formation_group.clone());
     let formation = FormationGroup::from_file(&formation_file_path)?;
 
+    let window_mode = if cli.fullscreen {
+        WindowMode::BorderlessFullscreen
+    } else {
+        WindowMode::Windowed
+    };
+
+    println!("initial window mode: {:?}", window_mode);
+
     let mut app = App::new();
     app.insert_resource(formation)
         .insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
@@ -138,11 +145,7 @@ fn main() -> color_eyre::eyre::Result<()> {
                         title: "GBP Planner".into(),
                         // resolution: (1280.0, 720.0).into(),
                         // mode: WindowMode::BorderlessFullscreen,
-                        mode: if cli.fullscreen {
-                            WindowMode::BorderlessFullscreen
-                        } else {
-                            WindowMode::Windowed
-                        },
+                        mode: window_mode,
                         // mode: WindowMode::Fullscreen,
                         // present_mode: PresentMode::AutoVsync,
                         // fit_canvas_to_parent: true,

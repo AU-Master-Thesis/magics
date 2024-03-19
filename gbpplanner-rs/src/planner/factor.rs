@@ -88,7 +88,6 @@ pub struct Skip(bool);
 /// variables are further away than the safety distance.
 #[derive(Debug, Clone, Copy)]
 pub struct InterRobotFactor {
-    // TODO: constrain to be positive
     safety_distance: Float,
     // skip:            Skip,
     skip:            bool,
@@ -407,9 +406,6 @@ impl std::fmt::Debug for ObstacleFactor {
             // .field("obstacle_sdf", &self.obstacle_sdf)
             .field("world_size", &self.world_size)
             .finish()
-
-        // f.debug_struct("ObstacleFactor").field("obstacle_sdf",
-        // &self.obstacle_sdf).field("world_size", &self.world_size).finish()
     }
 }
 
@@ -852,12 +848,15 @@ impl Factor {
 
             for (j, (other_variable_id, other_message)) in self.inbox.iter().enumerate() {
                 if other_variable_id != variable_id {
-                    let message_mean = other_message.mean().unwrap_or(&zero_mean);
+                    let message_eta = other_message
+                        .information_vector()
+                        .expect("it better be there");
+                    // let message_mean = other_message.mean().unwrap_or(&zero_mean);
                     let message_precision =
                         other_message.precision_matrix().unwrap_or(&zero_precision);
                     factor_eta
                         .slice_mut(s![j * dofs..(j + 1) * dofs])
-                        .add_assign(message_mean);
+                        .add_assign(message_eta);
                     factor_lambda
                         .slice_mut(s![j * dofs..(j + 1) * dofs, j * dofs..(j + 1) * dofs])
                         .add_assign(message_precision);

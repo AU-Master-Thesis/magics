@@ -1,17 +1,12 @@
-use std::{
-    collections::HashMap,
-    ops::{AddAssign, Range},
-};
+use std::{collections::HashMap, ops::Range};
 
 use bevy::prelude::*;
-use gbp_linalg::{Float, Matrix, Vector};
+use gbp_linalg::{Float, Vector};
 // use itertools::Itertools;
-use ndarray::s;
 use petgraph::Undirected;
 
 use super::{
     factor::{Factor, FactorKind},
-    marginalise_factor_distance::marginalise_factor_distance,
     message::Message,
     robot::RobotId,
     variable::Variable,
@@ -85,15 +80,6 @@ pub mod graphviz {
         pub to:   usize,
     }
 }
-
-// // TODO: implement for each and use
-// pub trait FactorGraphNode {
-//     fn messages_received(&self) -> usize;
-//     fn messages_sent(&self) -> usize;
-//
-//     fn send_message(&mut self, from: NodeIndex, message: Message);
-//     fn read_message_from(&self, from: NodeIndex) -> Option<&Message>;
-// }
 
 /// How the messages are passed between factors and variables in the connected
 /// factorgraphs.
@@ -201,9 +187,6 @@ pub struct FactorToVariableMessage {
     pub message: Message,
 }
 
-// pub type FactorId = (RobotId, FactorIndex);
-// pub type VariableId = (RobotId, VariableIndex);
-
 pub type MessagesFromVariables = HashMap<FactorId, Message>;
 pub type MessagesFromFactors = HashMap<VariableId, Message>;
 
@@ -227,12 +210,6 @@ pub struct Node {
 // pub enum EdgeConnection {
 //     Inter,
 //     Intra,
-// }
-
-// pub struct Node {
-//     kind: NodeKind,
-//     messages_received: usize,
-//     messages_sent: usize,
 // }
 
 impl Node {

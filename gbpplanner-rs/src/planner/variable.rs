@@ -1,16 +1,11 @@
-use bevy::log::{info, warn};
-use gbp_linalg::{pretty_print_matrix, Float, Matrix, Vector};
-// use gbp_multivariate_normal::dummy_normal::DummyNormal;
-use gbp_multivariate_normal::MultivariateNormal;
+use bevy::log::warn;
+use gbp_linalg::{Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
 use super::{
-    factorgraph::{FactorId, FactorIndex, MessagesFromVariables, MessagesToFactors, NodeIndex},
+    factorgraph::{FactorId, MessagesFromVariables, MessagesToFactors},
     message::{Eta, Lam, Message, Mu},
-    RobotId,
 };
-use crate::utils::{Indent, PrettyPrint};
-// use tap::Tap;
 
 /// A variable in the factor graph.
 #[derive(Debug)]
@@ -127,6 +122,9 @@ impl Variable {
         self.eta_prior = self.lam_prior.dot(&mean);
         self.mu = mean;
         // dbg!(&self.mu);
+
+        // FIXME: forgot this line in the original code
+        // this->belief_ = Message {this->eta_, this->lam_, this->mu_};
 
         let messages: MessagesFromVariables = self
             .inbox

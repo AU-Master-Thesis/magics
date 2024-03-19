@@ -1,4 +1,6 @@
 #![warn(missing_docs)]
+use std::time::Duration;
+
 use bevy::ecs::system::Resource;
 use serde::{Deserialize, Serialize};
 
@@ -159,7 +161,8 @@ pub struct Formation {
     /// The delay from the start of the simulation after which the formation
     /// should spawn. If [`Self::repeat`] is true, then `delay` is
     /// interpreted as a timeout between every formation spawn.
-    pub delay:     f32,
+    // pub delay:     f32,
+    pub delay: Duration,
     /// Number of robots to spawn
     pub robots:    usize,
     /// A list of waypoints.
@@ -172,7 +175,8 @@ impl Default for Formation {
     fn default() -> Self {
         Self {
             repeat:    false,
-            delay:     5.0,
+            // delay:     5.0,
+            delay:     Duration::from_secs(5),
             robots:    3,
             waypoints: vec![
                 Waypoint {
@@ -227,9 +231,9 @@ impl Formation {
     /// 2. if self.shape is a circle and the radius is <= 0.0
     /// 3. if self.shape is a polygon and polygon.is_empty()
     pub fn validate(self) -> Result<Self, FormationError> {
-        if self.delay < 0.0 {
-            Err(FormationError::NegativeTime)
-        } else if self.waypoints.len() < 2 {
+        // if self.delay < 0.0 {
+        //     Err(FormationError::NegativeTime)
+        if self.waypoints.len() < 2 {
             Err(FormationError::LessThanTwoWaypoints)
         } else {
             // TODO: finish
@@ -360,18 +364,18 @@ mod tests {
             assert!(matches!(default.validate(), Ok(Formation { .. })));
         }
 
-        #[test]
-        fn negative_time_is_invalid() {
-            let invalid = Formation {
-                delay: -1.0,
-                ..Default::default()
-            };
-
-            assert!(matches!(
-                invalid.validate(),
-                Err(FormationError::NegativeTime)
-            ));
-        }
+        // #[test]
+        // fn negative_time_is_invalid() {
+        //     let invalid = Formation {
+        //         delay: -1.0,
+        //         ..Default::default()
+        //     };
+        //
+        //     assert!(matches!(
+        //         invalid.validate(),
+        //         Err(FormationError::NegativeTime)
+        //     ));
+        // }
 
         #[test]
         fn zero_waypoints_are_invalid() {
@@ -438,15 +442,15 @@ mod tests {
         //     ))
         // }
 
-        #[test]
-        fn zero_time_is_okay() {
-            let zero_is_okay = Formation {
-                delay: 0.0,
-                ..Default::default()
-            };
-
-            assert!(matches!(zero_is_okay.validate(), Ok(Formation { .. })));
-        }
+        // #[test]
+        // fn zero_time_is_okay() {
+        //     let zero_is_okay = Formation {
+        //         delay: 0.0,
+        //         ..Default::default()
+        //     };
+        //
+        //     assert!(matches!(zero_is_okay.validate(), Ok(Formation { .. })));
+        // }
 
         mod polygon_macro {
 

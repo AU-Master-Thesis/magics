@@ -1,17 +1,16 @@
 use std::{collections::VecDeque, sync::OnceLock};
 
-use bevy::{math::primitives::Sphere, prelude::*, scene};
+use bevy::prelude::*;
 use rand::Rng;
 
-use super::{robot::VariableTimestepsResource, RobotState};
+use super::robot::VariableTimestepsResource;
 use crate::{
     asset_loader::SceneAssets,
     config::{formation::Shape, Config, Formation, FormationGroup},
     planner::robot::RobotBundle,
-    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
+    theme::CatppuccinTheme,
 };
 
-// pub static IMAGE: OnceLock<Image> = OnceLock::new();
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
 
 #[derive(Resource)]
@@ -24,7 +23,7 @@ pub struct SpawnerPlugin;
 impl Plugin for SpawnerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, init_repeat_resource)
-            .add_systems(Update, formation_handler);
+            .add_systems(Update, (formation_handler, show_formations));
     }
 }
 
@@ -34,31 +33,6 @@ fn init_repeat_resource(mut commands: Commands, formation_group: Res<FormationGr
     let have_spawned = vec![false; formation_group.formations.len()];
     commands.insert_resource(Repeat { have_spawned });
 }
-
-// fn heap_allocate_static_ref_to_image(
-//     image_assets: Res<Assets<Image>>,
-//     scene_assets: Res<SceneAssets>,
-// ) {
-//     // only continue if the image has been loaded
-//     let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else
-// {         return;
-//     };
-
-//     let _ = IMAGE.get_or_init(|| image.clone());
-// }
-
-// fn init_obstacle_sdf(
-//     mut commands: Commands,
-//     scene_assets: Res<SceneAssets>,
-//     mut image_assets: ResMut<Assets<Image>>,
-// ) {
-//     // only continue if the image has been loaded
-//     let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else
-// {         return;
-//     };
-
-//     let _ = IMAGE.get_or_init(|| image.clone());
-// }
 
 /// Spawn relevant formations at each time step according to the
 /// `FormationGroup` resource.
@@ -90,7 +64,7 @@ fn formation_handler(
         .for_each(|(i, formation)| {
             if !repeat.have_spawned[i]
                 && !formation.repeat
-                && formation.delay < time.elapsed_seconds()
+                && formation.delay.as_secs_f32() < time.elapsed_seconds()
             {
                 // Spawn the formation
                 repeat.have_spawned[i] = true;
@@ -116,13 +90,6 @@ fn spawn_formation(
     variable_timesteps: &Res<VariableTimestepsResource>,
     scene_assets: &Res<SceneAssets>,
 ) {
-    // let waypoints = formation.waypoints.iter().map(
-    //     |wp| {
-    //         config.simulation.world_size * (wp.shape. - 0.5)
-    //     }
-    // )
-
-    // spawn the formation
     let first_wp = formation
         .waypoints
         .first()
@@ -184,6 +151,12 @@ fn spawn_formation(
                 ..Default::default()
             },
         ));
+    }
+}
+
+fn show_formations(gizmos: Gizmos, formation_group: Res<FormationGroup>) {
+    for formation in formation_group.formations.iter() {
+        // formation.
     }
 }
 

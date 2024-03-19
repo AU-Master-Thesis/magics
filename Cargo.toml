@@ -1,13 +1,8 @@
-cargo-features = ["codegen-backend"]
+# cargo-features = ["codegen-backend"]
 
 [workspace]
-resolver = "2" # Important! wgpu/bevy needs this!
-members = [
-  "gbp_config",
-  "gbp_linalg",
-  "gbp_multivariate_normal",
-  "gbpplanner-rs",
-]
+resolver = "2"                                                       # Important! wgpu/bevy needs this!
+members = ["gbp_linalg", "gbp_multivariate_normal", "gbpplanner-rs"]
 
 [workspace.package]
 version = "0.1.0"
@@ -22,7 +17,9 @@ license = "MIT"
 
 [workspace.dependencies]
 ndarray = "0.15.6"
+anyhow = "1.0.81"
 thiserror = "1.0.58"
+serde = { version = "1.0.197", features = ["derive"] }
 
 [workspace.lints.rust]
 # unsafe_code = "forbid"
@@ -56,7 +53,7 @@ incremental = true
 opt-level = 1
 debug = true
 incremental = true
-codegen-backend = "cranelift" # requires nightly
+# codegen-backend = "cranelift" # requires nightly
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]

@@ -18,7 +18,7 @@ impl Plugin for FactorGraphVisualiserPlugin {
                 init_factorgraphs,
                 update_factorgraphs,
                 show_or_hide_factorgraphs,
-                draw_lines,
+                // draw_lines,
             ),
         );
     }

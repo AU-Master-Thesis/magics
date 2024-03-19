@@ -2,7 +2,10 @@
   formations: [
     (
       repeat: false,
-      delay: 1.0,
+      delay: (
+        secs: 5,
+        nanos: 0
+      ),
       robots: 2,
       waypoints: [
         (

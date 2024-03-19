@@ -168,14 +168,14 @@ mod tests {
 //     }
 // }
 
-pub struct Indent {
-    level:  usize,
-    amount: usize,
-}
-
-pub trait PrettyPrint {
-    fn pretty_format(&self, indent: Indent) -> String;
-    fn pretty_print(&self, indent: Indent) {
-        println!("{}", self.pretty_format(indent));
-    }
-}
+// pub struct Indent {
+//     level:  usize,
+//     amount: usize,
+// }
+//
+// pub trait PrettyPrint {
+//     fn pretty_format(&self, indent: Indent) -> String;
+//     fn pretty_print(&self, indent: Indent) {
+//         println!("{}", self.pretty_format(indent));
+//     }
+// }
