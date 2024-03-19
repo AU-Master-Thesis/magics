@@ -2,7 +2,6 @@ use bevy::prelude::*;
 
 use super::{super::RobotState, LineSegment, Path, Z_FIGHTING_OFFSET};
 use crate::{
-    asset_loader::SceneAssets,
     config::Config,
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
@@ -65,6 +64,8 @@ fn draw_communication_graph(
     // necessary to remake the line material, as it needs to change with the theme
     let line_material = materials.add(Color::from_catppuccin_colour(catppuccin_theme.yellow()));
 
+    let communication_radius = config.robot.communication.radius.get();
+
     // TODO: Don't double-draw lines from and to the same two robots
     for (robot_id, robot_state, transform) in robots_query.iter() {
         if !robot_state.interrobot_comms_active {
@@ -80,7 +81,7 @@ fn draw_communication_graph(
             })
             .filter_map(|(_, _, other_transform)| {
                 let distance = transform.translation.distance(other_transform.translation);
-                if distance < config.robot.communication.radius {
+                if distance < communication_radius {
                     Some(other_transform.translation)
                 } else {
                     None

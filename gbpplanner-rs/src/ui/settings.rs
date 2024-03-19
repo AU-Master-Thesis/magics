@@ -327,14 +327,14 @@ fn ui_settings_panel(
                         ui.spacing_mut().slider_width =
                             ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                         let slider_response = ui.add(
-                            egui::Slider::new(&mut config.simulation.time_scale, 0.1..=5.0)
+                            egui::Slider::new(&mut config.simulation.time_scale.get(), 0.1..=5.0)
                                 .text("x")
                                 .show_value(true),
                         );
                         if slider_response.drag_released() || slider_response.lost_focus() {
                             // time.set_time_scale(config.simulation.time_scale);
                             info!("Time scale: {}", config.simulation.time_scale);
-                            time.set_relative_speed(config.simulation.time_scale);
+                            time.set_relative_speed(config.simulation.time_scale.get());
                         }
                         ui.end_row();
 

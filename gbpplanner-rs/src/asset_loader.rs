@@ -96,8 +96,8 @@ fn load_assets(
                     .expect("4 subdivisions is less than the maximum allowed of 80"),
             ),
             plane:    meshes.add(Mesh::from(bevy::math::primitives::Rectangle::new(
-                config.simulation.world_size,
-                config.simulation.world_size,
+                config.simulation.world_size.into(),
+                config.simulation.world_size.into(),
             ))),
         },
         // Materials

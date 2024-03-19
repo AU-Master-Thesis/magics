@@ -2170,6 +2170,7 @@ name = "gbpplanner-rs"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "approx",
  "bevy",
  "bevy-inspector-egui",
  "bevy_egui",
@@ -2199,6 +2200,7 @@ dependencies = [
  "tap",
  "thiserror",
  "toml",
+ "typed_floats",
 ]
 
 [[package]]
@@ -4278,6 +4280,27 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "static_assertions",
+]
+
+[[package]]
+name = "typed_floats"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef10cb4706cdd3b855125148d19d594239d6f19f96121955deddea83e895fdd1"
+dependencies = [
+ "serde",
+ "typed_floats_macros",
+]
+
+[[package]]
+name = "typed_floats_macros"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "896eabac79fdcc2596cdcddb99425c30820dd73b03baf996d220186e811fcca8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.52",
 ]
 
 [[package]]

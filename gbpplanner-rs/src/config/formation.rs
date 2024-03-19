@@ -1,8 +1,9 @@
 #![warn(missing_docs)]
-use std::time::Duration;
+use std::{num::NonZeroUsize, time::Duration};
 
 use bevy::ecs::system::Resource;
 use serde::{Deserialize, Serialize};
+use typed_floats::StrictlyPositiveFinite;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -12,24 +13,7 @@ pub enum PlacementStrategy {
     Map,
 }
 
-impl PlacementStrategy {
-    /// Returns `true` if the placement strategy is [`Equal`].
-    ///
-    /// [`Equal`]: PlacementStrategy::Equal
-    #[must_use]
-    pub fn is_equal(&self) -> bool {
-        matches!(self, Self::Equal)
-    }
-
-    /// Returns `true` if the placement strategy is [`Random`].
-    ///
-    /// [`Random`]: PlacementStrategy::Random
-    #[must_use]
-    pub fn is_random(&self) -> bool {
-        matches!(self, Self::Random)
-    }
-}
-
+// TODO: constrain to be between 0.0 and 1.0
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct Point {
     pub x: f32,
@@ -74,7 +58,10 @@ pub enum ShapeError {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Shape {
-    Circle { radius: f32, center: Point },
+    Circle {
+        radius: StrictlyPositiveFinite<f32>,
+        center: Point,
+    },
     Polygon(Vec<Point>),
     Line((Point, Point)),
 }
@@ -164,7 +151,7 @@ pub struct Formation {
     // pub delay:     f32,
     pub delay: Duration,
     /// Number of robots to spawn
-    pub robots:    usize,
+    pub robots:    NonZeroUsize,
     /// A list of waypoints.
     /// `NOTE` The first waypoint is assumed to be the spawning point.
     /// < 2 waypoints is an invalid state
@@ -175,23 +162,19 @@ impl Default for Formation {
     fn default() -> Self {
         Self {
             repeat:    false,
-            // delay:     5.0,
             delay:     Duration::from_secs(5),
-            robots:    3,
+            robots:    unsafe { NonZeroUsize::new_unchecked(1) },
             waypoints: vec![
                 Waypoint {
                     placement_strategy: PlacementStrategy::Random,
-                    // shape: polygon![(0.4, 0.0), (0.6, 0.0)],
                     shape:              line![(0.4, 0.0), (0.6, 0.0)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
-                    // shape: polygon![(0.4, 0.4), (0.6, 0.6)],
                     shape:              line![(0.4, 0.4), (0.6, 0.6)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
-                    // shape: polygon![(0.0, 0.4), (0.0, 0.6)],
                     shape:              line![(0.0, 0.4), (0.0, 0.6)],
                 },
             ],
@@ -242,9 +225,9 @@ impl Formation {
                     Shape::Polygon(vertices) if vertices.is_empty() => {
                         return Err(ShapeError::PolygonWithZeroVertices.into())
                     }
-                    Shape::Circle { radius, center: _ } if *radius <= 0.0 => {
-                        return Err(ShapeError::NegativeRadius.into())
-                    }
+                    // Shape::Circle { radius, center: _ } if *radius <= 0.0 => {
+                    //     return Err(ShapeError::NegativeRadius.into())
+                    // }
                     _ => continue,
                 }
             }

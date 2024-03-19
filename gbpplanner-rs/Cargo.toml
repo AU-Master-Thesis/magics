@@ -48,8 +48,11 @@ strum_macros = "0.26.1"
 open = "5.1.0"
 tap = "1.0.1"
 
+typed_floats = { version = "1.0.0", features = ["serde"] }
+
 [lints]
 workspace = true
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
+approx = "0.5.1"

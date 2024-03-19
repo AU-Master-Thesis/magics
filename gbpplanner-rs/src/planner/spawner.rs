@@ -1,12 +1,14 @@
-use std::{collections::VecDeque, sync::OnceLock};
+use std::{collections::VecDeque, num::NonZeroUsize, sync::OnceLock};
 
 use bevy::prelude::*;
 use rand::Rng;
+use typed_floats::StrictlyPositiveFinite;
 
 use super::robot::VariableTimestepsResource;
 use crate::{
     asset_loader::SceneAssets,
     config::{formation::Shape, Config, Formation, FormationGroup},
+    percentage::Percentage,
     planner::robot::RobotBundle,
     theme::CatppuccinTheme,
 };
@@ -82,6 +84,10 @@ fn formation_handler(
         });
 }
 
+fn percentage_to_world_size(percentage: Percentage, world_size: f32) -> f32 {
+    todo!()
+}
+
 fn spawn_formation(
     commands: &mut Commands,
     formation: &Formation,
@@ -95,42 +101,48 @@ fn spawn_formation(
         .first()
         .expect("Formation cannot have 0 waypoint entries");
 
-    let initial_positions = random_positions_on_shape(
-        &first_wp.shape,
-        formation.robots,
-        config.simulation.world_size,
+    dbg!(&formation);
+    let mut rng = rand::thread_rng();
+    let lerp_amounts = match &first_wp.shape {
+        Shape::Line((start, end)) => randomly_place_nonoverlapping_circles_along_line_segment(
+            Vec2::from(start),
+            Vec2::from(end),
+            formation.robots,
+            // NonZeroUsize::new(formation.robots).expect("robots is not zero"),
+            config.robot.radius,
+            NonZeroUsize::new(100).expect("100 is not zero"),
+            &mut rng,
+        )
+        .expect("Could place non-overlapping circles along line segment"),
+        _ => unimplemented!(),
+    };
+
+    let initial_position_of_each_robot = map_positions(&first_wp.shape, &lerp_amounts);
+    let mut positions_of_each_robot = vec![initial_position_of_each_robot];
+    positions_of_each_robot.extend(
+        formation
+            .waypoints
+            .iter()
+            .skip(1)
+            .map(|wp| map_positions(&wp.shape, &lerp_amounts)),
     );
 
-    // TODO: create mapped waypoints
-
-    // let variable_material =
-    // materials.add(Color::from_catppuccin_colour_with_alpha(
-    //     catppuccin_theme.blue(),
-    //     0.75,
-    // ));
-
-    // let variable_mesh = meshes.add(
-    //     Sphere::new(0.3)
-    //         .mesh()
-    //         .ico(4)
-    //         .expect("4 subdivisions is less than the maximum allowed of 80"),
-    // );
-
-    // let lookahead_horizon =
-    for position in initial_positions {
-        // TODO: Used the actual mapped waypoints from the formation
+    let max_speed = config.robot.max_speed.get();
+    for positions in positions_of_each_robot {
         // TODO: add velocity to wa
-        let wp = {
-            let mut wp = Vec4::ZERO;
-            wp.x = position.x;
-            wp.y = position.y;
-            wp.z = config.robot.max_speed;
-            wp
-        };
-        let waypoints = [wp, Vec4::ZERO].iter().cloned().collect::<VecDeque<_>>();
+        // let wp = Vec4::new(position.x, position.y, config.robot.max_speed, 0.0);
+
+        let waypoints = positions
+            .iter()
+            .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
+            .collect::<VecDeque<_>>();
+        // let waypoints = [wp, Vec4::ZERO].iter().cloned().collect::<VecDeque<_>>();
         // let waypoints = VecDeque::from(vec![position, Vec2::ZERO]);
         let mut entity = commands.spawn_empty();
         let robot_id = entity.id();
+
+        let initial_position = positions.first().expect("positions is not empty");
+        let initial_translation = Vec3::new(initial_position.x, 0.5, initial_position.y);
 
         entity.insert((
             RobotBundle::new(
@@ -147,7 +159,7 @@ fn spawn_formation(
             PbrBundle {
                 mesh: scene_assets.meshes.robot.clone(),
                 material: scene_assets.materials.robot.clone(),
-                transform: Transform::from_translation(Vec3::new(position.x, 0.5, position.y)),
+                transform: Transform::from_translation(initial_translation),
                 ..Default::default()
             },
         ));
@@ -160,50 +172,121 @@ fn show_formations(gizmos: Gizmos, formation_group: Res<FormationGroup>) {
     }
 }
 
-fn random_positions_on_shape(shape: &Shape, amount: usize, world_size: f32) -> Vec<Vec2> {
-    let mut rng = rand::thread_rng();
-    let mut positions = Vec::with_capacity(amount);
-
+fn map_positions(shape: &Shape, lerp_amounts: &[f32]) -> Vec<Vec2> {
     match shape {
         Shape::Line((start, end)) => {
             let start = Vec2::from(start);
             let end = Vec2::from(end);
-            for _ in 0..amount {
-                // lerp a random point between start and end
-                // TODO: ensure no robots spawn atop each other
-                let lerp_amount = rng.gen_range(0.0..1.0);
-                let new_position = start.lerp(end, lerp_amount);
-                positions.push(new_position);
-            }
+            lerp_amounts
+                .iter()
+                .map(|&lerp_amount| start.lerp(end, lerp_amount))
+                .collect()
         }
-        Shape::Circle { radius, center } => {
-            for _ in 0..amount {
-                // generate a random angle and distance from the center
-                let angle = rng.gen_range(0.0..std::f32::consts::PI * 2.0);
-                // let distance = rng.gen_range(0.0..*radius);
-                let distance = radius;
-                let new_position = Vec2::new(
-                    center.x + angle.cos() * distance,
-                    center.y + angle.sin() * distance,
-                );
-                positions.push(new_position);
+        _ => unimplemented!(),
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct LineSegment {
+    from: Vec2,
+    to:   Vec2,
+}
+
+impl LineSegment {
+    fn new(from: Vec2, to: Vec2) -> Self {
+        Self { from, to }
+    }
+
+    fn length(&self) -> f32 {
+        self.from.distance(self.to)
+    }
+}
+
+fn randomly_place_nonoverlapping_circles_along_line_segment(
+    from: Vec2,
+    to: Vec2,
+    num_circles: NonZeroUsize,
+    radius: StrictlyPositiveFinite<f32>,
+    max_attempts: NonZeroUsize,
+    rng: &mut impl Rng,
+) -> Option<Vec<f32>> {
+    let num_circles = num_circles.get();
+    let max_attempts = max_attempts.get();
+    // let mut rng = rand::thread_rng();
+    let mut lerp_amounts: Vec<f32> = Vec::with_capacity(num_circles);
+    let mut placed: Vec<Vec2> = Vec::with_capacity(num_circles);
+
+    let diameter = radius.get() * 2.0;
+
+    for _ in 0..max_attempts {
+        placed.clear();
+        lerp_amounts.clear();
+
+        for _ in 0..num_circles {
+            let lerp_amount = rng.gen_range(0.0..1.0);
+            let new_position = from.lerp(to, lerp_amount);
+
+            let valid = placed.iter().all(|&p| new_position.distance(p) >= diameter);
+
+            if valid {
+                lerp_amounts.push(lerp_amount);
+                placed.push(new_position);
+                if placed.len() == num_circles {
+                    return Some(lerp_amounts);
+                }
             }
-        }
-        Shape::Polygon(points) => {
-            // TODO: implement
-            // Something about making the line segments between the points and then
-            // randomly selecting a point along the total length of the line segments
-            // and then finding the point on the line segment that is that distance from the
-            // start
-            todo!();
         }
     }
 
-    positions
-        .into_iter()
-        .map(|p| world_size * (p - 0.5))
-        // .map(|p| world_size * (p))
-        .collect()
+    None
+}
+
+fn random_positions_on_shape(shape: &Shape, amount: usize, world_size: f32) -> Vec<f64> {
+    let mut rng = rand::thread_rng();
+    // let mut positions = Vec::with_capacity(amount);
+
+    match shape {
+        Shape::Line((start, end)) => {
+            // let start = Vec2::from(start);
+            // let end = Vec2::from(end);
+            (0..amount).map(|_| {
+                rng.gen_range(0.0..1.0)
+            }).collect()
+            // for _ in 0..amount {
+            //     // lerp a random point between start and end
+            //     // TODO: ensure no robots spawn atop each other
+            //     let lerp_amount = rng.gen_range(0.0..1.0);
+            // }
+        },
+        _ => unimplemented!()
+        // Shape::Circle { radius, center } => {
+        //     for _ in 0..amount {
+        //         // generate a random angle and distance from the center
+        //         let angle = rng.gen_range(0.0..std::f32::consts::PI * 2.0);
+        //         // let distance = rng.gen_range(0.0..*radius);
+        //         let distance = radius;
+        //         let new_position = Vec2::new(
+        //             center.x + angle.cos() * distance,
+        //             center.y + angle.sin() * distance,
+        //         );
+        //         positions.push(new_position);
+        //     }
+        // }
+        // Shape::Polygon(points) => {
+        //     // TODO: implement
+        //     // Something about making the line segments between the points and then
+        //     // randomly selecting a point along the total length of the line segments
+        //     // and then finding the point on the line segment that is that distance from the
+        //     // start
+        //     todo!();
+        // }
+    }
+
+    // positions
+    //     .into_iter()
+    //     .map(|p| world_size * (p - 0.5))
+    //     // .map(|p| world_size * (p))
+    //     .collect()
 }
 
 #[cfg(test)]
@@ -216,20 +299,20 @@ mod tests {
         f32::abs(a - b) <= f32::EPSILON
     }
 
-    #[test]
-    fn circle() {
-        let center = Point { x: 0.0, y: 0.0 };
-        let radius = 1.0;
-        let shape = Shape::Circle { radius, center };
-        let n = 8;
-        let positions = random_positions_on_shape(&shape, n, 100.0);
-        assert!(!positions.is_empty());
-        assert_eq!(positions.len(), n);
-
-        let center = Vec2::from(center);
-        for p in positions {
-            let distance_from_center = center.distance(p);
-            assert_eq!(radius, distance_from_center);
-        }
-    }
+    // #[test]
+    // fn circle() {
+    //     let center = Point { x: 0.0, y: 0.0 };
+    //     let radius = 1.0.try_into().unwrap();
+    //     let shape = Shape::Circle { radius, center };
+    //     let n = 8;
+    //     let positions = random_positions_on_shape(&shape, n, 100.0);
+    //     assert!(!positions.is_empty());
+    //     assert_eq!(positions.len(), n);
+    //
+    //     let center = Vec2::from(center);
+    //     for p in positions {
+    //         let distance_from_center = center.distance(p);
+    //         assert_eq!(radius, distance_from_center);
+    //     }
+    // }
 }

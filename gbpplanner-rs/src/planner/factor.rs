@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    num::NonZeroUsize,
     ops::{AddAssign, Sub},
 };
 
@@ -10,6 +11,7 @@ use bevy::{
 use gbp_linalg::{Float, Matrix, Vector, VectorNorm};
 use ndarray::{array, concatenate, s, Axis};
 use petgraph::prelude::NodeIndex;
+use typed_floats::StrictlyPositiveFinite;
 
 use super::{
     factorgraph::{MessagesFromFactors, MessagesToVariables, VariableId},
@@ -127,13 +129,11 @@ impl Model for InterRobotFactor {
     }
 
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
-        let mut jacobian =
-            Matrix::<Float>::zeros((state.initial_measurement.len(), state.dofs * 2));
+        let dofs = state.dofs.get();
+        let mut jacobian = Matrix::<Float>::zeros((state.initial_measurement.len(), dofs * 2));
         let x_diff = {
-            let offset = state.dofs / 2;
-            let mut x_diff = x
-                .slice(s![..offset])
-                .sub(&x.slice(s![state.dofs..state.dofs + offset]));
+            let offset = dofs / 2;
+            let mut x_diff = x.slice(s![..offset]).sub(&x.slice(s![dofs..dofs + offset]));
 
             // NOTE: In gbplanner, they weight this by the robot id, why they do this is
             // unclear as a robot id should be unique, and not have any
@@ -152,24 +152,23 @@ impl Model for InterRobotFactor {
 
             // J(0, seqN(0, n_dofs_ / 2)) = -1.f / safety_distance_ / r * X_diff;
             jacobian
-                .slice_mut(s![0, ..state.dofs / 2])
+                .slice_mut(s![0, ..dofs / 2])
                 .assign(&(-1.0 / self.safety_distance / radius * &x_diff));
 
             // J(0, seqN(n_dofs_, n_dofs_ / 2)) = 1.f / safety_distance_ / r * X_diff;
             jacobian
-                .slice_mut(s![0, state.dofs..state.dofs + (state.dofs / 2)])
+                .slice_mut(s![0, dofs..dofs + (dofs / 2)])
                 .assign(&(1.0 / self.safety_distance / radius * &x_diff));
         }
         jacobian
     }
 
     fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+        let dofs = state.dofs.get();
         let mut h = Vector::<Float>::zeros(state.initial_measurement.len());
         let x_diff = {
-            let offset = state.dofs / 2;
-            let mut x_diff = x
-                .slice(s![..offset])
-                .sub(&x.slice(s![state.dofs..state.dofs + offset]));
+            let offset = dofs / 2;
+            let mut x_diff = x.slice(s![..offset]).sub(&x.slice(s![dofs..dofs + offset]));
             // NOTE: In gbplanner, they weight this by the robot id, why they do this is
             // unclear as a robot id should be unique, and not have any
             // semantics of distance/weight.
@@ -226,13 +225,13 @@ impl Model for InterRobotFactor {
     fn skip(&mut self, state: &FactorState) -> bool {
         // this->skip_flag = ( (X_(seqN(0,n_dofs_/2)) - X_(seqN(n_dofs_,
         // n_dofs_/2))).squaredNorm() >= safety_distance_*safety_distance_ );
-        let offset = state.dofs / 2;
+        let dofs = state.dofs.get();
+        let offset = dofs / 2;
 
-        let v = state.linearisation_point.slice(s![..offset]).sub(
-            &state
-                .linearisation_point
-                .slice(s![state.dofs..state.dofs + offset]),
-        );
+        let v = state
+            .linearisation_point
+            .slice(s![..offset])
+            .sub(&state.linearisation_point.slice(s![dofs..dofs + offset]));
         let squared_norm = v.mapv(|x| x.powi(2)).sum();
 
         let skip = squared_norm >= Float::powi(self.safety_distance, 2);
@@ -267,8 +266,9 @@ pub struct DynamicFactor {
 impl DynamicFactor {
     #[must_use]
     pub fn new(state: &mut FactorState, delta_t: Float) -> Self {
-        let eye = Matrix::<Float>::eye(state.dofs / 2);
-        let zeros = Matrix::<Float>::zeros((state.dofs / 2, state.dofs / 2));
+        let dofs = state.dofs.get();
+        let eye = Matrix::<Float>::eye(dofs / 2);
+        let zeros = Matrix::<Float>::zeros((dofs / 2, dofs / 2));
         // let (eye, zeros) = {
         //     let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
         //     let eye = Matrix::<Float>::eye(nrows);
@@ -298,7 +298,7 @@ impl DynamicFactor {
                 (4.0 / delta_t) * &qc_inv
             ]
         ];
-        debug_assert_eq!(qi_inv.shape(), &[state.dofs, state.dofs]);
+        debug_assert_eq!(qi_inv.shape(), &[dofs, dofs]);
 
         // pretty_print_matrix!(&qi_inv);
 
@@ -311,7 +311,7 @@ impl DynamicFactor {
             concatenate![Axis(1), eye, delta_t * &eye, -1.0 * &eye, zeros],
             concatenate![Axis(1), zeros, eye, zeros, -1.0 * &eye]
         ];
-        debug_assert_eq!(cached_jacobian.shape(), &[state.dofs, state.dofs * 2]);
+        debug_assert_eq!(cached_jacobian.shape(), &[dofs, dofs * 2]);
 
         // pretty_print_matrix!(&cached_jacobian);
 
@@ -640,7 +640,7 @@ pub struct FactorState {
     /// The factor precision $Lambda = sigma^-2 * Identify$
     pub strength:              Float,
     /// Number of degrees of freedom e.g. 4 [x, y, x', y']
-    pub dofs:                  usize,
+    pub dofs:                  NonZeroUsize,
 
     /// Cached value of the factors jacobian function
     /// called `J_` in **gbpplanner**
@@ -658,7 +658,7 @@ impl FactorState {
     fn new(
         measurement: Vector<Float>,
         strength: Float,
-        dofs: usize,
+        dofs: NonZeroUsize,
         neighbor_amount: usize,
     ) -> Self {
         // Initialise precision of the measurement function
@@ -670,7 +670,7 @@ impl FactorState {
         Self {
             initial_measurement: measurement,
             measurement_precision,
-            linearisation_point: Vector::<Float>::zeros(dofs * neighbor_amount),
+            linearisation_point: Vector::<Float>::zeros(dofs.get() * neighbor_amount),
             strength,
             dofs,
             cached_jacobian: array![[]],
@@ -705,7 +705,7 @@ impl Factor {
     pub fn new_dynamic_factor(
         strength: Float,
         measurement: Vector<Float>,
-        dofs: usize,
+        dofs: NonZeroUsize,
         delta_t: Float,
     ) -> Self {
         let mut state = FactorState::new(measurement, strength, dofs, 2); // Dynamic factors have 2 neighbors
@@ -719,12 +719,12 @@ impl Factor {
     pub fn new_interrobot_factor(
         strength: Float,
         measurement: Vector<Float>,
-        dofs: usize,
-        safety_radius: Float,
+        dofs: NonZeroUsize,
+        safety_radius: StrictlyPositiveFinite<Float>,
         connection: InterRobotConnection,
     ) -> Result<Self, InterRobotFactorError> {
         let state = FactorState::new(measurement, strength, dofs, 2); // Interrobot factors have 2 neighbors
-        let interrobot_factor = InterRobotFactor::new(safety_radius, connection)?;
+        let interrobot_factor = InterRobotFactor::new(safety_radius.get(), connection)?;
         let kind = FactorKind::InterRobot(interrobot_factor);
 
         Ok(Self::new(state, kind))
@@ -737,7 +737,7 @@ impl Factor {
     pub fn new_obstacle_factor(
         strength: Float,
         measurement: Vector<Float>,
-        dofs: usize,
+        dofs: NonZeroUsize,
         obstacle_sdf: &'static Image,
         world_size: Float,
     ) -> Self {

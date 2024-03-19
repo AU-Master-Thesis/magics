@@ -12,6 +12,8 @@ mod toggle_fullscreen;
 pub(crate) mod ui;
 pub(crate) mod utils;
 
+mod percentage;
+
 use std::path::PathBuf;
 
 use bevy::{

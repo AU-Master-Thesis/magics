@@ -37,7 +37,7 @@ impl FromWorld for VariableTimestepsResource {
         #[allow(clippy::cast_possible_truncation)]
         Self {
             timesteps: get_variable_timesteps(
-                lookahead_horizon as u32,
+                lookahead_horizon.get() as u32,
                 config.gbp.lookahead_multiple as u32,
             ),
         }
@@ -186,7 +186,7 @@ impl RobotBundle {
         let horizon = start
             + f32::min(
                 start2goal.length(),
-                config.robot.planning_horizon * config.robot.max_speed,
+                (config.robot.planning_horizon * config.robot.max_speed).get(),
             ) * start2goal.normalize();
 
         let ndofs = 4; // [x, y, x', y']
@@ -235,10 +235,10 @@ impl RobotBundle {
         // Create Dynamics factors between variables
         for i in 0..variable_timesteps.len() - 1 {
             // T0 is the timestep between the current state and the first planned state.
-            let delta_t =
-                config.simulation.t0 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
+            let delta_t = config.simulation.t0.get()
+                * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
 
-            let measurement = Vector::<Float>::zeros(config.robot.dofs);
+            let measurement = Vector::<Float>::zeros(config.robot.dofs.get());
 
             let dynamic_factor = Factor::new_dynamic_factor(
                 config.gbp.sigma_factor_dynamics as Float,
@@ -261,7 +261,7 @@ impl RobotBundle {
                 array![0.0],
                 config.robot.dofs,
                 obstacle_sdf,
-                config.simulation.world_size as Float,
+                config.simulation.world_size.get() as Float,
             );
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
@@ -270,7 +270,7 @@ impl RobotBundle {
 
         Ok(Self {
             factorgraph,
-            radius: Radius(config.robot.radius),
+            radius: Radius(config.robot.radius.get()),
             state: RobotState::new(),
             waypoints: Waypoints(waypoints),
         })
@@ -289,7 +289,7 @@ fn update_robot_neighbours(
             .iter()
             .filter_map(|(other_robot_id, other_transform)| {
                 if other_robot_id == robot_id
-                    || config.robot.communication.radius
+                    || config.robot.communication.radius.get()
                         < transform.translation.distance(other_transform.translation)
                 {
                     // Do not compute the distance to self
@@ -417,8 +417,8 @@ fn create_interrobot_factors(
             for i in 1..number_of_variables {
                 let dofs = 4;
                 let z = Vector::<Float>::zeros(dofs);
-                let eps = 0.2 * config.robot.radius;
-                let safety_radius = 2.0 * config.robot.radius + eps;
+                let eps = 0.2 * config.robot.radius.get();
+                let safety_radius = 2.0 * config.robot.radius.get() + eps;
                 // TODO: should it be i - 1 or i?
                 let connection =
                     InterRobotConnection::new(*other_robot_id, other_variable_indices[i - 1]);
@@ -426,8 +426,10 @@ fn create_interrobot_factors(
                 let interrobot_factor = Factor::new_interrobot_factor(
                     config.gbp.sigma_factor_interrobot as Float,
                     z,
-                    dofs,
-                    safety_radius as Float,
+                    dofs.try_into().expect("dofs > 0"),
+                    (safety_radius as Float)
+                        .try_into()
+                        .expect("safe radius is positive and finite"),
                     connection,
                 )
                 .expect("safe radius is positive and finite");
@@ -572,7 +574,7 @@ fn update_prior_of_horizon_state(
             let horizon2goal_dist = horizon2goal_dir.euclidean_norm();
 
             // Slow down if close to goal
-            let new_velocity = Float::min(config.robot.max_speed as Float, horizon2goal_dist)
+            let new_velocity = Float::min(config.robot.max_speed.get() as Float, horizon2goal_dist)
                 * horizon2goal_dir.normalized();
 
             let new_position = estimated_position.into_owned() + (&new_velocity * delta_t as Float);
@@ -599,7 +601,7 @@ fn update_prior_of_horizon_state(
         all_messages_to_external_factors.extend(messages_to_external_factors);
 
         // NOTE: this is weird, we think
-        let horizon_has_reached_waypoint = horizon2goal_dist < config.robot.radius as Float;
+        let horizon_has_reached_waypoint = horizon2goal_dist < config.robot.radius.get() as Float;
 
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
             info!("robot {:?}, has reached its waypoint", robot_id);
@@ -634,7 +636,7 @@ fn update_prior_of_current_state(
     config: Res<Config>,
     time: Res<Time>,
 ) {
-    let scale = time.delta_seconds() / config.simulation.t0;
+    let scale = time.delta_seconds() / config.simulation.t0.get();
 
     for (mut factorgraph, mut transform) in query.iter_mut() {
         let (current_variable_index, mean_of_current_variable, increment) = {

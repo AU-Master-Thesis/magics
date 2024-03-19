@@ -1,9 +1,12 @@
 pub mod formation;
 
+use std::num::NonZeroUsize;
+
 use bevy::{ecs::system::Resource, reflect::Reflect};
 pub use formation::{Formation, FormationGroup};
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
+use typed_floats::{PositiveFinite, StrictlyPositiveFinite};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
@@ -175,15 +178,15 @@ pub struct SimulationSection {
     // pub timestep: f32,
     /// Time between current state and next state of planned path
     /// SI unit: s
-    pub t0: f32,
+    pub t0: PositiveFinite<f32>,
 
     /// Maximum time after which the simulation will terminate
     /// SI unit: s
-    pub max_time: f32,
+    pub max_time: StrictlyPositiveFinite<f32>,
 
     /// The relative scale of time in the simulation.
     /// 1.0 means real-time, 0.5 means half-speed, 2.0 means double-speed, etc.
-    pub time_scale: f32,
+    pub time_scale: StrictlyPositiveFinite<f32>,
 
     /// How many steps of size 1.0 / hz to take when manually stepping the
     /// simulation. SI unit: s
@@ -196,7 +199,7 @@ pub struct SimulationSection {
     /// The side length of the smallest square that contains the entire
     /// simulated environment. Size of the environment in meters.
     /// SI unit: m
-    pub world_size:  f32,
+    pub world_size:  StrictlyPositiveFinite<f32>,
     /// The seed at which random number generators should be seeded, to ensure
     /// deterministic results across simulation runs.
     pub random_seed: usize,
@@ -205,12 +208,13 @@ pub struct SimulationSection {
 impl Default for SimulationSection {
     fn default() -> Self {
         Self {
-            t0:                 0.0,
-            max_time:           10000.0,
-            time_scale:         1.0,
+            t0:                 0.0.try_into().expect("0.0 >= 0.0"),
+            max_time:           10000.0.try_into().expect("10000.0 > 0.0"),
+            time_scale:         1.0.try_into().expect("1.0 > 0.0"),
             manual_step_factor: 1,
             hz:                 60.0,
-            world_size:         100.0,
+            world_size:         100.0.try_into().expect("100.0 > 0.0"),
+            // world_size:         StrictlyPositiveFinite::<f32>::new(100.0).expect("100.0 > 0.0"),
             random_seed:        0,
         }
     }
@@ -251,8 +255,9 @@ impl Default for GbpSection {
 pub struct CommunicationSection {
     /// Inter-robot factors created if robots are within this range of each
     /// other SI unit: m
-    pub radius: f32,
+    pub radius: StrictlyPositiveFinite<f32>,
 
+    // TODO: use a percentage type instead of f32
     /// Probability for failing to send/receive a message
     pub failure_rate: f32,
 }
@@ -260,7 +265,7 @@ pub struct CommunicationSection {
 impl Default for CommunicationSection {
     fn default() -> Self {
         Self {
-            radius:       20.0,
+            radius:       20.0.try_into().expect("20.0 > 0.0"),
             failure_rate: 0.0,
         }
     }
@@ -270,11 +275,11 @@ impl Default for CommunicationSection {
 #[serde(rename_all = "kebab-case")]
 pub struct RobotSection {
     /// SI unit: s
-    pub planning_horizon:  f32,
+    pub planning_horizon:  StrictlyPositiveFinite<f32>,
     /// SI unit: m/s
-    pub max_speed:         f32,
+    pub max_speed:         StrictlyPositiveFinite<f32>,
     /// Degrees of freedom of the robot's state [x, y, x', y']
-    pub dofs:              usize,
+    pub dofs:              NonZeroUsize,
     // /// Simulation timestep interval
     // /// FIXME: does not belong to group of parameters, should be in SimulationSettings or
     // something pub delta_t: f32,
@@ -286,19 +291,19 @@ pub struct RobotSection {
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
-    pub radius:            f32,
+    pub radius:            StrictlyPositiveFinite<f32>,
     pub communication:     CommunicationSection,
 }
 
 impl Default for RobotSection {
     fn default() -> Self {
         Self {
-            planning_horizon: 5.0,
-            max_speed:        2.0,
-            dofs:             4,
+            planning_horizon: StrictlyPositiveFinite::<f32>::new(5.0).expect("5.0 > 0.0"),
+            max_speed:        StrictlyPositiveFinite::<f32>::new(2.0).expect("2.0 > 0.0"),
+            dofs:             NonZeroUsize::new(4).expect("4 > 0"),
 
             symmetric_factors: true,
-            radius:            1.0,
+            radius:            StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
             communication:     CommunicationSection::default(),
         }
     }

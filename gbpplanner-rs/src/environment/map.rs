@@ -165,7 +165,7 @@ fn obstacles(
 
     let vertices_count = width * height;
     let triangle_count = (width - 1) * (height - 1) * 6;
-    let extent = config.simulation.world_size;
+    let extent = config.simulation.world_size.get();
     let intensity = config.visualisation.height.height_map;
 
     info!("image.texture_descriptor.size.width: {}", width);
@@ -199,9 +199,9 @@ fn obstacles(
             let (w_f32, d_f32) = (w as f32, d as f32);
 
             let pos = [
-                (w_f32 - width as f32 / 2.) * extent as f32 / width as f32,
+                (w_f32 - width as f32 / 2.) * extent / width as f32,
                 heightmap[d * width + w] * intensity - 0.1,
-                (d_f32 - height as f32 / 2.) * extent as f32 / height as f32,
+                (d_f32 - height as f32 / 2.) * extent / height as f32,
             ];
             positions.push(pos);
             uvs.push([w_f32 / width as f32, d_f32 / height as f32]);
