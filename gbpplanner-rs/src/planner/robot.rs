@@ -64,25 +64,15 @@ impl Plugin for RobotPlugin {
             );
 
         info!("built RobotPlugin, added:");
-
         eprintln!(" - Resource: VariableTimestepsResource");
-
         eprintln!(" - system:Update");
-
         eprintln!("   - update_robot_neighbours_system");
-
         eprintln!("   - delete_interrobot_factors_system");
-
         eprintln!("   - create_interrobot_factors_system");
-
         eprintln!("   - update_failed_comms_system");
-
         eprintln!("   - iterate_gbp_internal_system");
-
         eprintln!("   - iterate_gbp_external_system");
-
         eprintln!("   - update_prior_of_horizon_state_system");
-
         eprintln!("   - update_prior_of_current_state_system");
     }
 }
@@ -264,7 +254,6 @@ impl RobotBundle {
         }
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
-
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
             let obstacle_factor = Factor::new_obstacle_factor(

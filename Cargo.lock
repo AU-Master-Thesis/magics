@@ -2132,7 +2132,7 @@ dependencies = [
 
 [[package]]
 name = "gbp_formation"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "approx",
  "arbtest",
@@ -2145,7 +2145,7 @@ dependencies = [
 
 [[package]]
 name = "gbp_linalg"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "approx",
  "arbtest",
@@ -2156,7 +2156,7 @@ dependencies = [
 
 [[package]]
 name = "gbp_multivariate_normal"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gbp_linalg",
  "ndarray",
@@ -2167,7 +2167,7 @@ dependencies = [
 
 [[package]]
 name = "gbpplanner-rs"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "bevy",

@@ -739,9 +739,6 @@ impl FactorGraph {
             let Some(factor) = node.as_factor_mut() else {
                 continue;
             };
-            // if node.is_variable() {
-            //     continue;
-            // }
 
             // TODO: somehow pass the messages from each of the connected variables to the
             // factor instead of the variable indices, as this factorgraph does

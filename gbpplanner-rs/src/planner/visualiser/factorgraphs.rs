@@ -18,7 +18,7 @@ impl Plugin for FactorGraphVisualiserPlugin {
                 init_factorgraphs,
                 update_factorgraphs,
                 show_or_hide_factorgraphs,
-                // draw_lines,
+                draw_lines,
             ),
         );
     }
@@ -187,17 +187,17 @@ fn draw_lines(
             .map(|(_, t)| t.translation)
             .collect::<Vec<Vec3>>();
 
-        let line = Path::new(positions.clone()).with_width(0.2);
-
-        commands.spawn((
-            PbrBundle {
-                mesh: meshes.add(Mesh::from(line)),
-                material: line_material.clone(),
-                ..Default::default()
-            },
-            Line,
-        ));
-
+        // let line = Path::new(positions.clone()).with_width(0.2);
+        //
+        // commands.spawn((
+        //     PbrBundle {
+        //         mesh: meshes.add(Mesh::from(line)),
+        //         material: line_material.clone(),
+        //         ..Default::default()
+        //     },
+        //     Line,
+        // ));
+        //
         gizmos.primitive_3d(
             Polyline3d::<100>::new(positions),
             // BoxedPolyline3d::new(positions),

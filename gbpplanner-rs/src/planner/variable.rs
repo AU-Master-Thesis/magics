@@ -174,16 +174,26 @@ impl Variable {
         }
 
         // Update belief
-        self.sigma = self
-            .lam
-            .inv()
-            .unwrap_or_else(|| Matrix::<Float>::zeros((self.dofs, self.dofs)));
-        let valid = self.sigma.iter().all(|x| x.is_finite());
-        self.valid = valid;
-        if self.valid {
-            self.mu = self.sigma.dot(&self.eta);
-            // dbg!(&self.mu);
+        if let Some(sigma) = self.lam.inv() {
+            self.sigma = sigma;
+            self.valid = self.sigma.iter().all(|x| x.is_finite());
+            if self.valid {
+                self.mu = self.sigma.dot(&self.eta);
+            }
         }
+
+        // self.sigma = self
+        //     .lam
+        //     .inv()
+        //     .unwrap_or_else(|| Matrix::<Float>::zeros((self.dofs, self.dofs)));
+        // let valid = self.sigma.iter().all(|x| x.is_finite());
+        //
+        // self.valid = valid;
+        //
+        // if self.valid {
+        //     self.mu = self.sigma.dot(&self.eta);
+        //     // dbg!(&self.mu);
+        // }
 
         self.inbox
             .iter()
