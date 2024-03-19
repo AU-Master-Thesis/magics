@@ -1,4 +1,5 @@
-environment = "junction"
+# environment = "junction"
+environment = "./config/environment.ron"
 formation_group = "./config/formation.ron"
 
 [interaction]

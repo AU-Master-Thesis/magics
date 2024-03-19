@@ -288,10 +288,10 @@ impl std::fmt::Display for FormationGroupError {
 }
 
 impl FormationGroup {
-    /// Attempt to parse a `FormationGroup` from a TOML file at `path`
+    /// Attempt to parse a `FormationGroup` from a RON file at `path`
     /// Returns `Err(ParseError)`  if:
     /// 1. `path` does not exist on the filesystem.
-    /// 2. The contents of `path` is not valid TOML.
+    /// 2. The contents of `path` is not valid RON.
     /// 3. The parsed data does not represent a valid `FormationGroup`.
     pub fn from_file(path: &std::path::Path) -> Result<Self, ParseError> {
         std::fs::read_to_string(path)

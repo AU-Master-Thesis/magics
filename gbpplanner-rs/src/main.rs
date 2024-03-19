@@ -33,6 +33,7 @@ use bevy::prelude::*;
 use bevy::window::WindowMode;
 use bevy::window::WindowTheme;
 use clap::Parser;
+use config::Environment;
 
 // use gbp_rs::factorgraph;
 
@@ -49,6 +50,9 @@ struct Cli {
     #[arg(long)]
     /// Dump the default formation config to stdout
     dump_default_formation: bool,
+    #[arg(long)]
+    /// Dump the default environment config to stdout
+    dump_default_environment: bool,
     #[arg(long)]
     /// Run the app without a window for rendering the environment
     headless: bool,
@@ -90,18 +94,37 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     let cli = Cli::parse();
 
-    if cli.dump_default_config && cli.dump_default_formation {
+    // if cli.dump_default_config && cli.dump_default_formation {
+    //     eprintln!(
+    //         "you can not set --dump-default-config and --dump-default-formation at the same time!"
+    //     );
+    //     std::process::exit(2);
+    // }
+
+    // Cannot set more than one of --dump-default-config, --dump-default-formation, --dump-default-environment
+    // at one time
+    if (cli.dump_default_config as u8
+        + cli.dump_default_formation as u8
+        + cli.dump_default_environment as u8)
+        > 1
+    {
         eprintln!(
-            "you can not set --dump-default-config and --dump-default-formation at the same time!"
+            "you can not set more than one of --dump-default-config, --dump-default-formation, --dump-default-environment at one time!"
         );
         std::process::exit(2);
     }
 
+    if cli.dump_default_environment {
+        let default_environment = Environment::default();
+        // Write default config to stdout
+        println!("{}", toml::to_string_pretty(&default_environment)?);
+
+        return Ok(());
+    }
+
     if cli.dump_default_formation {
         let default_formation = config::FormationGroup::default();
-        // Write default config to stdout
-        // println!("{}", toml::to_string_pretty(&default_formation)?);
-        // println!("{}", ron::to_string(&default_formation)?);
+        // Write default config to stdout\
         println!(
             "{}",
             ron::ser::to_string_pretty(
@@ -121,13 +144,20 @@ fn main() -> color_eyre::eyre::Result<()> {
     }
 
     let config = read_config(&cli)?;
+
+    // formation
     let formation_file_path = PathBuf::from(&config.formation_group.clone());
     let formation = FormationGroup::from_file(&formation_file_path)?;
 
+    // environment
+    let environment_file_path = PathBuf::from(&config.environment.clone());
+    let environment = Environment::from_file(&environment_file_path)?;
+
     let mut app = App::new();
-    app.insert_resource(formation)
-        .insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
+    app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
         .insert_resource(config)
+        .insert_resource(formation)
+        .insert_resource(environment)
         .add_plugins((
             DefaultPlugins.set(
                 // **Bevy**

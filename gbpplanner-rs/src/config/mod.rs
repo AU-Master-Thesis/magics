@@ -1,7 +1,9 @@
+pub mod environment;
 pub mod formation;
 
 use bevy::ecs::system::Resource;
 use bevy::reflect::Reflect;
+pub use environment::Environment;
 pub use formation::Formation;
 pub use formation::FormationGroup;
 
@@ -341,7 +343,8 @@ impl Default for Config {
         // TODO: make a bit more robust
         // let cwd = std::env::current_dir().expect("The current working directory exists");
         // let default_environment = cwd.join("gbpplanner-rs/assets/imgs/junction.png");
-        let default_environment = "./gbpplanner-rs/assets/imgs/junction.png".to_string();
+        // let default_environment = "junction".to_string();
+        let default_environment = "./config/environment.ron".to_string();
         let default_formation_group = "./config/formation.ron".to_string();
 
         Self {
