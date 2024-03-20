@@ -2,7 +2,7 @@
 //! A percentage value represented as a floating point number between 0.0 and
 //! 100.0.
 
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// A percentage value represented as a floating point number between 0.0 and
 /// 100.0.
@@ -91,6 +91,22 @@ impl std::ops::Mul for Percentage {
     }
 }
 
+impl TryFrom<f64> for Percentage {
+    type Error = PercentageError;
+
+    fn try_from(value: f64) -> Result<Self, Self::Error> {
+        Percentage::new(value)
+    }
+}
+
+impl TryFrom<usize> for Percentage {
+    type Error = PercentageError;
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        Percentage::new(value as f64)
+    }
+}
+
 impl<'de> Deserialize<'de> for Percentage {
     fn deserialize<D>(deserializer: D) -> Result<Percentage, D::Error>
     where
@@ -98,6 +114,15 @@ impl<'de> Deserialize<'de> for Percentage {
     {
         let p = f64::deserialize(deserializer)?;
         Percentage::new(p).map_err(serde::de::Error::custom)
+    }
+}
+
+impl Serialize for Percentage {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        (self.0 * 100.0).serialize(serializer)
     }
 }
 
@@ -189,4 +214,30 @@ mod tests {
     //     assert!(toml::from_str::<Percentage>("100.1").is_err());
     //     assert!(toml::from_str::<Percentage>("-0.1").is_err());
     // }
+
+    #[test]
+    fn test_try_from_f64() {
+        assert!(matches!(Percentage::try_from(0.0), Ok(Percentage(0.0))));
+        assert!(matches!(Percentage::try_from(100.0), Ok(Percentage(1.0))));
+        assert!(matches!(Percentage::try_from(50.0), Ok(Percentage(0.5))));
+        assert!(matches!(
+            Percentage::try_from(-1.0),
+            Err(PercentageError::InvalidPercentage(-1.0))
+        ));
+        assert!(matches!(
+            Percentage::try_from(101.0),
+            Err(PercentageError::InvalidPercentage(101.0))
+        ));
+    }
+
+    #[test]
+    fn test_try_from_usize() {
+        assert!(matches!(Percentage::try_from(0), Ok(Percentage(0.0))));
+        assert!(matches!(Percentage::try_from(100), Ok(Percentage(1.0))));
+        assert!(matches!(Percentage::try_from(50), Ok(Percentage(0.5))));
+        assert!(matches!(
+            Percentage::try_from(101),
+            Err(PercentageError::InvalidPercentage(101.0))
+        ));
+    }
 }
