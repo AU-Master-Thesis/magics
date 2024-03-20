@@ -123,6 +123,174 @@ fn build_system(
                         ),
                     ])
                 }
+                '╴' => {
+                    // Termination from the left
+                    // - 2 larger cuboids on the top and bottom, spanning the entire width of the cell
+                    // - 1 smaller 'plug' cuboid on the right, to terminate the path
+
+                    Some(vec![
+                        (
+                            // top
+                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            // top transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x,
+                                obstacle_y,
+                                offset_z - pos_offset,
+                            )),
+                        ),
+                        (
+                            // bottom
+                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            // bottom transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x,
+                                obstacle_y,
+                                offset_z + pos_offset,
+                            )),
+                        ),
+                        (
+                            // right plug
+                            meshes.add(Cuboid::new(
+                                base_dim,
+                                obstacle_height,
+                                path_width * tile_size,
+                            )),
+                            // right plug transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x + pos_offset,
+                                obstacle_y,
+                                offset_z,
+                            )),
+                        ),
+                    ])
+                }
+                '╶' => {
+                    // Termination from the right
+                    // - 2 larger cuboids on the top and bottom, spanning the entire width of the cell
+                    // - 1 smaller 'plug' cuboid on the left, to terminate the path
+
+                    Some(vec![
+                        (
+                            // top
+                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            // top transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x,
+                                obstacle_y,
+                                offset_z - pos_offset,
+                            )),
+                        ),
+                        (
+                            // bottom
+                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            // bottom transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x,
+                                obstacle_y,
+                                offset_z + pos_offset,
+                            )),
+                        ),
+                        (
+                            // left plug
+                            meshes.add(Cuboid::new(
+                                base_dim,
+                                obstacle_height,
+                                path_width * tile_size,
+                            )),
+                            // left plug transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x - pos_offset,
+                                obstacle_y,
+                                offset_z,
+                            )),
+                        ),
+                    ])
+                }
+                '╷' => {
+                    // Termination from the bottom
+                    // - 2 larger cuboids on the left and right, spanning the entire height of the cell
+                    // - 1 smaller 'plug' cuboid on the top, to terminate the path
+
+                    Some(vec![
+                        (
+                            // left
+                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            // left transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x - pos_offset,
+                                obstacle_y,
+                                offset_z,
+                            )),
+                        ),
+                        (
+                            // right
+                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            // right transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x + pos_offset,
+                                obstacle_y,
+                                offset_z,
+                            )),
+                        ),
+                        (
+                            // top plug
+                            meshes.add(Cuboid::new(
+                                path_width * tile_size,
+                                obstacle_height,
+                                base_dim,
+                            )),
+                            // top plug transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x,
+                                obstacle_y,
+                                offset_z - pos_offset,
+                            )),
+                        ),
+                    ])
+                }
+                '╵' => {
+                    // Termination from the top
+                    // - 2 larger cuboids on the left and right, spanning the entire height of the cell
+                    // - 1 smaller 'plug' cuboid on the bottom, to terminate the path
+
+                    Some(vec![
+                        (
+                            // left
+                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            // left transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x - pos_offset,
+                                obstacle_y,
+                                offset_z,
+                            )),
+                        ),
+                        (
+                            // right
+                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            // right transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x + pos_offset,
+                                obstacle_y,
+                                offset_z,
+                            )),
+                        ),
+                        (
+                            // bottom plug
+                            meshes.add(Cuboid::new(
+                                path_width * tile_size,
+                                obstacle_height,
+                                base_dim,
+                            )),
+                            // bottom plug transform
+                            Transform::from_translation(Vec3::new(
+                                offset_x,
+                                obstacle_y,
+                                offset_z + pos_offset,
+                            )),
+                        ),
+                    ])
+                }
                 '┌' => {
                     // Top right hand turn
                     // - 1 cube in the bottom right corner

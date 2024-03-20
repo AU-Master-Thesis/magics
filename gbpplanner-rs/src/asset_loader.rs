@@ -127,7 +127,7 @@ fn load_assets(
                 catppuccin_theme.maroon(),
                 0.2,
             )),
-            obstacle: materials.add(Color::from_catppuccin_colour(catppuccin_theme.sapphire())),
+            obstacle: materials.add(Color::from_catppuccin_colour(catppuccin_theme.text())),
         },
     }
 }

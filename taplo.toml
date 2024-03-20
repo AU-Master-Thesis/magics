@@ -1,0 +1,4 @@
+[formatting]
+array_auto_expand = true
+column_width = 0
+align_entries = true

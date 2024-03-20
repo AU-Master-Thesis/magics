@@ -163,9 +163,9 @@ impl Environment {
                 "┌┴┐┌┼─┴┬".to_string(),
                 "├─┴┘└──┘".to_string(),
             ]),
-            path_width: 0.1325,
+            path_width: 0.4,
             obstacle_height: 1.0,
-            tile_size: 50.0,
+            tile_size: 25.0,
         }
     }
 

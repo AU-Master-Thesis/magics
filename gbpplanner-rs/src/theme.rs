@@ -12,6 +12,7 @@ use bevy_infinite_grid::InfiniteGridSettings;
 use catppuccin::{Colour, Flavour, FlavourColours};
 
 use crate::{
+    environment,
     factorgraph::{Factor, Line, Variable},
     planner,
 };
@@ -322,6 +323,7 @@ impl Plugin for ThemePlugin {
                     handle_robots,
                     handle_waypoints,
                     handle_variable_visualisers,
+                    handle_obstacles,
                 ),
             );
     }
@@ -500,9 +502,9 @@ fn handle_robots(
     }
 }
 
-/// **Bevy** `Update` system to handle the theme change for waypoints
-/// Reads `ThemeChangedEvent` to know when to change the waypoint colour
-/// Queries all `StandardMaterial` handles with `Waypoint` components
+/// **Bevy** [`Update`] system to handle the theme change for waypoints
+/// Reads [`ThemeChangedEvent`] to know when to change the waypoint colour
+/// Queries all [`StandardMaterial`] handles with [`Waypoint`] components
 fn handle_waypoints(
     catppuccin_theme: Res<CatppuccinTheme>,
     mut theme_changed_event: EventReader<ThemeChangedEvent>,
@@ -516,6 +518,25 @@ fn handle_waypoints(
                     catppuccin_theme.flavour.maroon(),
                     0.75,
                 );
+            }
+        }
+    }
+}
+
+/// **Bevy** ['Update'] system to handle the theme change for obstacles
+/// Reads [`ThemeChangedEvent`] to know when to change the obstacle colour
+/// Queries all [`StandardMaterial`] handles with [`MapCell`] components
+fn handle_obstacles(
+    catppuccin_theme: Res<CatppuccinTheme>,
+    mut theme_changed_event: EventReader<ThemeChangedEvent>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut query_obstacle: Query<&mut Handle<StandardMaterial>, With<environment::MapCell>>,
+) {
+    for _ in theme_changed_event.read() {
+        for handle in query_obstacle.iter_mut() {
+            if let Some(material) = materials.get_mut(handle.clone()) {
+                material.base_color =
+                    Color::from_catppuccin_colour(catppuccin_theme.flavour.text());
             }
         }
     }
