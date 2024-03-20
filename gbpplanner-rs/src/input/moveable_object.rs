@@ -48,14 +48,14 @@ pub enum MoveableObjectAction {
     Toggle,
 }
 
-impl ToString for MoveableObjectAction {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for MoveableObjectAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Move => "Move".to_string(),
-            Self::RotateClockwise => "Rotate Clockwise".to_string(),
-            Self::RotateCounterClockwise => "Rotate Counter Clockwise".to_string(),
-            Self::Boost => "Boost".to_string(),
-            Self::Toggle => "Toggle".to_string(),
+            Self::Move => write!(f, "Move"),
+            Self::RotateClockwise => write!(f, "Rotate Clockwise"),
+            Self::RotateCounterClockwise => write!(f, "Rotate Counter Clockwise"),
+            Self::Boost => write!(f, "Boost"),
+            Self::Toggle => write!(f, "Toggle"),
         }
     }
 }

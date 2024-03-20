@@ -51,17 +51,17 @@ pub enum CameraAction {
     Reset,
 }
 
-impl ToString for CameraAction {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Move => "Move".to_string(),
-            Self::MouseMove => "Mouse Move".to_string(),
-            Self::ToggleMovementMode => "Toggle Movement Mode".to_string(),
-            Self::ZoomIn => "Zoom In".to_string(),
-            Self::ZoomOut => "Zoom Out".to_string(),
-            Self::Switch => "Switch".to_string(),
-            Self::Reset => "Reset".to_string(),
-        }
+impl std::fmt::Display for CameraAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Self::Move => "Move",
+            Self::MouseMove => "Mouse Move",
+            Self::ToggleMovementMode => "Toggle Movement Mode",
+            Self::ZoomIn => "Zoom In",
+            Self::ZoomOut => "Zoom Out",
+            Self::Switch => "Switch",
+            Self::Reset => "Reset",
+        })
     }
 }
 
