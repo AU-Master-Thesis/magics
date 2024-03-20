@@ -326,6 +326,7 @@ impl Default for InteractionSection {
 #[derive(Debug, Serialize, Deserialize, Resource)]
 pub struct Config {
     /// Path to the **.png** containing the environment sdf
+    pub environment_image: String,
     pub environment: String,
     pub formation_group: String,
     pub visualisation: VisualisationSection,
@@ -343,13 +344,14 @@ impl Default for Config {
         // TODO: make a bit more robust
         // let cwd = std::env::current_dir().expect("The current working directory exists");
         // let default_environment = cwd.join("gbpplanner-rs/assets/imgs/junction.png");
-        // let default_environment = "junction".to_string();
-        let default_environment = "./config/environment.ron".to_string();
-        let default_formation_group = "./config/formation.ron".to_string();
+        let default_environment_image = "junction".to_string();
+        let default_environment_config = "./config/environment.toml".to_string();
+        let default_formation_config = "./config/formation.ron".to_string();
 
         Self {
-            environment: default_environment,
-            formation_group: default_formation_group,
+            environment_image: default_environment_image,
+            environment: default_environment_config,
+            formation_group: default_formation_config,
             visualisation: VisualisationSection::default(),
             interaction: InteractionSection::default(),
             gbp: GbpSection::default(),

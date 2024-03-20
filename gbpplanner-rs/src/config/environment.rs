@@ -1,12 +1,42 @@
 use bevy::ecs::system::Resource;
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Grid(Vec<String>);
+
+impl Grid {
+    pub fn iter(&self) -> std::slice::Iter<String> {
+        self.0.iter()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn rows(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn cols(&self) -> usize {
+        self.0[0].chars().count()
+    }
+
+    // override the index operator to allow for easy access to the grid
+    pub fn get(&self, row: usize, col: usize) -> Option<char> {
+        self.0.get(row).and_then(|r| r.chars().nth(col))
+    }
+}
+
 /// **Bevy** [`Resource`]
 /// The en
 #[derive(Debug, Serialize, Deserialize, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub struct Environment {
-    pub matrix_representation: Vec<String>,
+    pub grid: Grid,
+    path_width: f32,
+    obstacle_height: f32,
+    tile_size: f32,
 }
 
 impl Default for Environment {
@@ -29,14 +59,14 @@ pub enum ParseError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum EnvironmentError {
-    EmptyMatrixRepresentation,
+    EmptyGrid,
     DifferentLengthRows,
 }
 
 impl std::fmt::Display for EnvironmentError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            EnvironmentError::EmptyMatrixRepresentation => {
+            EnvironmentError::EmptyGrid => {
                 write!(f, "Environment matrix representation is empty")
             }
             EnvironmentError::DifferentLengthRows => {
@@ -62,7 +92,10 @@ impl Environment {
     }
 
     pub fn parse(contents: &str) -> Result<Self, ParseError> {
-        let config = toml::from_str(contents)?;
+        let config: Environment = toml::from_str::<Environment>(contents)
+            .map_err(ParseError::from)?
+            .validate()
+            .map_err(EnvironmentError::from)?;
         Ok(config)
     }
 
@@ -70,12 +103,12 @@ impl Environment {
     /// 1. The matrix representation is not empty
     /// 2. All rows in the matrix representation are the same length
     pub fn validate(self) -> Result<Self, EnvironmentError> {
-        if self.matrix_representation.is_empty() {
-            Err(EnvironmentError::EmptyMatrixRepresentation)
+        if self.grid.is_empty() {
+            Err(EnvironmentError::EmptyGrid)
         } else if self
-            .matrix_representation
+            .grid
             .iter()
-            .any(|row| row.len() != self.matrix_representation[0].len())
+            .any(|row| row.chars().count() != self.grid.cols())
         {
             Err(EnvironmentError::DifferentLengthRows)
         } else {
@@ -83,39 +116,68 @@ impl Environment {
         }
     }
 
-    pub fn new(matrix_representation: Vec<String>) -> Self {
+    pub fn new(
+        matrix_representation: Vec<String>,
+        path_width: f32,
+        obstacle_height: f32,
+        tile_size: f32,
+    ) -> Self {
         Environment {
-            matrix_representation,
+            grid: Grid(matrix_representation),
+            path_width,
+            obstacle_height,
+            tile_size,
         }
     }
 
     pub fn simple() -> Self {
         Environment {
-            matrix_representation: vec!["┼".to_string()],
+            grid: Grid(vec!["┼".to_string()]),
+            path_width: 0.2,
+            obstacle_height: 1.0,
+            tile_size: 100.0,
         }
     }
 
     #[rustfmt::skip]
     pub fn intermediate() -> Self {
         Environment {
-            matrix_representation: vec![
+            grid: Grid(vec![
                 "┌┬┐ ".to_string(),
                 "┘└┼┬".to_string(),
                 "  └┘".to_string()
-            ],
+            ]),
+            path_width: 0.2,
+            obstacle_height: 1.0,
+            tile_size: 50.0,
         }
     }
 
     #[rustfmt::skip]
     pub fn complex() -> Self {
         Environment {
-            matrix_representation: vec![
+            grid: Grid(vec![
                 "┌─┼─┬─┐┌".to_string(),
                 "┼─┘┌┼┬┼┘".to_string(),
                 "┴┬─┴┼┘│ ".to_string(),
                 "┌┴┐┌┼─┴┬".to_string(),
                 "├─┴┘└──┘".to_string(),
-            ],
+            ]),
+            path_width: 0.2,
+            obstacle_height: 1.0,
+            tile_size: 50.0,
         }
+    }
+
+    pub fn path_width(&self) -> f32 {
+        self.path_width
+    }
+
+    pub fn obstacle_height(&self) -> f32 {
+        self.obstacle_height
+    }
+
+    pub fn tile_size(&self) -> f32 {
+        self.tile_size
     }
 }

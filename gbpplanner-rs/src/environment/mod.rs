@@ -1,12 +1,15 @@
 pub mod camera;
 pub mod cursor;
 pub mod follow_cameras;
+pub mod gen_map;
 pub mod map;
 
 use camera::CameraPlugin;
 use cursor::CursorToGroundPlugin;
 use follow_cameras::FollowCamerasPlugin;
 use map::MapPlugin;
+
+use self::gen_map::GenMapPlugin;
 
 pub struct EnvironmentPlugin;
 
@@ -17,6 +20,7 @@ impl bevy::app::Plugin for EnvironmentPlugin {
             FollowCamerasPlugin,
             MapPlugin,
             CursorToGroundPlugin,
+            GenMapPlugin,
         ));
     }
 }

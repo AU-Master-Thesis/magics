@@ -28,6 +28,7 @@ pub struct Materials {
     pub transparent: Handle<StandardMaterial>,
     pub uncertainty: Handle<StandardMaterial>,
     pub uncertainty_unattenable: Handle<StandardMaterial>,
+    pub obstacle: Handle<StandardMaterial>,
 }
 
 /// **Bevy** [`Resource`] to hold all assets in a common place
@@ -71,8 +72,8 @@ fn load_assets(
         object: asset_server.load("models/box.glb#Scene0"),
         // environment images
         // obstacle_image_raw: asset_server.load("imgs/simple.png"),
-        obstacle_image_raw: asset_server.load(format!("imgs/{}.png", config.environment)),
-        obstacle_image_sdf: asset_server.load(format!("imgs/{}_sdf.png", config.environment)),
+        obstacle_image_raw: asset_server.load(format!("imgs/{}.png", config.environment_image)),
+        obstacle_image_sdf: asset_server.load(format!("imgs/{}_sdf.png", config.environment_image)),
         // Meshes
         meshes: Meshes {
             robot: meshes.add(
@@ -126,6 +127,7 @@ fn load_assets(
                 catppuccin_theme.maroon(),
                 0.2,
             )),
+            obstacle: materials.add(Color::from_catppuccin_colour(catppuccin_theme.sapphire())),
         },
     }
 }

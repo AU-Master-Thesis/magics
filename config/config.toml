@@ -1,5 +1,6 @@
 # environment = "junction"
-environment = "./config/environment.ron"
+environment_image = "junction"
+environment = "./config/environment.toml"
 formation_group = "./config/formation.ron"
 
 [interaction]
