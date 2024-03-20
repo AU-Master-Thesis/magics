@@ -133,7 +133,7 @@ impl Environment {
     pub fn simple() -> Self {
         Environment {
             grid: Grid(vec!["┼".to_string()]),
-            path_width: 0.2,
+            path_width: 0.1325,
             obstacle_height: 1.0,
             tile_size: 100.0,
         }
@@ -147,7 +147,7 @@ impl Environment {
                 "┘└┼┬".to_string(),
                 "  └┘".to_string()
             ]),
-            path_width: 0.2,
+            path_width: 0.1325,
             obstacle_height: 1.0,
             tile_size: 50.0,
         }
@@ -163,7 +163,7 @@ impl Environment {
                 "┌┴┐┌┼─┴┬".to_string(),
                 "├─┴┘└──┘".to_string(),
             ]),
-            path_width: 0.2,
+            path_width: 0.1325,
             obstacle_height: 1.0,
             tile_size: 50.0,
         }
