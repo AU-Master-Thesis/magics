@@ -2189,6 +2189,7 @@ dependencies = [
  "ndarray-inverse",
  "num-traits",
  "open",
+ "percentage",
  "petgraph",
  "pretty_assertions",
  "rand",
@@ -2201,6 +2202,7 @@ dependencies = [
  "thiserror",
  "toml",
  "typed_floats",
+ "unit_interval",
 ]
 
 [[package]]
@@ -3346,6 +3348,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
+name = "percentage"
+version = "0.2.0"
+dependencies = [
+ "approx",
+ "pretty_assertions",
+ "serde",
+]
+
+[[package]]
 name = "petgraph"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4350,6 +4361,13 @@ name = "unicode-xid"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
+
+[[package]]
+name = "unit_interval"
+version = "0.2.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "untrusted"

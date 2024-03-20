@@ -1,9 +1,11 @@
 #![warn(missing_docs)]
+//! A module for working with robot formations flexibly.
 use std::{num::NonZeroUsize, time::Duration};
 
 use bevy::ecs::system::Resource;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
+use unit_interval::UnitInterval;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -13,39 +15,77 @@ pub enum PlacementStrategy {
     Map,
 }
 
-// TODO: constrain to be between 0.0 and 1.0
+/// A relative point within the boudaries of the map.
+/// ...
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub struct Point {
-    pub x: f32,
-    pub y: f32,
+pub struct RelativePoint {
+    pub x: UnitInterval,
+    pub y: UnitInterval,
 }
 
-impl From<Point> for bevy::math::Vec2 {
-    fn from(value: Point) -> Self {
-        Self {
-            x: value.x,
-            y: value.y,
-        }
+impl RelativePoint {
+    /// Create a new `RelativePoint` from a pair of values.
+    /// Returns an error if either `x` or `y` is not in the interval [0.0, 1.0].
+    pub fn new(x: f64, y: f64) -> Result<Self, unit_interval::UnitIntervalError> {
+        Ok(Self {
+            x: UnitInterval::new(x)?,
+            y: UnitInterval::new(y)?,
+        })
+    }
+
+    /// Returns the x and y values as a tuple
+    pub fn get(&self) -> (f64, f64) {
+        (self.x.get(), self.y.get())
     }
 }
 
-impl From<&Point> for bevy::math::Vec2 {
-    fn from(value: &Point) -> Self {
-        Self {
-            x: value.x,
-            y: value.y,
-        }
+impl TryFrom<(f64, f64)> for RelativePoint {
+    type Error = unit_interval::UnitIntervalError;
+
+    fn try_from(value: (f64, f64)) -> Result<Self, Self::Error> {
+        Ok(Self {
+            x: UnitInterval::new(value.0)?,
+            y: UnitInterval::new(value.1)?,
+        })
     }
 }
 
-impl From<(f32, f32)> for Point {
-    fn from(value: (f32, f32)) -> Self {
-        Self {
-            x: value.0,
-            y: value.1,
-        }
-    }
-}
+// #[derive(Debug, thiserror::Error)]
+// pub enum PointError {
+//     #[error("x is out of bounds: {0}")]
+//     XOutOfBounds(#[from] unit_interval::UnitIntervalError),
+//     #[error("y is out of bounds: {0}")]
+//     YOutOfBounds(#[from] unit_interval::UnitIntervalError),
+//     #[error("both x and y are out of bounds: x: {0}, y: {1}")]
+//     BothOutOfBounds(f64, f64),
+// }
+//
+// impl From<Point> for bevy::math::Vec2 {
+//     fn from(value: Point) -> Self {
+//         Self {
+//             x: value.x,
+//             y: value.y,
+//         }
+//     }
+// }
+//
+// impl From<&Point> for bevy::math::Vec2 {
+//     fn from(value: &Point) -> Self {
+//         Self {
+//             x: value.x,
+//             y: value.y,
+//         }
+//     }
+// }
+//
+// impl From<(f32, f32)> for Point {
+//     fn from(value: (f32, f32)) -> Self {
+//         Self {
+//             x: value.0,
+//             y: value.1,
+//         }
+//     }
+// }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShapeError {
@@ -60,10 +100,10 @@ pub enum ShapeError {
 pub enum Shape {
     Circle {
         radius: StrictlyPositiveFinite<f32>,
-        center: Point,
+        center: RelativePoint,
     },
-    Polygon(Vec<Point>),
-    Line((Point, Point)),
+    Polygon(Vec<RelativePoint>),
+    Line((RelativePoint, RelativePoint)),
 }
 
 impl Shape {
@@ -83,7 +123,7 @@ impl Shape {
         matches!(self, Self::Circle { .. })
     }
 
-    pub fn as_polygon(&self) -> Option<&Vec<Point>> {
+    pub fn as_polygon(&self) -> Option<&Vec<RelativePoint>> {
         if let Self::Polygon(v) = self {
             Some(v)
         } else {
@@ -98,7 +138,7 @@ macro_rules! polygon {
     [$(($x:expr, $y:expr)),+ $(,)?] => {{
         let vertices = vec![
             $(
-                Point {x: $x, y: $y}
+        	RelativePoint::new($x, $y).expect("both x and y are within the interval [0.0, 1.0]")
             ),+
         ];
         Shape::Polygon(vertices)
@@ -110,7 +150,9 @@ macro_rules! polygon {
 #[macro_export]
 macro_rules! line {
     [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
-        Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
+        // Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
+        // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1 as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(), y: f64::try_from().unwrap() }))
+        Shape::Line((RelativePoint::new($x1, $y1).expect("both x1 and y1 are within the interval [0.0, 1.0]"), RelativePoint::new($x2, $y2).expect("both x2 and y2 are within the interval [0.0, 1.0]")))
     };
 }
 
@@ -377,10 +419,10 @@ mod tests {
         fn one_waypoint_is_invalid() {
             let invalid = Formation {
                 waypoints: vec![Waypoint {
-                    shape:              Shape::Line((Point { x: 0.0, y: 0.0 }, Point {
-                        x: 0.4,
-                        y: 0.4,
-                    })),
+                    shape:              Shape::Line((
+                        RelativePoint::new(0.0, 0.0).unwrap(),
+                        RelativePoint::new(0.4, 0.4).unwrap(),
+                    )),
                     placement_strategy: PlacementStrategy::Random,
                 }],
                 ..Default::default()
@@ -441,13 +483,17 @@ mod tests {
 
             use super::*;
 
-            fn float_eq(lhs: f32, rhs: f32) -> bool {
-                f32::abs(lhs - rhs) <= f32::EPSILON
+            // fn float_eq(lhs: f32, rhs: f32) -> bool {
+            //     f32::abs(lhs - rhs) <= f32::EPSILON
+            // }
+
+            fn float_eq(lhs: f64, rhs: f64) -> bool {
+                f64::abs(lhs - rhs) <= f64::EPSILON
             }
 
             #[test]
             fn single_vertex() {
-                let shape = polygon![(1e2, 42.0)];
+                let shape = polygon![(0.1, 0.1)];
                 assert!(shape.is_polygon());
                 let inner = shape.as_polygon().expect("know it is a Polygon");
                 assert!(!inner.is_empty());
@@ -455,13 +501,14 @@ mod tests {
 
                 assert!(inner
                     .iter()
-                    .zip(vec![(1e2, 42.0)].into_iter())
-                    .all(|(p, (x, y))| float_eq(p.x, x) && float_eq(p.y, y)));
+                    .map(|p| (p.x.get(), p.y.get()))
+                    .zip(vec![(0.1, 0.1)].into_iter())
+                    .all(|(p, (x, y))| float_eq(p.0, x) && float_eq(p.1, y)));
             }
 
             #[test]
             fn multiple_vertices() {
-                let shape = polygon![(0., 0.), (1., 1.), (5., -8.)];
+                let shape = polygon![(0.35, 0.35), (0.35, 0.5), (0.7, 0.8)];
                 assert!(shape.is_polygon());
                 let inner = shape.as_polygon().expect("know it is a Polygon");
                 assert!(!inner.is_empty());
@@ -469,14 +516,15 @@ mod tests {
 
                 assert!(inner
                     .iter()
+                    .map(|p| (p.x.get(), p.y.get()))
                     .zip(vec![(0., 0.), (1., 1.), (5., -8.)].into_iter())
-                    .all(|(p, (x, y))| float_eq(p.x, x) && float_eq(p.y, y)));
+                    .all(|(p, (x, y))| float_eq(p.0, x) && float_eq(p.1, y)));
             }
 
             /// Really just a test to see if the macro compiles and matches
             #[test]
             fn trailing_comma() {
-                let shape = polygon![(0., 0.),];
+                let shape = polygon![(0., 0.1),];
                 assert!(shape.is_polygon());
                 let inner = shape.as_polygon().expect("know it is a Polygon");
                 assert!(!inner.is_empty());
@@ -484,13 +532,14 @@ mod tests {
 
                 assert!(inner
                     .iter()
-                    .zip(vec![(0., 0.)].into_iter())
-                    .all(|(p, (x, y))| float_eq(p.x, x) && float_eq(p.y, y)));
+                    .map(|p| (p.x.get(), p.y.get()))
+                    .zip(vec![(0., 0.1)].into_iter())
+                    .all(|(p, (x, y))| float_eq(p.0, x) && float_eq(p.1, y)));
             }
         }
     }
 
-    mod formation_group {
-        use super::*;
-    }
+    // mod formation_group {
+    //     use super::*;
+    // }
 }

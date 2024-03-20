@@ -1,8 +1,14 @@
 # cargo-features = ["codegen-backend"]
 
 [workspace]
-resolver = "2"                                                       # Important! wgpu/bevy needs this!
-members = ["gbp_linalg", "gbp_multivariate_normal", "gbpplanner-rs"]
+resolver = "2" # Important! wgpu/bevy needs this!
+members = [
+  "crates/percentage",
+  "crates/unit_interval",
+  "gbp_linalg",
+  "gbp_multivariate_normal",
+  "gbpplanner-rs",
+]
 
 [workspace.package]
 version = "0.2.0"

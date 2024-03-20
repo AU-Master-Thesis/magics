@@ -64,9 +64,23 @@ impl TryFrom<f64> for UnitInterval {
     }
 }
 
+impl TryFrom<f32> for UnitInterval {
+    type Error = UnitIntervalError;
+
+    fn try_from(value: f32) -> Result<UnitInterval> {
+        UnitInterval::new(f64::from(value))
+    }
+}
+
 impl From<UnitInterval> for f64 {
     fn from(unit_interval: UnitInterval) -> f64 {
         unit_interval.0
+    }
+}
+
+impl From<UnitInterval> for f32 {
+    fn from(unit_interval: UnitInterval) -> f32 {
+        unit_interval.0 as f32
     }
 }
 

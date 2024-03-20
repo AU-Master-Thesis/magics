@@ -40,8 +40,9 @@ impl MultivariateNormal {
     ///
     /// # Example:
     /// ```
-    /// use gbp_linalg::{array, Matrix, Vector};
+    /// use gbp_linalg::{Matrix, Vector};
     /// use gbp_multivariate_normal::{MultivariateNormal, Result};
+    /// use ndarray::array;
     /// fn main() -> Result<()> {
     ///     let information = array![1.0, 2.0, 3.0];
     ///     let precision = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
@@ -86,8 +87,9 @@ impl MultivariateNormal {
     ///
     /// # Example:
     /// ```
-    /// use gbp_linalg::{array, Matrix, Vector};
+    /// use gbp_linalg::{Matrix, Vector};
     /// use gbp_multivariate_normal::{MultivariateNormal, MultivariateNormalError, Result};
+    /// use ndarray::array;
     /// fn main() -> Result<()> {
     ///     let mean = array![1.0, 2.0, 3.0];
     ///     let covariance = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
