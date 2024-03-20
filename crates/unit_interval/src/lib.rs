@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 //! A module for working with unit intervals.
 
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// A value in the closed interval [0.0, 1.0].
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -56,16 +56,6 @@ impl UnitInterval {
     }
 }
 
-impl<'de> Deserialize<'de> for UnitInterval {
-    fn deserialize<D>(deserializer: D) -> std::result::Result<UnitInterval, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = f64::deserialize(deserializer)?;
-        UnitInterval::new(value).map_err(serde::de::Error::custom)
-    }
-}
-
 impl TryFrom<f64> for UnitInterval {
     type Error = UnitIntervalError;
 
@@ -85,6 +75,25 @@ impl std::ops::Deref for UnitInterval {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<'de> Deserialize<'de> for UnitInterval {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<UnitInterval, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = f64::deserialize(deserializer)?;
+        UnitInterval::new(value).map_err(serde::de::Error::custom)
+    }
+}
+
+impl Serialize for UnitInterval {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
     }
 }
 
