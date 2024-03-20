@@ -12,16 +12,17 @@ rust-version.workspace = true
 [dependencies]
 percentage = { path = "../crates/percentage" }
 unit_interval = { path = "../crates/unit_interval" }
+min_len_vec = { path = "../crates/min_len_vec" }
 gbp_linalg = { path = "../gbp_linalg" }
 gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
-gbp_formation = { path = "../gbp_formation" }
+# gbp_formation = { path = "../gbp_formation" }
 
 bevy = { version = "0.13.0", default-features = true, features = [
   # "wayland",
   # "dynamic_linking",
 ] }
 bevy-inspector-egui = "0.23.2"
-bevy_egui = "0.25.0"
+bevy_egui = "0.26.0"
 egui_extras = { version = "0.26.2", features = ["all_loaders"] }
 image = { version = "0.24.8", default-features = false, features = ["png"] }
 leafwing-input-manager = "0.13.3"

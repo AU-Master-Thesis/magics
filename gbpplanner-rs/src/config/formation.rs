@@ -3,6 +3,7 @@
 use std::{num::NonZeroUsize, time::Duration};
 
 use bevy::ecs::system::Resource;
+use min_len_vec::OneOrMore;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 use unit_interval::UnitInterval;
@@ -89,8 +90,6 @@ impl TryFrom<(f64, f64)> for RelativePoint {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShapeError {
-    #[error("radius cannot be negative")]
-    NegativeRadius,
     #[error("A polygon with 0 vertices is not allowed")]
     PolygonWithZeroVertices,
 }
@@ -102,7 +101,7 @@ pub enum Shape {
         radius: StrictlyPositiveFinite<f32>,
         center: RelativePoint,
     },
-    Polygon(Vec<RelativePoint>),
+    Polygon(OneOrMore<RelativePoint>),
     Line((RelativePoint, RelativePoint)),
 }
 
@@ -123,7 +122,7 @@ impl Shape {
         matches!(self, Self::Circle { .. })
     }
 
-    pub fn as_polygon(&self) -> Option<&Vec<RelativePoint>> {
+    pub fn as_polygon(&self) -> Option<&OneOrMore<RelativePoint>> {
         if let Self::Polygon(v) = self {
             Some(v)
         } else {
@@ -141,7 +140,7 @@ macro_rules! polygon {
         	RelativePoint::new($x, $y).expect("both x and y are within the interval [0.0, 1.0]")
             ),+
         ];
-        Shape::Polygon(vertices)
+        Shape::Polygon(OneOrMore::new(vertices).expect("at least one vertex"))
     }}
 }
 
@@ -165,8 +164,6 @@ pub struct Waypoint {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FormationError {
-    #[error("time cannot be negative")]
-    NegativeTime,
     #[error("Shape error: {0}")]
     ShapeError(#[from] ShapeError),
     #[error(
@@ -176,8 +173,6 @@ pub enum FormationError {
     LessThanTwoWaypoints,
     #[error("FormationGroup has no formations")]
     NoFormations,
-    #[error("A formation has to contain at least one robot")]
-    NoRobots,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -263,15 +258,16 @@ impl Formation {
         } else {
             // TODO: finish
             for (index, waypoint) in self.waypoints.iter().enumerate() {
-                match &waypoint.shape {
-                    Shape::Polygon(vertices) if vertices.is_empty() => {
-                        return Err(ShapeError::PolygonWithZeroVertices.into())
-                    }
-                    // Shape::Circle { radius, center: _ } if *radius <= 0.0 => {
-                    //     return Err(ShapeError::NegativeRadius.into())
-                    // }
-                    _ => continue,
-                }
+                // match &waypoint.shape {
+                //     Shape::Polygon(vertices) if vertices.is_empty() => {
+                //         return
+                // Err(ShapeError::PolygonWithZeroVertices.into())
+                //     }
+                //     // Shape::Circle { radius, center: _ } if *radius <= 0.0
+                // => {     //     return
+                // Err(ShapeError::NegativeRadius.into())     //
+                // }     _ => continue,
+                // }
             }
             Ok(self)
         }
@@ -496,7 +492,7 @@ mod tests {
                 let shape = polygon![(0.1, 0.1)];
                 assert!(shape.is_polygon());
                 let inner = shape.as_polygon().expect("know it is a Polygon");
-                assert!(!inner.is_empty());
+                // assert!(!inner.is_empty());
                 assert_eq!(inner.len(), 1);
 
                 assert!(inner
@@ -511,13 +507,13 @@ mod tests {
                 let shape = polygon![(0.35, 0.35), (0.35, 0.5), (0.7, 0.8)];
                 assert!(shape.is_polygon());
                 let inner = shape.as_polygon().expect("know it is a Polygon");
-                assert!(!inner.is_empty());
+                // assert!(!inner.is_empty());
                 assert_eq!(inner.len(), 3);
 
                 assert!(inner
                     .iter()
                     .map(|p| (p.x.get(), p.y.get()))
-                    .zip(vec![(0., 0.), (1., 1.), (5., -8.)].into_iter())
+                    .zip(vec![(0.35, 0.35), (0.35, 0.5), (0.7, 0.8)].into_iter())
                     .all(|(p, (x, y))| float_eq(p.0, x) && float_eq(p.1, y)));
             }
 
@@ -527,7 +523,7 @@ mod tests {
                 let shape = polygon![(0., 0.1),];
                 assert!(shape.is_polygon());
                 let inner = shape.as_polygon().expect("know it is a Polygon");
-                assert!(!inner.is_empty());
+                // assert!(!inner.is_empty());
                 assert_eq!(inner.len(), 1);
 
                 assert!(inner

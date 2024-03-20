@@ -180,7 +180,7 @@ fn spawn_formation(
     debug_assert_eq!(lerp_amounts.len(), formation.robots.get());
 
     let initial_position_of_each_robot = map_positions(&first_wp.shape, &lerp_amounts, &world_dims);
-    dbg!(&initial_position_of_each_robot);
+    // dbg!(&initial_position_of_each_robot);
 
     // The first vector is the waypoints for the first robot, the second vector is
     // the waypoints for the second robot, etc.
@@ -196,14 +196,7 @@ fn spawn_formation(
         waypoints_of_each_robot.push(waypoints);
     }
 
-    dbg!(&waypoints_of_each_robot);
-
-    // let waypoints_of_each_robot = formation
-    //     .waypoints
-    //     .iter()
-    //     .skip(1)
-    //     .map(|wp| map_positions(&wp.shape, &lerp_amounts, &world_dims))
-    //     .collect::<Vec<_>>();
+    // dbg!(&waypoints_of_each_robot);
 
     // [(a, b, c), (d, e, f), (g, h, i)]
     //  -> [(a, d, g), (b, e, h), (c, f, i)]
@@ -326,7 +319,6 @@ fn randomly_place_nonoverlapping_circles_along_line_segment(
 ) -> Option<Vec<f32>> {
     let num_circles = num_circles.get();
     let max_attempts = max_attempts.get();
-    // let mut rng = rand::thread_rng();
     let mut lerp_amounts: Vec<f32> = Vec::with_capacity(num_circles);
     let mut placed: Vec<Vec2> = Vec::with_capacity(num_circles);
 
@@ -353,54 +345,6 @@ fn randomly_place_nonoverlapping_circles_along_line_segment(
     }
 
     None
-}
-
-fn random_positions_on_shape(shape: &Shape, amount: usize, world_size: f32) -> Vec<f64> {
-    let mut rng = rand::thread_rng();
-    // let mut positions = Vec::with_capacity(amount);
-
-    match shape {
-        Shape::Line((start, end)) => {
-            // let start = Vec2::from(start);
-            // let end = Vec2::from(end);
-            (0..amount).map(|_| {
-                rng.gen_range(0.0..1.0)
-            }).collect()
-            // for _ in 0..amount {
-            //     // lerp a random point between start and end
-            //     // TODO: ensure no robots spawn atop each other
-            //     let lerp_amount = rng.gen_range(0.0..1.0);
-            // }
-        },
-        _ => unimplemented!()
-        // Shape::Circle { radius, center } => {
-        //     for _ in 0..amount {
-        //         // generate a random angle and distance from the center
-        //         let angle = rng.gen_range(0.0..std::f32::consts::PI * 2.0);
-        //         // let distance = rng.gen_range(0.0..*radius);
-        //         let distance = radius;
-        //         let new_position = Vec2::new(
-        //             center.x + angle.cos() * distance,
-        //             center.y + angle.sin() * distance,
-        //         );
-        //         positions.push(new_position);
-        //     }
-        // }
-        // Shape::Polygon(points) => {
-        //     // TODO: implement
-        //     // Something about making the line segments between the points and then
-        //     // randomly selecting a point along the total length of the line segments
-        //     // and then finding the point on the line segment that is that distance from the
-        //     // start
-        //     todo!();
-        // }
-    }
-
-    // positions
-    //     .into_iter()
-    //     .map(|p| world_size * (p - 0.5))
-    //     // .map(|p| world_size * (p))
-    //     .collect()
 }
 
 #[cfg(test)]
