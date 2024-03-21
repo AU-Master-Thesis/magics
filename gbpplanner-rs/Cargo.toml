@@ -53,6 +53,7 @@ open = "5.1.0"
 tap = "1.0.1"
 
 typed_floats = { version = "1.0.0", features = ["serde"] }
+serde_yaml = "0.9.33"
 
 [lints]
 workspace = true

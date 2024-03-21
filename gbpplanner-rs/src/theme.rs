@@ -244,7 +244,7 @@ impl CatppuccinThemeWidgetsExt for Widgets {
                 rounding:     Rounding::same(5.0),
                 expansion:    0.0,
             },
-            inactive:       WidgetVisuals {
+            inactive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
                 bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
                 bg_stroke:    Default::default(), // default = 0 width stroke
@@ -252,7 +252,7 @@ impl CatppuccinThemeWidgetsExt for Widgets {
                 rounding:     Rounding::same(5.0),
                 expansion:    0.0,
             },
-            hovered:        WidgetVisuals {
+            hovered: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
                 bg_fill:      Color32::from_catppuccin_colour(flavour.surface2()),
                 bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), /* e.g. hover over window edge or button */
@@ -260,7 +260,7 @@ impl CatppuccinThemeWidgetsExt for Widgets {
                 rounding:     Rounding::same(7.0),
                 expansion:    2.0,
             },
-            active:         WidgetVisuals {
+            active: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
                 bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
                 bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
@@ -268,7 +268,7 @@ impl CatppuccinThemeWidgetsExt for Widgets {
                 rounding:     Rounding::same(7.0),
                 expansion:    2.0,
             },
-            open:           WidgetVisuals {
+            open: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
                 bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
                 bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
@@ -536,7 +536,7 @@ fn handle_obstacles(
     catppuccin_theme: Res<CatppuccinTheme>,
     mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query_obstacle: Query<&mut Handle<StandardMaterial>, With<environment::MapCell>>,
+    mut query_obstacle: Query<&mut Handle<StandardMaterial>, With<environment::TileCoordinates>>,
 ) {
     for _ in theme_changed_event.read() {
         for handle in query_obstacle.iter_mut() {

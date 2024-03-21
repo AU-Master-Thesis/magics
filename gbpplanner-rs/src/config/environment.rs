@@ -1,11 +1,12 @@
 use angle::Angle;
-use bevy::ecs::system::Resource;
+use bevy::ecs::{system::Resource, world::error};
 use gbp_linalg::Float;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 use unit_interval::UnitInterval;
 
 use super::geometry::RelativePoint;
+use crate::environment::TileCoordinates;
 
 // use super::geometry::Shape;
 
@@ -133,15 +134,15 @@ impl PlaceableShape {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Obstacle {
-    pub cell:     Cell,
-    pub shape:    PlaceableShape,
+    pub tile_coordinates: TileCoordinates,
+    pub shape: PlaceableShape,
     pub rotation: Rotation,
 }
 
 impl Obstacle {
     pub fn new((row, col): (usize, usize), shape: PlaceableShape, rotation: Angle) -> Self {
         Obstacle {
-            cell: Cell { row, col },
+            tile_coordinates: TileCoordinates::new(row, col),
             shape,
             rotation: Rotation(rotation),
         }
@@ -186,13 +187,23 @@ pub struct Tiles {
 impl Tiles {
     pub fn empty() -> Self {
         Tiles {
-            grid:     TileGrid(vec![" ".to_string()]),
+            grid:     TileGrid(vec!["█".to_string()]),
             settings: TileSettings {
                 tile_size:       0.0,
                 path_width:      0.0,
                 obstacle_height: 0.0,
             },
         }
+    }
+
+    pub fn with_tile_size(mut self, tile_size: f32) -> Self {
+        self.settings.tile_size = tile_size;
+        self
+    }
+
+    pub fn with_obstacle_height(mut self, obstacle_height: f32) -> Self {
+        self.settings.obstacle_height = obstacle_height;
+        self
     }
 }
 
@@ -216,7 +227,7 @@ pub struct Environment {
 
 impl Default for Environment {
     fn default() -> Self {
-        Environment::simple()
+        Environment::intersection()
     }
 }
 
@@ -228,6 +239,8 @@ pub enum ParseError {
     Ron(#[from] ron::Error),
     #[error("TOML error: {0}")]
     Toml(#[from] toml::de::Error),
+    #[error("YAML error: {0}")]
+    Yaml(#[from] serde_yaml::Error),
     #[error("Validation error: {0}")]
     InvalidEnvironment(#[from] EnvironmentError),
 }
@@ -267,11 +280,15 @@ impl Environment {
     }
 
     pub fn parse(contents: &str) -> Result<Self, ParseError> {
-        let config: Environment = toml::from_str::<Environment>(contents)
-            .map_err(ParseError::from)?
-            .validate()
-            .map_err(EnvironmentError::from)?;
-        Ok(config)
+        // ron::from_str::<Environment>(contents)
+        //     .map_err(|span| span.code)?
+        //     .validate()
+        //     .map_err(Into::into)
+        // with yaml
+
+        serde_yaml::from_str::<Environment>(contents)
+            .map_err(Into::into)
+            .and_then(|env| env.validate().map_err(Into::into))
     }
 
     /// Ensure that the [`Environment`] is valid
@@ -367,7 +384,9 @@ impl Environment {
 
     pub fn circle() -> Self {
         Environment {
-            tiles:     Tiles::empty(),
+            tiles:     Tiles::empty()
+                .with_tile_size(100.0)
+                .with_obstacle_height(1.0),
             obstacles: Obstacles(vec![
                 Obstacle::new(
                     (0, 0),

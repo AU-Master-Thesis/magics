@@ -55,7 +55,6 @@ struct Cli {
     dump_default_environment: bool,
 
     /// The environment to dump
-    /// (e.g. "intersection, circle, intermediate, complex")
     #[arg(short, long, value_name = "ENVIRONMENT_TYPE")]
     dump_environment: Option<EnvironmentType>,
 
@@ -153,6 +152,27 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    // dump_environment
+    if let Some(dump_environment) = cli.dump_environment {
+        let env = match dump_environment {
+            EnvironmentType::Intersection => Environment::intersection(),
+            EnvironmentType::Circle => Environment::circle(),
+            EnvironmentType::Intermediate => Environment::intermediate(),
+            EnvironmentType::Complex => Environment::complex(),
+        };
+        println!("{}", serde_yaml::to_string(&env)?);
+        // println!("{}", toml::to_string_pretty(&env)?);
+        // println!(
+        //     "{}",
+        //     ron::ser::to_string_pretty(
+        //         &env,
+        //         ron::ser::PrettyConfig::new().indentor("  ".to_string())
+        //     )?
+        // );
+
+        return Ok(());
+    }
+
     let config = read_config(&cli)?;
 
     // formation
@@ -161,6 +181,7 @@ fn main() -> anyhow::Result<()> {
 
     // environment
     let environment_file_path = PathBuf::from(&config.environment.clone());
+    println!("environment_file_path: {:?}", environment_file_path);
     let environment = Environment::from_file(&environment_file_path)?;
     let window_mode = if cli.fullscreen {
         WindowMode::BorderlessFullscreen

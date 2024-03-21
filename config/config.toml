@@ -1,6 +1,6 @@
 # environment = "junction"
-environment_image = "junction"
-environment = "./config/environment.toml"
+environment_image = "circle_cluttered"
+environment = "./config/environment.yaml"
 formation_group = "./config/formation.ron"
 
 [interaction]
@@ -20,7 +20,7 @@ waypoints = true
 uncertainty = true
 paths = false
 height-map = false
-flat-map = false
+flat-map = true
 
 [gbp]
 sigma-pose-fixed = 0.0000000000000010000000036274937
