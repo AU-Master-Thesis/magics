@@ -2,7 +2,7 @@
 
 [workspace]
 resolver = "2" # Important! wgpu/bevy needs this!
-members = [
+members = [ "crates/angle",
   "crates/min_len_vec",
   "crates/percentage",
   "crates/unit_interval",

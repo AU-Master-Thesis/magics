@@ -13,6 +13,7 @@ rust-version.workspace = true
 percentage = { path = "../crates/percentage" }
 unit_interval = { path = "../crates/unit_interval" }
 min_len_vec = { path = "../crates/min_len_vec" }
+angle = { path = "../crates/angle" }
 gbp_linalg = { path = "../gbp_linalg" }
 gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
 # gbp_formation = { path = "../gbp_formation" }

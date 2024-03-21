@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 use unit_interval::UnitInterval;
 
+use crate::polygon;
+
 /// A relative point within the boudaries of the map.
 /// ...
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
@@ -73,6 +75,78 @@ impl Shape {
             None
         }
     }
+
+    // /// General triangle constructor
+    // /// Takes a baseline, a height
+    // /// Returns a `Shape::Polygon` with the vertices of the triangle
+    // pub fn triangle(base_width: f64, height: f64, mid_point: UnitInterval) ->
+    // Shape {     let half_base = base_width / 2.0;
+    //     let half_height = height / 2.0;
+    //     let top = RelativePoint::new(mid_point.get(), mid_point.get() +
+    // half_height).unwrap();     let left =
+    //         RelativePoint::new(mid_point.get() - half_base, mid_point.get() -
+    // half_height).unwrap();     let right =
+    //         RelativePoint::new(mid_point.get() + half_base, mid_point.get() -
+    // half_height).unwrap();     polygon![
+    //         (top.x.get(), top.y.get()),
+    //         (left.x.get(), left.y.get()),
+    //         (right.x.get(), right.y.get())
+    //     ]
+    // }
+
+    // /// General rectangle constructor
+    // /// Takes a width and a height
+    // /// Returns a `Shape::Polygon` with the vertices of the rectangle
+    // pub fn rectangle(width: f64, height: f64, mid_point: UnitInterval) -> Shape {
+    //     let half_width = width / 2.0;
+    //     let half_height = height / 2.0;
+    //     let top_left =
+    //         RelativePoint::new(mid_point.get() - half_width, mid_point.get() +
+    // half_height)             .unwrap();
+    //     let top_right =
+    //         RelativePoint::new(mid_point.get() + half_width, mid_point.get() +
+    // half_height)             .unwrap();
+    //     let bottom_left =
+    //         RelativePoint::new(mid_point.get() - half_width, mid_point.get() -
+    // half_height)             .unwrap();
+    //     let bottom_right =
+    //         RelativePoint::new(mid_point.get() + half_width, mid_point.get() -
+    // half_height)             .unwrap();
+    //     polygon![
+    //         (top_left.x.get(), top_left.y.get()),
+    //         (top_right.x.get(), top_right.y.get()),
+    //         (bottom_right.x.get(), bottom_right.y.get()),
+    //         (bottom_left.x.get(), bottom_left.y.get())
+    //     ]
+    // }
+
+    // /// General square constructor
+    // /// Takes a side length
+    // /// Returns a `Shape::Polygon` with the vertices of the square
+    // pub fn square(side_length: f64) -> Shape {
+    //     let half_side = side_length / 2.0;
+    //     let top_left = RelativePoint::new(0.5 - half_side, 0.5 +
+    // half_side).unwrap();     let top_right = RelativePoint::new(0.5 +
+    // half_side, 0.5 + half_side).unwrap();     let bottom_right =
+    // RelativePoint::new(0.5 + half_side, 0.5 - half_side).unwrap();
+    //     let bottom_left = RelativePoint::new(0.5 - half_side, 0.5 -
+    // half_side).unwrap();     polygon![
+    //         (top_left.x.get(), top_left.y.get()),
+    //         (top_right.x.get(), top_right.y.get()),
+    //         (bottom_right.x.get(), bottom_right.y.get()),
+    //         (bottom_left.x.get(), bottom_left.y.get())
+    //     ]
+    // }
+
+    // /// General circle constructor
+    // /// Takes a radius
+    // /// Returns a `Shape::Circle` with the center at origin
+    // pub fn circle(radius: f32) -> Shape {
+    //     Shape::Circle {
+    //         radius: StrictlyPositiveFinite::<f32>::new(radius).unwrap(),
+    //         center: RelativePoint::new(0.5, 0.5).unwrap(),
+    //     }
+    // }
 }
 
 /// Shorthand to construct `Shape::Polygon(vec![Point {x: $x, y: $y}, ... ])`

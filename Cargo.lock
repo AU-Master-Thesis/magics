@@ -175,6 +175,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "angle"
+version = "0.2.0"
+dependencies = [
+ "approx",
+ "serde",
+]
+
+[[package]]
 name = "anstream"
 version = "0.6.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2199,6 +2207,7 @@ dependencies = [
 name = "gbpplanner-rs"
 version = "0.2.0"
 dependencies = [
+ "angle",
  "anyhow",
  "approx",
  "bevy",

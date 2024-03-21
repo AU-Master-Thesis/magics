@@ -42,7 +42,7 @@ fn build_system(
     env_config: Res<Environment>,
     scene_assets: Res<SceneAssets>,
 ) {
-    let matrix = &env_config.grid;
+    let matrix = &env_config.tiles.grid;
 
     let obstacle_height = env_config.obstacle_height();
     let obstacle_y = obstacle_height / 2.0;

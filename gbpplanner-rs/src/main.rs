@@ -20,7 +20,7 @@ use bevy::{
     window::{WindowMode, WindowTheme},
 };
 use clap::Parser;
-use config::Environment;
+use config::{environment::EnvironmentType, Environment};
 
 use crate::{
     asset_loader::AssetLoaderPlugin,
@@ -44,21 +44,27 @@ struct Cli {
     #[arg(short, long, value_name = "CONFIG_FILE")]
     config: Option<std::path::PathBuf>,
 
-    #[arg(long)]
     /// Dump the default config to stdout
+    #[arg(long)]
     dump_default_config:      bool,
-    #[arg(long)]
     /// Dump the default formation config to stdout
+    #[arg(long)]
     dump_default_formation:   bool,
-    #[arg(long)]
     /// Dump the default environment config to stdout
-    dump_default_environment: bool,
     #[arg(long)]
-    /// Run the app without a window for rendering the environment
-    headless:                 bool,
+    dump_default_environment: bool,
 
-    #[arg(short, long)]
+    /// The environment to dump
+    /// (e.g. "intersection, circle, intermediate, complex")
+    #[arg(short, long, value_name = "ENVIRONMENT_TYPE")]
+    dump_environment: Option<EnvironmentType>,
+
+    /// Run the app without a window for rendering the environment
+    #[arg(long)]
+    headless: bool,
+
     /// Start the app in fullscreen mode
+    #[arg(short, long)]
     fullscreen: bool,
 }
 

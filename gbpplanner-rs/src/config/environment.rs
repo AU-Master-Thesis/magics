@@ -1,13 +1,19 @@
+use angle::Angle;
 use bevy::ecs::system::Resource;
+use gbp_linalg::Float;
 use serde::{Deserialize, Serialize};
+use typed_floats::StrictlyPositiveFinite;
+use unit_interval::UnitInterval;
 
-use super::geometry::Shape;
+use super::geometry::RelativePoint;
+
+// use super::geometry::Shape;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Grid(Vec<String>);
+pub struct TileGrid(Vec<String>);
 
-impl Grid {
+impl TileGrid {
     pub fn iter(&self) -> std::slice::Iter<String> {
         self.0.iter()
     }
@@ -32,6 +38,10 @@ impl Grid {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub struct Rotation(Angle);
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Cell {
     pub row: usize,
     pub col: usize,
@@ -39,17 +49,169 @@ pub struct Cell {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct shapes(Vec<(Cell, Shape)>);
+pub enum PlaceableShape {
+    Circle {
+        /// The radius of the circle
+        /// This is a value in the range [0, 1]
+        radius: StrictlyPositiveFinite<Float>,
+        /// The center of the circle,
+        center: RelativePoint,
+    },
+    Triangle {
+        /// The length of the base of the triangle
+        /// This is a value in the range [0, 1]
+        base_length: StrictlyPositiveFinite<Float>,
+        /// The height of the triangle
+        /// Intersects the base perpendicularly at the mid-point
+        height:      StrictlyPositiveFinite<Float>,
+        /// The mid-point of the base of the triangle
+        /// This is a value in the range [0, 1]
+        /// Defines where the height of the triangle intersects the base
+        /// perpendicularly
+        mid_point:   UnitInterval,
+    },
+    RegularPolygon {
+        /// The number of sides of the polygon
+        sides:       usize,
+        /// Side length of the polygon
+        side_length: StrictlyPositiveFinite<Float>,
+        /// Where to place the center of the polygon
+        translation: RelativePoint,
+    },
+}
+
+impl PlaceableShape {
+    pub fn circle(radius: Float, center: (Float, Float)) -> Self {
+        PlaceableShape::Circle {
+            radius: StrictlyPositiveFinite::<Float>::new(radius).unwrap(),
+            center: RelativePoint::new(center.0, center.1).unwrap(),
+        }
+    }
+
+    pub fn triangle(base_length: Float, height: Float, mid_point: Float) -> Self {
+        PlaceableShape::Triangle {
+            base_length: StrictlyPositiveFinite::<Float>::new(base_length).unwrap(),
+            height:      StrictlyPositiveFinite::<Float>::new(height).unwrap(),
+            mid_point:   UnitInterval::new(mid_point).unwrap(),
+        }
+    }
+
+    pub fn rectangle(width: Float, height: Float, center: (Float, Float)) -> Self {
+        let half_width = width / 2.0;
+        let half_height = height / 2.0;
+        let top = RelativePoint::new(center.0, center.1 + half_height).unwrap();
+        let left = RelativePoint::new(center.0 - half_width, center.1 - half_height).unwrap();
+        let right = RelativePoint::new(center.0 + half_width, center.1 - half_height).unwrap();
+        PlaceableShape::RegularPolygon {
+            sides:       4,
+            side_length: StrictlyPositiveFinite::<Float>::new(width).unwrap(),
+            translation: RelativePoint::new(center.0, center.1).unwrap(),
+        }
+    }
+
+    pub fn square(side_length: Float, center: (Float, Float)) -> Self {
+        let half_side = side_length / 2.0;
+        let top = RelativePoint::new(center.0, center.1 + half_side).unwrap();
+        let left = RelativePoint::new(center.0 - half_side, center.1 - half_side).unwrap();
+        let right = RelativePoint::new(center.0 + half_side, center.1 - half_side).unwrap();
+        PlaceableShape::RegularPolygon {
+            sides:       4,
+            side_length: StrictlyPositiveFinite::<Float>::new(side_length).unwrap(),
+            translation: RelativePoint::new(center.0, center.1).unwrap(),
+        }
+    }
+
+    pub fn regular_polygon(sides: usize, side_length: Float, translation: (Float, Float)) -> Self {
+        PlaceableShape::RegularPolygon {
+            sides,
+            side_length: StrictlyPositiveFinite::<Float>::new(side_length).unwrap(),
+            translation: RelativePoint::new(translation.0, translation.1).unwrap(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Obstacle {
+    pub cell:     Cell,
+    pub shape:    PlaceableShape,
+    pub rotation: Rotation,
+}
+
+impl Obstacle {
+    pub fn new((row, col): (usize, usize), shape: PlaceableShape, rotation: Angle) -> Self {
+        Obstacle {
+            cell: Cell { row, col },
+            shape,
+            rotation: Rotation(rotation),
+        }
+    }
+}
+
+/// Struct to represent a list of shapes that can be placed in the map [`Grid`]
+/// Each entry contains a [`Cell`] and a [`PlaceableShape`]
+/// - The [`Cell`] represents which tile in the [`Grid`] the shape should be
+///   placed
+/// - The [`PlaceableShape`] represents the shape to be placed, and the local
+///   cell translation
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Obstacles(Vec<Obstacle>);
+
+impl Obstacles {
+    pub fn empty() -> Self {
+        Obstacles(Vec::new())
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<Obstacle> {
+        self.0.iter()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct TileSettings {
+    pub tile_size:       f32,
+    pub path_width:      f32,
+    pub obstacle_height: f32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Tiles {
+    pub grid:     TileGrid,
+    pub settings: TileSettings,
+}
+
+impl Tiles {
+    pub fn empty() -> Self {
+        Tiles {
+            grid:     TileGrid(vec![" ".to_string()]),
+            settings: TileSettings {
+                tile_size:       0.0,
+                path_width:      0.0,
+                obstacle_height: 0.0,
+            },
+        }
+    }
+}
+
+#[derive(clap::ValueEnum, Default, Clone, Copy)]
+pub enum EnvironmentType {
+    #[default]
+    Intersection,
+    Intermediate,
+    Complex,
+    Circle,
+}
 
 /// **Bevy** [`Resource`]
-/// The en
+/// The environment configuration for the simulation
 #[derive(Debug, Serialize, Deserialize, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub struct Environment {
-    pub grid:        Grid,
-    path_width:      f32,
-    obstacle_height: f32,
-    tile_size:       f32,
+    pub tiles:     Tiles,
+    pub obstacles: Obstacles,
 }
 
 impl Default for Environment {
@@ -116,12 +278,13 @@ impl Environment {
     /// 1. The matrix representation is not empty
     /// 2. All rows in the matrix representation are the same length
     pub fn validate(self) -> Result<Self, EnvironmentError> {
-        if self.grid.is_empty() {
+        if self.tiles.grid.is_empty() {
             Err(EnvironmentError::EmptyGrid)
         } else if self
+            .tiles
             .grid
             .iter()
-            .any(|row| row.chars().count() != self.grid.cols())
+            .any(|row| row.chars().count() != self.tiles.grid.cols())
         {
             Err(EnvironmentError::DifferentLengthRows)
         } else {
@@ -136,61 +299,104 @@ impl Environment {
         tile_size: f32,
     ) -> Self {
         Environment {
-            grid: Grid(matrix_representation),
-            path_width,
-            obstacle_height,
-            tile_size,
+            tiles:     Tiles {
+                grid:     TileGrid(matrix_representation),
+                settings: TileSettings {
+                    tile_size,
+                    path_width,
+                    obstacle_height,
+                },
+            },
+            obstacles: Obstacles::empty(),
         }
     }
 
-    pub fn simple() -> Self {
+    pub fn intersection() -> Self {
         Environment {
-            grid:            Grid(vec!["┼".to_string()]),
-            path_width:      0.1325,
-            obstacle_height: 1.0,
-            tile_size:       100.0,
+            tiles:     Tiles {
+                grid:     TileGrid(vec!["┼".to_string()]),
+                settings: TileSettings {
+                    tile_size:       100.0,
+                    path_width:      0.1325,
+                    obstacle_height: 1.0,
+                },
+            },
+            obstacles: Obstacles::empty(),
         }
     }
 
     #[rustfmt::skip]
     pub fn intermediate() -> Self {
         Environment {
-            grid: Grid(vec![
-                "┌┬┐ ".to_string(),
-                "┘└┼┬".to_string(),
-                "  └┘".to_string()
-            ]),
-            path_width: 0.1325,
-            obstacle_height: 1.0,
-            tile_size: 50.0,
+            tiles: Tiles {
+                grid: TileGrid(vec![
+                    "┌┬┐ ".to_string(),
+                    "┘└┼┬".to_string(),
+                    "  └┘".to_string()
+                ]),
+                settings: TileSettings {
+                    tile_size: 50.0,
+                    path_width: 0.1325,
+                    obstacle_height: 1.0,
+                }
+            },
+            obstacles: Obstacles::empty(),
         }
     }
 
     #[rustfmt::skip]
     pub fn complex() -> Self {
         Environment {
-            grid: Grid(vec![
-                "┌─┼─┬─┐┌".to_string(),
-                "┼─┘┌┼┬┼┘".to_string(),
-                "┴┬─┴┼┘│ ".to_string(),
-                "┌┴┐┌┼─┴┬".to_string(),
-                "├─┴┘└──┘".to_string(),
+            tiles: Tiles {
+                grid: TileGrid(vec![
+                    "┌─┼─┬─┐┌".to_string(),
+                    "┼─┘┌┼┬┼┘".to_string(),
+                    "┴┬─┴┼┘│ ".to_string(),
+                    "┌┴┐┌┼─┴┬".to_string(),
+                    "├─┴┘└──┘".to_string(),
+                ]),
+                settings: TileSettings {
+                    tile_size: 25.0,
+                    path_width: 0.4,
+                    obstacle_height: 1.0,
+                },
+            },
+            obstacles: Obstacles::empty(),
+        }
+    }
+
+    pub fn circle() -> Self {
+        Environment {
+            tiles:     Tiles::empty(),
+            obstacles: Obstacles(vec![
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::circle(0.1, (0.5, 0.5)),
+                    Angle::new(0.0).unwrap(),
+                ),
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::triangle(0.1, 0.1, 0.5),
+                    Angle::new(0.0).unwrap(),
+                ),
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::square(0.1, (0.75, 0.5)),
+                    Angle::new(0.0).unwrap(),
+                ),
             ]),
-            path_width: 0.4,
-            obstacle_height: 1.0,
-            tile_size: 25.0,
         }
     }
 
     pub fn path_width(&self) -> f32 {
-        self.path_width
+        self.tiles.settings.path_width
     }
 
     pub fn obstacle_height(&self) -> f32 {
-        self.obstacle_height
+        self.tiles.settings.obstacle_height
     }
 
     pub fn tile_size(&self) -> f32 {
-        self.tile_size
+        self.tiles.settings.tile_size
     }
 }

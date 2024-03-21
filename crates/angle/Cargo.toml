@@ -1,0 +1,17 @@
+[package]
+name = "angle"
+edition = "2021"
+version.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+approx = "0.5.1"
