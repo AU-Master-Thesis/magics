@@ -1,6 +1,8 @@
 use bevy::ecs::system::Resource;
 use serde::{Deserialize, Serialize};
 
+use super::geometry::Shape;
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Grid(Vec<String>);
@@ -35,9 +37,9 @@ pub struct Cell {
     pub col: usize,
 }
 
-// #[derive(Debug, Serialize, Deserialize)]
-// #[serde(rename_all = "kebab-case")]
-// pub struct shapes(Vec<(Cell, Shape)>);
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct shapes(Vec<(Cell, Shape)>);
 
 /// **Bevy** [`Resource`]
 /// The en

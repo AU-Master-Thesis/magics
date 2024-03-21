@@ -10,7 +10,7 @@ use super::robot::VariableTimestepsResource;
 use crate::{
     asset_loader::SceneAssets,
     config::{
-        formation::{RelativePoint, Shape},
+        geometry::{RelativePoint, Shape},
         Config, Formation, FormationGroup,
     },
     planner::robot::RobotBundle,

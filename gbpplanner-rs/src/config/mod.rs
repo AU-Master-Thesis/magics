@@ -1,5 +1,6 @@
 pub mod environment;
 pub mod formation;
+pub mod geometry;
 
 use std::num::NonZeroUsize;
 
