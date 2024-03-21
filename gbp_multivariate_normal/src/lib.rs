@@ -7,12 +7,19 @@ pub enum MultivariateNormalError {
     #[error("the precision matrix is not square, it has shape {0}x{1}")]
     NonSquarePrecisionMatrix(usize, usize),
     #[error(
-        "the length of the information vector ({0}) is not equal to the number of rows ({1}) or columns ({2}) of the precision matrix"
+        "the length of the information vector ({0}) is not equal to the number of rows ({1}) or \
+         columns ({2}) of the precision matrix"
     )]
     VectorLengthNotEqualMatrixShape(usize, usize, usize),
-    #[error("the covariance matrix is not invertible, which is required to calculate the precision matrix")]
+    #[error(
+        "the covariance matrix is not invertible, which is required to calculate the precision \
+         matrix"
+    )]
     NonInvertibleCovarianceMatrix,
-    #[error("the precision matrix is not invertible, which is required to calculate the covariance matrix")]
+    #[error(
+        "the precision matrix is not invertible, which is required to calculate the covariance \
+         matrix"
+    )]
     NonInvertiblePrecisionMatrix,
 }
 
@@ -22,10 +29,10 @@ pub type Result<T> = std::result::Result<T, MultivariateNormalError>;
 #[derive(Debug, Clone)]
 pub struct MultivariateNormal {
     information: Vector<Float>,
-    precision: Matrix<Float>,
-    mean: Vector<Float>,
+    precision:   Matrix<Float>,
+    mean:        Vector<Float>,
     /// Whether the mean needs to be updated
-    dirty: bool,
+    dirty:       bool,
 }
 
 impl MultivariateNormal {
@@ -33,8 +40,9 @@ impl MultivariateNormal {
     ///
     /// # Example:
     /// ```
+    /// use gbp_linalg::{Matrix, Vector};
     /// use gbp_multivariate_normal::{MultivariateNormal, Result};
-    /// use gbp_linalg::{Matrix, Vector, array};
+    /// use ndarray::array;
     /// fn main() -> Result<()> {
     ///     let information = array![1.0, 2.0, 3.0];
     ///     let precision = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
@@ -74,12 +82,14 @@ impl MultivariateNormal {
         }
     }
 
-    /// Create a new multivariate normal distribution from the mean and covariance matrix
+    /// Create a new multivariate normal distribution from the mean and
+    /// covariance matrix
     ///
     /// # Example:
     /// ```
+    /// use gbp_linalg::{Matrix, Vector};
     /// use gbp_multivariate_normal::{MultivariateNormal, MultivariateNormalError, Result};
-    /// use gbp_linalg::{Matrix, Vector, array};
+    /// use ndarray::array;
     /// fn main() -> Result<()> {
     ///     let mean = array![1.0, 2.0, 3.0];
     ///     let covariance = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
@@ -116,8 +126,9 @@ impl MultivariateNormal {
         }
     }
 
-    /// Returns the "dimension" of the multivariate normal distribution, which is the length of the information vector
-    /// equal to the number of rows and columns of the precision matrix.
+    /// Returns the "dimension" of the multivariate normal distribution, which
+    /// is the length of the information vector equal to the number of rows
+    /// and columns of the precision matrix.
     pub fn len(&self) -> usize {
         self.information.len()
     }
@@ -127,6 +138,7 @@ impl MultivariateNormal {
     pub fn information_vector(&self) -> &Vector<Float> {
         &self.information
     }
+
     /// Get the precision matrix of the multivariate normal distribution
     #[inline(always)]
     pub fn precision_matrix(&self) -> &Matrix<Float> {
@@ -156,7 +168,8 @@ impl MultivariateNormal {
     }
 
     /// Get the covariance matrix of the multivariate normal distribution
-    /// Returns an owned value `Matrix<Float>`, as the covariance matrix is not stored internally
+    /// Returns an owned value `Matrix<Float>`, as the covariance matrix is not
+    /// stored internally
     pub fn covariance(&self) -> Matrix<Float> {
         self.precision
             .inv()
@@ -165,13 +178,16 @@ impl MultivariateNormal {
 
     /// Set the information vector of the multivariate normal distribution
     ///
-    /// The motivation for this method is to allow the user to set the information vector directly,
-    /// without having to update the mean. For example if you have a loop where you add assign the information
+    /// The motivation for this method is to allow the user to set the
+    /// information vector directly, without having to update the mean. For
+    /// example if you have a loop where you add assign the information
     /// multiple times, it is wasteful to update the mean after each assignment.
     ///
     /// # Safety
-    /// No checks are performed to ensure that the given vector is the same length as the one stored
-    /// The mean is not updated after setting the information vector, so it is the responsibility of the caller to call [`Self::update()`] after setting the information vector
+    /// No checks are performed to ensure that the given vector is the same
+    /// length as the one stored The mean is not updated after setting the
+    /// information vector, so it is the responsibility of the caller to call
+    /// [`Self::update()`] after setting the information vector
     #[inline(always)]
     pub unsafe fn set_information_vector(&mut self, value: &Vector<Float>) {
         self.information.clone_from(value);
@@ -180,44 +196,55 @@ impl MultivariateNormal {
 
     /// Set the precision matrix of the multivariate normal distribution
     ///
-    /// The motivation for this method is to allow the user to set the precision matrix directly,
-    /// without having to update the mean. For example if you have a loop where you add assign the precision matrix
+    /// The motivation for this method is to allow the user to set the precision
+    /// matrix directly, without having to update the mean. For example if
+    /// you have a loop where you add assign the precision matrix
     /// multiple times, it is wasteful to update the mean after each assignment.
     ///
     /// # Safety
-    /// No checks are performed to ensure that the precision matrix is invertible
-    /// It is the responsibility of the caller to ensure that the precision matrix is invertible
-    /// The mean is not updated after setting the precision matrix, so it is the responsibility of the caller to call [`Self::update()`] after setting the precision matrix
+    /// No checks are performed to ensure that the precision matrix is
+    /// invertible It is the responsibility of the caller to ensure that the
+    /// precision matrix is invertible The mean is not updated after setting
+    /// the precision matrix, so it is the responsibility of the caller to call
+    /// [`Self::update()`] after setting the precision matrix
     #[inline(always)]
     pub unsafe fn set_precision_matrix(&mut self, value: &Matrix<Float>) {
         self.precision.clone_from(value);
         self.dirty = true;
     }
 
-    /// Add a vector to the information vector of the multivariate normal distribution
+    /// Add a vector to the information vector of the multivariate normal
+    /// distribution
     ///
-    /// The motivation for this method is to allow the user to interact with the information vector directly,
-    /// without having to update the mean. For example if you have a loop where you add assign the information
+    /// The motivation for this method is to allow the user to interact with the
+    /// information vector directly, without having to update the mean. For
+    /// example if you have a loop where you add assign the information
     /// multiple times, it is wasteful to update the mean after each assignment.
     ///
     /// # Safety
-    /// No checks are performed to ensure that the given vector is the same length as the one stored
-    /// The mean is not updated after setting the information vector, so it is the responsibility of the caller to call [`Self::update()`] after setting the information vector
+    /// No checks are performed to ensure that the given vector is the same
+    /// length as the one stored The mean is not updated after setting the
+    /// information vector, so it is the responsibility of the caller to call
+    /// [`Self::update()`] after setting the information vector
     pub unsafe fn add_assign_information_vector(&mut self, value: &Vector<Float>) {
         self.information += value;
         self.dirty = true;
     }
 
-    /// Add a matrix to the precision matrix of the multivariate normal distribution
+    /// Add a matrix to the precision matrix of the multivariate normal
+    /// distribution
     ///
-    /// The motivation for this method is to allow the user to interact with the information vector directly,
-    /// without having to update the mean. For example if you have a loop where you add assign the information
+    /// The motivation for this method is to allow the user to interact with the
+    /// information vector directly, without having to update the mean. For
+    /// example if you have a loop where you add assign the information
     /// multiple times, it is wasteful to update the mean after each assignment.
     ///
     /// # Safety
-    /// No checks are performed to ensure that the precision matrix is invertible
-    /// It is the responsibility of the caller to ensure that the precision matrix is invertible
-    /// The mean is not updated after setting the precision matrix, so it is the responsibility of the caller to call [`Self::update()`] after setting the precision matrix
+    /// No checks are performed to ensure that the precision matrix is
+    /// invertible It is the responsibility of the caller to ensure that the
+    /// precision matrix is invertible The mean is not updated after setting
+    /// the precision matrix, so it is the responsibility of the caller to call
+    /// [`Self::update()`] after setting the precision matrix
     pub unsafe fn add_assign_precision_matrix(&mut self, value: &Matrix<Float>) {
         self.precision += value;
         self.dirty = true;
@@ -225,7 +252,8 @@ impl MultivariateNormal {
 
     /// Update the mean of the multivariate normal distribution
     /// Returns true if the mean was updated, false otherwise
-    /// This method is meant to be called after using [`Self::set_information_vector()`] or [`Self::set_precision_matrix()`]
+    /// This method is meant to be called after using
+    /// [`Self::set_information_vector()`] or [`Self::set_precision_matrix()`]
     pub fn update(&mut self) -> bool {
         if self.dirty {
             self.mean = self.precision.dot(&self.information);
@@ -323,7 +351,8 @@ impl std::ops::Mul<&MultivariateNormal> for MultivariateNormal {
     type Output = MultivariateNormal;
 
     fn mul(self, rhs: &MultivariateNormal) -> Self::Output {
-        // In the information form, the product of two multivariate normal distributions is the sum of the information vectors and the sum of the precision matrices
+        // In the information form, the product of two multivariate normal distributions
+        // is the sum of the information vectors and the sum of the precision matrices
         let information = self.information + &rhs.information;
         let precision = self.precision + &rhs.precision;
         let mean = precision.dot(&information);
@@ -338,7 +367,8 @@ impl std::ops::Mul<&MultivariateNormal> for MultivariateNormal {
 
 impl std::ops::MulAssign<&MultivariateNormal> for MultivariateNormal {
     fn mul_assign(&mut self, rhs: &MultivariateNormal) {
-        // In the information form, the product of two multivariate normal distributions is the sum of the information vectors and the sum of the precision matrices
+        // In the information form, the product of two multivariate normal distributions
+        // is the sum of the information vectors and the sum of the precision matrices
         self.information += &rhs.information;
         self.precision += &rhs.precision;
         self.dirty = true;
@@ -349,8 +379,9 @@ impl std::ops::MulAssign<&MultivariateNormal> for MultivariateNormal {
 #[allow(clippy::unwrap_used)]
 #[cfg(test)]
 mod tests {
-    use super::*;
     use ndarray::array;
+
+    use super::*;
 
     #[test]
     fn create_from_information_and_precision() {

@@ -1,14 +1,14 @@
 pub mod environment;
 pub mod formation;
 
-use bevy::ecs::system::Resource;
-use bevy::reflect::Reflect;
-pub use environment::Environment;
-pub use formation::Formation;
-pub use formation::FormationGroup;
+use std::num::NonZeroUsize;
 
+use bevy::{ecs::system::Resource, reflect::Reflect};
+pub use environment::Environment;
+pub use formation::{Formation, FormationGroup};
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
+use typed_floats::{PositiveFinite, StrictlyPositiveFinite};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
@@ -26,7 +26,7 @@ pub struct Meter(f64);
 pub struct GraphvizEdgeAttributes {
     // TODO: implement a way to validate this field to only match the valid edge styles: https://graphviz.org/docs/attr-types/style/
     pub style: String,
-    pub len: f32,
+    pub len:   f32,
     pub color: String,
 }
 
@@ -39,17 +39,17 @@ pub struct GraphvizInterrbotSection {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizSection {
-    pub interrobot: GraphvizInterrbotSection,
+    pub interrobot:      GraphvizInterrbotSection,
     pub export_location: String,
 }
 
 impl Default for GraphvizSection {
     fn default() -> Self {
         Self {
-            interrobot: GraphvizInterrbotSection {
+            interrobot:      GraphvizInterrbotSection {
                 edge: GraphvizEdgeAttributes {
                     style: "solid".to_string(),
-                    len: 8.0,
+                    len:   8.0,
                     color: "red".to_string(),
                 },
             },
@@ -61,14 +61,14 @@ impl Default for GraphvizSection {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct HeightSection {
-    pub objects: f32,
+    pub objects:    f32,
     pub height_map: f32,
 }
 
 impl Default for HeightSection {
     fn default() -> Self {
         Self {
-            objects: 0.5,
+            objects:    0.5,
             height_map: 1.0,
         }
     }
@@ -89,8 +89,8 @@ impl Default for UncertaintySection {
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct VisualisationSection {
-    pub height: HeightSection,
-    pub draw: DrawSection,
+    pub height:      HeightSection,
+    pub draw:        DrawSection,
     pub uncertainty: UncertaintySection,
 }
 
@@ -133,25 +133,25 @@ impl DrawSetting {
 #[derive(Debug, Serialize, Deserialize, Iterable, Reflect, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct DrawSection {
-    pub communication_graph: bool,
+    pub communication_graph:    bool,
     pub predicted_trajectories: bool,
-    pub waypoints: bool,
-    pub uncertainty: bool,
-    pub paths: bool,
-    pub height_map: bool,
-    pub flat_map: bool,
+    pub waypoints:              bool,
+    pub uncertainty:            bool,
+    pub paths:                  bool,
+    pub height_map:             bool,
+    pub flat_map:               bool,
 }
 
 impl Default for DrawSection {
     fn default() -> Self {
         Self {
-            communication_graph: false,
+            communication_graph:    false,
             predicted_trajectories: true,
-            waypoints: true,
-            uncertainty: false,
-            paths: false,
-            height_map: false,
-            flat_map: true,
+            waypoints:              true,
+            uncertainty:            false,
+            paths:                  false,
+            height_map:             false,
+            flat_map:               true,
         }
     }
 }
@@ -180,43 +180,44 @@ pub struct SimulationSection {
     // pub timestep: f32,
     /// Time between current state and next state of planned path
     /// SI unit: s
-    pub t0: f32,
+    pub t0: PositiveFinite<f32>,
 
     /// Maximum time after which the simulation will terminate
     /// SI unit: s
-    pub max_time: f32,
+    pub max_time: StrictlyPositiveFinite<f32>,
 
     /// The relative scale of time in the simulation.
     /// 1.0 means real-time, 0.5 means half-speed, 2.0 means double-speed, etc.
-    pub time_scale: f32,
+    pub time_scale: StrictlyPositiveFinite<f32>,
 
-    /// How many steps of size 1.0 / hz to take when manually stepping the simulation.
-    /// SI unit: s
+    /// How many steps of size 1.0 / hz to take when manually stepping the
+    /// simulation. SI unit: s
     pub manual_step_factor: usize,
 
     /// The fixed time step size to be used in the simulation.
     /// SI unit: s
     pub hz: f64,
 
-    /// The side length of the smallest square that contains the entire simulated environment.
-    /// Size of the environment in meters.
+    /// The side length of the smallest square that contains the entire
+    /// simulated environment. Size of the environment in meters.
     /// SI unit: m
-    pub world_size: f32,
-    /// The seed at which random number generators should be seeded, to ensure deterministic results across
-    /// simulation runs.
+    pub world_size:  StrictlyPositiveFinite<f32>,
+    /// The seed at which random number generators should be seeded, to ensure
+    /// deterministic results across simulation runs.
     pub random_seed: usize,
 }
 
 impl Default for SimulationSection {
     fn default() -> Self {
         Self {
-            t0: 0.0,
-            max_time: 10000.0,
-            time_scale: 1.0,
+            t0:                 0.0.try_into().expect("0.0 >= 0.0"),
+            max_time:           10000.0.try_into().expect("10000.0 > 0.0"),
+            time_scale:         1.0.try_into().expect("1.0 > 0.0"),
             manual_step_factor: 1,
-            hz: 60.0,
-            world_size: 100.0,
-            random_seed: 0,
+            hz:                 60.0,
+            world_size:         100.0.try_into().expect("100.0 > 0.0"),
+            // world_size:         StrictlyPositiveFinite::<f32>::new(100.0).expect("100.0 > 0.0"),
+            random_seed:        0,
         }
     }
 }
@@ -225,29 +226,28 @@ impl Default for SimulationSection {
 #[serde(rename_all = "kebab-case")]
 pub struct GbpSection {
     /// Sigma for Unary pose factor on current and horizon states
-    pub sigma_pose_fixed: f32,
+    pub sigma_pose_fixed:        f32,
     /// Sigma for Dynamics factors
-    pub sigma_factor_dynamics: f32,
+    pub sigma_factor_dynamics:   f32,
     /// Sigma for Interrobot factor
     pub sigma_factor_interrobot: f32,
     /// Sigma for Static obstacle factors
-    pub sigma_factor_obstacle: f32,
+    pub sigma_factor_obstacle:   f32,
     /// Number of iterations of GBP per timestep
     pub iterations_per_timestep: usize,
     /// Parameter affecting how planned path is spaced out in time
-    pub lookahead_multiple: usize,
+    pub lookahead_multiple:      usize,
 }
 
 impl Default for GbpSection {
     fn default() -> Self {
         Self {
-            sigma_pose_fixed: 1e-15,
-            sigma_factor_dynamics: 0.1,
+            sigma_pose_fixed:        1e-15,
+            sigma_factor_dynamics:   0.1,
             sigma_factor_interrobot: 0.01,
-            sigma_factor_obstacle: 0.01,
+            sigma_factor_obstacle:   0.01,
             iterations_per_timestep: 10,
-            lookahead_multiple: 3,
-            // damping: 0.0
+            lookahead_multiple:      3,
         }
     }
 }
@@ -255,10 +255,11 @@ impl Default for GbpSection {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CommunicationSection {
-    /// Inter-robot factors created if robots are within this range of each other
-    /// SI unit: m
-    pub radius: f32,
+    /// Inter-robot factors created if robots are within this range of each
+    /// other SI unit: m
+    pub radius: StrictlyPositiveFinite<f32>,
 
+    // TODO: use a percentage type instead of f32
     /// Probability for failing to send/receive a message
     pub failure_rate: f32,
 }
@@ -266,7 +267,7 @@ pub struct CommunicationSection {
 impl Default for CommunicationSection {
     fn default() -> Self {
         Self {
-            radius: 20.0,
+            radius:       20.0.try_into().expect("20.0 > 0.0"),
             failure_rate: 0.0,
         }
     }
@@ -276,34 +277,36 @@ impl Default for CommunicationSection {
 #[serde(rename_all = "kebab-case")]
 pub struct RobotSection {
     /// SI unit: s
-    pub planning_horizon: f32,
+    pub planning_horizon:  StrictlyPositiveFinite<f32>,
     /// SI unit: m/s
-    pub max_speed: f32,
+    pub max_speed:         StrictlyPositiveFinite<f32>,
     /// Degrees of freedom of the robot's state [x, y, x', y']
-    pub dofs: usize,
+    pub dofs:              NonZeroUsize,
     // /// Simulation timestep interval
-    // /// FIXME: does not belong to group of parameters, should be in SimulationSettings or something
-    // pub delta_t: f32,
+    // /// FIXME: does not belong to group of parameters, should be in SimulationSettings or
+    // something pub delta_t: f32,
     /// If true, when inter-robot factors need to be created between two robots,
-    /// a pair of factors is created (one belonging to each robot). This becomes a redundancy.
+    /// a pair of factors is created (one belonging to each robot). This becomes
+    /// a redundancy.
     pub symmetric_factors: bool,
     /// Radius of the robot.
-    /// If the robot is not a perfect circle, then set radius to be the smallest circle that fully encompass the shape of the robot.
-    /// **constraint**: > 0.0
-    pub radius: f32,
-    pub communication: CommunicationSection,
+    /// If the robot is not a perfect circle, then set radius to be the smallest
+    /// circle that fully encompass the shape of the robot. **constraint**:
+    /// > 0.0
+    pub radius:            StrictlyPositiveFinite<f32>,
+    pub communication:     CommunicationSection,
 }
 
 impl Default for RobotSection {
     fn default() -> Self {
         Self {
-            planning_horizon: 5.0,
-            max_speed: 2.0,
-            dofs: 4,
+            planning_horizon: StrictlyPositiveFinite::<f32>::new(5.0).expect("5.0 > 0.0"),
+            max_speed:        StrictlyPositiveFinite::<f32>::new(2.0).expect("2.0 > 0.0"),
+            dofs:             NonZeroUsize::new(4).expect("4 > 0"),
 
             symmetric_factors: true,
-            radius: 1.0,
-            communication: CommunicationSection::default(),
+            radius:            StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
+            communication:     CommunicationSection::default(),
         }
     }
 }
@@ -327,14 +330,14 @@ impl Default for InteractionSection {
 pub struct Config {
     /// Path to the **.png** containing the environment sdf
     pub environment_image: String,
-    pub environment: String,
-    pub formation_group: String,
-    pub visualisation: VisualisationSection,
-    pub interaction: InteractionSection,
-    pub gbp: GbpSection,
-    pub robot: RobotSection,
-    pub simulation: SimulationSection,
-    pub graphviz: GraphvizSection,
+    pub environment:       String,
+    pub formation_group:   String,
+    pub visualisation:     VisualisationSection,
+    pub interaction:       InteractionSection,
+    pub gbp:               GbpSection,
+    pub robot:             RobotSection,
+    pub simulation:        SimulationSection,
+    pub graphviz:          GraphvizSection,
 }
 
 impl Default for Config {
@@ -342,22 +345,23 @@ impl Default for Config {
     /// Used when no config file is provided
     fn default() -> Self {
         // TODO: make a bit more robust
-        // let cwd = std::env::current_dir().expect("The current working directory exists");
-        // let default_environment = cwd.join("gbpplanner-rs/assets/imgs/junction.png");
+        // let cwd = std::env::current_dir().expect("The current working directory
+        // exists"); let default_environment =
+        // cwd.join("gbpplanner-rs/assets/imgs/junction.png");
         let default_environment_image = "junction".to_string();
         let default_environment_config = "./config/environment.toml".to_string();
         let default_formation_config = "./config/formation.ron".to_string();
 
         Self {
             environment_image: default_environment_image,
-            environment: default_environment_config,
-            formation_group: default_formation_config,
-            visualisation: VisualisationSection::default(),
-            interaction: InteractionSection::default(),
-            gbp: GbpSection::default(),
-            robot: RobotSection::default(),
-            simulation: SimulationSection::default(),
-            graphviz: GraphvizSection::default(),
+            environment:       default_environment_config,
+            formation_group:   default_formation_config,
+            visualisation:     VisualisationSection::default(),
+            interaction:       InteractionSection::default(),
+            gbp:               GbpSection::default(),
+            robot:             RobotSection::default(),
+            simulation:        SimulationSection::default(),
+            graphviz:          GraphvizSection::default(),
         }
     }
 }

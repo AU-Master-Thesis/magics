@@ -1,14 +1,18 @@
+# cargo-features = ["codegen-backend"]
+
 [workspace]
 resolver = "2" # Important! wgpu/bevy needs this!
 members = [
-  "gbp_config",
+  "crates/min_len_vec",
+  "crates/percentage",
+  "crates/unit_interval",
   "gbp_linalg",
   "gbp_multivariate_normal",
   "gbpplanner-rs",
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 repository = "https://github.com/AU-Master-Thesis/gbp-rs"
 authors = [
@@ -20,7 +24,9 @@ license = "MIT"
 
 [workspace.dependencies]
 ndarray = "0.15.6"
-thiserror = "1.0.56"
+anyhow = "1.0.81"
+thiserror = "1.0.58"
+serde = { version = "1.0.197", features = ["derive"] }
 
 [workspace.lints.rust]
 # unsafe_code = "forbid"
@@ -54,6 +60,7 @@ incremental = true
 opt-level = 1
 debug = true
 incremental = true
+# codegen-backend = "cranelift" # requires nightly
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]

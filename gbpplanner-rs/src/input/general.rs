@@ -1,19 +1,20 @@
 use std::collections::HashMap;
 
+use bevy::{
+    app::AppExit, prelude::*, render::view::screenshot::ScreenshotManager, tasks::IoTaskPool,
+    window::PrimaryWindow,
+};
+use leafwing_input_manager::prelude::*;
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
+
+use super::super::theme::ThemeEvent;
 use crate::{
     config::Config,
     planner::{FactorGraph, NodeKind, RobotId, RobotState},
     theme::CatppuccinTheme,
     ui::{ChangingBinding, ExportGraphEvent},
 };
-
-use super::super::theme::ThemeEvent;
-use bevy::{prelude::*, tasks::IoTaskPool};
-use bevy::{render::view::screenshot::ScreenshotManager, window::PrimaryWindow};
-use gbp_linalg::GbpFloat;
-use leafwing_input_manager::{prelude::*, user_input::InputKind};
-use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
 
 #[derive(Component)]
 pub struct GeneralInputs;
@@ -23,6 +24,7 @@ pub struct GeneralInputPlugin;
 impl Plugin for GeneralInputPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ScreenShotEvent>()
+            .add_event::<QuitApplication>()
             .add_plugins((InputManagerPlugin::<GeneralAction>::default(),))
             .add_systems(PostStartup, (bind_general_input,))
             .add_systems(
@@ -32,6 +34,7 @@ impl Plugin for GeneralInputPlugin {
                     export_graph_on_event,
                     screenshot,
                     handle_screen_shot_event,
+                    quit_application_system,
                 ),
             );
     }
@@ -42,14 +45,16 @@ pub enum GeneralAction {
     ToggleTheme,
     ExportGraph,
     ScreenShot,
+    QuitApplication,
 }
 
-impl ToString for GeneralAction {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for GeneralAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ToggleTheme => "Toggle Theme".to_string(),
-            Self::ExportGraph => "Export Graph".to_string(),
-            Self::ScreenShot => "Take Screenshot".to_string(),
+            Self::ToggleTheme => write!(f, "Toggle Theme"),
+            Self::ExportGraph => write!(f, "Export Graph"),
+            Self::ScreenShot => write!(f, "Take Screenshot"),
+            Self::QuitApplication => write!(f, "Quit Application"),
         }
     }
 }
@@ -69,7 +74,10 @@ impl GeneralAction {
                 Modifier::Control,
                 InputKind::PhysicalKey(KeyCode::KeyS),
             )),
-            // Self::ScreenShot => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::Space))),
+            Self::QuitApplication => Some(UserInput::modified(
+                Modifier::Control,
+                InputKind::PhysicalKey(KeyCode::KeyQ),
+            )),
         }
     }
 }
@@ -102,8 +110,8 @@ fn export_factorgraphs_as_graphviz(
         return None;
     }
 
-    let external_edge_length = 8.0;
-    let internal_edge_length = 1.0;
+    let _external_edge_length = 8.0;
+    let _internal_edge_length = 1.0;
     let cluster_margin = 16;
 
     let mut buf = String::with_capacity(4 * 1024); // 4 kB
@@ -117,8 +125,8 @@ fn export_factorgraphs_as_graphviz(
     append_line_to_output("  node [style=filled];");
     append_line_to_output("  layout=neato;");
 
-    // A hashmap used to keep track of which variable in another robots factorgraph, is connected to a interrobot
-    // factor in the current robots factorgraph.
+    // A hashmap used to keep track of which variable in another robots factorgraph,
+    // is connected to a interrobot factor in the current robots factorgraph.
     let mut all_external_connections =
         HashMap::<RobotId, HashMap<usize, (RobotId, usize)>>::with_capacity(query.iter().len());
 
@@ -187,7 +195,8 @@ fn export_factorgraphs_as_graphviz(
         all_external_connections.insert(robot_id, external_connections);
     }
 
-    // Add edges between interrobot factors and the variable they are connected to in another robots graph
+    // Add edges between interrobot factors and the variable they are connected to
+    // in another robots graph
     for (from_robot_id, from_connections) in all_external_connections.iter() {
         for (from_factor, (to_robot_id, to_variable_index)) in from_connections.iter() {
             append_line_to_output(&format!(
@@ -290,6 +299,19 @@ fn handle_export_graph(
     Ok(())
 }
 
+#[derive(Event, Clone, Copy, Debug, Default)]
+pub struct QuitApplication;
+
+fn quit_application_system(
+    mut quit_application_reader: EventReader<QuitApplication>,
+    mut app_exit_event: EventWriter<AppExit>,
+) {
+    for _ in quit_application_reader.read() {
+        info!("quitting application");
+        app_exit_event.send(AppExit);
+    }
+}
+
 fn general_actions_system(
     mut theme_event: EventWriter<ThemeEvent>,
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
@@ -297,6 +319,8 @@ fn general_actions_system(
     config: Res<Config>,
     currently_changing: Res<ChangingBinding>,
     catppuccin_theme: Res<CatppuccinTheme>,
+    // mut app_exit_event: EventWriter<AppExit>,
+    mut quit_application_writer: EventWriter<QuitApplication>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
@@ -314,6 +338,12 @@ fn general_actions_system(
         if let Err(e) = handle_export_graph(query_graphs, config.as_ref()) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
+    }
+
+    if action_state.just_pressed(&GeneralAction::QuitApplication) {
+        quit_application_writer.send(QuitApplication);
+        // info!("quitting application");
+        // app_exit_event.send(AppExit);
     }
 }
 

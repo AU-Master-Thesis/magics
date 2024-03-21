@@ -14,7 +14,7 @@ use gbp_multivariate_normal::MultivariateNormal;
 pub struct Payload {
     pub eta: Vector<Float>,
     pub lam: Matrix<Float>,
-    pub mu: Vector<Float>,
+    pub mu:  Vector<Float>,
 }
 
 pub struct Eta(pub Vector<Float>);
@@ -27,7 +27,7 @@ pub struct Message {
     // as the messages are identical.
     // payload: Option<MultivariateNormal>,
     payload: Option<Payload>,
-    dofs: usize,
+    dofs:    usize,
 }
 
 impl Message {
@@ -110,12 +110,12 @@ impl Message {
     }
 
     // pub fn with_dofs(dofs: usize) -> Self {
-    //     let information_vector = Vector::<Float>::from_elem(dofs, 1.0 / dofs as Float);
-    //     let precision_matrix = Matrix::<Float>::eye(dofs);
-    //     MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
-    //         .map(|gaussian| Self::Content { gaussian })
-    //         .expect("An identity matrix and uniform vector is a valid multivariate normal")
-    //     // MultivariateNormal::empty(dofs)
+    //     let information_vector = Vector::<Float>::from_elem(dofs, 1.0 / dofs as
+    // Float);     let precision_matrix = Matrix::<Float>::eye(dofs);
+    //     MultivariateNormal::from_information_and_precision(information_vector,
+    // precision_matrix)         .map(|gaussian| Self::Content { gaussian })
+    //         .expect("An identity matrix and uniform vector is a valid
+    // multivariate normal")     // MultivariateNormal::empty(dofs)
     //     //     .map(|gaussian| Self { gaussian })
     //     //     .expect("Empty `MultiVarianteNormal` is always valid")
     // }
@@ -137,14 +137,14 @@ impl Message {
             payload: Some(Payload {
                 eta: eta.0,
                 lam: lam.0,
-                mu: mu.0,
+                mu:  mu.0,
             }),
             dofs,
         }
     }
 
-    // pub fn new(eta: Vector<Float>, lam: Matrix<Float>, mu: Vector<Float>) -> Self {
-    //     let dofs = eta.len();
+    // pub fn new(eta: Vector<Float>, lam: Matrix<Float>, mu: Vector<Float>) -> Self
+    // {     let dofs = eta.len();
     //     Self {
     //         payload: Some(Payload { eta, lam, mu }),
     //         dofs,
@@ -163,8 +163,8 @@ impl Message {
     //     information_vector: Vector<Float>,
     //     precision_matrix: Matrix<Float>,
     // ) -> gbp_multivariate_normal::Result<Self> {
-    //     MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
-    //         .map(|gaussian| Self::Content { gaussian })
+    //     MultivariateNormal::from_information_and_precision(information_vector,
+    // precision_matrix)         .map(|gaussian| Self::Content { gaussian })
     // }
 
     // pub fn zeros(dims: usize) -> Self {
@@ -178,12 +178,11 @@ impl Message {
     // pub fn empty(dofs: usize) -> Self {
     //     let information_vector = Vector::<f32>::from_elem(dofs, 0.0);
     //     let precision_matrix = Matrix::<f32>::zeros((dofs, dofs));
-    //     MultivariateNormal::from_information_and_precision(information_vector, precision_matrix)
-    //         .map(|gaussian| Self { gaussian })
-    //         .expect("An identity matrix and uniform vector is a valid multivariate normal")
-    // }
+    //     MultivariateNormal::from_information_and_precision(information_vector,
+    // precision_matrix)         .map(|gaussian| Self { gaussian })
+    //         .expect("An identity matrix and uniform vector is a valid
+    // multivariate normal") }
 }
-//
 // impl From<MultivariateNormal> for Message {
 //     fn from(value: MultivariateNormal) -> Self {
 //         let dofs = value.len();

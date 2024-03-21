@@ -1,4 +1,5 @@
-//! Pretty printing of matrices and vectors. Useful for debugging and visualizing the contents of a matrix or vector.
+//! Pretty printing of matrices and vectors. Useful for debugging and
+//! visualizing the contents of a matrix or vector.
 
 use super::prelude::*;
 
@@ -34,11 +35,11 @@ const LOWER_RIGHT_CORNER: char = '╯';
 /// assert_eq!(num_of_integral_digits(1e5), Some(6));
 /// assert_eq!(num_of_integral_digits(1e-5), Some(1));
 /// assert_eq!(num_of_integral_digits(1.2345), Some(1));
-/// assert_eq!(num_of_integral_digits(f32::NAN), None);
-/// assert_eq!(num_of_integral_digits(f32::INFINITY), None);
-/// assert_eq!(num_of_integral_digits(f32::NEG_INFINITY), None);
+/// assert_eq!(num_of_integral_digits(f64::NAN), None);
+/// assert_eq!(num_of_integral_digits(f64::INFINITY), None);
+/// assert_eq!(num_of_integral_digits(f64::NEG_INFINITY), None);
 /// ```
-fn num_of_integral_digits(mut f: f64) -> Option<usize> {
+pub fn num_of_integral_digits(mut f: f64) -> Option<usize> {
     if f.is_nan() || f.is_infinite() {
         return None;
     }
@@ -47,6 +48,10 @@ fn num_of_integral_digits(mut f: f64) -> Option<usize> {
 
     if f.is_sign_negative() {
         f = -f;
+        count += 1;
+    }
+
+    if f < 1.0 {
         count += 1;
     }
 
@@ -73,7 +78,8 @@ fn float_color(f: f64) -> &'static str {
 }
 
 /// Pretty print a matrix.
-/// Not intended to be used directly. Use the [`pretty_print_matrix!`] macro instead.
+/// Not intended to be used directly. Use the [`pretty_print_matrix!`] macro
+/// instead.
 pub fn _pretty_print_matrix<T, M>(
     matrix: &M,
     name: Option<&str>,
@@ -119,7 +125,7 @@ pub fn _pretty_print_matrix<T, M>(
 
     // print the top border
     if let Some(name) = name {
-        //handle if name is longer than cell_columns
+        // handle if name is longer than cell_columns
         if name.len() + dims.len() - 2 > total_width {
             println!("{}:{}{}{}", name, MAGENTA_TEXT, dims, RESET_TEXT);
             println!(

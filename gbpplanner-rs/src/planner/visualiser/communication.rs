@@ -1,10 +1,10 @@
+use bevy::prelude::*;
+
 use super::{super::RobotState, LineSegment, Path, Z_FIGHTING_OFFSET};
 use crate::{
-    asset_loader::SceneAssets, config::Config, theme::CatppuccinTheme,
-    theme::ColorFromCatppuccinColourExt,
+    config::Config,
+    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
-
-use bevy::prelude::*;
 
 pub struct CommunicationGraphVisualiserPlugin;
 
@@ -21,17 +21,21 @@ impl Plugin for CommunicationGraphVisualiserPlugin {
     }
 }
 
-/// A **Bevy** [`Component`] to mark an entity as a visualised _communication graph_
+/// A **Bevy** [`Component`] to mark an entity as a visualised _communication
+/// graph_
 #[derive(Component)]
 pub struct CommunicationGraphVisualiser;
 
 /// A **Bevy** [`Update`] system
-/// Draws the communication graph with a [`Path`], through a [`PbrBundle`] and [`CommunicationGraphVisualiser`] component
+/// Draws the communication graph with a [`Path`], through a [`PbrBundle`] and
+/// [`CommunicationGraphVisualiser`] component
 ///
 /// Draws a line segment between each robot and its neighbours
-/// A robot is a neighbour if it is within the communication range `config.communication.range`
+/// A robot is a neighbour if it is within the communication range
+/// `config.communication.range`
 ///
-/// However, if the robot's comms are off `RobotState.interrobot_comms_active == false`, it will not draw a line segment
+/// However, if the robot's comms are off `RobotState.interrobot_comms_active ==
+/// false`, it will not draw a line segment
 fn draw_communication_graph(
     mut gizmos: Gizmos,
     mut commands: Commands,
@@ -60,6 +64,8 @@ fn draw_communication_graph(
     // necessary to remake the line material, as it needs to change with the theme
     let line_material = materials.add(Color::from_catppuccin_colour(catppuccin_theme.yellow()));
 
+    let communication_radius = config.robot.communication.radius.get();
+
     // TODO: Don't double-draw lines from and to the same two robots
     for (robot_id, robot_state, transform) in robots_query.iter() {
         if !robot_state.interrobot_comms_active {
@@ -75,7 +81,7 @@ fn draw_communication_graph(
             })
             .filter_map(|(_, _, other_transform)| {
                 let distance = transform.translation.distance(other_transform.translation);
-                if distance < config.robot.communication.radius {
+                if distance < communication_radius {
                     Some(other_transform.translation)
                 } else {
                     None
@@ -103,8 +109,8 @@ fn draw_communication_graph(
                 LineSegment,
             ));
             // gizmos.primitive_3d(
-            //     Polyline3d::<100>::new(vec![transform.translation, neighbour_transform]),
-            //     Vec3::ZERO,
+            //     Polyline3d::<100>::new(vec![transform.translation,
+            // neighbour_transform]),     Vec3::ZERO,
             //     Quat::IDENTITY,
             //     Color::from_catppuccin_colour(catppuccin_theme.yellow()),
             // );

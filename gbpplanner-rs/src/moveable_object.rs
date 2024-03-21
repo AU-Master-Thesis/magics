@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-// use leafwing_input_manager::prelude::*;
 
+// use leafwing_input_manager::prelude::*;
 use crate::{
     asset_loader::SceneAssets,
     environment,

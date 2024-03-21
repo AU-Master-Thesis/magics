@@ -1,8 +1,12 @@
-use super::{super::FactorGraph, Line, Path, RobotTracker};
-use crate::{asset_loader::SceneAssets, config::Config, theme::ColorFromCatppuccinColourExt};
-
 use bevy::prelude::*;
 use itertools::Itertools;
+
+use super::{super::FactorGraph, Line, Path, RobotTracker};
+use crate::{
+    asset_loader::SceneAssets,
+    config::{Config, DrawSetting},
+    theme::ColorFromCatppuccinColourExt,
+};
 
 pub struct FactorGraphVisualiserPlugin;
 
@@ -24,14 +28,16 @@ impl Plugin for FactorGraphVisualiserPlugin {
 #[derive(Component)]
 pub struct VariableVisualiser;
 
-/// A **Bevy** [`Component`] to mark a robot that it has a corresponding `FactorGraphVis` entity
-/// Useful for easy _exclusion_ in queries
+/// A **Bevy** [`Component`] to mark a robot that it has a corresponding
+/// `FactorGraphVis` entity Useful for easy _exclusion_ in queries
 #[derive(Component)]
 pub struct HasFactorGraphVisualiser;
 
 /// A **Bevy** [`Update`] system
-/// Initialises each new [`FactorGraph`] component to have a matching [`PbrBundle`] and [`FactorGraphVisualiser`] component
-/// I.e. if the [`FactorGraph`] component already has a [`FactorGraphVisualiser`], it will be ignored
+/// Initialises each new [`FactorGraph`] component to have a matching
+/// [`PbrBundle`] and [`FactorGraphVisualiser`] component I.e. if the
+/// [`FactorGraph`] component already has a [`FactorGraphVisualiser`], it will
+/// be ignored
 fn init_factorgraphs(
     mut commands: Commands,
     query: Query<(Entity, &FactorGraph), Without<HasFactorGraphVisualiser>>,
@@ -43,23 +49,19 @@ fn init_factorgraphs(
         commands.entity(entity).insert(HasFactorGraphVisualiser);
 
         factorgraph
-            // .variables_ordered()
             .variables()
             .enumerate()
             .for_each(|(i, (index, v))| {
-                // let mean = v.belief.mean();
                 let transform = Vec3::new(
                     v.mu[0] as f32,
                     config.visualisation.height.objects,
                     v.mu[1] as f32,
                 );
 
-                // info!("{:?}: Initialising variable at {:?}", entity, transform);
-
                 // Spawn a `FactorGraphVisualiser` component with a corresponding `PbrBundle`
                 commands.spawn((
                     RobotTracker::new(entity)
-                        .with_variable_id(index.index())
+                        .with_variable_id(index.into())
                         .with_order(i),
                     VariableVisualiser,
                     PbrBundle {
@@ -77,7 +79,8 @@ fn init_factorgraphs(
 /// Updates the [`Transform`]s of all [`FactorGraphVisualiser`] entities
 /// Done by cross-referencing with the [`FactorGraph`] components
 /// that have matching [`Entity`] with the `RobotTracker.robot_id`
-/// and variables in the [`FactorGraph`] that have matching `RobotTracker.variable_id`
+/// and variables in the [`FactorGraph`] that have matching
+/// `RobotTracker.variable_id`
 fn update_factorgraphs(
     mut tracker_query: Query<(&RobotTracker, &mut Transform), With<VariableVisualiser>>,
     factorgraph_query: Query<(Entity, &FactorGraph)>,
@@ -87,18 +90,21 @@ fn update_factorgraphs(
     for (tracker, mut transform) in tracker_query.iter_mut() {
         for (entity, factorgraph) in factorgraph_query.iter() {
             // continue if we're not looking at the right robot
-            if tracker.robot_id != entity {
+            let not_the_right_robot = tracker.robot_id != entity;
+            if not_the_right_robot {
                 continue;
             }
 
             // else look through the variables
             for (index, v) in factorgraph.variables() {
                 // continue if we're not looking at the right variable
-                if index.index() != tracker.variable_id {
+                if usize::from(index) != tracker.variable_id {
                     continue;
                 }
 
-                // info!("{:?}: Updating variable to {:?}", entity, v.belief.mean());
+                if !v.finite_covariance() {
+                    continue;
+                }
 
                 // else update the transform
                 // let mean = v.belief.mean();
@@ -113,23 +119,21 @@ fn update_factorgraphs(
 }
 
 /// A **Bevy** [`Update`] system
-/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting == DrawSetting::PredictedTrajectories`
-/// the boolean `DrawSettingEvent.value` will be used to set the visibility of the [`VariableVisualiser`] entities
+/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting ==
+/// DrawSetting::PredictedTrajectories` the boolean `DrawSettingEvent.value`
+/// will be used to set the visibility of the [`VariableVisualiser`] entities
 fn show_or_hide_factorgraphs(
     mut query: Query<(&VariableVisualiser, &mut Visibility)>,
     mut draw_setting_event: EventReader<crate::ui::DrawSettingsEvent>,
 ) {
     for event in draw_setting_event.read() {
-        if matches!(
-            event.setting,
-            crate::config::DrawSetting::PredictedTrajectories
-        ) {
+        if matches!(event.setting, DrawSetting::PredictedTrajectories) {
             for (_, mut visibility) in query.iter_mut() {
-                if event.value {
-                    *visibility = Visibility::Visible;
+                *visibility = if event.draw {
+                    Visibility::Visible
                 } else {
-                    *visibility = Visibility::Hidden;
-                }
+                    Visibility::Hidden
+                };
             }
         }
     }
@@ -140,8 +144,8 @@ fn show_or_hide_factorgraphs(
 ///
 /// Despawns old lines, and spawns new lines
 ///
-/// Queries variables by [`RobotTracker`] with the [`FactorGraphVisualiser`] component
-/// as initialised by the `init_factorgraphs` system
+/// Queries variables by [`RobotTracker`] with the [`FactorGraphVisualiser`]
+/// component as initialised by the `init_factorgraphs` system
 /// -> Will return if this query is empty
 fn draw_lines(
     mut gizmos: Gizmos,
@@ -155,7 +159,8 @@ fn draw_lines(
     factorgraph_query: Query<Entity, With<FactorGraph>>,
     catppuccin_theme: Res<crate::theme::CatppuccinTheme>,
 ) {
-    // If there are no variables visualised yet by the `init_factorgraphs` system, return
+    // If there are no variables visualised yet by the `init_factorgraphs` system,
+    // return
     if query_variables.iter().count() == 0 {
         return;
     }
@@ -182,19 +187,20 @@ fn draw_lines(
             .map(|(_, t)| t.translation)
             .collect::<Vec<Vec3>>();
 
-        let line = Path::new(positions.clone()).with_width(0.2);
-
-        commands.spawn((
-            PbrBundle {
-                mesh: meshes.add(Mesh::from(line)),
-                material: line_material.clone(),
-                ..Default::default()
-            },
-            Line,
-        ));
-
+        // let line = Path::new(positions.clone()).with_width(0.2);
+        //
+        // commands.spawn((
+        //     PbrBundle {
+        //         mesh: meshes.add(Mesh::from(line)),
+        //         material: line_material.clone(),
+        //         ..Default::default()
+        //     },
+        //     Line,
+        // ));
+        //
         gizmos.primitive_3d(
             Polyline3d::<100>::new(positions),
+            // BoxedPolyline3d::new(positions),
             Vec3::ZERO,
             Quat::IDENTITY,
             Color::from_catppuccin_colour(catppuccin_theme.text()),

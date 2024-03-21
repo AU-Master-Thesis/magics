@@ -3,21 +3,18 @@ mod custom;
 mod decoration;
 mod settings;
 
-pub use controls::ChangingBinding;
-pub use decoration::ToDisplayString;
-pub use settings::DrawSettingsEvent;
-pub use settings::ExportGraphEvent;
-
 use bevy::{prelude::*, window::WindowTheme};
 use bevy_egui::{
     egui::{self, Visuals},
     EguiContexts, EguiPlugin,
 };
+pub use controls::ChangingBinding;
+pub use decoration::ToDisplayString;
+pub use settings::{DrawSettingsEvent, ExportGraphEvent};
 use strum_macros::EnumIter;
 
-use crate::theme::CatppuccinThemeVisualsExt;
-
 use self::{controls::ControlsPanelPlugin, settings::SettingsPanelPlugin};
+use crate::theme::CatppuccinThemeVisualsExt;
 
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/
@@ -63,7 +60,7 @@ impl ActionBlock {
 /// Resource to store the occupied screen space by each `egui` panel
 #[derive(Default, Resource)]
 struct OccupiedScreenSpace {
-    left: f32,
+    left:  f32,
     right: f32,
 }
 
@@ -92,7 +89,7 @@ impl ToDisplayString for UiScaleType {
 
 #[derive(Default)]
 pub struct MouseOverPanel {
-    pub left_panel: bool,
+    pub left_panel:  bool,
     pub right_panel: bool,
 }
 
@@ -100,27 +97,27 @@ pub struct MouseOverPanel {
 #[derive(Resource)]
 pub struct UiState {
     /// Whether the left panel is open
-    pub left_panel: bool,
+    pub left_panel:    bool,
     /// Whether the right panel is open
-    pub right_panel: bool,
+    pub right_panel:   bool,
     /// The type of UI scaling to use
-    pub scale_type: UiScaleType,
+    pub scale_type:    UiScaleType,
     /// When `scale_type` is `Custom`, the percentage to scale by
     pub scale_percent: usize,
     // /// Whether the environment SDF is visible
     // pub environment_sdf: bool,
-    pub mouse_over: MouseOverPanel,
+    pub mouse_over:    MouseOverPanel,
 }
 
 impl Default for UiState {
     fn default() -> Self {
         Self {
-            left_panel: false,
-            right_panel: false,
-            scale_type: UiScaleType::default(),
+            left_panel:    false,
+            right_panel:   false,
+            scale_type:    UiScaleType::default(),
             scale_percent: 100, // start at default factor 1.0 = 100%
             // environment_sdf: false,
-            mouse_over: MouseOverPanel::default(),
+            mouse_over:    MouseOverPanel::default(),
         }
     }
 }
@@ -136,8 +133,8 @@ fn configure_visuals(mut contexts: EguiContexts, windows: Query<&Window>) {
 
     let mut fonts = egui::FontDefinitions::default();
 
-    // TODO: somehow use the **Bevy** asset loader through `scene_assets` to load the font
-    // instead of a relative path
+    // TODO: somehow use the **Bevy** asset loader through `scene_assets` to load
+    // the font instead of a relative path
     fonts.font_data.insert(
         "JetBrainsMonoNerdFont-Regular".to_owned(),
         egui::FontData::from_static(include_bytes!(

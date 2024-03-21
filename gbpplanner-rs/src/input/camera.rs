@@ -3,14 +3,13 @@ use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use crate::{
-    environment::{self, camera::CameraResetEvent},
-    ui::{ActionBlock, ChangingBinding},
-};
-
 use super::super::{
     environment::camera::{self, CameraMovementMode, MainCamera},
     movement::{AngularVelocity, Orbit, Velocity},
+};
+use crate::{
+    environment::{self, camera::CameraResetEvent},
+    ui::{ActionBlock, ChangingBinding},
 };
 
 pub struct CameraInputPlugin;
@@ -19,14 +18,15 @@ impl Plugin for CameraInputPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CameraSensitivity>()
             .add_plugins((InputManagerPlugin::<CameraAction>::default(),))
-            .add_systems(PostStartup, (bind_camera_input /*bind_camera_switch*/,))
+            .add_systems(PostStartup, (bind_camera_input /* bind_camera_switch */,))
             .add_systems(Update, (camera_actions, switch_camera));
     }
 }
 
-/// **Bevy** [`Resource`] for the sensitivity of the movement of the [`MoveableObject`]
-/// Works as a scaling factor for the movement and rotation of the [`MoveableObject`]
-/// Defaults to 1.0 for both `move_sensitivity` and `rotate_sensitivity`
+/// **Bevy** [`Resource`] for the sensitivity of the movement of the
+/// [`MoveableObject`] Works as a scaling factor for the movement and rotation
+/// of the [`MoveableObject`] Defaults to 1.0 for both `move_sensitivity` and
+/// `rotate_sensitivity`
 #[derive(Resource)]
 pub struct CameraSensitivity {
     pub move_sensitivity: f32,
@@ -51,17 +51,17 @@ pub enum CameraAction {
     Reset,
 }
 
-impl ToString for CameraAction {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Move => "Move".to_string(),
-            Self::MouseMove => "Mouse Move".to_string(),
-            Self::ToggleMovementMode => "Toggle Movement Mode".to_string(),
-            Self::ZoomIn => "Zoom In".to_string(),
-            Self::ZoomOut => "Zoom Out".to_string(),
-            Self::Switch => "Switch".to_string(),
-            Self::Reset => "Reset".to_string(),
-        }
+impl std::fmt::Display for CameraAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Self::Move => "Move",
+            Self::MouseMove => "Mouse Move",
+            Self::ToggleMovementMode => "Toggle Movement Mode",
+            Self::ZoomIn => "Zoom In",
+            Self::ZoomOut => "Zoom Out",
+            Self::Switch => "Switch",
+            Self::Reset => "Reset",
+        })
     }
 }
 

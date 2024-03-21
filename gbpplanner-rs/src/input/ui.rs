@@ -3,9 +3,8 @@ use bevy_egui::EguiSettings;
 use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum_macros::EnumIter;
 
-use crate::ui::{ChangingBinding, UiScaleType};
-
 use super::super::ui::UiState;
+use crate::ui::{ChangingBinding, UiScaleType};
 
 pub struct UiInputPlugin;
 
@@ -44,12 +43,12 @@ impl UiAction {
     }
 }
 
-impl ToString for UiAction {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for UiAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ToggleLeftPanel => "Toggle Left Panel".to_string(),
-            Self::ToggleRightPanel => "Toggle Right Panel".to_string(),
-            Self::ChangeScaleKind => "Toggle Scale Factor".to_string(),
+            Self::ToggleLeftPanel => write!(f, "Toggle Left Panel"),
+            Self::ToggleRightPanel => write!(f, "Toggle Right Panel"),
+            Self::ChangeScaleKind => write!(f, "Toggle Scale Factor"),
         }
     }
 }

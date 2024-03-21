@@ -5,12 +5,12 @@ use bevy_egui::{
     egui::{self, Color32, Context, RichText},
     EguiContext, EguiContexts, EguiSettings,
 };
-
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
 use catppuccin::Colour;
 use struct_iterable::Iterable;
 use strum::IntoEnumIterator;
 
+use super::{custom, ChangingBinding, OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
 use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
@@ -18,8 +18,6 @@ use crate::{
     planner::PausePlay,
     theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
 };
-
-use super::{custom, ChangingBinding, OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
 
 /// **Bevy** `Plugin` to add the settings panel to the UI
 pub struct SettingsPanelPlugin;
@@ -56,7 +54,7 @@ pub struct ExportGraphEvent;
 #[derive(Event, Debug, Clone)]
 pub struct DrawSettingsEvent {
     pub setting: DrawSetting,
-    pub value: bool,
+    pub draw:    bool,
 }
 
 fn install_egui_image_loaders(mut egui_ctx: EguiContexts) {
@@ -124,7 +122,7 @@ fn ui_settings_exclusive(world: &mut World) {
 }
 
 struct TitleColors {
-    colors: [Colour; 5],
+    colors:  [Colour; 5],
     current: usize,
 }
 
@@ -170,7 +168,8 @@ fn ui_settings_panel(
         .default_width(200.0)
         .resizable(false)
         .show_animated(ctx, ui_state.right_panel, |ui| {
-            if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs {
+            if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs
+            {
                 ui_state.mouse_over.right_panel = true;
             } else {
                 ui_state.mouse_over.right_panel = false;
@@ -182,32 +181,31 @@ fn ui_settings_panel(
                 .drag_to_scroll(true)
                 .show(ui, |ui| {
                     ui.add_space(10.0);
-                    custom::subheading(ui, "General", Some(Color32::from_catppuccin_colour(title_colors.next())));
-                    custom::grid("settings_general_grid", 2)
-                        .show(ui, |ui| {
+                    custom::subheading(
+                        ui,
+                        "General",
+                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                    );
+                    custom::grid("settings_general_grid", 2).show(ui, |ui| {
                         // THEME SELECTOR
                         ui.label("Theme");
                         ui.vertical_centered_justified(|ui| {
-                            ui.menu_button(
-                                catppuccin_theme.flavour.to_display_string(),
-                                |ui| {
-                                    for flavour in &[
-                                        catppuccin::Flavour::Frappe,
-                                        catppuccin::Flavour::Latte,
-                                        catppuccin::Flavour::Macchiato,
-                                        catppuccin::Flavour::Mocha,
-                                    ] {
-                                        ui.vertical_centered_justified(|ui| {
-                                            if ui.button(flavour.to_display_string()).clicked()
-                                            {
-                                                world.send_event::<ThemeEvent>(ThemeEvent(*flavour));
-                                                // theme_event.send(ThemeEvent(*flavour));
-                                                ui.close_menu();
-                                            }
-                                        });
-                                    }
-                                },
-                            );
+                            ui.menu_button(catppuccin_theme.flavour.to_display_string(), |ui| {
+                                for flavour in &[
+                                    catppuccin::Flavour::Frappe,
+                                    catppuccin::Flavour::Latte,
+                                    catppuccin::Flavour::Macchiato,
+                                    catppuccin::Flavour::Mocha,
+                                ] {
+                                    ui.vertical_centered_justified(|ui| {
+                                        if ui.button(flavour.to_display_string()).clicked() {
+                                            world.send_event::<ThemeEvent>(ThemeEvent(*flavour));
+                                            // theme_event.send(ThemeEvent(*flavour));
+                                            ui.close_menu();
+                                        }
+                                    });
+                                }
+                            });
                         });
                         ui.end_row();
 
@@ -237,17 +235,17 @@ fn ui_settings_panel(
                             },
                         );
 
-                        ui.spacing_mut().slider_width = ui.available_width()
-                        - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let slider_response =
-                            ui.add_enabled(
-                                matches!(ui_state.scale_type, UiScaleType::Custom),
-                                egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
-                                    .text("%")
-                                    .show_value(true),
-                            );
+                        ui.spacing_mut().slider_width =
+                            ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                        let slider_response = ui.add_enabled(
+                            matches!(ui_state.scale_type, UiScaleType::Custom),
+                            egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
+                                .text("%")
+                                .show_value(true),
+                        );
                         // Only trigger ui scale update when the slider is released or lost focus
-                        // otherwise it would be imposssible to drag the slider while the ui is scaling
+                        // otherwise it would be imposssible to drag the slider while the ui is
+                        // scaling
                         if slider_response.drag_released() || slider_response.lost_focus() {
                             world.send_event::<UiScaleEvent>(UiScaleEvent);
                         }
@@ -263,73 +261,109 @@ fn ui_settings_panel(
                         ui.end_row();
                     });
 
-                    custom::subheading(ui, "Draw", Some(Color32::from_catppuccin_colour(title_colors.next())));
+                    custom::subheading(
+                        ui,
+                        "Draw",
+                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                    );
                     // egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
-                    custom::grid("draw_grid", 2)
-                        .show(ui, |ui| {
-                            // CONFIG DRAW SECTION
-                            // This should add a toggle for each draw setting in the config
-                            // Should be 4 toggles
-                            for (name, _) in config.visualisation.draw.clone().iter() {
-                                ui.label(DrawSection::to_display_string(name));
-                                let setting = config.visualisation.draw.get_field_mut::<bool>(name)
-                                    .expect("Since I am iterating over the fields, I should be able to get the field");
-                                custom::float_right(ui, |ui| {
-                                    if custom::toggle_ui(ui, setting).clicked() {
-                                        let setting_kind = DrawSetting::from_str(name).expect("The name of the draw section should be a valid DrawSection");
-                                        let event = DrawSettingsEvent { setting: setting_kind, value: *setting };
-                                        world.send_event::<DrawSettingsEvent>(event);
-                                        // draw_setting_event.send(event);
-                                    }
-                                });
-                                ui.end_row();
-                            }
-
-                            // GIZMOS
-                            let (gizmo_config, _) = config_store.config_mut::<DefaultGizmoConfigGroup>();
-                            ui.label("Gizmos");
+                    custom::grid("draw_grid", 2).show(ui, |ui| {
+                        // CONFIG DRAW SECTION
+                        // This should add a toggle for each draw setting in the config
+                        // Should be 4 toggles
+                        for (name, _) in config.visualisation.draw.clone().iter() {
+                            ui.label(DrawSection::to_display_string(name));
+                            let setting = config
+                                .visualisation
+                                .draw
+                                .get_field_mut::<bool>(name)
+                                .expect(
+                                    "Since I am iterating over the fields, I should be able to \
+                                     get the field",
+                                );
                             custom::float_right(ui, |ui| {
-                                custom::toggle_ui(ui, &mut gizmo_config.enabled);
+                                if custom::toggle_ui(ui, setting).clicked() {
+                                    let setting_kind = DrawSetting::from_str(name).expect(
+                                        "The name of the draw section should be a valid \
+                                         DrawSection",
+                                    );
+                                    let event = DrawSettingsEvent {
+                                        setting: setting_kind,
+                                        draw:    *setting,
+                                    };
+                                    world.send_event::<DrawSettingsEvent>(event);
+                                    // draw_setting_event.send(event);
+                                }
                             });
-                        });
+                            ui.end_row();
+                        }
 
-                    custom::subheading(ui, "Simulation", Some(Color32::from_catppuccin_colour(title_colors.next())));
+                        // GIZMOS
+                        let (gizmo_config, _) =
+                            config_store.config_mut::<DefaultGizmoConfigGroup>();
+                        ui.label("Gizmos");
+                        custom::float_right(ui, |ui| {
+                            custom::toggle_ui(ui, &mut gizmo_config.enabled);
+                        });
+                    });
+
+                    custom::subheading(
+                        ui,
+                        "Simulation",
+                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                    );
                     custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
                         ui.label("Simulation Time");
-                        custom::rect_label(ui, format!("{:.2}", time_fixed.elapsed_seconds()), None);
+                        custom::rect_label(
+                            ui,
+                            format!("{:.2}", time_fixed.elapsed_seconds()),
+                            None,
+                        );
                         ui.end_row();
 
                         // slider for simulation time between 0 and 100
                         ui.label("Simulation Speed");
-                        //slider for simulation speed (time scale) between 0.1 and 10
-                        ui.spacing_mut().slider_width = ui.available_width()
-                                - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let slider_response =
-                            ui.add(egui::Slider::new(&mut config.simulation.time_scale, 0.1..=5.0).text("x").show_value(true));
+                        // slider for simulation speed (time scale) between 0.1 and 10
+                        ui.spacing_mut().slider_width =
+                            ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                        let slider_response = ui.add(
+                            egui::Slider::new(&mut config.simulation.time_scale.get(), 0.1..=5.0)
+                                .text("x")
+                                .show_value(true),
+                        );
                         if slider_response.drag_released() || slider_response.lost_focus() {
                             // time.set_time_scale(config.simulation.time_scale);
                             info!("Time scale: {}", config.simulation.time_scale);
-                            time.set_relative_speed(config.simulation.time_scale);
+                            time.set_relative_speed(config.simulation.time_scale.get());
                         }
                         ui.end_row();
 
                         ui.label("Manual Controls");
 
-                        custom::grid("manual_controls_settings_grid", 2).show(ui,|ui| {
-
+                        custom::grid("manual_controls_settings_grid", 2).show(ui, |ui| {
                             // step forward button
                             ui.add_enabled_ui(!pause_play.is_paused(), |ui| {
                                 custom::fill_x(ui, |ui| {
-                                    if ui.button(RichText::new("󰒭").size(25.0)).on_hover_text("Step forward one step in the simulation").clicked() {
-                                        let step_size = config.simulation.manual_step_factor as f32 / config.simulation.hz as f32;
+                                    if ui
+                                        .button(RichText::new("󰒭").size(25.0))
+                                        .on_hover_text("Step forward one step in the simulation")
+                                        .clicked()
+                                    {
+                                        let step_size = config.simulation.manual_step_factor as f32
+                                            / config.simulation.hz as f32;
                                         time_fixed.advance_by(Duration::from_secs_f32(step_size));
                                     }
                                 });
                             });
                             // pause/play button
-                            let pause_play_text = if pause_play.is_paused() { "" } else { "" };
+                            let pause_play_text =
+                                if pause_play.is_paused() { "" } else { "" };
                             custom::fill_x(ui, |ui| {
-                                if ui.button(pause_play_text).on_hover_text("Play or pause the simulation").clicked() {
+                                if ui
+                                    .button(pause_play_text)
+                                    .on_hover_text("Play or pause the simulation")
+                                    .clicked()
+                                {
                                     // pause_play_event.send(PausePlayEvent);
                                     pause_play.toggle();
                                     if pause_play.is_paused() {
@@ -345,11 +379,15 @@ fn ui_settings_panel(
                         // ui.end_row();
                     });
 
-                    custom::subheading(ui, "Export", Some(Color32::from_catppuccin_colour(title_colors.next())));
+                    custom::subheading(
+                        ui,
+                        "Export",
+                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                    );
 
                     let png_output_path = PathBuf::from("./factorgraphs").with_extension("png");
 
-                    custom::grid( "export_grid", 3).show(ui, |ui| {
+                    custom::grid("export_grid", 3).show(ui, |ui| {
                         // GRAPHVIZ EXPORT TOGGLE
                         ui.label("Graphviz");
                         custom::fill_x(ui, |ui| {
@@ -361,8 +399,9 @@ fn ui_settings_panel(
                         });
                         custom::fill_x(ui, |ui| {
                             if ui.button("Open").clicked() {
-                                let _ = open::that(&png_output_path)
-                                    .inspect_err(|e| error!("failed to open ./{:?}: {e}", png_output_path));
+                                let _ = open::that(&png_output_path).inspect_err(|e| {
+                                    error!("failed to open ./{:?}: {e}", png_output_path)
+                                });
                             }
                         });
                     });
@@ -372,7 +411,11 @@ fn ui_settings_panel(
                     // ui.add_space(10.0);
 
                     // INSPECTOR
-                    custom::subheading(ui, "Inspector", Some(Color32::from_catppuccin_colour(title_colors.next())));
+                    custom::subheading(
+                        ui,
+                        "Inspector",
+                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                    );
                     custom::grid("inspector_grid", 3).show(ui, |ui| {
                         ui.label("Cursor");
                         // y coordinate
@@ -381,7 +424,8 @@ fn ui_settings_panel(
                             let x_coordinate = format!("{:7.2}", cursor_coordinates.local().x);
                             if custom::rect_label(ui, x_coordinate.clone(), None).clicked() {
                                 ui.output_mut(|o| {
-                                    // this will only work if `interact = Some(egui::Sense::click())` or similar
+                                    // this will only work if `interact =
+                                    // Some(egui::Sense::click())` or similar
                                     o.copied_text = x_coordinate.to_string();
                                 })
                             }
@@ -392,12 +436,14 @@ fn ui_settings_panel(
                             let y_coordinate = format!("{:7.2}", cursor_coordinates.local().y);
                             if custom::rect_label(ui, y_coordinate.clone(), None).clicked() {
                                 ui.output_mut(|o| {
-                                    // this will only work if `interact = Some(egui::Sense::click())` or similar
+                                    // this will only work if `interact =
+                                    // Some(egui::Sense::click())` or similar
                                     o.copied_text = y_coordinate.to_string();
                                 })
                             }
                         });
-                        // custom::rect_label(ui, format!("y: {:7.2}", cursor_coordinates.local().y));
+                        // custom::rect_label(ui, format!("y: {:7.2}",
+                        // cursor_coordinates.local().y));
                     });
 
                     ui.add_space(2.5);
@@ -413,7 +459,11 @@ fn ui_settings_panel(
                         bevy_inspector::ui_for_all_assets(world, ui);
                     });
 
-                    custom::subheading(ui, "Other", Some(Color32::from_catppuccin_colour(title_colors.next())));
+                    custom::subheading(
+                        ui,
+                        "Other",
+                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                    );
                     custom::grid("other_grid", 2).show(ui, |ui| {
                         ui.label("UI Focus Cancels Inputs");
                         custom::float_right(ui, |ui| {

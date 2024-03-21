@@ -44,10 +44,10 @@ pub struct Cell {
 #[derive(Debug, Serialize, Deserialize, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub struct Environment {
-    pub grid: Grid,
-    path_width: f32,
+    pub grid:        Grid,
+    path_width:      f32,
     obstacle_height: f32,
-    tile_size: f32,
+    tile_size:       f32,
 }
 
 impl Default for Environment {
@@ -143,10 +143,10 @@ impl Environment {
 
     pub fn simple() -> Self {
         Environment {
-            grid: Grid(vec!["┼".to_string()]),
-            path_width: 0.1325,
+            grid:            Grid(vec!["┼".to_string()]),
+            path_width:      0.1325,
             obstacle_height: 1.0,
-            tile_size: 100.0,
+            tile_size:       100.0,
         }
     }
 

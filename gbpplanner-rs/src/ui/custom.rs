@@ -2,7 +2,6 @@ use bevy_egui::egui::{
     self, Align, Align2, Color32, Direction, FontId, Grid, InnerResponse, Layout, RichText, Ui,
     Vec2b,
 };
-
 use egui_extras::{Column, TableBuilder};
 
 /// A simple function to float a widget to the right
@@ -24,8 +23,8 @@ pub fn fill_x<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerR
 }
 
 // /// A function to fill in both x and y
-// pub fn fill<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
-//     ui.vertical_centered_justified(add_contents)
+// pub fn fill<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) ->
+// InnerResponse<R> {     ui.vertical_centered_justified(add_contents)
 // }
 
 // A function to simplify vertically centering a widget
@@ -75,8 +74,8 @@ pub fn toggle_ui(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {
 
     // 1. Deciding widget size:
     // You can query the `ui` how much space is available,
-    // but in this example we have a fixed size widget based on the height of a standard button:
-    // let available_x = ui.available_width();
+    // but in this example we have a fixed size widget based on the height of a
+    // standard button: let available_x = ui.available_width();
     // let desired_y = ui.spacing().interact_size.y;
     // let desired_size = egui::vec2(available_x, desired_y);
     let desired_size = ui.spacing().interact_size.y * egui::vec2(2.0, 1.0);
@@ -104,9 +103,11 @@ pub fn toggle_ui(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {
         let how_on = ui.ctx().animate_bool(response.id, *on);
         // We will follow the current style by asking
         // "how should something that is being interacted with be painted?".
-        // This will, for instance, give us different colors when the widget is hovered or clicked.
+        // This will, for instance, give us different colors when the widget is hovered
+        // or clicked.
         let visuals = ui.style().interact_selectable(&response, *on);
-        // All coordinates are in absolute screen coordinates so we use `rect` to place the elements.
+        // All coordinates are in absolute screen coordinates so we use `rect` to place
+        // the elements.
         let rect = rect.expand(visuals.expansion);
         let radius = 0.5 * rect.height();
         ui.painter()

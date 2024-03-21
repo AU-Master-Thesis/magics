@@ -31,7 +31,8 @@ pub struct MapCell {
 ///
 /// Each cell e.g. cell (0,0) in the above grid "┌" or (3,1) "┬"
 /// - Transforms into a 1x1 section of the map - later to be scaled
-/// - Each cell's world position is calculated from the cell's position in the grid
+/// - Each cell's world position is calculated from the cell's position in the
+///   grid
 ///     - Such that the map is centered
 /// - Uses the `Environment.width` to determine the width of the paths,
 ///    - Otherwise, the empty space is filled with solid meshes
@@ -71,7 +72,8 @@ fn build_system(
             if let Some(mesh_transforms) = match cell {
                 '─' => {
                     // Horizontal straight path
-                    // - 2 equal-sized larger cuboid on either side, spanning the entire width of the cell
+                    // - 2 equal-sized larger cuboid on either side, spanning the entire width of
+                    //   the cell
 
                     Some(vec![
                         (
@@ -98,7 +100,8 @@ fn build_system(
                 }
                 '│' => {
                     // Vertical straight path
-                    // - 2 equal-sized larger cuboid on either side, spanning the entire height of the cell
+                    // - 2 equal-sized larger cuboid on either side, spanning the entire height of
+                    //   the cell
 
                     Some(vec![
                         (
@@ -125,7 +128,8 @@ fn build_system(
                 }
                 '╴' => {
                     // Termination from the left
-                    // - 2 larger cuboids on the top and bottom, spanning the entire width of the cell
+                    // - 2 larger cuboids on the top and bottom, spanning the entire width of the
+                    //   cell
                     // - 1 smaller 'plug' cuboid on the right, to terminate the path
 
                     Some(vec![
@@ -167,7 +171,8 @@ fn build_system(
                 }
                 '╶' => {
                     // Termination from the right
-                    // - 2 larger cuboids on the top and bottom, spanning the entire width of the cell
+                    // - 2 larger cuboids on the top and bottom, spanning the entire width of the
+                    //   cell
                     // - 1 smaller 'plug' cuboid on the left, to terminate the path
 
                     Some(vec![
@@ -209,7 +214,8 @@ fn build_system(
                 }
                 '╷' => {
                     // Termination from the bottom
-                    // - 2 larger cuboids on the left and right, spanning the entire height of the cell
+                    // - 2 larger cuboids on the left and right, spanning the entire height of the
+                    //   cell
                     // - 1 smaller 'plug' cuboid on the top, to terminate the path
 
                     Some(vec![
@@ -251,7 +257,8 @@ fn build_system(
                 }
                 '╵' => {
                     // Termination from the top
-                    // - 2 larger cuboids on the left and right, spanning the entire height of the cell
+                    // - 2 larger cuboids on the left and right, spanning the entire height of the
+                    //   cell
                     // - 1 smaller 'plug' cuboid on the bottom, to terminate the path
 
                     Some(vec![
@@ -294,8 +301,10 @@ fn build_system(
                 '┌' => {
                     // Top right hand turn
                     // - 1 cube in the bottom right corner
-                    // - 1 larger cuboid on the left hand side, spanning the entire height of the cell
-                    // - 1 larger cuboid on the top side, spanning from the right to the above cuboid
+                    // - 1 larger cuboid on the left hand side, spanning the entire height of the
+                    //   cell
+                    // - 1 larger cuboid on the top side, spanning from the right to the above
+                    //   cuboid
 
                     Some(vec![
                         (
@@ -333,7 +342,8 @@ fn build_system(
                 '┐' => {
                     // Top left hand turn
                     // - 1 cube in the bottom left corner
-                    // - 1 larger cuboid on the right hand side, spanning the entire height of the cell
+                    // - 1 larger cuboid on the right hand side, spanning the entire height of the
+                    //   cell
                     // - 1 larger cuboid on the top side, spanning from the left to the above cuboid
 
                     Some(vec![
@@ -372,8 +382,10 @@ fn build_system(
                 '└' => {
                     // Bottom right hand turn
                     // - 1 cube in the top right corner
-                    // - 1 larger cuboid on the left hand side, spanning the entire height of the cell
-                    // - 1 larger cuboid on the bottom side, spanning from the right to the above cuboid
+                    // - 1 larger cuboid on the left hand side, spanning the entire height of the
+                    //   cell
+                    // - 1 larger cuboid on the bottom side, spanning from the right to the above
+                    //   cuboid
 
                     Some(vec![
                         (
@@ -411,8 +423,10 @@ fn build_system(
                 '┘' => {
                     // Bottom left hand turn
                     // - 1 cube in the top left corner
-                    // - 1 larger cuboid on the right hand side, spannding the entire height of the cell
-                    // - 1 larger cuboid on the bottom side, spanning from the left to the above cuboid
+                    // - 1 larger cuboid on the right hand side, spannding the entire height of the
+                    //   cell
+                    // - 1 larger cuboid on the bottom side, spanning from the left to the above
+                    //   cuboid
 
                     Some(vec![
                         (

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use bevy::prelude::*;
 use strum_macros::EnumIter;
 
@@ -6,20 +8,16 @@ mod general;
 mod moveable_object;
 mod ui;
 
-use crate::ui::ToDisplayString;
-
-pub use camera::CameraAction;
-pub use camera::CameraSensitivity;
-pub use general::GeneralAction;
-pub use general::ScreenShotEvent;
-pub use moveable_object::MoveableObjectAction;
-pub use moveable_object::MoveableObjectSensitivity;
+pub use camera::{CameraAction, CameraSensitivity};
+pub use general::{GeneralAction, ScreenShotEvent};
+pub use moveable_object::{MoveableObjectAction, MoveableObjectSensitivity};
 pub use ui::UiAction;
 
 use self::{
     camera::CameraInputPlugin, general::GeneralInputPlugin,
     moveable_object::MoveableObjectInputPlugin, ui::UiInputPlugin,
 };
+use crate::ui::ToDisplayString;
 
 /// Enumeration to collect the different kinds of input bindings
 #[derive(Debug, EnumIter)]
@@ -37,14 +35,14 @@ impl Default for InputAction {
     }
 }
 
-impl ToString for InputAction {
-    fn to_string(&self) -> String {
+impl Display for InputAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Camera(_) => "Camera".to_string(),
-            Self::General(_) => "General".to_string(),
-            Self::MoveableObject(_) => "Moveable Object".to_string(),
-            Self::Ui(_) => "UI".to_string(),
-            Self::Undefined => "Undefined".to_string(),
+            Self::Camera(_) => write!(f, "Camera"),
+            Self::General(_) => write!(f, "General"),
+            Self::MoveableObject(_) => write!(f, "Moveable Object"),
+            Self::Ui(_) => write!(f, "UI"),
+            Self::Undefined => write!(f, "Undefined"),
         }
     }
 }
@@ -81,6 +79,7 @@ impl ToDisplayString for GeneralAction {
             GeneralAction::ToggleTheme => "Toggle Theme".to_string(),
             GeneralAction::ExportGraph => "Export Graph".to_string(),
             GeneralAction::ScreenShot => "Take Screenshot".to_string(),
+            GeneralAction::QuitApplication => "Quit Application".to_string(),
         }
     }
 }

@@ -10,7 +10,6 @@ use follow_cameras::FollowCamerasPlugin;
 use map::MapPlugin;
 
 use self::gen_map::GenMapPlugin;
-
 pub use self::gen_map::MapCell;
 
 pub struct EnvironmentPlugin;

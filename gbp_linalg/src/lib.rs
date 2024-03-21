@@ -10,11 +10,14 @@ pub mod prelude {
 }
 
 /// Marker trait for floating point types used in GBP.
-/// - ndarray::NdFloat is a trait for floating point types that can be used with ndarray.
+/// - ndarray::NdFloat is a trait for floating point types that can be used with
+///   ndarray.
 /// It is implemented for f32 and f64.
 /// - Copy, is to make some of the methods more ergonomic to use.
-/// - std::iter::Sum is required by the `det()` method by `ndarray_inverse::Inverse::det()`
-/// which we use in `gbp_multivariate_normal::MultivariateNormal` to calculate the determinant of the precision matrix.
+/// - std::iter::Sum is required by the `det()` method by
+///   `ndarray_inverse::Inverse::det()`
+/// which we use in `gbp_multivariate_normal::MultivariateNormal` to calculate
+/// the determinant of the precision matrix.
 pub trait GbpFloat: ndarray::NdFloat + Copy + std::iter::Sum {}
 
 impl GbpFloat for f32 {}
@@ -46,9 +49,11 @@ macro_rules! vector_norm_trait_impl {
     ($float:ty) => {
         impl VectorNorm for Vector<$float> {
             type Scalar = $float;
+
             fn euclidean_norm(&self) -> Self::Scalar {
                 <$float>::sqrt(self.fold(0.0, |acc, x| acc + x * x))
             }
+
             #[inline(always)]
             fn l1_norm(&self) -> Self::Scalar {
                 self.fold(0.0, |acc, x| acc + x.abs())
@@ -75,12 +80,14 @@ macro_rules! ndarray_vector_ext_trait_impl {
     ($float:ty) => {
         impl NdarrayVectorExt for Vector<$float> {
             type Scalar = $float;
+
             /// Normalize the vector in place.
             fn normalize(&mut self) {
                 let mag = self.euclidean_norm();
                 if mag == 0.0 || mag.is_infinite() {
                     return;
-                    // panic!("Cannot normalize a vector with zero magnitude or infinite magnitude.");
+                    // panic!("Cannot normalize a vector with zero magnitude or infinite
+                    // magnitude.");
                 }
                 for i in 0..self.len() {
                     self[i] /= mag;
@@ -97,13 +104,13 @@ ndarray_vector_ext_trait_impl!(f64);
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use approx::assert_relative_eq;
     use arbtest::arbtest;
     use ndarray::array;
     use paste::paste;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     macro_rules! test_vector_norm {
         ($name:ident: $ty:ty) => {
@@ -211,7 +218,7 @@ mod tests {
                             // To lazy to handle NaNs ¯\_(ツ)_/¯
                             return Ok(());
                         }
-                        eprintln!("BEFORE: v: {:#?} .len() = {}, .mag = {}", v, v.len(), mag);
+                        // eprintln!("BEFORE: v: {:#?} .len() = {}, .mag = {}", v, v.len(), mag);
 
                         let vn = v.normalized();
                         let expected = &v / mag;
@@ -220,7 +227,7 @@ mod tests {
 
                         v.normalize();
 
-                        eprintln!("AFTER: v: {:#?}, .mag = {}", v, v.euclidean_norm());
+                        // eprintln!("AFTER: v: {:#?}, .mag = {}", v, v.euclidean_norm());
 
                         // compare each element of the normalized vector with the expected values
                         assert!(v.iter().zip(expected.iter()).all(|(a, b)| float_eq(*a, *b)));

@@ -14,55 +14,56 @@ pub(crate) mod utils;
 
 use std::path::PathBuf;
 
-use crate::asset_loader::AssetLoaderPlugin;
-use crate::config::Config;
-use crate::config::FormationGroup;
-use crate::environment::EnvironmentPlugin;
-use crate::input::InputPlugin;
-use crate::moveable_object::MoveableObjectPlugin;
-use crate::movement::MovementPlugin;
-use crate::planner::PlannerPlugin;
-use crate::robot_spawner::RobotSpawnerPlugin;
-use crate::theme::ThemePlugin;
-use crate::toggle_fullscreen::ToggleFullscreenPlugin;
-use crate::ui::EguiInterfacePlugin;
-
-use bevy::core::FrameCount;
-use bevy::prelude::*;
-
-use bevy::window::WindowMode;
-use bevy::window::WindowTheme;
+use bevy::{
+    core::FrameCount,
+    prelude::*,
+    window::{WindowMode, WindowTheme},
+};
 use clap::Parser;
 use config::Environment;
 
-// use gbp_rs::factorgraph;
+use crate::{
+    asset_loader::AssetLoaderPlugin,
+    config::{Config, FormationGroup},
+    environment::EnvironmentPlugin,
+    input::InputPlugin,
+    moveable_object::MoveableObjectPlugin,
+    movement::MovementPlugin,
+    planner::PlannerPlugin,
+    robot_spawner::RobotSpawnerPlugin,
+    theme::ThemePlugin,
+    toggle_fullscreen::ToggleFullscreenPlugin,
+    ui::EguiInterfacePlugin,
+};
 
 #[derive(Parser)]
 #[clap(version, author, about)]
 struct Cli {
-    /// Specify the configuration file to use, overrides the normal configuration file resolution
+    /// Specify the configuration file to use, overrides the normal
+    /// configuration file resolution
     #[arg(short, long, value_name = "CONFIG_FILE")]
     config: Option<std::path::PathBuf>,
 
     #[arg(long)]
     /// Dump the default config to stdout
-    dump_default_config: bool,
+    dump_default_config:      bool,
     #[arg(long)]
     /// Dump the default formation config to stdout
-    dump_default_formation: bool,
+    dump_default_formation:   bool,
     #[arg(long)]
     /// Dump the default environment config to stdout
     dump_default_environment: bool,
     #[arg(long)]
     /// Run the app without a window for rendering the environment
-    headless: bool,
+    headless:                 bool,
 
     #[arg(short, long)]
     /// Start the app in fullscreen mode
     fullscreen: bool,
 }
 
-fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
+// fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
+fn read_config(cli: &Cli) -> anyhow::Result<Config> {
     if let Some(config_path) = &cli.config {
         Ok(Config::from_file(config_path)?)
     } else {
@@ -85,31 +86,34 @@ fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
             }
         }
 
-        Err(color_eyre::eyre::eyre!("No config file found"))
+        anyhow::bail!("No config file found");
+        // Err(color_eyre::eyre::eyre!("No config file found"))
     }
 }
 
-fn main() -> color_eyre::eyre::Result<()> {
-    color_eyre::install()?;
+// fn main() -> color_eyre::eyre::Result<()> {
+//     color_eyre::install()?;
 
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     // if cli.dump_default_config && cli.dump_default_formation {
     //     eprintln!(
-    //         "you can not set --dump-default-config and --dump-default-formation at the same time!"
-    //     );
+    //         "you can not set --dump-default-config and --dump-default-formation
+    // at the same time!"     );
     //     std::process::exit(2);
     // }
 
-    // Cannot set more than one of --dump-default-config, --dump-default-formation, --dump-default-environment
-    // at one time
+    // Cannot set more than one of --dump-default-config, --dump-default-formation,
+    // --dump-default-environment at one time
     if (cli.dump_default_config as u8
         + cli.dump_default_formation as u8
         + cli.dump_default_environment as u8)
         > 1
     {
         eprintln!(
-            "you can not set more than one of --dump-default-config, --dump-default-formation, --dump-default-environment at one time!"
+            "you can not set more than one of --dump-default-config, --dump-default-formation, \
+             --dump-default-environment at one time!"
         );
         std::process::exit(2);
     }
@@ -152,6 +156,13 @@ fn main() -> color_eyre::eyre::Result<()> {
     // environment
     let environment_file_path = PathBuf::from(&config.environment.clone());
     let environment = Environment::from_file(&environment_file_path)?;
+    let window_mode = if cli.fullscreen {
+        WindowMode::BorderlessFullscreen
+    } else {
+        WindowMode::Windowed
+    };
+
+    println!("initial window mode: {:?}", window_mode);
 
     let mut app = App::new();
     app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
@@ -166,11 +177,7 @@ fn main() -> color_eyre::eyre::Result<()> {
                         title: "GBP Planner".into(),
                         // resolution: (1280.0, 720.0).into(),
                         // mode: WindowMode::BorderlessFullscreen,
-                        mode: if cli.fullscreen {
-                            WindowMode::BorderlessFullscreen
-                        } else {
-                            WindowMode::Windowed
-                        },
+                        mode: window_mode,
                         // mode: WindowMode::Fullscreen,
                         // present_mode: PresentMode::AutoVsync,
                         // fit_canvas_to_parent: true,
@@ -199,8 +206,8 @@ fn main() -> color_eyre::eyre::Result<()> {
             RobotSpawnerPlugin, // Custom
             // FactorGraphPlugin,   // Custom
             EguiInterfacePlugin, // Custom
-            PlannerPlugin,       // Custom
-                                 // WorldInspectorPlugin::new(),
+            PlannerPlugin,       /* Custom
+                                  * WorldInspectorPlugin::new(), */
         ))
         .add_systems(Update, make_visible);
 
@@ -214,8 +221,8 @@ fn main() -> color_eyre::eyre::Result<()> {
 fn make_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) {
     // The delay may be different for your app or system.
     if frames.0 == 3 {
-        // At this point the gpu is ready to show the app so we can make the window visible.
-        // Alternatively, you could toggle the visibility in Startup.
+        // At this point the gpu is ready to show the app so we can make the window
+        // visible. Alternatively, you could toggle the visibility in Startup.
         // It will work, but it will have one white frame before it starts rendering
         window.single_mut().visible = true;
     }

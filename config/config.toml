@@ -32,7 +32,7 @@ lookahead-multiple = 3
 
 [robot]
 planning-horizon = 5.0
-max-speed = 2.0
+max-speed = 4.0
 dofs = 4
 symmetric-factors = true
 radius = 1.0
