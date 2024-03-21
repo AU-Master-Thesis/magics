@@ -11,48 +11,98 @@ use crate::{
     asset_loader::SceneAssets,
     config::{
         formation::{RelativePoint, Shape},
-        Config, Formation, FormationGroup,
+        Config, FormationGroup,
     },
     planner::robot::RobotBundle,
-    theme::CatppuccinTheme,
 };
-
-static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
-
-#[derive(Resource)]
-pub struct Repeat {
-    have_spawned: Vec<bool>,
-}
 
 pub struct SpawnerPlugin;
 
 impl Plugin for SpawnerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, init_repeat_resource)
-            .add_systems(Update, (formation_handler, show_formations));
+        app.add_event::<FormationSpawnEvent>()
+            .add_systems(Startup, setup)
+            .add_systems(Update, (advance_time, spawn_formation));
     }
 }
 
-/// Check the `FormationGroup` resource, and make a `Repeat` resource,
-/// reflecting whether each formation has been spawned at least once yet.
-fn init_repeat_resource(mut commands: Commands, formation_group: Res<FormationGroup>) {
-    let have_spawned = vec![false; formation_group.formations.len()];
-    commands.insert_resource(Repeat { have_spawned });
+/// Every [`ObstacleFactor`] has a static reference to the obstacle image.
+static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
+
+/// Component attached to an entity that spawns formations.
+#[derive(Component)]
+pub struct FormationSpawnerCountdown {
+    pub timer:                 Timer,
+    pub formation_group_index: usize,
 }
 
-/// Spawn relevant formations at each time step according to the
-/// `FormationGroup` resource.
-fn formation_handler(
-    mut commands: Commands,
-    formation_group: Res<FormationGroup>,
-    mut repeat: ResMut<Repeat>,
+/// Create an entity with a a `FormationSpawnerCountdown` component for each
+/// formation group.
+fn setup(mut commands: Commands, formation_group: Res<FormationGroup>) {
+    for (i, formation) in formation_group.formations.iter().enumerate() {
+        let mode = if formation.repeat {
+            TimerMode::Repeating
+        } else {
+            TimerMode::Once
+        };
+        let duration = formation.delay.as_secs_f32();
+        let timer = Timer::from_seconds(duration, mode);
+
+        let mut entity = commands.spawn_empty();
+        entity.insert(FormationSpawnerCountdown {
+            timer,
+            formation_group_index: i,
+        });
+
+        info!(
+            "spawned formation-group spawner: {} with mode {:?} spawning every {} seconds",
+            i + 1,
+            mode,
+            duration
+        );
+    }
+}
+
+/// Event that is sent when a formation should be spawned.
+/// The `formation_group_index` is the index of the formation group in the
+/// `FormationGroup` resource. Telling the event reader which formation group to
+/// spawn.
+/// Assumes that the `FormationGroup` resource has been initialised, and does
+/// not change during the program's execution.
+#[derive(Event)]
+pub struct FormationSpawnEvent {
+    pub formation_group_index: usize,
+}
+
+/// Advance time for each `FormationSpawnerCountdown` entity with
+/// `Time::delta()`. If the timer has just finished, send a
+/// `FormationSpawnEvent`.
+fn advance_time(
     time: Res<Time>,
+    mut query: Query<&mut FormationSpawnerCountdown>,
+    mut spawn_event_writer: EventWriter<FormationSpawnEvent>,
+) {
+    for mut countdown in query.iter_mut() {
+        countdown.timer.tick(time.delta());
+        if countdown.timer.just_finished() {
+            spawn_event_writer.send(FormationSpawnEvent {
+                formation_group_index: countdown.formation_group_index,
+            });
+        }
+    }
+}
+
+fn spawn_formation(
+    mut commands: Commands,
+    mut spawn_event_reader: EventReader<FormationSpawnEvent>,
+    // time: Res<Time>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
     image_assets: ResMut<Assets<Image>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    catppuccin_theme: Res<CatppuccinTheme>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
+    // catppuccin_theme: Res<CatppuccinTheme>,
+    formation_group: Res<FormationGroup>,
     variable_timesteps: Res<VariableTimestepsResource>,
 ) {
     // only continue if the image has been loaded
@@ -62,30 +112,136 @@ fn formation_handler(
 
     let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
 
-    // extract all formations from config
-    formation_group
-        .formations
-        .iter()
-        .enumerate()
-        .for_each(|(i, formation)| {
-            if !repeat.have_spawned[i]
-                && !formation.repeat
-                && formation.delay.as_secs_f32() < time.elapsed_seconds()
-            {
-                // Spawn the formation
-                repeat.have_spawned[i] = true;
-                spawn_formation(
-                    &mut commands,
-                    formation,
-                    &config,
-                    OBSTACLE_IMAGE
-                        .get()
-                        .expect("obstacle image should be allocated and initialised"),
-                    &variable_timesteps,
-                    &scene_assets,
-                );
+    for event in spawn_event_reader.read() {
+        let formation = &formation_group.formations[event.formation_group_index];
+
+        let first_wp = formation.waypoints.first();
+
+        let world_dims = WorldDimensions::new(
+            config.simulation.world_size.get().into(),
+            config.simulation.world_size.get().into(),
+        );
+
+        let mut rng = rand::thread_rng();
+        let lerp_amounts = match &first_wp.shape {
+            Shape::Line((start, end)) => {
+                let start = relative_point_to_world_position(start, &world_dims);
+                let end = relative_point_to_world_position(end, &world_dims);
+                randomly_place_nonoverlapping_circles_along_line_segment(
+                    start,
+                    end,
+                    formation.robots,
+                    config.robot.radius,
+                    NonZeroUsize::new(100).expect("100 is not zero"),
+                    &mut rng,
+                )
+                .expect("Could place non-overlapping circles along line segment")
             }
-        });
+            _ => unimplemented!(),
+        };
+
+        debug_assert_eq!(lerp_amounts.len(), formation.robots.get());
+
+        let initial_position_of_each_robot =
+            map_positions(&first_wp.shape, &lerp_amounts, &world_dims);
+        // dbg!(&initial_position_of_each_robot);
+
+        // The first vector is the waypoints for the first robot, the second vector is
+        // the waypoints for the second robot, etc.
+        let mut waypoints_of_each_robot: Vec<Vec<Vec2>> =
+            Vec::with_capacity(formation.robots.get());
+
+        for i in 0..formation.robots.get() {
+            let mut waypoints = Vec::with_capacity(formation.waypoints.len());
+            // for wp in formation.waypoints.iter().skip(1) {
+            for wp in formation.waypoints.iter() {
+                let positions = map_positions(&wp.shape, &lerp_amounts, &world_dims);
+                waypoints.push(positions[i]);
+            }
+            waypoints_of_each_robot.push(waypoints);
+        }
+
+        // dbg!(&waypoints_of_each_robot);
+
+        // [(a, b, c), (d, e, f), (g, h, i)]
+        //  -> [(a, d, g), (b, e, h), (c, f, i)]
+
+        let max_speed = config.robot.max_speed.get();
+
+        for (initial_position, waypoints) in initial_position_of_each_robot
+            .iter()
+            .zip(waypoints_of_each_robot.iter())
+        {
+            let initial_translation = Vec3::new(initial_position.x, 0.5, initial_position.y);
+            let mut entity = commands.spawn_empty();
+            let robot_id = entity.id();
+            let robotbundle = RobotBundle::new(
+                robot_id,
+                dbg!(waypoints
+                    .iter()
+                    .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
+                    .collect::<VecDeque<_>>()),
+                variable_timesteps.timesteps.as_slice(),
+                &config,
+                // &image,
+                OBSTACLE_IMAGE
+                    .get()
+                    .expect("obstacle image should be allocated and initialised"),
+            )
+            .expect(
+                "Possible `RobotInitError`s should be avoided due to the formation input being \
+                 validated.",
+            );
+            let pbrbundle = PbrBundle {
+                mesh: scene_assets.meshes.robot.clone(),
+                material: scene_assets.materials.robot.clone(),
+                transform: Transform::from_translation(initial_translation),
+                ..Default::default()
+            };
+
+            entity.insert((robotbundle, pbrbundle));
+        }
+
+        // std::process::exit(1);
+
+        // dbg!(&positions_of_each_robot);
+        // for positions in positions_of_each_robot {
+        //     let waypoints = positions
+        //         .iter()
+        //         .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
+        //         .collect::<VecDeque<_>>();
+        //     // let waypoints = [wp,
+        // Vec4::ZERO].iter().cloned().collect::<VecDeque<_>>();     // let
+        // waypoints = VecDeque::from(vec![position, Vec2::ZERO]);     let mut
+        // entity = commands.spawn_empty();     let robot_id = entity.id();
+        //
+        //     let initial_position = positions.first().expect("positions is not
+        // empty");     let initial_translation = Vec3::new(initial_position.x,
+        // 0.5, initial_position.y);
+        //
+        //     entity.insert((
+        //         RobotBundle::new(
+        //             robot_id,
+        //             waypoints,
+        //             variable_timesteps.timesteps.as_slice(),
+        //             config,
+        //             image,
+        //         )
+        //         .expect(
+        //             "Possible `RobotInitError`s should be avoided due to the
+        // formation input being \              validated.",
+        //         ),
+        //         PbrBundle {
+        //             mesh: scene_assets.meshes.robot.clone(),
+        //             material: scene_assets.materials.robot.clone(),
+        //             transform: Transform::from_translation(initial_translation),
+        //             ..Default::default()
+        //         },
+        //     ));
+        // }
+
+        info!("spawning formation group {}", event.formation_group_index);
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -108,22 +264,16 @@ impl WorldDimensions {
         }
     }
 
+    /// Get the width of the world.
     pub fn width(&self) -> f64 {
         self.width.get()
     }
 
+    /// Get the height of the world.
     pub fn height(&self) -> f64 {
         self.height.get()
     }
 }
-
-// impl TryFrom<(f64, f64)> for WordDimensions {
-//     type Error = WordDimensionsError;
-//
-//     fn try_from((width, height): (f64, f64)) -> Result<Self, Self::Error> {
-//         WordDimensions::new(width, height)
-//     }
-// }
 
 /// Convert a `RelativePoint` to a world position
 /// given the dimensions of the world.
@@ -136,144 +286,9 @@ fn relative_point_to_world_position(
     world_dims: &WorldDimensions,
 ) -> Vec2 {
     Vec2::new(
-        ((relative_point.x.get() - 0.5) * world_dims.width.get()) as f32,
-        ((relative_point.y.get() - 0.5) * world_dims.height.get()) as f32,
+        ((relative_point.x.get() - 0.5) * world_dims.width()) as f32,
+        ((relative_point.y.get() - 0.5) * world_dims.height()) as f32,
     )
-}
-fn spawn_formation(
-    commands: &mut Commands,
-    formation: &Formation,
-    config: &Config,
-    image: &'static Image,
-    variable_timesteps: &Res<VariableTimestepsResource>,
-    scene_assets: &Res<SceneAssets>,
-) {
-    dbg!(&formation);
-    let first_wp = formation.waypoints.first();
-
-    let world_dims = WorldDimensions::new(
-        config.simulation.world_size.get().into(),
-        config.simulation.world_size.get().into(),
-    );
-
-    let mut rng = rand::thread_rng();
-    let lerp_amounts = match &first_wp.shape {
-        Shape::Line((start, end)) => {
-            let start = relative_point_to_world_position(start, &world_dims);
-            let end = relative_point_to_world_position(end, &world_dims);
-            randomly_place_nonoverlapping_circles_along_line_segment(
-                start,
-                end,
-                formation.robots,
-                config.robot.radius,
-                NonZeroUsize::new(100).expect("100 is not zero"),
-                &mut rng,
-            )
-            .expect("Could place non-overlapping circles along line segment")
-        }
-        _ => unimplemented!(),
-    };
-
-    debug_assert_eq!(lerp_amounts.len(), formation.robots.get());
-
-    let initial_position_of_each_robot = map_positions(&first_wp.shape, &lerp_amounts, &world_dims);
-    // dbg!(&initial_position_of_each_robot);
-
-    // The first vector is the waypoints for the first robot, the second vector is
-    // the waypoints for the second robot, etc.
-    let mut waypoints_of_each_robot: Vec<Vec<Vec2>> = Vec::with_capacity(formation.robots.get());
-
-    for i in 0..formation.robots.get() {
-        let mut waypoints = Vec::with_capacity(formation.waypoints.len());
-        // for wp in formation.waypoints.iter().skip(1) {
-        for wp in formation.waypoints.iter() {
-            let positions = map_positions(&wp.shape, &lerp_amounts, &world_dims);
-            waypoints.push(positions[i]);
-        }
-        waypoints_of_each_robot.push(waypoints);
-    }
-
-    // dbg!(&waypoints_of_each_robot);
-
-    // [(a, b, c), (d, e, f), (g, h, i)]
-    //  -> [(a, d, g), (b, e, h), (c, f, i)]
-
-    let max_speed = config.robot.max_speed.get();
-
-    for (initial_position, waypoints) in initial_position_of_each_robot
-        .iter()
-        .zip(waypoints_of_each_robot.iter())
-    {
-        let initial_translation = Vec3::new(initial_position.x, 0.5, initial_position.y);
-        let mut entity = commands.spawn_empty();
-        let robot_id = entity.id();
-        let robotbundle = RobotBundle::new(
-            robot_id,
-            dbg!(waypoints
-                .iter()
-                .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
-                .collect::<VecDeque<_>>()),
-            variable_timesteps.timesteps.as_slice(),
-            config,
-            image,
-        )
-        .expect(
-            "Possible `RobotInitError`s should be avoided due to the formation input being \
-             validated.",
-        );
-        let pbrbundle = PbrBundle {
-            mesh: scene_assets.meshes.robot.clone(),
-            material: scene_assets.materials.robot.clone(),
-            transform: Transform::from_translation(initial_translation),
-            ..Default::default()
-        };
-
-        entity.insert((robotbundle, pbrbundle));
-    }
-
-    // std::process::exit(1);
-
-    // dbg!(&positions_of_each_robot);
-    // for positions in positions_of_each_robot {
-    //     let waypoints = positions
-    //         .iter()
-    //         .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
-    //         .collect::<VecDeque<_>>();
-    //     // let waypoints = [wp,
-    // Vec4::ZERO].iter().cloned().collect::<VecDeque<_>>();     // let
-    // waypoints = VecDeque::from(vec![position, Vec2::ZERO]);     let mut
-    // entity = commands.spawn_empty();     let robot_id = entity.id();
-    //
-    //     let initial_position = positions.first().expect("positions is not
-    // empty");     let initial_translation = Vec3::new(initial_position.x,
-    // 0.5, initial_position.y);
-    //
-    //     entity.insert((
-    //         RobotBundle::new(
-    //             robot_id,
-    //             waypoints,
-    //             variable_timesteps.timesteps.as_slice(),
-    //             config,
-    //             image,
-    //         )
-    //         .expect(
-    //             "Possible `RobotInitError`s should be avoided due to the
-    // formation input being \              validated.",
-    //         ),
-    //         PbrBundle {
-    //             mesh: scene_assets.meshes.robot.clone(),
-    //             material: scene_assets.materials.robot.clone(),
-    //             transform: Transform::from_translation(initial_translation),
-    //             ..Default::default()
-    //         },
-    //     ));
-    // }
-}
-
-fn show_formations(gizmos: Gizmos, formation_group: Res<FormationGroup>) {
-    for formation in formation_group.formations.iter() {
-        // formation.
-    }
 }
 
 fn map_positions(shape: &Shape, lerp_amounts: &[f32], world_dims: &WorldDimensions) -> Vec<Vec2> {
@@ -290,21 +305,21 @@ fn map_positions(shape: &Shape, lerp_amounts: &[f32], world_dims: &WorldDimensio
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-struct LineSegment {
-    from: Vec2,
-    to:   Vec2,
-}
-
-impl LineSegment {
-    fn new(from: Vec2, to: Vec2) -> Self {
-        Self { from, to }
-    }
-
-    fn length(&self) -> f32 {
-        self.from.distance(self.to)
-    }
-}
+// #[derive(Debug, Clone, Copy)]
+// struct LineSegment {
+//     from: Vec2,
+//     to:   Vec2,
+// }
+//
+// impl LineSegment {
+//     fn new(from: Vec2, to: Vec2) -> Self {
+//         Self { from, to }
+//     }
+//
+//     fn length(&self) -> f32 {
+//         self.from.distance(self.to)
+//     }
+// }
 
 fn randomly_place_nonoverlapping_circles_along_line_segment(
     from: Vec2,

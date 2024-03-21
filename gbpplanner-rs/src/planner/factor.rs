@@ -203,7 +203,7 @@ impl Model for InterRobotFactor {
             // the matrix as a flattened array in column-major order.
             // h[(0, 0)] = 1.0 * (1.0 - radius / self.safety_distance);
             h[0] = 1.0 * (1.0 - radius / self.safety_distance);
-            println!("h = {}", h);
+            // println!("h = {}", h);
         } else {
             if !self.skip {
                 info!(
@@ -236,12 +236,12 @@ impl Model for InterRobotFactor {
 
         let skip = squared_norm >= Float::powi(self.safety_distance, 2);
         if self.skip != skip {
-            warn!(
-                "skip = {}, squared_norm = {} safety_distance^2 = {}",
-                skip,
-                squared_norm,
-                Float::powi(self.safety_distance, 2)
-            );
+            // warn!(
+            //     "skip = {}, squared_norm = {} safety_distance^2 = {}",
+            //     skip,
+            //     squared_norm,
+            //     Float::powi(self.safety_distance, 2)
+            // );
         }
         self.skip = skip;
         // self.skip = squared_norm >= Float::powi(self.safety_distance, 2);
@@ -465,6 +465,14 @@ impl Model for ObstacleFactor {
         // as the image is grayscale
         // TODO: assert that the image's data is laid out in row-major order
         let linear_index = ((self.obstacle_sdf.width() * pixel_y + pixel_x) * 4) as usize;
+        if linear_index >= self.obstacle_sdf.data.len() {
+            warn!(
+                "linear_index = {}, obstacle_sdf.data.len() = {}",
+                linear_index,
+                self.obstacle_sdf.data.len()
+            );
+            return array![0.0];
+        }
         let red = self.obstacle_sdf.data[linear_index];
         // NOTE: do 1.0 - red to invert the value, as the obstacle sdf is white where
         // there are obstacles in gbpplanner, they do not do the inversion here,
@@ -784,7 +792,7 @@ impl Factor {
 
     pub fn send_message(&mut self, from: VariableId, message: Message) {
         if message.is_empty() {
-            warn!("received an empty message from {:?}", from);
+            // warn!("received an empty message from {:?}", from);
         }
         let _ = self.inbox.insert(from, message);
     }
@@ -814,7 +822,7 @@ impl Factor {
         }
 
         if self.skip() {
-            warn!("skipping factor {:?}", self.get_node_index());
+            // warn!("skipping factor {:?}", self.get_node_index());
             let messages = self
                 .inbox
                 .iter()
