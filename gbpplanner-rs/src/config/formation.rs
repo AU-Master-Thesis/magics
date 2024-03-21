@@ -3,7 +3,7 @@
 use std::{num::NonZeroUsize, time::Duration};
 
 use bevy::ecs::system::Resource;
-use min_len_vec::OneOrMore;
+use min_len_vec::{OneOrMore, TwoOrMore};
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 use unit_interval::UnitInterval;
@@ -88,12 +88,6 @@ impl TryFrom<(f64, f64)> for RelativePoint {
 //     }
 // }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ShapeError {
-    #[error("A polygon with 0 vertices is not allowed")]
-    PolygonWithZeroVertices,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Shape {
@@ -164,8 +158,6 @@ pub struct Waypoint {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FormationError {
-    #[error("Shape error: {0}")]
-    ShapeError(#[from] ShapeError),
     #[error(
         "At least two waypoints needs to be given, as the first and last waypoint represent the \
          start and end for the formation"
@@ -192,8 +184,10 @@ pub struct Formation {
     /// A list of waypoints.
     /// `NOTE` The first waypoint is assumed to be the spawning point.
     /// < 2 waypoints is an invalid state
-    pub waypoints: Vec<Waypoint>,
+    // pub waypoints: Vec<Waypoint>,
+    pub waypoints: TwoOrMore<Waypoint>,
 }
+// Polygon(Vec<RelativePoint>),
 
 impl Default for Formation {
     fn default() -> Self {
@@ -214,7 +208,9 @@ impl Default for Formation {
                     placement_strategy: PlacementStrategy::Map,
                     shape:              line![(0.0, 0.4), (0.0, 0.6)],
                 },
-            ],
+            ]
+            .try_into()
+            .unwrap(),
         }
     }
 }
@@ -396,71 +392,6 @@ mod tests {
         //         invalid.validate(),
         //         Err(FormationError::NegativeTime)
         //     ));
-        // }
-
-        #[test]
-        fn zero_waypoints_are_invalid() {
-            let invalid = Formation {
-                waypoints: vec![],
-                ..Default::default()
-            };
-
-            assert!(matches!(
-                invalid.validate(),
-                Err(FormationError::LessThanTwoWaypoints)
-            ))
-        }
-
-        #[test]
-        fn one_waypoint_is_invalid() {
-            let invalid = Formation {
-                waypoints: vec![Waypoint {
-                    shape:              Shape::Line((
-                        RelativePoint::new(0.0, 0.0).unwrap(),
-                        RelativePoint::new(0.4, 0.4).unwrap(),
-                    )),
-                    placement_strategy: PlacementStrategy::Random,
-                }],
-                ..Default::default()
-            };
-
-            assert!(matches!(
-                invalid.validate(),
-                Err(FormationError::LessThanTwoWaypoints)
-            ))
-        }
-
-        // TODO: rewrite tests for these cases
-        // #[test]
-        // fn negative_radius_is_invalid() {
-        //     let invalid = Formation {
-        //         shape: Shape::Circle {
-        //             radius: -1.0,
-        //             center: Point { x: 0.0, y: 0.0 },
-        //         },
-        //         ..Default::default()
-        //     };
-
-        //     assert!(matches!(
-        //         invalid.validate(),
-        //         Err(ValidationError::ShapeError(ShapeError::NegativeRadius))
-        //     ))
-        // }
-
-        // #[test]
-        // fn zero_radius_is_invalid() {
-        //     let invalid = Formation {
-        //         shape: Shape::Circle {
-        //             radius: 0.0,
-        //             center: Point { x: 0.0, y: 0.0 },
-        //         },
-        //         ..Default::default()
-        //     };
-
-        //     assert!(matches!(
-        //         invalid.validate(),
-        //         Err(ValidationError::ShapeError(ShapeError::NegativeRadius))
-        //     ))
         // }
 
         // #[test]

@@ -6,7 +6,7 @@
         secs: 1,
         nanos: 0
       ),
-      robots: 2,
+      robots: 4,
       waypoints: [
         (
           shape: line(((

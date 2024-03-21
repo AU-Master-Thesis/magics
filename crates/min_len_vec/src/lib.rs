@@ -101,6 +101,22 @@ impl<T, const N: usize> MinLenVec<T, N> {
         }
         Ok(self.0.pop().expect("there is always at least N elements"))
     }
+
+    /// Get a reference to the first element of the vector.
+    /// Since the vector has at least `N` elements, this will always return a
+    /// first element.
+    #[inline(always)]
+    pub fn first(&self) -> &T {
+        &self.0[0]
+    }
+
+    /// Get a reference to the last element of the vector.
+    /// Since the vector has at least `N` elements, this will always return a
+    /// last element.
+    #[inline(always)]
+    pub fn last(&self) -> &T {
+        &self.0[self.0.len() - 1]
+    }
 }
 
 impl<T, const N: usize> std::ops::Index<usize> for MinLenVec<T, N> {
@@ -114,6 +130,26 @@ impl<T, const N: usize> std::ops::Index<usize> for MinLenVec<T, N> {
 impl<T, const N: usize> std::ops::IndexMut<usize> for MinLenVec<T, N> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.0[index]
+    }
+}
+
+impl<T, const N: usize> TryFrom<Vec<T>> for MinLenVec<T, N> {
+    type Error = MinLenVecError;
+
+    fn try_from(value: Vec<T>) -> std::result::Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl<T, const N: usize> From<MinLenVec<T, N>> for Vec<T> {
+    fn from(value: MinLenVec<T, N>) -> Self {
+        value.into_inner()
+    }
+}
+
+impl<T: Clone, const N: usize> From<[T; N]> for MinLenVec<T, N> {
+    fn from(value: [T; N]) -> Self {
+        Self::new(value.to_vec()).expect("there are always N elements")
     }
 }
 
@@ -197,5 +233,41 @@ mod tests {
         assert_eq!(v.len(), 3);
         assert_eq!(v.pop(), Err(MinLenVecError::NotEnoughElements(3)));
         assert_eq!(v.len(), 3);
+    }
+
+    #[test]
+    fn test_min_len_vec_index() {
+        let v = MinLenVec::<_, 3>::new(vec![1, 2, 3]).unwrap();
+        assert_eq!(v[0], 1);
+        assert_eq!(v[1], 2);
+        assert_eq!(v[2], 3);
+    }
+
+    #[test]
+    fn test_min_len_vec_into_inner() {
+        let v = MinLenVec::<_, 3>::new(vec![1, 2, 3]).unwrap();
+        let inner = v.into_inner();
+        assert_eq!(inner, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_min_len_vec_from() {
+        let v = MinLenVec::<_, 3>::from([1, 2, 3]);
+        assert_eq!(v.len(), 3);
+        assert_eq!(v[0], 1);
+        assert_eq!(v[1], 2);
+        assert_eq!(v[2], 3);
+    }
+
+    #[test]
+    fn test_first() {
+        let v = MinLenVec::<_, 3>::new(vec![1, 2, 3]).unwrap();
+        assert_eq!(v.first(), &1);
+    }
+
+    #[test]
+    fn test_last() {
+        let v = MinLenVec::<_, 4>::new(vec![1, 2, 3, 4]).unwrap();
+        assert_eq!(v.last(), &4);
     }
 }

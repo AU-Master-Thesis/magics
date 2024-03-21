@@ -149,10 +149,7 @@ fn spawn_formation(
     scene_assets: &Res<SceneAssets>,
 ) {
     dbg!(&formation);
-    let first_wp = formation
-        .waypoints
-        .first()
-        .expect("Formation cannot have 0 waypoint entries");
+    let first_wp = formation.waypoints.first();
 
     let world_dims = WorldDimensions::new(
         config.simulation.world_size.get().into(),
