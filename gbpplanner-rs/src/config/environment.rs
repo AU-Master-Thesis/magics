@@ -28,6 +28,17 @@ impl Grid {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Cell {
+    pub row: usize,
+    pub col: usize,
+}
+
+// #[derive(Debug, Serialize, Deserialize)]
+// #[serde(rename_all = "kebab-case")]
+// pub struct shapes(Vec<(Cell, Shape)>);
+
 /// **Bevy** [`Resource`]
 /// The en
 #[derive(Debug, Serialize, Deserialize, Resource)]
