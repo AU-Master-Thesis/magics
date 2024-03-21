@@ -20,11 +20,11 @@
         ),
         (
           shape: line(((
-            x: 0.55,
-            y: 0.45,
-          ), (
             x: 0.45,
             y: 0.55,
+          ), (
+            x: 0.55,
+            y: 0.45,
           ))),
           r#placement-strategy: map,
         ),
