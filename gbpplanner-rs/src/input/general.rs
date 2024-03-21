@@ -11,7 +11,7 @@ use strum_macros::EnumIter;
 use super::super::theme::ThemeEvent;
 use crate::{
     config::Config,
-    planner::{FactorGraph, NodeKind, RobotId, RobotState},
+    planner::{FactorGraph, NodeKind, PausePlayEvent, RobotId, RobotState},
     theme::CatppuccinTheme,
     ui::{ChangingBinding, ExportGraphEvent},
 };
@@ -24,7 +24,8 @@ pub struct GeneralInputPlugin;
 impl Plugin for GeneralInputPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ScreenShotEvent>()
-            .add_event::<QuitApplication>()
+            .add_event::<QuitApplicationEvent>()
+            .add_event::<ExportGraphFinishedEvent>()
             .add_plugins((InputManagerPlugin::<GeneralAction>::default(),))
             .add_systems(PostStartup, (bind_general_input,))
             .add_systems(
@@ -40,45 +41,44 @@ impl Plugin for GeneralInputPlugin {
     }
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter, Default)]
 pub enum GeneralAction {
+    #[default]
     ToggleTheme,
     ExportGraph,
     ScreenShot,
     QuitApplication,
+    PausePlaySimulation,
 }
 
 impl std::fmt::Display for GeneralAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::ToggleTheme => write!(f, "Toggle Theme"),
-            Self::ExportGraph => write!(f, "Export Graph"),
-            Self::ScreenShot => write!(f, "Take Screenshot"),
-            Self::QuitApplication => write!(f, "Quit Application"),
-        }
-    }
-}
-
-impl Default for GeneralAction {
-    fn default() -> Self {
-        Self::ToggleTheme
+        write!(f, "{}", match self {
+            Self::ToggleTheme => "Toggle Theme",
+            Self::ExportGraph => "Export Graph",
+            Self::ScreenShot => "Take Screenshot",
+            Self::QuitApplication => "Quit Application",
+            Self::PausePlaySimulation => "Pause/Play Simulation",
+        })
     }
 }
 
 impl GeneralAction {
     fn default_keyboard_input(action: GeneralAction) -> Option<UserInput> {
-        match action {
-            Self::ToggleTheme => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT))),
-            Self::ExportGraph => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG))),
-            Self::ScreenShot => Some(UserInput::modified(
-                Modifier::Control,
-                InputKind::PhysicalKey(KeyCode::KeyS),
-            )),
-            Self::QuitApplication => Some(UserInput::modified(
-                Modifier::Control,
-                InputKind::PhysicalKey(KeyCode::KeyQ),
-            )),
-        }
+        let input = match action {
+            Self::ToggleTheme => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT)),
+            Self::ExportGraph => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG)),
+            Self::ScreenShot => {
+                UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyS))
+            }
+            Self::QuitApplication => {
+                UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyQ))
+            }
+
+            Self::PausePlaySimulation => UserInput::Single(InputKind::PhysicalKey(KeyCode::Space)),
+        };
+
+        Some(input)
     }
 }
 
@@ -236,17 +236,25 @@ fn export_graph_on_event(
     mut theme_event_reader: EventReader<ExportGraphEvent>,
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
+    mut export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
 ) {
     if theme_event_reader.read().next().is_some() {
-        if let Err(e) = handle_export_graph(query, config.as_ref()) {
+        if let Err(e) = handle_export_graph(query, config.as_ref(), export_graph_finished_event) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
     }
 }
 
+#[derive(Event)]
+pub enum ExportGraphFinishedEvent {
+    Success(String),
+    Failure(String),
+}
+
 fn handle_export_graph(
     q: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: &Config,
+    mut export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
 ) -> std::io::Result<()> {
     let Some(output) = export_factorgraphs_as_graphviz(q, config) else {
         warn!("There are no factorgraphs in the world");
@@ -287,12 +295,23 @@ fn handle_export_graph(
                     "compiled {:?} to {:?} with dot",
                     dot_output_path, png_output_path
                 );
+                // export_graph_finished_event.
+                // send(ExportGraphFinishedEvent::Success(
+                //     png_output_path.to_string_lossy().to_string(),
+                // ));
             } else {
                 error!(
                     "attempting to compile graph with dot, returned a non-zero exit status: {:?}",
                     output
                 );
+                // export_graph_finished_event.
+                // send(ExportGraphFinishedEvent::Failure(
+                //     png_output_path.to_string_lossy().to_string(),
+                // ));
             }
+
+            // TODO: create a popup with egui informing the user of the
+            // success/failure
         })
         .detach();
 
@@ -300,10 +319,10 @@ fn handle_export_graph(
 }
 
 #[derive(Event, Clone, Copy, Debug, Default)]
-pub struct QuitApplication;
+pub struct QuitApplicationEvent;
 
 fn quit_application_system(
-    mut quit_application_reader: EventReader<QuitApplication>,
+    mut quit_application_reader: EventReader<QuitApplicationEvent>,
     mut app_exit_event: EventWriter<AppExit>,
 ) {
     for _ in quit_application_reader.read() {
@@ -320,7 +339,9 @@ fn general_actions_system(
     currently_changing: Res<ChangingBinding>,
     catppuccin_theme: Res<CatppuccinTheme>,
     // mut app_exit_event: EventWriter<AppExit>,
-    mut quit_application_writer: EventWriter<QuitApplication>,
+    mut quit_application_writer: EventWriter<QuitApplicationEvent>,
+    mut export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    mut pause_play_writer: EventWriter<PausePlayEvent>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
@@ -332,18 +353,19 @@ fn general_actions_system(
 
     if action_state.just_pressed(&GeneralAction::ToggleTheme) {
         handle_toggle_theme(&mut theme_event, catppuccin_theme);
-    }
-
-    if action_state.just_pressed(&GeneralAction::ExportGraph) {
-        if let Err(e) = handle_export_graph(query_graphs, config.as_ref()) {
+    } else if action_state.just_pressed(&GeneralAction::ExportGraph) {
+        if let Err(e) =
+            handle_export_graph(query_graphs, config.as_ref(), export_graph_finished_event)
+        {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
-    }
-
-    if action_state.just_pressed(&GeneralAction::QuitApplication) {
-        quit_application_writer.send(QuitApplication);
+    } else if action_state.just_pressed(&GeneralAction::QuitApplication) {
+        quit_application_writer.send(QuitApplicationEvent);
         // info!("quitting application");
         // app_exit_event.send(AppExit);
+    } else if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {
+        info!("toggling pause/play simulation");
+        pause_play_writer.send(PausePlayEvent::Toggle);
     }
 }
 

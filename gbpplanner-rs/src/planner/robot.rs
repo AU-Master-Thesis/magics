@@ -541,6 +541,7 @@ fn iterate_gbp(
 /// Called `Robot::updateHorizon` in **gbpplanner**
 
 fn update_prior_of_horizon_state(
+    mut commands: Commands,
     mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints), With<RobotState>>,
     config: Res<Config>,
     time: Res<Time>,
@@ -549,6 +550,7 @@ fn update_prior_of_horizon_state(
 
     let mut all_messages_to_external_factors = Vec::new();
 
+    let mut ids_of_robots_to_despawn = Vec::new();
     for (robot_id, mut factorgraph, mut waypoints) in query.iter_mut() {
         let Some(current_waypoint) = waypoints
             .0
@@ -556,6 +558,9 @@ fn update_prior_of_horizon_state(
             .map(|wp| array![wp.x as Float, wp.y as Float])
         else {
             warn_once!("robot {:?}, has reached its final waypoint", robot_id);
+            // despawn robot
+            // robot_id.despawn();
+            ids_of_robots_to_despawn.push(robot_id);
 
             continue;
         };
@@ -621,6 +626,11 @@ fn update_prior_of_horizon_state(
             .factor_mut(message.to.factor_index)
             .send_message(message.from, message.message.clone());
     }
+
+    // FIXME: sometimes this causes a panic
+    // for id in ids_of_robots_to_despawn {
+    //     commands.entity(id).despawn_recursive();
+    // }
 }
 
 /// run criteria if time is not paused

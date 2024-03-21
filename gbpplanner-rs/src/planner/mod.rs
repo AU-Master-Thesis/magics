@@ -18,12 +18,12 @@ pub struct PlannerPlugin;
 
 impl Plugin for PlannerPlugin {
     fn build(&self, app: &mut App) {
-        info!("built PlannerPlugin, added RobotPlugin, SpawnerPlugin, VisualiserPlugin");
-        app.init_resource::<PausePlay>().add_plugins((
-            RobotPlugin,
-            SpawnerPlugin,
-            VisualiserPlugin,
-        ));
+        // info!("built PlannerPlugin, added RobotPlugin, SpawnerPlugin,
+        // VisualiserPlugin");
+        app.init_resource::<PausePlay>()
+            .add_event::<PausePlayEvent>()
+            .add_systems(Update, pause_play_simulation)
+            .add_plugins((RobotPlugin, SpawnerPlugin, VisualiserPlugin));
     }
 }
 
@@ -46,5 +46,33 @@ impl PausePlay {
 
     pub fn is_paused(&self) -> bool {
         !self.0
+    }
+}
+
+#[derive(Event, Clone, Debug, Default)]
+pub enum PausePlayEvent {
+    #[default]
+    Toggle,
+    Pause,
+    Play,
+}
+
+fn pause_play_simulation(
+    mut pause_play: ResMut<PausePlay>,
+    mut pause_play_event_reader: EventReader<PausePlayEvent>,
+    mut time: ResMut<Time<Virtual>>,
+) {
+    for pause_play_event in pause_play_event_reader.read() {
+        match pause_play_event {
+            PausePlayEvent::Toggle => pause_play.toggle(),
+            PausePlayEvent::Pause => pause_play.pause(),
+            PausePlayEvent::Play => pause_play.play(),
+        }
+
+        if pause_play.is_paused() {
+            time.unpause();
+        } else {
+            time.pause();
+        }
     }
 }

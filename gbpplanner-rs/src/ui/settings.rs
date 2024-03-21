@@ -15,7 +15,7 @@ use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
     input::ScreenShotEvent,
-    planner::PausePlay,
+    planner::{PausePlay, PausePlayEvent},
     theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
 };
 
@@ -364,13 +364,16 @@ fn ui_settings_panel(
                                     .on_hover_text("Play or pause the simulation")
                                     .clicked()
                                 {
+                                    world.send_event::<PausePlayEvent>(PausePlayEvent::Toggle);
+                                    // pause_play_writter.
+                                    // send(PausePlayEvent::Toggle);
                                     // pause_play_event.send(PausePlayEvent);
-                                    pause_play.toggle();
-                                    if pause_play.is_paused() {
-                                        time.unpause();
-                                    } else {
-                                        time.pause();
-                                    }
+                                    // pause_play.toggle();
+                                    // if pause_play.is_paused() {
+                                    //     time.unpause();
+                                    // } else {
+                                    //     time.pause();
+                                    // }
                                 }
                             });
 

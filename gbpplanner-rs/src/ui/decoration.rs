@@ -18,6 +18,12 @@ pub trait ToDisplayString {
     fn to_display_string(&self) -> String;
 }
 
+// impl <T: ToString> ToDisplayString for T {
+//     fn to_display_string(&self) -> String {
+//         self.to_string()
+//     }
+// }
+
 impl ToDisplayString for UserInput {
     fn to_display_string(&self) -> String {
         match self {

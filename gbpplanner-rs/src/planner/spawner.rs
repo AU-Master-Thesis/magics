@@ -114,7 +114,6 @@ fn spawn_formation(
 
     for event in spawn_event_reader.read() {
         let formation = &formation_group.formations[event.formation_group_index];
-
         let first_wp = formation.waypoints.first();
 
         let world_dims = WorldDimensions::new(
@@ -123,7 +122,9 @@ fn spawn_formation(
         );
 
         let mut rng = rand::thread_rng();
-        let lerp_amounts = match &first_wp.shape {
+
+        let max_placement_attempts = NonZeroUsize::new(1000).expect("1000 is not zero");
+        let Some(lerp_amounts) = (match &first_wp.shape {
             Shape::Line((start, end)) => {
                 let start = relative_point_to_world_position(start, &world_dims);
                 let end = relative_point_to_world_position(end, &world_dims);
@@ -132,19 +133,26 @@ fn spawn_formation(
                     end,
                     formation.robots,
                     config.robot.radius,
-                    NonZeroUsize::new(100).expect("100 is not zero"),
+                    max_placement_attempts,
                     &mut rng,
                 )
-                .expect("Could place non-overlapping circles along line segment")
             }
             _ => unimplemented!(),
+        }) else {
+            error!(
+                "failed to spawn formation {}, reason: was not able to place robots along line \
+                 segment after {} attempts, skipping",
+                event.formation_group_index,
+                max_placement_attempts.get()
+            );
+            return;
         };
 
         debug_assert_eq!(lerp_amounts.len(), formation.robots.get());
 
+        // FIXME: order is flipped
         let initial_position_of_each_robot =
             map_positions(&first_wp.shape, &lerp_amounts, &world_dims);
-        // dbg!(&initial_position_of_each_robot);
 
         // The first vector is the waypoints for the first robot, the second vector is
         // the waypoints for the second robot, etc.
@@ -160,8 +168,6 @@ fn spawn_formation(
             }
             waypoints_of_each_robot.push(waypoints);
         }
-
-        // dbg!(&waypoints_of_each_robot);
 
         // [(a, b, c), (d, e, f), (g, h, i)]
         //  -> [(a, d, g), (b, e, h), (c, f, i)]
@@ -183,7 +189,6 @@ fn spawn_formation(
                     .collect::<VecDeque<_>>()),
                 variable_timesteps.timesteps.as_slice(),
                 &config,
-                // &image,
                 OBSTACLE_IMAGE
                     .get()
                     .expect("obstacle image should be allocated and initialised"),
@@ -201,48 +206,23 @@ fn spawn_formation(
 
             entity.insert((robotbundle, pbrbundle));
         }
-
-        // std::process::exit(1);
-
-        // dbg!(&positions_of_each_robot);
-        // for positions in positions_of_each_robot {
-        //     let waypoints = positions
-        //         .iter()
-        //         .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
-        //         .collect::<VecDeque<_>>();
-        //     // let waypoints = [wp,
-        // Vec4::ZERO].iter().cloned().collect::<VecDeque<_>>();     // let
-        // waypoints = VecDeque::from(vec![position, Vec2::ZERO]);     let mut
-        // entity = commands.spawn_empty();     let robot_id = entity.id();
-        //
-        //     let initial_position = positions.first().expect("positions is not
-        // empty");     let initial_translation = Vec3::new(initial_position.x,
-        // 0.5, initial_position.y);
-        //
-        //     entity.insert((
-        //         RobotBundle::new(
-        //             robot_id,
-        //             waypoints,
-        //             variable_timesteps.timesteps.as_slice(),
-        //             config,
-        //             image,
-        //         )
-        //         .expect(
-        //             "Possible `RobotInitError`s should be avoided due to the
-        // formation input being \              validated.",
-        //         ),
-        //         PbrBundle {
-        //             mesh: scene_assets.meshes.robot.clone(),
-        //             material: scene_assets.materials.robot.clone(),
-        //             transform: Transform::from_translation(initial_translation),
-        //             ..Default::default()
-        //         },
-        //     ));
-        // }
-
         info!("spawning formation group {}", event.formation_group_index);
     }
 }
+
+// fn lerp_amounts_along_line_segment(
+//     start: Vec2,
+//     end: Vec2,
+//     radius: StrictlyPositiveFinite<f32>,
+//     num_points: NonZeroUsize,
+// ) -> Vec<f32> {
+//     let num_points = num_points.get();
+//     let mut lerp_amounts = Vec::with_capacity(num_points);
+//     for i in 0..num_points {
+//         lerp_amounts.push(i as f32 / (num_points - 1) as f32);
+//     }
+//     lerp_amounts
+// }
 
 #[derive(Debug, Clone, Copy)]
 struct WorldDimensions {

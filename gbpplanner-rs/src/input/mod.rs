@@ -80,6 +80,7 @@ impl ToDisplayString for GeneralAction {
             GeneralAction::ExportGraph => "Export Graph".to_string(),
             GeneralAction::ScreenShot => "Take Screenshot".to_string(),
             GeneralAction::QuitApplication => "Quit Application".to_string(),
+            GeneralAction::PausePlaySimulation => "Pause/Play Simulation".to_string(),
         }
     }
 }
