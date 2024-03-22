@@ -1,4 +1,5 @@
 mod communication;
+pub(crate) mod communication_radius;
 pub(crate) mod factorgraphs;
 mod tracer;
 mod uncertainty;
@@ -12,9 +13,10 @@ use bevy::{
 };
 
 use self::{
-    communication::CommunicationGraphVisualiserPlugin, factorgraphs::FactorGraphVisualiserPlugin,
-    tracer::TracerVisualiserPlugin, uncertainty::UncertaintyVisualiserPlugin,
-    waypoints::WaypointVisualiserPlugin,
+    communication::CommunicationGraphVisualiserPlugin,
+    communication_radius::CommunicationRadiusVisualizerPlugin,
+    factorgraphs::FactorGraphVisualiserPlugin, tracer::TracerVisualiserPlugin,
+    uncertainty::UncertaintyVisualiserPlugin, waypoints::WaypointVisualiserPlugin,
 };
 
 /// A **Bevy** `Plugin` for visualising aspects of the planner
@@ -29,6 +31,7 @@ impl Plugin for VisualiserPlugin {
             CommunicationGraphVisualiserPlugin,
             UncertaintyVisualiserPlugin,
             TracerVisualiserPlugin,
+            CommunicationRadiusVisualizerPlugin,
         ));
     }
 }

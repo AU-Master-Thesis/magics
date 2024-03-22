@@ -5,7 +5,7 @@ use std::num::NonZeroUsize;
 
 use bevy::{ecs::system::Resource, reflect::Reflect};
 pub use environment::Environment;
-pub use formation::{Formation, FormationGroup};
+pub use formation::FormationGroup;
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
 use typed_floats::{PositiveFinite, StrictlyPositiveFinite};
@@ -104,7 +104,7 @@ pub struct VisualisationSection {
 //     }
 // }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum DrawSetting {
     CommunicationGraph,
     PredictedTrajectories,
@@ -113,8 +113,10 @@ pub enum DrawSetting {
     Paths,
     HeightMap,
     FlatMap,
+    CommunicationRadius,
 }
 
+// TODO: impl FromStr for DrawSetting
 impl DrawSetting {
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
@@ -125,11 +127,13 @@ impl DrawSetting {
             "paths" => Some(Self::Paths),
             "height_map" => Some(Self::HeightMap),
             "flat_map" => Some(Self::FlatMap),
+            "communication_radius" => Some(Self::CommunicationRadius),
             _ => None,
         }
     }
 }
 
+// TODO: store in a bitset
 #[derive(Debug, Serialize, Deserialize, Iterable, Reflect, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct DrawSection {
@@ -140,6 +144,7 @@ pub struct DrawSection {
     pub paths:                  bool,
     pub height_map:             bool,
     pub flat_map:               bool,
+    pub communication_radius:   bool,
 }
 
 impl Default for DrawSection {
@@ -152,6 +157,7 @@ impl Default for DrawSection {
             paths:                  false,
             height_map:             false,
             flat_map:               true,
+            communication_radius:   false,
         }
     }
 }
@@ -166,6 +172,7 @@ impl DrawSection {
             "paths" => "Paths".to_string(),
             "height_map" => "Height Map".to_string(),
             "flat_map" => "Flat Map".to_string(),
+            "communication_radius" => "Communication Radius".to_string(),
             _ => "Unknown".to_string(),
         }
     }

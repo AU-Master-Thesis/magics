@@ -21,6 +21,7 @@ uncertainty            = true
 paths                  = true
 height-map             = false
 flat-map               = false
+communication-radius   = true
 
 [gbp]
 sigma-pose-fixed        = 0.0000000000000010000000036274937

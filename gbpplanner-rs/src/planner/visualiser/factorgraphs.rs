@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 use itertools::Itertools;
 
-use super::{super::FactorGraph, Line, Path, RobotTracker};
+use super::{super::FactorGraph, Line, RobotTracker};
 use crate::{
     asset_loader::SceneAssets,
     config::{Config, DrawSetting},
-    theme::ColorFromCatppuccinColourExt,
+    planner::RobotState,
+    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 
 pub struct FactorGraphVisualiserPlugin;
@@ -48,6 +49,10 @@ fn init_factorgraphs(
         // Mark the robot with `HasFactorGraphVisualiser` to exclude next time
         commands.entity(entity).insert(HasFactorGraphVisualiser);
 
+        debug!(
+            "initialising factor graph visualiser for entity: {:?}",
+            entity
+        );
         factorgraph
             .variables()
             .enumerate()
@@ -150,14 +155,14 @@ fn show_or_hide_factorgraphs(
 fn draw_lines(
     mut gizmos: Gizmos,
     mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
     // should_i_draw_lines: Res<ShouldIDrawLines>,
     config: Res<Config>,
     query_variables: Query<(&RobotTracker, &Transform), With<VariableVisualiser>>,
     query_previous_lines: Query<Entity, With<Line>>,
     factorgraph_query: Query<Entity, With<FactorGraph>>,
-    catppuccin_theme: Res<crate::theme::CatppuccinTheme>,
+    catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     // If there are no variables visualised yet by the `init_factorgraphs` system,
     // return
