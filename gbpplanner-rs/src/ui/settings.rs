@@ -292,7 +292,6 @@ fn ui_settings_panel(
                                         draw:    *setting,
                                     };
                                     world.send_event::<DrawSettingsEvent>(event);
-                                    // draw_setting_event.send(event);
                                 }
                             });
                             ui.end_row();
@@ -365,15 +364,6 @@ fn ui_settings_panel(
                                     .clicked()
                                 {
                                     world.send_event::<PausePlayEvent>(PausePlayEvent::Toggle);
-                                    // pause_play_writter.
-                                    // send(PausePlayEvent::Toggle);
-                                    // pause_play_event.send(PausePlayEvent);
-                                    // pause_play.toggle();
-                                    // if pause_play.is_paused() {
-                                    //     time.unpause();
-                                    // } else {
-                                    //     time.pause();
-                                    // }
                                 }
                             });
 
@@ -395,14 +385,20 @@ fn ui_settings_panel(
                         ui.label("Graphviz");
                         custom::fill_x(ui, |ui| {
                             if ui.button("Export").clicked() {
-                                // world.send_event::<ExportGraphEvent>(ExportGraphEvent(Some(png_output_path)));
                                 world.send_event::<ExportGraphEvent>(ExportGraphEvent);
-                                // export_graph_event.send(ExportGraphEvent);
                             }
                         });
                         custom::fill_x(ui, |ui| {
                             if ui.button("Open").clicked() {
                                 let _ = open::that(&png_output_path).inspect_err(|e| {
+                                    // TODO: show a popup with the error
+                                    // create a notification system, that can be send events with
+                                    // notifications to show
+
+                                    // let popup_id = ui.make_persistent_id("my_unique_id");
+                                    // let above = egui::AboveOrBelow::Above;
+                                    // egui::popup_above_or_below_widget(ui, popup_id,
+                                    // widget_response, above_or_below, add_contents)
                                     error!("failed to open ./{:?}: {e}", png_output_path)
                                 });
                             }

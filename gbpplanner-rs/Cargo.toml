@@ -1,19 +1,19 @@
 [package]
-name = "gbpplanner-rs"
-version.workspace = true
-authors.workspace = true
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
+name                   = "gbpplanner-rs"
+version.workspace      = true
+authors.workspace      = true
+edition.workspace      = true
+license.workspace      = true
+repository.workspace   = true
 rust-version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-percentage = { path = "../crates/percentage" }
-unit_interval = { path = "../crates/unit_interval" }
-min_len_vec = { path = "../crates/min_len_vec" }
-gbp_linalg = { path = "../gbp_linalg" }
+percentage              = { path = "../crates/percentage" }
+unit_interval           = { path = "../crates/unit_interval" }
+min_len_vec             = { path = "../crates/min_len_vec" }
+gbp_linalg              = { path = "../gbp_linalg" }
 gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
 # gbp_formation = { path = "../gbp_formation" }
 
@@ -23,39 +23,51 @@ bevy = { version = "0.13.0", default-features = true, features = [
 ] }
 bevy-inspector-egui = "0.23.2"
 bevy_egui = "0.26.0"
-egui_extras = { version = "0.26.2", features = ["all_loaders"] }
-image = { version = "0.24.8", default-features = false, features = ["png"] }
+egui_extras = { version = "0.26.2", features = [
+  "all_loaders",
+] }
+image = { version = "0.24.8", default-features = false, features = [
+  "png",
+] }
 leafwing-input-manager = "0.13.3"
 # bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
 bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "bevy-v0.13.0" }
 # bevy_mesh_terrain = "0.6.1"
-heck = "0.5.0"
+heck            = "0.5.0"
 struct_iterable = "0.1.1"
-catppuccin = "1.4.0"
+catppuccin      = "1.4.0"
 
 toml = "0.8.8"
-serde = { version = "1.0.196", features = ["derive"] }
+serde = { version = "1.0.196", features = [
+  "derive",
+] }
 thiserror.workspace = true
 anyhow.workspace = true
-clap = { version = "4.4.18", features = ["derive"] }
+clap = { version = "4.4.18", features = [
+  "derive",
+] }
 # color-eyre = "0.6.2"
-rand = "0.8.5"
-itertools = "0.12.1"
-petgraph = "0.6.4"
-ndarray = "0.15.6"
+rand            = "0.8.5"
+itertools       = "0.12.1"
+petgraph        = "0.6.4"
+ndarray         = "0.15.6"
 ndarray-inverse = "0.1.9"
-num-traits = "0.2.18"
-ron = "0.8.1"
-strum = "0.26.1"
-strum_macros = "0.26.1"
-open = "5.1.0"
-tap = "1.0.1"
+num-traits      = "0.2.18"
+ron             = "0.8.1"
+strum           = "0.26.1"
+strum_macros    = "0.26.1"
+open            = "5.1.0"
+tap             = "1.0.1"
 
-typed_floats = { version = "1.0.0", features = ["serde"] }
+typed_floats = { version = "1.0.0", features = [
+  "serde",
+] }
+
+ringbuf = "0.3.3"
 
 [lints]
 workspace = true
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
-approx = "0.5.1"
+approx            = "0.5.1"

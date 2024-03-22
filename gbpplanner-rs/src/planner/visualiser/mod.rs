@@ -13,7 +13,8 @@ use bevy::{
 
 use self::{
     communication::CommunicationGraphVisualiserPlugin, factorgraphs::FactorGraphVisualiserPlugin,
-    uncertainty::UncertaintyVisualiserPlugin, waypoints::WaypointVisualiserPlugin,
+    tracer::TracerVisualiserPlugin, uncertainty::UncertaintyVisualiserPlugin,
+    waypoints::WaypointVisualiserPlugin,
 };
 
 /// A **Bevy** `Plugin` for visualising aspects of the planner
@@ -27,6 +28,7 @@ impl Plugin for VisualiserPlugin {
             FactorGraphVisualiserPlugin,
             CommunicationGraphVisualiserPlugin,
             UncertaintyVisualiserPlugin,
+            TracerVisualiserPlugin,
         ));
     }
 }
