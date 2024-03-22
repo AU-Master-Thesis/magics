@@ -1,5 +1,5 @@
 // #![warn(missing_docs)]
-use gbp_linalg::{Float, GbpFloat, Matrix, Vector};
+use gbp_linalg::{Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
 #[derive(Debug, thiserror::Error)]

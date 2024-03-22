@@ -5,7 +5,6 @@ use super::{super::FactorGraph, Line, RobotTracker};
 use crate::{
     asset_loader::SceneAssets,
     config::{Config, DrawSetting},
-    planner::RobotState,
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 

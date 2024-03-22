@@ -236,7 +236,7 @@ fn export_graph_on_event(
     mut theme_event_reader: EventReader<ExportGraphEvent>,
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
-    mut export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
 ) {
     if theme_event_reader.read().next().is_some() {
         if let Err(e) = handle_export_graph(query, config.as_ref(), export_graph_finished_event) {
@@ -254,7 +254,7 @@ pub enum ExportGraphFinishedEvent {
 fn handle_export_graph(
     q: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: &Config,
-    mut export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
 ) -> std::io::Result<()> {
     let Some(output) = export_factorgraphs_as_graphviz(q, config) else {
         warn!("There are no factorgraphs in the world");
@@ -339,9 +339,9 @@ fn general_actions_system(
     currently_changing: Res<ChangingBinding>,
     catppuccin_theme: Res<CatppuccinTheme>,
     // mut app_exit_event: EventWriter<AppExit>,
-    mut quit_application_writer: EventWriter<QuitApplicationEvent>,
-    mut export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
-    mut pause_play_writer: EventWriter<PausePlayEvent>,
+    mut quit_application_event: EventWriter<QuitApplicationEvent>,
+    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    mut pause_play_event: EventWriter<PausePlayEvent>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
@@ -360,12 +360,12 @@ fn general_actions_system(
             error!("failed to export factorgraphs with error: {:?}", e);
         }
     } else if action_state.just_pressed(&GeneralAction::QuitApplication) {
-        quit_application_writer.send(QuitApplicationEvent);
+        quit_application_event.send(QuitApplicationEvent);
         // info!("quitting application");
         // app_exit_event.send(AppExit);
     } else if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {
         info!("toggling pause/play simulation");
-        pause_play_writer.send(PausePlayEvent::Toggle);
+        pause_play_event.send(PausePlayEvent::Toggle);
     }
 }
 

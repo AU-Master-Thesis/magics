@@ -158,11 +158,11 @@ pub struct Waypoint {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FormationError {
-    #[error(
-        "At least two waypoints needs to be given, as the first and last waypoint represent the \
-         start and end for the formation"
-    )]
-    LessThanTwoWaypoints,
+    // #[error(
+    //     "At least two waypoints needs to be given, as the first and last waypoint represent the
+    // \      start and end for the formation"
+    // )]
+    // LessThanTwoWaypoints,
     #[error("FormationGroup has no formations")]
     NoFormations,
 }
@@ -249,24 +249,24 @@ impl Formation {
     pub fn validate(self) -> Result<Self, FormationError> {
         // if self.delay < 0.0 {
         //     Err(FormationError::NegativeTime)
-        if self.waypoints.len() < 2 {
-            Err(FormationError::LessThanTwoWaypoints)
-        } else {
-            // TODO: finish
-            for (index, waypoint) in self.waypoints.iter().enumerate() {
-                // match &waypoint.shape {
-                //     Shape::Polygon(vertices) if vertices.is_empty() => {
-                //         return
-                // Err(ShapeError::PolygonWithZeroVertices.into())
-                //     }
-                //     // Shape::Circle { radius, center: _ } if *radius <= 0.0
-                // => {     //     return
-                // Err(ShapeError::NegativeRadius.into())     //
-                // }     _ => continue,
-                // }
-            }
-            Ok(self)
-        }
+        // if self.waypoints.len() < 2 {
+        //     Err(FormationError::LessThanTwoWaypoints)
+        // } else {
+        // TODO: finish
+        // for (index, waypoint) in self.waypoints.iter().enumerate() {
+        // match &waypoint.shape {
+        //     Shape::Polygon(vertices) if vertices.is_empty() => {
+        //         return
+        // Err(ShapeError::PolygonWithZeroVertices.into())
+        //     }
+        //     // Shape::Circle { radius, center: _ } if *radius <= 0.0
+        // => {     //     return
+        // Err(ShapeError::NegativeRadius.into())     //
+        // }     _ => continue,
+        // }
+        // }
+        Ok(self)
+        // }
     }
 }
 
@@ -288,6 +288,7 @@ pub enum ParseError {
 #[derive(Debug, Serialize, Deserialize, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub struct FormationGroup {
+    // TODO: use OneOrMore
     pub formations: Vec<Formation>,
 }
 
@@ -380,29 +381,6 @@ mod tests {
             let default = Formation::default();
             assert!(matches!(default.validate(), Ok(Formation { .. })));
         }
-
-        // #[test]
-        // fn negative_time_is_invalid() {
-        //     let invalid = Formation {
-        //         delay: -1.0,
-        //         ..Default::default()
-        //     };
-        //
-        //     assert!(matches!(
-        //         invalid.validate(),
-        //         Err(FormationError::NegativeTime)
-        //     ));
-        // }
-
-        // #[test]
-        // fn zero_time_is_okay() {
-        //     let zero_is_okay = Formation {
-        //         delay: 0.0,
-        //         ..Default::default()
-        //     };
-        //
-        //     assert!(matches!(zero_is_okay.validate(), Ok(Formation { .. })));
-        // }
 
         mod polygon_macro {
 

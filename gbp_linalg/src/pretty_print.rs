@@ -90,7 +90,7 @@ pub fn _pretty_print_matrix<T, M>(
     M: PrettyPrintMatrix<T>,
 {
     let (nrows, ncols) = matrix.shape();
-    let (cell_width, use_scientific_notation): (usize, bool) = {
+    let (cell_width, _use_scientific_notation): (usize, bool) = {
         let mut max_width = 0;
         for i in 0..nrows {
             for j in 0..ncols {
@@ -196,7 +196,7 @@ pub fn _pretty_print_vector<T, V>(
     T: GbpFloat,
     V: PrettyPrintVector<T>,
 {
-    let (cell_width, use_scientific_notation): (usize, bool) = {
+    let (cell_width, _use_scientific_notation): (usize, bool) = {
         let mut max_width = 0;
         for i in 0..vector.len() {
             let x = vector.at(i);

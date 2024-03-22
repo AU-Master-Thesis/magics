@@ -1,6 +1,5 @@
-use bevy::{input::keyboard::KeyboardInput, prelude::*, window::PrimaryWindow};
-use bevy_egui::EguiSettings;
-use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use bevy::prelude::*;
+use leafwing_input_manager::prelude::*;
 use strum_macros::EnumIter;
 
 use super::super::ui::UiState;

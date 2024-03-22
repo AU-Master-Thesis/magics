@@ -2,14 +2,13 @@ use std::collections::{BTreeSet, HashMap, VecDeque};
 
 use bevy::prelude::*;
 use gbp_linalg::{prelude::*, pretty_print_matrix, pretty_print_vector};
-use gbp_multivariate_normal::MultivariateNormal;
 use ndarray::{array, concatenate, s, Axis};
 
 // use super::multivariate_normal::MultivariateNormal;
 use super::variable::Variable;
 use super::{
     factor::{Factor, InterRobotConnection},
-    factorgraph::{FactorGraph, FactorId, MessagePassingMode, VariableId},
+    factorgraph::{FactorGraph, FactorId, VariableId},
     NodeIndex,
 };
 use crate::{config::Config, utils::get_variable_timesteps};
@@ -541,7 +540,7 @@ fn iterate_gbp(
 /// Called `Robot::updateHorizon` in **gbpplanner**
 
 fn update_prior_of_horizon_state(
-    mut commands: Commands,
+    // mut commands: Commands,
     mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints), With<RobotState>>,
     config: Res<Config>,
     time: Res<Time>,

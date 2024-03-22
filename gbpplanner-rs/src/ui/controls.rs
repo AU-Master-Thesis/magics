@@ -687,10 +687,10 @@ fn ui_controls_panel(
 /// **Bevy** [`Update`] system
 /// Listens for any keyboard events to rebind currently changing binding
 fn change_binding_keyboard(
-    mut query_camera_action: Query<&mut InputMap<CameraAction>>,
-    mut query_general_action: Query<&mut InputMap<GeneralAction>>,
-    mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
-    mut query_ui_action: Query<&mut InputMap<UiAction>>,
+    query_camera_action: Query<&mut InputMap<CameraAction>>,
+    query_general_action: Query<&mut InputMap<GeneralAction>>,
+    query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
+    query_ui_action: Query<&mut InputMap<UiAction>>,
     mut currently_changing: ResMut<ChangingBinding>,
     mut keyboard_events: EventReader<KeyboardInput>,
 ) {
@@ -723,10 +723,10 @@ fn change_binding_keyboard(
 /// **Bevy** [`Update`] system
 /// Listens for any gamepad button events to rebind currently changing binding
 fn change_binding_gamepad(
-    mut query_camera_action: Query<&mut InputMap<CameraAction>>,
-    mut query_general_action: Query<&mut InputMap<GeneralAction>>,
-    mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
-    mut query_ui_action: Query<&mut InputMap<UiAction>>,
+    query_camera_action: Query<&mut InputMap<CameraAction>>,
+    query_general_action: Query<&mut InputMap<GeneralAction>>,
+    query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
+    query_ui_action: Query<&mut InputMap<UiAction>>,
     mut currently_changing: ResMut<ChangingBinding>,
     mut gamepad_button_events: EventReader<GamepadButtonInput>,
 ) {
@@ -754,10 +754,10 @@ fn change_binding_gamepad(
 /// **Bevy** [`Update`] system
 /// Listens for mouse button events to rebind currently changing binding
 fn change_binding_mouse(
-    mut query_camera_action: Query<&mut InputMap<CameraAction>>,
-    mut query_general_action: Query<&mut InputMap<GeneralAction>>,
-    mut query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
-    mut query_ui_action: Query<&mut InputMap<UiAction>>,
+    query_camera_action: Query<&mut InputMap<CameraAction>>,
+    query_general_action: Query<&mut InputMap<GeneralAction>>,
+    query_moveable_object_action: Query<&mut InputMap<MoveableObjectAction>>,
+    query_ui_action: Query<&mut InputMap<UiAction>>,
     mut currently_changing: ResMut<ChangingBinding>,
     mut mouse_button_events: EventReader<MouseButtonInput>,
 ) {

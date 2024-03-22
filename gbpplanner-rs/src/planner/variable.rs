@@ -1,4 +1,3 @@
-use bevy::log::warn;
 use gbp_linalg::{Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
 

@@ -81,16 +81,16 @@ pub mod graphviz {
     }
 }
 
-/// How the messages are passed between factors and variables in the connected
-/// factorgraphs.
-#[derive(Debug, Clone, Copy)]
-pub enum MessagePassingMode {
-    /// Messages are passed within a robot's own factorgraph.
-    Internal,
-    /// Messages are passed between a robot factorgraph and other robots
-    /// factorgraphs.
-    External,
-}
+// /// How the messages are passed between factors and variables in the
+// connected /// factorgraphs.
+// #[derive(Debug, Clone, Copy)]
+// pub enum MessagePassingMode {
+//     /// Messages are passed within a robot's own factorgraph.
+//     Internal,
+//     /// Messages are passed between a robot factorgraph and other robots
+//     /// factorgraphs.
+//     External,
+// }
 
 /// A newtype used to enforce type safety of the indices of the factors in the
 /// factorgraph.

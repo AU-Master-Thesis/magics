@@ -1,5 +1,4 @@
-use gbp_linalg::{prelude::*, pretty_print_matrix, pretty_print_vector};
-use gbp_multivariate_normal::MultivariateNormal;
+use gbp_linalg::prelude::*;
 use ndarray::prelude::*;
 use ndarray_inverse::Inverse;
 

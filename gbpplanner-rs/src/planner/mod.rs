@@ -49,6 +49,7 @@ impl PausePlay {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Event, Clone, Debug, Default)]
 pub enum PausePlayEvent {
     #[default]

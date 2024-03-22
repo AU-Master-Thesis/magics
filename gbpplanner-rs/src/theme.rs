@@ -49,6 +49,7 @@ impl Default for CatppuccinTheme {
 macro_rules! impl_colour_getters {
     ($($x:ident),+ $(,)?) => (
         $(
+            #[allow(dead_code)]
             pub const fn $x(&self) -> Colour {
                 self.flavour.$x()
             }

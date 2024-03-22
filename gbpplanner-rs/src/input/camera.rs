@@ -1,10 +1,10 @@
-use bevy::{prelude::*, window::PrimaryWindow};
-use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use bevy::prelude::*;
+use leafwing_input_manager::prelude::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 use super::super::{
-    environment::camera::{self, CameraMovementMode, MainCamera},
+    environment::camera::{CameraMovementMode, MainCamera},
     movement::{AngularVelocity, Orbit, Velocity},
 };
 use crate::{
@@ -191,7 +191,7 @@ fn camera_actions(
         let mut tmp_angular_velocity = Vec3::ZERO;
         let camera_distance = transform.translation.distance(orbit.origin);
 
-        let window = windows.single();
+        let _window = windows.single();
 
         if action_state.pressed(&CameraAction::MouseMove) {
             // info!("Mouse move camera");

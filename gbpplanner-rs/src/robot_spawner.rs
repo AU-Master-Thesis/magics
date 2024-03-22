@@ -8,23 +8,6 @@ use crate::{
     },
 };
 
-// Define the event
-#[derive(Event, Debug, Copy, Clone)]
-pub struct RobotSpawnedEvent {
-    pub entity:             Entity,
-    pub transform:          Transform,
-    pub follow_camera_flag: FollowCameraMe,
-}
-
-// Define the Robot component
-#[derive(Component)]
-struct Robot;
-
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash, States)]
-pub struct RobotsState {
-    pub amount: usize,
-}
-
 pub struct RobotSpawnerPlugin;
 
 impl Plugin for RobotSpawnerPlugin {
@@ -35,6 +18,23 @@ impl Plugin for RobotSpawnerPlugin {
         // .add_systems(Update, spawn_robot_periodically);
     }
 }
+
+// Define the event
+#[derive(Event, Debug, Copy, Clone)]
+pub struct RobotSpawnedEvent {
+    pub entity:             Entity,
+    pub transform:          Transform,
+    pub follow_camera_flag: FollowCameraMe,
+}
+
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash, States)]
+pub struct RobotsState {
+    pub amount: usize,
+}
+
+// Define the Robot component
+#[derive(Component)]
+struct Robot;
 
 // System to spawn a robot
 fn spawn_robot_periodically(

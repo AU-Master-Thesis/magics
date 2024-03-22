@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 use bevy_egui::egui::{
     self, Align, Align2, Color32, Direction, FontId, Grid, InnerResponse, Layout, RichText, Ui,
     Vec2b,

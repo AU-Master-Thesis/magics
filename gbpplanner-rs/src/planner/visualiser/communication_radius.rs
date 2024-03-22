@@ -10,11 +10,11 @@ pub struct CommunicationRadiusVisualizerPlugin;
 
 impl Plugin for CommunicationRadiusVisualizerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, communication_radius);
+        app.add_systems(Update, draw_communication_radius);
     }
 }
 
-fn communication_radius(
+fn draw_communication_radius(
     mut gizmos: Gizmos,
     // query: Query<&Transform, (With<RobotState>, Changed<Transform>)>,
     query: Query<&Transform, With<RobotState>>,

@@ -251,7 +251,7 @@ checksum = "a2041f1943049c7978768d84e6d0fd95de98b76d6c4727b09e78ec253d29fa58"
 dependencies = [
  "clipboard-win",
  "core-graphics",
- "image",
+ "image 0.24.9",
  "log",
  "objc",
  "objc-foundation",
@@ -413,7 +413,7 @@ dependencies = [
  "bevy_utils",
  "bevy_window",
  "egui",
- "image",
+ "image 0.24.9",
  "once_cell",
  "pretty-type-name",
  "smallvec",
@@ -979,7 +979,7 @@ dependencies = [
  "encase",
  "futures-lite",
  "hexasphere",
- "image",
+ "image 0.24.9",
  "js-sys",
  "ktx2",
  "naga",
@@ -1855,7 +1855,7 @@ dependencies = [
  "egui",
  "ehttp",
  "enum-map",
- "image",
+ "image 0.24.9",
  "log",
  "mime_guess2",
  "resvg",
@@ -2211,7 +2211,7 @@ dependencies = [
  "gbp_linalg",
  "gbp_multivariate_normal",
  "heck 0.5.0",
- "image",
+ "image 0.25.0",
  "itertools",
  "leafwing-input-manager",
  "min_len_vec",
@@ -2552,6 +2552,18 @@ dependencies = [
  "num-traits",
  "png",
  "tiff",
+]
+
+[[package]]
+name = "image"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9b4f005360d32e9325029b38ba47ebd7a56f3316df09249368939562d518645"
+dependencies = [
+ "bytemuck",
+ "byteorder",
+ "num-traits",
+ "png",
 ]
 
 [[package]]

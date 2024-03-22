@@ -1,5 +1,4 @@
-use gbp_linalg::{prelude::*, Float};
-use gbp_multivariate_normal::MultivariateNormal;
+use gbp_linalg::prelude::*;
 
 // #[derive(Debug, Clone)]
 // // pub struct Message(pub MultivariateNormal<f32>);
