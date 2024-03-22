@@ -176,7 +176,10 @@ fn draw_lines(
         return;
     }
 
-    let line_material = materials.add(Color::from_catppuccin_colour(catppuccin_theme.text()));
+    // let line_material =
+    // materials.add(Color::from_catppuccin_colour(catppuccin_theme.text()));
+
+    let color = Color::from_catppuccin_colour(catppuccin_theme.text());
 
     for entity in factorgraph_query.iter() {
         let positions = query_variables
@@ -198,12 +201,19 @@ fn draw_lines(
         //     Line,
         // ));
         //
-        gizmos.primitive_3d(
-            Polyline3d::<100>::new(positions),
-            // BoxedPolyline3d::new(positions),
-            Vec3::ZERO,
-            Quat::IDENTITY,
-            Color::from_catppuccin_colour(catppuccin_theme.text()),
-        );
+
+        for window in positions.windows(2) {
+            let start = window[0];
+            let end = window[1];
+            gizmos.line(start, end, color);
+        }
+
+        // gizmos.primitive_3d(
+        //     Polyline3d::<100>::new(positions),
+        //     // BoxedPolyline3d::new(positions),
+        //     Vec3::ZERO,
+        //     Quat::IDENTITY,
+        //     Color::from_catppuccin_colour(catppuccin_theme.text()),
+        // );
     }
 }
