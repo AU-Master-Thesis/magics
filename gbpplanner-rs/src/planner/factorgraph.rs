@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use std::{collections::HashMap, ops::Range};
 
 use bevy::prelude::*;
@@ -13,72 +14,22 @@ use super::{
 };
 use crate::planner::message::{Eta, Lam, Mu};
 
-pub mod graphviz {
-    use crate::planner::factor::InterRobotConnection;
+#[derive(Debug)]
+pub struct RemoveConnectionToError;
 
-    pub struct Node {
-        pub index: usize,
-        pub kind:  NodeKind,
+impl std::fmt::Display for RemoveConnectionToError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "no connection to the given factorgraph")
     }
+}
 
-    impl Node {
-        pub fn color(&self) -> &'static str {
-            self.kind.color()
-        }
+impl std::error::Error for RemoveConnectionToError {}
 
-        pub fn shape(&self) -> &'static str {
-            self.kind.shape()
-        }
-
-        pub fn width(&self) -> f64 {
-            self.kind.width()
-        }
-    }
-
-    pub enum NodeKind {
-        Variable { x: f32, y: f32 },
-        InterRobotFactor(InterRobotConnection),
-        // InterRobotFactor {
-        //     /// The id of the robot the interrobot factor is connected to
-        //     other_robot_id: RobotId,
-        //     /// The index of the variable in the other robots factorgraph, that the interrobot
-        // factor is connected with     variable_index_in_other_robot: usize,
-        // },
-        DynamicFactor,
-        ObstacleFactor,
-        PoseFactor,
-    }
-
-    impl NodeKind {
-        pub fn color(&self) -> &'static str {
-            match self {
-                Self::Variable { .. } => "#eff1f5",         // latte base (white)
-                Self::InterRobotFactor { .. } => "#a6da95", // green
-                Self::DynamicFactor => "#8aadf4",           // blue
-                Self::ObstacleFactor => "#c6a0f6",          // mauve (purple)
-                Self::PoseFactor => "#ee99a0",              // maroon (red)
-            }
-        }
-
-        pub fn shape(&self) -> &'static str {
-            match self {
-                Self::Variable { .. } => "circle",
-                _ => "square",
-            }
-        }
-
-        pub fn width(&self) -> f64 {
-            match self {
-                Self::Variable { .. } => 0.8,
-                _ => 0.2,
-            }
-        }
-    }
-
-    pub struct Edge {
-        pub from: usize,
-        pub to:   usize,
-    }
+pub(super) trait FactorGraphNode {
+    fn remove_connection_to(
+        &mut self,
+        factorgraph_id: FactorGraphId,
+    ) -> Result<(), RemoveConnectionToError>;
 }
 
 // /// How the messages are passed between factors and variables in the
@@ -146,7 +97,7 @@ impl AsNodeIndex for VariableIndex {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FactorId {
     pub factorgraph_id: FactorGraphId,
-    pub factor_index:   FactorIndex,
+    pub factor_index: FactorIndex,
 }
 
 impl FactorId {
@@ -175,15 +126,15 @@ impl VariableId {
 
 #[derive(Debug)]
 pub struct VariableToFactorMessage {
-    pub from:    VariableId,
-    pub to:      FactorId,
+    pub from: VariableId,
+    pub to: FactorId,
     pub message: Message,
 }
 
 #[derive(Debug)]
 pub struct FactorToVariableMessage {
-    pub from:    FactorId,
-    pub to:      VariableId,
+    pub from: FactorId,
+    pub to: VariableId,
     pub message: Message,
 }
 
@@ -202,8 +153,9 @@ pub enum NodeKind {
 
 #[derive(Debug)]
 pub struct Node {
+    // TODO: change to factorgraph_id
     robot_id: RobotId,
-    kind:     NodeKind,
+    kind: NodeKind,
 }
 
 // #[derive(Debug, Clone, Copy)]
@@ -283,6 +235,18 @@ impl Node {
     }
 }
 
+impl FactorGraphNode for Node {
+    fn remove_connection_to(
+        &mut self,
+        factorgraph_id: FactorGraphId,
+    ) -> Result<(), RemoveConnectionToError> {
+        match self.kind {
+            NodeKind::Factor(ref mut factor) => factor.remove_connection_to(factorgraph_id),
+            NodeKind::Variable(ref mut variable) => variable.remove_connection_to(factorgraph_id),
+        }
+    }
+}
+
 /// The type used to represent indices into the nodes of the factorgraph.
 /// This is just a type alias for `petgraph::graph::NodeIndex`, but
 /// we make an alias for it here, such that it is easier to use the same
@@ -302,7 +266,7 @@ pub type Graph = petgraph::stable_graph::StableGraph<Node, (), Undirected, u32>;
 /// the factorgraph, such a query for the counts, is **O(1)**.
 #[derive(Debug, Clone, Copy)]
 pub struct NodeCount {
-    pub factors:   usize,
+    pub factors: usize,
     pub variables: usize,
 }
 
@@ -317,9 +281,9 @@ pub struct FactorGraph {
     /// - The id of the factorgraph is unique among all factorgraphs in the
     ///   system.
     /// - The id does not change during the lifetime of the factorgraph.
-    id:               FactorGraphId,
+    id: FactorGraphId,
     /// The underlying graph data structure
-    graph:            Graph,
+    graph: Graph,
     /// In **gbpplanner** the sequence in which variables are inserted/created
     /// in the graph is meaningful. `self.graph` does not capture this
     /// ordering, so we use an extra vector to manage the order in which
@@ -329,11 +293,11 @@ pub struct FactorGraph {
     variable_indices: Vec<NodeIndex>,
     /// List of indices of the factors in the graph. Order is not important.
     /// Used to speed up iteration over factors.
-    factor_indices:   Vec<NodeIndex>,
+    factor_indices: Vec<NodeIndex>,
 }
 
 pub struct Factors<'a> {
-    graph:          &'a Graph,
+    graph: &'a Graph,
     factor_indices: std::slice::Iter<'a, NodeIndex>,
 }
 
@@ -357,7 +321,7 @@ impl<'a> Iterator for Factors<'a> {
 }
 
 pub struct Variables<'a> {
-    graph:            &'a Graph,
+    graph: &'a Graph,
     variable_indices: std::slice::Iter<'a, NodeIndex>,
 }
 
@@ -467,6 +431,7 @@ impl FactorGraph {
     }
 
     /// Returns an `Iterator` over the variable nodes in the factorgraph.
+    #[inline]
     pub fn variables(&self) -> Variables<'_> {
         Variables::new(&self.graph, &self.variable_indices)
     }
@@ -476,6 +441,7 @@ impl FactorGraph {
     // }
 
     /// Returns an `Iterator` over the factor nodes in the factorgraph.
+    #[inline]
     pub fn factors(&self) -> Factors<'_> {
         Factors::new(&self.graph, &self.factor_indices)
     }
@@ -491,7 +457,7 @@ impl FactorGraph {
     pub fn add_variable(&mut self, variable: Variable) -> VariableIndex {
         let node = Node {
             robot_id: self.id,
-            kind:     NodeKind::Variable(variable),
+            kind: NodeKind::Variable(variable),
         };
         let node_index = self.graph.add_node(node);
         self.variable_indices.push(node_index);
@@ -501,7 +467,7 @@ impl FactorGraph {
     pub fn add_factor(&mut self, factor: Factor) -> FactorIndex {
         let node = Node {
             robot_id: self.id,
-            kind:     NodeKind::Factor(factor),
+            kind: NodeKind::Factor(factor),
         };
         let node_index = self.graph.add_node(node);
         self.graph[node_index]
@@ -614,7 +580,7 @@ impl FactorGraph {
     /// **Computes in O(1) time**
     pub fn node_count(&self) -> NodeCount {
         NodeCount {
-            factors:   self.factor_indices.len(),
+            factors: self.factor_indices.len(),
             variables: self.variable_indices.len(),
         }
     }
@@ -691,7 +657,7 @@ impl FactorGraph {
                 let node = &self.graph[node_index];
                 graphviz::Node {
                     index: node_index.index(),
-                    kind:  match &node.kind {
+                    kind: match &node.kind {
                         NodeKind::Factor(factor) => match factor.kind {
                             FactorKind::Dynamic(_) => graphviz::NodeKind::DynamicFactor,
                             FactorKind::Obstacle(_) => graphviz::NodeKind::ObstacleFactor,
@@ -721,7 +687,7 @@ impl FactorGraph {
                     .edge_endpoints(edge_index)
                     .map(|(from, to)| graphviz::Edge {
                         from: from.index(),
-                        to:   to.index(),
+                        to: to.index(),
                     })
             })
             .collect::<Vec<_>>();
@@ -1047,5 +1013,94 @@ impl FactorGraph {
             // println!("after  {:?}",
             // variable.inbox.keys().collect::<Vec<_>>());
         }
+    }
+
+    pub fn remove_connection_to(
+        &mut self,
+        factorgraph_id: FactorGraphId,
+    ) -> Result<(), RemoveConnectionToError> {
+        // go through all nodes, and remove their individual connection to the other factorgraph
+        // if none of the nodes has a connection to the other factorgraph, then return and Error.
+
+        let mut connections_removed: usize = 0;
+        for node in self.graph.node_weights_mut() {
+            if node.remove_connection_to(factorgraph_id).is_ok() {
+                connections_removed += 1;
+            }
+        }
+
+        if connections_removed == 0 {
+            Err(RemoveConnectionToError)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+pub mod graphviz {
+    use crate::planner::factor::InterRobotConnection;
+
+    pub struct Node {
+        pub index: usize,
+        pub kind: NodeKind,
+    }
+
+    impl Node {
+        pub fn color(&self) -> &'static str {
+            self.kind.color()
+        }
+
+        pub fn shape(&self) -> &'static str {
+            self.kind.shape()
+        }
+
+        pub fn width(&self) -> f64 {
+            self.kind.width()
+        }
+    }
+
+    pub enum NodeKind {
+        Variable { x: f32, y: f32 },
+        InterRobotFactor(InterRobotConnection),
+        // InterRobotFactor {
+        //     /// The id of the robot the interrobot factor is connected to
+        //     other_robot_id: RobotId,
+        //     /// The index of the variable in the other robots factorgraph, that the interrobot
+        // factor is connected with     variable_index_in_other_robot: usize,
+        // },
+        DynamicFactor,
+        ObstacleFactor,
+        PoseFactor,
+    }
+
+    impl NodeKind {
+        pub fn color(&self) -> &'static str {
+            match self {
+                Self::Variable { .. } => "#eff1f5",         // latte base (white)
+                Self::InterRobotFactor { .. } => "#a6da95", // green
+                Self::DynamicFactor => "#8aadf4",           // blue
+                Self::ObstacleFactor => "#c6a0f6",          // mauve (purple)
+                Self::PoseFactor => "#ee99a0",              // maroon (red)
+            }
+        }
+
+        pub fn shape(&self) -> &'static str {
+            match self {
+                Self::Variable { .. } => "circle",
+                _ => "square",
+            }
+        }
+
+        pub fn width(&self) -> f64 {
+            match self {
+                Self::Variable { .. } => 0.8,
+                _ => 0.2,
+            }
+        }
+    }
+
+    pub struct Edge {
+        pub from: usize,
+        pub to: usize,
     }
 }

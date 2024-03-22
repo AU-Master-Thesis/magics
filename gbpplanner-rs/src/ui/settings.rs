@@ -54,7 +54,7 @@ pub struct ExportGraphEvent;
 #[derive(Event, Debug, Clone)]
 pub struct DrawSettingsEvent {
     pub setting: DrawSetting,
-    pub draw:    bool,
+    pub draw: bool,
 }
 
 fn install_egui_image_loaders(mut egui_ctx: EguiContexts) {
@@ -122,7 +122,7 @@ fn ui_settings_exclusive(world: &mut World) {
 }
 
 struct TitleColors {
-    colors:  [Colour; 5],
+    colors: [Colour; 5],
     current: usize,
 }
 
@@ -289,7 +289,7 @@ fn ui_settings_panel(
                                     );
                                     let event = DrawSettingsEvent {
                                         setting: setting_kind,
-                                        draw:    *setting,
+                                        draw: *setting,
                                     };
                                     world.send_event::<DrawSettingsEvent>(event);
                                 }

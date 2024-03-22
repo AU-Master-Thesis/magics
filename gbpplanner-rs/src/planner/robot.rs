@@ -4,18 +4,64 @@ use bevy::prelude::*;
 use gbp_linalg::{prelude::*, pretty_print_matrix, pretty_print_vector};
 use ndarray::{array, concatenate, s, Axis};
 
-// use super::multivariate_normal::MultivariateNormal;
-use super::variable::Variable;
 use super::{
     factor::{Factor, InterRobotConnection},
     factorgraph::{FactorGraph, FactorId, VariableId},
+    variable::Variable,
     NodeIndex,
 };
 use crate::{config::Config, utils::get_variable_timesteps};
 
 pub struct RobotPlugin;
 
+impl Plugin for RobotPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<VariableTimestepsResource>()
+            .add_event::<DespawnRobotEvent>()
+            .add_systems(
+                // FixedUpdate,
+                Update,
+                (
+                    update_robot_neighbours,
+                    delete_interrobot_factors,
+                    create_interrobot_factors,
+                    update_failed_comms,
+                    iterate_gbp,
+                    update_prior_of_horizon_state,
+                    update_prior_of_current_state,
+                    despawn_robots,
+                )
+                    .chain()
+                    .run_if(time_is_not_paused),
+            );
+
+        info!("built RobotPlugin, added:");
+    }
+}
+
 pub type RobotId = Entity;
+
+#[derive(Event)]
+pub struct DespawnRobotEvent(pub RobotId);
+
+fn despawn_robots(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
+    mut despawn_robot_event: EventReader<DespawnRobotEvent>,
+) {
+    for DespawnRobotEvent(robot_id) in despawn_robot_event.read() {
+        for (entity, mut factorgraph, mut robotstate) in query.iter_mut() {
+            let _ = factorgraph.remove_connection_to(*robot_id);
+        }
+
+        if let Some(mut entitycommand) = commands.get_entity(*robot_id) {
+            info!("despawning robot: {:?}", entitycommand.id());
+            entitycommand.despawn();
+        } else {
+            error!("A DespawnRobotEvent event was emitted with entity id: {:?} but the entity does not exist!", robot_id);
+        }
+    }
+}
 
 // /// Sigma for Unary pose factor on current and horizon states
 // /// from **gbpplanner** `Globals.h`
@@ -40,39 +86,6 @@ impl FromWorld for VariableTimestepsResource {
                 config.gbp.lookahead_multiple as u32,
             ),
         }
-    }
-}
-
-impl Plugin for RobotPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<VariableTimestepsResource>()
-            .add_systems(
-                // FixedUpdate,
-                Update,
-                (
-                    update_robot_neighbours,
-                    delete_interrobot_factors,
-                    create_interrobot_factors,
-                    update_failed_comms,
-                    iterate_gbp,
-                    update_prior_of_horizon_state,
-                    update_prior_of_current_state,
-                )
-                    .chain()
-                    .run_if(time_is_not_paused),
-            );
-
-        info!("built RobotPlugin, added:");
-        eprintln!(" - Resource: VariableTimestepsResource");
-        eprintln!(" - system:Update");
-        eprintln!("   - update_robot_neighbours_system");
-        eprintln!("   - delete_interrobot_factors_system");
-        eprintln!("   - create_interrobot_factors_system");
-        eprintln!("   - update_failed_comms_system");
-        eprintln!("   - iterate_gbp_internal_system");
-        eprintln!("   - iterate_gbp_external_system");
-        eprintln!("   - update_prior_of_horizon_state_system");
-        eprintln!("   - update_prior_of_current_state_system");
     }
 }
 
@@ -110,18 +123,18 @@ pub struct RobotState {
     pub ids_of_robots_within_comms_range: BTreeSet<RobotId>,
     /// List of robot ids that are currently connected via inter-robot factors
     /// to this robot called `connected_r_ids_` in **gbpplanner**.
-    pub ids_of_robots_connected_with:     BTreeSet<RobotId>,
+    pub ids_of_robots_connected_with: BTreeSet<RobotId>,
     // pub ids_of_robots_connected_with: Vec<RobotId>,
     /// Flag for whether this factorgraph/robot communicates with other robots
-    pub interrobot_comms_active:          bool,
+    pub interrobot_comms_active: bool,
 }
 
 impl RobotState {
     pub fn new() -> Self {
         Self {
             ids_of_robots_within_comms_range: BTreeSet::new(),
-            ids_of_robots_connected_with:     BTreeSet::new(),
-            interrobot_comms_active:          true,
+            ids_of_robots_connected_with: BTreeSet::new(),
+            interrobot_comms_active: true,
         }
     }
 }
@@ -136,14 +149,14 @@ pub struct RobotBundle {
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
-    pub radius:      Radius, // TODO: create new type that guarantees this constraint
+    pub radius: Radius, // TODO: create new type that guarantees this constraint
     /// The current state of the robot
-    pub state:       RobotState,
+    pub state: RobotState,
     // pub transform: Transform,
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A VecDeque is used to allow for efficient pop_front operations, and
     /// push_back operations.
-    pub waypoints:   Waypoints,
+    pub waypoints: Waypoints,
     // NOTE: Using the **Bevy** entity id as the robot id
     // pub id: RobotId,
     // NOTE: These are accessible as **Bevy** resources
@@ -358,11 +371,13 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
             }
         }
 
-        let mut factorgraph2 = query
+        let Some((_, mut factorgraph2, _)) = query
             .iter_mut()
-            .find(|(id, _, _)| *id == robot2)
-            .expect("the robot2 should be in the query")
-            .1;
+            .find(|(robot_id, _, _)| *robot_id == robot2)
+        else {
+            error!("attempt to delete interrobot factors between robots: {:?} and {:?} failed, reason: {:?} does not exist!", robot1, robot2, robot2);
+            continue;
+        };
 
         factorgraph2.delete_messages_from_interrobot_factor_at(robot1);
     }
@@ -544,6 +559,7 @@ fn update_prior_of_horizon_state(
     mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints), With<RobotState>>,
     config: Res<Config>,
     time: Res<Time>,
+    mut despawn_robot_event: EventWriter<DespawnRobotEvent>,
 ) {
     let delta_t = time.delta_seconds();
 
@@ -560,6 +576,8 @@ fn update_prior_of_horizon_state(
             // despawn robot
             // robot_id.despawn();
             ids_of_robots_to_despawn.push(robot_id);
+            // TODO: use .send_batch()
+            despawn_robot_event.send(DespawnRobotEvent(robot_id));
 
             continue;
         };

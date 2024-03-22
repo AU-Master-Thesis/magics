@@ -42,7 +42,7 @@ pub struct FollowCameraMe {
 pub struct FollowCameraSettings {
     pub target: Entity,
     pub offset: Vec3,
-    pub pid:    PID,
+    pub pid: PID,
 }
 
 impl FollowCameraSettings {
@@ -69,7 +69,7 @@ pub struct FollowCameraBundle {
     pub settings: FollowCameraSettings,
     pub movement: OrbitMovementBundle,
     pub velocity: Velocity,
-    pub camera:   Camera3dBundle,
+    pub camera: Camera3dBundle,
 }
 
 impl FollowCameraBundle {
@@ -92,7 +92,7 @@ impl FollowCameraBundle {
             settings: FollowCameraSettings::new(entity).with_offset(offset),
             movement: OrbitMovementBundle::default(),
             velocity: Velocity::new(Vec3::ZERO),
-            camera:   Camera3dBundle {
+            camera: Camera3dBundle {
                 transform: Transform::from_translation(target.translation + offset)
                     .looking_at(target.translation, Vec3::Y),
                 camera: Camera {

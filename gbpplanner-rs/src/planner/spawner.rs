@@ -32,7 +32,7 @@ static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
 /// Component attached to an entity that spawns formations.
 #[derive(Component)]
 pub struct FormationSpawnerCountdown {
-    pub timer:                 Timer,
+    pub timer: Timer,
     pub formation_group_index: usize,
 }
 
@@ -226,7 +226,7 @@ fn spawn_formation(
 
 #[derive(Debug, Clone, Copy)]
 struct WorldDimensions {
-    width:  StrictlyPositiveFinite<f64>,
+    width: StrictlyPositiveFinite<f64>,
     height: StrictlyPositiveFinite<f64>,
 }
 
@@ -239,7 +239,7 @@ struct WorldDimensions {
 impl WorldDimensions {
     fn new(width: f64, height: f64) -> Self {
         Self {
-            width:  width.try_into().expect("width is not zero"),
+            width: width.try_into().expect("width is not zero"),
             height: height.try_into().expect("height is not zero"),
         }
     }

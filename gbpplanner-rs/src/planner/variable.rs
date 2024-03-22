@@ -2,7 +2,7 @@ use gbp_linalg::{Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
 use super::{
-    factorgraph::{FactorId, MessagesFromVariables, MessagesToFactors},
+    factorgraph::{FactorGraphNode, FactorId, MessagesFromVariables, MessagesToFactors},
     message::{Eta, Lam, Message, Mu},
 };
 
@@ -21,10 +21,10 @@ pub struct Variable {
 
     pub eta_prior: Vector<Float>,
     pub lam_prior: Matrix<Float>,
-    pub eta:       Vector<Float>,
-    pub lam:       Matrix<Float>,
-    pub mu:        Vector<Float>,
-    pub sigma:     Matrix<Float>,
+    pub eta: Vector<Float>,
+    pub lam: Matrix<Float>,
+    pub mu: Vector<Float>,
+    pub sigma: Matrix<Float>,
 
     /// Flag to indicate if the variable's covariance is finite, i.e. it does
     /// not contain NaNs or Infs In gbpplanner it is used to control if a
@@ -220,5 +220,24 @@ impl Variable {
 
     pub fn finite_covariance(&self) -> bool {
         self.valid
+    }
+}
+
+impl FactorGraphNode for Variable {
+    fn remove_connection_to(
+        &mut self,
+        factorgraph_id: super::factorgraph::FactorGraphId,
+    ) -> Result<(), super::factorgraph::RemoveConnectionToError> {
+        let connections_before = self.inbox.len();
+        self.inbox
+            .retain(|factor_id, v| factor_id.factorgraph_id != factorgraph_id);
+        let connections_after = self.inbox.len();
+
+        let no_connections_removed = connections_before == connections_after;
+        if no_connections_removed {
+            Err(super::factorgraph::RemoveConnectionToError)
+        } else {
+            Ok(())
+        }
     }
 }

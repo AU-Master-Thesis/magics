@@ -9,7 +9,7 @@ const SAMPLE_DELAY: f32 = 0.5;
 
 use crate::{
     config::Config,
-    planner::{RobotId, RobotState},
+    planner::{robot::DespawnRobotEvent, RobotId, RobotState},
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 
@@ -17,8 +17,10 @@ pub struct TracerVisualiserPlugin;
 
 impl Plugin for TracerVisualiserPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Traces>()
-            .add_systems(Update, (track_robots, draw_traces));
+        app.init_resource::<Traces>().add_systems(
+            Update,
+            (track_robots, draw_traces, remove_trace_of_despawned_robot),
+        );
     }
 }
 
@@ -35,6 +37,21 @@ pub struct SampleDelay(Timer);
 impl Default for SampleDelay {
     fn default() -> Self {
         Self(Timer::from_seconds(SAMPLE_DELAY, TimerMode::Repeating))
+    }
+}
+
+fn remove_trace_of_despawned_robot(
+    mut traces: ResMut<Traces>,
+    mut despawn_robot_event: EventReader<DespawnRobotEvent>,
+) {
+    for DespawnRobotEvent(robot_id) in despawn_robot_event.read() {
+        match traces.0.remove(robot_id) {
+            Some(_) => info!("removed trace of robot: {:?}", robot_id),
+            None => error!(
+                "attempted to remove trace of untracked robot: {:?}",
+                robot_id
+            ),
+        }
     }
 }
 
@@ -56,7 +73,8 @@ fn track_robots(
         let _ = traces
             .0
             .entry(robot_id)
-            .or_insert_with(StaticRb::default)
+            .or_default()
+            // .or_insert_with(StaticRb::default)
             // .or_insert_with(|| HeapRb::new(MAX_TRACE_LENGTH))
             .push_overwrite(transform.translation);
         // .or_insert_with(Vec::new)

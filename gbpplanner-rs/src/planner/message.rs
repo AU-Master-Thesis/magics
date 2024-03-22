@@ -13,7 +13,7 @@ use gbp_linalg::prelude::*;
 pub struct Payload {
     pub eta: Vector<Float>,
     pub lam: Matrix<Float>,
-    pub mu:  Vector<Float>,
+    pub mu: Vector<Float>,
 }
 
 pub struct Eta(pub Vector<Float>);
@@ -26,7 +26,7 @@ pub struct Message {
     // as the messages are identical.
     // payload: Option<MultivariateNormal>,
     payload: Option<Payload>,
-    dofs:    usize,
+    dofs: usize,
 }
 
 impl Message {
@@ -136,7 +136,7 @@ impl Message {
             payload: Some(Payload {
                 eta: eta.0,
                 lam: lam.0,
-                mu:  mu.0,
+                mu: mu.0,
             }),
             dofs,
         }
