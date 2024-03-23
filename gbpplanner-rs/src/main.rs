@@ -19,6 +19,7 @@ use bevy::{
     prelude::*,
     window::{WindowMode, WindowTheme},
 };
+use bevy_mod_picking::DefaultPickingPlugins;
 use clap::Parser;
 use config::Environment;
 
@@ -193,6 +194,7 @@ fn main() -> anyhow::Result<()> {
                     ..Default::default()
                 },
             ),
+            DefaultPickingPlugins,
             // FpsCounterPlugin,  // **Bevy**
             ThemePlugin,       // Custom
             AssetLoaderPlugin, // Custom

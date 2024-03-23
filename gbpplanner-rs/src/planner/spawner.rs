@@ -3,6 +3,7 @@
 use std::{collections::VecDeque, num::NonZeroUsize, sync::OnceLock};
 
 use bevy::prelude::*;
+use bevy_mod_picking::PickableBundle;
 use rand::Rng;
 use typed_floats::StrictlyPositiveFinite;
 
@@ -205,7 +206,7 @@ fn spawn_formation(
                 ..Default::default()
             };
 
-            entity.insert((robotbundle, pbrbundle));
+            entity.insert((robotbundle, pbrbundle, PickableBundle::default()));
 
             spawn_robot_event.send(SpawnRobotEvent(robot_id));
         }

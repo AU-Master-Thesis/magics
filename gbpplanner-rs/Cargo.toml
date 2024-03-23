@@ -26,6 +26,8 @@ bevy_egui = "0.26.0"
 egui_extras = { version = "0.26.2", features = [
   "all_loaders",
 ] }
+bevy_mod_picking = { version = "0.18.0" }
+bevy_eventlistener = "0.7"
 image = { version = "0.25.0", default-features = false, features = [
   "png",
 ] }
