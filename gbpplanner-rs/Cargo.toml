@@ -28,6 +28,7 @@ egui_extras = { version = "0.26.2", features = [
 ] }
 bevy_mod_picking = { version = "0.18.0" }
 bevy_eventlistener = "0.7"
+iyes_perf_ui = { git = "https://github.com/IyesGames/iyes_perf_ui", branch = "main" }
 image = { version = "0.25.0", default-features = false, features = [
   "png",
 ] }

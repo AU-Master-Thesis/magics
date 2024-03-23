@@ -22,6 +22,7 @@ use bevy::{
 use bevy_mod_picking::DefaultPickingPlugins;
 use clap::Parser;
 use config::Environment;
+use iyes_perf_ui::prelude::*;
 
 use crate::{
     asset_loader::AssetLoaderPlugin,
@@ -210,7 +211,14 @@ fn main() -> anyhow::Result<()> {
             EguiInterfacePlugin, // Custom
             PlannerPlugin,       /* Custom
                                   * WorldInspectorPlugin::new(), */
+
         ))
+        // we want Bevy to measure these values for us:
+        // .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+        // .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
+        // .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
+        // .add_plugins(PerfUiPlugin)
+        // .add_systems(Startup, spawn_perf_ui)
         .add_systems(Update, make_visible);
 
     // eprintln!("{:#?}", app);
@@ -218,6 +226,10 @@ fn main() -> anyhow::Result<()> {
     app.run();
 
     Ok(())
+}
+
+fn spawn_perf_ui(mut commands: Commands) {
+    commands.spawn(PerfUiCompleteBundle::default());
 }
 
 fn make_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) {

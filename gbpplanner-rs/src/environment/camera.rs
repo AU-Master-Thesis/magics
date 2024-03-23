@@ -1,11 +1,12 @@
+#![warn(missing_docs)]
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/camera.rs
 use bevy::prelude::*;
-use bevy_infinite_grid::GridShadowCamera;
 
 use crate::movement::{LinearMovementBundle, Local, Orbit, OrbitMovementBundle};
 
-const INITIAL_CAMERA_DISTANCE: f32 = 150.0;
-pub const SPEED: f32 = 20.0;
+const INITIAL_CAMERA_DISTANCE: f32 = 125.0;
+// pub const SPEED: f32 = 20.0;
+pub const SPEED: f32 = INITIAL_CAMERA_DISTANCE / 10.0;
 pub const ANGULAR_SPEED: f32 = 2.0;
 
 pub struct CameraPlugin;
@@ -48,7 +49,6 @@ fn spawn_camera(mut commands: Commands) {
         OrbitMovementBundle::default(),
         Local,
         MainCamera,
-        // GridShadowCamera,
     ));
 }
 
