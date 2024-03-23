@@ -19,6 +19,8 @@ use self::{
     uncertainty::UncertaintyVisualiserPlugin, waypoints::WaypointVisualiserPlugin,
 };
 
+use super::RobotId;
+
 /// A **Bevy** `Plugin` for visualising aspects of the planner
 /// Includes visualising parts of the factor graph
 pub struct VisualiserPlugin;
@@ -38,24 +40,25 @@ impl Plugin for VisualiserPlugin {
 
 /// A **Bevy** `Component` for keeping track of a robot
 /// Keeps track of the `RobotId` and `Vec2` position
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct RobotTracker {
-    pub robot_id: super::RobotId,
-    pub variable_id: usize,
+    pub robot_id: RobotId,
+    pub variable_index: usize,
     pub order: usize,
 }
 
 impl RobotTracker {
-    pub fn new(robot_id: super::RobotId) -> Self {
+    // REFACTOR: take all 3 arguments here
+    pub fn new(robot_id: RobotId) -> Self {
         Self {
             robot_id,
-            variable_id: 0,
+            variable_index: 0,
             order: 0,
         }
     }
 
-    pub fn with_variable_id(mut self, id: usize) -> Self {
-        self.variable_id = id;
+    pub fn with_variable_index(mut self, id: usize) -> Self {
+        self.variable_index = id;
         self
     }
 

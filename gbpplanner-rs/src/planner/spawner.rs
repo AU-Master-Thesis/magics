@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use rand::Rng;
 use typed_floats::StrictlyPositiveFinite;
 
-use super::robot::VariableTimestepsResource;
+use super::robot::{SpawnRobotEvent, VariableTimestepsResource};
 use crate::{
     asset_loader::SceneAssets,
     config::{
@@ -95,6 +95,7 @@ fn advance_time(
 fn spawn_formation(
     mut commands: Commands,
     mut spawn_event_reader: EventReader<FormationSpawnEvent>,
+    mut spawn_robot_event: EventWriter<SpawnRobotEvent>,
     // time: Res<Time>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
@@ -205,6 +206,8 @@ fn spawn_formation(
             };
 
             entity.insert((robotbundle, pbrbundle));
+
+            spawn_robot_event.send(SpawnRobotEvent(robot_id));
         }
         info!("spawning formation group {}", event.formation_group_index);
     }

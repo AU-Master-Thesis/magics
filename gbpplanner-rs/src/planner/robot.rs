@@ -18,6 +18,7 @@ impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<VariableTimestepsResource>()
             .add_event::<DespawnRobotEvent>()
+            .add_event::<SpawnRobotEvent>()
             .add_systems(
                 // FixedUpdate,
                 Update,
@@ -43,6 +44,9 @@ pub type RobotId = Entity;
 
 #[derive(Event)]
 pub struct DespawnRobotEvent(pub RobotId);
+
+#[derive(Event)]
+pub struct SpawnRobotEvent(pub RobotId);
 
 fn despawn_robots(
     mut commands: Commands,

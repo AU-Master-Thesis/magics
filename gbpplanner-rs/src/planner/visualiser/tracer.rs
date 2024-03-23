@@ -19,7 +19,11 @@ impl Plugin for TracerVisualiserPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Traces>().add_systems(
             Update,
-            (track_robots, draw_traces, remove_trace_of_despawned_robot),
+            (
+                track_robots,
+                draw_traces.run_if(draw_paths_enabled),
+                remove_trace_of_despawned_robot,
+            ),
         );
     }
 }
@@ -82,18 +86,17 @@ fn track_robots(
     }
 }
 
+fn draw_paths_enabled(config: Res<Config>) -> bool {
+    config.visualisation.draw.paths
+}
+
 /// **Bevy** [`Update`] system
 /// To draw the robot traces; using the [`Traces`] resource
-fn draw_traces(
-    mut gizmos: Gizmos,
-    traces: Res<Traces>,
-    catppuccin_theme: Res<CatppuccinTheme>,
-    config: Res<Config>,
-) {
-    if !config.visualisation.draw.paths {
-        // error!("draw_traces: visualisation.draw.paths is false");
-        return;
-    }
+fn draw_traces(mut gizmos: Gizmos, traces: Res<Traces>, catppuccin_theme: Res<CatppuccinTheme>) {
+    // if !config.visualisation.draw.paths {
+    //     // error!("draw_traces: visualisation.draw.paths is false");
+    //     return;
+    // }
 
     // TODO: avoid allocating a new iterator every frame
     // let mut colours = catppuccin_theme.colours().into_iter().cycle();
