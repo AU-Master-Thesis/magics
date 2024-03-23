@@ -36,7 +36,7 @@ impl UnitInterval {
     /// Creates a new `UnitInterval` from a value. Returns an error if the value
     /// is not in the interval [0.0, 1.0].
     pub fn new(value: f64) -> Result<UnitInterval> {
-        if value < 0.0 || value > 1.0 {
+        if !(0.0..=1.0).contains(&value) {
             Err(UnitIntervalError::OutOfBounds(value))
         } else {
             Ok(UnitInterval(value))
@@ -51,7 +51,7 @@ impl UnitInterval {
     }
 
     /// Returns the inner value of the `UnitInterval`.
-    pub fn get(self) -> f64 {
+    pub const fn get(self) -> f64 {
         self.0
     }
 }

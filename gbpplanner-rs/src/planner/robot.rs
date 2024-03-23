@@ -511,7 +511,7 @@ fn create_interrobot_factors(
 fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
     for mut state in query.iter_mut() {
         state.interrobot_comms_active =
-            config.robot.communication.failure_rate > rand::random::<f32>();
+            config.robot.communication.failure_rate < rand::random::<f32>();
     }
 }
 
