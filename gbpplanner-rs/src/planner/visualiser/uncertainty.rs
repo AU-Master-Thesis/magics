@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use gbp_linalg::pretty_print_matrix;
 
 use super::{super::FactorGraph, RobotTracker, Z_FIGHTING_OFFSET};
 use crate::{asset_loader::SceneAssets, config::Config};
