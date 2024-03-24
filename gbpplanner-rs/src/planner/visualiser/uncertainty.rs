@@ -1,20 +1,40 @@
+#![warn(missing_docs)]
 use bevy::prelude::*;
+// use gbp_linalg::pretty_print_matrix;
 
 use super::{super::FactorGraph, RobotTracker, Z_FIGHTING_OFFSET};
 use crate::{asset_loader::SceneAssets, config::Config};
 
+/// Plugin that adds the functionality to visualise the position uncertainty of
+/// each variable in a factorgraph.
+/// The uncertainty is visualised as a 2D ellipse, around the mean of the position.
 pub struct UncertaintyVisualiserPlugin;
 
 impl Plugin for UncertaintyVisualiserPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (
-                init_uncertainty,
-                update_uncertainty,
-                show_or_hide_uncertainty,
-            ),
-        );
+        app.init_resource::<UncertaintyVisualizerEnabled>()
+            .add_systems(
+                Update,
+                (
+                    init_uncertainty,
+                    show_or_hide_uncertainty,
+                    update_uncertainty.run_if(uncertainty_visualizer_enabled),
+                ),
+            );
+    }
+}
+
+/// A plugin local resource to keep track of whether to enable/disable visualisation
+#[derive(Resource)]
+struct UncertaintyVisualizerEnabled(bool);
+
+fn uncertainty_visualizer_enabled(res: Res<UncertaintyVisualizerEnabled>) -> bool {
+    res.0
+}
+
+impl Default for UncertaintyVisualizerEnabled {
+    fn default() -> Self {
+        Self(true)
     }
 }
 
@@ -45,6 +65,7 @@ fn init_uncertainty(
 
         factorgraph.variables().for_each(|(index, v)| {
             // let mean = v.belief.mean();
+            #[allow(clippy::cast_possible_truncation)]
             let transform = Vec3::new(
                 v.mu[0] as f32,
                 config.visualisation.height.objects - 2.0 * Z_FIGHTING_OFFSET, /* just under the
@@ -69,18 +90,20 @@ fn init_uncertainty(
             // half major axis λ₁ and half minor axis λ₂
             // λ₁ = (a + c) / 2 + √((a - c)² / 4 + b²)
             // λ₂ = (a + c) / 2 - √((a - c)² / 4 + b²)
-            let half_major_axis = (covariance[(0, 0)] + covariance[(1, 1)]) / 2.0
-                + ((covariance[(0, 0)] - covariance[(1, 1)]).powi(2) / 4.0
-                    + covariance[(0, 1)].powi(2))
-                .sqrt();
-            let half_minor_axis = (covariance[(0, 0)] + covariance[(1, 1)]) / 2.0
-                - ((covariance[(0, 0)] - covariance[(1, 1)]).powi(2) / 4.0
-                    + covariance[(0, 1)].powi(2))
-                .sqrt();
+            let a = covariance[(0, 0)];
+            let b = covariance[(0, 1)];
+            let c = covariance[(1, 1)];
+
+            let (half_major_axis, half_minor_axis) = {
+                let first_term = (a + c) / 2.0;
+                let second_term = f64::sqrt((a - c).powi(2) / 4.0 + b * b);
+
+                (first_term + second_term, first_term - second_term)
+            };
 
             // angle of the major axis with the x-axis
             // θ = arctan²(λ₁ - a, b)
-            let angle = (half_major_axis - covariance[(0, 0)]).atan2(covariance[(0, 1)]) as f32;
+            let angle = f64::atan2(half_major_axis - a, b) as f32;
 
             let mesh = meshes.add(Ellipse::new(
                 // pick `x` from the covariance diagonal, but cap it at 10.0
@@ -88,14 +111,16 @@ fn init_uncertainty(
                     attenable = false;
                     config.visualisation.uncertainty.max_radius
                 } else {
-                    covariance.diag()[0] as f32
+                    a as f32
+                    // covariance.diag()[0] as f32
                 },
                 // pick `y` from the covariance diagonal, but cap it at 10.0
                 if half_minor_axis > 20.0 {
                     attenable = false;
                     config.visualisation.uncertainty.max_radius
                 } else {
-                    covariance.diag()[1] as f32
+                    c as f32
+                    // covariance.diag()[1] as f32
                 },
             ));
 
@@ -103,28 +128,30 @@ fn init_uncertainty(
                 .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
             transform.rotate_y(angle);
 
-            info!(
+            error!(
                 "{:?}: Initialising uncertainty at {:?}, with covariance {:?}",
                 entity, transform, covariance
             );
 
+            let material = if attenable {
+                scene_assets.materials.uncertainty.clone()
+            } else {
+                scene_assets.materials.uncertainty_unattenable.clone()
+            };
+            let visibility = if config.visualisation.draw.uncertainty {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            };
             // Spawn a `UncertaintyVisualiser` component with a corresponding 2D circle
             commands.spawn((
                 RobotTracker::new(entity).with_variable_index(index.into()),
                 UncertaintyVisualiser,
                 PbrBundle {
                     mesh,
-                    material: if attenable {
-                        scene_assets.materials.uncertainty.clone()
-                    } else {
-                        scene_assets.materials.uncertainty_unattenable.clone()
-                    },
+                    material,
                     transform,
-                    visibility: if config.visualisation.draw.uncertainty {
-                        Visibility::Visible
-                    } else {
-                        Visibility::Hidden
-                    },
+                    visibility,
                     ..Default::default()
                 },
             ));
@@ -177,22 +204,27 @@ fn update_uncertainty(
                 // pretty_print_matrix!(covariance);
 
                 let mut attenable = true;
-                let new_mesh = meshes.add(Ellipse::new(
-                    // pick `x` from the covariance diagonal, but cap it at 10.0
-                    if covariance.diag()[0] > 20.0 {
-                        attenable = false;
-                        config.visualisation.uncertainty.max_radius
-                    } else {
-                        covariance.diag()[0] as f32
-                    },
-                    // pick `y` from the covariance diagonal, but cap it at 10.0
-                    if covariance.diag()[1] > 20.0 {
-                        attenable = false;
-                        config.visualisation.uncertainty.max_radius
-                    } else {
-                        covariance.diag()[1] as f32
-                    },
-                ));
+                // pick `x` from the covariance diagonal, but cap it at 10.0
+                let half_width = if covariance.diag()[0] > 20.0 {
+                    attenable = false;
+                    config.visualisation.uncertainty.max_radius
+                } else {
+                    // 1.0
+                    covariance.diag()[0] as f32 * 1000.0
+                };
+                // pick `y` from the covariance diagonal, but cap it at 10.0
+                let half_height = if covariance.diag()[1] > 20.0 {
+                    attenable = false;
+                    config.visualisation.uncertainty.max_radius
+                } else {
+                    // 2.0
+                    covariance.diag()[1] as f32 * 1000.0
+                };
+
+                // dbg!((half_width, half_height));
+
+                // error!("creating new ellipse");
+                let new_mesh = meshes.add(Ellipse::new(half_width, half_height));
 
                 // info!("{:?}: Updating uncertainty at {:?}, with covariance {:?}", entity,
                 // transform, covariance);
@@ -224,15 +256,24 @@ fn update_uncertainty(
 fn show_or_hide_uncertainty(
     mut query: Query<(&UncertaintyVisualiser, &mut Visibility)>,
     mut draw_setting_event: EventReader<crate::ui::DrawSettingsEvent>,
+    mut enabled: ResMut<UncertaintyVisualizerEnabled>,
 ) {
     for event in draw_setting_event.read() {
+        debug!("received event to toggle draw visibility of gaussian uncertainty");
         if matches!(event.setting, crate::config::DrawSetting::Uncertainty) {
+            let new_visibility_state = if event.draw {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            };
+            enabled.0 = event.draw;
             for (_, mut visibility) in query.iter_mut() {
-                if event.draw {
-                    *visibility = Visibility::Visible;
-                } else {
-                    *visibility = Visibility::Hidden;
-                }
+                *visibility = new_visibility_state;
+                // if event.draw {
+                //     *visibility = Visibility::Visible;
+                // } else {
+                //     *visibility = Visibility::Hidden;
+                // }
             }
         }
     }

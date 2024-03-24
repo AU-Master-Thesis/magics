@@ -17,6 +17,7 @@ gbp_linalg              = { path = "../gbp_linalg" }
 gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
 # gbp_formation = { path = "../gbp_formation" }
 
+better-panic = "0.3.0"
 bevy = { version = "0.13.0", default-features = true, features = [
   # "wayland",
   # "dynamic_linking",
@@ -67,6 +68,7 @@ typed_floats = { version = "1.0.0", features = [
 ] }
 
 ringbuf = "0.3.3"
+bevy_dev_console = { git = "https://github.com/doonv/bevy_dev_console.git", version = "0.1.0" }
 
 [lints]
 workspace = true

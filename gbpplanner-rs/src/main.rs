@@ -16,6 +16,7 @@ use std::path::PathBuf;
 
 use bevy::{
     core::FrameCount,
+    log::LogPlugin,
     prelude::*,
     window::{WindowMode, WindowTheme},
 };
@@ -23,6 +24,8 @@ use bevy_mod_picking::DefaultPickingPlugins;
 use clap::Parser;
 use config::Environment;
 use iyes_perf_ui::prelude::*;
+
+use bevy_dev_console::prelude::*;
 
 use crate::{
     asset_loader::AssetLoaderPlugin,
@@ -97,6 +100,8 @@ fn read_config(cli: &Cli) -> anyhow::Result<Config> {
 //     color_eyre::install()?;
 
 fn main() -> anyhow::Result<()> {
+    better_panic::install();
+
     let cli = Cli::parse();
 
     // if cli.dump_default_config && cli.dump_default_formation {
@@ -172,6 +177,8 @@ fn main() -> anyhow::Result<()> {
         .insert_resource(formation)
         .insert_resource(environment)
         .add_plugins((
+            // ConsoleLogPlugin::default(),
+
             DefaultPlugins.set(
                 // **Bevy**
                 WindowPlugin {
@@ -194,7 +201,9 @@ fn main() -> anyhow::Result<()> {
                     }),
                     ..Default::default()
                 },
-            ),
+                ),
+                // ).disable::<LogPlugin>(),
+            // DevConsolePlugin,
             DefaultPickingPlugins,
             // FpsCounterPlugin,  // **Bevy**
             ThemePlugin,       // Custom

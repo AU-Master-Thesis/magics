@@ -23,7 +23,6 @@ fn draw_communication_radius_enabled(config: Res<Config>) -> bool {
 
 fn draw_communication_radius(
     mut gizmos: Gizmos,
-    // query: Query<&Transform, (With<RobotState>, Changed<Transform>)>,
     query: Query<(&RobotState, &Transform)>,
     config: Res<Config>,
     catppuccin_theme: Res<CatppuccinTheme>,
