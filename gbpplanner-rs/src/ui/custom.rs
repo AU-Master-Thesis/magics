@@ -191,7 +191,7 @@ pub(crate) const SPACING: f32 = 5.0;
 pub(crate) const SLIDER_EXTRA: f32 = 45.0;
 pub(crate) const SLIDER_EXTRA_WIDE: f32 = 65.0;
 
-pub fn binding_table<'a>(ui: &'a mut Ui) -> TableBuilder<'a> {
+pub fn binding_table(ui: &mut Ui) -> TableBuilder<'_> {
     TableBuilder::new(ui)
         .column(Column::exact(FIRST_COL_WIDTH))
         .columns(Column::exact(BINDING_COL_WIDTH), 2)
@@ -199,7 +199,7 @@ pub fn binding_table<'a>(ui: &'a mut Ui) -> TableBuilder<'a> {
         .auto_shrink(Vec2b::new(false, true))
 }
 
-pub fn sens_table<'a>(ui: &'a mut Ui) -> TableBuilder<'a> {
+pub fn sens_table(ui: &mut Ui) -> TableBuilder<'_> {
     TableBuilder::new(ui)
         .column(Column::exact(FIRST_COL_WIDTH))
         .column(Column::exact(BINDING_COL_WIDTH * 2.0))
