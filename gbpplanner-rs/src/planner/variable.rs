@@ -35,6 +35,10 @@ pub struct Variable {
 }
 
 impl Variable {
+    pub fn estimated_position(&self) -> [Float; 2] {
+        [self.mu[0], self.mu[1]]
+    }
+
     // pub fn new(prior: MultivariateNormal, dofs: usize) -> UninsertedVariable {
     //     UninsertedVariable { prior, dofs }
     //     // Self {

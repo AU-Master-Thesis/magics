@@ -8,6 +8,7 @@ use crate::{
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 
+/// A **Bevy** Plugin for visualising the communication graph between robots
 pub struct CommunicationGraphVisualiserPlugin;
 
 impl Plugin for CommunicationGraphVisualiserPlugin {
@@ -19,21 +20,39 @@ impl Plugin for CommunicationGraphVisualiserPlugin {
     }
 }
 
-/// A **Bevy** [`Component`] to mark an entity as a visualised _communication
-/// graph_
-#[derive(Component)]
-pub struct CommunicationGraphVisualiser;
-
+/// Used to check if the communication graph should be drawn
 fn draw_communication_graph_enabled(config: Res<Config>) -> bool {
     config.visualisation.draw.communication_graph
+}
+
+/// Used to keep track of which undirected edges have already been drawn
+/// to avoid double-drawing them
+#[derive(Default)]
+struct Edges(Vec<(Entity, Entity)>);
+
+impl Edges {
+    /// Check if the edge exists in the set
+    /// Edges are undirected, therefore true is returned if either (a, b) or (b, a) exists
+    fn contains(&self, edge: &(Entity, Entity)) -> bool {
+        self.0.contains(edge) || self.0.contains(&(edge.1, edge.0))
+    }
 }
 
 fn draw_communication_graph_v2(
     mut gizmos: Gizmos,
     catppuccin_theme: Res<CatppuccinTheme>,
     robots_query: Query<(Entity, &RobotState, &Transform)>,
+    mut edges: Local<Edges>,
 ) {
     let color = Color::from_catppuccin_colour(catppuccin_theme.yellow());
+
+    // # Safety
+    // Only this system has access to `edges`, as it is `Local<T>` state
+    // Instead of heap allocating a new Vec for each call to this function
+    // we reuse the space allocated in previous calls
+    unsafe {
+        edges.0.set_len(0);
+    }
 
     for (robot_id, robot_state, transform) in robots_query.iter() {
         if !robot_state.interrobot_comms_active {
@@ -44,22 +63,23 @@ fn draw_communication_graph_v2(
             continue;
         }
 
-        // error!("iterating through all connections");
         for connected_with_id in robot_state.ids_of_robots_connected_with.iter() {
             if let Some((_, _, other_transform)) = robots_query
                 .iter()
                 .find(|(id, _, _)| id == connected_with_id)
             {
+                let edge = (robot_id, *connected_with_id);
+                if edges.contains(&edge) {
+                    continue;
+                }
+
+                edges.0.push(edge);
+
                 debug!(
                     "drawing line between {:?} and {:?}",
                     robot_id, connected_with_id
                 );
-                // TODO: avoid double draw, i.e. don't draw line for both a -> b, and b -> a
-                gizmos.line(
-                    transform.translation,
-                    other_transform.translation,
-                    color, // Color::RED,
-                );
+                gizmos.line(transform.translation, other_transform.translation, color);
             }
         }
     }
