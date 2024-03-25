@@ -84,7 +84,7 @@ fn update_waypoints(
                     // Update the `Transform` component
                     // to match the `Waypoints` component
 
-                    // info!("{:?}: Updating waypoints to {:?}", entity, next_waypoint);
+                    error!("{:?}: Updating waypoints to {:?}", entity, next_waypoint);
                     transform.translation = Vec3::new(
                         next_waypoint.x,
                         config.visualisation.height.objects,

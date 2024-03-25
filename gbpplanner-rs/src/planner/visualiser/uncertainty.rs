@@ -128,10 +128,10 @@ fn init_uncertainty(
                 .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
             transform.rotate_y(angle);
 
-            error!(
-                "{:?}: Initialising uncertainty at {:?}, with covariance {:?}",
-                entity, transform, covariance
-            );
+            // error!(
+            //     "{:?}: Initialising uncertainty at {:?}, with covariance {:?}",
+            //     entity, transform, covariance
+            // );
 
             let material = if attenable {
                 scene_assets.materials.uncertainty.clone()

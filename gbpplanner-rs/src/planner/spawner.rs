@@ -2,12 +2,19 @@
 //! ...
 use std::{collections::VecDeque, num::NonZeroUsize, sync::OnceLock};
 
-use bevy::prelude::*;
-use bevy_mod_picking::PickableBundle;
+use bevy::{
+    input::{mouse::MouseButtonInput, ButtonState},
+    prelude::*,
+    window::PrimaryWindow,
+};
+use bevy_mod_picking::prelude::*;
 use rand::Rng;
 use typed_floats::StrictlyPositiveFinite;
 
-use super::robot::{SpawnRobotEvent, VariableTimestepsResource};
+use super::{
+    robot::{SpawnRobotEvent, VariableTimesteps, Waypoints},
+    RobotState,
+};
 use crate::{
     asset_loader::SceneAssets,
     config::{
@@ -22,8 +29,77 @@ pub struct SpawnerPlugin;
 impl Plugin for SpawnerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<FormationSpawnEvent>()
+            .init_resource::<SelectedRobot>()
+            .add_event::<RobotClickEvent>()
             .add_systems(Startup, setup)
-            .add_systems(Update, (advance_time, spawn_formation));
+            .add_systems(
+                Update,
+                (
+                    advance_time,
+                    spawn_formation,
+                    select_robot_when_clicked,
+                    place_unplanned_waypoint.run_if(robot_is_selected),
+                ),
+            );
+    }
+}
+
+#[derive(Resource, Default)]
+struct SelectedRobot(pub Option<Entity>);
+
+impl SelectedRobot {
+    #[inline]
+    pub fn deselect(&mut self) {
+        self.0 = None
+    }
+
+    #[inline]
+    pub fn select(&mut self, entity: Entity) {
+        self.0 = Some(entity)
+    }
+
+    #[inline]
+    pub fn is_selected(&self) -> bool {
+        self.0.is_some()
+    }
+}
+
+fn robot_is_selected(selected_robot: Res<SelectedRobot>) -> bool {
+    selected_robot.is_selected()
+}
+
+fn place_unplanned_waypoint(
+    mut commands: Commands,
+    mut mousebutton_event: EventReader<MouseButtonInput>,
+    mut selected_robot: ResMut<SelectedRobot>,
+    mut query: Query<(Entity, &mut Waypoints), With<RobotState>>,
+    q_windows: Query<&Window, With<PrimaryWindow>>,
+) {
+    for MouseButtonInput { button, state, .. } in mousebutton_event.read() {
+        let (ButtonState::Pressed, MouseButton::Left) = (state, button) else {
+            continue;
+        };
+
+        error!("pressed left click");
+        // prepend a waypoint at the mouse position
+        let Some(mut waypoints) = query
+            .iter_mut()
+            .find(|(entity, _)| entity == &selected_robot.0.unwrap())
+            .map(|(_, waypoints)| waypoints)
+        else {
+            continue;
+        };
+
+        let Some(cursor_position) = q_windows.single().cursor_position() else {
+            continue;
+        };
+
+        waypoints
+            .0
+            .push_front(Vec4::new(cursor_position.x, cursor_position.y, 0.0, 0.0));
+
+        error!("placed waypoint");
+        selected_robot.deselect();
     }
 }
 
@@ -105,7 +181,7 @@ fn spawn_formation(
     // mut meshes: ResMut<Assets<Mesh>>,
     // catppuccin_theme: Res<CatppuccinTheme>,
     formation_group: Res<FormationGroup>,
-    variable_timesteps: Res<VariableTimestepsResource>,
+    variable_timesteps: Res<VariableTimesteps>,
 ) {
     // only continue if the image has been loaded
     let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else {
@@ -206,11 +282,43 @@ fn spawn_formation(
                 ..Default::default()
             };
 
-            entity.insert((robotbundle, pbrbundle, PickableBundle::default()));
+            entity.insert((
+                robotbundle,
+                pbrbundle,
+                PickableBundle::default(),
+                On::<Pointer<Click>>::send_event::<RobotClickEvent>(), // On::<Pointer<Click>>::target_commands_mut(|click, target_commands | {
+                                                                       //     error!("click: {:?}", click);
+                                                                       // }),
+            ));
 
             spawn_robot_event.send(SpawnRobotEvent(robot_id));
         }
         info!("spawning formation group {}", event.formation_group_index);
+    }
+}
+
+#[derive(Event)]
+struct RobotClickEvent(pub Entity);
+
+impl RobotClickEvent {
+    #[inline]
+    pub fn target(&self) -> Entity {
+        self.0
+    }
+}
+
+impl From<ListenerInput<Pointer<Click>>> for RobotClickEvent {
+    fn from(value: ListenerInput<Pointer<Click>>) -> Self {
+        Self(value.target)
+    }
+}
+
+fn select_robot_when_clicked(
+    mut robot_click_event: EventReader<RobotClickEvent>,
+    mut selected_robot: ResMut<SelectedRobot>,
+) {
+    for event in robot_click_event.read() {
+        selected_robot.select(event.target());
     }
 }
 

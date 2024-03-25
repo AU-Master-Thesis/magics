@@ -16,7 +16,7 @@ pub struct RobotPlugin;
 
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<VariableTimestepsResource>()
+        app.init_resource::<VariableTimesteps>()
             .add_event::<DespawnRobotEvent>()
             .add_event::<SpawnRobotEvent>()
             .add_systems(
@@ -72,12 +72,11 @@ fn despawn_robots(
 // const SIGMA_POSE_FIXED: f32 = 1e-6;
 
 #[derive(Resource)]
-
-pub struct VariableTimestepsResource {
+pub struct VariableTimesteps {
     pub timesteps: Vec<u32>,
 }
 
-impl FromWorld for VariableTimestepsResource {
+impl FromWorld for VariableTimesteps {
     fn from_world(world: &mut World) -> Self {
         let config = world.resource::<Config>();
 
@@ -122,7 +121,6 @@ pub struct Waypoints(pub VecDeque<Vec4>);
 pub struct RobotState {
     /// List of robot ids that are within the communication radius of this
     /// robot. called `neighbours_` in **gbpplanner**.
-    /// TODO: maybe change to a BTreeSet
     // ids_of_robots_within_comms_range: Vec<RobotId>,
     pub ids_of_robots_within_comms_range: BTreeSet<RobotId>,
     /// List of robot ids that are currently connected via inter-robot factors
@@ -144,7 +142,6 @@ impl RobotState {
 }
 
 #[derive(Bundle, Debug)]
-
 pub struct RobotBundle {
     /// The factor graph that the robot is part of, and uses to perform GBP
     /// message passing.
@@ -153,7 +150,7 @@ pub struct RobotBundle {
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
-    pub radius: Radius, // TODO: create new type that guarantees this constraint
+    pub radius: Radius,
     /// The current state of the robot
     pub state: RobotState,
     // pub transform: Transform,
@@ -390,7 +387,7 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
 fn create_interrobot_factors(
     mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
     config: Res<Config>,
-    variable_timesteps: Res<VariableTimestepsResource>,
+    variable_timesteps: Res<VariableTimesteps>,
 ) {
     // a mapping between a robot and the other robots it should create a interrobot
     // factor to e.g:
