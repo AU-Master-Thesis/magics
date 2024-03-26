@@ -316,7 +316,11 @@ fn ui_settings_panel(
                         ui.label("Simulation Time");
                         custom::rect_label(
                             ui,
-                            format!("{:.2}", time_fixed.elapsed_seconds()),
+                            format!(
+                                "{:.2} / {:.2}",
+                                time_fixed.elapsed_seconds(),
+                                config.simulation.max_time.get()
+                            ),
                             None,
                         );
                         ui.end_row();
@@ -333,7 +337,7 @@ fn ui_settings_panel(
                         );
                         if slider_response.drag_released() || slider_response.lost_focus() {
                             // time.set_time_scale(config.simulation.time_scale);
-                            info!("Time scale: {}", config.simulation.time_scale);
+                            info!("time scale changed: {}", config.simulation.time_scale);
                             time_virtual.set_relative_speed(config.simulation.time_scale.get());
                         }
                         ui.end_row();
