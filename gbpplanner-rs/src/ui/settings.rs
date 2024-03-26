@@ -15,7 +15,7 @@ use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
     input::ScreenShotEvent,
-    planner::{PausePlay, PausePlayEvent},
+    planner::{PausePlayEvent, PausedState},
     theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
 };
 
@@ -89,7 +89,7 @@ fn ui_settings_exclusive(world: &mut World) {
                 world.resource_scope(|world, catppuccin_theme: Mut<CatppuccinTheme>| {
                     world.resource_scope(|world, cursor_coordinates: Mut<CursorCoordinates>| {
                         world.resource_scope(|world, currently_changing: Mut<ChangingBinding>| {
-                            world.resource_scope(|world, pause_play: Mut<PausePlay>| {
+                            world.resource_scope(|world, pause_play: Mut<State<PausedState>>| {
                                 world.resource_scope(|world, time: Mut<Time<Virtual>>| {
                                     world.resource_scope(|world, time_fixed: Mut<Time<Fixed>>| {
                                         world.resource_scope(
@@ -149,7 +149,8 @@ fn ui_settings_panel(
     catppuccin_theme: Mut<CatppuccinTheme>,
     world: &mut World,
     _currently_changing: Mut<ChangingBinding>,
-    pause_play: Mut<PausePlay>,
+    // pause_play: Mut<PausePlay>,
+    pause_state: Mut<State<PausedState>>,
     mut time_virtual: Mut<Time<Virtual>>,
     mut time_fixed: Mut<Time<Fixed>>,
     mut config_store: Mut<GizmoConfigStore>,
@@ -341,7 +342,7 @@ fn ui_settings_panel(
 
                         custom::grid("manual_controls_settings_grid", 2).show(ui, |ui| {
                             // step forward button
-                            ui.add_enabled_ui(!pause_play.is_paused(), |ui| {
+                            ui.add_enabled_ui(!pause_state.is_paused(), |ui| {
                                 custom::fill_x(ui, |ui| {
                                     if ui
                                         .button(RichText::new("󰒭").size(25.0))
@@ -355,8 +356,11 @@ fn ui_settings_panel(
                                 });
                             });
                             // pause/play button
-                            let pause_play_text =
-                                if pause_play.is_paused() { "" } else { "" };
+                            let pause_play_text = if pause_state.is_paused() {
+                                ""
+                            } else {
+                                ""
+                            };
                             custom::fill_x(ui, |ui| {
                                 if ui
                                     .button(pause_play_text)

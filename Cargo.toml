@@ -31,6 +31,7 @@ serde = { version = "1.0.197", features = ["derive"] }
 [workspace.lints.rust]
 # unsafe_code = "forbid"
 missing_debug_implementations = "warn"
+missing_docs = "warn"
 
 
 [workspace.lints.clippy]

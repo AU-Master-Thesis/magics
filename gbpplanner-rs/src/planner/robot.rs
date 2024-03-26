@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeSet, HashMap, VecDeque},
-    time::Duration,
-};
+use std::collections::{BTreeSet, HashMap, VecDeque};
 
 use bevy::{
     input::{keyboard::KeyboardInput, ButtonState},
@@ -16,62 +13,99 @@ use super::{
     variable::Variable,
     NodeIndex, PausePlayEvent,
 };
-use crate::{config::Config, utils::get_variable_timesteps};
+use crate::{boolean_bevy_resource, config::Config, utils::get_variable_timesteps};
 
 pub struct RobotPlugin;
 
-#[derive(Resource, Default)]
-pub struct ManualMode(pub bool);
+boolean_bevy_resource!(ManualMode, default = false);
 
-impl ManualMode {
-    // pub fn disabled(&self) -> bool {
-    //     !self.0
-    // }
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ManualModeState {
+    #[default]
+    Disabled,
+    Enabled {
+        iterations_remaining: usize,
+    },
+}
 
-    // #[inline]
-    // pub fn enable(mut mode: ResMut<Self>) {
-    //     mode.0 = true;
-    // }
-    pub fn disable(mut mode: ResMut<Self>) {
-        error!("manual mode disabled");
-        mode.0 = false;
+impl ManualModeState {
+    pub fn enabled(state: Res<State<ManualModeState>>) -> bool {
+        matches!(state.get(), Self::Enabled { .. })
     }
-
-    pub fn toggle(&mut self) {
-        self.0 = !self.0;
-    }
-
-    pub fn disabled(mode: Res<Self>) -> bool {
-        !mode.0
-    }
-
-    pub fn enabled(mode: Res<Self>) -> bool {
-        mode.0
+    pub fn disabled(state: Res<State<ManualModeState>>) -> bool {
+        matches!(state.get(), Self::Disabled)
     }
 }
 
+// fn keyboard_input_is<M>(key_code: KeyCode, state: ButtonState) -> impl Condition<M> {
+//     move |mut keyboard_input_events: EventReader<KeyboardInput>| {
+//         for event in keyboard_input_events.read() {
+//             if (event.key_code, event.state) == (key_code, state) {
+//                 return true;
+//             }
+//         }
+//         false;
+//     }
+// }
+
 fn start_manual_step(
-    mut mode: ResMut<ManualMode>,
+    // mut mode: ResMut<ManualMode>,
+    state: Res<State<ManualModeState>>,
+    mut next_state: ResMut<NextState<ManualModeState>>,
     mut keyboard_input_events: EventReader<KeyboardInput>,
     mut pause_play_event: EventWriter<PausePlayEvent>,
+    config: Res<Config>,
 ) {
     for event in keyboard_input_events.read() {
         let (KeyCode::KeyM, ButtonState::Pressed) = (event.key_code, event.state) else {
             continue;
         };
 
-        mode.0 = true;
-        pause_play_event.send(PausePlayEvent::Play);
-        debug!("starting manual step");
+        match state.get() {
+            ManualModeState::Disabled => {
+                next_state.set(ManualModeState::Enabled {
+                    iterations_remaining: config.manual.iterations_per_step.into(),
+                });
+                pause_play_event.send(PausePlayEvent::Play);
+            }
+            ManualModeState::Enabled { .. } => {
+                warn!("manual step already in progress");
+            }
+        }
+
+        // mode.enable();
+        // pause_play_event.send(PausePlayEvent::Play);
+        // debug!("starting manual step");
     }
 }
 
 fn finish_manual_step(
-    mut mode: ResMut<ManualMode>,
+    // mut mode: ResMut<ManualMode>,
+    state: Res<State<ManualModeState>>,
+    mut next_state: ResMut<NextState<ManualModeState>>,
     mut pause_play_event: EventWriter<PausePlayEvent>,
 ) {
-    mode.0 = false;
-    pause_play_event.send(PausePlayEvent::Pause);
+    match state.get() {
+        ManualModeState::Enabled {
+            iterations_remaining: 0,
+        } => {
+            next_state.set(ManualModeState::Disabled);
+            pause_play_event.send(PausePlayEvent::Pause);
+        }
+        ManualModeState::Enabled {
+            iterations_remaining,
+        } => {
+            next_state.set(ManualModeState::Enabled {
+                iterations_remaining: iterations_remaining - 1,
+            });
+        }
+        ManualModeState::Disabled => {
+            error!("manual step not in progress");
+        }
+    };
+
+    // mode.disable();
+    // pause_play_event.send(PausePlayEvent::Pause);
 }
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -81,6 +115,7 @@ impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<VariableTimesteps>()
             .init_resource::<ManualMode>()
+            .insert_state(ManualModeState::Disabled)
             .add_event::<SpawnRobotEvent>()
             .add_event::<DespawnRobotEvent>()
             .add_event::<RobotReachedWaypointEvent>()
@@ -97,7 +132,9 @@ impl Plugin for RobotPlugin {
                     update_prior_of_horizon_state,
                     update_prior_of_current_state,
                     despawn_robots,
-                    finish_manual_step.run_if(ManualMode::enabled),
+                    // finish_manual_step.run_if(ManualMode::enabled),
+                    finish_manual_step.run_if(ManualModeState::enabled),
+                    // finish_manual_step.run_if(in_state(ManualModeState::Enabled)),
                 )
                     .chain()
                     .run_if(not(time_is_paused)),

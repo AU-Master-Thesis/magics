@@ -58,3 +58,6 @@ color = "red"
 
 [graphviz]
 export-location = "./assets/export/"
+
+[manual]
+iterations-per-step = 1

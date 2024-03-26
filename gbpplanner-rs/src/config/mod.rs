@@ -86,6 +86,20 @@ impl Default for UncertaintySection {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ManualSection {
+    pub iterations_per_step: NonZeroUsize,
+}
+
+impl Default for ManualSection {
+    fn default() -> Self {
+        Self {
+            iterations_per_step: 1.try_into().unwrap(),
+        }
+    }
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct VisualisationSection {
@@ -345,6 +359,7 @@ pub struct Config {
     pub robot: RobotSection,
     pub simulation: SimulationSection,
     pub graphviz: GraphvizSection,
+    pub manual: ManualSection,
 }
 
 impl Default for Config {
@@ -369,6 +384,7 @@ impl Default for Config {
             robot: RobotSection::default(),
             simulation: SimulationSection::default(),
             graphviz: GraphvizSection::default(),
+            manual: ManualSection::default(),
         }
     }
 }
