@@ -361,9 +361,9 @@ fn ui_settings_panel(
                             });
                             // pause/play button
                             let pause_play_text = if pause_state.is_paused() {
-                                ""
-                            } else {
                                 ""
+                            } else {
+                                ""
                             };
                             custom::fill_x(ui, |ui| {
                                 if ui

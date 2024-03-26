@@ -128,7 +128,7 @@ pub enum DrawSetting {
     HeightMap,
     FlatMap,
     CommunicationRadius,
-    Robot
+    Robot,
 }
 
 // TODO: impl FromStr for DrawSetting

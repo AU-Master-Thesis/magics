@@ -38,13 +38,18 @@ impl Plugin for SpawnerPlugin {
             .add_systems(
                 Update,
                 (
-                    advance_time,
+                    advance_time.run_if(not(time_is_paused)),
                     spawn_formation,
                     select_robot_when_clicked,
                     place_unplanned_waypoint.run_if(robot_is_selected),
                 ),
             );
     }
+}
+
+/// run criteria if time is not paused
+fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
+    time.is_paused()
 }
 
 #[derive(Event)]
@@ -193,13 +198,9 @@ fn spawn_formation(
     mut spawn_event_reader: EventReader<FormationSpawnEvent>,
     mut spawn_robot_event: EventWriter<SpawnRobotEvent>,
     mut create_waypoint_event: EventWriter<CreateWaypointEvent>,
-    // time: Res<Time>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
     image_assets: ResMut<Assets<Image>>,
-    // mut materials: ResMut<Assets<StandardMaterial>>,
-    // mut meshes: ResMut<Assets<Mesh>>,
-    // catppuccin_theme: Res<CatppuccinTheme>,
     formation_group: Res<FormationGroup>,
     variable_timesteps: Res<VariableTimesteps>,
 ) {

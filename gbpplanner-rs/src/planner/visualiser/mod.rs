@@ -1,10 +1,10 @@
 mod communication;
 pub(crate) mod communication_radius;
 pub(crate) mod factorgraphs;
+mod robot;
 mod tracer;
 mod uncertainty;
 pub(crate) mod waypoints;
-mod robot;
 
 const Z_FIGHTING_OFFSET: f32 = 0.04;
 
@@ -14,7 +14,11 @@ use bevy::{
 };
 
 use self::{
-    communication::CommunicationGraphVisualiserPlugin, communication_radius::CommunicationRadiusVisualizerPlugin, factorgraphs::FactorGraphVisualiserPlugin, robot::RobotVisualiserPlugin, tracer::TracerVisualiserPlugin, uncertainty::UncertaintyVisualiserPlugin, waypoints::WaypointVisualiserPlugin
+    communication::CommunicationGraphVisualiserPlugin,
+    communication_radius::CommunicationRadiusVisualizerPlugin,
+    factorgraphs::FactorGraphVisualiserPlugin, robot::RobotVisualiserPlugin,
+    tracer::TracerVisualiserPlugin, uncertainty::UncertaintyVisualiserPlugin,
+    waypoints::WaypointVisualiserPlugin,
 };
 
 use super::RobotId;
@@ -32,7 +36,7 @@ impl Plugin for VisualiserPlugin {
             UncertaintyVisualiserPlugin,
             TracerVisualiserPlugin,
             CommunicationRadiusVisualizerPlugin,
-            RobotVisualiserPlugin
+            RobotVisualiserPlugin,
         ));
     }
 }

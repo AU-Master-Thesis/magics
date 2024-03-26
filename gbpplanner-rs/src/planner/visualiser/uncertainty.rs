@@ -270,11 +270,6 @@ fn show_or_hide_uncertainty(
             enabled.0 = event.draw;
             for (_, mut visibility) in query.iter_mut() {
                 *visibility = new_visibility_state;
-                // if event.draw {
-                //     *visibility = Visibility::Visible;
-                // } else {
-                //     *visibility = Visibility::Hidden;
-                // }
             }
         }
     }
