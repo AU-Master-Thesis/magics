@@ -321,7 +321,10 @@ impl FormationGroup {
     /// 1. `path` does not exist on the filesystem.
     /// 2. The contents of `path` is not valid RON.
     /// 3. The parsed data does not represent a valid `FormationGroup`.
-    pub fn from_file(path: &std::path::Path) -> Result<Self, ParseError> {
+    pub fn from_file<P>(path: P) -> Result<Self, ParseError>
+    where
+        P: AsRef<std::path::Path>,
+    {
         std::fs::read_to_string(path)
             .map_err(Into::into)
             .and_then(|file_contents| Self::parse(file_contents.as_str()))

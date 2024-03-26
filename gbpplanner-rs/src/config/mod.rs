@@ -396,8 +396,11 @@ impl Default for Config {
 
 impl Config {
     /// Parse a config file from a given path
-    pub fn from_file(file_path: &std::path::PathBuf) -> Result<Self, ParseError> {
-        let file_contents = std::fs::read_to_string(file_path)?;
+    pub fn from_file<P>(path: P) -> Result<Self, ParseError>
+    where
+        P: AsRef<std::path::Path>,
+    {
+        let file_contents = std::fs::read_to_string(path)?;
         Self::parse(file_contents.as_str())
     }
 

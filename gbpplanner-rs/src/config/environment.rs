@@ -96,7 +96,11 @@ impl Environment {
     /// 1. `path` does not exist on the filesystem
     /// 2. The contents of `path` are not valid RON
     /// 3. The parsed data does not represent a valid [`Environment`]
-    pub fn from_file(path: &std::path::Path) -> Result<Self, ParseError> {
+    // pub fn from_file(path: &std::path::Path) -> Result<Self, ParseError> {
+    pub fn from_file<P>(path: P) -> Result<Self, ParseError>
+    where
+        P: AsRef<std::path::Path>,
+    {
         std::fs::read_to_string(path)
             .map_err(Into::into)
             .and_then(|contents| Self::parse(contents.as_str()))

@@ -29,9 +29,20 @@ impl Plugin for SettingsPanelPlugin {
             .add_event::<ExportGraphEvent>()
             .add_event::<DrawSettingsEvent>()
             .add_systems(Startup, install_egui_image_loaders)
-            .add_systems(Update, (ui_settings_exclusive, scale_ui))
+            .add_systems(
+                Update,
+                (
+                    ui_settings_exclusive,
+                    // ui_settings_exclusive.run_if(show_right_panel),
+                    scale_ui,
+                ),
+            )
             .add_plugins(DefaultInspectorConfigPlugin);
     }
+}
+
+fn show_right_panel(ui: Res<UiState>) -> bool {
+    ui.right_panel
 }
 
 /// Simple **Bevy** trigger `Event`

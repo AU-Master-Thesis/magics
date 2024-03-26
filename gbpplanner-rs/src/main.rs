@@ -44,6 +44,16 @@ use crate::{
     ui::EguiInterfacePlugin,
 };
 
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
+enum DumpDefault {
+    /// Dump the default config to stdout
+    Config,
+    /// Dump the default formation config to stdout
+    Formation,
+    /// Dump the default environment config to stdout
+    Environment,
+}
+
 #[derive(Parser)]
 #[clap(version, author, about)]
 struct Cli {
@@ -52,32 +62,34 @@ struct Cli {
     #[arg(short, long, value_name = "CONFIG_FILE")]
     config: Option<std::path::PathBuf>,
 
-    #[arg(long)]
-    /// Dump the default config to stdout
-    dump_default_config: bool,
-    #[arg(long)]
-    /// Dump the default formation config to stdout
-    dump_default_formation: bool,
-    #[arg(long)]
-    /// Dump the default environment config to stdout
-    dump_default_environment: bool,
-    #[arg(long)]
+    /// What default configuration information to optionally dump to stdout
+    #[arg(long, value_enum)]
+    dump_default: Option<DumpDefault>,
+
+    #[arg(long, group = "display")]
     /// Run the app without a window for rendering the environment
     headless: bool,
 
-    #[arg(short, long)]
+    #[arg(short, long, group = "display")]
     /// Start the app in fullscreen mode
     fullscreen: bool,
 
     #[arg(short, long)]
     /// Enable debug plugins
     debug: bool,
+
+    #[arg(long)]
+    /// muda, muda, muda!
+    za_warudo: bool,
 }
 
 // fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
-fn read_config(cli: &Cli) -> anyhow::Result<Config> {
-    if let Some(config_path) = &cli.config {
-        Ok(Config::from_file(config_path)?)
+fn read_config<P>(path: Option<P>) -> anyhow::Result<Config>
+where
+    P: AsRef<std::path::Path>,
+{
+    if let Some(path) = path {
+        Ok(Config::from_file(path)?)
     } else {
         let mut conf_paths = Vec::<PathBuf>::new();
 
@@ -94,12 +106,11 @@ fn read_config(cli: &Cli) -> anyhow::Result<Config> {
 
         for conf_path in conf_paths {
             if conf_path.exists() {
-                return Ok(Config::from_file(&conf_path.to_path_buf())?);
+                return Ok(Config::from_file(&conf_path)?);
             }
         }
 
         anyhow::bail!("No config file found")
-        // Err(color_eyre::eyre::eyre!("No config file found"))
     }
 }
 
@@ -111,69 +122,48 @@ enum DebugState {
 }
 
 fn main() -> anyhow::Result<()> {
-    better_panic::install();
+    better_panic::debug_install();
 
     let cli = Cli::parse();
 
-    // if cli.dump_default_config && cli.dump_default_formation {
-    //     eprintln!(
-    //         "you can not set --dump-default-config and --dump-default-formation
-    // at the same time!"     );
-    //     std::process::exit(2);
+    if let Some(dump) = cli.dump_default {
+        match dump {
+            DumpDefault::Config => {
+                let default = config::Config::default();
+                println!("{}", toml::to_string_pretty(&default)?);
+            }
+            DumpDefault::Formation => {
+                let default = config::FormationGroup::default();
+                let config = ron::ser::PrettyConfig::new().indentor("  ".to_string());
+                println!("{}", ron::ser::to_string_pretty(&default, config)?);
+            }
+            DumpDefault::Environment => {
+                println!("{}", toml::to_string_pretty(&Environment::default())?);
+            }
+        };
+
+        return Ok(());
+    }
+
+    let config = read_config(cli.config)?;
+    // if let Some(ref inner) = cli.config {
+    //     println!(
+    //         "successfully read config from: {}",
+    //         inner.as_os_str().to_string_lossy()
+    //     );
     // }
 
-    // Cannot set more than one of --dump-default-config, --dump-default-formation,
-    // --dump-default-environment at one time
-    if (cli.dump_default_config as u8
-        + cli.dump_default_formation as u8
-        + cli.dump_default_environment as u8)
-        > 1
-    {
-        eprintln!(
-            "you can not set more than one of --dump-default-config, --dump-default-formation, \
-             --dump-default-environment at one time!"
-        );
-        std::process::exit(2);
-    }
+    let formation = FormationGroup::from_file(&config.formation_group)?;
+    println!(
+        "successfully read formation config from: {}",
+        config.formation_group
+    );
+    let environment = Environment::from_file(&config.environment)?;
+    println!(
+        "successfully read environment config from: {}",
+        config.environment
+    );
 
-    if cli.dump_default_environment {
-        let default_environment = Environment::default();
-        // Write default config to stdout
-        println!("{}", toml::to_string_pretty(&default_environment)?);
-
-        return Ok(());
-    }
-
-    if cli.dump_default_formation {
-        let default_formation = config::FormationGroup::default();
-        // Write default config to stdout\
-        println!(
-            "{}",
-            ron::ser::to_string_pretty(
-                &default_formation,
-                ron::ser::PrettyConfig::new().indentor("  ".to_string())
-            )?
-        );
-
-        return Ok(());
-    }
-
-    if cli.dump_default_config {
-        let default_config = config::Config::default();
-        // Write default config to stdout
-        println!("{}", toml::to_string_pretty(&default_config)?);
-        return Ok(());
-    }
-
-    let config = read_config(&cli)?;
-
-    // formation
-    let formation_file_path = PathBuf::from(&config.formation_group.clone());
-    let formation = FormationGroup::from_file(&formation_file_path)?;
-
-    // environment
-    let environment_file_path = PathBuf::from(&config.environment.clone());
-    let environment = Environment::from_file(&environment_file_path)?;
     let window_mode = if cli.fullscreen {
         WindowMode::BorderlessFullscreen
     } else {
@@ -196,18 +186,11 @@ fn main() -> anyhow::Result<()> {
                 WindowPlugin {
                     primary_window: Some(Window {
                         title: "GBP Planner".into(),
-                        // resolution: (1280.0, 720.0).into(),
-                        // mode: WindowMode::BorderlessFullscreen,
                         mode: window_mode,
-                        // mode: WindowMode::Fullscreen,
                         // present_mode: PresentMode::AutoVsync,
                         // fit_canvas_to_parent: true,
                         // prevent_default_event_handling: false,
                         window_theme: Some(WindowTheme::Dark),
-                        // enable_buttons: bevy::window::EnableButtons {
-                        //     maximize: false,
-                        //     ..Default::default()
-                        // },
                         visible: false,
                         ..Default::default()
                     }),

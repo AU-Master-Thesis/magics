@@ -33,7 +33,7 @@ iterations-per-timestep = 10
 lookahead-multiple      = 3
 
 [robot]
-planning-horizon  = 5.0
+planning-horizon  = 1.0
 max-speed         = 2.0
 dofs              = 4
 symmetric-factors = true
