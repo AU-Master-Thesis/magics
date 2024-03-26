@@ -15,8 +15,9 @@ impl Plugin for UiInputPlugin {
     }
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Default, Reflect, EnumIter)]
 pub enum UiAction {
+    #[default] // Necessary to implement `Default` for `EnumIter`
     ToggleLeftPanel,
     ToggleRightPanel,
     ChangeScaleKind,
@@ -32,13 +33,11 @@ impl UiAction {
     }
 
     fn default_keyboard_input(action: UiAction) -> Option<UserInput> {
-        match action {
-            Self::ToggleLeftPanel => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyH))),
-            Self::ToggleRightPanel => {
-                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyL)))
-            }
-            Self::ChangeScaleKind => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyU))),
-        }
+        Some(match action {
+            Self::ToggleLeftPanel => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyH)),
+            Self::ToggleRightPanel => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyL)),
+            Self::ChangeScaleKind => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyU)),
+        })
     }
 }
 
@@ -49,13 +48,6 @@ impl std::fmt::Display for UiAction {
             Self::ToggleRightPanel => write!(f, "Toggle Right Panel"),
             Self::ChangeScaleKind => write!(f, "Toggle Scale Factor"),
         }
-    }
-}
-
-/// Necessary to implement `Default` for `EnumIter`
-impl Default for UiAction {
-    fn default() -> Self {
-        Self::ToggleLeftPanel
     }
 }
 
