@@ -99,13 +99,13 @@ fn draw_traces(mut gizmos: Gizmos, traces: Res<Traces>, catppuccin_theme: Res<Ca
     // }
 
     // TODO: avoid allocating a new iterator every frame
-    // let mut colours = catppuccin_theme.colours().into_iter().cycle();
-    let colours = catppuccin_theme.colours().into_iter().collect::<Vec<_>>();
+    let mut colours = catppuccin_theme.colours().into_iter().cycle();
+    // let colours = catppuccin_theme.colours().into_iter().collect::<Vec<_>>();
 
     for (robot_id, trace) in traces.0.iter() {
-        // let color = colours.next().unwrap();
+        let color = colours.next().unwrap();
         // PERF: compute the color once, and store it in the traces resource or a Local
-        let color = colours[robot_id.index() as usize % colours.len()];
+        // let color = colours[robot_id.index() as usize % colours.len()];
         let color = Color::from_catppuccin_colour(color);
 
         // error!("trace: {:?}", trace);

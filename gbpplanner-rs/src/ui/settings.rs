@@ -150,7 +150,7 @@ fn ui_settings_panel(
     world: &mut World,
     _currently_changing: Mut<ChangingBinding>,
     pause_play: Mut<PausePlay>,
-    mut time: Mut<Time<Virtual>>,
+    mut time_virtual: Mut<Time<Virtual>>,
     mut time_fixed: Mut<Time<Fixed>>,
     mut config_store: Mut<GizmoConfigStore>,
 ) {
@@ -333,7 +333,7 @@ fn ui_settings_panel(
                         if slider_response.drag_released() || slider_response.lost_focus() {
                             // time.set_time_scale(config.simulation.time_scale);
                             info!("Time scale: {}", config.simulation.time_scale);
-                            time.set_relative_speed(config.simulation.time_scale.get());
+                            time_virtual.set_relative_speed(config.simulation.time_scale.get());
                         }
                         ui.end_row();
 

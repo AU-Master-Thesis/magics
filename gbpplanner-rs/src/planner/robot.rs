@@ -1,6 +1,12 @@
-use std::collections::{BTreeSet, HashMap, VecDeque};
+use std::{
+    collections::{BTreeSet, HashMap, VecDeque},
+    time::Duration,
+};
 
-use bevy::prelude::*;
+use bevy::{
+    input::{keyboard::KeyboardInput, ButtonState},
+    prelude::*,
+};
 use gbp_linalg::{prelude::*, pretty_print_matrix, pretty_print_vector};
 use ndarray::{array, concatenate, s, Axis};
 
@@ -8,20 +14,80 @@ use super::{
     factor::{Factor, InterRobotConnection},
     factorgraph::{FactorGraph, FactorId, VariableId},
     variable::Variable,
-    NodeIndex,
+    NodeIndex, PausePlayEvent,
 };
 use crate::{config::Config, utils::get_variable_timesteps};
 
 pub struct RobotPlugin;
 
+#[derive(Resource, Default)]
+pub struct ManualMode(pub bool);
+
+impl ManualMode {
+    // pub fn disabled(&self) -> bool {
+    //     !self.0
+    // }
+
+    // #[inline]
+    // pub fn enable(mut mode: ResMut<Self>) {
+    //     mode.0 = true;
+    // }
+    pub fn disable(mut mode: ResMut<Self>) {
+        error!("manual mode disabled");
+        mode.0 = false;
+    }
+
+    pub fn toggle(&mut self) {
+        self.0 = !self.0;
+    }
+
+    pub fn disabled(mode: Res<Self>) -> bool {
+        !mode.0
+    }
+
+    pub fn enabled(mode: Res<Self>) -> bool {
+        mode.0
+    }
+}
+
+fn start_manual_step(
+    mut mode: ResMut<ManualMode>,
+    mut keyboard_input_events: EventReader<KeyboardInput>,
+    mut pause_play_event: EventWriter<PausePlayEvent>,
+) {
+    for event in keyboard_input_events.read() {
+        let (KeyCode::KeyM, ButtonState::Pressed) = (event.key_code, event.state) else {
+            continue;
+        };
+
+        mode.0 = true;
+        pause_play_event.send(PausePlayEvent::Play);
+        debug!("starting manual step");
+    }
+}
+
+fn finish_manual_step(
+    mut mode: ResMut<ManualMode>,
+    mut pause_play_event: EventWriter<PausePlayEvent>,
+) {
+    mode.0 = false;
+    pause_play_event.send(PausePlayEvent::Pause);
+}
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct GbpSet;
+
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<VariableTimesteps>()
-            .add_event::<DespawnRobotEvent>()
+            .init_resource::<ManualMode>()
             .add_event::<SpawnRobotEvent>()
+            .add_event::<DespawnRobotEvent>()
+            .add_event::<RobotReachedWaypointEvent>()
+            .add_systems(PreUpdate, start_manual_step.run_if(time_is_paused))
             .add_systems(
-                // FixedUpdate,
-                Update,
+                FixedUpdate,
+                // Update,
                 (
                     update_robot_neighbours,
                     delete_interrobot_factors,
@@ -31,13 +97,35 @@ impl Plugin for RobotPlugin {
                     update_prior_of_horizon_state,
                     update_prior_of_current_state,
                     despawn_robots,
+                    finish_manual_step.run_if(ManualMode::enabled),
                 )
                     .chain()
-                    .run_if(time_is_not_paused),
-            );
-
-        info!("built RobotPlugin, added:");
+                    .run_if(not(time_is_paused)),
+            )
+            .configure_sets(Update, GbpSet.run_if(time_changed));
     }
+}
+
+fn time_changed(time: Res<Time<Fixed>>) -> bool {
+    // error!("time changed: {}", time.delta_seconds());
+    time.delta_seconds() > 0.
+    // time.is_changed()
+}
+
+fn time_is_not_paused_and_manual_mode_is_disabled(
+    time: Res<Time<Virtual>>,
+    mode: Res<ManualMode>,
+) -> bool {
+    !time.is_paused() && ManualMode::disabled(mode)
+}
+
+fn manual_mode(mode: Res<ManualMode>) -> bool {
+    mode.0
+}
+
+/// run criteria if time is not paused
+fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
+    time.is_paused()
 }
 
 pub type RobotId = Entity;
@@ -47,6 +135,13 @@ pub struct DespawnRobotEvent(pub RobotId);
 
 #[derive(Event)]
 pub struct SpawnRobotEvent(pub RobotId);
+
+#[derive(Event)]
+pub struct RobotReachedWaypointEvent {
+    pub robot_id: RobotId,
+    pub waypoint_index: usize,
+    // pub waypoint_id: Entity,
+}
 
 fn despawn_robots(
     mut commands: Commands,
@@ -71,7 +166,7 @@ fn despawn_robots(
 // /// from **gbpplanner** `Globals.h`
 // const SIGMA_POSE_FIXED: f32 = 1e-6;
 
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 pub struct VariableTimesteps {
     pub timesteps: Vec<u32>,
 }
@@ -83,12 +178,12 @@ impl FromWorld for VariableTimesteps {
         let lookahead_horizon = config.robot.planning_horizon / config.simulation.t0;
 
         #[allow(clippy::cast_possible_truncation)]
-        Self {
+        dbg!(Self {
             timesteps: get_variable_timesteps(
                 lookahead_horizon.get() as u32,
                 config.gbp.lookahead_multiple as u32,
             ),
-        }
+        })
     }
 }
 
@@ -117,7 +212,6 @@ pub struct Waypoints(pub VecDeque<Vec4>);
 /// A robot's state, consisting of other robots within communication range,
 /// and other robots that are connected via inter-robot factors.
 #[derive(Component, Debug)]
-
 pub struct RobotState {
     /// List of robot ids that are within the communication radius of this
     /// robot. called `neighbours_` in **gbpplanner**.
@@ -214,7 +308,9 @@ impl RobotBundle {
 
         let mut variable_node_indices = Vec::with_capacity(n_variables);
 
-        for (i, &variable_timestep) in variable_timesteps.iter().enumerate().take(n_variables) {
+        for (i, &variable_timestep) in variable_timesteps.iter().enumerate()
+        /*.take(n_variables) */
+        {
             // Set initial mean and covariance of variable interpolated between start and
             // horizon
             let mean = start
@@ -226,6 +322,7 @@ impl RobotBundle {
                 1e30
             } else {
                 // 4e9
+                // 0.0
                 Float::INFINITY
             };
 
@@ -245,6 +342,8 @@ impl RobotBundle {
             variable_node_indices.push(variable_index);
         }
 
+        // std::process::exit(1);
+
         // Create Dynamics factors between variables
         for i in 0..variable_timesteps.len() - 1 {
             // T0 is the timestep between the current state and the first planned state.
@@ -262,8 +361,8 @@ impl RobotBundle {
 
             let factor_node_index = factorgraph.add_factor(dynamic_factor);
             // A dynamic factor connects two variables
-            let _ = factorgraph.add_internal_edge(variable_node_indices[i], factor_node_index);
             let _ = factorgraph.add_internal_edge(variable_node_indices[i + 1], factor_node_index);
+            let _ = factorgraph.add_internal_edge(variable_node_indices[i], factor_node_index);
         }
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
@@ -503,8 +602,11 @@ fn create_interrobot_factors(
     }
 }
 
+/// At random turn on/off the robots "radio".
+/// When the radio is turned of the robot will not be able to communicate with any other robot.
+/// The probability of failure is set by the user in the config file.
+/// `config.robot.communication.failure_rate`
 /// Called `Simulator::setCommsFailure` in **gbpplanner**
-
 fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
     for mut state in query.iter_mut() {
         state.interrobot_comms_active =
@@ -529,9 +631,13 @@ fn iterate_gbp(
                 .find(|(id, _)| *id == message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving variable should exist in the world");
 
+            debug!(
+                "sending message from factor {:?} to variable {:?} in external factorgraph",
+                message.from, message.to
+            );
             external_factorgraph
                 .variable_mut(message.to.variable_index)
-                .send_message(message.from, message.message.clone());
+                .receive_message_from(message.from, message.message.clone());
         }
 
         let messages_to_external_factors = query
@@ -554,31 +660,26 @@ fn iterate_gbp(
 }
 
 /// Called `Robot::updateHorizon` in **gbpplanner**
-
 fn update_prior_of_horizon_state(
-    // mut commands: Commands,
     mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints), With<RobotState>>,
     config: Res<Config>,
     time: Res<Time>,
     mut despawn_robot_event: EventWriter<DespawnRobotEvent>,
+    mut robot_reached_waypoint_event: EventWriter<RobotReachedWaypointEvent>,
 ) {
     let delta_t = time.delta_seconds();
 
     let mut all_messages_to_external_factors = Vec::new();
-
     let mut ids_of_robots_to_despawn = Vec::new();
+
     for (robot_id, mut factorgraph, mut waypoints) in query.iter_mut() {
         let Some(current_waypoint) = waypoints
             .0
             .front()
             .map(|wp| array![wp.x as Float, wp.y as Float])
         else {
-            warn_once!("robot {:?}, has reached its final waypoint", robot_id);
-            // despawn robot
-            // robot_id.despawn();
+            info!("robot {:?}, has reached its final waypoint", robot_id);
             ids_of_robots_to_despawn.push(robot_id);
-            // TODO: use .send_batch()
-            despawn_robot_event.send(DespawnRobotEvent(robot_id));
 
             continue;
         };
@@ -589,9 +690,9 @@ fn update_prior_of_horizon_state(
                 .last_variable()
                 .expect("factorgraph has a horizon variable");
 
-            debug_assert_eq!(horizon_variable.mu.len(), 4);
+            debug_assert_eq!(horizon_variable.belief.mu.len(), 4);
 
-            let estimated_position = horizon_variable.mu.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
+            let estimated_position = horizon_variable.belief.mu.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
             let horizon2goal_dir = current_waypoint - estimated_position;
 
             let horizon2goal_dist = horizon2goal_dir.euclidean_norm();
@@ -600,6 +701,7 @@ fn update_prior_of_horizon_state(
             let new_velocity = Float::min(config.robot.max_speed.get() as Float, horizon2goal_dist)
                 * horizon2goal_dir.normalized();
 
+            // dbg!(&new_velocity);
             let new_position = estimated_position.into_owned() + (&new_velocity * delta_t as Float);
 
             // Update horizon state with new pos and vel
@@ -616,7 +718,7 @@ fn update_prior_of_horizon_state(
             .last_variable_mut()
             .expect("factorgraph has a horizon variable");
 
-        horizon_variable.mu.clone_from(&new_mean);
+        horizon_variable.belief.mu.clone_from(&new_mean);
 
         let messages_to_external_factors =
             factorgraph.change_prior_of_variable(variable_index, new_mean);
@@ -630,6 +732,10 @@ fn update_prior_of_horizon_state(
             info!("robot {:?}, has reached its waypoint", robot_id);
 
             waypoints.0.pop_front();
+            robot_reached_waypoint_event.send(RobotReachedWaypointEvent {
+                robot_id,
+                waypoint_index: 0,
+            });
         }
     }
 
@@ -645,20 +751,12 @@ fn update_prior_of_horizon_state(
             .send_message(message.from, message.message.clone());
     }
 
-    // FIXME: sometimes this causes a panic
-    // for id in ids_of_robots_to_despawn {
-    //     commands.entity(id).despawn_recursive();
-    // }
-}
-
-/// run criteria if time is not paused
-
-fn time_is_not_paused(time: Res<Time<Virtual>>) -> bool {
-    !time.is_paused()
+    if !ids_of_robots_to_despawn.is_empty() {
+        despawn_robot_event.send_batch(ids_of_robots_to_despawn.into_iter().map(DespawnRobotEvent));
+    }
 }
 
 /// Called `Robot::updateCurrent` in **gbpplanner**
-
 fn update_prior_of_current_state(
     mut query: Query<(&mut FactorGraph, &mut Transform), With<RobotState>>,
     config: Res<Config>,
@@ -667,34 +765,29 @@ fn update_prior_of_current_state(
     let scale = time.delta_seconds() / config.simulation.t0.get();
 
     for (mut factorgraph, mut transform) in query.iter_mut() {
-        let (current_variable_index, mean_of_current_variable, increment) = {
-            let (current_index, current_variable) = factorgraph
-                .nth_variable(0)
-                .expect("factorgraph should have a current variable");
+        let (current_variable_index, current_variable) = factorgraph
+            .nth_variable(0)
+            .expect("factorgraph should have a current variable");
+        let (_, next_variable) = factorgraph
+            .nth_variable(1)
+            .expect("factorgraph should have a next variable");
+        let mean_of_current_variable = current_variable.belief.mu.clone();
+        let change_in_position =
+            scale as Float * (&next_variable.belief.mu - &mean_of_current_variable);
 
-            let (_, next_variable) = factorgraph
-                .nth_variable(1)
-                .expect("factorgraph should have a next variable");
-
-            // let mean_of_current_variable = current_variable.belief.mean().clone();
-            let mean_of_current_variable = current_variable.mu.clone();
-
-            let increment = scale as Float * (&next_variable.mu - &mean_of_current_variable);
-
-            (current_index, mean_of_current_variable, increment)
-        };
-
-        // dbg!(&increment);
-        // TODO: create a separate method on Variable so we do not have to abuse the
-        // interface, and call it with a empty vector, and get an empty HashMap
-        // as a return value.
         factorgraph.change_prior_of_variable(
             current_variable_index,
-            mean_of_current_variable + &increment,
+            &mean_of_current_variable + &change_in_position,
         );
 
         #[allow(clippy::cast_possible_truncation)]
-        let increment = Vec3::new(increment[0] as f32, 0.0, increment[1] as f32);
+        let increment = Vec3::new(
+            change_in_position[0] as f32,
+            0.0,
+            change_in_position[1] as f32,
+        );
+
+        // dbg!((&increment, scale));
 
         transform.translation += increment;
     }

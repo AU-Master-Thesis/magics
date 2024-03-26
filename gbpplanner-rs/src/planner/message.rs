@@ -1,13 +1,7 @@
+#![deny(missing_docs)]
+//!
+
 use gbp_linalg::prelude::*;
-
-// #[derive(Debug, Clone)]
-// // pub struct Message(pub MultivariateNormal<f32>);
-// pub enum Message {
-//     Content { gaussian: MultivariateNormal },
-//     Empty(usize), // dofs
-// }
-
-// type Payload = MultivariateNormal;
 
 #[derive(Debug, Clone)]
 pub struct Payload {
@@ -22,9 +16,6 @@ pub struct Mu(pub Vector<Float>);
 
 #[derive(Debug, Clone)]
 pub struct Message {
-    // TODO: wrap in Cow<'_> to avoid cloning when sending messages from variables to factors,
-    // as the messages are identical.
-    // payload: Option<MultivariateNormal>,
     payload: Option<Payload>,
     dofs: usize,
 }
@@ -108,24 +99,19 @@ impl Message {
         self.payload.as_ref()
     }
 
-    // pub fn with_dofs(dofs: usize) -> Self {
-    //     let information_vector = Vector::<Float>::from_elem(dofs, 1.0 / dofs as
-    // Float);     let precision_matrix = Matrix::<Float>::eye(dofs);
-    //     MultivariateNormal::from_information_and_precision(information_vector,
-    // precision_matrix)         .map(|gaussian| Self::Content { gaussian })
-    //         .expect("An identity matrix and uniform vector is a valid
-    // multivariate normal")     // MultivariateNormal::empty(dofs)
-    //     //     .map(|gaussian| Self { gaussian })
-    //     //     .expect("Empty `MultiVarianteNormal` is always valid")
-    // }
-
-    // pub fn mean(&self) -> Vector<f32> {
-    //     self.0.mean()
-    // }
-
+    /// Create an empty message
     pub fn empty(dofs: usize) -> Self {
+        // Self {
+        //     payload: None,
+        //     dofs,
+        // }
+
         Self {
-            payload: None,
+            payload: Some(Payload {
+                eta: Vector::<Float>::zeros(dofs),
+                lam: Matrix::<Float>::zeros((dofs, dofs)),
+                mu: Vector::<Float>::zeros(dofs),
+            }),
             dofs,
         }
     }
@@ -141,53 +127,4 @@ impl Message {
             dofs,
         }
     }
-
-    // pub fn new(eta: Vector<Float>, lam: Matrix<Float>, mu: Vector<Float>) -> Self
-    // {     let dofs = eta.len();
-    //     Self {
-    //         payload: Some(Payload { eta, lam, mu }),
-    //         dofs,
-    //     }
-    // }
-
-    // pub fn new(normal: MultivariateNormal) -> Self {
-    //     let dofs = normal.len();
-    //     Self {
-    //         payload: Some(normal),
-    //         dofs,
-    //     }
-    // }
-
-    // pub fn new(
-    //     information_vector: Vector<Float>,
-    //     precision_matrix: Matrix<Float>,
-    // ) -> gbp_multivariate_normal::Result<Self> {
-    //     MultivariateNormal::from_information_and_precision(information_vector,
-    // precision_matrix)         .map(|gaussian| Self::Content { gaussian })
-    // }
-
-    // pub fn zeros(dims: usize) -> Self {
-    //     Self(MultivariateNormal::zeros(dims))
-    // }
-
-    // pub fn zeroize(&mut self) {
-    //     self.0.zeroize();
-    // }
-
-    // pub fn empty(dofs: usize) -> Self {
-    //     let information_vector = Vector::<f32>::from_elem(dofs, 0.0);
-    //     let precision_matrix = Matrix::<f32>::zeros((dofs, dofs));
-    //     MultivariateNormal::from_information_and_precision(information_vector,
-    // precision_matrix)         .map(|gaussian| Self { gaussian })
-    //         .expect("An identity matrix and uniform vector is a valid
-    // multivariate normal") }
 }
-// impl From<MultivariateNormal> for Message {
-//     fn from(value: MultivariateNormal) -> Self {
-//         let dofs = value.len();
-//         Self {
-//             payload: Some(value),
-//             dofs,
-//         }
-//     }
-// }

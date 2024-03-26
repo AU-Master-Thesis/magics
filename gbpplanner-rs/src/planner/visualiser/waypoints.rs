@@ -1,9 +1,16 @@
+#![deny(missing_docs)]
+
+//! ...
 use bevy::prelude::*;
 
-use super::{super::robot::Waypoints, RobotTracker};
 use crate::{
     asset_loader::SceneAssets,
     config::{Config, DrawSetting},
+    planner::{
+        robot::RobotReachedWaypointEvent,
+        spawner::{CreateWaypointEvent, DeleteWaypointEvent},
+        RobotId,
+    },
     ui::DrawSettingsEvent,
 };
 
@@ -13,7 +20,73 @@ impl Plugin for WaypointVisualiserPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (init_waypoints, update_waypoints, show_or_hide_waypoints),
+            (
+                listen_for_robot_reached_waypoint_event,
+                create_waypoint_mesh,
+                delete_waypoint_mesh,
+                show_or_hide_waypoints_meshes,
+            ),
+        );
+    }
+}
+
+fn listen_for_robot_reached_waypoint_event(
+    mut robot_reached_waypoint_event: EventReader<RobotReachedWaypointEvent>,
+    mut delete_waypoint_event: EventWriter<DeleteWaypointEvent>,
+    query_waypoints: Query<(Entity, &AssociatedWithRobot), With<WaypointVisualiser>>,
+) {
+    for event in robot_reached_waypoint_event.read() {
+        // Find the
+        if let Some(waypoint_id) = query_waypoints
+            .iter()
+            .find(|(_, AssociatedWithRobot(robot_id))| *robot_id == event.robot_id)
+            .map(|(entity, _)| entity)
+        {
+            error!("sending delete waypoint event: {:?}", waypoint_id);
+            delete_waypoint_event.send(DeleteWaypointEvent(waypoint_id));
+        };
+    }
+}
+
+fn delete_waypoint_mesh(
+    mut commands: Commands,
+    mut delete_waypoint_event: EventReader<DeleteWaypointEvent>,
+) {
+    for event in delete_waypoint_event.read() {
+        commands.entity(event.0).despawn();
+        error!("deleted waypoint {:?}", event.0);
+    }
+}
+
+#[derive(Component, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct AssociatedWithRobot(pub RobotId);
+
+fn create_waypoint_mesh(
+    mut commands: Commands,
+    config: Res<Config>,
+    scene_assets: Res<SceneAssets>,
+    mut create_waypoint_event: EventReader<CreateWaypointEvent>,
+) {
+    for event in create_waypoint_event.read() {
+        let transform = Transform::from_translation(Vec3::new(
+            event.position.x,
+            config.visualisation.height.objects,
+            event.position.y,
+        ));
+
+        commands.spawn((
+            WaypointVisualiser,
+            AssociatedWithRobot(event.for_robot),
+            PbrBundle {
+                mesh: scene_assets.meshes.waypoint.clone(),
+                material: scene_assets.materials.waypoint.clone(),
+                transform,
+                ..default()
+            },
+        ));
+        error!(
+            "created waypoint at {:?} for robot {:?}",
+            event.position, event.for_robot
         );
     }
 }
@@ -22,87 +95,11 @@ impl Plugin for WaypointVisualiserPlugin {
 #[derive(Component)]
 pub struct WaypointVisualiser;
 
-/// A **Bevy** [`Component`] to mark a robot that it has a corresponding
-/// `WaypointVis` entity Useful for easy _exclusion_ in queries
-#[derive(Component)]
-pub struct HasWaypointVisualiser;
-
-/// A **Bevy** [`Update`] system
-/// Initialises each new [`Waypoints`] component to have a matching
-/// [`PbrBundle`] and [`WaypointVisualiser`] component I.e. if the [`Waypoints`]
-/// component already has a [`HasWaypointVisualiser`], it will be ignored
-fn init_waypoints(
-    mut commands: Commands,
-    query: Query<(Entity, &Waypoints), Without<HasWaypointVisualiser>>,
-    scene_assets: Res<SceneAssets>,
-    config: Res<Config>,
-) {
-    for (entity, waypoints) in query.iter() {
-        // Mark the robot with `RobotHasTracker` to exclude next time
-        commands.entity(entity).insert(HasWaypointVisualiser);
-
-        if let Some(next_waypoint) = waypoints.0.front() {
-            // info!("Next waypoint: {:?}", next_waypoint);
-
-            let transform = Transform::from_translation(Vec3::new(
-                next_waypoint.x,
-                config.visualisation.height.objects,
-                next_waypoint.y,
-            ));
-            info!("{:?}: Initialising waypoints at {:?}", entity, transform);
-
-            // Spawn a `RobotTracker` component with a corresponding `PbrBundle`
-            commands.spawn((
-                WaypointVisualiser,
-                super::RobotTracker::new(entity),
-                PbrBundle {
-                    mesh: scene_assets.meshes.waypoint.clone(),
-                    material: scene_assets.materials.waypoint.clone(),
-                    transform,
-                    ..Default::default()
-                },
-            ));
-        } else {
-            info!("No waypoints for robot {:?}", entity);
-        }
-    }
-}
-
-/// A **Bevy** [`Update`] system
-/// Updates the [`Transform`]s of all [`WaypointVisualiser`] entities
-/// Done by cross-referencing [`Entity`] with the `RobotTracker.robot_id`
-fn update_waypoints(
-    mut tracker_query: Query<(&RobotTracker, &mut Transform), With<WaypointVisualiser>>,
-    robots_query: Query<(Entity, &Waypoints)>,
-    config: Res<Config>,
-) {
-    // Update the `RobotTracker` components
-    for (tracker, mut transform) in tracker_query.iter_mut() {
-        for (entity, waypoints) in robots_query.iter() {
-            if let Some(next_waypoint) = waypoints.0.front() {
-                if tracker.robot_id == entity {
-                    // Update the `Transform` component
-                    // to match the `Waypoints` component
-
-                    error!("{:?}: Updating waypoints to {:?}", entity, next_waypoint);
-                    transform.translation = Vec3::new(
-                        next_waypoint.x,
-                        config.visualisation.height.objects,
-                        next_waypoint.y,
-                    );
-                }
-            } else {
-                // info!("Robot {:?} has no more waypoints", tracker.robot_id);
-            }
-        }
-    }
-}
-
 /// A **Bevy** [`Update`] system
 /// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting ==
 /// DrawSetting::Waypoints` the boolean `DrawSettingEvent.value` will be used to
 /// set the visibility of the [`WaypointVisualiser`] entities
-fn show_or_hide_waypoints(
+fn show_or_hide_waypoints_meshes(
     mut query: Query<(&WaypointVisualiser, &mut Visibility)>,
     mut draw_setting_event: EventReader<DrawSettingsEvent>,
 ) {

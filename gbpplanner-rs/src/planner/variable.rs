@@ -1,3 +1,4 @@
+use bevy::log::{debug, error};
 use gbp_linalg::{Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
@@ -6,37 +7,87 @@ use super::{
     message::{Eta, Lam, Message, Mu},
 };
 
-/// A variable in the factor graph.
-#[derive(Debug)]
-pub struct Variable {
-    /// In **gbpplanner** the `prior` is stored in 2 separate variables:
-    /// 1. `eta_prior_` Information vector of prior on variable (essentially
-    ///    like a unary factor)
-    /// 2. `lam_prior_` Precision matrix of prior on variable (essentially like
-    ///    a unary factor)
-    // pub prior: MultivariateNormal,
-    // pub belief: MultivariateNormal,
-    /// Degrees of freedom. For 2D case n_dofs_ = 4 ([x,y,xdot,ydot])
-    pub dofs: usize,
+#[derive(Debug, Clone)]
+pub struct VariablePrior {
+    eta: Vector<Float>,
+    lam: Matrix<Float>,
+}
 
-    pub eta_prior: Vector<Float>,
-    pub lam_prior: Matrix<Float>,
+impl VariablePrior {
+    fn new(eta: Vector<Float>, lam: Matrix<Float>) -> Self {
+        Self { eta, lam }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct VariableBelief {
     pub eta: Vector<Float>,
     pub lam: Matrix<Float>,
     pub mu: Vector<Float>,
     pub sigma: Matrix<Float>,
-
     /// Flag to indicate if the variable's covariance is finite, i.e. it does
     /// not contain NaNs or Infs In gbpplanner it is used to control if a
     /// variable can be rendered.
-    pub valid: bool,
+    valid: bool,
+}
+
+impl VariableBelief {
+    fn new(
+        eta: Vector<Float>,
+        lam: Matrix<Float>,
+        mu: Vector<Float>,
+        sigma: Matrix<Float>,
+        valid: bool,
+    ) -> Self {
+        Self {
+            eta,
+            lam,
+            mu,
+            sigma,
+            valid,
+        }
+    }
+}
+
+impl From<VariableBelief> for Message {
+    fn from(value: VariableBelief) -> Self {
+        Message::new(Eta(value.eta), Lam(value.lam), Mu(value.mu))
+    }
+}
+
+/// A variable in the factor graph.
+#[derive(Debug)]
+pub struct Variable {
+    /// Degrees of freedom. For 2D case n_dofs_ = 4 ([x,y,xdot,ydot])
+    pub dofs: usize,
+    pub prior: VariablePrior,
+    pub belief: VariableBelief,
+    //
+    // pub eta_prior: Vector<Float>,
+    // pub lam_prior: Matrix<Float>,
+    // pub eta: Vector<Float>,
+    // pub lam: Matrix<Float>,
+    // pub mu: Vector<Float>,
+    // pub sigma: Matrix<Float>,
+
+    // / Flag to indicate if the variable's covariance is finite, i.e. it does
+    // / not contain NaNs or Infs In gbpplanner it is used to control if a
+    // / variable can be rendered.
+    // pub valid: bool,
     /// Mailbox for incoming message storage
     pub inbox: MessagesToFactors,
 }
 
 impl Variable {
+    /// Returns the variables belief about its position
+    #[inline]
     pub fn estimated_position(&self) -> [Float; 2] {
-        [self.mu[0], self.mu[1]]
+        [self.belief.mu[0], self.belief.mu[1]]
+    }
+    /// Returns the variables belief about its velocity
+    #[inline]
+    pub fn estimated_velocity(&self) -> [Float; 2] {
+        [self.belief.mu[2], self.belief.mu[3]]
     }
 
     // pub fn new(prior: MultivariateNormal, dofs: usize) -> UninsertedVariable {
@@ -60,8 +111,6 @@ impl Variable {
             lam_prior.fill(0.0);
         }
 
-        // pretty_print_matrix!(&lam_prior);
-
         let eta_prior = lam_prior.dot(&mu_prior);
         let sigma = lam_prior
             .inv()
@@ -71,13 +120,15 @@ impl Variable {
 
         Self {
             dofs,
-            eta_prior,
-            lam_prior,
-            eta,
-            lam,
-            mu: mu_prior,
-            sigma,
-            valid: false,
+            prior: VariablePrior::new(eta_prior, lam_prior),
+            belief: VariableBelief::new(eta, lam, dbg!(mu_prior), sigma, false),
+            // eta_prior,
+            // lam_prior,
+            // eta,
+            // lam,
+            // mu: mu_prior,
+            // sigma,
+            // valid: false,
             inbox: MessagesToFactors::new(),
         }
 
@@ -105,7 +156,8 @@ impl Variable {
     //     }
     // }
 
-    pub fn send_message(&mut self, from: FactorId, message: Message) {
+    pub fn receive_message_from(&mut self, from: FactorId, message: Message) {
+        debug!("variable ? received message from {:?}", from);
         if message.is_empty() {
             // warn!("Empty message received from factor {:?}", from);
         }
@@ -122,8 +174,9 @@ impl Variable {
     /// The prior acts as the pose factor
     /// Called `Variable::change_variable_prior` in **gbpplanner**
     pub fn change_prior(&mut self, mean: Vector<Float>) -> MessagesFromVariables {
-        self.eta_prior = self.lam_prior.dot(&mean);
-        self.mu = mean;
+        self.prior.eta = self.prior.lam.dot(&mean);
+        // self.eta_prior = self.lam_prior.dot(&mean);
+        self.belief.mu = mean;
         // dbg!(&self.mu);
 
         // FIXME: forgot this line in the original code
@@ -144,9 +197,9 @@ impl Variable {
 
     pub fn prepare_message(&self) -> Message {
         Message::new(
-            Eta(self.eta.clone()),
-            Lam(self.lam.clone()),
-            Mu(self.mu.clone()),
+            Eta(self.belief.eta.clone()),
+            Lam(self.belief.lam.clone()),
+            Mu(self.belief.mu.clone()),
         )
     }
 
@@ -162,8 +215,8 @@ impl Variable {
     pub fn update_belief_and_create_factor_responses(&mut self) -> MessagesFromVariables {
         // Collect messages from all other factors, begin by "collecting message from
         // pose factor prior"
-        self.eta = self.eta_prior.clone();
-        self.lam = self.lam_prior.clone();
+        self.belief.eta = self.prior.eta.clone();
+        self.belief.lam = self.prior.lam.clone();
 
         // Go through received messages and update belief
         for (_, message) in self.inbox.iter() {
@@ -172,31 +225,18 @@ impl Variable {
                 // info!("skipping empty message");
                 continue;
             };
-            self.eta = &self.eta + &payload.eta;
-            self.lam = &self.lam + &payload.lam;
+            self.belief.eta = &self.belief.eta + &payload.eta;
+            self.belief.lam = &self.belief.lam + &payload.lam;
         }
 
         // Update belief
-        if let Some(sigma) = self.lam.inv() {
-            self.sigma = sigma;
-            self.valid = self.sigma.iter().all(|x| x.is_finite());
-            if self.valid {
-                self.mu = self.sigma.dot(&self.eta);
+        if let Some(sigma) = self.belief.lam.inv() {
+            self.belief.sigma = sigma;
+            self.belief.valid = self.belief.sigma.iter().all(|x| x.is_finite());
+            if self.belief.valid {
+                self.belief.mu = self.belief.sigma.dot(&self.belief.eta);
             }
         }
-
-        // self.sigma = self
-        //     .lam
-        //     .inv()
-        //     .unwrap_or_else(|| Matrix::<Float>::zeros((self.dofs, self.dofs)));
-        // let valid = self.sigma.iter().all(|x| x.is_finite());
-        //
-        // self.valid = valid;
-        //
-        // if self.valid {
-        //     self.mu = self.sigma.dot(&self.eta);
-        //     // dbg!(&self.mu);
-        // }
 
         self.inbox
             .iter()
@@ -204,26 +244,40 @@ impl Variable {
                 let response = received_message.payload().map_or_else(
                     || {
                         Message::new(
-                            Eta(self.eta.clone()),
-                            Lam(self.lam.clone()),
-                            Mu(self.mu.clone()),
+                            Eta(self.belief.eta.clone()),
+                            Lam(self.belief.lam.clone()),
+                            Mu(self.belief.mu.clone()),
                         )
                     },
                     |gaussian| {
                         Message::new(
-                            Eta(&self.eta - &gaussian.eta),
-                            Lam(&self.lam - &gaussian.lam),
-                            Mu(&self.mu - &gaussian.mu),
+                            Eta(&self.belief.eta - &gaussian.eta),
+                            Lam(&self.belief.lam - &gaussian.lam),
+                            Mu(&self.belief.mu - &gaussian.mu),
                         )
                     },
                 );
                 (factor_id, response)
             })
             .collect()
+
+        // self.inbox
+        //     .iter()
+        //     .map(|(&factor_id, received_message)| {
+        //         let response = Message::new(
+        //             Eta(&self.eta - &received_message.eta),
+        //             Lam(&self.lam - &received_message.lam),
+        //             Mu(&self.mu - &received_message.mu),
+        //         );
+        //         (factor_id, response)
+        //     })
+        //     .collect()
     }
 
+    /// Returns `true` if the covariance matrix is finite, `false` otherwise.
+    #[inline]
     pub fn finite_covariance(&self) -> bool {
-        self.valid
+        self.belief.valid
     }
 }
 

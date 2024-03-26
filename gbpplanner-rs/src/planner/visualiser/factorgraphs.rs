@@ -54,6 +54,9 @@ fn remove_rendered_factorgraph_when_robot_despawns(
 #[derive(Component)]
 pub struct VariableVisualiser;
 
+#[derive(Component)]
+pub struct DynamicFactorVisualiser;
+
 /// A **Bevy** [`Update`] system
 /// Initialises each new [`FactorGraph`] component to have a matching
 /// [`PbrBundle`] and [`FactorGraphVisualiser`] component I.e. if the
@@ -75,11 +78,8 @@ fn create_factorgraph_visualizer(
         };
 
         for (i, (index, variable)) in factorgraph.variables().enumerate() {
-            let transform = Vec3::new(
-                variable.mu[0] as f32,
-                config.visualisation.height.objects,
-                variable.mu[1] as f32,
-            );
+            let [x, y] = variable.estimated_position();
+            let transform = Vec3::new(x as f32, config.visualisation.height.objects, y as f32);
             let robottracker = RobotTracker {
                 robot_id: *robot_id,
                 variable_index: index.into(),
@@ -101,6 +101,10 @@ fn create_factorgraph_visualizer(
                 },
             ));
         }
+
+        // for ((_, v1), (_, v2)) in factorgraph.variables().tuple_windows() {
+        //
+        // }
     }
 }
 
@@ -136,12 +140,9 @@ fn update_factorgraphs(
                 }
 
                 // else update the transform
-                // let mean = v.belief.mean();
-                transform.translation = Vec3::new(
-                    v.mu[0] as f32,
-                    config.visualisation.height.objects,
-                    v.mu[1] as f32,
-                );
+                let [x, y] = v.estimated_position();
+                transform.translation =
+                    Vec3::new(x as f32, config.visualisation.height.objects, y as f32);
             }
         }
     }

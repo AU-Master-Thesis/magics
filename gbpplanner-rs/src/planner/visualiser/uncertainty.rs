@@ -66,12 +66,13 @@ fn init_uncertainty(
         factorgraph.variables().for_each(|(index, v)| {
             // let mean = v.belief.mean();
             #[allow(clippy::cast_possible_truncation)]
+            let [x, y] = v.estimated_position();
             let transform = Vec3::new(
-                v.mu[0] as f32,
+                x as f32,
                 config.visualisation.height.objects - 2.0 * Z_FIGHTING_OFFSET, /* just under the
                                                                                 * lines (z-fighting
                                                                                 * prevention) */
-                v.mu[1] as f32,
+                y as f32,
             );
 
             // if the covariance is too large, we won't be able to visualise it
@@ -85,7 +86,7 @@ fn init_uncertainty(
             //  [b, c, _, _],
             //  [_, _, _, _],
             //  [_, _, _, _]]
-            let covariance = &v.sigma;
+            let covariance = &v.belief.sigma;
 
             // half major axis λ₁ and half minor axis λ₂
             // λ₁ = (a + c) / 2 + √((a - c)² / 4 + b²)
@@ -199,8 +200,8 @@ fn update_uncertainty(
                     continue;
                 }
 
-                let mean = &v.mu;
-                let covariance = &v.sigma;
+                let mean = &v.belief.mu;
+                let covariance = &v.belief.sigma;
                 // pretty_print_matrix!(covariance);
 
                 let mut attenable = true;

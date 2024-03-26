@@ -8,7 +8,7 @@ use bevy::{
     log::{info, warn},
     render::texture::Image,
 };
-use gbp_linalg::{Float, Matrix, Vector, VectorNorm};
+use gbp_linalg::{pretty_print_matrix, Float, Matrix, Vector, VectorNorm};
 use ndarray::{array, concatenate, s, Axis};
 use petgraph::prelude::NodeIndex;
 use typed_floats::StrictlyPositiveFinite;
@@ -80,8 +80,8 @@ impl InterRobotConnection {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Skip(bool);
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub struct Skip(bool);
 
 /// Interrobot factor: for avoidance of other robots
 /// This factor results in a high energy or cost if two robots are planning to
@@ -258,10 +258,9 @@ impl Model for InterRobotFactor {
 #[derive(Debug, Clone)]
 pub struct DynamicFactor {
     cached_jacobian: Matrix<Float>,
-    // / defined at src/Robot.cpp:64
-    // / TODO: not use beyond `::new()`
-    // pub delta_t: Float,
 }
+
+// TODO: constrain within the limits that a differential drive robot can turn
 
 impl DynamicFactor {
     #[must_use]
@@ -269,17 +268,6 @@ impl DynamicFactor {
         let dofs = state.dofs.get();
         let eye = Matrix::<Float>::eye(dofs / 2);
         let zeros = Matrix::<Float>::zeros((dofs / 2, dofs / 2));
-        // let (eye, zeros) = {
-        //     let (nrows, ncols) = (state.dofs / 2, state.dofs / 2);
-        //     let eye = Matrix::<Float>::eye(nrows);
-        //     let zeros = Matrix::<Float>::zeros((nrows, ncols));
-        //     (eye, zeros)
-        // };
-
-        // dbg!(delta_t);
-        // :(&state.strength);
-        // std::process::exit(1);
-        // Eigen::MatrixXd Qc_inv = pow(sigma, -2.) * I;
         #[allow(clippy::similar_names)]
         let qc_inv = Float::powi(state.strength, -2) * &eye;
         // pretty_print_matrix!(&qc_inv);
@@ -313,22 +301,21 @@ impl DynamicFactor {
         ];
         debug_assert_eq!(cached_jacobian.shape(), &[dofs, dofs * 2]);
 
-        // pretty_print_matrix!(&cached_jacobian);
+        pretty_print_matrix!(&cached_jacobian);
 
         // std::process::exit(1);
 
-        Self {
-            cached_jacobian,
-            // delta_t,
-        }
+        Self { cached_jacobian }
     }
 }
 
 impl Model for DynamicFactor {
+    #[inline]
     fn name(&self) -> &'static str {
         "DynamicFactor"
     }
 
+    #[inline]
     fn jacobian(&mut self, _state: &FactorState, _x: &Vector<Float>) -> Matrix<Float> {
         self.cached_jacobian.clone()
     }
@@ -345,7 +332,7 @@ impl Model for DynamicFactor {
 
     #[inline(always)]
     fn jacobian_delta(&self) -> Float {
-        1e-2
+        1e-8
     }
 
     #[inline(always)]
@@ -822,7 +809,6 @@ impl Factor {
         }
 
         if self.skip() {
-            // warn!("skipping factor {:?}", self.get_node_index());
             let messages = self
                 .inbox
                 .iter()

@@ -498,12 +498,13 @@ impl FactorGraph {
                 );
             };
             // TODO: explain why we send an empty message
-            variable.send_message(FactorId::new(self.id, factor_index), Message::empty(dofs));
+            variable
+                .receive_message_from(FactorId::new(self.id, factor_index), Message::empty(dofs));
 
             Message::new(
-                Eta(variable.eta.clone()),
-                Lam(variable.lam.clone()),
-                Mu(variable.mu.clone()),
+                Eta(variable.belief.eta.clone()),
+                Lam(variable.belief.lam.clone()),
+                Mu(variable.belief.mu.clone()),
             )
         };
 
@@ -542,7 +543,7 @@ impl FactorGraph {
             "adding external edge from {:?} to {:?} in factorgraph {:?}",
             variable_index, factor_id, self.id
         );
-        variable.send_message(factor_id, Message::empty(dofs));
+        variable.receive_message_from(factor_id, Message::empty(dofs));
     }
 
     /// Number of nodes in the factorgraph
@@ -668,10 +669,11 @@ impl FactorGraph {
                         },
                         NodeKind::Variable(variable) => {
                             // let mean = variable.belief.mean();
-                            let mean = &variable.mu;
+                            // let mean = &variable.mu;
+                            let [x, y] = variable.estimated_position();
                             graphviz::NodeKind::Variable {
-                                x: mean[0] as f32,
-                                y: mean[1] as f32,
+                                x: x as f32,
+                                y: y as f32,
                             }
                         }
                     },
@@ -698,18 +700,14 @@ impl FactorGraph {
     /// Aggregate and marginalise over all adjacent variables, and send.
     /// Aggregation: product of all incoming messages
     pub fn factor_iteration(&mut self) -> Vec<FactorToVariableMessage> {
-        // TODO: calculate capacity beforehand
-        let mut messages_to_external_variables = Vec::new();
+        let mut messages_to_external_variables: Vec<FactorToVariableMessage> = Vec::new();
+
         for node_index in self.graph.node_indices().collect::<Vec<_>>() {
             let node = &mut self.graph[node_index];
             let Some(factor) = node.as_factor_mut() else {
                 continue;
             };
 
-            // TODO: somehow pass the messages from each of the connected variables to the
-            // factor instead of the variable indices, as this factorgraph does
-            // not have access to variables in other factorgraphs.
-            // let variable_messages = self.update_factor(FactorIndex(node_index));
             let variable_messages = factor.update();
             if variable_messages.is_empty() {
                 panic!(
@@ -726,8 +724,12 @@ impl FactorGraph {
                     let variable = self.graph[variable_id.variable_index.as_node_index()]
                         .as_variable_mut()
                         .expect("A factor can only have variables as neighbors");
-                    variable.send_message(factor_id, message);
+                    variable.receive_message_from(factor_id, message);
                 } else {
+                    // error!(
+                    //     "message from factor_id: {:?} to variable_id: {:?} is external",
+                    //     factor_id, variable_id
+                    // );
                     messages_to_external_variables.push(FactorToVariableMessage {
                         from: factor_id,
                         to: variable_id,
@@ -737,115 +739,11 @@ impl FactorGraph {
             }
         }
 
+        // Return the messages to be sent to the connected variables in other factorgraphs
+        // The caller is responsible for sending these messages to the correct
+        // factorgraphs.
         messages_to_external_variables
     }
-
-    // // TODO: move into Factor struct
-    // fn update_factor(&mut self, factor_index: FactorIndex) -> MessagesToVariables
-    // {     // TODO: do not hardcode
-    //     let dofs = 4;
-    //
-    //     let factor = self.graph[factor_index.as_node_index()]
-    //         .as_factor_mut()
-    //         .expect("factor_index should point to a Factor in the graph");
-    //
-    //     let empty_mean = Vector::<Float>::zeros(dofs);
-    //     // Collect the means of the incoming messages from the connected
-    // variables     for (i, (_, message)) in factor.inbox.iter().enumerate() {
-    //         let mean = message.mean().unwrap_or(&empty_mean);
-    //         factor
-    //             .state
-    //             .linearisation_point
-    //             .slice_mut(s![i * dofs..(i + 1) * dofs])
-    //             .assign(mean);
-    //     }
-    //
-    //     // *Depending on the problem*, we may need to skip computation of this
-    // factor.     // eg. to avoid extra computation, factor may not be required
-    // if two connected     // variables are too far apart. in which case send
-    // out a Zero Message.     if factor.skip() {
-    //         warn!("The factor {:?} is skipped", factor_index);
-    //         let messages = factor
-    //             .inbox
-    //             .iter()
-    //             .map(|(variable_id, _)| (*variable_id, Message::empty(dofs)))
-    //             .collect::<HashMap<_, _>>();
-    //
-    //         return messages;
-    //     }
-    //
-    //     let _ = factor.measure(&factor.state.linearisation_point.clone());
-    //     let jacobian =
-    // factor.jacobian(&factor.state.linearisation_point.clone());
-    //
-    //     let factor_lambda_potential = jacobian
-    //         .t()
-    //         .dot(&factor.state.measurement_precision)
-    //         .dot(&jacobian);
-    //     let factor_eta_potential = jacobian
-    //         .t()
-    //         .dot(&factor.state.measurement_precision)
-    //         .dot(&(jacobian.dot(&factor.state.linearisation_point) +
-    // factor.residual()));
-    //
-    //     factor.mark_as_initialized();
-    //
-    //     // if factor_eta_potential.iter().all(|x| x.is_zero()) {
-    //     //     warn!("The factor {:?} has a zero potential", factor_index);
-    //     //     let messages = factor
-    //     //         .inbox
-    //     //         .iter()
-    //     //         .map(|(variable_id, _)| (*variable_id, Message::empty(dofs)))
-    //     //         .collect::<HashMap<_, _>>();
-    //     //     // let messages = adjacent_variables
-    //     //     //     .into_iter()
-    //     //     //     .map(|variable_id| (variable_id, Message::empty(dofs)))
-    //     //     //     .collect::<HashMap<_, _>>();
-    //     //
-    //     //     return messages;
-    //     // }
-    //
-    //     // update factor precision and information with incoming messages from
-    // connected     // variables.
-    //     let mut marginalisation_idx = 0;
-    //     let mut messages = HashMap::with_capacity(factor.inbox.len());
-    //
-    //     let empty_precision = Matrix::<Float>::zeros((dofs, dofs));
-    //     // For each variable, marginalise over the factor precision and
-    // information from     // all other variables except the current one
-    //     //
-    //
-    //     // for comb in v.iter().combinations(v.len() - 1).zip(v.iter().rev()) {
-    //
-    //     // for comb in factor.inbox.iter().combinations(factor.inbox.len() - 1) {
-    //     //
-    //     // }
-    //
-    //     for variable_id in factor.inbox.keys() {
-    //         let mut factor_eta = factor_eta_potential.clone();
-    //         let mut factor_lambda = factor_lambda_potential.clone();
-    //
-    //         for (j, (other_variable_id, other_message)) in
-    // factor.inbox.iter().enumerate() {             if other_variable_id !=
-    // variable_id {                 let message_mean =
-    // other_message.mean().unwrap_or(&empty_mean);                 let
-    // message_precision =
-    // other_message.precision_matrix().unwrap_or(&empty_precision);
-    // factor_eta                     .slice_mut(s![j * dofs..(j + 1) * dofs])
-    //                     .add_assign(message_mean);
-    //                 factor_lambda
-    //                     .slice_mut(s![j * dofs..(j + 1) * dofs, j * dofs..(j + 1)
-    // * dofs])                     .add_assign(message_precision); } }
-    //
-    //         let message =
-    //             marginalise_factor_distance(factor_eta, factor_lambda, dofs,
-    // marginalisation_idx)                 .expect("marginalise_factor_distance
-    // should not fail");         messages.insert(*variable_id, message);
-    //         marginalisation_idx += dofs;
-    //     }
-    //
-    //     messages
-    // }
 
     /// Variable Iteration in Gaussian Belief Propagation (GBP).
     /// For each variable in the factorgraph:
@@ -864,8 +762,8 @@ impl FactorGraph {
     /// connected factors. As this indicates that the factorgraph is not
     /// correctly constructed.
     pub fn variable_iteration(&mut self) -> Vec<VariableToFactorMessage> {
-        // TODO: calculate capacity beforehand
         let mut messages_to_external_factors: Vec<VariableToFactorMessage> = Vec::new();
+
         for &node_index in self.variable_indices.iter() {
             let node = &mut self.graph[node_index];
             let variable = node.as_variable_mut().expect(
@@ -893,8 +791,10 @@ impl FactorGraph {
                         .expect("A factor can only have variables as neighbours")
                         .send_message(variable_id, message);
                 } else {
-                    // Append to the list of messages to be sent to the connected factors in other
-                    // factorgraphs
+                    // error!(
+                    //     "message from factor_id: {:?} to variable_id: {:?} is external",
+                    //     factor_id, variable_id
+                    // );
                     messages_to_external_factors.push(VariableToFactorMessage {
                         from: variable_id,
                         to: factor_id,

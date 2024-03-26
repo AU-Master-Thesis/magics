@@ -13,7 +13,7 @@ use typed_floats::StrictlyPositiveFinite;
 
 use super::{
     robot::{SpawnRobotEvent, VariableTimesteps, Waypoints},
-    RobotState,
+    RobotId, RobotState,
 };
 use crate::{
     asset_loader::SceneAssets,
@@ -21,6 +21,7 @@ use crate::{
         formation::{RelativePoint, Shape},
         Config, FormationGroup,
     },
+    environment::cursor::CursorCoordinates,
     planner::robot::RobotBundle,
 };
 
@@ -31,6 +32,8 @@ impl Plugin for SpawnerPlugin {
         app.add_event::<FormationSpawnEvent>()
             .init_resource::<SelectedRobot>()
             .add_event::<RobotClickEvent>()
+            .add_event::<CreateWaypointEvent>()
+            .add_event::<DeleteWaypointEvent>()
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
@@ -43,6 +46,15 @@ impl Plugin for SpawnerPlugin {
             );
     }
 }
+
+#[derive(Event)]
+pub struct CreateWaypointEvent {
+    pub for_robot: RobotId,
+    pub position: Vec2,
+}
+
+#[derive(Event)]
+pub struct DeleteWaypointEvent(pub Entity);
 
 #[derive(Resource, Default)]
 struct SelectedRobot(pub Option<Entity>);
@@ -71,9 +83,11 @@ fn robot_is_selected(selected_robot: Res<SelectedRobot>) -> bool {
 fn place_unplanned_waypoint(
     mut commands: Commands,
     mut mousebutton_event: EventReader<MouseButtonInput>,
+    mut create_waypoint_event: EventWriter<CreateWaypointEvent>,
     mut selected_robot: ResMut<SelectedRobot>,
     mut query: Query<(Entity, &mut Waypoints), With<RobotState>>,
-    q_windows: Query<&Window, With<PrimaryWindow>>,
+    cursor_position: ResMut<CursorCoordinates>,
+    // q_windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     for MouseButtonInput { button, state, .. } in mousebutton_event.read() {
         let (ButtonState::Pressed, MouseButton::Left) = (state, button) else {
@@ -90,14 +104,19 @@ fn place_unplanned_waypoint(
             continue;
         };
 
-        let Some(cursor_position) = q_windows.single().cursor_position() else {
-            continue;
-        };
+        // let Some(cursor_position) = q_windows.single().cursor_position() else {
+        //     continue;
+        // };
 
-        waypoints
-            .0
-            .push_front(Vec4::new(cursor_position.x, cursor_position.y, 0.0, 0.0));
+        create_waypoint_event.send(CreateWaypointEvent {
+            for_robot: selected_robot.0.unwrap(),
+            position: cursor_position.local(),
+        });
 
+        // waypoints
+        //     .0
+        //     .push_front(Vec4::new(cursor_position.x, cursor_position.y, 0.0, 0.0));
+        //
         error!("placed waypoint");
         selected_robot.deselect();
     }
@@ -173,6 +192,7 @@ fn spawn_formation(
     mut commands: Commands,
     mut spawn_event_reader: EventReader<FormationSpawnEvent>,
     mut spawn_robot_event: EventWriter<SpawnRobotEvent>,
+    mut create_waypoint_event: EventWriter<CreateWaypointEvent>,
     // time: Res<Time>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
@@ -259,6 +279,10 @@ fn spawn_formation(
             let initial_translation = Vec3::new(initial_position.x, 0.5, initial_position.y);
             let mut entity = commands.spawn_empty();
             let robot_id = entity.id();
+            create_waypoint_event.send_batch(waypoints.iter().map(|p| CreateWaypointEvent {
+                for_robot: robot_id,
+                position: *p,
+            }));
             let robotbundle = RobotBundle::new(
                 robot_id,
                 dbg!(waypoints
@@ -279,6 +303,7 @@ fn spawn_formation(
                 mesh: scene_assets.meshes.robot.clone(),
                 material: scene_assets.materials.robot.clone(),
                 transform: Transform::from_translation(initial_translation),
+                // visibility: Visibility::,
                 ..Default::default()
             };
 
@@ -286,9 +311,7 @@ fn spawn_formation(
                 robotbundle,
                 pbrbundle,
                 PickableBundle::default(),
-                On::<Pointer<Click>>::send_event::<RobotClickEvent>(), // On::<Pointer<Click>>::target_commands_mut(|click, target_commands | {
-                                                                       //     error!("click: {:?}", click);
-                                                                       // }),
+                On::<Pointer<Click>>::send_event::<RobotClickEvent>(),
             ));
 
             spawn_robot_event.send(SpawnRobotEvent(robot_id));

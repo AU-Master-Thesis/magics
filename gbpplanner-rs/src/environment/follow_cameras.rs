@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use ::bevy::prelude::*;
 
 use crate::{
@@ -144,12 +146,12 @@ fn move_cameras(
             if target_entity == follow_settings.target {
                 let (target_yaw, ..) = target_transform.rotation.to_euler(EulerRot::YXZ);
                 let (camera_yaw, ..) = camera_transform.rotation.to_euler(EulerRot::YXZ);
-                let mut delta_yaw = (target_yaw + std::f32::consts::PI) - camera_yaw;
+                let mut delta_yaw = (target_yaw + PI) - camera_yaw;
 
-                if delta_yaw > std::f32::consts::PI {
-                    delta_yaw -= std::f32::consts::PI * 2.0;
-                } else if delta_yaw < -std::f32::consts::PI {
-                    delta_yaw += std::f32::consts::PI * 2.0;
+                if delta_yaw > PI {
+                    delta_yaw -= PI * 2.0;
+                } else if delta_yaw < -PI {
+                    delta_yaw += PI * 2.0;
                 }
 
                 let rotate_by_yaw = Quat::from_axis_angle(Vec3::Y, target_yaw);

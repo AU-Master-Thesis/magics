@@ -65,6 +65,10 @@ struct Cli {
     #[arg(short, long)]
     /// Start the app in fullscreen mode
     fullscreen: bool,
+
+    #[arg(short, long)]
+    /// Enable debug plugins
+    debug: bool,
 }
 
 // fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
@@ -91,13 +95,17 @@ fn read_config(cli: &Cli) -> anyhow::Result<Config> {
             }
         }
 
-        anyhow::bail!("No config file found");
+        anyhow::bail!("No config file found")
         // Err(color_eyre::eyre::eyre!("No config file found"))
     }
 }
 
-// fn main() -> color_eyre::eyre::Result<()> {
-//     color_eyre::install()?;
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
+enum DebugState {
+    #[default]
+    Disabled,
+    Enabled,
+}
 
 fn main() -> anyhow::Result<()> {
     better_panic::install();
@@ -176,6 +184,7 @@ fn main() -> anyhow::Result<()> {
         .insert_resource(config)
         .insert_resource(formation)
         .insert_resource(environment)
+        .insert_state(if cli.debug {DebugState::Enabled} else {DebugState::Disabled})
         .add_plugins((
             // ConsoleLogPlugin::default(),
 

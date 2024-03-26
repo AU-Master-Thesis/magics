@@ -1,3 +1,4 @@
+mod debug;
 mod factor;
 mod factorgraph;
 mod marginalise_factor_distance;
@@ -12,18 +13,24 @@ pub use factorgraph::{graphviz::NodeKind, FactorGraph, NodeIndex};
 pub use robot::{RobotId, RobotState};
 pub use visualiser::{factorgraphs::VariableVisualiser, waypoints::WaypointVisualiser};
 
-use self::{robot::RobotPlugin, spawner::SpawnerPlugin, visualiser::VisualiserPlugin};
+use self::{
+    debug::PlannerDebugPlugin, robot::RobotPlugin, spawner::SpawnerPlugin,
+    visualiser::VisualiserPlugin,
+};
 
 pub struct PlannerPlugin;
 
 impl Plugin for PlannerPlugin {
     fn build(&self, app: &mut App) {
-        // info!("built PlannerPlugin, added RobotPlugin, SpawnerPlugin,
-        // VisualiserPlugin");
         app.init_resource::<PausePlay>()
             .add_event::<PausePlayEvent>()
-            .add_systems(Update, pause_play_simulation)
-            .add_plugins((RobotPlugin, SpawnerPlugin, VisualiserPlugin));
+            .add_systems(PreUpdate, pause_play_simulation)
+            .add_plugins((
+                RobotPlugin,
+                SpawnerPlugin,
+                VisualiserPlugin,
+                PlannerDebugPlugin,
+            ));
     }
 }
 
@@ -64,15 +71,20 @@ fn pause_play_simulation(
     mut time: ResMut<Time<Virtual>>,
 ) {
     for pause_play_event in pause_play_event_reader.read() {
+        error!("received event: {:?}", pause_play_event);
         match pause_play_event {
             PausePlayEvent::Toggle => pause_play.toggle(),
-            PausePlayEvent::Pause => pause_play.pause(),
-            PausePlayEvent::Play => pause_play.play(),
+            PausePlayEvent::Pause if !pause_play.is_paused() => pause_play.pause(),
+            PausePlayEvent::Pause => pause_play.play(),
+            PausePlayEvent::Play if pause_play.is_paused() => pause_play.play(),
+            PausePlayEvent::Play => pause_play.pause(),
         }
 
         if pause_play.is_paused() {
             time.unpause();
+            // time.set_relative_speed(1.0);
         } else {
+            // time.set_relative_speed(0.0);
             time.pause();
         }
     }
