@@ -118,7 +118,7 @@ pub struct VisualisationSection {
 //     }
 // }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DrawSetting {
     CommunicationGraph,
     PredictedTrajectories,
@@ -128,6 +128,7 @@ pub enum DrawSetting {
     HeightMap,
     FlatMap,
     CommunicationRadius,
+    Robot
 }
 
 // TODO: impl FromStr for DrawSetting
@@ -142,6 +143,7 @@ impl DrawSetting {
             "height_map" => Some(Self::HeightMap),
             "flat_map" => Some(Self::FlatMap),
             "communication_radius" => Some(Self::CommunicationRadius),
+            "robot" => Some(Self::Robot),
             _ => None,
         }
     }
@@ -151,6 +153,7 @@ impl DrawSetting {
 #[derive(Debug, Serialize, Deserialize, Iterable, Reflect, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct DrawSection {
+    pub robot: bool,
     pub communication_graph: bool,
     pub predicted_trajectories: bool,
     pub waypoints: bool,
@@ -164,6 +167,7 @@ pub struct DrawSection {
 impl Default for DrawSection {
     fn default() -> Self {
         Self {
+            robot: true,
             communication_graph: false,
             predicted_trajectories: true,
             waypoints: true,
@@ -187,6 +191,7 @@ impl DrawSection {
             "height_map" => "Height Map".to_string(),
             "flat_map" => "Flat Map".to_string(),
             "communication_radius" => "Communication Radius".to_string(),
+            "robot" => "Robot".to_string(),
             _ => "Unknown".to_string(),
         }
     }

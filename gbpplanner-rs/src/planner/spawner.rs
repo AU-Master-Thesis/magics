@@ -299,11 +299,17 @@ fn spawn_formation(
                 "Possible `RobotInitError`s should be avoided due to the formation input being \
                  validated.",
             );
+            let initial_visibility = if config.visualisation.draw.robot {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            };
+
             let pbrbundle = PbrBundle {
                 mesh: scene_assets.meshes.robot.clone(),
                 material: scene_assets.materials.robot.clone(),
                 transform: Transform::from_translation(initial_translation),
-                // visibility: Visibility::,
+                visibility: initial_visibility,
                 ..Default::default()
             };
 
