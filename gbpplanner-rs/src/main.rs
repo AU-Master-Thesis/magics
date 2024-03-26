@@ -1,3 +1,4 @@
+//! The main entry point of the simulation.
 pub(crate) mod asset_loader;
 pub(crate) mod config;
 mod environment;
@@ -239,7 +240,7 @@ fn main() -> anyhow::Result<()> {
         // .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
         // .add_plugins(PerfUiPlugin)
         // .add_systems(Startup, spawn_perf_ui)
-        .add_systems(Update, make_visible);
+        .add_systems(Update, make_window_visible).add_systems(PostUpdate, end_simulation.run_if(time_exceeds_max_time));
 
     // eprintln!("{:#?}", app);
 
@@ -248,11 +249,33 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Returns true if the time has exceeded the max configured simulation time.
+///
+/// # Example
+/// ```toml
+/// [simulation]
+/// max-time = 100.0
+/// ```
+fn time_exceeds_max_time(time: Res<Time>, config: Res<Config>) -> bool {
+    time.elapsed_seconds() > config.simulation.max_time.get()
+}
+
+/// Ends the simulation.
+fn end_simulation(config: Res<Config>) {
+    println!(
+        "ending simulation, reason: time elapsed exceeds configured max time: {} seconds",
+        config.simulation.max_time.get()
+    );
+    std::process::exit(0);
+}
+
 fn spawn_perf_ui(mut commands: Commands) {
     commands.spawn(PerfUiCompleteBundle::default());
 }
 
-fn make_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) {
+/// Makes the window visible after a few frames has been rendered.
+/// This is a **hack** to prevent the window from flickering at startup.
+fn make_window_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) {
     // The delay may be different for your app or system.
     if frames.0 == 3 {
         // At this point the gpu is ready to show the app so we can make the window
