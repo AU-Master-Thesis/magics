@@ -69,6 +69,7 @@ typed_floats = { version = "1.0.0", features = [
 
 ringbuf = "0.3.3"
 bevy_dev_console = { git = "https://github.com/doonv/bevy_dev_console.git", version = "0.1.0" }
+termsize = "0.1.6"
 
 [lints]
 workspace = true

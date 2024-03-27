@@ -1,8 +1,8 @@
 #![deny(missing_docs)]
 //! Declarative macros used in more than one file throughout the crate.
 
-/// Creates a "boolean bevy Resource" i.e. a Resource(bool), together with a handful
-/// of methods to work with a boolean resource.
+/// Creates a "boolean bevy Resource" i.e. a Resource(bool), together with a
+/// handful of methods to work with a boolean resource.
 /// # Example
 /// ```rust
 /// boolean_bevy_resource(ManualMode, default = false);
@@ -96,4 +96,55 @@ macro_rules! boolean_bevy_resource {
             }
         }
     };
+}
+
+/// Pretty prints a message to the console.
+/// Takes either a [`FactorId]` and a [`VariableId`], as 'from' and 'to' of the
+/// message OR
+/// Takes a [`VariableId`] and a [`FactorId`], as 'from' and 'to' of the message
+#[macro_export]
+macro_rules! pretty_print_message {
+    ($from:expr, $to:expr, $post:literal) => {
+        println!(
+            "{}:{} │ {}{}{} -> {}{}{} │ {}",
+            file!().split("/").last().unwrap(),
+            line!(),
+            $from.color,
+            $from.global_id(),
+            crate::escape_codes::RESET,
+            $to.color,
+            $to.global_id(),
+            crate::escape_codes::RESET,
+            $post
+        );
+    };
+}
+
+/// Pretty print subtitle
+/// Uses
+/// # Example output
+/// ```sh
+/// ────────────────── subtitle ──────────────────
+/// ```
+#[macro_export]
+macro_rules! pretty_print_subtitle {
+    ($subtitle:expr) => {{
+        let columns = termsize::get()
+            .map(|ts| if ts.cols == 0 { 80 } else { ts.cols })
+            .unwrap_or(80) as usize;
+
+        let subtitle_len = $subtitle.len();
+
+        let left_padding = (columns - subtitle_len - 2) / 2;
+        let right_padding = columns - subtitle_len - 2 - left_padding;
+
+        println!(
+            "{}{} {} {}{}",
+            crate::escape_codes::BOLD,
+            "─".repeat(left_padding),
+            $subtitle,
+            "─".repeat(right_padding),
+            crate::escape_codes::RESET,
+        );
+    }};
 }

@@ -42,6 +42,7 @@
         cargo-watch
         cargo-rr
         cargo-udeps
+        # cargo-tree
 
         #   # cargo-profiler
         #   # cargo-feature

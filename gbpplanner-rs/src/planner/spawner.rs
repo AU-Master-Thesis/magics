@@ -13,7 +13,7 @@ use typed_floats::StrictlyPositiveFinite;
 
 use super::{
     robot::{SpawnRobotEvent, VariableTimesteps, Waypoints},
-    RobotId, RobotState,
+    PausePlayEvent, RobotId, RobotState,
 };
 use crate::{
     asset_loader::SceneAssets,
@@ -55,7 +55,7 @@ fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
 #[derive(Event)]
 pub struct CreateWaypointEvent {
     pub for_robot: RobotId,
-    pub position: Vec2,
+    pub position:  Vec2,
 }
 
 #[derive(Event)]
@@ -115,7 +115,7 @@ fn place_unplanned_waypoint(
 
         create_waypoint_event.send(CreateWaypointEvent {
             for_robot: selected_robot.0.unwrap(),
-            position: cursor_position.local(),
+            position:  cursor_position.local(),
         });
 
         // waypoints
@@ -133,7 +133,7 @@ static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
 /// Component attached to an entity that spawns formations.
 #[derive(Component)]
 pub struct FormationSpawnerCountdown {
-    pub timer: Timer,
+    pub timer:                 Timer,
     pub formation_group_index: usize,
 }
 
@@ -182,6 +182,8 @@ fn advance_time(
     time: Res<Time>,
     mut query: Query<&mut FormationSpawnerCountdown>,
     mut spawn_event_writer: EventWriter<FormationSpawnEvent>,
+    mut pause_play_event: EventWriter<PausePlayEvent>,
+    config: Res<Config>,
 ) {
     for mut countdown in query.iter_mut() {
         countdown.timer.tick(time.delta());
@@ -189,6 +191,9 @@ fn advance_time(
             spawn_event_writer.send(FormationSpawnEvent {
                 formation_group_index: countdown.formation_group_index,
             });
+            if config.simulation.pause_on_spawn {
+                pause_play_event.send(PausePlayEvent::Pause);
+            }
         }
     }
 }
@@ -282,7 +287,7 @@ fn spawn_formation(
             let robot_id = entity.id();
             create_waypoint_event.send_batch(waypoints.iter().map(|p| CreateWaypointEvent {
                 for_robot: robot_id,
-                position: *p,
+                position:  *p,
             }));
             let robotbundle = RobotBundle::new(
                 robot_id,
@@ -300,7 +305,7 @@ fn spawn_formation(
                 "Possible `RobotInitError`s should be avoided due to the formation input being \
                  validated.",
             );
-            let initial_visibility = if config.visualisation.draw.robot {
+            let initial_visibility = if config.visualisation.draw.robots {
                 Visibility::Visible
             } else {
                 Visibility::Hidden
@@ -368,7 +373,7 @@ fn select_robot_when_clicked(
 
 #[derive(Debug, Clone, Copy)]
 struct WorldDimensions {
-    width: StrictlyPositiveFinite<f64>,
+    width:  StrictlyPositiveFinite<f64>,
     height: StrictlyPositiveFinite<f64>,
 }
 
@@ -381,7 +386,7 @@ struct WorldDimensions {
 impl WorldDimensions {
     fn new(width: f64, height: f64) -> Self {
         Self {
-            width: width.try_into().expect("width is not zero"),
+            width:  width.try_into().expect("width is not zero"),
             height: height.try_into().expect("height is not zero"),
         }
     }

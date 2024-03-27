@@ -13,7 +13,11 @@ use super::{
     robot::RobotId,
     variable::Variable,
 };
-use crate::planner::message::{Eta, Lam, Mu};
+use crate::{
+    escape_codes::*,
+    planner::message::{Eta, Lam, Mu},
+    pretty_print_message,
+};
 
 #[derive(Debug)]
 pub struct RemoveConnectionToError;
@@ -99,14 +103,52 @@ impl AsNodeIndex for VariableIndex {
 pub struct FactorId {
     pub factorgraph_id: FactorGraphId,
     pub factor_index:   FactorIndex,
+    pub color:          &'static str,
 }
 
 impl FactorId {
-    pub fn new(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
+    pub fn new_ambiguous(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
         Self {
             factorgraph_id,
             factor_index,
+            color: CYAN,
         }
+    }
+
+    pub fn new_obstacle(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
+        Self {
+            factorgraph_id,
+            factor_index,
+            color: RED,
+        }
+    }
+
+    pub fn new_interrobot(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
+        Self {
+            factorgraph_id,
+            factor_index,
+            color: GREEN,
+        }
+    }
+
+    pub fn new_pose(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
+        Self {
+            factorgraph_id,
+            factor_index,
+            color: MAGENTA,
+        }
+    }
+
+    pub fn new_dynamic(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
+        Self {
+            factorgraph_id,
+            factor_index,
+            color: BLUE,
+        }
+    }
+
+    pub fn global_id(&self) -> String {
+        format!("{:?}-{}", self.factorgraph_id, self.factor_index.0.index())
     }
 }
 
@@ -114,6 +156,7 @@ impl FactorId {
 pub struct VariableId {
     pub factorgraph_id: FactorGraphId,
     pub variable_index: VariableIndex,
+    pub color:          &'static str,
 }
 
 impl VariableId {
@@ -121,7 +164,16 @@ impl VariableId {
         Self {
             factorgraph_id,
             variable_index,
+            color: YELLOW,
         }
+    }
+
+    pub fn global_id(&self) -> String {
+        format!(
+            "{:?}-{}",
+            self.factorgraph_id,
+            self.variable_index.0.index()
+        )
     }
 }
 
@@ -499,21 +551,25 @@ impl FactorGraph {
     ///   the nodes does not exist.
     pub fn add_internal_edge(
         &mut self,
-        variable_index: VariableIndex,
-        factor_index: FactorIndex,
+        // variable_index: VariableIndex,
+        // factor_index: FactorIndex,
+        variable_id: VariableId,
+        factor_id: FactorId,
     ) -> EdgeIndex {
         let dofs = 4;
 
         let message_to_factor = {
-            let Some(variable) = self.graph[variable_index.as_node_index()].as_variable_mut()
+            let Some(variable) =
+                self.graph[variable_id.variable_index.as_node_index()].as_variable_mut()
             else {
                 panic!(
                     "the variable index either does not exist or does not point to a variable node"
                 );
             };
             // TODO: explain why we send an empty message
-            variable
-                .receive_message_from(FactorId::new(self.id, factor_index), Message::empty(dofs));
+            variable.receive_message_from(factor_id, Message::empty(dofs));
+            // .receive_message_from(FactorId::new(self.id, factor_index),
+            // Message::empty(dofs));
 
             Message::new(
                 Eta(variable.belief.eta.clone()),
@@ -522,10 +578,12 @@ impl FactorGraph {
             )
         };
 
-        let node = &mut self.graph[factor_index.as_node_index()];
+        let node = &mut self.graph[factor_id.factor_index.as_node_index()];
         match node.kind {
-            NodeKind::Factor(ref mut factor) => factor
-                .receive_message_from(VariableId::new(self.id, variable_index), message_to_factor),
+            NodeKind::Factor(ref mut factor) => {
+                factor.receive_message_from(variable_id, message_to_factor)
+            }
+            // .receive_message_from(VariableId::new(self.id, variable_index), message_to_factor),
             NodeKind::Variable(_) => {
                 panic!("the factor index either does not exist or does not point to a factor node")
             }
@@ -533,12 +591,12 @@ impl FactorGraph {
 
         info!(
             "adding internal edge from {:?} to {:?}",
-            variable_index, factor_index
+            variable_id, factor_id
         );
 
         self.graph.add_edge(
-            variable_index.as_node_index(),
-            factor_index.as_node_index(),
+            variable_id.variable_index.as_node_index(),
+            factor_id.factor_index.as_node_index(),
             (),
         )
     }
@@ -720,7 +778,7 @@ impl FactorGraph {
             let Some(factor) = node.as_factor_mut() else {
                 continue;
             };
-            let factor_variant = factor.variant();
+            // let factor_variant = factor.variant();
 
             let variable_messages = factor.update();
             if variable_messages.is_empty() {
@@ -731,7 +789,15 @@ impl FactorGraph {
                 );
             }
 
-            let factor_id = FactorId::new(self.id, FactorIndex(node_index));
+            let factor_id = match factor.kind {
+                FactorKind::Dynamic(_) => FactorId::new_dynamic(self.id, FactorIndex(node_index)),
+                FactorKind::Obstacle(_) => FactorId::new_obstacle(self.id, FactorIndex(node_index)),
+                FactorKind::Pose(_) => FactorId::new_pose(self.id, FactorIndex(node_index)),
+                FactorKind::InterRobot(_) => {
+                    FactorId::new_interrobot(self.id, FactorIndex(node_index))
+                }
+            };
+            // let factor_id = FactorId::new(self.id, FactorIndex(node_index));
             for (variable_id, message) in variable_messages {
                 let in_internal_graph = variable_id.factorgraph_id == self.id;
                 if in_internal_graph {
@@ -739,10 +805,15 @@ impl FactorGraph {
                         .as_variable_mut()
                         .expect("A factor can only have variables as neighbors");
 
-                    info!(
-                        "Message factor {:?}\t->\tvariable {:?}\tfactor variant: {:?}",
-                        factor_id, variable_id, factor_variant
-                    );
+                    // info!(
+                    //     "{:?}\t->\tvariable {:?}\tfactor variant: {:?}",
+                    //     factor_id, variable_id, factor_variant
+                    // );
+
+                    // let factor_global_identifier = factor_id.global_id();
+                    // let variable_global_identifier = variable_id.global_id();
+                    // pretty_print_message!(factor_global_identifier, variable_global_identifier);
+                    pretty_print_message!(factor_id, variable_id, "factor iteration");
 
                     variable.receive_message_from(factor_id, message);
                 } else {
@@ -814,12 +885,13 @@ impl FactorGraph {
                     let factor = self.graph[factor_id.factor_index.as_node_index()]
                         .as_factor()
                         .expect("A factor index should point to a Factor in the graph");
-                    info!(
-                        "Message variable {:?}\t->\tfactor {:?}\tfactor variant: {:?}",
-                        variable_id,
-                        factor_id,
-                        factor.variant()
-                    );
+                    // info!(
+                    //     "Message variable {:?}\t->\tfactor {:?}\tfactor variant: {:?}",
+                    //     variable_id,
+                    //     factor_id,
+                    //     factor.variant()
+                    // );
+                    pretty_print_message!(variable_id, factor_id, "variable iteration");
                 } else {
                     // error!(
                     //     "message from factor_id: {:?} to variable_id: {:?} is external",
@@ -922,7 +994,7 @@ impl FactorGraph {
             for factor_index in &factor_indices_to_remove {
                 variable
                     .inbox
-                    .remove(&FactorId::new(self.id, *factor_index));
+                    .remove(&FactorId::new_ambiguous(self.id, *factor_index));
             }
         }
 

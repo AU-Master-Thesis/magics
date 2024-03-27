@@ -14,7 +14,9 @@ use super::{
     variable::Variable,
     NodeIndex, PausePlayEvent,
 };
-use crate::{boolean_bevy_resource, config::Config, utils::get_variable_timesteps};
+use crate::{
+    boolean_bevy_resource, config::Config, pretty_print_subtitle, utils::get_variable_timesteps,
+};
 
 pub struct RobotPlugin;
 
@@ -33,16 +35,17 @@ impl ManualModeState {
     pub fn enabled(state: Res<State<ManualModeState>>) -> bool {
         matches!(state.get(), Self::Enabled { .. })
     }
+
     pub fn disabled(state: Res<State<ManualModeState>>) -> bool {
         matches!(state.get(), Self::Disabled)
     }
 }
 
-// fn keyboard_input_is<M>(key_code: KeyCode, state: ButtonState) -> impl Condition<M> {
-//     move |mut keyboard_input_events: EventReader<KeyboardInput>| {
-//         for event in keyboard_input_events.read() {
-//             if (event.key_code, event.state) == (key_code, state) {
-//                 return true;
+// fn keyboard_input_is<M>(key_code: KeyCode, state: ButtonState) -> impl
+// Condition<M> {     move |mut keyboard_input_events:
+// EventReader<KeyboardInput>| {         for event in
+// keyboard_input_events.read() {             if (event.key_code, event.state)
+// == (key_code, state) {                 return true;
 //             }
 //         }
 //         false;
@@ -65,7 +68,7 @@ fn start_manual_step(
         match state.get() {
             ManualModeState::Disabled => {
                 next_state.set(ManualModeState::Enabled {
-                    iterations_remaining: config.manual.iterations_per_step.into(),
+                    iterations_remaining: config.manual.timesteps_per_step.into(),
                 });
                 pause_play_event.send(PausePlayEvent::Play);
             }
@@ -176,7 +179,7 @@ pub struct SpawnRobotEvent(pub RobotId);
 
 #[derive(Event)]
 pub struct RobotReachedWaypointEvent {
-    pub robot_id: RobotId,
+    pub robot_id:       RobotId,
     pub waypoint_index: usize,
     // pub waypoint_id: Entity,
 }
@@ -195,7 +198,11 @@ fn despawn_robots(
             info!("despawning robot: {:?}", entitycommand.id());
             entitycommand.despawn();
         } else {
-            error!("A DespawnRobotEvent event was emitted with entity id: {:?} but the entity does not exist!", robot_id);
+            error!(
+                "A DespawnRobotEvent event was emitted with entity id: {:?} but the entity does \
+                 not exist!",
+                robot_id
+            );
         }
     }
 }
@@ -257,18 +264,18 @@ pub struct RobotState {
     pub ids_of_robots_within_comms_range: BTreeSet<RobotId>,
     /// List of robot ids that are currently connected via inter-robot factors
     /// to this robot called `connected_r_ids_` in **gbpplanner**.
-    pub ids_of_robots_connected_with: BTreeSet<RobotId>,
+    pub ids_of_robots_connected_with:     BTreeSet<RobotId>,
     // pub ids_of_robots_connected_with: Vec<RobotId>,
     /// Flag for whether this factorgraph/robot communicates with other robots
-    pub interrobot_comms_active: bool,
+    pub interrobot_comms_active:          bool,
 }
 
 impl RobotState {
     pub fn new() -> Self {
         Self {
             ids_of_robots_within_comms_range: BTreeSet::new(),
-            ids_of_robots_connected_with: BTreeSet::new(),
-            interrobot_comms_active: true,
+            ids_of_robots_connected_with:     BTreeSet::new(),
+            interrobot_comms_active:          true,
         }
     }
 }
@@ -282,14 +289,14 @@ pub struct RobotBundle {
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
-    pub radius: Radius,
+    pub radius:      Radius,
     /// The current state of the robot
-    pub state: RobotState,
+    pub state:       RobotState,
     // pub transform: Transform,
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A VecDeque is used to allow for efficient pop_front operations, and
     /// push_back operations.
-    pub waypoints: Waypoints,
+    pub waypoints:   Waypoints,
     // NOTE: Using the **Bevy** entity id as the robot id
     // pub id: RobotId,
     // NOTE: These are accessible as **Bevy** resources
@@ -347,7 +354,7 @@ impl RobotBundle {
         let mut variable_node_indices = Vec::with_capacity(n_variables);
 
         for (i, &variable_timestep) in variable_timesteps.iter().enumerate()
-        /*.take(n_variables) */
+        // .take(n_variables)
         {
             // Set initial mean and covariance of variable interpolated between start and
             // horizon
@@ -398,9 +405,16 @@ impl RobotBundle {
             );
 
             let factor_node_index = factorgraph.add_factor(dynamic_factor);
+            let factor_id = FactorId::new_dynamic(factorgraph.id(), factor_node_index);
             // A dynamic factor connects two variables
-            let _ = factorgraph.add_internal_edge(variable_node_indices[i + 1], factor_node_index);
-            let _ = factorgraph.add_internal_edge(variable_node_indices[i], factor_node_index);
+            let _ = factorgraph.add_internal_edge(
+                VariableId::new(factorgraph.id(), variable_node_indices[i + 1]),
+                factor_id,
+            );
+            let _ = factorgraph.add_internal_edge(
+                VariableId::new(factorgraph.id(), variable_node_indices[i]),
+                factor_id,
+            );
         }
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
@@ -415,7 +429,11 @@ impl RobotBundle {
             );
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
-            let _ = factorgraph.add_internal_edge(variable_node_indices[i], factor_node_index);
+            let factor_id = FactorId::new_obstacle(factorgraph.id(), factor_node_index);
+            let _ = factorgraph.add_internal_edge(
+                VariableId::new(factorgraph.id(), variable_node_indices[i]),
+                factor_id,
+            );
         }
 
         Ok(Self {
@@ -513,7 +531,11 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
             .iter_mut()
             .find(|(robot_id, _, _)| *robot_id == robot2)
         else {
-            error!("attempt to delete interrobot factors between robots: {:?} and {:?} failed, reason: {:?} does not exist!", robot1, robot2, robot2);
+            error!(
+                "attempt to delete interrobot factors between robots: {:?} and {:?} failed, \
+                 reason: {:?} does not exist!",
+                robot1, robot2, robot2
+            );
             continue;
         };
 
@@ -592,7 +614,9 @@ fn create_interrobot_factors(
                     .nth_variable_index(i)
                     .expect("there should be an i'th variable");
 
-                factorgraph.add_internal_edge(variable_index, factor_index);
+                let factor_id = FactorId::new_interrobot(robot_id, factor_index);
+                let graph_id = factorgraph.id();
+                factorgraph.add_internal_edge(VariableId::new(graph_id, variable_index), factor_id);
                 external_edges_to_add.push((robot_id, factor_index, *other_robot_id, i));
             }
 
@@ -611,7 +635,7 @@ fn create_interrobot_factors(
             .expect("the other_robot_id should be in the query")
             .1;
 
-        other_factorgraph.add_external_edge(FactorId::new(robot_id, factor_index), i);
+        other_factorgraph.add_external_edge(FactorId::new_interrobot(robot_id, factor_index), i);
 
         let (nth_variable_index, nth_variable) = other_factorgraph
             .nth_variable(i)
@@ -641,9 +665,9 @@ fn create_interrobot_factors(
 }
 
 /// At random turn on/off the robots "radio".
-/// When the radio is turned of the robot will not be able to communicate with any other robot.
-/// The probability of failure is set by the user in the config file.
-/// `config.robot.communication.failure_rate`
+/// When the radio is turned of the robot will not be able to communicate with
+/// any other robot. The probability of failure is set by the user in the config
+/// file. `config.robot.communication.failure_rate`
 /// Called `Simulator::setCommsFailure` in **gbpplanner**
 fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
     for mut state in query.iter_mut() {
@@ -656,7 +680,8 @@ fn iterate_gbp(
     mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
     config: Res<Config>,
 ) {
-    for _ in 0..config.gbp.iterations_per_timestep {
+    for i in 0..config.gbp.iterations_per_timestep {
+        pretty_print_subtitle!(format!("GBP iteration: {}", i + 1));
         // ╭────────────────────────────────────────────────────────────────────────────────────────
         // │ Factor iteration
         let messages_to_external_variables = query

@@ -13,6 +13,7 @@ mod toggle_fullscreen;
 pub(crate) mod ui;
 pub(crate) mod utils;
 
+pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
 use std::path::PathBuf;
@@ -23,12 +24,11 @@ use bevy::{
     prelude::*,
     window::{WindowMode, WindowTheme},
 };
+use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
 use clap::Parser;
 use config::Environment;
 use iyes_perf_ui::prelude::*;
-
-use bevy_dev_console::prelude::*;
 
 use crate::{
     asset_loader::AssetLoaderPlugin,
