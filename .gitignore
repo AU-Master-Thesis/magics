@@ -8,5 +8,7 @@
 *.png
 *.dot
 
+!**/assets/imgs/*.png
+
 screenshot_*.png
 .bacon-locations

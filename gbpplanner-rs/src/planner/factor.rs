@@ -744,7 +744,7 @@ impl Factor {
     }
 
     #[inline(always)]
-    pub fn name(&self) -> &'static str {
+    pub fn variant(&self) -> &'static str {
         self.kind.name()
     }
 
@@ -777,7 +777,7 @@ impl Factor {
         self.node_index.expect("I checked it was there 3 lines ago")
     }
 
-    pub fn send_message(&mut self, from: VariableId, message: Message) {
+    pub fn receive_message_from(&mut self, from: VariableId, message: Message) {
         if message.is_empty() {
             // warn!("received an empty message from {:?}", from);
         }
