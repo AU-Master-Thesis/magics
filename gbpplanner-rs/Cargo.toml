@@ -28,7 +28,13 @@ egui_extras = { version = "0.26.2", features = [
   "all_loaders",
 ] }
 bevy_mod_picking = { version = "0.18.0" }
+
 bevy_eventlistener = "0.7"
+bevy_rand = "0.5"
+bevy_prng = { version = "0.5", features = [
+  "rand_chacha",
+  "wyrand",
+] }
 iyes_perf_ui = { git = "https://github.com/IyesGames/iyes_perf_ui", branch = "main" }
 image = { version = "0.25.0", default-features = false, features = [
   "png",
@@ -67,7 +73,7 @@ typed_floats = { version = "1.0.0", features = [
   "serde",
 ] }
 
-ringbuf = "0.3.3"
+ringbuf          = "0.3.3"
 bevy_dev_console = { git = "https://github.com/doonv/bevy_dev_console.git", version = "0.1.0" }
 
 [lints]

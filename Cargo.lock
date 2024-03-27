@@ -1167,10 +1167,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_prng"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "363f01df619fde5ee1d20573c9df9522d9194efdd4d5f792919f9738cb686765"
+dependencies = [
+ "bevy",
+ "rand_chacha",
+ "rand_core",
+ "rand_pcg",
+ "rand_xoshiro",
+ "serde",
+ "serde_derive",
+ "wyrand",
+]
+
+[[package]]
 name = "bevy_ptr"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea003584000ef02b73800cc7cb62ee74792fff431e6a8df36863c43bf56fb491"
+
+[[package]]
+name = "bevy_rand"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e9cb3711c9ca8a2572c4544befda9a14893884842668bcecc82b84a7b51b730"
+dependencies = [
+ "bevy",
+ "bevy_prng",
+ "getrandom",
+ "rand_chacha",
+ "rand_core",
+ "serde",
+ "serde_derive",
+]
 
 [[package]]
 name = "bevy_reflect"
@@ -2496,6 +2527,8 @@ dependencies = [
  "bevy_eventlistener",
  "bevy_infinite_grid",
  "bevy_mod_picking",
+ "bevy_prng",
+ "bevy_rand",
  "catppuccin",
  "clap",
  "egui_extras",
@@ -3926,6 +3959,7 @@ checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
 dependencies = [
  "ppv-lite86",
  "rand_core",
+ "serde",
 ]
 
 [[package]]
@@ -3935,6 +3969,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
+ "serde",
+]
+
+[[package]]
+name = "rand_pcg"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59cad018caf63deb318e5a4586d99a24424a364f40f1e5778c29aca23f4fc73e"
+dependencies = [
+ "rand_core",
+ "serde",
+]
+
+[[package]]
+name = "rand_xoshiro"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f97cdb2a36ed4183de61b2f824cc45c9f1037f28afe0a322e9fff4c108b5aaa"
+dependencies = [
+ "rand_core",
+ "serde",
 ]
 
 [[package]]
@@ -5689,6 +5744,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dffa400e67ed5a4dd237983829e66475f0a4a26938c4b04c21baede6262215b8"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "wyrand"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f3ee2fb243e75b43652f8b5ef347547bc82f10513dd7dacde806eb59d5ac5e7"
+dependencies = [
+ "rand_core",
+ "serde",
 ]
 
 [[package]]

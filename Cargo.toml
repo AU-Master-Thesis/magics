@@ -19,26 +19,28 @@ authors = [
   "Jens Høigaard Jensen <jens.jens@live.dk>",
   "Kristoffer Plagborg Bak Sørensen <kristoffer.pbs@tuta.io>",
 ]
-rust-version = "1.76"
+rust-version = "1.77"
 license = "MIT"
 
 [workspace.dependencies]
 ndarray = "0.15.6"
 anyhow = "1.0.81"
 thiserror = "1.0.58"
-serde = { version = "1.0.197", features = ["derive"] }
+serde = { version = "1.0.197", features = [
+  "derive",
+] }
 
 [workspace.lints.rust]
 # unsafe_code = "forbid"
 missing_debug_implementations = "warn"
-missing_docs = "warn"
+missing_docs                  = "warn"
 
 
 [workspace.lints.clippy]
-undocumented_unsafe_blocks = "warn"
-enum_glob_use = "warn"
-cast_possible_truncation = "warn"
-tests_outside_test_module = "warn"
+undocumented_unsafe_blocks  = "warn"
+enum_glob_use               = "warn"
+cast_possible_truncation    = "warn"
+tests_outside_test_module   = "warn"
 assertions_on_result_states = "warn"
 # pedantic = "deny"
 # nursery = "deny"
@@ -46,20 +48,20 @@ unwrap_used = "warn"
 # expect_used = "deny"
 
 [profile.release]
-codegen-units = 1
-debug = false
+codegen-units    = 1
+debug            = false
 debug-assertions = false
-lto = "fat"
-opt-level = 3
-panic = "abort"
-rpath = false
-strip = true
-incremental = true
+lto              = "fat"
+opt-level        = 3
+panic            = "abort"
+rpath            = false
+strip            = true
+incremental      = true
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
-opt-level = 1
-debug = true
+opt-level   = 1
+debug       = true
 incremental = true
 # codegen-backend = "cranelift" # requires nightly
 

@@ -108,29 +108,32 @@ pub fn marginalise_factor_distance(
     };
     assert_eq!(eta_b.len(), information_vector.len() - ndofs);
 
-    let lam_aa = precision_matrix.slice(s![seq_n(marg_idx, ndofs), seq_n(marg_idx, ndofs)]);
+    let (lam_aa, lam_ab, lam_ba, lam_bb) =
+        extract_submatrices_from_precision_matrix(&precision_matrix, ndofs, marg_idx);
 
-    let lam_ab = if marg_idx == 0 {
-        precision_matrix.slice(s![seq_n(marg_idx, ndofs), marg_idx + ndofs..])
-    } else {
-        precision_matrix.slice(s![seq_n(marg_idx, ndofs), ..marg_idx])
-    };
+    // let lam_aa = precision_matrix.slice(s![seq_n(marg_idx, ndofs), seq_n(marg_idx, ndofs)]);
 
-    assert_eq!(lam_ab.shape(), &[ndofs, precision_matrix.ncols() - ndofs]);
+    // let lam_ab = if marg_idx == 0 {
+    //     precision_matrix.slice(s![seq_n(marg_idx, ndofs), marg_idx + ndofs..])
+    // } else {
+    //     precision_matrix.slice(s![seq_n(marg_idx, ndofs), ..marg_idx])
+    // };
 
-    // eprintln!("margin_idx = {}", marg_idx);
+    // assert_eq!(lam_ab.shape(), &[ndofs, precision_matrix.ncols() - ndofs]);
 
-    let lam_ba = if marg_idx == 0 {
-        precision_matrix.slice(s![marg_idx + ndofs.., seq_n(marg_idx, ndofs)])
-    } else {
-        precision_matrix.slice(s![..marg_idx, seq_n(marg_idx, ndofs)])
-    };
+    // // eprintln!("margin_idx = {}", marg_idx);
 
-    let lam_bb = if marg_idx == 0 {
-        precision_matrix.slice(s![marg_idx + ndofs.., marg_idx + ndofs..])
-    } else {
-        precision_matrix.slice(s![..marg_idx, ..marg_idx])
-    };
+    // let lam_ba = if marg_idx == 0 {
+    //     precision_matrix.slice(s![marg_idx + ndofs.., seq_n(marg_idx, ndofs)])
+    // } else {
+    //     precision_matrix.slice(s![..marg_idx, seq_n(marg_idx, ndofs)])
+    // };
+
+    // let lam_bb = if marg_idx == 0 {
+    //     precision_matrix.slice(s![marg_idx + ndofs.., marg_idx + ndofs..])
+    // } else {
+    //     precision_matrix.slice(s![..marg_idx, ..marg_idx])
+    // };
 
     // assert_eq!(
     //     lam_bb.shape(),
