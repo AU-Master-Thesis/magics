@@ -2,6 +2,7 @@ use std::collections::{BTreeSet, HashMap, VecDeque};
 
 use bevy::{
     input::{keyboard::KeyboardInput, ButtonState},
+    log::tracing_subscriber::field::debug,
     prelude::*,
 };
 use gbp_linalg::{prelude::*, pretty_print_matrix, pretty_print_vector};
@@ -631,7 +632,7 @@ fn create_interrobot_factors(
 
         factorgraph
             .factor_mut(factor_index)
-            .send_message(variable_id, variable_message);
+            .receive_message_from(variable_id, variable_message);
         info!(
             "sent initial message from {:?} to {:?}",
             robot_id, variable_id
@@ -656,6 +657,8 @@ fn iterate_gbp(
     config: Res<Config>,
 ) {
     for _ in 0..config.gbp.iterations_per_timestep {
+        // ╭────────────────────────────────────────────────────────────────────────────────────────
+        // │ Factor iteration
         let messages_to_external_variables = query
             .iter_mut()
             .map(|(_, mut factorgraph)| factorgraph.factor_iteration())
@@ -668,15 +671,18 @@ fn iterate_gbp(
                 .find(|(id, _)| *id == message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving variable should exist in the world");
 
-            debug!(
-                "sending message from factor {:?} to variable {:?} in external factorgraph",
+            info!(
+                "Ext message factor {:?}\t->\tvariable {:?}",
                 message.from, message.to
             );
+
             external_factorgraph
                 .variable_mut(message.to.variable_index)
                 .receive_message_from(message.from, message.message.clone());
         }
 
+        // ╭────────────────────────────────────────────────────────────────────────────────────────
+        // │ Variable iteration
         let messages_to_external_factors = query
             .iter_mut()
             .map(|(_, mut factorgraph)| factorgraph.variable_iteration())
@@ -689,9 +695,14 @@ fn iterate_gbp(
                 .find(|(id, _)| *id == message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving factor should exist in the world");
 
+            info!(
+                "Ext message variable {:?}\t->\tfactor {:?}",
+                message.from, message.to
+            );
+
             external_factorgraph
                 .factor_mut(message.to.factor_index)
-                .send_message(message.from, message.message.clone());
+                .receive_message_from(message.from, message.message.clone());
         }
     }
 }
@@ -785,7 +796,7 @@ fn update_prior_of_horizon_state(
 
         external_factorgraph
             .factor_mut(message.to.factor_index)
-            .send_message(message.from, message.message.clone());
+            .receive_message_from(message.from, message.message.clone());
     }
 
     if !ids_of_robots_to_despawn.is_empty() {
