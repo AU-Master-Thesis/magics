@@ -191,7 +191,7 @@ impl DrawSection {
             "height_map" => "Height Map".to_string(),
             "flat_map" => "Flat Map".to_string(),
             "communication_radius" => "Communication Radius".to_string(),
-            "robot" => "Robot".to_string(),
+            "robot" => "Robots".to_string(),
             _ => "Unknown".to_string(),
         }
     }

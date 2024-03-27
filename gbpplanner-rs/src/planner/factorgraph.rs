@@ -1082,8 +1082,9 @@ pub mod graphviz {
                 Self::Variable { .. } => "#eff1f5",         // latte base (white)
                 Self::InterRobotFactor { .. } => "#a6da95", // green
                 Self::DynamicFactor => "#8aadf4",           // blue
-                Self::ObstacleFactor => "#c6a0f6",          // mauve (purple)
-                Self::PoseFactor => "#ee99a0",              // maroon (red)
+                // Self::ObstacleFactor => "#c6a0f6",          // mauve (purple)
+                Self::ObstacleFactor => "#ee99a0", // mauve (purple)
+                Self::PoseFactor => "#c6aof6",     // maroon (red)
             }
         }
 

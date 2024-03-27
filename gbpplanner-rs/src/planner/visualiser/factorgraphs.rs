@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_mod_picking::prelude::*;
 use itertools::Itertools;
 
 use super::{super::FactorGraph, RobotTracker};
@@ -17,14 +18,17 @@ pub struct FactorGraphVisualiserPlugin;
 
 impl Plugin for FactorGraphVisualiserPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
+        app
+            .add_event::<VariableClickEvent>()
+            .add_systems(
             Update,
             (
                 // init_factorgraphs,
                 update_factorgraphs,
                 show_or_hide_factorgraphs,
-                draw_lines_between_variables.run_if(draw_predicted_trajectories_enabled),
+                draw_lines_between_variables.run_if(draw_predicted_trajectories_is_enabled),
                 remove_rendered_factorgraph_when_robot_despawns,
+                on_variable_clicked
             ),
         )
         // NOTE: this needs to be on the 'PostUpdate' schedule, otherwise there are timing issues between the creation of the robots factorgraph to reading its state.
@@ -56,6 +60,28 @@ pub struct VariableVisualiser;
 
 #[derive(Component)]
 pub struct DynamicFactorVisualiser;
+
+#[derive(Event)]
+struct VariableClickEvent(pub Entity);
+
+impl VariableClickEvent {
+    #[inline]
+    pub fn target(&self) -> Entity {
+        self.0
+    }
+}
+
+impl From<ListenerInput<Pointer<Click>>> for VariableClickEvent {
+    fn from(value: ListenerInput<Pointer<Click>>) -> Self {
+        Self(value.target)
+    }
+}
+
+fn on_variable_clicked(mut variable_click_event: EventReader<VariableClickEvent>) {
+    for VariableClickEvent(entity) in variable_click_event.read() {
+        info!("clicked variable: {:?}", entity);
+    }
+}
 
 /// A **Bevy** [`Update`] system
 /// Initialises each new [`FactorGraph`] component to have a matching
@@ -93,6 +119,8 @@ fn create_factorgraph_visualizer(
             commands.spawn((
                 robottracker,
                 VariableVisualiser,
+                PickableBundle::default(),
+                On::<Pointer<Click>>::send_event::<VariableClickEvent>(),
                 PbrBundle {
                     mesh: scene_assets.meshes.variable.clone(),
                     material: scene_assets.materials.variable.clone(),
@@ -169,7 +197,7 @@ fn show_or_hide_factorgraphs(
     }
 }
 
-fn draw_predicted_trajectories_enabled(config: Res<Config>) -> bool {
+fn draw_predicted_trajectories_is_enabled(config: Res<Config>) -> bool {
     config.visualisation.draw.predicted_trajectories
 }
 

@@ -26,9 +26,13 @@ use bevy::{
 };
 use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
+// use rand_core::RngCore;
+use bevy_prng::WyRand;
+use bevy_rand::prelude::EntropyPlugin;
 use clap::Parser;
 use config::Environment;
 use iyes_perf_ui::prelude::*;
+use rand::{Rng, SeedableRng};
 
 use crate::{
     asset_loader::AssetLoaderPlugin,
@@ -170,6 +174,9 @@ fn main() -> anyhow::Result<()> {
         WindowMode::Windowed
     };
 
+    // let mut rng =
+    // rand_chacha::ChaCha8Rng::seed_from_u64(config.simulation.random_seed);
+
     println!("initial window mode: {:?}", window_mode);
 
     let mut app = App::new();
@@ -178,6 +185,7 @@ fn main() -> anyhow::Result<()> {
         .insert_resource(formation)
         .insert_resource(environment)
         .insert_state(if cli.debug {DebugState::Enabled} else {DebugState::Disabled})
+        .add_plugins(EntropyPlugin::<WyRand>::default())
         .add_plugins((
             // ConsoleLogPlugin::default(),
 
