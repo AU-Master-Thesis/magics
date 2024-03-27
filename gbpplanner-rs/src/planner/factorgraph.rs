@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use gbp_linalg::{Float, Vector};
 // use itertools::Itertools;
 use petgraph::Undirected;
+use tap::Tap;
 
 use super::{
     factor::{Factor, FactorKind},
@@ -461,6 +462,10 @@ impl FactorGraph {
         };
         let node_index = self.graph.add_node(node);
         self.variable_indices.push(node_index);
+        info!(
+            "added a variable with node_index: {:?} to factorgraph: {:?}",
+            node_index, self.id
+        );
         node_index.into()
     }
 
@@ -472,9 +477,18 @@ impl FactorGraph {
         let node_index = self.graph.add_node(node);
         self.graph[node_index]
             .as_factor_mut()
-            .unwrap()
+            .expect("just added the factor to the graph in the previous statement")
+            .tap(|f| {
+                info!(
+                    "adding a '{}' factor with node_index: {:?} to factorgraph: {:?}",
+                    f.name(),
+                    node_index,
+                    self.id
+                );
+            })
             .set_node_index(node_index);
         self.factor_indices.push(node_index);
+
         node_index.into()
     }
 

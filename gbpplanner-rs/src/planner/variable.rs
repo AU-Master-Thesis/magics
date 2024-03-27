@@ -121,7 +121,7 @@ impl Variable {
         Self {
             dofs,
             prior: VariablePrior::new(eta_prior, lam_prior),
-            belief: VariableBelief::new(eta, lam, dbg!(mu_prior), sigma, false),
+            belief: VariableBelief::new(eta, lam, mu_prior, sigma, false),
             // eta_prior,
             // lam_prior,
             // eta,

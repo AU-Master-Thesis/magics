@@ -286,10 +286,10 @@ fn spawn_formation(
             }));
             let robotbundle = RobotBundle::new(
                 robot_id,
-                dbg!(waypoints
+                waypoints
                     .iter()
                     .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
-                    .collect::<VecDeque<_>>()),
+                    .collect::<VecDeque<_>>(),
                 variable_timesteps.timesteps.as_slice(),
                 &config,
                 OBSTACLE_IMAGE

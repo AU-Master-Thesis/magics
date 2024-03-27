@@ -3,7 +3,7 @@
     (
       repeat: false,
       delay: (
-        secs: 0,
+        secs: 1,
         nanos: 0
       ),
       robots: 1,

@@ -14,7 +14,7 @@ objects    = 0.5
 height-map = 1.0
 
 [visualisation.draw]
-robot                 = true
+robot                  = true
 communication-graph    = true
 predicted-trajectories = true
 waypoints              = true
@@ -61,4 +61,4 @@ color = "red"
 export-location = "./assets/export/"
 
 [manual]
-iterations-per-step = 1
+iterations-per-step = 30

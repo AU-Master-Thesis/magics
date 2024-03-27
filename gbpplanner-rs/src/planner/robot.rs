@@ -215,12 +215,12 @@ impl FromWorld for VariableTimesteps {
         let lookahead_horizon = config.robot.planning_horizon / config.simulation.t0;
 
         #[allow(clippy::cast_possible_truncation)]
-        dbg!(Self {
+        Self {
             timesteps: get_variable_timesteps(
                 lookahead_horizon.get() as u32,
                 config.gbp.lookahead_multiple as u32,
             ),
-        })
+        }
     }
 }
 
