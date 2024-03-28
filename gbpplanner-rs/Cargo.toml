@@ -17,6 +17,7 @@ gbp_linalg              = { path = "../gbp_linalg" }
 gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
 # gbp_formation = { path = "../gbp_formation" }
 
+glob = "0.3.1"
 better-panic = "0.3.0"
 bevy = { version = "0.13.0", default-features = true, features = [
   # "wayland",

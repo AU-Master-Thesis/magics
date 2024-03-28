@@ -65,7 +65,7 @@ pub struct ExportGraphEvent;
 #[derive(Event, Debug, Clone)]
 pub struct DrawSettingsEvent {
     pub setting: DrawSetting,
-    pub draw: bool,
+    pub draw:    bool,
 }
 
 fn install_egui_image_loaders(mut egui_ctx: EguiContexts) {
@@ -133,7 +133,7 @@ fn ui_settings_exclusive(world: &mut World) {
 }
 
 struct TitleColors {
-    colors: [Colour; 5],
+    colors:  [Colour; 5],
     current: usize,
 }
 
@@ -295,13 +295,14 @@ fn ui_settings_panel(
                                 );
                             custom::float_right(ui, |ui| {
                                 if custom::toggle_ui(ui, setting).clicked() {
-                                    let setting_kind = DrawSetting::from_str(name).expect(
-                                        "The name of the draw section should be a valid \
-                                         DrawSection",
-                                    );
+                                    let setting_kind: DrawSetting = name.parse().unwrap();
+                                    // let setting_kind = DrawSetting::from_str(name).expect(
+                                    //     "The name of the draw section should be a valid \
+                                    //      DrawSection",
+                                    // );
                                     let event = DrawSettingsEvent {
                                         setting: setting_kind,
-                                        draw: *setting,
+                                        draw:    *setting,
                                     };
                                     world.send_event::<DrawSettingsEvent>(event);
                                 }

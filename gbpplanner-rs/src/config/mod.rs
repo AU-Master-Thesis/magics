@@ -95,7 +95,7 @@ pub struct ManualSection {
 impl Default for ManualSection {
     fn default() -> Self {
         Self {
-            timesteps_per_step: 1.try_into().unwrap(),
+            timesteps_per_step: 1.try_into().expect("1 > 0"),
         }
     }
 }
@@ -108,16 +108,6 @@ pub struct VisualisationSection {
     pub uncertainty: UncertaintySection,
 }
 
-// impl Default for VisualisationSection {
-//     fn default() -> Self {
-//         Self {
-//             height: HeighSection::default(),
-//             draw: DrawSection::default(),
-//             uncertainty: UncertaintySection::default(),
-//         }
-//     }
-// }
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DrawSetting {
     CommunicationGraph,
@@ -128,26 +118,50 @@ pub enum DrawSetting {
     HeightMap,
     FlatMap,
     CommunicationRadius,
-    Robot,
+    Robots,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseDrawSettingError;
+
+impl std::str::FromStr for DrawSetting {
+    type Err = ParseDrawSettingError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let setting = match s {
+            "communication_graph" => Self::CommunicationGraph,
+            "predicted_trajectories" => Self::PredictedTrajectories,
+            "waypoints" => Self::Waypoints,
+            "uncertainty" => Self::Uncertainty,
+            "paths" => Self::Paths,
+            "height_map" => Self::HeightMap,
+            "flat_map" => Self::FlatMap,
+            "communication_radius" => Self::CommunicationRadius,
+            "robots" => Self::Robots,
+            _ => return Err(ParseDrawSettingError),
+        };
+
+        Ok(setting)
+    }
 }
 
 // TODO: impl FromStr for DrawSetting
-impl DrawSetting {
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "communication_graph" => Some(Self::CommunicationGraph),
-            "predicted_trajectories" => Some(Self::PredictedTrajectories),
-            "waypoints" => Some(Self::Waypoints),
-            "uncertainty" => Some(Self::Uncertainty),
-            "paths" => Some(Self::Paths),
-            "height_map" => Some(Self::HeightMap),
-            "flat_map" => Some(Self::FlatMap),
-            "communication_radius" => Some(Self::CommunicationRadius),
-            "robot" => Some(Self::Robot),
-            _ => None,
-        }
-    }
-}
+// impl DrawSetting {
+//     pub fn from_str(s: &str) -> Option<Self> {
+//         match s {
+//             "communication_graph" => Some(Self::CommunicationGraph),
+//             "predicted_trajectories" => Some(Self::PredictedTrajectories),
+//             "waypoints" => Some(Self::Waypoints),
+//             "uncertainty" => Some(Self::Uncertainty),
+//             "paths" => Some(Self::Paths),
+//             "height_map" => Some(Self::HeightMap),
+//             "flat_map" => Some(Self::FlatMap),
+//             "communication_radius" => Some(Self::CommunicationRadius),
+//             "robots" => Some(Self::Robots),
+//             _ => None,
+//         }
+//     }
+// }
 
 // TODO: store in a bitset
 #[derive(Debug, Serialize, Deserialize, Iterable, Reflect, Clone)]
@@ -191,7 +205,7 @@ impl DrawSection {
             "height_map" => "Height Map".to_string(),
             "flat_map" => "Flat Map".to_string(),
             "communication_radius" => "Communication Radius".to_string(),
-            "robot" => "Robots".to_string(),
+            "robots" => "Robots".to_string(),
             _ => "Unknown".to_string(),
         }
     }

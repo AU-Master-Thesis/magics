@@ -2545,6 +2545,7 @@ dependencies = [
  "egui_extras",
  "gbp_linalg",
  "gbp_multivariate_normal",
+ "glob",
  "heck 0.5.0",
  "image 0.25.0",
  "itertools",

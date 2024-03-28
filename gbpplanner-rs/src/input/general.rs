@@ -4,9 +4,12 @@ use bevy::{
     app::AppExit, prelude::*, render::view::screenshot::ScreenshotManager, tasks::IoTaskPool,
     window::PrimaryWindow,
 };
+use glob::glob;
+use itertools::Itertools;
 use leafwing_input_manager::prelude::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
+use tap::Tap;
 
 use super::super::theme::ThemeEvent;
 use crate::{
@@ -34,7 +37,7 @@ impl Plugin for GeneralInputPlugin {
                     general_actions_system,
                     export_graph_on_event,
                     screenshot,
-                    handle_screen_shot_event,
+                    handle_screenshot_event,
                     quit_application_system,
                 ),
             );
@@ -53,17 +56,13 @@ pub enum GeneralAction {
 
 impl std::fmt::Display for GeneralAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::ToggleTheme => "Toggle Theme",
-                Self::ExportGraph => "Export Graph",
-                Self::ScreenShot => "Take Screenshot",
-                Self::QuitApplication => "Quit Application",
-                Self::PausePlaySimulation => "Pause/Play Simulation",
-            }
-        )
+        write!(f, "{}", match self {
+            Self::ToggleTheme => "Toggle Theme",
+            Self::ExportGraph => "Export Graph",
+            Self::ScreenShot => "Take Screenshot",
+            Self::QuitApplication => "Quit Application",
+            Self::PausePlaySimulation => "Pause/Play Simulation",
+        })
     }
 }
 
@@ -396,25 +395,41 @@ fn screenshot(
     }
 }
 
-fn handle_screen_shot_event(
-    mut screenshot_manager: ResMut<ScreenshotManager>,
+fn handle_screenshot_event(
     main_window: Query<Entity, With<PrimaryWindow>>,
-    mut counter: Local<usize>,
+    mut screenshot_manager: ResMut<ScreenshotManager>,
     mut screen_shot_event: EventReader<ScreenShotEvent>,
 ) {
     for _ in screen_shot_event.read() {
-        info!("taking screenshot");
-        let path = format!("screenshot_{:03}.png", *counter);
-        *counter += 1;
-
         let Ok(window) = main_window.get_single() else {
-            warn!("screenshot was called without a main window!");
+            warn!("screenshot action was called without a main window!");
             return;
         };
 
-        info!("Saving screenshot to ./{:#?}", path);
-        screenshot_manager
-            .save_screenshot_to_disk(window, path)
-            .expect("failed to save screenshot");
+        let existing_screenshots = glob("./screenshot_*.png").expect("valid glob pattern");
+        let latest_screenshot_id = existing_screenshots
+            .filter_map(|result| result.ok())
+            .filter_map(|path| {
+                path.file_name()
+                    .map(|file_name| file_name.to_str().map(|s| s.to_string()))
+                    .flatten()
+            })
+            .filter_map(|basename| {
+                basename["screenshot_".len()..basename.len() - 4]
+                    .parse::<usize>()
+                    .ok()
+            })
+            .max();
+
+        let screenshot_id = latest_screenshot_id.map(|id| id + 1).unwrap_or(0);
+
+        let path = format!("screenshot_{}.png", screenshot_id);
+
+        if let Err(err) = screenshot_manager.save_screenshot_to_disk(window, &path) {
+            error!("failed to write screenshot to disk, error: {}", err);
+            continue;
+        };
+
+        info!("saved screenshot to ./{}", path);
     }
 }

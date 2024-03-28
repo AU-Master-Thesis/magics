@@ -20,7 +20,7 @@ fn toggle_visibility_of_robot_meshes(
     mut draw_setting_event: EventReader<crate::ui::DrawSettingsEvent>,
 ) {
     for event in draw_setting_event.read() {
-        if matches!(event.setting, crate::config::DrawSetting::Robot) {
+        if matches!(event.setting, crate::config::DrawSetting::Robots) {
             let new_visibility_state = if event.draw {
                 Visibility::Visible
             } else {
