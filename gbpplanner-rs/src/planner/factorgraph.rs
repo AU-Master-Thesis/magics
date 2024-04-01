@@ -918,6 +918,8 @@ impl FactorGraph {
             }
         }
 
+        std::process::exit(0);
+
         // Return the messages to be sent to the connected factors in other factorgraphs
         // The caller is responsible for sending these messages to the correct
         // factorgraphs

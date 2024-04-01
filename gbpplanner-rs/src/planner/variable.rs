@@ -1,5 +1,5 @@
 use bevy::log::{debug, error};
-use gbp_linalg::{Float, Matrix, Vector};
+use gbp_linalg::{pretty_print_matrix, pretty_print_vector, Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
 use super::{
@@ -21,14 +21,14 @@ impl VariablePrior {
 
 #[derive(Debug, Clone)]
 pub struct VariableBelief {
-    pub eta: Vector<Float>,
-    pub lam: Matrix<Float>,
-    pub mu: Vector<Float>,
+    pub eta:   Vector<Float>,
+    pub lam:   Matrix<Float>,
+    pub mu:    Vector<Float>,
     pub sigma: Matrix<Float>,
     /// Flag to indicate if the variable's covariance is finite, i.e. it does
     /// not contain NaNs or Infs In gbpplanner it is used to control if a
     /// variable can be rendered.
-    valid: bool,
+    valid:     bool,
 }
 
 impl VariableBelief {
@@ -59,10 +59,10 @@ impl From<VariableBelief> for Message {
 #[derive(Debug)]
 pub struct Variable {
     /// Degrees of freedom. For 2D case n_dofs_ = 4 ([x,y,xdot,ydot])
-    pub dofs: usize,
-    pub prior: VariablePrior,
+    pub dofs:   usize,
+    pub prior:  VariablePrior,
     pub belief: VariableBelief,
-    //
+
     // pub eta_prior: Vector<Float>,
     // pub lam_prior: Matrix<Float>,
     // pub eta: Vector<Float>,
@@ -84,6 +84,7 @@ impl Variable {
     pub fn estimated_position(&self) -> [Float; 2] {
         [self.belief.mu[0], self.belief.mu[1]]
     }
+
     /// Returns the variables belief about its velocity
     #[inline]
     pub fn estimated_velocity(&self) -> [Float; 2] {
@@ -110,6 +111,8 @@ impl Variable {
         if !lam_prior.iter().all(|x| x.is_finite()) {
             lam_prior.fill(0.0);
         }
+
+        pretty_print_matrix!(&lam_prior);
 
         let eta_prior = lam_prior.dot(&mu_prior);
         let sigma = lam_prior
@@ -235,8 +238,20 @@ impl Variable {
             self.belief.valid = self.belief.sigma.iter().all(|x| x.is_finite());
             if self.belief.valid {
                 self.belief.mu = self.belief.sigma.dot(&self.belief.eta);
+            } else {
+                println!(
+                    "{}:{},Variable covariance is not finite",
+                    file!().split('/').last().unwrap(),
+                    line!()
+                );
             }
         }
+
+        pretty_print_matrix!(&self.prior.lam);
+        pretty_print_vector!(&self.prior.eta);
+        pretty_print_matrix!(&self.belief.lam);
+        pretty_print_vector!(&self.belief.eta);
+        pretty_print_vector!(&self.belief.mu);
 
         self.inbox
             .iter()

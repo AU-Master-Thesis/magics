@@ -365,9 +365,11 @@ impl RobotBundle {
                 // Start and Horizon state variables should be 'fixed' during optimisation at a
                 // timestep SIGMA_POSE_FIXED
                 1e30
+                // 1e20
             } else {
                 // 4e9
                 // 0.0
+                // 1e30
                 Float::INFINITY
             };
 

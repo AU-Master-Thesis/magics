@@ -95,14 +95,14 @@ pub fn _pretty_print_matrix<T, M>(
         for i in 0..nrows {
             for j in 0..ncols {
                 let x = matrix.at(i, j);
-                let width = num_of_integral_digits(x.to_f64().unwrap()).unwrap_or(0);
+                let width = num_of_integral_digits(x.to_f64().unwrap()).unwrap_or(0) + 1;
                 if width > max_width {
                     max_width = width;
                 }
             }
         }
         if max_width == 0 {
-            max_width = 4; // enough for "nan" and "inf", "-inf" and "0.0"
+            max_width = 5; // enough for "nan" and "inf", "-inf" and "0.0"
         }
         let integral_digits_limit = 9;
         let use_scientific_notation = max_width > integral_digits_limit;
@@ -200,7 +200,7 @@ pub fn _pretty_print_vector<T, V>(
         let mut max_width = 0;
         for i in 0..vector.len() {
             let x = vector.at(i);
-            let width = num_of_integral_digits(x.to_f64().unwrap()).unwrap_or(0);
+            let width = num_of_integral_digits(x.to_f64().unwrap()).unwrap_or(0) + 1;
             if width > max_width {
                 max_width = width;
             }

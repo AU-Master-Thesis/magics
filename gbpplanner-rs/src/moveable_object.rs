@@ -71,7 +71,7 @@ fn spawn(
         //     offset: Some(offset),
         // },
         follow_camera_flag,
-        Local,
+        crate::movement::Local,
     ));
 
     // event_writer.send(RobotSpawnedEvent {

@@ -120,6 +120,7 @@ impl FollowCameraBundle {
 
         // TODO: Maybe add this back in
         // transform offset to local space of target entity
+        // let offset = target.rotation.inverse() * offset;
         // let offset = (target.compute_matrix() * offset.extend(1.0)).xyz();
 
         Self {
@@ -147,11 +148,14 @@ fn add_follow_cameras(
     // mut robot_spawned_events: EventReader<RobotSpawnedEvent>,
 ) {
     for (entity, transform, follow_camera_flag) in query.iter() {
-        commands.entity(entity).insert(FollowCameraBundle::new(
-            entity,
-            Some(transform),
-            follow_camera_flag.offset,
-            follow_camera_flag.up_direction,
+        commands.spawn((
+            FollowCameraBundle::new(
+                entity,
+                Some(transform),
+                follow_camera_flag.offset,
+                follow_camera_flag.up_direction,
+            ),
+            Local,
         ));
     }
     // info!("Outside event reader for loop");
