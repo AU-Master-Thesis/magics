@@ -55,6 +55,7 @@ fn spawn(
     let mut transform = Transform::from_translation(START_TRANSLATION);
     transform.scale = Vec3::splat(SCALE);
     let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
+    let follow_camera_flag = environment::follow_cameras::FollowCameraMe::from_vec3(offset);
     let entity = commands
         .spawn((
             MovingObjectBundle {
@@ -67,9 +68,10 @@ fn spawn(
                 ..default()
             },
             MoveableObject,
-            environment::follow_cameras::FollowCameraMe {
-                offset: Some(offset),
-            },
+            // environment::follow_cameras::FollowCameraMe {
+            //     offset: Some(offset),
+            // },
+            follow_camera_flag,
             Local,
         ))
         .id();
@@ -77,8 +79,6 @@ fn spawn(
     event_writer.send(RobotSpawnedEvent {
         entity,
         transform,
-        follow_camera_flag: environment::follow_cameras::FollowCameraMe {
-            offset: Some(offset),
-        },
+        follow_camera_flag,
     });
 }

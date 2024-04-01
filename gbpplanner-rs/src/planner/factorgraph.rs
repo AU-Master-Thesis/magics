@@ -877,6 +877,18 @@ impl FactorGraph {
                 let in_internal_graph = factor_id.factorgraph_id == self.id;
                 if in_internal_graph {
                     // Send the messages to the connected factors within the same factorgraph
+                    // self.graph.
+                    if !self
+                        .factor_indices
+                        .contains(&factor_id.factor_index.as_node_index())
+                    {
+                        info!(
+                            "factor_id: {:?} does not exist in the factorgraph {:?}",
+                            factor_id, self.id
+                        );
+                        continue;
+                    }
+
                     self.graph[factor_id.factor_index.as_node_index()]
                         .as_factor_mut()
                         .expect("A factor can only have variables as neighbours")

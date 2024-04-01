@@ -766,21 +766,29 @@ fn update_prior_of_horizon_state(
             debug_assert_eq!(horizon_variable.belief.mu.len(), 4);
 
             let estimated_position = horizon_variable.belief.mu.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
+                                                                                // dbg!(&estimated_position);
+
             let horizon2goal_dir = current_waypoint - estimated_position;
 
             let horizon2goal_dist = horizon2goal_dir.euclidean_norm();
+            // let horizon2goal_dist = dbg!(horizon2goal_dir.euclidean_norm());
 
             // Slow down if close to goal
             let new_velocity = Float::min(config.robot.max_speed.get() as Float, horizon2goal_dist)
                 * horizon2goal_dir.normalized();
 
             // dbg!(&new_velocity);
+
             let new_position = estimated_position.into_owned() + (&new_velocity * delta_t as Float);
+
+            // dbg!(&new_position);
 
             // Update horizon state with new pos and vel
             // horizon->mu_ << new_pos, new_vel;
             // horizon->change_variable_prior(horizon->mu_);
             let new_mean = concatenate![Axis(0), new_position, new_velocity];
+
+            // dbg!(&new_mean);
 
             debug_assert_eq!(new_mean.len(), 4);
 

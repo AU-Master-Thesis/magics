@@ -42,7 +42,11 @@ fn remove_rendered_factorgraph_when_robot_despawns(
     mut despawn_robot_event: EventReader<DespawnRobotEvent>,
 ) {
     for DespawnRobotEvent(robot_id) in despawn_robot_event.read() {
-        info!("received DespawnRobotEvent({:?}), despawning the robots factorgraph visualizer entities", robot_id);
+        info!(
+            "received DespawnRobotEvent({:?}), despawning the robots factorgraph visualizer \
+             entities",
+            robot_id
+        );
         for (entity, tracker) in query.iter() {
             if tracker.robot_id == *robot_id {
                 if let Some(mut entitycommands) = commands.get_entity(entity) {
@@ -77,9 +81,14 @@ impl From<ListenerInput<Pointer<Click>>> for VariableClickEvent {
     }
 }
 
-fn on_variable_clicked(mut variable_click_event: EventReader<VariableClickEvent>) {
+fn on_variable_clicked(
+    mut variable_click_event: EventReader<VariableClickEvent>,
+    query: Query<&RobotTracker, With<VariableVisualiser>>,
+) {
     for VariableClickEvent(entity) in variable_click_event.read() {
-        info!("clicked variable: {:?}", entity);
+        if let Ok(tracker) = query.get(*entity) {
+            info!("Clicked variable: {:?}, with tracker {:?}", entity, tracker);
+        }
     }
 }
 
@@ -107,9 +116,9 @@ fn create_factorgraph_visualizer(
             let [x, y] = variable.estimated_position();
             let transform = Vec3::new(x as f32, config.visualisation.height.objects, y as f32);
             let robottracker = RobotTracker {
-                robot_id: *robot_id,
+                robot_id:       *robot_id,
                 variable_index: index.into(),
-                order: i,
+                order:          i,
             };
 
             debug!(

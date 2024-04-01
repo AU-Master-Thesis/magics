@@ -21,7 +21,7 @@ use crate::{
         formation::{RelativePoint, Shape},
         Config, FormationGroup,
     },
-    environment::cursor::CursorCoordinates,
+    environment::{cursor::CursorCoordinates, follow_cameras::FollowCameraMe},
     planner::robot::RobotBundle,
 };
 
@@ -319,11 +319,24 @@ fn spawn_formation(
                 ..Default::default()
             };
 
+            let initial_direction = waypoints
+                .iter()
+                .nth(1)
+                .map(|p| Vec3::new(p.x, 0.0, p.y))
+                .unwrap_or_else(|| Vec3::ZERO)
+                - initial_position.extend(0.0).xzy();
+
             entity.insert((
                 robotbundle,
                 pbrbundle,
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickEvent>(),
+                crate::environment::FollowCameraMe::new(0.0, 15.0, 0.0).with_up_direction(
+                    Direction3d::new(initial_direction).expect(
+                        "Vector between initial position and first waypoint should be different \
+                         from 0, NaN, and infinity.",
+                    ),
+                ),
             ));
 
             spawn_robot_event.send(SpawnRobotEvent(robot_id));

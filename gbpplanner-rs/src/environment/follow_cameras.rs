@@ -36,7 +36,29 @@ impl Default for PID {
 /// `Component` to tag an entity to be followed by a `FollowCamera`
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct FollowCameraMe {
-    pub offset: Option<Vec3>,
+    pub offset:       Option<Vec3>,
+    pub up_direction: Option<Direction3d>,
+}
+
+impl FollowCameraMe {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self {
+            offset:       Some(Vec3::new(x, y, z)),
+            up_direction: None,
+        }
+    }
+
+    pub fn from_vec3(offset: Vec3) -> Self {
+        Self {
+            offset:       Some(offset),
+            up_direction: None,
+        }
+    }
+
+    pub fn with_up_direction(mut self, up_direction: Direction3d) -> Self {
+        self.up_direction = Some(up_direction);
+        self
+    }
 }
 
 /// `Component` to store the settings for a `FollowCamera`
@@ -44,7 +66,7 @@ pub struct FollowCameraMe {
 pub struct FollowCameraSettings {
     pub target: Entity,
     pub offset: Vec3,
-    pub pid: PID,
+    pub pid:    PID,
 }
 
 impl FollowCameraSettings {
@@ -71,11 +93,16 @@ pub struct FollowCameraBundle {
     pub settings: FollowCameraSettings,
     pub movement: OrbitMovementBundle,
     pub velocity: Velocity,
-    pub camera: Camera3dBundle,
+    pub camera:   Camera3dBundle,
 }
 
 impl FollowCameraBundle {
-    fn new(entity: Entity, target: Option<&Transform>, offset: Option<Vec3>) -> Self {
+    fn new(
+        entity: Entity,
+        target: Option<&Transform>,
+        offset: Option<Vec3>,
+        up_direction: Option<Direction3d>,
+    ) -> Self {
         let target = match target {
             Some(t) => *t, // Dereference to copy the Transform
             None => Transform::from_translation(Vec3::ZERO),
@@ -86,6 +113,11 @@ impl FollowCameraBundle {
             None => Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0,
         };
 
+        let up_direction = match up_direction {
+            Some(u) => u,
+            None => Direction3d::Y,
+        };
+
         // TODO: Maybe add this back in
         // transform offset to local space of target entity
         // let offset = (target.compute_matrix() * offset.extend(1.0)).xyz();
@@ -94,9 +126,9 @@ impl FollowCameraBundle {
             settings: FollowCameraSettings::new(entity).with_offset(offset),
             movement: OrbitMovementBundle::default(),
             velocity: Velocity::new(Vec3::ZERO),
-            camera: Camera3dBundle {
+            camera:   Camera3dBundle {
                 transform: Transform::from_translation(target.translation + offset)
-                    .looking_at(target.translation, Vec3::Y),
+                    .looking_at(target.translation, up_direction.into()),
                 camera: Camera {
                     is_active: false,
                     ..Default::default()
@@ -111,27 +143,35 @@ impl FollowCameraBundle {
 /// followed with a `FollowCameraMe` component
 fn add_follow_cameras(
     mut commands: Commands,
-    // query: Query<(Entity, &Transform), With<FollowCameraMe>>,
-    mut robot_spawned_events: EventReader<RobotSpawnedEvent>,
+    query: Query<(Entity, &Transform, &FollowCameraMe), Without<Camera3d>>,
+    // mut robot_spawned_events: EventReader<RobotSpawnedEvent>,
 ) {
-    // info!("Outside event reader for loop");
-    // for (entity, transform) in query.iter() {
-    for event in robot_spawned_events.read() {
-        // info!("Adding follow camera for entity: {:?}", event);
-        commands.spawn((
-            FollowCameraBundle::new(
-                event.entity,
-                Some(&event.transform),
-                Some(
-                    event
-                        .follow_camera_flag
-                        .offset
-                        .expect("The event always has an offset"),
-                ),
-            ),
-            Local,
+    for (entity, transform, follow_camera_flag) in query.iter() {
+        commands.entity(entity).insert(FollowCameraBundle::new(
+            entity,
+            Some(transform),
+            follow_camera_flag.offset,
+            follow_camera_flag.up_direction,
         ));
     }
+    // info!("Outside event reader for loop");
+    // for (entity, transform) in query.iter() {
+    // for event in robot_spawned_events.read() {
+    //     // info!("Adding follow camera for entity: {:?}", event);
+    //     commands.spawn((
+    //         FollowCameraBundle::new(
+    //             event.entity,
+    //             Some(&event.transform),
+    //             Some(
+    //                 event
+    //                     .follow_camera_flag
+    //                     .offset
+    //                     .expect("The event always has an offset"),
+    //             ),
+    //         ),
+    //         Local,
+    //     ));
+    // }
 }
 
 /// `Update` system to move all cameras tagged with the `FollowCamera` component

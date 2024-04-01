@@ -22,8 +22,8 @@ impl Plugin for RobotSpawnerPlugin {
 // Define the event
 #[derive(Event, Debug, Copy, Clone)]
 pub struct RobotSpawnedEvent {
-    pub entity: Entity,
-    pub transform: Transform,
+    pub entity:             Entity,
+    pub transform:          Transform,
     pub follow_camera_flag: FollowCameraMe,
 }
 
@@ -66,9 +66,8 @@ fn spawn_robot_periodically(
         // create a material
         let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
         let transform = Transform::from_translation(Vec3::new(x, size / 2.0, z));
-        let follow_camera_flag = FollowCameraMe {
-            offset: Some(Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0),
-        };
+        let follow_camera_flag =
+            FollowCameraMe::from_vec3(Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0);
 
         // spawn the robot
         let entity = commands
@@ -80,7 +79,7 @@ fn spawn_robot_periodically(
                     ..Default::default()
                 },
                 MovementBundle {
-                    linear_movement: LinearMovementBundle {
+                    linear_movement:  LinearMovementBundle {
                         velocity: Velocity {
                             value: Vec3::new(0.0, 0.0, 1.0),
                         },

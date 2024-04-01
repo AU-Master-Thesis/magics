@@ -6,6 +6,7 @@ pub mod map;
 
 use camera::CameraPlugin;
 use cursor::CursorToGroundPlugin;
+pub use follow_cameras::FollowCameraMe;
 use follow_cameras::FollowCamerasPlugin;
 use map::MapPlugin;
 
