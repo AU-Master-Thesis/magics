@@ -50,35 +50,33 @@ pub enum MoveableObjectVisibilityState {
 fn spawn(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,
-    mut event_writer: EventWriter<RobotSpawnedEvent>,
+    // mut event_writer: EventWriter<RobotSpawnedEvent>,
 ) {
     let mut transform = Transform::from_translation(START_TRANSLATION);
     transform.scale = Vec3::splat(SCALE);
     let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
     let follow_camera_flag = environment::follow_cameras::FollowCameraMe::from_vec3(offset);
-    let entity = commands
-        .spawn((
-            MovingObjectBundle {
-                model: SceneBundle {
-                    // scene: scene_assets.roomba.clone(),
-                    scene: scene_assets.roomba.clone(),
-                    transform,
-                    ..default()
-                },
+    commands.spawn((
+        MovingObjectBundle {
+            model: SceneBundle {
+                // scene: scene_assets.roomba.clone(),
+                scene: scene_assets.roomba.clone(),
+                transform,
                 ..default()
             },
-            MoveableObject,
-            // environment::follow_cameras::FollowCameraMe {
-            //     offset: Some(offset),
-            // },
-            follow_camera_flag,
-            Local,
-        ))
-        .id();
-
-    event_writer.send(RobotSpawnedEvent {
-        entity,
-        transform,
+            ..default()
+        },
+        MoveableObject,
+        // environment::follow_cameras::FollowCameraMe {
+        //     offset: Some(offset),
+        // },
         follow_camera_flag,
-    });
+        Local,
+    ));
+
+    // event_writer.send(RobotSpawnedEvent {
+    //     entity,
+    //     transform,
+    //     follow_camera_flag,
+    // });
 }

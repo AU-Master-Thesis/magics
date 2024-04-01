@@ -113,7 +113,7 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             CameraInputPlugin,
-            MoveableObjectInputPlugin,
+            // MoveableObjectInputPlugin,
             GeneralInputPlugin,
             UiInputPlugin,
         ));

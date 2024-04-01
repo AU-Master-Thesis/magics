@@ -45,9 +45,9 @@ impl Plugin for ControlsPanelPlugin {
 /// binding
 #[derive(Debug, Default, Resource)]
 pub struct ChangingBinding {
-    pub action: InputAction,
+    pub action:  InputAction,
     pub binding: usize,
-    cooldown: f32,
+    cooldown:    f32,
 }
 
 impl ChangingBinding {
@@ -107,7 +107,7 @@ fn ui_controls_panel(
     catppuccin_theme: Res<CatppuccinTheme>,
     mut currently_changing: ResMut<ChangingBinding>,
     config: Res<Config>,
-    mut object_sensitivity: ResMut<MoveableObjectSensitivity>,
+    mut object_sensitivity: Option<ResMut<MoveableObjectSensitivity>>,
     mut camera_sensitivity: ResMut<CameraSensitivity>,
 ) {
     let ctx = contexts.ctx_mut();
@@ -147,43 +147,82 @@ fn ui_controls_panel(
                     );
                     ui.push_id("sensitivity_table", |ui| {
                         custom::sens_table(ui).body(|mut body| {
-                            body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
-                                row.col(|col| {
-                                    col.label("Object Movement");
+                            if let Some(mut object_sensitivity) = object_sensitivity.as_mut() {
+                                body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
+                                    row.col(|col| {
+                                        col.label("Object Movement");
+                                    });
+                                    row.col(|col| {
+                                        col.spacing_mut().slider_width = col.available_width()
+                                            - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                                        col.add(
+                                            egui::Slider::new(
+                                                &mut object_sensitivity.move_sensitivity,
+                                                0.0..=2.0,
+                                            )
+                                            .show_value(true)
+                                            .custom_formatter(|x, _| format!("{:.0}", x * 100.0))
+                                            .text("%"),
+                                        );
+                                    });
                                 });
-                                row.col(|col| {
-                                    col.spacing_mut().slider_width = col.available_width()
-                                        - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                                    col.add(
-                                        egui::Slider::new(
-                                            &mut object_sensitivity.move_sensitivity,
-                                            0.0..=2.0,
-                                        )
-                                        .show_value(true)
-                                        .custom_formatter(|x, _| format!("{:.0}", x * 100.0))
-                                        .text("%"),
-                                    );
-                                });
-                            });
 
-                            body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
-                                row.col(|col| {
-                                    col.label("Object Rotation");
+                                body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
+                                    row.col(|col| {
+                                        col.label("Object Rotation");
+                                    });
+                                    row.col(|col| {
+                                        col.spacing_mut().slider_width = col.available_width()
+                                            - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                                        col.add(
+                                            egui::Slider::new(
+                                                &mut object_sensitivity.rotate_sensitivity,
+                                                0.0..=2.0,
+                                            )
+                                            .show_value(true)
+                                            .custom_formatter(|x, _| format!("{:.0}", x * 100.0))
+                                            .text("%"),
+                                        );
+                                    });
                                 });
-                                row.col(|col| {
-                                    col.spacing_mut().slider_width = col.available_width()
-                                        - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                                    col.add(
-                                        egui::Slider::new(
-                                            &mut object_sensitivity.rotate_sensitivity,
-                                            0.0..=2.0,
-                                        )
-                                        .show_value(true)
-                                        .custom_formatter(|x, _| format!("{:.0}", x * 100.0))
-                                        .text("%"),
-                                    );
-                                });
-                            });
+                            }
+                            // body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
+                            //     row.col(|col| {
+                            //         col.label("Object Movement");
+                            //     });
+                            //     row.col(|col| {
+                            //         col.spacing_mut().slider_width = col.available_width()
+                            //             - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                            //         col.add(
+                            //             egui::Slider::new(
+                            //                 &mut object_sensitivity.move_sensitivity,
+                            //                 0.0..=2.0,
+                            //             )
+                            //             .show_value(true)
+                            //             .custom_formatter(|x, _| format!("{:.0}", x * 100.0))
+                            //             .text("%"),
+                            //         );
+                            //     });
+                            // });
+
+                            // body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
+                            //     row.col(|col| {
+                            //         col.label("Object Rotation");
+                            //     });
+                            //     row.col(|col| {
+                            //         col.spacing_mut().slider_width = col.available_width()
+                            //             - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                            //         col.add(
+                            //             egui::Slider::new(
+                            //                 &mut object_sensitivity.rotate_sensitivity,
+                            //                 0.0..=2.0,
+                            //             )
+                            //             .show_value(true)
+                            //             .custom_formatter(|x, _| format!("{:.0}", x * 100.0))
+                            //             .text("%"),
+                            //         );
+                            //     });
+                            // });
                             body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
                                 row.col(|col| {
                                     col.label("Camera Movement");
