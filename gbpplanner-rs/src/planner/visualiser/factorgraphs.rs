@@ -1,15 +1,18 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
+use gbp_linalg::{pretty_print_matrix, pretty_print_vector};
 use itertools::Itertools;
 
 use super::{super::FactorGraph, RobotTracker};
 use crate::{
     asset_loader::SceneAssets,
     config::{Config, DrawSetting},
+    factorgraph,
     planner::{
         robot::{DespawnRobotEvent, SpawnRobotEvent},
         RobotState,
     },
+    pretty_print_title,
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
     ui::DrawSettingsEvent,
 };
@@ -83,12 +86,34 @@ impl From<ListenerInput<Pointer<Click>>> for VariableClickEvent {
 
 fn on_variable_clicked(
     mut variable_click_event: EventReader<VariableClickEvent>,
-    query: Query<&RobotTracker, With<VariableVisualiser>>,
+    query_robottracker: Query<&RobotTracker, With<VariableVisualiser>>,
+    query_factorgraph: Query<&FactorGraph, With<RobotState>>,
 ) {
     for VariableClickEvent(entity) in variable_click_event.read() {
-        if let Ok(tracker) = query.get(*entity) {
-            info!("Clicked variable: {:?}, with tracker {:?}", entity, tracker);
-        }
+        let Some(variable) = query_robottracker
+            .get(*entity)
+            .inspect(|tracker| {
+                info!(
+                    "clicked variable mesh: {:?}, associated with robot: {:?}",
+                    entity, tracker
+                );
+            })
+            .and_then(|tracker| {
+                query_factorgraph
+                    .get(tracker.robot_id)
+                    .map(|graph| (tracker.variable_index, graph))
+            })
+            .ok()
+            .and_then(|(variable_index, factorgraph)| factorgraph.nth_variable(variable_index))
+            .map(|(_, variable)| variable)
+        else {
+            error!("the clicked variable mesh is not associated with any existing factorgraph!");
+            return;
+        };
+
+        pretty_print_vector!(&variable.belief.eta);
+        pretty_print_matrix!(&variable.belief.lambda);
+        pretty_print_vector!(&variable.belief.mu);
     }
 }
 

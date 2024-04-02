@@ -482,7 +482,7 @@ impl<'a> Iterator for Variables<'a> {
 // }
 
 impl FactorGraph {
-    /// Construct a new empty factorgraph
+    /// Construct a new empty factorgraph with a given id
     pub fn new(id: FactorGraphId) -> Self {
         Self {
             id,
@@ -603,7 +603,7 @@ impl FactorGraph {
 
             Message::new(
                 Eta(variable.belief.eta.clone()),
-                Lam(variable.belief.lam.clone()),
+                Lam(variable.belief.lambda.clone()),
                 Mu(variable.belief.mu.clone()),
             )
         };
