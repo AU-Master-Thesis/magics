@@ -331,12 +331,12 @@ fn spawn_formation(
                 pbrbundle,
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickEvent>(),
-                crate::environment::FollowCameraMe::new(0.0, 15.0, 0.0).with_up_direction(
-                    Direction3d::new(initial_direction).expect(
+                crate::environment::FollowCameraMe::new(0.0, 15.0, 0.0)
+                    .with_up_direction(Direction3d::new(initial_direction).expect(
                         "Vector between initial position and first waypoint should be different \
                          from 0, NaN, and infinity.",
-                    ),
-                ),
+                    ))
+                    .with_attached(true),
             ));
 
             spawn_robot_event.send(SpawnRobotEvent(robot_id));

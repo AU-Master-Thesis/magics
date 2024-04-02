@@ -257,7 +257,7 @@ fn end_simulation(config: Res<Config>) {
         "ending simulation, reason: time elapsed exceeds configured max time: {} seconds",
         config.simulation.max_time.get()
     );
-    std::process::exit(0);
+    // std::process::exit(0);
 }
 
 fn spawn_perf_ui(mut commands: Commands) {

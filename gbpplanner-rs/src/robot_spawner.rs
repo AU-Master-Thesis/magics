@@ -67,7 +67,8 @@ fn spawn_robot_periodically(
         let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
         let transform = Transform::from_translation(Vec3::new(x, size / 2.0, z));
         let follow_camera_flag =
-            FollowCameraMe::from_vec3(Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0);
+            FollowCameraMe::from_vec3(Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0)
+                .with_attached(true);
 
         // spawn the robot
         let entity = commands
