@@ -120,6 +120,34 @@ macro_rules! pretty_print_message {
     };
 }
 
+/// Pretty print title
+/// # Example output
+/// ```sh
+/// ══════════════════ Title ══════════════════
+/// ```
+#[macro_export]
+macro_rules! pretty_print_title {
+    ($title:expr) => {{
+        let columns = termsize::get()
+            .map(|ts| if ts.cols == 0 { 80 } else { ts.cols })
+            .unwrap_or(80) as usize;
+
+        let title_len = $title.len();
+
+        let left_padding = (columns - title_len - 2) / 2;
+        let right_padding = columns - title_len - 2 - left_padding;
+
+        println!(
+            "{}{} {} {}{}",
+            crate::escape_codes::BOLD,
+            "═".repeat(left_padding),
+            $title,
+            "═".repeat(right_padding),
+            crate::escape_codes::RESET,
+        );
+    }};
+}
+
 /// Pretty print subtitle
 /// Uses
 /// # Example output
@@ -144,6 +172,27 @@ macro_rules! pretty_print_subtitle {
             "─".repeat(left_padding),
             $subtitle,
             "─".repeat(right_padding),
+            crate::escape_codes::RESET,
+        );
+    }};
+}
+
+/// Pretty print a line
+/// # Example output
+/// ```sh
+/// ──────────────────────────────────────────────
+/// ```
+#[macro_export]
+macro_rules! pretty_print_line {
+    () => {{
+        let columns = termsize::get()
+            .map(|ts| if ts.cols == 0 { 80 } else { ts.cols })
+            .unwrap_or(80) as usize;
+
+        println!(
+            "{}{}{}",
+            crate::escape_codes::BOLD,
+            "─".repeat(columns),
             crate::escape_codes::RESET,
         );
     }};

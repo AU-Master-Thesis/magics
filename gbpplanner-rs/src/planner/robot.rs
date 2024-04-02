@@ -15,7 +15,8 @@ use super::{
     NodeIndex, PausePlayEvent,
 };
 use crate::{
-    boolean_bevy_resource, config::Config, pretty_print_subtitle, utils::get_variable_timesteps,
+    boolean_bevy_resource, config::Config, pretty_print_subtitle, pretty_print_title,
+    utils::get_variable_timesteps,
 };
 
 pub struct RobotPlugin;
@@ -682,7 +683,7 @@ fn iterate_gbp(
     config: Res<Config>,
 ) {
     for i in 0..config.gbp.iterations_per_timestep {
-        pretty_print_subtitle!(format!("GBP iteration: {}", i + 1));
+        pretty_print_title!(format!("GBP iteration: {}", i + 1));
         // ╭────────────────────────────────────────────────────────────────────────────────────────
         // │ Factor iteration
         let messages_to_external_variables = query

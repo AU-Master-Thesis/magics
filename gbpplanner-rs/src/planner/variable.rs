@@ -10,8 +10,9 @@ use super::{
     message::{Eta, Lam, Message, Mu},
 };
 use crate::{
+    escape_codes::*,
     planner::{factorgraph::VariableIndex, NodeIndex},
-    pretty_print_message,
+    pretty_print_line, pretty_print_message, pretty_print_subtitle, pretty_print_title,
 };
 
 #[derive(Debug, Clone)]
@@ -125,6 +126,13 @@ impl Variable {
         // pretty_print_matrix!(&lam_prior);
 
         let eta_prior = lam_prior.dot(&mu_prior);
+
+        let subtitle = format!("{}{}{}", RED, "Creating variable", RESET);
+        pretty_print_subtitle!(subtitle);
+        pretty_print_vector!(&mu_prior);
+        pretty_print_matrix!(&lam_prior);
+        pretty_print_vector!(&eta_prior);
+
         let sigma = lam_prior
             .inv()
             .unwrap_or_else(|| Matrix::<Float>::zeros((dofs, dofs)));
@@ -195,7 +203,13 @@ impl Variable {
     /// The prior acts as the pose factor
     /// Called `Variable::change_variable_prior` in **gbpplanner**
     pub fn change_prior(&mut self, mean: Vector<Float>) -> MessagesFromVariables {
+        // let subtitle = format!("{}{}{}", RED, "Changing prior", RESET);
+        // pretty_print_subtitle!(subtitle);
+        pretty_print_matrix!(&self.prior.lam);
+        pretty_print_vector!(&mean);
         self.prior.eta = self.prior.lam.dot(&mean);
+        // pretty_print_vector!(&self.prior.eta);
+        // pretty_print_line!();
         // self.eta_prior = self.lam_prior.dot(&mean);
         self.belief.mu = mean;
         // dbg!(&self.mu);
@@ -239,6 +253,12 @@ impl Variable {
         self.belief.eta = self.prior.eta.clone();
         self.belief.lam = self.prior.lam.clone();
 
+        let mut title = format!("{}{}{}", YELLOW, "Variable belief BEFORE update:", RESET);
+        pretty_print_subtitle!(title);
+        pretty_print_vector!(&self.belief.eta);
+        pretty_print_matrix!(&self.belief.lam);
+        pretty_print_vector!(&self.belief.mu);
+
         // Go through received messages and update belief
         for (_, message) in self.inbox.iter() {
             let Some(payload) = message.payload() else {
@@ -252,6 +272,7 @@ impl Variable {
 
         // Update belief
         if let Some(sigma) = self.belief.lam.inv() {
+            pretty_print_matrix!(&sigma);
             self.belief.sigma = sigma;
             self.belief.valid = self.belief.sigma.iter().all(|x| x.is_finite());
             if self.belief.valid {
@@ -264,6 +285,13 @@ impl Variable {
                 );
             }
         }
+
+        title = format!("{}{}{}", YELLOW, "Variable belief AFTER update:", RESET);
+        pretty_print_subtitle!(title);
+        pretty_print_vector!(&self.belief.eta);
+        pretty_print_matrix!(&self.belief.lam);
+        pretty_print_vector!(&self.belief.mu);
+        pretty_print_line!();
 
         // pretty_print_matrix!(&self.prior.lam);
         // pretty_print_vector!(&self.prior.eta);
@@ -283,12 +311,22 @@ impl Variable {
                             Mu(self.belief.mu.clone()),
                         )
                     },
-                    |gaussian| {
-                        Message::new(
-                            Eta(&self.belief.eta - &gaussian.eta),
-                            Lam(&self.belief.lam - &gaussian.lam),
-                            Mu(&self.belief.mu - &gaussian.mu),
-                        )
+                    |message_from_factor| {
+                        // pretty_print_subtitle!("BEFORE FACTOR SUBSTRACTION");
+                        // pretty_print_vector!(&self.belief.eta);
+                        // pretty_print_matrix!(&self.belief.lam);
+                        // pretty_print_vector!(&self.belief.mu);
+                        // pretty_print_line!();
+                        let msg = Message::new(
+                            Eta(&self.belief.eta - &message_from_factor.eta),
+                            Lam(&self.belief.lam - &message_from_factor.lam),
+                            Mu(&self.belief.mu - &message_from_factor.mu),
+                        );
+                        // pretty_print_subtitle!("AFTER FACTOR SUBSTRACTION");
+                        // pretty_print_vector!(&self.belief.eta);
+                        // pretty_print_matrix!(&self.belief.lam);
+                        // pretty_print_vector!(&self.belief.mu);
+                        msg
                     },
                 );
                 (factor_id, response)
