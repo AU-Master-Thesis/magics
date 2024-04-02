@@ -24,7 +24,7 @@ pub struct CursorCoordinates {
     // Global (world-space) coordinates
     global: Vec3,
     // Local (relative to the ground plane) coordinates
-    local: Vec2,
+    local:  Vec2,
 }
 
 impl CursorCoordinates {
@@ -45,16 +45,13 @@ struct InvisibleGroundPlane;
 
 fn init_ground_plane(mut commands: Commands, scene_assets: Res<SceneAssets>) {
     // Spawn the invisible ground plane
-    commands.spawn((
-        InvisibleGroundPlane,
-        PbrBundle {
-            transform: Transform::default(),
-            mesh: scene_assets.meshes.plane.clone(),
-            material: scene_assets.materials.waypoint.clone(),
-            visibility: Visibility::Hidden,
-            ..default()
-        },
-    ));
+    commands.spawn((InvisibleGroundPlane, PbrBundle {
+        transform: Transform::default(),
+        mesh: scene_assets.meshes.plane.clone(),
+        material: scene_assets.materials.waypoint.clone(),
+        visibility: Visibility::Hidden,
+        ..default()
+    }));
 }
 
 fn cursor_to_ground_plane(

@@ -9,7 +9,8 @@ const INITIAL_CAMERA_DISTANCE: f32 = 125.0;
 pub const SPEED: f32 = INITIAL_CAMERA_DISTANCE / 10.0;
 pub const ANGULAR_SPEED: f32 = 2.0;
 
-const CAMERA_UP: Vec3 = Vec3::NEG_Z;
+// const CAMERA_UP: Vec3 = Vec3::NEG_Z;
+const CAMERA_UP: Vec3 = Vec3::NEG_Y;
 const CAMERA_INITIAL_TARGET: Vec3 = Vec3::ZERO;
 const CAMERA_INITIAL_POSITION: Vec3 = Vec3::new(0.0, INITIAL_CAMERA_DISTANCE, 0.0);
 

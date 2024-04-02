@@ -29,10 +29,10 @@ pub type Result<T> = std::result::Result<T, MultivariateNormalError>;
 #[derive(Debug, Clone)]
 pub struct MultivariateNormal {
     information: Vector<Float>,
-    precision: Matrix<Float>,
-    mean: Vector<Float>,
+    precision:   Matrix<Float>,
+    mean:        Vector<Float>,
     /// Whether the mean needs to be updated
-    dirty: bool,
+    dirty:       bool,
 }
 
 impl MultivariateNormal {

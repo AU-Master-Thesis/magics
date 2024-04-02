@@ -111,7 +111,8 @@ pub fn marginalise_factor_distance(
     let (lam_aa, lam_ab, lam_ba, lam_bb) =
         extract_submatrices_from_precision_matrix(&precision_matrix, ndofs, marg_idx);
 
-    // let lam_aa = precision_matrix.slice(s![seq_n(marg_idx, ndofs), seq_n(marg_idx, ndofs)]);
+    // let lam_aa = precision_matrix.slice(s![seq_n(marg_idx, ndofs),
+    // seq_n(marg_idx, ndofs)]);
 
     // let lam_ab = if marg_idx == 0 {
     //     precision_matrix.slice(s![seq_n(marg_idx, ndofs), marg_idx + ndofs..])
@@ -192,12 +193,9 @@ mod tests {
 
     macro_rules! generate_8x8_precision_matrix {
         () => {{
-            let upper_left = array![
-                [1., 2., 3., 4.],
-                [5., 6., 7., 8.],
-                [9., 10., 11., 12.],
-                [13., 14., 15., 16.]
-            ];
+            let upper_left = array![[1., 2., 3., 4.], [5., 6., 7., 8.], [9., 10., 11., 12.], [
+                13., 14., 15., 16.
+            ]];
 
             let upper_right = array![
                 [17., 18., 19., 20.],
@@ -269,12 +267,10 @@ mod tests {
     fn information_vector_length_equal_to_ndofs_do_nothing() {
         #![allow(clippy::unwrap_used)]
         let information_vector: Vector<Float> = array![0., 1., 2., 3.];
-        let precision_matrix: Matrix<Float> = array![
-            [5., 0.2, 0., 0.],
-            [0.2, 5., 0., 0.],
-            [0., 0.0, 5., 0.3],
-            [0., 0., 0.3, 5.]
-        ];
+        let precision_matrix: Matrix<Float> =
+            array![[5., 0.2, 0., 0.], [0.2, 5., 0., 0.], [0., 0.0, 5., 0.3], [
+                0., 0., 0.3, 5.
+            ]];
 
         let ndofs = 4;
         let marginalisation_idx = 0;

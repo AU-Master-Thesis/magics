@@ -1,13 +1,14 @@
 #![warn(missing_docs)]
 use bevy::prelude::*;
-// use gbp_linalg::pretty_print_matrix;
 
+// use gbp_linalg::pretty_print_matrix;
 use super::{super::FactorGraph, RobotTracker, Z_FIGHTING_OFFSET};
 use crate::{asset_loader::SceneAssets, config::Config};
 
 /// Plugin that adds the functionality to visualise the position uncertainty of
 /// each variable in a factorgraph.
-/// The uncertainty is visualised as a 2D ellipse, around the mean of the position.
+/// The uncertainty is visualised as a 2D ellipse, around the mean of the
+/// position.
 pub struct UncertaintyVisualiserPlugin;
 
 impl Plugin for UncertaintyVisualiserPlugin {
@@ -24,7 +25,8 @@ impl Plugin for UncertaintyVisualiserPlugin {
     }
 }
 
-/// A plugin local resource to keep track of whether to enable/disable visualisation
+/// A plugin local resource to keep track of whether to enable/disable
+/// visualisation
 #[derive(Resource)]
 struct UncertaintyVisualizerEnabled(bool);
 

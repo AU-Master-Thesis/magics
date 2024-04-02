@@ -26,14 +26,14 @@ impl Plugin for MoveableObjectInputPlugin {
 /// `rotate_sensitivity`
 #[derive(Resource)]
 pub struct MoveableObjectSensitivity {
-    pub move_sensitivity: f32,
+    pub move_sensitivity:   f32,
     pub rotate_sensitivity: f32,
 }
 
 impl Default for MoveableObjectSensitivity {
     fn default() -> Self {
         Self {
-            move_sensitivity: 1.0,
+            move_sensitivity:   1.0,
             rotate_sensitivity: 1.0,
         }
     }

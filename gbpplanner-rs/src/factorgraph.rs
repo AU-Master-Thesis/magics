@@ -121,7 +121,7 @@ impl Material for LineMaterial {
 
 #[derive(Component)]
 pub struct FactorGraph {
-    factors: Vec<Factor>,
+    factors:   Vec<Factor>,
     variables: Vec<Variable>,
 }
 
@@ -146,7 +146,7 @@ fn insert_dummy_factor_graph(
     let factors = vec![Factor(0), Factor(1)];
 
     let factor_graph = FactorGraph {
-        factors: factors.clone(),
+        factors:   factors.clone(),
         variables: variables.clone(),
     };
 
@@ -204,15 +204,12 @@ fn insert_dummy_factor_graph(
     for (i, variable) in factor_graph.variables.iter().enumerate() {
         println!("Spawning variable: {:?}", variable);
 
-        commands.spawn((
-            *variable,
-            PbrBundle {
-                mesh: variable_mesh.clone(),
-                material: variable_material.clone(),
-                transform: Transform::from_translation(variable_positions[i]),
-                ..Default::default()
-            },
-        ));
+        commands.spawn((*variable, PbrBundle {
+            mesh: variable_mesh.clone(),
+            material: variable_material.clone(),
+            transform: Transform::from_translation(variable_positions[i]),
+            ..Default::default()
+        }));
     }
 
     for (i, factor) in factor_graph.factors.iter().enumerate() {
