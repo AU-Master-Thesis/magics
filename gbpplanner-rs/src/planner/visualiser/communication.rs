@@ -143,8 +143,8 @@ fn draw_communication_graph_v2(
 // !other_robot_state.interrobot_comms_active             })
 //             .filter_map(|(_, _, other_transform)| {
 //                 let distance =
-// transform.translation.distance(other_transform.translation);                 
-// if distance < communication_radius {                     
+// transform.translation.distance(other_transform.translation);
+// if distance < communication_radius {
 // Some(other_transform.translation)                 } else {
 //                     None
 //                 }

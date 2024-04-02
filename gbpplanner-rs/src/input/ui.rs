@@ -84,16 +84,10 @@ fn ui_actions(
     }
 
     if action_state.just_pressed(&UiAction::ChangeScaleKind) {
-        match ui_state.scale_type {
-            UiScaleType::None => {
-                ui_state.scale_type = UiScaleType::Custom;
-            }
-            UiScaleType::Custom => {
-                ui_state.scale_type = UiScaleType::Window;
-            }
-            UiScaleType::Window => {
-                ui_state.scale_type = UiScaleType::None;
-            }
-        }
+        ui_state.scale_type = match ui_state.scale_type {
+            UiScaleType::None => UiScaleType::Custom,
+            UiScaleType::Custom => UiScaleType::Window,
+            UiScaleType::Window => UiScaleType::None,
+        };
     }
 }

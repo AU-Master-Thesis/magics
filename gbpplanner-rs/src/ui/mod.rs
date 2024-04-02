@@ -3,7 +3,10 @@ mod custom;
 mod decoration;
 mod settings;
 
-use bevy::{input::common_conditions::*, prelude::*, window::WindowTheme};
+use bevy::{
+    input::common_conditions::*, prelude::*, utils::tracing::instrument::WithSubscriber,
+    window::WindowTheme,
+};
 use bevy_egui::{
     egui::{self, Visuals},
     EguiContexts, EguiPlugin,
@@ -12,9 +15,10 @@ pub use controls::ChangingBinding;
 pub use decoration::ToDisplayString;
 pub use settings::{DrawSettingsEvent, ExportGraphEvent};
 use strum_macros::EnumIter;
+use tap::Tap;
 
 use self::{controls::ControlsPanelPlugin, settings::SettingsPanelPlugin};
-use crate::theme::CatppuccinThemeVisualsExt;
+use crate::{asset_loader::SceneAssets, theme::CatppuccinThemeVisualsExt};
 
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/
@@ -60,14 +64,17 @@ fn hide_panels(mut ui_state: ResMut<UiState>) {
 pub struct ActionBlock(bool);
 
 impl ActionBlock {
+    #[inline]
     pub fn block(&mut self) {
         self.0 = true;
     }
 
+    #[inline]
     pub fn unblock(&mut self) {
         self.0 = false;
     }
 
+    #[inline]
     pub fn is_blocked(&self) -> bool {
         self.0
     }
@@ -80,17 +87,12 @@ struct OccupiedScreenSpace {
     right: f32,
 }
 
-#[derive(EnumIter)]
+#[derive(EnumIter, Default)]
 pub enum UiScaleType {
     None,
     Custom,
+    #[default]
     Window,
-}
-
-impl Default for UiScaleType {
-    fn default() -> Self {
-        Self::Custom
-    }
 }
 
 impl ToDisplayString for UiScaleType {
@@ -140,7 +142,11 @@ impl Default for UiState {
 
 /// `Setup` **Bevy** system to initialise the `egui` visuals
 /// This is where the **default** for `egui` is set
-fn configure_visuals(mut contexts: EguiContexts, windows: Query<&Window>) {
+fn configure_visuals(
+    mut contexts: EguiContexts,
+    windows: Query<&Window>,
+    // scene_assets: Res<SceneAssets>,
+) {
     let window = windows.single();
     contexts.ctx_mut().set_visuals(match window.window_theme {
         Some(WindowTheme::Dark) => Visuals::catppuccin_dark(),
@@ -157,6 +163,11 @@ fn configure_visuals(mut contexts: EguiContexts, windows: Query<&Window>) {
             "../../assets/fonts/JetBrainsMonoNerdFont-Regular.ttf"
         )),
     );
+
+    // fonts.font_data.insert(
+    //     "JetBrainsMonoNerdFont-Regular".to_owned(),
+    //     egui::FontData::from_owned(),
+    // );
 
     // Put JetBrainsMono first (highest priority) for proportional text:
     fonts
