@@ -9,6 +9,10 @@ const INITIAL_CAMERA_DISTANCE: f32 = 125.0;
 pub const SPEED: f32 = INITIAL_CAMERA_DISTANCE / 10.0;
 pub const ANGULAR_SPEED: f32 = 2.0;
 
+const CAMERA_UP: Vec3 = Vec3::NEG_Z;
+const CAMERA_INITIAL_TARGET: Vec3 = Vec3::ZERO;
+const CAMERA_INITIAL_POSITION: Vec3 = Vec3::new(0.0, INITIAL_CAMERA_DISTANCE, 0.0);
+
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
@@ -16,12 +20,12 @@ impl Plugin for CameraPlugin {
         app.add_event::<CameraResetEvent>()
             .init_state::<CameraMovementMode>()
             .add_systems(Startup, spawn_camera)
-            .add_systems(Update, reset_camera);
+            .add_systems(Update, reset_camera.run_if(on_event::<CameraResetEvent>()));
     }
 }
 
 /// **Bevy** `Event` to reset the main camera's position and rotation
-#[derive(Debug, Default, Event)]
+#[derive(Debug, Event)]
 pub struct CameraResetEvent;
 
 /// **Bevy** `Component` for the main camera
@@ -41,8 +45,8 @@ pub enum CameraMovementMode {
 fn spawn_camera(mut commands: Commands) {
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(0.0, INITIAL_CAMERA_DISTANCE, 0.0)
-                .looking_at(Vec3::ZERO, -Vec3::Z),
+            transform: Transform::from_translation(CAMERA_INITIAL_POSITION)
+                .looking_at(CAMERA_INITIAL_TARGET, CAMERA_UP),
             ..default()
         },
         LinearMovementBundle::default(),
@@ -55,17 +59,15 @@ fn spawn_camera(mut commands: Commands) {
 /// **Bevy** [`Update`] system listening to [`CameraResetEvent`]
 /// To reset the main camera's position and rotation
 fn reset_camera(
-    mut camera_query: Query<(&MainCamera, &mut Transform, &mut Orbit)>,
+    mut camera_query: Query<(&mut Transform, &mut Orbit), With<MainCamera>>,
     mut next_movement_mode: ResMut<NextState<CameraMovementMode>>,
-    mut camera_reset_event: EventReader<CameraResetEvent>,
 ) {
-    for _ in camera_reset_event.read() {
-        next_movement_mode.set(CameraMovementMode::Pan);
-        for (_, mut transform, mut orbit) in camera_query.iter_mut() {
-            transform.translation = Vec3::new(0.0, INITIAL_CAMERA_DISTANCE, 0.0);
-            transform.look_at(Vec3::ZERO, Vec3::Z);
+    next_movement_mode.set(CameraMovementMode::Pan);
 
-            orbit.origin = Vec3::ZERO;
-        }
+    for (mut transform, mut orbit) in camera_query.iter_mut() {
+        transform.translation = CAMERA_INITIAL_POSITION;
+        transform.look_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
+
+        orbit.origin = Vec3::ZERO;
     }
 }

@@ -41,9 +41,9 @@ impl Plugin for SettingsPanelPlugin {
     }
 }
 
-fn show_right_panel(ui: Res<UiState>) -> bool {
-    ui.right_panel
-}
+// fn show_right_panel(ui: Res<UiState>) -> bool {
+//     ui.right_panel_visible
+// }
 
 /// Simple **Bevy** trigger `Event`
 /// Write to this event whenever you want to toggle the environment
@@ -179,7 +179,7 @@ fn ui_settings_panel(
     let right_panel = egui::SidePanel::right("Settings Panel")
         .default_width(200.0)
         .resizable(false)
-        .show_animated(ctx, ui_state.right_panel, |ui| {
+        .show_animated(ctx, ui_state.right_panel_visible, |ui| {
             if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs
             {
                 ui_state.mouse_over.right_panel = true;

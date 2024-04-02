@@ -76,11 +76,11 @@ fn ui_actions(
     };
 
     if action_state.just_pressed(&UiAction::ToggleLeftPanel) {
-        ui_state.left_panel = !ui_state.left_panel;
+        ui_state.left_panel_visible = !ui_state.left_panel_visible;
     }
 
     if action_state.just_pressed(&UiAction::ToggleRightPanel) {
-        ui_state.right_panel = !ui_state.right_panel;
+        ui_state.right_panel_visible = !ui_state.right_panel_visible;
     }
 
     if action_state.just_pressed(&UiAction::ChangeScaleKind) {
