@@ -81,6 +81,11 @@ fn create_waypoint_mesh(
                 mesh: scene_assets.meshes.waypoint.clone(),
                 material: scene_assets.materials.waypoint.clone(),
                 transform,
+                visibility: if config.visualisation.draw.waypoints {
+                    Visibility::Visible
+                } else {
+                    Visibility::Hidden
+                },
                 ..default()
             },
         ));

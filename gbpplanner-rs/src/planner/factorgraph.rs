@@ -99,12 +99,22 @@ impl AsNodeIndex for VariableIndex {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub struct FactorId {
     pub factorgraph_id: FactorGraphId,
     pub factor_index:   FactorIndex,
     pub color:          &'static str,
 }
+
+// implement PartialEq and Eq manually
+impl std::cmp::PartialEq for FactorId {
+    // No need to compare color
+    fn eq(&self, other: &Self) -> bool {
+        self.factorgraph_id == other.factorgraph_id && self.factor_index == other.factor_index
+    }
+}
+
+impl std::cmp::Eq for FactorId {}
 
 impl FactorId {
     pub fn new_ambiguous(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
@@ -150,14 +160,26 @@ impl FactorId {
     pub fn global_id(&self) -> String {
         format!("{:?}-{}", self.factorgraph_id, self.factor_index.0.index())
     }
+
+    pub fn get_factor_graph_id(&self) -> FactorGraphId {
+        self.factorgraph_id
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub struct VariableId {
     pub factorgraph_id: FactorGraphId,
     pub variable_index: VariableIndex,
     pub color:          &'static str,
 }
+
+// implement PartialEq and Eq manually
+impl std::cmp::PartialEq for VariableId {
+    fn eq(&self, other: &Self) -> bool {
+        self.factorgraph_id == other.factorgraph_id && self.variable_index == other.variable_index
+    }
+}
+impl std::cmp::Eq for VariableId {}
 
 impl VariableId {
     pub fn new(factorgraph_id: FactorGraphId, variable_index: VariableIndex) -> Self {
@@ -174,6 +196,10 @@ impl VariableId {
             self.factorgraph_id,
             self.variable_index.0.index()
         )
+    }
+
+    pub fn get_factor_graph_id(&self) -> FactorGraphId {
+        self.factorgraph_id
     }
 }
 
@@ -514,6 +540,10 @@ impl FactorGraph {
         };
         let node_index = self.graph.add_node(node);
         self.variable_indices.push(node_index);
+        self.graph[node_index]
+            .as_variable_mut()
+            .expect("just added the variable to the graph in the previous statement")
+            .set_node_index(node_index);
         info!(
             "added a variable with node_index: {:?} to factorgraph: {:?}",
             node_index, self.id
@@ -581,7 +611,10 @@ impl FactorGraph {
         let node = &mut self.graph[factor_id.factor_index.as_node_index()];
         match node.kind {
             NodeKind::Factor(ref mut factor) => {
-                factor.receive_message_from(variable_id, message_to_factor)
+                // NOTE: If this message were not empty, half a variable iteration will have
+                // happened manually in secret, which is not wanted
+                factor.receive_message_from(variable_id, Message::empty(dofs))
+                // factor.receive_message_from(variable_id, message_to_factor)
             }
             // .receive_message_from(VariableId::new(self.id, variable_index), message_to_factor),
             NodeKind::Variable(_) => {
@@ -813,7 +846,8 @@ impl FactorGraph {
                     // let factor_global_identifier = factor_id.global_id();
                     // let variable_global_identifier = variable_id.global_id();
                     // pretty_print_message!(factor_global_identifier, variable_global_identifier);
-                    pretty_print_message!(factor_id, variable_id, "factor iteration");
+                    // NOTE: pretty print the message
+                    // pretty_print_message!(factor_id, variable_id, "factor iteration");
 
                     variable.receive_message_from(factor_id, message);
                 } else {
@@ -864,6 +898,7 @@ impl FactorGraph {
             let variable_index = VariableIndex(node_index);
 
             let factor_messages = variable.update_belief_and_create_factor_responses();
+            // dbg!(&factor_messages);
             if factor_messages.is_empty() {
                 panic!(
                     "The factorgraph {:?} with variable {:?} did not receive any messages from \
@@ -898,12 +933,14 @@ impl FactorGraph {
                         .as_factor()
                         .expect("A factor index should point to a Factor in the graph");
                     // info!(
-                    //     "Message variable {:?}\t->\tfactor {:?}\tfactor variant: {:?}",
-                    //     variable_id,
+                    //     "Message variable {:?}\t->\tfactor {:?}\tfactor
+                    // variant: {:?}",     variable_id,
                     //     factor_id,
                     //     factor.variant()
                     // );
-                    pretty_print_message!(variable_id, factor_id, "variable iteration");
+                    // NOTE: pretty print the message
+                    // pretty_print_message!(variable_id, factor_id, "variable
+                    // iteration");
                 } else {
                     // error!(
                     //     "message from factor_id: {:?} to variable_id: {:?} is external",

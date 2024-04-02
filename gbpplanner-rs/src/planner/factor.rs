@@ -8,7 +8,7 @@ use bevy::{
     log::{info, warn},
     render::texture::Image,
 };
-use gbp_linalg::{pretty_print_matrix, Float, Matrix, Vector, VectorNorm};
+use gbp_linalg::{pretty_print_matrix, pretty_print_vector, Float, Matrix, Vector, VectorNorm};
 use ndarray::{array, concatenate, s, Axis};
 use petgraph::prelude::NodeIndex;
 use typed_floats::StrictlyPositiveFinite;
@@ -18,7 +18,11 @@ use super::{
     message::Message,
     robot::RobotId,
 };
-use crate::planner::marginalise_factor_distance::marginalise_factor_distance;
+use crate::{
+    escape_codes::*,
+    planner::{factorgraph::FactorId, marginalise_factor_distance::marginalise_factor_distance},
+    pretty_print_message,
+};
 
 // TODO: make generic over f32 | f64
 // TODO: hide the state parameter from the public API, by having the `Factor`
@@ -92,8 +96,8 @@ impl InterRobotConnection {
 pub struct InterRobotFactor {
     safety_distance: Float,
     // skip:            Skip,
-    skip: bool,
-    pub connection: InterRobotConnection,
+    skip:            bool,
+    pub connection:  InterRobotConnection,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -301,7 +305,7 @@ impl DynamicFactor {
         ];
         debug_assert_eq!(cached_jacobian.shape(), &[dofs, dofs * 2]);
 
-        pretty_print_matrix!(&cached_jacobian);
+        // pretty_print_matrix!(&cached_jacobian);
 
         // std::process::exit(1);
 
@@ -384,7 +388,7 @@ pub struct ObstacleFactor {
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy
     /// of here since `ObstacleFactor` needs this information to calculate
     /// `.jacobian_delta()` and `.measurement()`
-    world_size: Float,
+    world_size:   Float,
 }
 
 impl std::fmt::Debug for ObstacleFactor {
@@ -419,6 +423,7 @@ impl Model for ObstacleFactor {
     }
 
     fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+        // pretty_print_vector!(x);
         debug_assert!(x.len() >= 2, "x.len() = {}", x.len());
         // White areas are obstacles, so h(0) should return a 1 for these regions.
         let scale = self.obstacle_sdf.width() as Float / self.world_size;
@@ -445,6 +450,7 @@ impl Model for ObstacleFactor {
         // dbg!(offset);
         let pixel_x = ((x[0] + offset) * scale) as u32;
         let pixel_y = ((x[1] + offset) * scale) as u32;
+        // println!("pixel_x = {}, pixel_y = {}", pixel_x, pixel_y);
         // dbg!(pixel_x, pixel_y);
         // assert_eq!((self.obstacle_sdf.width() * self.obstacle_sdf.height() * 4) as
         // usize, self.obstacle_sdf.data.len()); multiply by 4 because the image
@@ -470,6 +476,8 @@ impl Model for ObstacleFactor {
         //     println!("image(x={}, y={}).z {} (scale = {})", pixel_x, pixel_y,
         // hsv_value, scale); }
         // dbg!(hsv_value);
+
+        println!("hsv_value = {}", hsv_value);
 
         array![hsv_value]
     }
@@ -625,17 +633,17 @@ impl Model for FactorKind {
 #[derive(Debug, Clone)]
 pub struct FactorState {
     /// called `z_` in **gbpplanner**
-    pub initial_measurement: Vector<Float>,
+    pub initial_measurement:   Vector<Float>,
     /// called `meas_model_lambda_` in **gbpplanner**
     pub measurement_precision: Matrix<Float>,
     /// Stored linearisation point
     /// called `X_` in **gbpplanner**, they use `Eigen::MatrixXd` instead
-    pub linearisation_point: Vector<Float>,
+    pub linearisation_point:   Vector<Float>,
     /// Strength of the factor. Called `sigma` in gbpplanner.
     /// The factor precision $Lambda = sigma^-2 * Identify$
-    pub strength: Float,
+    pub strength:              Float,
     /// Number of degrees of freedom e.g. 4 [x, y, x', y']
-    pub dofs: NonZeroUsize,
+    pub dofs:                  NonZeroUsize,
 
     /// Cached value of the factors jacobian function
     /// called `J_` in **gbpplanner**
@@ -646,7 +654,7 @@ pub struct FactorState {
     pub cached_measurement: Vector<Float>,
     /// Set to true after the first call to self.update()
     /// TODO: move to FactorState
-    initialized: bool,
+    initialized:            bool,
 }
 
 impl FactorState {
@@ -680,11 +688,11 @@ pub struct Factor {
     /// Unique identifier that associates the variable with a factorgraph/robot.
     pub node_index: Option<NodeIndex>,
     /// State common between all factor kinds
-    pub state: FactorState,
+    pub state:      FactorState,
     /// Variant storing the specialized behavior of each Factor kind.
-    pub kind: FactorKind,
+    pub kind:       FactorKind,
     /// Mailbox for incoming message storage
-    pub inbox: MessagesFromFactors,
+    pub inbox:      MessagesFromFactors,
 }
 
 impl Factor {
@@ -829,6 +837,8 @@ impl Factor {
             .dot(&self.state.measurement_precision)
             .dot(&(jacobian.dot(&self.state.linearisation_point) + self.residual()));
 
+        // pretty_print_vector!(&factor_eta_potential);
+
         self.state.initialized = true;
 
         let mut marginalisation_idx = 0;
@@ -836,26 +846,46 @@ impl Factor {
 
         let zero_precision = Matrix::<Float>::zeros((dofs, dofs));
 
+        let color_code = match self.kind {
+            FactorKind::Pose(_) => MAGENTA,
+            FactorKind::InterRobot(_) => GREEN,
+            FactorKind::Dynamic(_) => BLUE,
+            FactorKind::Obstacle(_) => RED,
+        };
+        println!(
+            "{}{}{} UPDATE",
+            color_code,
+            self.node_index.unwrap().index(),
+            RESET
+        );
         for variable_id in self.inbox.keys() {
             let mut factor_eta = factor_eta_potential.clone();
             let mut factor_lambda = factor_lambda_potential.clone();
 
             for (j, (other_variable_id, other_message)) in self.inbox.iter().enumerate() {
-                if other_variable_id != variable_id {
-                    let message_eta = other_message
-                        .information_vector()
-                        .expect("it better be there");
-                    // let message_mean = other_message.mean().unwrap_or(&zero_mean);
-                    let message_precision =
-                        other_message.precision_matrix().unwrap_or(&zero_precision);
-                    factor_eta
-                        .slice_mut(s![j * dofs..(j + 1) * dofs])
-                        .add_assign(message_eta);
-                    factor_lambda
-                        .slice_mut(s![j * dofs..(j + 1) * dofs, j * dofs..(j + 1) * dofs])
-                        .add_assign(message_precision);
+                // Do not aggregate data from the variable we're sending to
+                if other_variable_id == variable_id {
+                    continue;
                 }
+
+                let message_eta = other_message
+                    .information_vector()
+                    .expect("it better be there");
+
+                println!("{}{}{} eta = ", YELLOW, variable_id.global_id(), RESET);
+                pretty_print_vector!(message_eta);
+
+                let message_precision = other_message.precision_matrix().unwrap_or(&zero_precision);
+
+                factor_eta
+                    .slice_mut(s![j * dofs..(j + 1) * dofs])
+                    .add_assign(message_eta);
+                factor_lambda
+                    .slice_mut(s![j * dofs..(j + 1) * dofs, j * dofs..(j + 1) * dofs])
+                    .add_assign(message_precision);
             }
+
+            // pretty_print_vector!(&factor_eta);
 
             let message =
                 marginalise_factor_distance(factor_eta, factor_lambda, dofs, marginalisation_idx)
@@ -863,6 +893,34 @@ impl Factor {
             messages.insert(*variable_id, message);
             marginalisation_idx += dofs;
         }
+
+        messages.iter().for_each(|(variable_id, message)| {
+            pretty_print_message!(
+                match self.kind {
+                    FactorKind::Pose(_) => FactorId::new_pose(
+                        variable_id.get_factor_graph_id(),
+                        self.node_index.unwrap().into()
+                    ),
+                    FactorKind::InterRobot(_) => FactorId::new_interrobot(
+                        variable_id.get_factor_graph_id(),
+                        self.node_index.unwrap().into()
+                    ),
+                    FactorKind::Dynamic(_) => FactorId::new_dynamic(
+                        variable_id.get_factor_graph_id(),
+                        self.node_index.unwrap().into()
+                    ),
+                    FactorKind::Obstacle(_) => FactorId::new_obstacle(
+                        variable_id.get_factor_graph_id(),
+                        self.node_index.unwrap().into()
+                    ),
+                },
+                variable_id,
+                self.kind.name()
+            );
+            pretty_print_vector!(message.information_vector().unwrap());
+            pretty_print_matrix!(message.precision_matrix().unwrap());
+            pretty_print_vector!(message.mean().unwrap());
+        });
 
         messages
     }

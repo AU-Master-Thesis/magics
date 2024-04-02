@@ -17,7 +17,7 @@ height-map = 1.0
 robots                 = false
 communication-graph    = true
 predicted-trajectories = true
-waypoints              = true
+waypoints              = false
 uncertainty            = true
 paths                  = true
 height-map             = false
@@ -29,11 +29,11 @@ sigma-pose-fixed        = 0.0000000000000010000000036274937
 sigma-factor-dynamics   = 0.10000000149011612
 sigma-factor-interrobot = 0.009999999776482582
 sigma-factor-obstacle   = 0.009999999776482582
-iterations-per-timestep = 10
+iterations-per-timestep = 1
 lookahead-multiple      = 3
 
 [robot]
-planning-horizon  = 1.0
+planning-horizon  = 0.75
 max-speed         = 2.0
 dofs              = 4
 symmetric-factors = true

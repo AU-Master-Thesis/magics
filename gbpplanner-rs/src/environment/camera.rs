@@ -42,7 +42,7 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(0.0, INITIAL_CAMERA_DISTANCE, 0.0)
-                .looking_at(Vec3::ZERO, Vec3::Z),
+                .looking_at(Vec3::ZERO, -Vec3::Z),
             ..default()
         },
         LinearMovementBundle::default(),

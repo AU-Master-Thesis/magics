@@ -91,8 +91,8 @@ fn finish_manual_step(
 ) {
     match state.get() {
         ManualModeState::Enabled {
-            iterations_remaining: 0,
-        } => {
+            iterations_remaining,
+        } if (0..=1).contains(iterations_remaining) => {
             next_state.set(ManualModeState::Disabled);
             pause_play_event.send(PausePlayEvent::Pause);
         }
@@ -344,13 +344,10 @@ impl RobotBundle {
         let ndofs = 4; // [x, y, x', y']
 
         let mut factorgraph = FactorGraph::new(robot_id);
-
         let last_variable_timestep = *variable_timesteps
             .last()
             .expect("Know that variable_timesteps has at least one element");
-
         let n_variables = variable_timesteps.len();
-
         let mut variable_node_indices = Vec::with_capacity(n_variables);
 
         for (i, &variable_timestep) in variable_timesteps.iter().enumerate()
@@ -418,6 +415,7 @@ impl RobotBundle {
                 factor_id,
             );
         }
+        // std::process::exit(0);
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
         #[allow(clippy::needless_range_loop)]
@@ -437,6 +435,7 @@ impl RobotBundle {
                 factor_id,
             );
         }
+        // std::process::exit(0);
 
         Ok(Self {
             factorgraph,

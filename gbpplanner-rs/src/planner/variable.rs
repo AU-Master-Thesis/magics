@@ -1,10 +1,17 @@
 use bevy::log::{debug, error};
 use gbp_linalg::{pretty_print_matrix, pretty_print_vector, Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
+use tap::Tap;
 
 use super::{
-    factorgraph::{FactorGraphNode, FactorId, MessagesFromVariables, MessagesToFactors},
+    factorgraph::{
+        FactorGraphNode, FactorId, MessagesFromVariables, MessagesToFactors, VariableId,
+    },
     message::{Eta, Lam, Message, Mu},
+};
+use crate::{
+    planner::{factorgraph::VariableIndex, NodeIndex},
+    pretty_print_message,
 };
 
 #[derive(Debug, Clone)]
@@ -76,6 +83,9 @@ pub struct Variable {
     // pub valid: bool,
     /// Mailbox for incoming message storage
     pub inbox: MessagesToFactors,
+
+    /// index
+    pub node_index: Option<NodeIndex>,
 }
 
 impl Variable {
@@ -112,7 +122,7 @@ impl Variable {
             lam_prior.fill(0.0);
         }
 
-        pretty_print_matrix!(&lam_prior);
+        // pretty_print_matrix!(&lam_prior);
 
         let eta_prior = lam_prior.dot(&mu_prior);
         let sigma = lam_prior
@@ -133,6 +143,7 @@ impl Variable {
             // sigma,
             // valid: false,
             inbox: MessagesToFactors::new(),
+            node_index: None,
         }
 
         // Self {
@@ -141,6 +152,13 @@ impl Variable {
         //     dofs,
         //     inbox: Inbox::new(),
         // }
+    }
+
+    pub fn set_node_index(&mut self, index: NodeIndex) {
+        if self.node_index.is_some() {
+            panic!("The node index is already set");
+        }
+        self.node_index = Some(index);
     }
 
     // pub fn new(mut mu_prior: Vector<Float>, mut
@@ -247,13 +265,14 @@ impl Variable {
             }
         }
 
-        pretty_print_matrix!(&self.prior.lam);
-        pretty_print_vector!(&self.prior.eta);
-        pretty_print_matrix!(&self.belief.lam);
-        pretty_print_vector!(&self.belief.eta);
-        pretty_print_vector!(&self.belief.mu);
+        // pretty_print_matrix!(&self.prior.lam);
+        // pretty_print_vector!(&self.prior.eta);
+        // pretty_print_matrix!(&self.belief.lam);
+        // pretty_print_vector!(&self.belief.eta);
+        // pretty_print_vector!(&self.belief.mu);
 
-        self.inbox
+        let messages = self
+            .inbox
             .iter()
             .map(|(&factor_id, received_message)| {
                 let response = received_message.payload().map_or_else(
@@ -274,7 +293,23 @@ impl Variable {
                 );
                 (factor_id, response)
             })
-            .collect()
+            .collect::<MessagesFromVariables>();
+
+        messages.iter().for_each(|(factor_id, message)| {
+            pretty_print_message!(
+                VariableId::new(
+                    factor_id.get_factor_graph_id(),
+                    self.node_index.unwrap().into()
+                ),
+                factor_id,
+                ""
+            );
+            pretty_print_vector!(message.information_vector().unwrap());
+            pretty_print_matrix!(message.precision_matrix().unwrap());
+            pretty_print_vector!(message.mean().unwrap());
+        });
+
+        messages
 
         // self.inbox
         //     .iter()

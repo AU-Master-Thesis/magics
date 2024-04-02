@@ -104,7 +104,7 @@ macro_rules! boolean_bevy_resource {
 /// Takes a [`VariableId`] and a [`FactorId`], as 'from' and 'to' of the message
 #[macro_export]
 macro_rules! pretty_print_message {
-    ($from:expr, $to:expr, $post:literal) => {
+    ($from:expr, $to:expr, $post:expr) => {
         println!(
             "{}:{} │ {}{}{} -> {}{}{} │ {}",
             file!().split("/").last().unwrap(),

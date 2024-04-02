@@ -126,8 +126,11 @@ pub fn _pretty_print_matrix<T, M>(
     // print the top border
     if let Some(name) = name {
         // handle if name is longer than cell_columns
-        if name.len() + dims.len() - 2 > total_width {
-            println!("{}:{}{}{}", name, MAGENTA_TEXT, dims, RESET_TEXT);
+        if name.len() + dims.len() > total_width {
+            println!(
+                "{}{}{}:{}{}{}",
+                CYAN_TEXT, name, RESET_TEXT, MAGENTA_TEXT, dims, RESET_TEXT
+            );
             println!(
                 "{}{}{}",
                 UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
@@ -227,19 +230,38 @@ pub fn _pretty_print_vector<T, V>(
         println!("{}:{}{}{}", file, YELLOW_TEXT, line, RESET_TEXT);
     }
 
+    // println!(
+    //     "vector.len() = {}, total_width = {}, cell_width = {}, name.len() = {}",
+    //     vector.len(),
+    //     total_width,
+    //     cell_width,
+    //     name.map_or(0, |s| s.len())
+    // );
+
     if let Some(name) = name {
-        println!(
-            "{}{}{}{}{}{}{}{}{}",
-            UPPER_LEFT_CORNER,
-            CYAN_TEXT,
-            name,
-            RESET_TEXT,
-            "─".repeat(total_width - name.len() - dims.len()),
-            MAGENTA_TEXT,
-            dims,
-            RESET_TEXT,
-            UPPER_RIGHT_CORNER
-        );
+        if name.len() + dims.len() > total_width {
+            println!(
+                "{}{}{}:{}{}{}",
+                CYAN_TEXT, name, RESET_TEXT, MAGENTA_TEXT, dims, RESET_TEXT
+            );
+            println!(
+                "{}{}{}",
+                UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
+            );
+        } else {
+            println!(
+                "{}{}{}{}{}{}{}{}{}",
+                UPPER_LEFT_CORNER,
+                CYAN_TEXT,
+                name,
+                RESET_TEXT,
+                "─".repeat(total_width - name.len() - dims.len()),
+                MAGENTA_TEXT,
+                dims,
+                RESET_TEXT,
+                UPPER_RIGHT_CORNER
+            );
+        }
     } else {
         println!(
             "{}{}{}",

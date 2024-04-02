@@ -34,17 +34,36 @@ pub fn get_variable_timesteps(lookahead_horizon: u32, lookahead_multiple: u32) -
     // desmos graph. https://www.desmos.com/calculator/lxxsuqtgdq
     let estimated_capacity = (2.5 * f32::sqrt(lookahead_horizon as f32)) as usize;
     let mut timesteps = Vec::<u32>::with_capacity(estimated_capacity);
-    timesteps.push(0);
+    // timesteps.push(0);
+
+    let N = 1
+        + (0.5
+            * (-1.0 + f32::sqrt(1.0 + 8.0 * lookahead_horizon as f32 / lookahead_multiple as f32)))
+            as u32;
     // TODO: use std::iter::successors instead
-    for i in 1..lookahead_horizon {
-        // timesteps[i] = timesteps[i-1] + (i - 1) / lookahead_multiple + 1;
-        let ts = timesteps[timesteps.len() - 1] + ((i - 1) / lookahead_multiple) + 1;
-        if ts >= lookahead_horizon {
+    for i in 0..(lookahead_multiple * (N + 1)) {
+        let section = i / lookahead_multiple;
+        let f = (i as f32 - section as f32 * lookahead_multiple as f32
+            + lookahead_multiple as f32 / 2.0 * section as f32)
+            * (section as f32 + 1.0);
+
+        if f >= lookahead_horizon as f32 {
             timesteps.push(lookahead_horizon);
             break;
         }
-        timesteps.push(ts);
+
+        timesteps.push(f as u32);
+
+        // // timesteps[i] = timesteps[i-1] + (i - 1) / lookahead_multiple + 1;
+        // let ts = timesteps[timesteps.len() - 1] + ((i - 1) /
+        // lookahead_multiple) + 1; if ts >= lookahead_horizon {
+        //     timesteps.push(lookahead_horizon);
+        //     break;
+        // }
+        // timesteps.push(ts);
     }
+
+    println!("TIMESTEPS {:?}", timesteps);
 
     timesteps
 }
@@ -69,6 +88,14 @@ mod tests {
 
     #[test]
     fn test_get_variable_timesteps() {
+        let lookahead_horizon = 4;
+        let lookahead_multiple = 3;
+
+        assert_eq!(
+            get_variable_timesteps(lookahead_horizon, lookahead_multiple),
+            vec![0, 1, 2, 3, 4]
+        );
+
         let lookahead_horizon = 30;
         let lookahead_multiple = 3;
 
