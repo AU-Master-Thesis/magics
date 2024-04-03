@@ -477,7 +477,7 @@ impl Model for ObstacleFactor {
         // hsv_value, scale); }
         // dbg!(hsv_value);
 
-        println!("hsv_value = {}", hsv_value);
+        // println!("hsv_value = {}", hsv_value);
 
         array![hsv_value]
     }
@@ -852,12 +852,12 @@ impl Factor {
             FactorKind::Dynamic(_) => BLUE,
             FactorKind::Obstacle(_) => RED,
         };
-        println!(
-            "{}{}{} UPDATE",
-            color_code,
-            self.node_index.unwrap().index(),
-            RESET
-        );
+        // println!(
+        //     "{}{}{} UPDATE",
+        //     color_code,
+        //     self.node_index.unwrap().index(),
+        //     RESET
+        // );
         for variable_id in self.inbox.keys() {
             let mut factor_eta = factor_eta_potential.clone();
             let mut factor_lambda = factor_lambda_potential.clone();
@@ -872,8 +872,8 @@ impl Factor {
                     .information_vector()
                     .expect("it better be there");
 
-                println!("{}{}{} eta = ", YELLOW, variable_id.global_id(), RESET);
-                pretty_print_vector!(message_eta);
+                // println!("{}{}{} eta = ", YELLOW, variable_id.global_id(), RESET);
+                // pretty_print_vector!(message_eta);
 
                 let message_precision = other_message.precision_matrix().unwrap_or(&zero_precision);
 
@@ -894,33 +894,33 @@ impl Factor {
             marginalisation_idx += dofs;
         }
 
-        messages.iter().for_each(|(variable_id, message)| {
-            pretty_print_message!(
-                match self.kind {
-                    FactorKind::Pose(_) => FactorId::new_pose(
-                        variable_id.get_factor_graph_id(),
-                        self.node_index.unwrap().into()
-                    ),
-                    FactorKind::InterRobot(_) => FactorId::new_interrobot(
-                        variable_id.get_factor_graph_id(),
-                        self.node_index.unwrap().into()
-                    ),
-                    FactorKind::Dynamic(_) => FactorId::new_dynamic(
-                        variable_id.get_factor_graph_id(),
-                        self.node_index.unwrap().into()
-                    ),
-                    FactorKind::Obstacle(_) => FactorId::new_obstacle(
-                        variable_id.get_factor_graph_id(),
-                        self.node_index.unwrap().into()
-                    ),
-                },
-                variable_id,
-                self.kind.name()
-            );
-            pretty_print_vector!(message.information_vector().unwrap());
-            pretty_print_matrix!(message.precision_matrix().unwrap());
-            pretty_print_vector!(message.mean().unwrap());
-        });
+        // messages.iter().for_each(|(variable_id, message)| {
+        //     pretty_print_message!(
+        //         match self.kind {
+        //             FactorKind::Pose(_) => FactorId::new_pose(
+        //                 variable_id.get_factor_graph_id(),
+        //                 self.node_index.unwrap().into()
+        //             ),
+        //             FactorKind::InterRobot(_) => FactorId::new_interrobot(
+        //                 variable_id.get_factor_graph_id(),
+        //                 self.node_index.unwrap().into()
+        //             ),
+        //             FactorKind::Dynamic(_) => FactorId::new_dynamic(
+        //                 variable_id.get_factor_graph_id(),
+        //                 self.node_index.unwrap().into()
+        //             ),
+        //             FactorKind::Obstacle(_) => FactorId::new_obstacle(
+        //                 variable_id.get_factor_graph_id(),
+        //                 self.node_index.unwrap().into()
+        //             ),
+        //         },
+        //         variable_id,
+        //         self.kind.name()
+        //     );
+        //     pretty_print_vector!(message.information_vector().unwrap());
+        //     pretty_print_matrix!(message.precision_matrix().unwrap());
+        //     pretty_print_vector!(message.mean().unwrap());
+        // });
 
         messages
     }

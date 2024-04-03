@@ -8,6 +8,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 use bevy_mod_picking::prelude::*;
+use itertools::Itertools;
 use rand::Rng;
 use typed_floats::StrictlyPositiveFinite;
 
@@ -289,12 +290,30 @@ fn spawn_formation(
                 for_robot: robot_id,
                 position:  *p,
             }));
+
+            let mut waypoints_with_speed = waypoints
+                .iter()
+                .tuple_windows()
+                .map(|(a, b)| {
+                    let direction = *b - *a;
+                    let velocity = direction.normalize_or_zero() * max_speed;
+                    Vec4::new(a.x, a.y, velocity.x, velocity.y)
+                })
+                .collect::<VecDeque<_>>();
+            waypoints_with_speed.push_back(Vec4::new(
+                waypoints.last().unwrap().x,
+                waypoints.last().unwrap().y,
+                waypoints_with_speed.back().unwrap().x,
+                waypoints_with_speed.back().unwrap().y,
+            ));
+            println!("{:?}", waypoints_with_speed);
             let robotbundle = RobotBundle::new(
                 robot_id,
-                waypoints
-                    .iter()
-                    .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
-                    .collect::<VecDeque<_>>(),
+                waypoints_with_speed,
+                // waypoints
+                //     .iter()
+                //     .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
+                //     .collect::<VecDeque<_>>(),
                 variable_timesteps.timesteps.as_slice(),
                 &config,
                 OBSTACLE_IMAGE

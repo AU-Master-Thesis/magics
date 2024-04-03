@@ -205,8 +205,8 @@ impl Variable {
     pub fn change_prior(&mut self, mean: Vector<Float>) -> MessagesFromVariables {
         // let subtitle = format!("{}{}{}", RED, "Changing prior", RESET);
         // pretty_print_subtitle!(subtitle);
-        pretty_print_matrix!(&self.prior.lambda);
-        pretty_print_vector!(&mean);
+        // pretty_print_matrix!(&self.prior.lambda);
+        // pretty_print_vector!(&mean);
         self.prior.eta = self.prior.lambda.dot(&mean);
         // pretty_print_vector!(&self.prior.eta);
         // pretty_print_line!();
@@ -253,11 +253,11 @@ impl Variable {
         self.belief.eta = self.prior.eta.clone();
         self.belief.lambda = self.prior.lambda.clone();
 
-        let mut title = format!("{}{}{}", YELLOW, "Variable belief BEFORE update:", RESET);
-        pretty_print_subtitle!(title);
-        pretty_print_vector!(&self.belief.eta);
-        pretty_print_matrix!(&self.belief.lambda);
-        pretty_print_vector!(&self.belief.mu);
+        // let mut title = format!("{}{}{}", YELLOW, "Variable belief BEFORE update:",
+        // RESET); pretty_print_subtitle!(title);
+        // pretty_print_vector!(&self.belief.eta);
+        // pretty_print_matrix!(&self.belief.lambda);
+        // pretty_print_vector!(&self.belief.mu);
 
         // Go through received messages and update belief
         for (_, message) in self.inbox.iter() {
@@ -271,46 +271,40 @@ impl Variable {
         }
 
         // Update belief
-        if let Some(sigma) = self.belief.lambda.inv() {
-            pretty_print_matrix!(&sigma);
-            self.belief.sigma = sigma;
-            self.belief.valid = self.belief.sigma.iter().all(|x| x.is_finite());
-            if self.belief.valid {
-                self.belief.mu = self.belief.sigma.dot(&self.belief.eta);
-            } else {
-                println!(
-                    "{}:{},Variable covariance is not finite",
-                    file!().split('/').last().unwrap(),
-                    line!()
-                );
+        // NOTE: This might not be correct, but it seems the `.inv()` method doesn't
+        // catch and all-zero matrix
+        let lam_not_zero = self.belief.lambda.iter().any(|x| *x - 1e-6 > 0.0);
+        // println!("lam_not_zero: {}", lam_not_zero);
+        if lam_not_zero {
+            if let Some(sigma) = self.belief.lambda.inv() {
+                // pretty_print_matrix!(&sigma);
+                self.belief.sigma = sigma;
+                self.belief.valid = self.belief.sigma.iter().all(|x| x.is_finite());
+                if self.belief.valid {
+                    self.belief.mu = self.belief.sigma.dot(&self.belief.eta);
+                } else {
+                    println!(
+                        "{}:{},Variable covariance is not finite",
+                        file!().split('/').last().unwrap(),
+                        line!()
+                    );
+                }
             }
         }
 
-        title = format!("{}{}{}", YELLOW, "Variable belief AFTER update:", RESET);
-        pretty_print_subtitle!(title);
-        pretty_print_vector!(&self.belief.eta);
-        pretty_print_matrix!(&self.belief.lambda);
-        pretty_print_vector!(&self.belief.mu);
-        pretty_print_line!();
-
-        // pretty_print_matrix!(&self.prior.lam);
-        // pretty_print_vector!(&self.prior.eta);
-        // pretty_print_matrix!(&self.belief.lam);
+        // title = format!("{}{}{}", YELLOW, "Variable belief AFTER update:", RESET);
+        // pretty_print_subtitle!(title);
         // pretty_print_vector!(&self.belief.eta);
+        // pretty_print_matrix!(&self.belief.lambda);
         // pretty_print_vector!(&self.belief.mu);
+        // pretty_print_line!();
 
         let messages = self
             .inbox
             .iter()
             .map(|(&factor_id, received_message)| {
                 let response = received_message.payload().map_or_else(
-                    || {
-                        Message::new(
-                            Eta(self.belief.eta.clone()),
-                            Lam(self.belief.lambda.clone()),
-                            Mu(self.belief.mu.clone()),
-                        )
-                    },
+                    || self.prepare_message(),
                     |message_from_factor| {
                         // pretty_print_subtitle!("BEFORE FACTOR SUBSTRACTION");
                         // pretty_print_vector!(&self.belief.eta);
@@ -333,19 +327,19 @@ impl Variable {
             })
             .collect::<MessagesFromVariables>();
 
-        messages.iter().for_each(|(factor_id, message)| {
-            pretty_print_message!(
-                VariableId::new(
-                    factor_id.get_factor_graph_id(),
-                    self.node_index.unwrap().into()
-                ),
-                factor_id,
-                ""
-            );
-            pretty_print_vector!(message.information_vector().unwrap());
-            pretty_print_matrix!(message.precision_matrix().unwrap());
-            pretty_print_vector!(message.mean().unwrap());
-        });
+        // messages.iter().for_each(|(factor_id, message)| {
+        //     pretty_print_message!(
+        //         VariableId::new(
+        //             factor_id.get_factor_graph_id(),
+        //             self.node_index.unwrap().into()
+        //         ),
+        //         factor_id,
+        //         ""
+        //     );
+        //     pretty_print_vector!(message.information_vector().unwrap());
+        //     pretty_print_matrix!(message.precision_matrix().unwrap());
+        //     pretty_print_vector!(message.mean().unwrap());
+        // });
 
         messages
 
