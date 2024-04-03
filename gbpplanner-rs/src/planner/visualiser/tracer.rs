@@ -22,7 +22,7 @@ impl Plugin for TracerVisualiserPlugin {
             (
                 track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
                 draw_traces.run_if(draw_paths_enabled),
-                remove_trace_of_despawned_robot,
+                // remove_trace_of_despawned_robot,
             ),
         );
     }
