@@ -769,8 +769,8 @@ impl FactorGraph {
                             FactorKind::Dynamic(_) => graphviz::NodeKind::DynamicFactor,
                             FactorKind::Obstacle(_) => graphviz::NodeKind::ObstacleFactor,
                             FactorKind::Pose(_) => graphviz::NodeKind::PoseFactor,
-                            FactorKind::InterRobot(inner) => {
-                                graphviz::NodeKind::InterRobotFactor(inner.connection.clone())
+                            FactorKind::InterRobot(ref inner) => {
+                                graphviz::NodeKind::InterRobotFactor(inner.connection)
                             }
                         },
                         NodeKind::Variable(variable) => {

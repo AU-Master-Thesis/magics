@@ -41,6 +41,8 @@ trait Model {
     /// Whether the factor is linear or non-linear
     fn linear(&self) -> bool;
 
+    #[must_use]
+    #[inline]
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         self.first_order_jacobian(state, x.clone())
     }
@@ -92,10 +94,9 @@ impl InterRobotConnection {
 /// be in the same position at the same timestep (collision). This factor is
 /// created between variables of two robots. The factor has 0 energy if the
 /// variables are further away than the safety distance.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct InterRobotFactor {
     safety_distance: Float,
-    // skip:            Skip,
     skip:            bool,
     pub connection:  InterRobotConnection,
 }
@@ -119,7 +120,6 @@ impl InterRobotFactor {
 
         Ok(Self {
             safety_distance: 2.0 * robot_radius + epsilon,
-            // skip: Skip(false),
             skip: false,
             connection,
         })
@@ -232,13 +232,19 @@ impl Model for InterRobotFactor {
         let dofs = state.dofs.get();
         let offset = dofs / 2;
 
-        let v = state
+        // [..offset] is the position of the first variable
+        // [dofs..dofs + offset] is the position of the other variable
+
+        let difference_between_estimated_positions = state
             .linearisation_point
             .slice(s![..offset])
             .sub(&state.linearisation_point.slice(s![dofs..dofs + offset]));
-        let squared_norm = v.mapv(|x| x.powi(2)).sum();
+        let squared_norm = difference_between_estimated_positions
+            .mapv(|x| x.powi(2))
+            .sum();
 
-        let skip = squared_norm >= Float::powi(self.safety_distance, 2);
+        let skip = squared_norm >= self.safety_distance.powi(2);
+        // let skip = squared_norm >= Float::powi(self.safety_distance, 2);
         if self.skip != skip {
             // warn!(
             //     "skip = {}, squared_norm = {} safety_distance^2 = {}",
@@ -259,7 +265,7 @@ impl Model for InterRobotFactor {
 }
 
 /// Dynamic factor: constant velocity model
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct DynamicFactor {
     cached_jacobian: Matrix<Float>,
 }
@@ -345,7 +351,7 @@ impl Model for DynamicFactor {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PoseFactor;
 
 impl Model for PoseFactor {
@@ -412,10 +418,12 @@ impl ObstacleFactor {
 }
 
 impl Model for ObstacleFactor {
+    #[inline]
     fn name(&self) -> &'static str {
         "ObstacleFactor"
     }
 
+    #[inline]
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         // Same as PoseFactor
         // TODO: change to not clone x
@@ -498,7 +506,7 @@ impl Model for ObstacleFactor {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum FactorKind {
     Pose(PoseFactor),
     InterRobot(InterRobotFactor),
@@ -683,7 +691,7 @@ impl FactorState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Factor {
     /// Unique identifier that associates the variable with a factorgraph/robot.
     pub node_index: Option<NodeIndex>,
