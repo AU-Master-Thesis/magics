@@ -125,7 +125,7 @@ fn ui_controls_panel(
     let left_panel = egui::SidePanel::left("left_panel")
         .default_width(300.0)
         .resizable(false)
-        .show_animated(ctx, ui_state.left_panel, |ui| {
+        .show_animated(ctx, ui_state.left_panel_visible, |ui| {
             if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs
             {
                 ui_state.mouse_over.left_panel = true;

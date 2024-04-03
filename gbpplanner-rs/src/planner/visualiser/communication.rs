@@ -32,7 +32,8 @@ struct Edges(Vec<(Entity, Entity)>);
 
 impl Edges {
     /// Check if the edge exists in the set
-    /// Edges are undirected, therefore true is returned if either (a, b) or (b, a) exists
+    /// Edges are undirected, therefore true is returned if either (a, b) or (b,
+    /// a) exists
     fn contains(&self, edge: &(Entity, Entity)) -> bool {
         self.0.contains(edge) || self.0.contains(&(edge.1, edge.0))
     }
@@ -93,8 +94,8 @@ fn draw_communication_graph_v2(
 // / A robot is a neighbour if it is within the communication range
 // / `config.communication.range`
 // /
-// / However, if the robot's comms are off `RobotState.interrobot_comms_active ==
-// / false`, it will not draw a line segment
+// / However, if the robot's comms are off `RobotState.interrobot_comms_active
+// == / false`, it will not draw a line segment
 // fn draw_communication_graph(
 //     mut gizmos: Gizmos,
 //     mut commands: Commands,
@@ -120,8 +121,9 @@ fn draw_communication_graph_v2(
 //     //     return;
 //     // }
 
-//     // necessary to remake the line material, as it needs to change with the theme
-//     let color = Color::from_catppuccin_colour(catppuccin_theme.yellow());
+//     // necessary to remake the line material, as it needs to change with the
+// theme     let color =
+// Color::from_catppuccin_colour(catppuccin_theme.yellow());
 //     let line_material = materials.add(color);
 
 //     let communication_radius = config.robot.communication.radius.get();
@@ -137,13 +139,13 @@ fn draw_communication_graph_v2(
 //         let neighbours = robots_query
 //             .iter()
 //             .filter(|(other_robot_id, other_robot_state, _)| {
-//                 robot_id != *other_robot_id && !other_robot_state.interrobot_comms_active
-//             })
+//                 robot_id != *other_robot_id &&
+// !other_robot_state.interrobot_comms_active             })
 //             .filter_map(|(_, _, other_transform)| {
-//                 let distance = transform.translation.distance(other_transform.translation);
-//                 if distance < communication_radius {
-//                     Some(other_transform.translation)
-//                 } else {
+//                 let distance =
+// transform.translation.distance(other_transform.translation);
+// if distance < communication_radius {
+// Some(other_transform.translation)                 } else {
 //                     None
 //                 }
 //             })
@@ -156,9 +158,9 @@ fn draw_communication_graph_v2(
 //         // Make a line for each neighbour
 //         for neighbour_transform in neighbours {
 //             let line = Path::new(vec![
-//                 transform.translation + Vec3::new(0.0, Z_FIGHTING_OFFSET, 0.0),
-//                 neighbour_transform + Vec3::new(0.0, Z_FIGHTING_OFFSET, 0.0),
-//             ])
+//                 transform.translation + Vec3::new(0.0, Z_FIGHTING_OFFSET,
+// 0.0),                 neighbour_transform + Vec3::new(0.0, Z_FIGHTING_OFFSET,
+// 0.0),             ])
 //             .with_width(0.2);
 //             commands.spawn((
 //                 PbrBundle {

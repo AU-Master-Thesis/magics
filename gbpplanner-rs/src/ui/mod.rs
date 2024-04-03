@@ -3,7 +3,10 @@ mod custom;
 mod decoration;
 mod settings;
 
-use bevy::{prelude::*, window::WindowTheme};
+use bevy::{
+    input::common_conditions::*, prelude::*, utils::tracing::instrument::WithSubscriber,
+    window::WindowTheme,
+};
 use bevy_egui::{
     egui::{self, Visuals},
     EguiContexts, EguiPlugin,
@@ -12,9 +15,10 @@ pub use controls::ChangingBinding;
 pub use decoration::ToDisplayString;
 pub use settings::{DrawSettingsEvent, ExportGraphEvent};
 use strum_macros::EnumIter;
+use tap::Tap;
 
 use self::{controls::ControlsPanelPlugin, settings::SettingsPanelPlugin};
-use crate::theme::CatppuccinThemeVisualsExt;
+use crate::{asset_loader::SceneAssets, theme::CatppuccinThemeVisualsExt};
 
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/
@@ -34,7 +38,23 @@ impl Plugin for EguiInterfacePlugin {
             .init_resource::<UiState>()
             .add_plugins((EguiPlugin, ControlsPanelPlugin, SettingsPanelPlugin))
             .add_systems(Startup, configure_visuals)
-            .add_systems(Update, action_block);
+            .add_systems(Update, action_block)
+            .add_systems(
+                Update,
+                hide_panels.run_if(input_just_pressed(KeyCode::Escape)),
+            );
+    }
+}
+
+/// **Bevy** system that hides both the left and right ui panels, if any of them
+/// are visible.
+fn hide_panels(mut ui_state: ResMut<UiState>) {
+    if ui_state.left_panel_visible {
+        ui_state.left_panel_visible = false;
+    }
+
+    if ui_state.right_panel_visible {
+        ui_state.right_panel_visible = false;
     }
 }
 
@@ -44,14 +64,17 @@ impl Plugin for EguiInterfacePlugin {
 pub struct ActionBlock(bool);
 
 impl ActionBlock {
+    #[inline]
     pub fn block(&mut self) {
         self.0 = true;
     }
 
+    #[inline]
     pub fn unblock(&mut self) {
         self.0 = false;
     }
 
+    #[inline]
     pub fn is_blocked(&self) -> bool {
         self.0
     }
@@ -60,21 +83,16 @@ impl ActionBlock {
 /// Resource to store the occupied screen space by each `egui` panel
 #[derive(Default, Resource)]
 struct OccupiedScreenSpace {
-    left: f32,
+    left:  f32,
     right: f32,
 }
 
-#[derive(EnumIter)]
+#[derive(EnumIter, Default)]
 pub enum UiScaleType {
     None,
     Custom,
+    #[default]
     Window,
-}
-
-impl Default for UiScaleType {
-    fn default() -> Self {
-        Self::Custom
-    }
 }
 
 impl ToDisplayString for UiScaleType {
@@ -89,7 +107,7 @@ impl ToDisplayString for UiScaleType {
 
 #[derive(Default)]
 pub struct MouseOverPanel {
-    pub left_panel: bool,
+    pub left_panel:  bool,
     pub right_panel: bool,
 }
 
@@ -97,34 +115,38 @@ pub struct MouseOverPanel {
 #[derive(Resource)]
 pub struct UiState {
     /// Whether the left panel is open
-    pub left_panel: bool,
+    pub left_panel_visible:  bool,
     /// Whether the right panel is open
-    pub right_panel: bool,
+    pub right_panel_visible: bool,
     /// The type of UI scaling to use
-    pub scale_type: UiScaleType,
+    pub scale_type:          UiScaleType,
     /// When `scale_type` is `Custom`, the percentage to scale by
-    pub scale_percent: usize,
+    pub scale_percent:       usize,
     // /// Whether the environment SDF is visible
     // pub environment_sdf: bool,
-    pub mouse_over: MouseOverPanel,
+    pub mouse_over:          MouseOverPanel,
 }
 
 impl Default for UiState {
     fn default() -> Self {
         Self {
-            left_panel: false,
-            right_panel: false,
-            scale_type: UiScaleType::default(),
-            scale_percent: 100, // start at default factor 1.0 = 100%
+            left_panel_visible:  false,
+            right_panel_visible: false,
+            scale_type:          UiScaleType::default(),
+            scale_percent:       100, // start at default factor 1.0 = 100%
             // environment_sdf: false,
-            mouse_over: MouseOverPanel::default(),
+            mouse_over:          MouseOverPanel::default(),
         }
     }
 }
 
 /// `Setup` **Bevy** system to initialise the `egui` visuals
 /// This is where the **default** for `egui` is set
-fn configure_visuals(mut contexts: EguiContexts, windows: Query<&Window>) {
+fn configure_visuals(
+    mut contexts: EguiContexts,
+    windows: Query<&Window>,
+    // scene_assets: Res<SceneAssets>,
+) {
     let window = windows.single();
     contexts.ctx_mut().set_visuals(match window.window_theme {
         Some(WindowTheme::Dark) => Visuals::catppuccin_dark(),
@@ -141,6 +163,11 @@ fn configure_visuals(mut contexts: EguiContexts, windows: Query<&Window>) {
             "../../assets/fonts/JetBrainsMonoNerdFont-Regular.ttf"
         )),
     );
+
+    // fonts.font_data.insert(
+    //     "JetBrainsMonoNerdFont-Regular".to_owned(),
+    //     egui::FontData::from_owned(),
+    // );
 
     // Put JetBrainsMono first (highest priority) for proportional text:
     fonts
@@ -160,8 +187,8 @@ fn configure_visuals(mut contexts: EguiContexts, windows: Query<&Window>) {
 }
 
 fn action_block(mut action_block: ResMut<ActionBlock>, ui_state: Res<UiState>) {
-    if (ui_state.left_panel && ui_state.mouse_over.left_panel)
-        || (ui_state.right_panel && ui_state.mouse_over.right_panel)
+    if (ui_state.left_panel_visible && ui_state.mouse_over.left_panel)
+        || (ui_state.right_panel_visible && ui_state.mouse_over.right_panel)
     {
         action_block.block();
     } else {

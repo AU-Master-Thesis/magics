@@ -40,8 +40,9 @@ impl Default for CameraSensitivity {
     }
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter, Default)]
 pub enum CameraAction {
+    #[default]
     Move,
     MouseMove,
     ToggleMovementMode,
@@ -53,25 +54,15 @@ pub enum CameraAction {
 
 impl std::fmt::Display for CameraAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Move => "Move",
-                Self::MouseMove => "Mouse Move",
-                Self::ToggleMovementMode => "Toggle Movement Mode",
-                Self::ZoomIn => "Zoom In",
-                Self::ZoomOut => "Zoom Out",
-                Self::Switch => "Switch",
-                Self::Reset => "Reset",
-            }
-        )
-    }
-}
-
-impl Default for CameraAction {
-    fn default() -> Self {
-        Self::Move
+        write!(f, "{}", match self {
+            Self::Move => "Move",
+            Self::MouseMove => "Mouse Move",
+            Self::ToggleMovementMode => "Toggle Movement Mode",
+            Self::ZoomIn => "Zoom In",
+            Self::ZoomOut => "Zoom Out",
+            Self::Switch => "Switch",
+            Self::Reset => "Reset",
+        })
     }
 }
 

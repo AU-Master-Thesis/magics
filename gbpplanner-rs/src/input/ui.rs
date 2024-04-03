@@ -76,24 +76,18 @@ fn ui_actions(
     };
 
     if action_state.just_pressed(&UiAction::ToggleLeftPanel) {
-        ui_state.left_panel = !ui_state.left_panel;
+        ui_state.left_panel_visible = !ui_state.left_panel_visible;
     }
 
     if action_state.just_pressed(&UiAction::ToggleRightPanel) {
-        ui_state.right_panel = !ui_state.right_panel;
+        ui_state.right_panel_visible = !ui_state.right_panel_visible;
     }
 
     if action_state.just_pressed(&UiAction::ChangeScaleKind) {
-        match ui_state.scale_type {
-            UiScaleType::None => {
-                ui_state.scale_type = UiScaleType::Custom;
-            }
-            UiScaleType::Custom => {
-                ui_state.scale_type = UiScaleType::Window;
-            }
-            UiScaleType::Window => {
-                ui_state.scale_type = UiScaleType::None;
-            }
-        }
+        ui_state.scale_type = match ui_state.scale_type {
+            UiScaleType::None => UiScaleType::Custom,
+            UiScaleType::Custom => UiScaleType::Window,
+            UiScaleType::Window => UiScaleType::None,
+        };
     }
 }

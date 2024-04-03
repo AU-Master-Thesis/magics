@@ -7,7 +7,7 @@ use gbp_linalg::prelude::*;
 pub struct Payload {
     pub eta: Vector<Float>,
     pub lam: Matrix<Float>,
-    pub mu: Vector<Float>,
+    pub mu:  Vector<Float>,
 }
 
 pub struct Eta(pub Vector<Float>);
@@ -17,7 +17,7 @@ pub struct Mu(pub Vector<Float>);
 #[derive(Debug, Clone)]
 pub struct Message {
     payload: Option<Payload>,
-    dofs: usize,
+    dofs:    usize,
 }
 
 impl Message {
@@ -110,7 +110,7 @@ impl Message {
             payload: Some(Payload {
                 eta: Vector::<Float>::zeros(dofs),
                 lam: Matrix::<Float>::zeros((dofs, dofs)),
-                mu: Vector::<Float>::zeros(dofs),
+                mu:  Vector::<Float>::zeros(dofs),
             }),
             dofs,
         }
@@ -122,7 +122,7 @@ impl Message {
             payload: Some(Payload {
                 eta: eta.0,
                 lam: lam.0,
-                mu: mu.0,
+                mu:  mu.0,
             }),
             dofs,
         }

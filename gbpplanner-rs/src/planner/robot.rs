@@ -780,8 +780,11 @@ fn update_prior_of_horizon_state(
                 * horizon2goal_dir.normalized();
 
             // dbg!(&new_velocity);
-
             let new_position = estimated_position.into_owned() + (&new_velocity * delta_t as Float);
+
+            // pretty_print_subtitle!("HORIZON STATE UPDATE");
+            // pretty_print_vector!(&new_velocity);
+            // pretty_print_vector!(&new_position);
 
             // dbg!(&new_position);
 
@@ -810,6 +813,8 @@ fn update_prior_of_horizon_state(
 
         // NOTE: this is weird, we think
         let horizon_has_reached_waypoint = horizon2goal_dist < config.robot.radius.get() as Float;
+
+        println!("waypoints.0.len() = {:?}", waypoints.0.len());
 
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
             info!("robot {:?}, has reached its waypoint", robot_id);

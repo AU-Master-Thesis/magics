@@ -28,22 +28,22 @@ impl Plugin for SettingsPanelPlugin {
             .add_event::<EnvironmentEvent>()
             .add_event::<ExportGraphEvent>()
             .add_event::<DrawSettingsEvent>()
-            .add_systems(Startup, install_egui_image_loaders)
+            .add_systems(Startup, (install_egui_image_loaders, scale_ui))
             .add_systems(
                 Update,
                 (
                     ui_settings_exclusive,
                     // ui_settings_exclusive.run_if(show_right_panel),
-                    scale_ui,
+                    scale_ui.run_if(on_event::<UiScaleEvent>()),
                 ),
             )
             .add_plugins(DefaultInspectorConfigPlugin);
     }
 }
 
-fn show_right_panel(ui: Res<UiState>) -> bool {
-    ui.right_panel
-}
+// fn show_right_panel(ui: Res<UiState>) -> bool {
+//     ui.right_panel_visible
+// }
 
 /// Simple **Bevy** trigger `Event`
 /// Write to this event whenever you want to toggle the environment
@@ -179,7 +179,7 @@ fn ui_settings_panel(
     let right_panel = egui::SidePanel::right("Settings Panel")
         .default_width(200.0)
         .resizable(false)
-        .show_animated(ctx, ui_state.right_panel, |ui| {
+        .show_animated(ctx, ui_state.right_panel_visible, |ui| {
             if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs
             {
                 ui_state.mouse_over.right_panel = true;
@@ -502,17 +502,17 @@ fn ui_settings_panel(
 fn scale_ui(
     mut egui_settings: ResMut<EguiSettings>,
     windows: Query<&Window, With<PrimaryWindow>>,
-    mut scale_event_reader: EventReader<UiScaleEvent>,
     ui_state: Res<UiState>,
 ) {
-    for _ in scale_event_reader.read() {
-        if let Ok(window) = windows.get_single() {
-            let scale_factor = match ui_state.scale_type {
-                UiScaleType::None => 1.0,
-                UiScaleType::Custom => ui_state.scale_percent as f32 / 100.0,
-                UiScaleType::Window => 1.0 / window.scale_factor(),
-            };
-            egui_settings.scale_factor = scale_factor;
-        }
-    }
+    let Ok(window) = windows.get_single() else {
+        error!("tried to scale the ui, but found no primary window!");
+        return;
+    };
+
+    let scale_factor = match ui_state.scale_type {
+        UiScaleType::None => 1.0,
+        UiScaleType::Custom => ui_state.scale_percent as f32 / 100.0,
+        UiScaleType::Window => 1.0 / window.scale_factor(),
+    };
+    egui_settings.scale_factor = scale_factor;
 }
