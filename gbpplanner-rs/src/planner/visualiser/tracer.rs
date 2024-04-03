@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Duration};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, time::common_conditions::on_timer};
 use itertools::Itertools;
 use ringbuf::{HeapRb, Rb, StaticRb};
 
@@ -20,7 +20,7 @@ impl Plugin for TracerVisualiserPlugin {
         app.init_resource::<Traces>().add_systems(
             Update,
             (
-                track_robots,
+                track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
                 draw_traces.run_if(draw_paths_enabled),
                 remove_trace_of_despawned_robot,
             ),
@@ -34,15 +34,6 @@ impl Plugin for TracerVisualiserPlugin {
 // pub struct Traces(pub BTreeMap<RobotId, Vec<Vec3>>);
 // pub struct Traces(pub BTreeMap<RobotId, HeapRb<Vec3>>);
 pub struct Traces(pub BTreeMap<RobotId, StaticRb<Vec3, MAX_TRACE_LENGTH>>);
-
-// #[derive(Resource)]
-pub struct SampleDelay(Timer);
-
-impl Default for SampleDelay {
-    fn default() -> Self {
-        Self(Timer::from_seconds(SAMPLE_DELAY, TimerMode::Repeating))
-    }
-}
 
 fn remove_trace_of_despawned_robot(
     mut traces: ResMut<Traces>,
@@ -65,12 +56,7 @@ fn track_robots(
     query: Query<(RobotId, &Transform), (With<RobotState>, Changed<Transform>)>,
     mut traces: ResMut<Traces>,
     time: Res<Time>,
-    mut sample_delay: Local<SampleDelay>,
 ) {
-    if !sample_delay.0.tick(time.delta()).just_finished() {
-        return;
-    }
-
     debug!("sampling robot positions");
 
     for (robot_id, transform) in query.iter() {
@@ -86,6 +72,7 @@ fn track_robots(
     }
 }
 
+#[inline]
 fn draw_paths_enabled(config: Res<Config>) -> bool {
     config.visualisation.draw.paths
 }
