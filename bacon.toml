@@ -8,19 +8,45 @@
 default_job = "check"
 
 [jobs.planner]
-command = ["cargo", "check", "--color", "always", "--package", "gbpplanner-rs"]
+command = [
+  "cargo",
+  "+stable",
+  "check",
+  "--color",
+  "always",
+  "--package",
+  "gbpplanner-rs",
+]
 need_stdout = false
 
 [jobs.check]
-command = ["cargo", "check", "--color", "always"]
+command = [
+  "cargo",
+  "check",
+  "--color",
+  "always",
+]
 need_stdout = false
 
 [jobs.check-all]
-command = ["cargo", "check", "--all-targets", "--color", "always"]
+command = [
+  "cargo",
+  "+stable",
+  "check",
+  "--all-targets",
+  "--color",
+  "always",
+]
 need_stdout = false
 
 [jobs.clippy]
-command = ["cargo", "clippy", "--all-targets", "--color", "always"]
+command = [
+  "cargo",
+  "clippy",
+  "--all-targets",
+  "--color",
+  "always",
+]
 need_stdout = false
 
 # This job lets you run
@@ -40,15 +66,28 @@ command = [
 need_stdout = true
 
 [jobs.doc]
-command = ["cargo", "doc", "--color", "always", "--no-deps"]
+command = [
+  "cargo",
+  "doc",
+  "--color",
+  "always",
+  "--no-deps",
+]
 need_stdout = false
 
 # If the doc compiles, then it opens in your browser and bacon switches
 # to the previous job
 [jobs.doc-open]
-command = ["cargo", "doc", "--color", "always", "--no-deps", "--open"]
+command = [
+  "cargo",
+  "doc",
+  "--color",
+  "always",
+  "--no-deps",
+  "--open",
+]
 need_stdout = false
-on_success = "back"                                                    # so that we don't open the browser at each change
+on_success = "back" # so that we don't open the browser at each change
 
 # You can run your application and have the result displayed in bacon,
 # *if* it makes sense for this crate.
@@ -74,7 +113,13 @@ background = true
 # Call it as
 #    bacon ex -- my-example
 [jobs.ex]
-command = ["cargo", "run", "--color", "always", "--example"]
+command = [
+  "cargo",
+  "run",
+  "--color",
+  "always",
+  "--example",
+]
 need_stdout = true
 allow_warnings = true
 

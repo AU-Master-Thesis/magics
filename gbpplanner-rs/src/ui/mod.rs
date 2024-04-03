@@ -87,11 +87,14 @@ struct OccupiedScreenSpace {
     right: f32,
 }
 
-#[derive(EnumIter, Default)]
+#[derive(EnumIter, Default, derive_more::Display)]
 pub enum UiScaleType {
+    #[display(fmt = "None")]
     None,
+    #[display(fmt = "Custom")]
     Custom,
     #[default]
+    #[display(fmt = "Window")]
     Window,
 }
 

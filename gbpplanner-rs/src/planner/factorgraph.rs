@@ -1,11 +1,11 @@
 #![warn(missing_docs)]
-use std::{collections::HashMap, ops::Range};
+use std::{borrow::BorrowMut, collections::HashMap, ops::Range};
 
 use bevy::prelude::*;
 use gbp_linalg::{Float, Vector};
 // use itertools::Itertools;
-use petgraph::Undirected;
-use tap::Tap;
+use petgraph::{data::DataMap, Undirected};
+use tap::{Tap, TapOptional};
 
 use super::{
     factor::{Factor, FactorKind},
@@ -19,14 +19,9 @@ use crate::{
     pretty_print_message,
 };
 
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display)]
+#[display(fmt = "no connection to the given factorgraph")]
 pub struct RemoveConnectionToError;
-
-impl std::fmt::Display for RemoveConnectionToError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "no connection to the given factorgraph")
-    }
-}
 
 impl std::error::Error for RemoveConnectionToError {}
 
@@ -50,50 +45,52 @@ pub(super) trait FactorGraphNode {
 
 /// A newtype used to enforce type safety of the indices of the factors in the
 /// factorgraph.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::From)]
 pub struct FactorIndex(NodeIndex);
 /// A newtype used to enforce type safety of the indices of the variables in the
 /// factorgraph.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::From)]
 pub struct VariableIndex(NodeIndex);
 
-impl From<NodeIndex> for FactorIndex {
-    fn from(index: NodeIndex) -> Self {
-        Self(index)
-    }
-}
+// impl From<NodeIndex> for FactorIndex {
+//     fn from(index: NodeIndex) -> Self {
+//         Self(index)
+//     }
+// }
 
-impl From<NodeIndex> for VariableIndex {
-    fn from(index: NodeIndex) -> Self {
-        Self(index)
-    }
-}
+// impl From<NodeIndex> for VariableIndex {
+//     fn from(index: NodeIndex) -> Self {
+//         Self(index)
+//     }
+// }
 
 pub trait AsNodeIndex {
     fn as_node_index(&self) -> NodeIndex;
 }
 
 impl From<FactorIndex> for usize {
+    #[inline]
     fn from(index: FactorIndex) -> Self {
         index.0.index()
     }
 }
 
 impl From<VariableIndex> for usize {
+    #[inline]
     fn from(index: VariableIndex) -> Self {
         index.0.index()
     }
 }
 
 impl AsNodeIndex for FactorIndex {
-    #[inline(always)]
+    #[inline]
     fn as_node_index(&self) -> NodeIndex {
         self.0
     }
 }
 
 impl AsNodeIndex for VariableIndex {
-    #[inline(always)]
+    #[inline]
     fn as_node_index(&self) -> NodeIndex {
         self.0
     }
@@ -116,51 +113,39 @@ impl std::cmp::PartialEq for FactorId {
 
 impl std::cmp::Eq for FactorId {}
 
+macro_rules! factor_id_constructor {
+    ($name:ident, color = $color:expr) => {
+        pub fn $name(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
+            Self {
+                factorgraph_id,
+                factor_index,
+                color: $color,
+            }
+        }
+    };
+}
+
 impl FactorId {
-    pub fn new_ambiguous(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
-        Self {
-            factorgraph_id,
-            factor_index,
-            color: CYAN,
-        }
-    }
+    /// Construct `FactorId` for an unknown factor kind
+    factor_id_constructor!(new_ambiguous, color = CYAN);
 
-    pub fn new_obstacle(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
-        Self {
-            factorgraph_id,
-            factor_index,
-            color: RED,
-        }
-    }
+    /// Construct `FactorId` for an obstacle factor
+    factor_id_constructor!(new_obstacle, color = RED);
 
-    pub fn new_interrobot(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
-        Self {
-            factorgraph_id,
-            factor_index,
-            color: GREEN,
-        }
-    }
+    /// Construct `FactorId` for an interrobot factor
+    factor_id_constructor!(new_interrobot, color = GREEN);
 
-    pub fn new_pose(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
-        Self {
-            factorgraph_id,
-            factor_index,
-            color: MAGENTA,
-        }
-    }
+    /// Construct `FactorId` for a pose factor
+    factor_id_constructor!(new_pose, color = MAGENTA);
 
-    pub fn new_dynamic(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
-        Self {
-            factorgraph_id,
-            factor_index,
-            color: BLUE,
-        }
-    }
+    /// Construct `FactorId` for a dynamic factor
+    factor_id_constructor!(new_dynamic, color = BLUE);
 
     pub fn global_id(&self) -> String {
         format!("{:?}-{}", self.factorgraph_id, self.factor_index.0.index())
     }
 
+    #[inline]
     pub fn get_factor_graph_id(&self) -> FactorGraphId {
         self.factorgraph_id
     }
@@ -343,7 +328,7 @@ pub type Graph = petgraph::stable_graph::StableGraph<Node, (), Undirected, u32>;
 /// Record type used to keep track of how many factors and variables
 /// there are in the factorgraph. We keep track of these counts internally in
 /// the factorgraph, such a query for the counts, is **O(1)**.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct NodeCount {
     pub factors:   usize,
     pub variables: usize,
@@ -483,6 +468,7 @@ impl<'a> Iterator for Variables<'a> {
 
 impl FactorGraph {
     /// Construct a new empty factorgraph with a given id
+    #[must_use]
     pub fn new(id: FactorGraphId) -> Self {
         Self {
             id,
@@ -495,6 +481,7 @@ impl FactorGraph {
 
     /// Construct a new empty factorgraph with the specified capacity
     /// for nodes and edges.
+    #[must_use]
     pub fn with_capacity(id: FactorGraphId, nodes: usize, edges: usize) -> Self {
         Self {
             id,
@@ -504,7 +491,8 @@ impl FactorGraph {
         }
     }
 
-    #[inline(always)]
+    /// Returns the `FactorGraphId` of the factorgraph
+    #[inline]
     pub fn id(&self) -> FactorGraphId {
         self.id
     }
@@ -515,23 +503,11 @@ impl FactorGraph {
         Variables::new(&self.graph, &self.variable_indices)
     }
 
-    // pub fn variables_mut(&mut self) -> VariablesMut<'_> {
-    //     VariablesMut::new(&mut self.graph, &self.variable_indices)
-    // }
-
     /// Returns an `Iterator` over the factor nodes in the factorgraph.
     #[inline]
     pub fn factors(&self) -> Factors<'_> {
         Factors::new(&self.graph, &self.factor_indices)
     }
-
-    /// Returns an `Iterator` over the variable nodes in the factorgraph.
-    /// Variables are ordered by creation time.
-    // pub fn variables_ordered(&self) -> impl Iterator<Item = &Variable> {
-    //     self.variable_indices
-    //         .iter()
-    //         .filter_map(move |&node_index| self.graph[node_index].as_variable())
-    // }
 
     pub fn add_variable(&mut self, variable: Variable) -> VariableIndex {
         let node = Node {
@@ -653,6 +629,7 @@ impl FactorGraph {
     /// Number of nodes in the factorgraph
     ///
     /// **Computes in O(1) time**
+    #[inline]
     pub fn len(&self) -> usize {
         self.graph.node_count()
     }
@@ -683,6 +660,7 @@ impl FactorGraph {
     /// A count over the number of variables and factors in the factorgraph
     ///
     /// **Computes in O(1) time**
+    #[must_use]
     pub fn node_count(&self) -> NodeCount {
         NodeCount {
             factors:   self.factor_indices.len(),
@@ -690,7 +668,7 @@ impl FactorGraph {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn nth_variable_index(&self, index: usize) -> Option<VariableIndex> {
         self.variable_indices.get(index).copied().map(VariableIndex)
     }
@@ -746,6 +724,30 @@ impl FactorGraph {
         self.graph[index.as_node_index()]
             .as_variable()
             .expect("A variable index should point to a Variable in the graph")
+    }
+
+    pub fn get_factor(&self, index: FactorIndex) -> Option<&Factor> {
+        self.graph
+            .node_weight(index.as_node_index())
+            .and_then(|node| node.as_factor())
+    }
+
+    pub fn get_factor_mut(&mut self, index: FactorIndex) -> Option<&mut Factor> {
+        self.graph
+            .node_weight_mut(index.as_node_index())
+            .and_then(|node| node.as_factor_mut())
+    }
+
+    pub fn get_variable(&self, index: VariableIndex) -> Option<&Variable> {
+        self.graph
+            .node_weight(index.as_node_index())
+            .and_then(|node| node.as_variable())
+    }
+
+    pub fn get_variable_mut(&mut self, index: VariableIndex) -> Option<&mut Variable> {
+        self.graph
+            .node_weight_mut(index.as_node_index())
+            .and_then(|node| node.as_variable_mut())
     }
 
     pub fn variable_mut(&mut self, index: VariableIndex) -> &mut Variable {
@@ -977,8 +979,12 @@ impl FactorGraph {
         for (factor_id, message) in factor_messages {
             let in_internal_graph = factor_id.factorgraph_id == self.id;
             if in_internal_graph {
-                let factor = self.factor_mut(factor_id.factor_index);
-                factor.receive_message_from(variable_id, message);
+                // If the factor is an interrobot factor, it can be missing if the robot the
+                // graph is connected to despawns, so we only have the factor
+                // receive the message if it exists
+                if let Some(factor) = self.get_factor_mut(factor_id.factor_index) {
+                    factor.receive_message_from(variable_id, message);
+                }
             } else {
                 messages_to_external_factors.push(VariableToFactorMessage {
                     from: variable_id,
