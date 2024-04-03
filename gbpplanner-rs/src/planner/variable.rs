@@ -271,18 +271,24 @@ impl Variable {
         }
 
         // Update belief
-        if let Some(sigma) = self.belief.lam.inv() {
-            pretty_print_matrix!(&sigma);
-            self.belief.sigma = sigma;
-            self.belief.valid = self.belief.sigma.iter().all(|x| x.is_finite());
-            if self.belief.valid {
-                self.belief.mu = self.belief.sigma.dot(&self.belief.eta);
-            } else {
-                println!(
-                    "{}:{},Variable covariance is not finite",
-                    file!().split('/').last().unwrap(),
-                    line!()
-                );
+        // NOTE: This might not be correct, but it seems the `.inv()` method doesn't
+        // catch and all-zero matrix
+        let lam_not_zero = self.belief.lam.iter().any(|x| *x - 1e-6 > 0.0);
+        println!("lam_not_zero: {}", lam_not_zero);
+        if lam_not_zero {
+            if let Some(sigma) = self.belief.lam.inv() {
+                pretty_print_matrix!(&sigma);
+                self.belief.sigma = sigma;
+                self.belief.valid = self.belief.sigma.iter().all(|x| x.is_finite());
+                if self.belief.valid {
+                    self.belief.mu = self.belief.sigma.dot(&self.belief.eta);
+                } else {
+                    println!(
+                        "{}:{},Variable covariance is not finite",
+                        file!().split('/').last().unwrap(),
+                        line!()
+                    );
+                }
             }
         }
 
@@ -304,13 +310,7 @@ impl Variable {
             .iter()
             .map(|(&factor_id, received_message)| {
                 let response = received_message.payload().map_or_else(
-                    || {
-                        Message::new(
-                            Eta(self.belief.eta.clone()),
-                            Lam(self.belief.lam.clone()),
-                            Mu(self.belief.mu.clone()),
-                        )
-                    },
+                    || self.prepare_message(),
                     |message_from_factor| {
                         // pretty_print_subtitle!("BEFORE FACTOR SUBSTRACTION");
                         // pretty_print_vector!(&self.belief.eta);
