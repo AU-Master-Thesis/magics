@@ -36,25 +36,25 @@ impl Default for PID {
 /// `Component` to tag an entity to be followed by a `FollowCamera`
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct FollowCameraMe {
-    pub offset:       Option<Vec3>,
+    pub offset: Option<Vec3>,
     pub up_direction: Option<Direction3d>,
-    pub attached:     bool,
+    pub attached: bool,
 }
 
 impl FollowCameraMe {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self {
-            offset:       Some(Vec3::new(x, y, z)),
+            offset: Some(Vec3::new(x, y, z)),
             up_direction: None,
-            attached:     false,
+            attached: false,
         }
     }
 
     pub fn from_vec3(offset: Vec3) -> Self {
         Self {
-            offset:       Some(offset),
+            offset: Some(offset),
             up_direction: None,
-            attached:     false,
+            attached: false,
         }
     }
 
@@ -74,7 +74,7 @@ impl FollowCameraMe {
 pub struct FollowCameraSettings {
     pub target: Entity,
     pub offset: Vec3,
-    pub pid:    PID,
+    pub pid: PID,
 }
 
 impl FollowCameraSettings {
@@ -109,7 +109,7 @@ pub struct FollowCameraBundle {
     pub settings: FollowCameraSettings,
     pub movement: OrbitMovementBundle,
     pub velocity: Velocity,
-    pub camera:   Camera3dBundle,
+    pub camera: Camera3dBundle,
     pub cam_type: CamType,
 }
 

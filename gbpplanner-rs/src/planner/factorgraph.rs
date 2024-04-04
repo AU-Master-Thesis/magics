@@ -99,8 +99,8 @@ impl AsNodeIndex for VariableIndex {
 #[derive(Debug, Clone, Copy, Hash)]
 pub struct FactorId {
     pub factorgraph_id: FactorGraphId,
-    pub factor_index:   FactorIndex,
-    pub color:          &'static str,
+    pub factor_index: FactorIndex,
+    pub color: &'static str,
 }
 
 // implement PartialEq and Eq manually
@@ -155,7 +155,7 @@ impl FactorId {
 pub struct VariableId {
     pub factorgraph_id: FactorGraphId,
     pub variable_index: VariableIndex,
-    pub color:          &'static str,
+    pub color: &'static str,
 }
 
 // implement PartialEq and Eq manually
@@ -190,15 +190,15 @@ impl VariableId {
 
 #[derive(Debug)]
 pub struct VariableToFactorMessage {
-    pub from:    VariableId,
-    pub to:      FactorId,
+    pub from: VariableId,
+    pub to: FactorId,
     pub message: Message,
 }
 
 #[derive(Debug)]
 pub struct FactorToVariableMessage {
-    pub from:    FactorId,
-    pub to:      VariableId,
+    pub from: FactorId,
+    pub to: VariableId,
     pub message: Message,
 }
 
@@ -219,7 +219,7 @@ pub enum NodeKind {
 pub struct Node {
     // TODO: change to factorgraph_id
     robot_id: RobotId,
-    kind:     NodeKind,
+    kind: NodeKind,
 }
 
 // #[derive(Debug, Clone, Copy)]
@@ -330,7 +330,7 @@ pub type Graph = petgraph::stable_graph::StableGraph<Node, (), Undirected, u32>;
 /// the factorgraph, such a query for the counts, is **O(1)**.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct NodeCount {
-    pub factors:   usize,
+    pub factors: usize,
     pub variables: usize,
 }
 
@@ -345,9 +345,9 @@ pub struct FactorGraph {
     /// - The id of the factorgraph is unique among all factorgraphs in the
     ///   system.
     /// - The id does not change during the lifetime of the factorgraph.
-    id:               FactorGraphId,
+    id: FactorGraphId,
     /// The underlying graph data structure
-    graph:            Graph,
+    graph: Graph,
     /// In **gbpplanner** the sequence in which variables are inserted/created
     /// in the graph is meaningful. `self.graph` does not capture this
     /// ordering, so we use an extra vector to manage the order in which
@@ -357,11 +357,11 @@ pub struct FactorGraph {
     variable_indices: Vec<NodeIndex>,
     /// List of indices of the factors in the graph. Order is not important.
     /// Used to speed up iteration over factors.
-    factor_indices:   Vec<NodeIndex>,
+    factor_indices: Vec<NodeIndex>,
 }
 
 pub struct Factors<'a> {
-    graph:          &'a Graph,
+    graph: &'a Graph,
     factor_indices: std::slice::Iter<'a, NodeIndex>,
 }
 
@@ -385,7 +385,7 @@ impl<'a> Iterator for Factors<'a> {
 }
 
 pub struct Variables<'a> {
-    graph:            &'a Graph,
+    graph: &'a Graph,
     variable_indices: std::slice::Iter<'a, NodeIndex>,
 }
 
@@ -512,7 +512,7 @@ impl FactorGraph {
     pub fn add_variable(&mut self, variable: Variable) -> VariableIndex {
         let node = Node {
             robot_id: self.id,
-            kind:     NodeKind::Variable(variable),
+            kind: NodeKind::Variable(variable),
         };
         let node_index = self.graph.add_node(node);
         self.variable_indices.push(node_index);
@@ -530,7 +530,7 @@ impl FactorGraph {
     pub fn add_factor(&mut self, factor: Factor) -> FactorIndex {
         let node = Node {
             robot_id: self.id,
-            kind:     NodeKind::Factor(factor),
+            kind: NodeKind::Factor(factor),
         };
         let node_index = self.graph.add_node(node);
         self.graph[node_index]
@@ -663,7 +663,7 @@ impl FactorGraph {
     #[must_use]
     pub fn node_count(&self) -> NodeCount {
         NodeCount {
-            factors:   self.factor_indices.len(),
+            factors: self.factor_indices.len(),
             variables: self.variable_indices.len(),
         }
     }
@@ -764,7 +764,7 @@ impl FactorGraph {
                 let node = &self.graph[node_index];
                 graphviz::Node {
                     index: node_index.index(),
-                    kind:  match &node.kind {
+                    kind: match &node.kind {
                         NodeKind::Factor(factor) => match factor.kind {
                             FactorKind::Dynamic(_) => graphviz::NodeKind::DynamicFactor,
                             FactorKind::Obstacle(_) => graphviz::NodeKind::ObstacleFactor,
@@ -795,7 +795,7 @@ impl FactorGraph {
                     .edge_endpoints(edge_index)
                     .map(|(from, to)| graphviz::Edge {
                         from: from.index(),
-                        to:   to.index(),
+                        to: to.index(),
                     })
             })
             .collect::<Vec<_>>();
@@ -1102,7 +1102,7 @@ pub mod graphviz {
 
     pub struct Node {
         pub index: usize,
-        pub kind:  NodeKind,
+        pub kind: NodeKind,
     }
 
     impl Node {
@@ -1162,6 +1162,6 @@ pub mod graphviz {
 
     pub struct Edge {
         pub from: usize,
-        pub to:   usize,
+        pub to: usize,
     }
 }

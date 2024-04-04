@@ -4,17 +4,25 @@
     # wgsl_analyzer.url = "github:wgsl-analyzer/wgsl-analyzer";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
+    rust-overlay,
     flake-utils,
-    # wgsl_analyzer,
     ...
   } @ inputs:
     inputs.flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import inputs.nixpkgs {inherit system;};
+      overlays = [(import rust-overlay)];
+      pkgs = import inputs.nixpkgs {inherit system overlays;};
       # wgsl-analyzer-pkgs = import inputs.wgsl_analyzer {inherit system;};
       bevy-deps = with pkgs; [
         udev
@@ -42,6 +50,7 @@
         cargo-watch
         cargo-rr
         cargo-udeps
+        cargo-wizard
         # cargo-tree
 
         #   # cargo-profiler
@@ -49,7 +58,7 @@
       ];
       rust-deps = with pkgs;
         [
-          rustup
+          # rustup
           taplo # TOML formatter and LSP
           bacon
           mold # A Modern Linker
@@ -70,6 +79,24 @@
           ];
           buildInputs =
             [
+              (rust-bin.stable.latest.default.override
+                {
+                  extensions = ["rust-src" "rust-analyzer"];
+                })
+              # (rust-bin.beta.latest.default.override {
+              #     extensions = ["rust-src" "rust-analyzer"];
+              # })
+              # (
+              #   rust-bin.selectLatestNightlyWith (toolchain:
+              #     toolchain.default.override {
+              #       extensions = [
+              #         "rust-src"
+              #         "rust-analyzer"
+              #         "rustc-codegen-cranelift-preview"
+              #       ];
+              #     })
+              # )
+
               nodejs
               just
               d2

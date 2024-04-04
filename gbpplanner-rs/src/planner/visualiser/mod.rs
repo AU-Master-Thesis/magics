@@ -44,9 +44,9 @@ impl Plugin for VisualiserPlugin {
 /// Keeps track of the `RobotId` and `Vec2` position
 #[derive(Debug, Component)]
 pub struct RobotTracker {
-    pub robot_id:       RobotId,
+    pub robot_id: RobotId,
     pub variable_index: usize,
-    pub order:          usize,
+    pub order: usize,
 }
 
 impl RobotTracker {
@@ -87,7 +87,7 @@ pub struct LineSegment;
 #[derive(Debug, Clone)]
 struct Path {
     points: Vec<Vec3>,
-    width:  f32,
+    width: f32,
 }
 
 impl Path {

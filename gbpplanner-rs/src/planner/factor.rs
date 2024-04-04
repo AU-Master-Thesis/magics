@@ -97,8 +97,8 @@ impl InterRobotConnection {
 #[derive(Debug, Clone)]
 pub struct InterRobotFactor {
     safety_distance: Float,
-    skip:            bool,
-    pub connection:  InterRobotConnection,
+    skip: bool,
+    pub connection: InterRobotConnection,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -394,7 +394,7 @@ pub struct ObstacleFactor {
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy
     /// of here since `ObstacleFactor` needs this information to calculate
     /// `.jacobian_delta()` and `.measurement()`
-    world_size:   Float,
+    world_size: Float,
 }
 
 impl std::fmt::Debug for ObstacleFactor {
@@ -641,17 +641,17 @@ impl Model for FactorKind {
 #[derive(Debug, Clone)]
 pub struct FactorState {
     /// called `z_` in **gbpplanner**
-    pub initial_measurement:   Vector<Float>,
+    pub initial_measurement: Vector<Float>,
     /// called `meas_model_lambda_` in **gbpplanner**
     pub measurement_precision: Matrix<Float>,
     /// Stored linearisation point
     /// called `X_` in **gbpplanner**, they use `Eigen::MatrixXd` instead
-    pub linearisation_point:   Vector<Float>,
+    pub linearisation_point: Vector<Float>,
     /// Strength of the factor. Called `sigma` in gbpplanner.
     /// The factor precision $Lambda = sigma^-2 * Identify$
-    pub strength:              Float,
+    pub strength: Float,
     /// Number of degrees of freedom e.g. 4 [x, y, x', y']
-    pub dofs:                  NonZeroUsize,
+    pub dofs: NonZeroUsize,
 
     /// Cached value of the factors jacobian function
     /// called `J_` in **gbpplanner**
@@ -662,7 +662,7 @@ pub struct FactorState {
     pub cached_measurement: Vector<Float>,
     /// Set to true after the first call to self.update()
     /// TODO: move to FactorState
-    initialized:            bool,
+    initialized: bool,
 }
 
 impl FactorState {
@@ -696,11 +696,11 @@ pub struct Factor {
     /// Unique identifier that associates the variable with a factorgraph/robot.
     pub node_index: Option<NodeIndex>,
     /// State common between all factor kinds
-    pub state:      FactorState,
+    pub state: FactorState,
     /// Variant storing the specialized behavior of each Factor kind.
-    pub kind:       FactorKind,
+    pub kind: FactorKind,
     /// Mailbox for incoming message storage
-    pub inbox:      MessagesFromFactors,
+    pub inbox: MessagesFromFactors,
 }
 
 impl Factor {

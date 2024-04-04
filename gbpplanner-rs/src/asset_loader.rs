@@ -9,26 +9,26 @@ use crate::{
 /// A sub-category of the [`SceneAssets`] [`Resource`] to hold all meshes
 #[derive(Debug, Default)]
 pub struct Meshes {
-    pub robot:    Handle<Mesh>,
+    pub robot: Handle<Mesh>,
     pub variable: Handle<Mesh>,
-    pub factor:   Handle<Mesh>,
+    pub factor: Handle<Mesh>,
     pub waypoint: Handle<Mesh>,
-    pub plane:    Handle<Mesh>,
+    pub plane: Handle<Mesh>,
 }
 
 // A sub-category of the [`SceneAssets`] [`Resource`] to hold all materials
 #[derive(Debug, Default)]
 pub struct Materials {
-    pub robot:                   Handle<StandardMaterial>,
-    pub variable:                Handle<StandardMaterial>,
-    pub factor:                  Handle<StandardMaterial>,
-    pub waypoint:                Handle<StandardMaterial>,
-    pub line:                    Handle<StandardMaterial>,
-    pub communication_graph:     Handle<StandardMaterial>,
-    pub transparent:             Handle<StandardMaterial>,
-    pub uncertainty:             Handle<StandardMaterial>,
+    pub robot: Handle<StandardMaterial>,
+    pub variable: Handle<StandardMaterial>,
+    pub factor: Handle<StandardMaterial>,
+    pub waypoint: Handle<StandardMaterial>,
+    pub line: Handle<StandardMaterial>,
+    pub communication_graph: Handle<StandardMaterial>,
+    pub transparent: Handle<StandardMaterial>,
+    pub uncertainty: Handle<StandardMaterial>,
     pub uncertainty_unattenable: Handle<StandardMaterial>,
-    pub obstacle:                Handle<StandardMaterial>,
+    pub obstacle: Handle<StandardMaterial>,
 }
 
 /// **Bevy** [`Resource`] to hold all assets in a common place
@@ -36,13 +36,13 @@ pub struct Materials {
 /// [`Handle`]s
 #[derive(Resource, Debug, Default)]
 pub struct SceneAssets {
-    pub main_font:          Handle<Font>,
-    pub roomba:             Handle<Scene>,
-    pub object:             Handle<Scene>,
+    pub main_font: Handle<Font>,
+    pub roomba: Handle<Scene>,
+    pub object: Handle<Scene>,
     pub obstacle_image_raw: Handle<Image>,
     pub obstacle_image_sdf: Handle<Image>,
-    pub meshes:             Meshes,
-    pub materials:          Materials,
+    pub meshes: Meshes,
+    pub materials: Materials,
 }
 
 pub struct AssetLoaderPlugin;
@@ -66,18 +66,18 @@ fn load_assets(
 ) {
     *scene_assets = SceneAssets {
         // Load the main font
-        main_font:          asset_server.load("fonts/JetBrainsMonoNerdFont-Regular.ttf"),
+        main_font: asset_server.load("fonts/JetBrainsMonoNerdFont-Regular.ttf"),
         // Robot vacuum by Poly by Google [CC-BY] (https://creativecommons.org/licenses/by/3.0/) via Poly Pizza (https://poly.pizza/m/dQj7UZT-1w0)
-        roomba:             asset_server.load("models/roomba.glb#Scene0"),
+        roomba: asset_server.load("models/roomba.glb#Scene0"),
         // Cardboard Boxes by Quaternius (https://poly.pizza/m/bs6ikOeTrR)
-        object:             asset_server.load("models/box.glb#Scene0"),
+        object: asset_server.load("models/box.glb#Scene0"),
         // environment images
         // obstacle_image_raw: asset_server.load("imgs/simple.png"),
         obstacle_image_raw: asset_server.load(format!("imgs/{}.png", config.environment_image)),
         obstacle_image_sdf: asset_server.load(format!("imgs/{}_sdf.png", config.environment_image)),
         // Meshes
-        meshes:             Meshes {
-            robot:    meshes.add(
+        meshes: Meshes {
+            robot: meshes.add(
                 Sphere::new(1.0)
                     .mesh()
                     .ico(4)
@@ -89,40 +89,38 @@ fn load_assets(
                     .ico(4)
                     .expect("4 subdivisions is less than the maximum allowed of 80"),
             ),
-            factor:   meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
+            factor: meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
             waypoint: meshes.add(
                 Sphere::new(0.5)
                     .mesh()
                     .ico(4)
                     .expect("4 subdivisions is less than the maximum allowed of 80"),
             ),
-            plane:    meshes.add(Mesh::from(bevy::math::primitives::Rectangle::new(
+            plane: meshes.add(Mesh::from(bevy::math::primitives::Rectangle::new(
                 config.simulation.world_size.into(),
                 config.simulation.world_size.into(),
             ))),
         },
         // Materials
-        materials:          Materials {
-            robot:                   materials
-                .add(Color::from_catppuccin_colour(catppuccin_theme.green())),
-            variable:                materials.add(Color::from_catppuccin_colour_with_alpha(
+        materials: Materials {
+            robot: materials.add(Color::from_catppuccin_colour(catppuccin_theme.green())),
+            variable: materials.add(Color::from_catppuccin_colour_with_alpha(
                 catppuccin_theme.blue(),
                 0.75,
             )),
-            factor:                  materials.add(Color::from_catppuccin_colour_with_alpha(
+            factor: materials.add(Color::from_catppuccin_colour_with_alpha(
                 catppuccin_theme.mauve(),
                 0.75,
             )),
-            waypoint:                materials.add(Color::from_catppuccin_colour_with_alpha(
+            waypoint: materials.add(Color::from_catppuccin_colour_with_alpha(
                 catppuccin_theme.maroon(),
                 0.5,
             )),
-            line:                    materials
-                .add(Color::from_catppuccin_colour(catppuccin_theme.text())),
-            communication_graph:     materials
+            line: materials.add(Color::from_catppuccin_colour(catppuccin_theme.text())),
+            communication_graph: materials
                 .add(Color::from_catppuccin_colour(catppuccin_theme.yellow())),
-            transparent:             materials.add(Color::rgba_u8(0, 0, 0, 0)),
-            uncertainty:             materials.add(Color::from_catppuccin_colour_with_alpha(
+            transparent: materials.add(Color::rgba_u8(0, 0, 0, 0)),
+            uncertainty: materials.add(Color::from_catppuccin_colour_with_alpha(
                 catppuccin_theme.teal(),
                 0.2,
             )),
@@ -130,8 +128,7 @@ fn load_assets(
                 catppuccin_theme.maroon(),
                 0.2,
             )),
-            obstacle:                materials
-                .add(Color::from_catppuccin_colour(catppuccin_theme.text())),
+            obstacle: materials.add(Color::from_catppuccin_colour(catppuccin_theme.text())),
         },
     }
 }
