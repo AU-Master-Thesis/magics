@@ -16,6 +16,21 @@ pub enum PlacementStrategy {
     Map,
 }
 
+// A regular point in 2D space.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub struct Point {
+    pub x: f64,
+    pub y: f64,
+}
+
+impl Point {
+    /// Create a new `Point` from a pair of values.
+    /// Returns an error if either `x` or `y` is not in the interval [0.0, 1.0].
+    pub fn new(x: f64, y: f64) -> Self {
+        Self { x, y }
+    }
+}
+
 /// A relative point within the boudaries of the map.
 /// ...
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
@@ -95,8 +110,8 @@ pub enum Shape {
         radius: StrictlyPositiveFinite<f32>,
         center: RelativePoint,
     },
-    Polygon(OneOrMore<RelativePoint>),
-    Line((RelativePoint, RelativePoint)),
+    Polygon(OneOrMore<Point>),
+    Line((Point, Point)),
 }
 
 impl Shape {
@@ -116,7 +131,7 @@ impl Shape {
         matches!(self, Self::Circle { .. })
     }
 
-    pub fn as_polygon(&self) -> Option<&OneOrMore<RelativePoint>> {
+    pub fn as_polygon(&self) -> Option<&OneOrMore<Point>> {
         if let Self::Polygon(v) = self {
             Some(v)
         } else {
@@ -131,7 +146,7 @@ macro_rules! polygon {
     [$(($x:expr, $y:expr)),+ $(,)?] => {{
         let vertices = vec![
             $(
-        	RelativePoint::new($x, $y).expect("both x and y are within the interval [0.0, 1.0]")
+                Point::new($x, $y)
             ),+
         ];
         Shape::Polygon(OneOrMore::new(vertices).expect("at least one vertex"))
@@ -145,14 +160,14 @@ macro_rules! line {
     [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
         // Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
         // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1 as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(), y: f64::try_from().unwrap() }))
-        Shape::Line((RelativePoint::new($x1, $y1).expect("both x1 and y1 are within the interval [0.0, 1.0]"), RelativePoint::new($x2, $y2).expect("both x2 and y2 are within the interval [0.0, 1.0]")))
+        Shape::Line((Point::new($x1, $y1), Point::new($x2, $y2)))
     };
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Waypoint {
-    pub shape: Shape,
+    pub shape:              Shape,
     pub placement_strategy: PlacementStrategy,
 }
 
@@ -173,14 +188,14 @@ pub struct Formation {
     /// If true then then a new formation instance will be spawned every
     /// [`Self::delay`]. If false, a single formation will be spawned after
     /// [`Self::delay`]
-    pub repeat: bool,
+    pub repeat:    bool,
     /// The delay from the start of the simulation after which the formation
     /// should spawn. If [`Self::repeat`] is true, then `delay` is
     /// interpreted as a timeout between every formation spawn.
     // pub delay:     f32,
     pub delay: Duration,
     /// Number of robots to spawn
-    pub robots: NonZeroUsize,
+    pub robots:    NonZeroUsize,
     /// A list of waypoints.
     /// `NOTE` The first waypoint is assumed to be the spawning point.
     /// < 2 waypoints is an invalid state
@@ -192,21 +207,21 @@ pub struct Formation {
 impl Default for Formation {
     fn default() -> Self {
         Self {
-            repeat: false,
-            delay: Duration::from_secs(5),
-            robots: unsafe { NonZeroUsize::new_unchecked(1) },
+            repeat:    false,
+            delay:     Duration::from_secs(5),
+            robots:    unsafe { NonZeroUsize::new_unchecked(1) },
             waypoints: vec![
                 Waypoint {
                     placement_strategy: PlacementStrategy::Random,
-                    shape: line![(0.4, 0.0), (0.6, 0.0)],
+                    shape:              line![(0.4, 0.0), (0.6, 0.0)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
-                    shape: line![(0.4, 0.4), (0.6, 0.6)],
+                    shape:              line![(0.4, 0.4), (0.6, 0.6)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
-                    shape: line![(0.0, 0.4), (0.0, 0.6)],
+                    shape:              line![(0.0, 0.4), (0.0, 0.6)],
                 },
             ]
             .try_into()
@@ -409,7 +424,7 @@ mod tests {
 
                 assert!(inner
                     .iter()
-                    .map(|p| (p.x.get(), p.y.get()))
+                    .map(|p| (p.x, p.y))
                     .zip(vec![(0.1, 0.1)].into_iter())
                     .all(|(p, (x, y))| float_eq(p.0, x) && float_eq(p.1, y)));
             }
@@ -424,7 +439,7 @@ mod tests {
 
                 assert!(inner
                     .iter()
-                    .map(|p| (p.x.get(), p.y.get()))
+                    .map(|p| (p.x, p.y))
                     .zip(vec![(0.35, 0.35), (0.35, 0.5), (0.7, 0.8)].into_iter())
                     .all(|(p, (x, y))| float_eq(p.0, x) && float_eq(p.1, y)));
             }
@@ -440,7 +455,7 @@ mod tests {
 
                 assert!(inner
                     .iter()
-                    .map(|p| (p.x.get(), p.y.get()))
+                    .map(|p| (p.x, p.y))
                     .zip(vec![(0., 0.1)].into_iter())
                     .all(|(p, (x, y))| float_eq(p.0, x) && float_eq(p.1, y)));
             }
