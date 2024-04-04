@@ -78,11 +78,15 @@ impl Default for HeightSection {
 #[serde(rename_all = "kebab-case")]
 pub struct UncertaintySection {
     pub max_radius: f32,
+    pub scale:      f32,
 }
 
 impl Default for UncertaintySection {
     fn default() -> Self {
-        Self { max_radius: 5.0 }
+        Self {
+            max_radius: 5.0,
+            scale:      100.0,
+        }
     }
 }
 

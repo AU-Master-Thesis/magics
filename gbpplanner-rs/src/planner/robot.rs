@@ -683,7 +683,7 @@ fn iterate_gbp(
     config: Res<Config>,
 ) {
     for i in 0..config.gbp.iterations_per_timestep {
-        pretty_print_title!(format!("GBP iteration: {}", i + 1));
+        // pretty_print_title!(format!("GBP iteration: {}", i + 1));
         // ╭────────────────────────────────────────────────────────────────────────────────────────
         // │ Factor iteration
         let messages_to_external_variables = query
