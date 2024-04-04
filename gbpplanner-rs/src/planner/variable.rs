@@ -292,12 +292,12 @@ impl Variable {
             }
         }
 
-        // title = format!("{}{}{}", YELLOW, "Variable belief AFTER update:", RESET);
-        // pretty_print_subtitle!(title);
-        // pretty_print_vector!(&self.belief.eta);
-        // pretty_print_matrix!(&self.belief.lambda);
-        // pretty_print_vector!(&self.belief.mu);
-        // pretty_print_line!();
+        let title = format!("{}{}{}", YELLOW, "Variable belief update:", RESET);
+        pretty_print_subtitle!(title);
+        pretty_print_vector!(&self.belief.eta);
+        pretty_print_matrix!(&self.belief.lambda);
+        pretty_print_vector!(&self.belief.mu);
+        pretty_print_line!();
 
         let messages = self
             .inbox
@@ -327,19 +327,19 @@ impl Variable {
             })
             .collect::<MessagesFromVariables>();
 
-        // messages.iter().for_each(|(factor_id, message)| {
-        //     pretty_print_message!(
-        //         VariableId::new(
-        //             factor_id.get_factor_graph_id(),
-        //             self.node_index.unwrap().into()
-        //         ),
-        //         factor_id,
-        //         ""
-        //     );
-        //     pretty_print_vector!(message.information_vector().unwrap());
-        //     pretty_print_matrix!(message.precision_matrix().unwrap());
-        //     pretty_print_vector!(message.mean().unwrap());
-        // });
+        messages.iter().for_each(|(factor_id, message)| {
+            pretty_print_message!(
+                VariableId::new(
+                    factor_id.get_factor_graph_id(),
+                    self.node_index.unwrap().into()
+                ),
+                factor_id,
+                ""
+            );
+            pretty_print_vector!(message.information_vector().unwrap());
+            pretty_print_matrix!(message.precision_matrix().unwrap());
+            pretty_print_vector!(message.mean().unwrap());
+        });
 
         messages
 
