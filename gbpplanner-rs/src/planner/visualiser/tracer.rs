@@ -28,8 +28,8 @@ impl Plugin for TracerVisualiserPlugin {
     }
 }
 
-// IDEA: use a ring buffer to store the traces, to ensure a maximum fixed size
 /// **Bevy** [`Resource`] to store all robot traces
+// Uses a ring buffer to store the traces, to ensure a maximum fixed size.
 #[derive(Default, Resource)]
 // pub struct Traces(pub BTreeMap<RobotId, Vec<Vec3>>);
 // pub struct Traces(pub BTreeMap<RobotId, HeapRb<Vec3>>);

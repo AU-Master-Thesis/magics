@@ -272,6 +272,7 @@ pub struct RobotState {
 }
 
 impl RobotState {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             ids_of_robots_within_comms_range: BTreeSet::new(),
@@ -308,7 +309,6 @@ pub struct RobotBundle {
 
 impl RobotBundle {
     #[must_use = "Constructor responsible for creating the robots factorgraph"]
-
     pub fn new(
         robot_id: RobotId,
         mut waypoints: VecDeque<Vec4>,
