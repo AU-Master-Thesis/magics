@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     num::NonZeroUsize,
     ops::{AddAssign, Sub},
 };
@@ -21,7 +21,7 @@ use super::{
 use crate::{
     escape_codes::*,
     planner::{factorgraph::FactorId, marginalise_factor_distance::marginalise_factor_distance},
-    pretty_print_message,
+    pretty_print_message, pretty_print_subtitle,
 };
 
 // TODO: make generic over f32 | f64
@@ -829,11 +829,11 @@ impl Factor {
                 .inbox
                 .iter()
                 .map(|(variable_id, _)| (*variable_id, Message::empty(dofs)))
-                .collect::<HashMap<_, _>>();
+                .collect::<BTreeMap<_, _>>();
             return messages;
         }
 
-        let _ = self.measure(&self.state.linearisation_point.clone());
+        let meas = self.measure(&self.state.linearisation_point.clone());
         let jacobian = self.jacobian(&self.state.linearisation_point.clone());
 
         let factor_lambda_potential = jacobian
@@ -845,12 +845,28 @@ impl Factor {
             .dot(&self.state.measurement_precision)
             .dot(&(jacobian.dot(&self.state.linearisation_point) + self.residual()));
 
+        // if matches!(self.kind, FactorKind::Dynamic(_)) {
+        //     // let subtitle = format!("Factor update: {}", self.kind.name());
+        //     // include name and index of the factor
+        //     let subtitle = format!(
+        //         "Factor update: {}({}) {}{}{}",
+        //         YELLOW,
+        //         self.node_index.unwrap().index(),
+        //         BLUE,
+        //         self.kind.name(),
+        //         RESET
+        //     );
+        //     pretty_print_subtitle!(subtitle);
+        //     pretty_print_vector!(&self.state.linearisation_point);
+        //     pretty_print_vector!(&meas);
+        //     pretty_print_vector!(&self.residual());
+        // }
         // pretty_print_vector!(&factor_eta_potential);
 
         self.state.initialized = true;
 
         let mut marginalisation_idx = 0;
-        let mut messages = MessagesToVariables::with_capacity(self.inbox.len());
+        let mut messages = MessagesToVariables::new();
 
         let zero_precision = Matrix::<Float>::zeros((dofs, dofs));
 
@@ -902,33 +918,33 @@ impl Factor {
             marginalisation_idx += dofs;
         }
 
-        messages.iter().for_each(|(variable_id, message)| {
-            pretty_print_message!(
-                match self.kind {
-                    FactorKind::Pose(_) => FactorId::new_pose(
-                        variable_id.get_factor_graph_id(),
-                        self.node_index.unwrap().into()
-                    ),
-                    FactorKind::InterRobot(_) => FactorId::new_interrobot(
-                        variable_id.get_factor_graph_id(),
-                        self.node_index.unwrap().into()
-                    ),
-                    FactorKind::Dynamic(_) => FactorId::new_dynamic(
-                        variable_id.get_factor_graph_id(),
-                        self.node_index.unwrap().into()
-                    ),
-                    FactorKind::Obstacle(_) => FactorId::new_obstacle(
-                        variable_id.get_factor_graph_id(),
-                        self.node_index.unwrap().into()
-                    ),
-                },
-                variable_id,
-                self.kind.name()
-            );
-            pretty_print_vector!(message.information_vector().unwrap());
-            pretty_print_matrix!(message.precision_matrix().unwrap());
-            pretty_print_vector!(message.mean().unwrap());
-        });
+        // messages.iter().for_each(|(variable_id, message)| {
+        //     pretty_print_message!(
+        //         match self.kind {
+        //             FactorKind::Pose(_) => FactorId::new_pose(
+        //                 variable_id.get_factor_graph_id(),
+        //                 self.node_index.unwrap().into()
+        //             ),
+        //             FactorKind::InterRobot(_) => FactorId::new_interrobot(
+        //                 variable_id.get_factor_graph_id(),
+        //                 self.node_index.unwrap().into()
+        //             ),
+        //             FactorKind::Dynamic(_) => FactorId::new_dynamic(
+        //                 variable_id.get_factor_graph_id(),
+        //                 self.node_index.unwrap().into()
+        //             ),
+        //             FactorKind::Obstacle(_) => FactorId::new_obstacle(
+        //                 variable_id.get_factor_graph_id(),
+        //                 self.node_index.unwrap().into()
+        //             ),
+        //         },
+        //         variable_id,
+        //         self.kind.name()
+        //     );
+        //     pretty_print_vector!(message.information_vector().unwrap());
+        //     pretty_print_matrix!(message.precision_matrix().unwrap());
+        //     pretty_print_vector!(message.mean().unwrap());
+        // });
 
         messages
     }

@@ -1,5 +1,9 @@
 #![warn(missing_docs)]
-use std::{borrow::BorrowMut, collections::HashMap, ops::Range};
+use std::{
+    borrow::BorrowMut,
+    collections::{BTreeMap, HashMap},
+    ops::Range,
+};
 
 use bevy::prelude::*;
 use gbp_linalg::{Float, Vector};
@@ -103,6 +107,30 @@ pub struct FactorId {
     pub color:          &'static str,
 }
 
+impl std::cmp::PartialOrd for FactorId {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.factorgraph_id < other.factorgraph_id {
+            Some(std::cmp::Ordering::Less)
+        } else if self.factorgraph_id == other.factorgraph_id
+            && self.factor_index.0 < other.factor_index.0
+        {
+            Some(std::cmp::Ordering::Less)
+        } else if self.factorgraph_id == other.factorgraph_id
+            && self.factor_index == other.factor_index
+        {
+            Some(std::cmp::Ordering::Equal)
+        } else {
+            Some(std::cmp::Ordering::Greater)
+        }
+    }
+}
+
+impl std::cmp::Ord for FactorId {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
 // implement PartialEq and Eq manually
 impl std::cmp::PartialEq for FactorId {
     // No need to compare color
@@ -158,6 +186,30 @@ pub struct VariableId {
     pub color:          &'static str,
 }
 
+impl std::cmp::PartialOrd for VariableId {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.factorgraph_id < other.factorgraph_id {
+            Some(std::cmp::Ordering::Less)
+        } else if self.factorgraph_id == other.factorgraph_id
+            && self.variable_index.0 < other.variable_index.0
+        {
+            Some(std::cmp::Ordering::Less)
+        } else if self.factorgraph_id == other.factorgraph_id
+            && self.variable_index == other.variable_index
+        {
+            Some(std::cmp::Ordering::Equal)
+        } else {
+            Some(std::cmp::Ordering::Greater)
+        }
+    }
+}
+
+impl std::cmp::Ord for VariableId {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
 // implement PartialEq and Eq manually
 impl std::cmp::PartialEq for VariableId {
     fn eq(&self, other: &Self) -> bool {
@@ -202,11 +254,11 @@ pub struct FactorToVariableMessage {
     pub message: Message,
 }
 
-pub type MessagesFromVariables = HashMap<FactorId, Message>;
-pub type MessagesFromFactors = HashMap<VariableId, Message>;
+pub type MessagesFromVariables = BTreeMap<FactorId, Message>;
+pub type MessagesFromFactors = BTreeMap<VariableId, Message>;
 
-pub type MessagesToVariables = HashMap<VariableId, Message>;
-pub type MessagesToFactors = HashMap<FactorId, Message>;
+pub type MessagesToVariables = BTreeMap<VariableId, Message>;
+pub type MessagesToFactors = BTreeMap<FactorId, Message>;
 
 #[derive(Debug)]
 pub enum NodeKind {
