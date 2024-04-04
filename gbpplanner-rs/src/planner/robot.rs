@@ -372,7 +372,7 @@ impl RobotBundle {
             };
 
             let precision_matrix = Matrix::<Float>::from_diag_elem(ndofs, sigma);
-            pretty_print_matrix!(&precision_matrix);
+            // pretty_print_matrix!(&precision_matrix);
 
             let mean = array![
                 mean.x as Float,
@@ -380,7 +380,7 @@ impl RobotBundle {
                 mean.z as Float,
                 mean.w as Float
             ];
-            pretty_print_vector!(&mean);
+            // pretty_print_vector!(&mean);
 
             let variable = Variable::new(mean, precision_matrix, ndofs);
             let variable_index = factorgraph.add_variable(variable);
@@ -683,7 +683,7 @@ fn iterate_gbp(
     config: Res<Config>,
 ) {
     for i in 0..config.gbp.iterations_per_timestep {
-        pretty_print_title!(format!("GBP iteration: {}", i + 1));
+        // pretty_print_title!(format!("GBP iteration: {}", i + 1));
         // ╭────────────────────────────────────────────────────────────────────────────────────────
         // │ Factor iteration
         let messages_to_external_variables = query
@@ -783,6 +783,7 @@ fn update_prior_of_horizon_state(
             let new_position = estimated_position.into_owned() + (&new_velocity * delta_t as Float);
 
             // pretty_print_subtitle!("HORIZON STATE UPDATE");
+            // println!("horizon2goal_dir = {:?}", horizon2goal_dir);
             // pretty_print_vector!(&new_velocity);
             // pretty_print_vector!(&new_position);
 
@@ -876,6 +877,9 @@ fn update_prior_of_current_state(
         );
 
         // dbg!((&increment, scale));
+        // pretty_print_subtitle!("CURRENT STATE UPDATE");
+        // pretty_print_vector!(&array![increment.x, increment.y, increment.z]);
+        // println!("scale = {:?}", scale);
 
         transform.translation += increment;
     }

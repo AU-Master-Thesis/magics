@@ -1,9 +1,9 @@
 (
   formations: [
     (
-      repeat: false,
+      repeat: true,
       delay: (
-        secs: 1,
+        secs: 5,
         nanos: 0
       ),
       robots: 1,
@@ -11,10 +11,10 @@
         (
           shape: line(((
             x: 0.45,
-            y: 0.05,
+            y: 0.00,
           ), (
             x: 0.55,
-            y: 0.05,
+            y: 0.00,
           ))),
           r#placement-strategy: equal,
         ),

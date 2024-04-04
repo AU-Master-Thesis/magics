@@ -213,7 +213,7 @@ fn update_uncertainty(
                     config.visualisation.uncertainty.max_radius
                 } else {
                     // 1.0
-                    covariance.diag()[0] as f32 * 1000.0
+                    covariance.diag()[0] as f32 * config.visualisation.uncertainty.scale
                 };
                 // pick `y` from the covariance diagonal, but cap it at 10.0
                 let half_height = if covariance.diag()[1] > 20.0 {
@@ -221,7 +221,7 @@ fn update_uncertainty(
                     config.visualisation.uncertainty.max_radius
                 } else {
                     // 2.0
-                    covariance.diag()[1] as f32 * 1000.0
+                    covariance.diag()[1] as f32 * config.visualisation.uncertainty.scale
                 };
 
                 // dbg!((half_width, half_height));

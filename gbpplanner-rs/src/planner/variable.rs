@@ -127,11 +127,11 @@ impl Variable {
 
         let eta_prior = lam_prior.dot(&mu_prior);
 
-        let subtitle = format!("{}{}{}", RED, "Creating variable", RESET);
-        pretty_print_subtitle!(subtitle);
-        pretty_print_vector!(&mu_prior);
-        pretty_print_matrix!(&lam_prior);
-        pretty_print_vector!(&eta_prior);
+        // let subtitle = format!("{}{}{}", RED, "Creating variable", RESET);
+        // pretty_print_subtitle!(subtitle);
+        // pretty_print_vector!(&mu_prior);
+        // pretty_print_matrix!(&lam_prior);
+        // pretty_print_vector!(&eta_prior);
 
         let sigma = lam_prior
             .inv()
@@ -292,7 +292,7 @@ impl Variable {
             }
         }
 
-        // title = format!("{}{}{}", YELLOW, "Variable belief AFTER update:", RESET);
+        // let title = format!("{}{}{}", YELLOW, "Variable belief update:", RESET);
         // pretty_print_subtitle!(title);
         // pretty_print_vector!(&self.belief.eta);
         // pretty_print_matrix!(&self.belief.lambda);

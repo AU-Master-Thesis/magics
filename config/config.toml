@@ -8,32 +8,33 @@ ui-focus-cancels-inputs = true
 
 [visualisation.uncertainty]
 max-radius = 2.5
+scale = 300.0
 
 [visualisation.height]
 objects    = 0.5
 height-map = 1.0
 
 [visualisation.draw]
-robots                 = false
+robots                 = true
 communication-graph    = true
 predicted-trajectories = true
-waypoints              = false
-uncertainty            = true
+waypoints              = true
+uncertainty            = false
 paths                  = true
 height-map             = false
 flat-map               = false
 communication-radius   = false
 
 [gbp]
-sigma-pose-fixed        = 0.0000000000000010000000036274937
-sigma-factor-dynamics   = 0.10000000149011612
-sigma-factor-interrobot = 0.009999999776482582
-sigma-factor-obstacle   = 0.009999999776482582
-iterations-per-timestep = 1
+sigma-pose-fixed        = 0.000000000000001
+sigma-factor-dynamics   = 0.1
+sigma-factor-interrobot = 0.01
+sigma-factor-obstacle   = 0.01
+iterations-per-timestep = 10
 lookahead-multiple      = 3
 
 [robot]
-planning-horizon  = 0.75
+planning-horizon  = 5.0
 max-speed         = 2.0
 dofs              = 4
 symmetric-factors = true
@@ -51,7 +52,7 @@ manual-step-factor = 1
 hz                 = 60.0
 world-size         = 100.0
 random-seed        = 0
-pause-on-spawn     = true
+pause-on-spawn     = false
 
 [graphviz.interrobot.edge]
 style = "dashed"
