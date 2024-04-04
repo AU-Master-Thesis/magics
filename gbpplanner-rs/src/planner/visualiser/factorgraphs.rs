@@ -141,9 +141,9 @@ fn create_factorgraph_visualizer(
             let [x, y] = variable.estimated_position();
             let transform = Vec3::new(x as f32, config.visualisation.height.objects, y as f32);
             let robottracker = RobotTracker {
-                robot_id: *robot_id,
+                robot_id:       *robot_id,
                 variable_index: index.into(),
-                order: i,
+                order:          i,
             };
 
             debug!(
@@ -159,6 +159,10 @@ fn create_factorgraph_visualizer(
                     mesh: scene_assets.meshes.variable.clone(),
                     material: scene_assets.materials.variable.clone(),
                     transform: Transform::from_translation(transform),
+                    visibility: match config.visualisation.draw.predicted_trajectories {
+                        true => Visibility::Visible,
+                        false => Visibility::Hidden,
+                    },
                     ..Default::default()
                 },
             ));
