@@ -9,7 +9,11 @@ const SAMPLE_DELAY: f32 = 0.5;
 
 use crate::{
     config::Config,
-    planner::{robot::DespawnRobotEvent, RobotId, RobotState},
+    planner::{
+        robot::{DespawnRobotEvent, SpawnRobotEvent},
+        RobotId, RobotState,
+    },
+    robot_spawner::RobotSpawnedEvent,
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 
@@ -20,6 +24,7 @@ impl Plugin for TracerVisualiserPlugin {
         app.init_resource::<Traces>().add_systems(
             Update,
             (
+                track_initial_robot_positions,
                 track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
                 draw_traces.run_if(draw_paths_enabled),
                 // remove_trace_of_despawned_robot,
@@ -50,12 +55,31 @@ fn remove_trace_of_despawned_robot(
     }
 }
 
+fn track_initial_robot_positions(
+    query: Query<(RobotId, &Transform), With<RobotState>>,
+    mut traces: ResMut<Traces>,
+    mut spawn_robot_event: EventReader<SpawnRobotEvent>,
+) {
+    spawn_robot_event
+        .read()
+        .for_each(|SpawnRobotEvent(robot_id)| {
+            for (other_robot_id, transform) in query.iter() {
+                if other_robot_id == *robot_id {
+                    let _ = traces
+                        .0
+                        .entry(*robot_id)
+                        .or_default()
+                        .push_overwrite(transform.translation);
+                }
+            }
+        });
+}
+
 /// **Bevy** [`Update`] system
 /// To update the [`Traces`] resource
 fn track_robots(
     query: Query<(RobotId, &Transform), (With<RobotState>, Changed<Transform>)>,
     mut traces: ResMut<Traces>,
-    time: Res<Time>,
 ) {
     debug!("sampling robot positions");
 

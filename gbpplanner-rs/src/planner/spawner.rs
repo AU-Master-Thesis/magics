@@ -19,7 +19,7 @@ use super::{
 use crate::{
     asset_loader::SceneAssets,
     config::{
-        formation::{RelativePoint, Shape},
+        formation::{Point, RelativePoint, Shape},
         Config, FormationGroup,
     },
     environment::{cursor::CursorCoordinates, follow_cameras::FollowCameraMe},
@@ -56,7 +56,7 @@ fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
 #[derive(Event)]
 pub struct CreateWaypointEvent {
     pub for_robot: RobotId,
-    pub position: Vec2,
+    pub position:  Vec2,
 }
 
 #[derive(Event)]
@@ -116,7 +116,7 @@ fn place_unplanned_waypoint(
 
         create_waypoint_event.send(CreateWaypointEvent {
             for_robot: selected_robot.0.unwrap(),
-            position: cursor_position.local(),
+            position:  cursor_position.local(),
         });
 
         // waypoints
@@ -134,7 +134,7 @@ static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
 /// Component attached to an entity that spawns formations.
 #[derive(Component)]
 pub struct FormationSpawnerCountdown {
-    pub timer: Timer,
+    pub timer:                 Timer,
     pub formation_group_index: usize,
 }
 
@@ -231,8 +231,8 @@ fn spawn_formation(
         let max_placement_attempts = NonZeroUsize::new(1000).expect("1000 is not zero");
         let Some(lerp_amounts) = (match &first_wp.shape {
             Shape::Line((start, end)) => {
-                let start = relative_point_to_world_position(start, &world_dims);
-                let end = relative_point_to_world_position(end, &world_dims);
+                let start = point_to_world_position(start, &world_dims);
+                let end = point_to_world_position(end, &world_dims);
                 randomly_place_nonoverlapping_circles_along_line_segment(
                     start,
                     end,
@@ -288,7 +288,7 @@ fn spawn_formation(
             let robot_id = entity.id();
             create_waypoint_event.send_batch(waypoints.iter().map(|p| CreateWaypointEvent {
                 for_robot: robot_id,
-                position: *p,
+                position:  *p,
             }));
 
             let mut waypoints_with_speed = waypoints
@@ -405,7 +405,7 @@ fn select_robot_when_clicked(
 
 #[derive(Debug, Clone, Copy)]
 struct WorldDimensions {
-    width: StrictlyPositiveFinite<f64>,
+    width:  StrictlyPositiveFinite<f64>,
     height: StrictlyPositiveFinite<f64>,
 }
 
@@ -418,7 +418,7 @@ struct WorldDimensions {
 impl WorldDimensions {
     fn new(width: f64, height: f64) -> Self {
         Self {
-            width: width.try_into().expect("width is not zero"),
+            width:  width.try_into().expect("width is not zero"),
             height: height.try_into().expect("height is not zero"),
         }
     }
@@ -450,11 +450,21 @@ fn relative_point_to_world_position(
     )
 }
 
+/// Convert a `Point` to a world position
+/// given the dimensions of the world.
+/// The `Point` is not bound to the range [0, 1] x [0, 1]
+fn point_to_world_position(point: &Point, world_dims: &WorldDimensions) -> Vec2 {
+    Vec2::new(
+        ((point.x - 0.5) * world_dims.width()) as f32,
+        ((point.y - 0.5) * world_dims.height()) as f32,
+    )
+}
+
 fn map_positions(shape: &Shape, lerp_amounts: &[f32], world_dims: &WorldDimensions) -> Vec<Vec2> {
     match shape {
         Shape::Line((start, end)) => {
-            let start = relative_point_to_world_position(start, world_dims);
-            let end = relative_point_to_world_position(end, world_dims);
+            let start = point_to_world_position(start, world_dims);
+            let end = point_to_world_position(end, world_dims);
             lerp_amounts
                 .iter()
                 .map(|&lerp_amount| start.lerp(end, lerp_amount))

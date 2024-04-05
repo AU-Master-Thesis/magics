@@ -8,7 +8,7 @@ ui-focus-cancels-inputs = true
 
 [visualisation.uncertainty]
 max-radius = 2.5
-scale = 300.0
+scale      = 300.0
 
 [visualisation.height]
 objects    = 0.5
@@ -16,9 +16,9 @@ height-map = 1.0
 
 [visualisation.draw]
 robots                 = true
-communication-graph    = true
+communication-graph    = false
 predicted-trajectories = true
-waypoints              = true
+waypoints              = false
 uncertainty            = false
 paths                  = true
 height-map             = false
@@ -35,7 +35,7 @@ lookahead-multiple      = 3
 
 [robot]
 planning-horizon  = 5.0
-max-speed         = 2.0
+max-speed         = 4.0
 dofs              = 4
 symmetric-factors = true
 radius            = 1.0
