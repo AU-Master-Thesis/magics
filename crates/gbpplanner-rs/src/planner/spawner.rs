@@ -130,6 +130,8 @@ fn place_unplanned_waypoint(
 
 /// Every [`ObstacleFactor`] has a static reference to the obstacle image.
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
+// static OBSTACLE_IMAGE: OnceLock<Image> =
+//     OnceLock::new().get_or_init(|| include_bytes!("./assets/imgs/junction_sdf.png"));
 
 /// Component attached to an entity that spawns formations.
 #[derive(Component)]
@@ -171,7 +173,7 @@ fn setup(mut commands: Commands, formation_group: Res<FormationGroup>) {
 /// spawn.
 /// Assumes that the `FormationGroup` resource has been initialised, and does
 /// not change during the program's execution.
-#[derive(Event)]
+#[derive(Debug, Event)]
 pub struct FormationSpawnEvent {
     pub formation_group_index: usize,
 }
@@ -216,12 +218,14 @@ fn spawn_formation(
 ) {
     // only continue if the image has been loaded
     let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else {
+        error!("obstacle sdf not loaded yet");
         return;
     };
 
     let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
 
     for event in spawn_event_reader.read() {
+        warn!("new formation spawn event received: {:?}", event);
         let formation = &formation_group.formations[event.formation_group_index];
         let first_wp = formation.waypoints.first();
 

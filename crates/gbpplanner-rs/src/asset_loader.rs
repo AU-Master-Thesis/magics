@@ -1,5 +1,6 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/asset_loader.rs
 use bevy::{math::primitives::Rectangle, prelude::*};
+use bevy_asset_loader::prelude::*;
 
 use crate::{
     config::Config,
@@ -31,15 +32,28 @@ pub struct Materials {
     pub obstacle: Handle<StandardMaterial>,
 }
 
+#[derive(AssetCollection, Resource)]
+pub struct ImageAssets {
+    #[asset(path = "imgs/junction.png")]
+    pub obstacle_image_raw: Handle<Image>,
+    #[asset(path = "imgs/junction_sdf.png")]
+    pub obstacle_image_sdf: Handle<Image>,
+}
+
 /// **Bevy** [`Resource`] to hold all assets in a common place
 /// Good practice to load assets once, and then reference them by their
 /// [`Handle`]s
 #[derive(Resource, Debug, Default)]
 pub struct SceneAssets {
+    // #[asset(path = "fonts/JetBrainsMonoNerdFont-Regular.ttf")]
     pub main_font: Handle<Font>,
+    // #[asset(path = "models/roomba.glb#Scene0")]
     pub roomba: Handle<Scene>,
+    // #[asset(path = "models/roomba.glb#Scene0")]
     pub object: Handle<Scene>,
+    // #[asset(path = "imgs/junction.png")]
     pub obstacle_image_raw: Handle<Image>,
+    // #[asset(path = "imgs/junction_sdf.png")]
     pub obstacle_image_sdf: Handle<Image>,
     pub meshes: Meshes,
     pub materials: Materials,

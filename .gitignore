@@ -1,6 +1,7 @@
 /target
 .direnv/
 **/dist/
+*.wasm
 
 *.log
 # pixi environments

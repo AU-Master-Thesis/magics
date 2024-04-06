@@ -19,9 +19,7 @@ pub(crate) mod macros;
 use std::path::PathBuf;
 
 use bevy::{
-    core::FrameCount,
-    prelude::*,
-    window::{WindowMode, WindowTheme},
+    asset::AssetMetaCheck, core::FrameCount, prelude::*, window::{WindowMode, WindowTheme}
 };
 // use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
@@ -215,6 +213,8 @@ fn main() -> anyhow::Result<()> {
         .insert_resource(config)
         .insert_resource(formation)
         .insert_resource(environment)
+        .insert_resource(AssetMetaCheck::Never) // needed for wasm build to work
+
         .add_plugins(EntropyPlugin::<WyRand>::default())
         .add_plugins((
             DefaultPlugins.set(
