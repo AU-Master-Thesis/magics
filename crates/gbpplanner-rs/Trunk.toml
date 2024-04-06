@@ -1,0 +1,12 @@
+[build]
+public_url = "/"
+# The index HTML file to drive the bundling process.
+target = "index.html"
+# Build in release mode.
+release = false
+
+no_minification = true
+
+
+[serve]
+port = 8080

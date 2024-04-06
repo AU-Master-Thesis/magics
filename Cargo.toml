@@ -6,9 +6,10 @@ members = [
   "crates/min_len_vec",
   "crates/percentage",
   "crates/unit_interval",
-  "gbp_linalg",
-  "gbp_multivariate_normal",
-  "gbpplanner-rs",
+  "crates/gbp_linalg",
+  "crates/gbp_multivariate_normal",
+  "crates/bevy_undo_redo",
+  "crates/gbpplanner-rs",
 ]
 
 [workspace.package]
@@ -19,8 +20,9 @@ authors = [
   "Jens Høigaard Jensen <jens.jens@live.dk>",
   "Kristoffer Plagborg Bak Sørensen <kristoffer.pbs@tuta.io>",
 ]
-rust-version = "1.76"
+rust-version = "1.77"
 license = "MIT"
+
 
 [workspace.dependencies]
 ndarray = "0.15.6"
@@ -46,12 +48,15 @@ assertions_on_result_states = "warn"
 # nursery = "deny"
 unwrap_used = "warn"
 # expect_used = "deny"
+dbg_macro = "warn"
+todo      = "warn"
+
 
 [profile.release]
 codegen-units    = 1
 debug            = false
 debug-assertions = false
-lto              = "off"
+lto              = "fat"
 opt-level        = 3
 panic            = "abort"
 rpath            = false
@@ -68,3 +73,13 @@ incremental = true
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
 opt-level = 3
+
+[profile.wasm]
+inherits      = "release"
+opt-level     = "z"
+debug         = false
+strip         = true
+lto           = true
+codegen-units = 1
+incremental   = false
+panic         = "abort"

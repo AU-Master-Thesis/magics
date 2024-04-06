@@ -23,6 +23,8 @@
     inputs.flake-utils.lib.eachDefaultSystem (system: let
       overlays = [(import rust-overlay)];
       pkgs = import inputs.nixpkgs {inherit system overlays;};
+      rust-extensions = ["rust-src" "rust-analyzer"];
+      rust-targets = ["wasm32-unknown-unknown"];
       # wgsl-analyzer-pkgs = import inputs.wgsl_analyzer {inherit system;};
       bevy-deps = with pkgs; [
         udev
@@ -42,14 +44,14 @@
       cargo-subcommands = with pkgs; [
         cargo-bloat
         cargo-expand
-        cargo-info
         cargo-outdated
         cargo-show-asm
-        cargo-nextest
+        cargo-make
         cargo-modules
-        cargo-watch
+        cargo-nextest
         cargo-rr
         cargo-udeps
+        cargo-watch
         cargo-wizard
         # cargo-tree
 
@@ -74,14 +76,13 @@
         devShells.default = pkgs.mkShell rec {
           nativeBuildInputs = with pkgs; [
             pkgs.pkg-config
-            # cargo
-            # rustc
           ];
           buildInputs =
             [
               (rust-bin.stable.latest.default.override
                 {
-                  extensions = ["rust-src" "rust-analyzer"];
+                  extensions = rust-extensions;
+                  targets = rust-targets;
                 })
               # (rust-bin.beta.latest.default.override {
               #     extensions = ["rust-src" "rust-analyzer"];
@@ -94,11 +95,18 @@
               #         "rust-analyzer"
               #         "rustc-codegen-cranelift-preview"
               #       ];
+              #       targets = ["wasm32-unknown-unknown"];
               #     })
               # )
 
               nodejs
               just
+              typos
+              trunk # rust wasm bundler
+              wasm-bindgen-cli
+              binaryen # wasm-opt
+              sass
+              tailwindcss
               d2
               graphviz
               dot-language-server

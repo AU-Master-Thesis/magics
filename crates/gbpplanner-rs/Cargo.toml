@@ -1,0 +1,103 @@
+[package]
+edition                = "2021"
+name                   = "gbpplanner-rs"
+version.workspace      = true
+repository.workspace   = true
+authors.workspace      = true
+rust-version.workspace = true
+license.workspace      = true
+
+[features]
+dev = [
+  "bevy/dynamic_linking",
+]
+
+[dependencies]
+percentage              = { path = "../percentage" }
+unit_interval           = { path = "../unit_interval" }
+min_len_vec             = { path = "../min_len_vec" }
+gbp_linalg              = { path = "../gbp_linalg" }
+gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
+
+glob = "0.3.1"
+better-panic = "0.3.0"
+bevy = { version = "0.13.0", default-features = true, features = [
+  # "wayland",
+  # "dynamic_linking",
+] }
+bevy-inspector-egui = "0.23.2"
+bevy_egui = "0.26.0"
+egui_extras = { version = "0.26.2", features = [
+  "all_loaders",
+] }
+bevy_mod_picking = { version = "0.18.0" }
+
+bevy_eventlistener = "0.7"
+bevy_rand = "0.5"
+bevy_prng = { version = "0.5", features = [
+  "rand_chacha",
+  "wyrand",
+] }
+iyes_perf_ui = { git = "https://github.com/IyesGames/iyes_perf_ui", branch = "main" }
+image = { version = "0.25.0", default-features = false, features = [
+  "png",
+] }
+leafwing-input-manager = "0.13.3"
+# bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
+bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "bevy-v0.13.0" }
+# bevy_mesh_terrain = "0.6.1"
+
+bevy_file_dialog = "0.5.0"
+
+heck            = "0.5.0"
+struct_iterable = "0.1.1"
+catppuccin      = "1.4.0"
+
+toml = "0.8.8"
+serde = { version = "1.0.196", features = [
+  "derive",
+] }
+thiserror.workspace = true
+anyhow.workspace = true
+clap = { version = "4.4.18", features = [
+  "derive",
+] }
+# color-eyre = "0.6.2"
+rand            = "0.8.5"
+itertools       = "0.12.1"
+petgraph        = "0.6.4"
+ndarray         = "0.15.6"
+ndarray-inverse = "0.1.9"
+num-traits      = "0.2.18"
+ron             = "0.8.1"
+strum           = "0.26.1"
+strum_macros    = "0.26.1"
+
+
+tap = "1.0.1"
+
+typed_floats = { version = "1.0.0", features = [
+  "serde",
+] }
+
+ringbuf          = "0.3.3"
+bevy_dev_console = { git = "https://github.com/doonv/bevy_dev_console.git", version = "0.1.0" }
+termsize         = "0.1.6"
+derive_more      = "0.99.17"
+
+
+# TODO: change to not wasm
+[target.'cfg(linux)'.dependencies]
+open = "5.1.0"
+
+
+[dev-dependencies]
+pretty_assertions = "1.4.0"
+approx            = "0.5.1"
+
+[build-dependencies]
+embed-resource = "2.4.2"
+
+
+[lints]
+workspace = true

@@ -1,5 +1,6 @@
 /target
 .direnv/
+**/dist/
 
 *.log
 # pixi environments

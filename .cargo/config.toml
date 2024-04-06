@@ -1,12 +1,18 @@
 # Recommended by bevy: https://bevyengine.org/learn/book/getting-started/setup/
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
-## TODO: the path to mold is not right when using nix
-# rustflags = ["-C", "link-arg=-fuse-ld=mold"]
-# rustflags = ["-C", "linker=mold"]
-## rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold"]
 rustflags = [
   "-Clink-arg=-fuse-ld=mold", # Use mold Linker
   # "-Zshare-generics=y",       # (Nightly) Make the current crate share its generic instantiations
   # "-Zthreads=0",              # (Nightly) Use improved multithreading with the recommended amount of threads.
 ]
+
+# compile simulation as a wasm binary for static webpage
+[target.wasm32-unknown-unknown]
+runner = "wasm-server-runner"
+rustflags = [
+  "--cfg=web_sys_unstable_apis",
+]
+
+[build]
+rustflags = ["-Clink-arg=-fuse-ld=mold"]
