@@ -8,7 +8,7 @@ members = [
   "crates/unit_interval",
   "crates/gbp_linalg",
   "crates/gbp_multivariate_normal",
-  "crates/bevy_undo_redo",
+  # "crates/bevy_undo_redo",
   "crates/gbpplanner-rs",
 ]
 
