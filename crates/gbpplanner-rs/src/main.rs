@@ -126,22 +126,42 @@ enum DebugState {
     Enabled,
 }
 
-fn main() -> anyhow::Result<()> {
-    // eprintln!("is there anybody out there?");
-    // better_panic::debug_install();
-    // eprintln!("better_panic is");
 
-    // let cwd = std::env::current_dir()?;
-    // println!("cwd = {:?}", cwd);
-    
-    let name = env!("CARGO_PKG_NAME");
-    let version = env!("CARGO_PKG_VERSION");
-    let authors = env!("CARGO_PKG_AUTHORS");
-    println!("authors: {}", authors);
-    println!("version: {}", version);
+#[cfg(not(target = "wasm32-unknown-unkwown"))]
+fn parse_arguments() -> Cli {
+    Cli::parse()
+}
 
+#[cfg(target = "wasm32-unknown-unknown")]
+fn parse_arguments() -> Cli {
     let mut cli = Cli::parse();
     cli.default = true;
+    cli
+}
+
+#[cfg(not(target = "wasm32-unknown-unkwown"))]
+fn install_panic_handler() {
+    better_panic::debug_install();
+}
+
+#[cfg(target = "wasm32-unknown-unknown")]
+fn install_panic_handler() {}
+
+fn main() -> anyhow::Result<()> {
+    install_panic_handler();
+   
+    let name = env!("CARGO_PKG_NAME");
+    let version = env!("CARGO_PKG_VERSION");
+    let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+
+    println!("name:         {}", name);
+    println!("authors:");
+    authors.iter().for_each(|&author| {println!(" - {}", author);});
+    println!("version:      {}", version);
+    println!("manifest_dir: {}", manifest_dir);
+
+    let cli  = parse_arguments();
 
     if let Some(dump) = cli.dump_default {
         match dump {

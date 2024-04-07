@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
+use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 use super::super::ui::UiState;
@@ -9,9 +10,9 @@ pub struct UiInputPlugin;
 
 impl Plugin for UiInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((InputManagerPlugin::<UiAction>::default(),))
-            .add_systems(PostStartup, (bind_ui_input,))
-            .add_systems(Update, (ui_actions,));
+        app.add_plugins(InputManagerPlugin::<UiAction>::default())
+            .add_systems(PostStartup, bind_ui_input)
+            .add_systems(Update, handle_ui_actions);
     }
 }
 
@@ -42,29 +43,23 @@ pub enum UiAction {
 }
 
 impl UiAction {
-    fn variants() -> &'static [Self] {
-        &[
-            UiAction::ToggleLeftPanel,
-            UiAction::ChangeScaleKind,
-            UiAction::ToggleRightPanel,
-        ]
-    }
-
     fn default_keyboard_input(action: UiAction) -> Option<UserInput> {
-        Some(match action {
-            Self::ToggleLeftPanel => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyH)),
-            Self::ToggleRightPanel => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyL)),
-            Self::ChangeScaleKind => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyU)),
-            Self::ToggleTopPanel => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyK)),
-            Self::ToggleBottomPanel => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyJ)),
-        })
+        let input_kind = match action {
+            Self::ToggleLeftPanel => InputKind::PhysicalKey(KeyCode::KeyH),
+            Self::ToggleRightPanel => InputKind::PhysicalKey(KeyCode::KeyL),
+            Self::ToggleTopPanel => InputKind::PhysicalKey(KeyCode::KeyK),
+            Self::ToggleBottomPanel => InputKind::PhysicalKey(KeyCode::KeyJ),
+            Self::ChangeScaleKind => InputKind::PhysicalKey(KeyCode::KeyU),
+        };
+
+        Some(UserInput::Single(input_kind))
     }
 }
 
 fn bind_ui_input(mut commands: Commands) {
     let mut input_map = InputMap::default();
 
-    for &action in UiAction::variants() {
+    for action in UiAction::iter() {
         if let Some(input) = UiAction::default_keyboard_input(action) {
             input_map.insert(action, input);
         }
@@ -73,7 +68,7 @@ fn bind_ui_input(mut commands: Commands) {
     commands.spawn(InputManagerBundle::with_map(input_map));
 }
 
-fn ui_actions(
+fn handle_ui_actions(
     query: Query<&ActionState<UiAction>>,
     mut ui_state: ResMut<UiState>,
     currently_changing: Res<ChangingBinding>,
@@ -81,6 +76,7 @@ fn ui_actions(
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
+
     let Ok(action_state) = query.get_single() else {
         return;
     };
