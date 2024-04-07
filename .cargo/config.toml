@@ -1,6 +1,6 @@
 # Recommended by bevy: https://bevyengine.org/learn/book/getting-started/setup/
 [target.x86_64-unknown-linux-gnu]
-linker = "clang"
+# linker = "clang"
 rustflags = [
   "-Clink-arg=-fuse-ld=mold", # Use mold Linker
   # "-Zshare-generics=y",       # (Nightly) Make the current crate share its generic instantiations
@@ -9,10 +9,12 @@ rustflags = [
 
 # compile simulation as a wasm binary for static webpage
 [target.wasm32-unknown-unknown]
-runner = "wasm-server-runner"
+# runner = "wasm-server-runner"
 rustflags = [
   "--cfg=web_sys_unstable_apis",
 ]
 
 [build]
-rustflags = ["-Clink-arg=-fuse-ld=mold"]
+rustflags = [
+  "-Clink-arg=-fuse-ld=mold",
+]
