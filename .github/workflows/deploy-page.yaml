@@ -53,10 +53,10 @@ jobs:
 
       - name: optimize Wasm
         uses: NiklasEi/wasm-opt-action@v2
-        working-directory: crates/gbpplanner-rs
+        # working-directory: crates/gbpplanner-rs
         with:
-          file: dist/*.wasm
-          # file: ./crates/gbpplanner-rs/dist/*.wasm
+          # file: dist/*.wasm
+          file: ./crates/gbpplanner-rs/dist/*.wasm
 
   # deploy-to-github-pages:
     # working-directory: crates/gbpplanner-rs
