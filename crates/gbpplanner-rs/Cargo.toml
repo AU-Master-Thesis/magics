@@ -50,6 +50,8 @@ bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_
 bevy_asset_loader = "0.20.0"
 
 bevy_file_dialog = "0.5.0"
+# bevy-notify      = "0.2.0"
+
 
 heck            = "0.5.0"
 struct_iterable = "0.1.1"
@@ -88,7 +90,7 @@ termsize         = "0.1.6"
 derive_more      = "0.99.17"
 paste            = "1.0.14"
 egui_plot        = "0.26"
-egui_graphs = "0.19.0"
+egui_graphs      = "0.19.0"
 # font-kit = { version = "0.13.0", features = ["freetype"] }
 
 
