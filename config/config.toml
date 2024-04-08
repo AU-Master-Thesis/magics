@@ -22,7 +22,7 @@ waypoints              = false
 uncertainty            = false
 paths                  = true
 height-map             = false
-flat-map               = false
+flat-map               = true
 communication-radius   = false
 
 [gbp]

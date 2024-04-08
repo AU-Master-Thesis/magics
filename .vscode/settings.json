@@ -1,6 +1,3 @@
 {
-    "rust-analyzer.linkedProjects": [
-        "./gbpplanner-rs/Cargo.toml"
-    ],
     "rust-analyzer.showUnlinkedFileNotification": false
 }

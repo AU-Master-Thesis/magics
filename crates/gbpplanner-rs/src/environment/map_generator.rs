@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+// use bevy_more_shapes::Cylinder;
+// use bevy_math::RegularPolygon;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -66,6 +68,13 @@ fn build_obstacles(
     let grid_offset_x = tile_grid.cols() as f32 / 2.0 - 0.5;
     let grid_offset_z = tile_grid.rows() as f32 / 2.0 - 0.5;
 
+    info!("Spawning obstacles");
+    info!("{:?}", env_config.obstacles);
+    info!(
+        "env_config.obstacles.iter().count() = {:?}",
+        env_config.obstacles.iter().count()
+    );
+
     let obstacles_to_spawn = env_config.obstacles.iter().map(|obstacle| {
         let TileCoordinates { row, col } = obstacle.tile_coordinates;
 
@@ -88,16 +97,51 @@ fn build_obstacles(
                     offset_z + center.y.get() as f32 * tile_size - pos_offset,
                 );
 
-                info!("Spawning circle r = {}, at {:?}", radius, center);
+                info!("Spawning circle: r = {}, at {:?}", radius, center);
                 let radius = radius.get() as f32 * tile_size;
 
                 let mesh = meshes.add(Cylinder::new(radius, obstacle_height));
                 let transform = Transform::from_translation(center);
 
                 info!(
-                    "Spawning cylinder r = {}, h = {}, at {:?}",
+                    "Spawning cylinder: r = {}, h = {}, at {:?}",
                     radius, obstacle_height, transform
                 );
+
+                Some((mesh, transform))
+            }
+            PlaceableShape::RegularPolygon {
+                sides,
+                side_length,
+                translation,
+            } => {
+                if sides != 4 {
+                    unimplemented!("Only squares are currently supported")
+                }
+                let center = Vec3::new(
+                    offset_x + translation.x.get() as f32 * tile_size - pos_offset,
+                    obstacle_height / 2.0,
+                    offset_z + translation.y.get() as f32 * tile_size - pos_offset,
+                );
+
+                info!(
+                    "Spawning regular polygon: sides = {}, side_length = {}, at {:?}",
+                    sides, side_length, center
+                );
+
+                // let mesh = meshes.add(Cuboid::new(
+                //     side_length.get() as f32 * tile_size,
+                //     obstacle_height,
+                //     side_length.get() as f32 * tile_size,
+                // ));
+                let mesh = meshes.add(Mesh::from(bevy_more_shapes::Cylinder {
+                    height: obstacle_height,
+                    radius_bottom: side_length.get() as f32 * tile_size / 2.0,
+                    radius_top: side_length.get() as f32 * tile_size / 2.0,
+                    radial_segments: sides as u32,
+                    height_segments: 1,
+                }));
+                let transform = Transform::from_translation(center);
 
                 Some((mesh, transform))
             }
@@ -105,16 +149,16 @@ fn build_obstacles(
         }
     });
 
-    // obstacles_to_spawn
-    //     .filter_map(|obstacle| obstacle) // filter out None
-    //     .for_each(|(mesh, transform)| {
-    //         commands.spawn(PbrBundle {
-    //             mesh,
-    //             material: scene_assets.materials.obstacle.clone(),
-    //             transform,
-    //             ..Default::default()
-    //         });
-    //     });
+    obstacles_to_spawn
+        .filter_map(|obstacle| obstacle) // filter out None
+        .for_each(|(mesh, transform)| {
+            commands.spawn(PbrBundle {
+                mesh,
+                material: scene_assets.materials.obstacle.clone(),
+                transform,
+                ..Default::default()
+            });
+        });
 
     // exit
     // std::process::exit(0);

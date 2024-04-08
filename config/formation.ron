@@ -3,7 +3,7 @@
     (
       repeat: true,
       delay: (
-        secs: 4,
+        secs: 20,
         nanos: 0
       ),
       robots: 1,
@@ -33,7 +33,7 @@
     (
       repeat: true,
       delay: (
-        secs: 4,
+        secs: 20,
         nanos: 0
       ),
       robots: 1,
