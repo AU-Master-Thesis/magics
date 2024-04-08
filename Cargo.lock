@@ -2420,6 +2420,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_graphs"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12dc4a9b44d5e54d2173e07dd67da1cfff199d6b3dd7f0ccb2c512dce548e280"
+dependencies = [
+ "egui",
+ "petgraph",
+ "rand",
+]
+
+[[package]]
+name = "egui_plot"
+version = "0.26.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "803bfcb1ad294dd7f106e26ac9199730d16051496ddb66b10fdb6529eb43df58"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "ehttp"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2884,6 +2904,8 @@ dependencies = [
  "clap",
  "derive_more",
  "egui_extras",
+ "egui_graphs",
+ "egui_plot",
  "embed-resource 2.4.2",
  "gbp_linalg",
  "gbp_multivariate_normal",
@@ -2898,6 +2920,7 @@ dependencies = [
  "ndarray-inverse",
  "num-traits",
  "open",
+ "paste",
  "percentage",
  "petgraph",
  "pretty_assertions",

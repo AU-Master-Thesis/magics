@@ -2,19 +2,15 @@
 //! ...
 use std::{collections::VecDeque, num::NonZeroUsize, sync::OnceLock};
 
-use bevy::{
-    input::{mouse::MouseButtonInput, ButtonState},
-    prelude::*,
-    window::PrimaryWindow,
-};
+use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use itertools::Itertools;
 use rand::Rng;
 use typed_floats::StrictlyPositiveFinite;
 
 use super::{
-    robot::{SpawnRobotEvent, VariableTimesteps, Waypoints},
-    PausePlayEvent, RobotId, RobotState,
+    robot::{SpawnRobotEvent, VariableTimesteps},
+    PausePlayEvent, RobotId,
 };
 use crate::{
     asset_loader::SceneAssets,
@@ -22,7 +18,6 @@ use crate::{
         formation::{Point, RelativePoint, Shape},
         Config, FormationGroup,
     },
-    environment::{cursor::CursorCoordinates, follow_cameras::FollowCameraMe},
     planner::robot::RobotBundle,
 };
 
@@ -31,7 +26,7 @@ pub struct SpawnerPlugin;
 impl Plugin for SpawnerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<FormationSpawnEvent>()
-            .init_resource::<SelectedRobot>()
+            // .init_resource::<SelectedRobot>()
             .add_event::<RobotClickEvent>()
             .add_event::<CreateWaypointEvent>()
             .add_event::<DeleteWaypointEvent>()
@@ -41,8 +36,8 @@ impl Plugin for SpawnerPlugin {
                 (
                     advance_time.run_if(not(time_is_paused)),
                     spawn_formation,
-                    select_robot_when_clicked,
-                    place_unplanned_waypoint.run_if(robot_is_selected),
+                    // select_robot_when_clicked,
+                    // place_unplanned_waypoint.run_if(robot_is_selected),
                 ),
             );
     }
@@ -62,71 +57,71 @@ pub struct CreateWaypointEvent {
 #[derive(Event)]
 pub struct DeleteWaypointEvent(pub Entity);
 
-#[derive(Resource, Default)]
-struct SelectedRobot(pub Option<Entity>);
+// #[derive(Resource, Default)]
+// struct SelectedRobot(pub Option<Entity>);
 
-impl SelectedRobot {
-    #[inline]
-    pub fn deselect(&mut self) {
-        self.0 = None
-    }
+// impl SelectedRobot {
+//     #[inline]
+//     pub fn deselect(&mut self) {
+//         self.0 = None
+//     }
 
-    #[inline]
-    pub fn select(&mut self, entity: Entity) {
-        self.0 = Some(entity)
-    }
+//     #[inline]
+//     pub fn select(&mut self, entity: Entity) {
+//         self.0 = Some(entity)
+//     }
 
-    #[inline]
-    pub fn is_selected(&self) -> bool {
-        self.0.is_some()
-    }
-}
+//     #[inline]
+//     pub fn is_selected(&self) -> bool {
+//         self.0.is_some()
+//     }
+// }
 
-fn robot_is_selected(selected_robot: Res<SelectedRobot>) -> bool {
-    selected_robot.is_selected()
-}
+// fn robot_is_selected(selected_robot: Res<SelectedRobot>) -> bool {
+//     selected_robot.is_selected()
+// }
 
-fn place_unplanned_waypoint(
-    mut commands: Commands,
-    mut mousebutton_event: EventReader<MouseButtonInput>,
-    mut create_waypoint_event: EventWriter<CreateWaypointEvent>,
-    mut selected_robot: ResMut<SelectedRobot>,
-    mut query: Query<(Entity, &mut Waypoints), With<RobotState>>,
-    cursor_position: ResMut<CursorCoordinates>,
-    // q_windows: Query<&Window, With<PrimaryWindow>>,
-) {
-    for MouseButtonInput { button, state, .. } in mousebutton_event.read() {
-        let (ButtonState::Pressed, MouseButton::Left) = (state, button) else {
-            continue;
-        };
+// fn place_unplanned_waypoint(
+//     mut commands: Commands,
+//     mut mousebutton_event: EventReader<MouseButtonInput>,
+//     mut create_waypoint_event: EventWriter<CreateWaypointEvent>,
+//     mut selected_robot: ResMut<SelectedRobot>,
+//     mut query: Query<(Entity, &mut Waypoints), With<RobotState>>,
+//     cursor_position: ResMut<CursorCoordinates>,
+//     // q_windows: Query<&Window, With<PrimaryWindow>>,
+// ) {
+//     for MouseButtonInput { button, state, .. } in mousebutton_event.read() {
+//         let (ButtonState::Pressed, MouseButton::Left) = (state, button) else {
+//             continue;
+//         };
 
-        error!("pressed left click");
-        // prepend a waypoint at the mouse position
-        let Some(mut waypoints) = query
-            .iter_mut()
-            .find(|(entity, _)| entity == &selected_robot.0.unwrap())
-            .map(|(_, waypoints)| waypoints)
-        else {
-            continue;
-        };
+//         error!("pressed left click");
+//         // prepend a waypoint at the mouse position
+//         let Some(mut waypoints) = query
+//             .iter_mut()
+//             .find(|(entity, _)| entity == &selected_robot.0.unwrap())
+//             .map(|(_, waypoints)| waypoints)
+//         else {
+//             continue;
+//         };
 
-        // let Some(cursor_position) = q_windows.single().cursor_position() else {
-        //     continue;
-        // };
+//         // let Some(cursor_position) = q_windows.single().cursor_position() else {
+//         //     continue;
+//         // };
 
-        create_waypoint_event.send(CreateWaypointEvent {
-            for_robot: selected_robot.0.unwrap(),
-            position: cursor_position.local(),
-        });
+//         create_waypoint_event.send(CreateWaypointEvent {
+//             for_robot: selected_robot.0.unwrap(),
+//             position: cursor_position.local(),
+//         });
 
-        // waypoints
-        //     .0
-        //     .push_front(Vec4::new(cursor_position.x, cursor_position.y, 0.0, 0.0));
-        //
-        error!("placed waypoint");
-        selected_robot.deselect();
-    }
-}
+//         // waypoints
+//         //     .0
+//         //     .push_front(Vec4::new(cursor_position.x, cursor_position.y, 0.0, 0.0));
+//         //
+//         error!("placed waypoint");
+//         selected_robot.deselect();
+//     }
+// }
 
 /// Every [`ObstacleFactor`] has a static reference to the obstacle image.
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
@@ -205,6 +200,7 @@ fn advance_time(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn spawn_formation(
     mut commands: Commands,
     mut spawn_event_reader: EventReader<FormationSpawnEvent>,
@@ -347,8 +343,9 @@ fn spawn_formation(
             };
 
             let initial_direction = waypoints
-                .iter()
-                .nth(1)
+                // .iter()
+                // .nth(1)
+                .get(1)
                 .map(|p| Vec3::new(p.x, 0.0, p.y))
                 .unwrap_or_else(|| Vec3::ZERO)
                 - initial_position.extend(0.0).xzy();
@@ -388,14 +385,14 @@ impl From<ListenerInput<Pointer<Click>>> for RobotClickEvent {
     }
 }
 
-fn select_robot_when_clicked(
-    mut robot_click_event: EventReader<RobotClickEvent>,
-    mut selected_robot: ResMut<SelectedRobot>,
-) {
-    for event in robot_click_event.read() {
-        selected_robot.select(event.target());
-    }
-}
+// fn select_robot_when_clicked(
+//     mut robot_click_event: EventReader<RobotClickEvent>,
+//     mut selected_robot: ResMut<SelectedRobot>,
+// ) {
+//     for event in robot_click_event.read() {
+//         selected_robot.select(event.target());
+//     }
+// }
 
 // fn lerp_amounts_along_line_segment(
 //     start: Vec2,

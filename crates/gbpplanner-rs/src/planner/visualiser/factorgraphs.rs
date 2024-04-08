@@ -7,7 +7,7 @@ use super::{super::FactorGraph, RobotTracker};
 use crate::{
     asset_loader::SceneAssets,
     config::{Config, DrawSetting},
-    factorgraph,
+    // factorgraph,
     planner::{
         robot::{DespawnRobotEvent, SpawnRobotEvent},
         RobotState,
@@ -79,6 +79,7 @@ impl VariableClickEvent {
 }
 
 impl From<ListenerInput<Pointer<Click>>> for VariableClickEvent {
+    #[inline]
     fn from(value: ListenerInput<Pointer<Click>>) -> Self {
         Self(value.target)
     }
@@ -235,6 +236,7 @@ fn show_or_hide_factorgraphs(
     }
 }
 
+#[inline]
 fn draw_predicted_trajectories_is_enabled(config: Res<Config>) -> bool {
     config.visualisation.draw.predicted_trajectories
 }

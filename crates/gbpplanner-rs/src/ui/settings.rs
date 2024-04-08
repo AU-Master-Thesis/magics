@@ -152,7 +152,7 @@ impl TitleColors {
 /// **Bevy** `Update` system to display the `egui` settings panel
 #[allow(clippy::too_many_arguments)]
 fn ui_settings_panel(
-    contexts: &mut Context,
+    ctx: &mut Context,
     mut ui_state: Mut<UiState>,
     mut config: Mut<Config>,
     mut occupied_screen_space: Mut<OccupiedScreenSpace>,
@@ -160,14 +160,11 @@ fn ui_settings_panel(
     catppuccin_theme: Mut<CatppuccinTheme>,
     world: &mut World,
     _currently_changing: Mut<ChangingBinding>,
-    // pause_play: Mut<PausePlay>,
     pause_state: Mut<State<PausedState>>,
     mut time_virtual: Mut<Time<Virtual>>,
     mut time_fixed: Mut<Time<Fixed>>,
     mut config_store: Mut<GizmoConfigStore>,
 ) {
-    let ctx = contexts;
-
     let mut title_colors = TitleColors::new([
         catppuccin_theme.green(),
         catppuccin_theme.blue(),
@@ -176,9 +173,11 @@ fn ui_settings_panel(
         catppuccin_theme.lavender(),
     ]);
 
+    let panel_resizable = false;
+
     let top_panel = egui::TopBottomPanel::top("Top Panel")
         .default_height(100.0)
-        .resizable(false)
+        .resizable(panel_resizable)
         .show_animated(ctx, ui_state.top_panel_visible, |ui| {
             ui.strong("top panel");
         });
@@ -187,20 +186,9 @@ fn ui_settings_panel(
         .map(|ref inner| inner.response.rect.width())
         .unwrap_or(0.0);
 
-    let bottom_panel = egui::TopBottomPanel::bottom("Bottom Panel")
-        .default_height(100.0)
-        .resizable(false)
-        .show_animated(ctx, ui_state.bottom_panel_visible, |ui| {
-            ui.code("bottom panel");
-        });
-
-    occupied_screen_space.bottom = bottom_panel
-        .map(|ref inner| inner.response.rect.width())
-        .unwrap_or(0.0);
-
     let right_panel = egui::SidePanel::right("Settings Panel")
         .default_width(200.0)
-        .resizable(false)
+        .resizable(panel_resizable)
         .show_animated(ctx, ui_state.right_panel_visible, |ui| {
             ui_state.mouse_over.right_panel = ui.rect_contains_pointer(ui.max_rect())
                 && config.interaction.ui_focus_cancels_inputs;
@@ -344,15 +332,21 @@ fn ui_settings_panel(
                     );
                     custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
                         ui.label("Simulation Time");
-                        custom::rect_label(
-                            ui,
-                            format!(
-                                "{:.2} / {:.2}",
-                                time_fixed.elapsed_seconds(),
-                                config.simulation.max_time.get()
-                            ),
-                            None,
-                        );
+                        let progress =
+                            time_fixed.elapsed_seconds() / config.simulation.max_time.get();
+                        let progressbar =
+                            egui::widgets::ProgressBar::new(progress).fill(Color32::RED);
+                        ui.add(progressbar);
+
+                        // custom::rect_label(
+                        //     ui,
+                        //     format!(
+                        //         "{:.2} / {:.2}",
+                        //         time_fixed.elapsed_seconds(),
+                        //         config.simulation.max_time.get()
+                        //     ),
+                        //     None,
+                        // );
                         ui.end_row();
 
                         // slider for simulation time between 0 and 100

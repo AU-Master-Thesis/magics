@@ -59,20 +59,23 @@ impl ChangingBinding {
         }
     }
 
+    #[inline]
     pub fn is_changing(&self) -> bool {
         !matches!(self.action, InputAction::Undefined)
     }
 
+    #[inline]
     pub fn on_cooldown(&self) -> bool {
         self.cooldown > 0.0
     }
 
+    #[inline]
     pub fn with_cooldown(mut self, cooldown: f32) -> Self {
         self.cooldown = cooldown;
         self
     }
 
-    // Decrease the cooldown by `delta`, ensuring that it does not go below 0
+    /// Decrease the cooldown by `delta`, ensuring that it does not go below 0
     pub fn decrease_cooldown(&mut self, delta: f32) {
         self.cooldown -= delta;
         if self.cooldown < 0.0 {
@@ -80,7 +83,8 @@ impl ChangingBinding {
         }
     }
 
-    // Refresh the cooldown
+    /// Refresh the cooldown
+    #[inline]
     pub fn refresh_cooldown(&mut self) {
         self.cooldown = 0.1;
     }

@@ -1,6 +1,8 @@
 mod controls;
 mod custom;
+mod data;
 mod decoration;
+mod selected_entity;
 mod settings;
 
 use bevy::{input::common_conditions::*, prelude::*, window::WindowTheme};
@@ -13,8 +15,8 @@ pub use decoration::ToDisplayString;
 pub use settings::{DrawSettingsEvent, ExportGraphEvent};
 use strum_macros::EnumIter;
 
-use self::{controls::ControlsPanelPlugin, settings::SettingsPanelPlugin};
-use crate::theme::CatppuccinThemeVisualsExt;
+use self::{controls::ControlsPanelPlugin, data::DataPanelPlugin, settings::SettingsPanelPlugin};
+use crate::{theme::CatppuccinThemeVisualsExt, SimulationState};
 
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/
@@ -32,8 +34,9 @@ impl Plugin for EguiInterfacePlugin {
         app.init_resource::<ActionBlock>()
             .init_resource::<OccupiedScreenSpace>()
             .init_resource::<UiState>()
-            .init_resource::<PreviousUiState>()
-            .add_plugins((EguiPlugin, ControlsPanelPlugin, SettingsPanelPlugin))
+            // .init_resource::<PreviousUiState>()
+            .add_plugins((EguiPlugin, ControlsPanelPlugin, SettingsPanelPlugin, DataPanelPlugin))
+            .add_systems(OnEnter(SimulationState::Loading), load_fonts)
             .add_systems(Startup, configure_visuals)
             .add_systems(Update, action_block)
             .add_systems(
@@ -49,6 +52,8 @@ impl Plugin for EguiInterfacePlugin {
         // )
     }
 }
+
+fn load_fonts() {}
 
 fn toggle_visibility_of_panels(mut ui_state: ResMut<UiState>) {}
 
@@ -108,8 +113,8 @@ pub enum UiScaleType {
     #[display(fmt = "None")]
     None,
     #[display(fmt = "Custom")]
-    Custom,
     #[default]
+    Custom,
     #[display(fmt = "Window")]
     Window,
 }
@@ -140,6 +145,18 @@ pub enum PanelDirection {
     Bottom,
 }
 
+impl PanelDirection {
+    /// Get a vector containing all panel directions.
+    #[must_use]
+    pub fn all() -> impl ExactSizeIterator<Item = Self> {
+        [Self::Left, Self::Right, Self::Top, Self::Bottom]
+            .iter()
+            .copied()
+    }
+}
+
+struct PanelState;
+
 /// UI state to represent state of `egui` stateful widgets
 #[derive(Debug, Resource)]
 pub struct UiState {
@@ -166,7 +183,7 @@ impl Default for UiState {
             left_panel_visible: false,
             right_panel_visible: false,
             top_panel_visible: false,
-            bottom_panel_visible: false,
+            bottom_panel_visible: true,
             scale_type: UiScaleType::default(),
             scale_percent: 100, // start at default factor 1.0 = 100%
             // environment_sdf: false,
@@ -192,6 +209,8 @@ fn configure_visuals(
     });
 
     let mut fonts = egui::FontDefinitions::default();
+
+    // egui::font_loader
 
     // TODO: somehow use the **Bevy** asset loader through `scene_assets` to load
     // the font instead of a relative path
@@ -225,6 +244,7 @@ fn configure_visuals(
 }
 
 fn action_block(mut action_block: ResMut<ActionBlock>, ui_state: Res<UiState>) {
+    // TODO: add top and bottom
     if (ui_state.left_panel_visible && ui_state.mouse_over.left_panel)
         || (ui_state.right_panel_visible && ui_state.mouse_over.right_panel)
     {

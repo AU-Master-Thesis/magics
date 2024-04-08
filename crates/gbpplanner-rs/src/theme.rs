@@ -12,7 +12,7 @@ use catppuccin::{Colour, Flavour, FlavourColours};
 
 use crate::{
     environment,
-    factorgraph::{Factor, Line, Variable},
+    // factorgraph::{Factor, Line, Variable},
     planner,
 };
 
@@ -322,12 +322,12 @@ impl Plugin for ThemePlugin {
                     change_theme,
                     handle_clear_color,
                     handle_infinite_grid,
-                    handle_variables,
-                    handle_factors,
-                    handle_lines,
+                    // handle_variables,
+                    // handle_factors,
+                    // handle_lines,
                     handle_robots,
                     handle_waypoints,
-                    handle_variable_visualisers,
+                    // handle_variable_visualisers,
                     handle_obstacles,
                 ),
             );
@@ -415,79 +415,79 @@ fn handle_infinite_grid(
     }
 }
 
-/// **Bevy** `Update` system to handle the variable theme change
-/// Reads `ThemeChangedEvent` to know when to change the variable colour
-fn handle_variables(
-    catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_changed_event: EventReader<ThemeChangedEvent>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query_variable: Query<&mut Handle<StandardMaterial>, With<Variable>>,
-) {
-    for _ in theme_changed_event.read() {
-        for handle in query_variable.iter_mut() {
-            if let Some(material) = materials.get_mut(handle.clone()) {
-                material.base_color =
-                    Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(), 0.75);
-            }
-        }
-    }
-}
+// /// **Bevy** `Update` system to handle the variable theme change
+// /// Reads `ThemeChangedEvent` to know when to change the variable colour
+// fn handle_variables(
+//     catppuccin_theme: Res<CatppuccinTheme>,
+//     mut theme_changed_event: EventReader<ThemeChangedEvent>,
+//     mut materials: ResMut<Assets<StandardMaterial>>,
+//     mut query_variable: Query<&mut Handle<StandardMaterial>, With<Variable>>,
+// ) {
+//     for _ in theme_changed_event.read() {
+//         for handle in query_variable.iter_mut() {
+//             if let Some(material) = materials.get_mut(handle.clone()) {
+//                 material.base_color =
+//                     Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(), 0.75);
+//             }
+//         }
+//     }
+// }
 
-/// **Bevy** `Update` system to handle the theme change for `VariableVisualiser`
-/// Reads `ThemeChangedEvent` to know when to change the variable colour
-fn handle_variable_visualisers(
-    catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_changed_event: EventReader<ThemeChangedEvent>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query_variable: Query<&mut Handle<StandardMaterial>, With<planner::VariableVisualiser>>,
-) {
-    for _ in theme_changed_event.read() {
-        for handle in query_variable.iter_mut() {
-            if let Some(material) = materials.get_mut(handle.clone()) {
-                material.base_color =
-                    Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(), 0.75);
-            }
-        }
-    }
-}
+// /// **Bevy** `Update` system to handle the theme change for `VariableVisualiser`
+// /// Reads `ThemeChangedEvent` to know when to change the variable colour
+// fn handle_variable_visualisers(
+//     catppuccin_theme: Res<CatppuccinTheme>,
+//     mut theme_changed_event: EventReader<ThemeChangedEvent>,
+//     mut materials: ResMut<Assets<StandardMaterial>>,
+//     mut query_variable: Query<&mut Handle<StandardMaterial>, With<planner::VariableVisualiser>>,
+// ) {
+//     for _ in theme_changed_event.read() {
+//         for handle in query_variable.iter_mut() {
+//             if let Some(material) = materials.get_mut(handle.clone()) {
+//                 material.base_color =
+//                     Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(), 0.75);
+//             }
+//         }
+//     }
+// }
 
-/// **Bevy** `Update` system to handle the factor theme change
-/// Reads `ThemeChangedEvent` to know when to change the factor colour
-fn handle_factors(
-    catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_changed_event: EventReader<ThemeChangedEvent>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query_factor: Query<&mut Handle<StandardMaterial>, With<Factor>>,
-) {
-    for _ in theme_changed_event.read() {
-        for handle in query_factor.iter_mut() {
-            if let Some(material) = materials.get_mut(handle.clone()) {
-                material.base_color = Color::from_catppuccin_colour_with_alpha(
-                    catppuccin_theme.flavour.green(),
-                    0.75,
-                );
-            }
-        }
-    }
-}
+// /// **Bevy** `Update` system to handle the factor theme change
+// /// Reads `ThemeChangedEvent` to know when to change the factor colour
+// fn handle_factors(
+//     catppuccin_theme: Res<CatppuccinTheme>,
+//     mut theme_changed_event: EventReader<ThemeChangedEvent>,
+//     mut materials: ResMut<Assets<StandardMaterial>>,
+//     mut query_factor: Query<&mut Handle<StandardMaterial>, With<Factor>>,
+// ) {
+//     for _ in theme_changed_event.read() {
+//         for handle in query_factor.iter_mut() {
+//             if let Some(material) = materials.get_mut(handle.clone()) {
+//                 material.base_color = Color::from_catppuccin_colour_with_alpha(
+//                     catppuccin_theme.flavour.green(),
+//                     0.75,
+//                 );
+//             }
+//         }
+//     }
+// }
 
-/// **Bevy** `Update` system to handle the line theme change
-/// Reads `ThemeChangedEvent` to know when to change the line colour
-fn handle_lines(
-    catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_changed_event: EventReader<ThemeChangedEvent>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query_line: Query<&mut Handle<StandardMaterial>, With<Line>>,
-) {
-    for _ in theme_changed_event.read() {
-        for handle in query_line.iter_mut() {
-            if let Some(material) = materials.get_mut(handle.clone()) {
-                material.base_color =
-                    Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.text(), 0.75);
-            }
-        }
-    }
-}
+// /// **Bevy** `Update` system to handle the line theme change
+// /// Reads `ThemeChangedEvent` to know when to change the line colour
+// fn handle_lines(
+//     catppuccin_theme: Res<CatppuccinTheme>,
+//     mut theme_changed_event: EventReader<ThemeChangedEvent>,
+//     mut materials: ResMut<Assets<StandardMaterial>>,
+//     mut query_line: Query<&mut Handle<StandardMaterial>, With<Line>>,
+// ) {
+//     for _ in theme_changed_event.read() {
+//         for handle in query_line.iter_mut() {
+//             if let Some(material) = materials.get_mut(handle.clone()) {
+//                 material.base_color =
+//                     Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.text(), 0.75);
+//             }
+//         }
+//     }
+// }
 
 /// **Bevy** `Update` system to handle theme change for Robots
 /// Reads `ThemeChangedEvent` to know when to change the robot colour

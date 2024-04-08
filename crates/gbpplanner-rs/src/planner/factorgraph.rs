@@ -95,7 +95,7 @@ impl AsNodeIndex for VariableIndex {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Copy)]
 pub struct FactorId {
     pub factorgraph_id: FactorGraphId,
     pub factor_index: FactorIndex,
@@ -136,34 +136,30 @@ impl std::cmp::PartialEq for FactorId {
 
 impl std::cmp::Eq for FactorId {}
 
-macro_rules! factor_id_constructor {
+macro_rules! impl_factor_id_constructor {
     ($name:ident, color = $color:expr) => {
-        pub fn $name(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
-            Self {
-                factorgraph_id,
-                factor_index,
-                color: $color,
+        paste::paste! {
+
+            #[doc = "Create a new `FactorId` for an " $name " factor."]
+            pub fn [<new_ $name>](factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
+                Self {
+                    factorgraph_id,
+                    factor_index,
+                    color: $color,
+                }
             }
         }
     };
 }
 
 impl FactorId {
-    /// Construct `FactorId` for an unknown factor kind
-    factor_id_constructor!(new_ambiguous, color = CYAN);
+    impl_factor_id_constructor!(ambiguous, color = CYAN);
+    impl_factor_id_constructor!(obstacle, color = RED);
+    impl_factor_id_constructor!(interrobot, color = GREEN);
+    impl_factor_id_constructor!(pose, color = MAGENTA);
+    impl_factor_id_constructor!(dynamic, color = BLUE);
 
-    /// Construct `FactorId` for an obstacle factor
-    factor_id_constructor!(new_obstacle, color = RED);
-
-    /// Construct `FactorId` for an interrobot factor
-    factor_id_constructor!(new_interrobot, color = GREEN);
-
-    /// Construct `FactorId` for a pose factor
-    factor_id_constructor!(new_pose, color = MAGENTA);
-
-    /// Construct `FactorId` for a dynamic factor
-    factor_id_constructor!(new_dynamic, color = BLUE);
-
+    #[inline]
     pub fn global_id(&self) -> String {
         format!("{:?}-{}", self.factorgraph_id, self.factor_index.0.index())
     }
@@ -174,7 +170,7 @@ impl FactorId {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Copy)]
 pub struct VariableId {
     pub factorgraph_id: FactorGraphId,
     pub variable_index: VariableIndex,
@@ -413,6 +409,7 @@ pub struct Factors<'a> {
 }
 
 impl<'a> Factors<'a> {
+    #[must_use]
     pub fn new(graph: &'a Graph, factor_indices: &'a [NodeIndex]) -> Self {
         Self {
             graph,

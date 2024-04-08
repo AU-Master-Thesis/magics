@@ -2,7 +2,6 @@
 pub(crate) mod asset_loader;
 pub(crate) mod config;
 mod environment;
-mod factorgraph;
 mod input;
 mod moveable_object;
 mod movement;
@@ -18,9 +17,7 @@ pub(crate) mod macros;
 
 use std::path::PathBuf;
 
-use bevy::{
-    asset::AssetMetaCheck, core::FrameCount, prelude::*, window::{WindowMode, WindowTheme}
-};
+use bevy::{asset::AssetMetaCheck, core::FrameCount, prelude::*, window::WindowMode};
 // use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
 // use rand_core::RngCore;
@@ -82,10 +79,6 @@ struct Cli {
     /// use default values for all configuration, simulation and environment settings
     #[arg(long)]
     default: bool,
-
-    /// muda, muda, muda!
-    #[arg(long)]
-    za_warudo: bool,
 }
 
 // fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
@@ -119,13 +112,12 @@ where
     }
 }
 
-#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
-enum DebugState {
-    #[default]
-    Disabled,
-    Enabled,
-}
-
+// #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
+// enum DebugState {
+//     #[default]
+//     Disabled,
+//     Enabled,
+// }
 
 #[cfg(not(target = "wasm32-unknown-unkwown"))]
 fn parse_arguments() -> Cli {
@@ -139,29 +131,26 @@ fn parse_arguments() -> Cli {
     cli
 }
 
-#[cfg(not(target = "wasm32-unknown-unkwown"))]
-fn install_panic_handler() {
-    better_panic::debug_install();
-}
-
-#[cfg(target = "wasm32-unknown-unknown")]
-fn install_panic_handler() {}
+const NAME: &str = env!("CARGO_PKG_NAME");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
 fn main() -> anyhow::Result<()> {
-    install_panic_handler();
-   
-    let name = env!("CARGO_PKG_NAME");
-    let version = env!("CARGO_PKG_VERSION");
+    if cfg!(target = "wasm32-unknown-unknown") {
+        better_panic::debug_install();
+    }
+
     let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
 
-    println!("name:         {}", name);
+    println!("name:         {}", NAME);
     println!("authors:");
-    authors.iter().for_each(|&author| {println!(" - {}", author);});
-    println!("version:      {}", version);
-    println!("manifest_dir: {}", manifest_dir);
+    authors.iter().for_each(|&author| {
+        println!(" - {}", author);
+    });
+    println!("version:      {}", VERSION);
+    println!("manifest_dir: {}", MANIFEST_DIR);
 
-    let cli  = parse_arguments();
+    let cli = parse_arguments();
 
     if let Some(dump) = cli.dump_default {
         match dump {
@@ -228,34 +217,41 @@ fn main() -> anyhow::Result<()> {
 
     println!("initial window mode: {:?}", window_mode);
 
+    let window_plugin = if cfg!(target = "wasm32-unknown-unknown") {
+        WindowPlugin {
+            primary_window: Some(Window {
+                window_theme: None,
+                visible: true,
+                canvas: Some("#bevy".to_string()),
+                // Tells wasm not to override default event handling, like F5 and Ctrl+R
+                prevent_default_event_handling: false,
+                ..Default::default()
+            }),
+            ..Default::default()
+        }
+    } else {
+        WindowPlugin {
+            primary_window: Some(Window {
+                name: Some(NAME.to_string()),
+                focused: true,
+                mode: window_mode,
+                window_theme: None,
+                visible: true,
+                ..Default::default()
+            }),
+            ..Default::default()
+        }
+    };
+
     let mut app = App::new();
     app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
         .insert_resource(config)
         .insert_resource(formation)
         .insert_resource(environment)
-        .insert_resource(AssetMetaCheck::Never) // needed for wasm build to work
-
+        .init_state::<SimulationState>()
+        .add_plugins(DefaultPlugins.set(window_plugin))
         .add_plugins(EntropyPlugin::<WyRand>::default())
         .add_plugins((
-            DefaultPlugins.set(
-                WindowPlugin {
-                    primary_window: Some(Window {
-                        title: name.to_string(),
-                        // mode: window_mode,
-                        // present_mode: PresentMode::AutoVsync,
-                        // window_theme: Some(WindowTheme::Dark),
-                        // visible: false,
-                // Bind to canvas included in `index.html`
-                        // fit_canvas_to_parent: true,
-                canvas: Some("#bevy".to_owned()),
-                // Tells wasm not to override default event handling, like F5 and Ctrl+R
-                prevent_default_event_handling: false,
-
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                },
-                ),
             DefaultPickingPlugins,
             ThemePlugin,       // Custom
             AssetLoaderPlugin, // Custom
@@ -269,7 +265,7 @@ fn main() -> anyhow::Result<()> {
             RobotSpawnerPlugin, // Custom
             // // FactorGraphPlugin,   // Custom
             EguiInterfacePlugin, // Custom
-            PlannerPlugin,       
+            PlannerPlugin,
 
         ))
         // we want Bevy to measure these values for us:
@@ -280,6 +276,10 @@ fn main() -> anyhow::Result<()> {
         // .add_systems(Startup, spawn_perf_ui)
         // .add_systems(Update, make_window_visible)
         .add_systems(PostUpdate, end_simulation.run_if(time_exceeds_max_time));
+
+    if cfg!(target = "wasm32-unknown-unknown") {
+        app.insert_resource(AssetMetaCheck::Never); // needed for wasm build to work
+    }
 
     app.run();
 
@@ -293,6 +293,7 @@ fn main() -> anyhow::Result<()> {
 /// [simulation]
 /// max-time = 100.0
 /// ```
+#[inline]
 fn time_exceeds_max_time(time: Res<Time>, config: Res<Config>) -> bool {
     time.elapsed_seconds() > config.simulation.max_time.get()
 }
@@ -320,4 +321,31 @@ fn make_window_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) 
         // It will work, but it will have one white frame before it starts rendering
         window.single_mut().visible = true;
     }
+}
+
+// TODO: use in app
+#[derive(
+    Debug,
+    Default,
+    States,
+    PartialEq,
+    Eq,
+    Hash,
+    Clone,
+    Copy,
+    derive_more::Display,
+    derive_more::IsVariant,
+)]
+pub enum SimulationState {
+    #[default]
+    #[display(fmt = "Loading")]
+    Loading,
+    #[display(fmt = "Starting")]
+    Starting,
+    #[display(fmt = "Running")]
+    Running,
+    #[display(fmt = "Paused")]
+    Paused,
+    #[display(fmt = "Finished")]
+    Finished,
 }

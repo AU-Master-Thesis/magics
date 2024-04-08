@@ -102,9 +102,12 @@
               nodejs
               just
               typos
+              freetype
+              fontconfig
+              act
               trunk # rust wasm bundler
               wasm-bindgen-cli
-              binaryen # wasm-opt
+              # binaryen # wasm-opt
               sass
               tailwindcss
               d2

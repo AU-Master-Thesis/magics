@@ -2,6 +2,7 @@
 
 pub mod pretty_print;
 
+/// `use gbp_linalg::prelude::*` to import all the common symbols from this crate
 pub mod prelude {
     pub use super::{
         pretty_print::*, Float, GbpFloat, Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm,
@@ -29,11 +30,17 @@ pub type Float = f64;
 // only available on nightly :(
 // pub type Vector<T> = ndarray::Array1<T: Scalar>;
 // pub type Matrix<T> = ndarray::Array2<T: Scalar>;
+
+/// Type alias for `ndarray::Array1<T>`
 pub type Vector<T> = ndarray::Array1<T>;
+/// Type alias for `ndarray::Array2<T>`
 pub type Matrix<T> = ndarray::Array2<T>;
+/// Type alias for `ndarray::ArrayView1<T>`
 pub type VectorView<'a, T> = ndarray::ArrayView1<'a, T>;
+/// Type alias for `ndarray::ArrayView2<T>`
 pub type MatrixView<'a, T> = ndarray::ArrayView2<'a, T>;
 
+///
 pub trait VectorNorm {
     type Scalar: GbpFloat;
     fn euclidean_norm(&self) -> Self::Scalar;
