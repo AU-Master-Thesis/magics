@@ -4,6 +4,8 @@ use bevy::{
     app::AppExit, prelude::*, render::view::screenshot::ScreenshotManager, tasks::IoTaskPool,
     window::PrimaryWindow,
 };
+
+use bevy_notify::prelude::*;
 use glob::glob;
 use itertools::Itertools;
 use leafwing_input_manager::prelude::*;
@@ -244,9 +246,10 @@ fn export_graph_on_event(
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
     export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    mut toast_event: EventWriter<ToastEvent>,
 ) {
     if theme_event_reader.read().next().is_some() {
-        if let Err(e) = handle_export_graph(query, config.as_ref(), export_graph_finished_event) {
+        if let Err(e) = handle_export_graph(query, config.as_ref(), export_graph_finished_event, toast_event) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
     }
@@ -262,9 +265,13 @@ fn handle_export_graph(
     q: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: &Config,
     export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    mut toast_event: EventWriter<ToastEvent>,
 ) -> std::io::Result<()> {
+
     let Some(output) = export_factorgraphs_as_graphviz(q, config) else {
         warn!("There are no factorgraphs in the world");
+        toast_event.send(ToastEvent::warning("There are no factorgraphs in the world".to_string()));
+
         return Ok(());
     };
 
@@ -277,6 +284,8 @@ fn handle_export_graph(
         warn!("overwriting ./{:#?}", dot_output_path);
     }
     info!("exporting all factorgraphs to ./{:#?}", dot_output_path);
+    toast_event.send(ToastEvent::info(format!("exporting all factorgraphs to ./{:#?}", dot_output_path)));
+
     std::fs::write(&dot_output_path, output.as_bytes())?;
 
     IoTaskPool::get()
@@ -290,14 +299,26 @@ fn handle_export_graph(
                 dot_output_path.to_str().expect("is valid UTF8"),
             ];
             let Ok(output) = std::process::Command::new("dot").args(args).output() else {
+                let error_msg = format!(
+                    "failed to compile ./{:?} with dot. reason: dot was not found in $PATH",
+                    dot_output_path
+                );
                 error!(
                     "failed to compile ./{:?} with dot. reason: dot was not found in $PATH",
                     dot_output_path
                 );
+
+                // toast_event.send(ToastEvent::error(error_msg));
+
                 return;
             };
 
             if output.status.success() {
+                let msg = format!(
+                    "successfully compiled ./{:?} with dot",
+                    dot_output_path,
+
+                );
                 info!(
                     "compiled {:?} to {:?} with dot",
                     dot_output_path, png_output_path
@@ -349,6 +370,7 @@ fn general_actions_system(
     mut quit_application_event: EventWriter<QuitApplicationEvent>,
     export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
     mut pause_play_event: EventWriter<PausePlayEvent>,
+    mut toast_event: EventWriter<ToastEvent>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
@@ -362,7 +384,7 @@ fn general_actions_system(
         handle_toggle_theme(&mut theme_event, catppuccin_theme);
     } else if action_state.just_pressed(&GeneralAction::ExportGraph) {
         if let Err(e) =
-            handle_export_graph(query_graphs, config.as_ref(), export_graph_finished_event)
+            handle_export_graph(query_graphs, config.as_ref(), export_graph_finished_event, toast_event)
         {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
@@ -403,6 +425,7 @@ fn handle_screenshot_event(
     main_window: Query<Entity, With<PrimaryWindow>>,
     mut screenshot_manager: ResMut<ScreenshotManager>,
     mut screen_shot_event: EventReader<ScreenShotEvent>,
+    mut toast_event: EventWriter<ToastEvent>,
 ) {
     for _ in screen_shot_event.read() {
         let Ok(window) = main_window.get_single() else {
@@ -430,10 +453,17 @@ fn handle_screenshot_event(
         let path = format!("screenshot_{}.png", screenshot_id);
 
         if let Err(err) = screenshot_manager.save_screenshot_to_disk(window, &path) {
+            let error_msg = format!("failed to save screenshot to disk: {}", err);
             error!("failed to write screenshot to disk, error: {}", err);
+            toast_event.send(ToastEvent::error(error_msg));
             continue;
         };
 
         info!("saved screenshot to ./{}", path);
+
+        toast_event.send(ToastEvent::success(format!(
+            "saved screenshot to ./{}",
+            path
+        )));
     }
 }
