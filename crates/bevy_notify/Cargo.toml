@@ -1,0 +1,18 @@
+[package]
+name                   = "bevy_notify"
+edition                = "2021"
+version.workspace      = true
+repository.workspace   = true
+authors.workspace      = true
+rust-version.workspace = true
+license.workspace      = true
+
+[dependencies]
+bevy = "0.13"
+# bevy_egui = "0.26"
+bevy_egui = { git = "https://github.com/mvlabat/bevy_egui", branch = "main" } # 0.26 does not support egui 0.27, which egui-notify needs
+# egui-notify = "0.13"
+egui-notify = { git = "https://github.com/AU-Master-Thesis/egui-notify", branch = "master" }
+
+[lints]
+workspace = true
