@@ -127,33 +127,43 @@ enum DebugState {
 }
 
 
-#[cfg(not(target = "wasm32-unknown-unkwown"))]
+#[cfg(not(target_arch = "wasm32"))]
 fn parse_arguments() -> Cli {
+    eprintln!("parsing arguments not on wasm32");
     Cli::parse()
 }
 
-#[cfg(target = "wasm32-unknown-unknown")]
+#[cfg(target_arch = "wasm32")]
 fn parse_arguments() -> Cli {
+    eprintln!("parsing arguments on wasm32");
     let mut cli = Cli::parse();
     cli.default = true;
     cli
 }
 
-#[cfg(not(target = "wasm32-unknown-unkwown"))]
-fn install_panic_handler() {
-    better_panic::debug_install();
-}
-
-#[cfg(target = "wasm32-unknown-unknown")]
-fn install_panic_handler() {}
 
 fn main() -> anyhow::Result<()> {
-    install_panic_handler();
+    if cfg!(all(not(target_arch = "wasm32"), debug_assertions)) {
+        println!("installing better_panic panic hook");
+        better_panic::debug_install();
+    }
+
+    // if cfg!(target_os = "linux") {}
+    // if cfg!(wasm32-unknown-unknown) {}
+    // if cfg!(linux) {}
+
+    // if cfg!(windows) {
+    //     compile_error!("compiling on wasm32");
+    // }
    
     let name = env!("CARGO_PKG_NAME");
     let version = env!("CARGO_PKG_VERSION");
     let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
+
+    println!("target arch:   {}", std::env::consts::ARCH);
+    println!("target os:     {}", std::env::consts::OS);
+    println!("target family: {}", std::env::consts::FAMILY);
 
     println!("name:         {}", name);
     println!("authors:");
@@ -161,7 +171,20 @@ fn main() -> anyhow::Result<()> {
     println!("version:      {}", version);
     println!("manifest_dir: {}", manifest_dir);
 
-    let cli  = parse_arguments();
+    
+    let cli = if cfg!(not(target_arch = "wasm32")) {
+        Cli::parse()
+    } else {
+        let mut cli = Cli::parse();
+        cli.default = true;
+        cli
+    };
+
+    // let mut cli = Cli::parse();
+    // cli.default = true;
+    
+
+    // let cli  = parse_arguments();
 
     if let Some(dump) = cli.dump_default {
         match dump {
@@ -229,11 +252,15 @@ fn main() -> anyhow::Result<()> {
     println!("initial window mode: {:?}", window_mode);
 
     let mut app = App::new();
+
+    if cfg!(target_arch = "wasm32") {
+        app.insert_resource(AssetMetaCheck::Never); // needed for wasm build to work
+    }
+    
     app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
         .insert_resource(config)
         .insert_resource(formation)
         .insert_resource(environment)
-        .insert_resource(AssetMetaCheck::Never) // needed for wasm build to work
 
         .add_plugins(EntropyPlugin::<WyRand>::default())
         .add_plugins((
@@ -281,6 +308,8 @@ fn main() -> anyhow::Result<()> {
         // .add_systems(Update, make_window_visible)
         .add_systems(PostUpdate, end_simulation.run_if(time_exceeds_max_time));
 
+
+    
     app.run();
 
     Ok(())
