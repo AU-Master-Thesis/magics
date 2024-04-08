@@ -15,9 +15,9 @@ use crate::polygon;
 
 // impl RelativePoint {
 //     /// Create a new `RelativePoint` from a pair of values.
-//     /// Returns an error if either `x` or `y` is not in the interval [0.0, 1.0].
-//     pub fn new(x: f64, y: f64) -> Result<Self, unit_interval::UnitIntervalError> {
-//         Ok(Self {
+//     /// Returns an error if either `x` or `y` is not in the interval [0.0,
+// 1.0].     pub fn new(x: f64, y: f64) -> Result<Self,
+// unit_interval::UnitIntervalError> {         Ok(Self {
 //             x: UnitInterval::new(x)?,
 //             y: UnitInterval::new(y)?,
 //         })
@@ -79,15 +79,15 @@ use crate::polygon;
 //     // /// General triangle constructor
 //     // /// Takes a baseline, a height
 //     // /// Returns a `Shape::Polygon` with the vertices of the triangle
-//     // pub fn triangle(base_width: f64, height: f64, mid_point: UnitInterval) ->
-//     // Shape {     let half_base = base_width / 2.0;
+//     // pub fn triangle(base_width: f64, height: f64, mid_point: UnitInterval)
+// ->     // Shape {     let half_base = base_width / 2.0;
 //     //     let half_height = height / 2.0;
 //     //     let top = RelativePoint::new(mid_point.get(), mid_point.get() +
 //     // half_height).unwrap();     let left =
-//     //         RelativePoint::new(mid_point.get() - half_base, mid_point.get() -
-//     // half_height).unwrap();     let right =
-//     //         RelativePoint::new(mid_point.get() + half_base, mid_point.get() -
-//     // half_height).unwrap();     polygon![
+//     //         RelativePoint::new(mid_point.get() - half_base,
+// mid_point.get() -     // half_height).unwrap();     let right =
+//     //         RelativePoint::new(mid_point.get() + half_base,
+// mid_point.get() -     // half_height).unwrap();     polygon![
 //     //         (top.x.get(), top.y.get()),
 //     //         (left.x.get(), left.y.get()),
 //     //         (right.x.get(), right.y.get())
@@ -97,21 +97,21 @@ use crate::polygon;
 //     // /// General rectangle constructor
 //     // /// Takes a width and a height
 //     // /// Returns a `Shape::Polygon` with the vertices of the rectangle
-//     // pub fn rectangle(width: f64, height: f64, mid_point: UnitInterval) -> Shape {
-//     //     let half_width = width / 2.0;
+//     // pub fn rectangle(width: f64, height: f64, mid_point: UnitInterval) ->
+// Shape {     //     let half_width = width / 2.0;
 //     //     let half_height = height / 2.0;
 //     //     let top_left =
-//     //         RelativePoint::new(mid_point.get() - half_width, mid_point.get() +
-//     // half_height)             .unwrap();
+//     //         RelativePoint::new(mid_point.get() - half_width,
+// mid_point.get() +     // half_height)             .unwrap();
 //     //     let top_right =
-//     //         RelativePoint::new(mid_point.get() + half_width, mid_point.get() +
-//     // half_height)             .unwrap();
+//     //         RelativePoint::new(mid_point.get() + half_width,
+// mid_point.get() +     // half_height)             .unwrap();
 //     //     let bottom_left =
-//     //         RelativePoint::new(mid_point.get() - half_width, mid_point.get() -
-//     // half_height)             .unwrap();
+//     //         RelativePoint::new(mid_point.get() - half_width,
+// mid_point.get() -     // half_height)             .unwrap();
 //     //     let bottom_right =
-//     //         RelativePoint::new(mid_point.get() + half_width, mid_point.get() -
-//     // half_height)             .unwrap();
+//     //         RelativePoint::new(mid_point.get() + half_width,
+// mid_point.get() -     // half_height)             .unwrap();
 //     //     polygon![
 //     //         (top_left.x.get(), top_left.y.get()),
 //     //         (top_right.x.get(), top_right.y.get()),
@@ -155,22 +155,26 @@ use crate::polygon;
 //     [$(($x:expr, $y:expr)),+ $(,)?] => {{
 //         let vertices = vec![
 //             $(
-//         	crate::config::geometry::RelativePoint::new($x, $y).expect("both x and y are within the interval [0.0, 1.0]")
-//             ),+
+//         	crate::config::geometry::RelativePoint::new($x, $y).expect("both x
+// and y are within the interval [0.0, 1.0]")             ),+
 //         ];
-//         Shape::Polygon(OneOrMore::new(vertices).expect("at least one vertex"))
-//     }}
+//         Shape::Polygon(OneOrMore::new(vertices).expect("at least one
+// vertex"))     }}
 // }
 
-// /// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x: $x2,
-// /// y: $y2}))`
+// /// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x:
+// $x2, /// y: $y2}))`
 // #[macro_export]
 // macro_rules! line {
 //     [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
 //         // Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
-//         // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1 as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(), y: f64::try_from().unwrap() }))
-//         Shape::Line((crate::config::geometry::RelativePoint::new($x1, $y1).expect("both x1 and y1 are within the interval [0.0, 1.0]"), crate::config::geometry::RelativePoint::new($x2, $y2).expect("both x2 and y2 are within the interval [0.0, 1.0]")))
-//     };
+//         // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1
+// as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(),
+// y: f64::try_from().unwrap() }))
+//         Shape::Line((crate::config::geometry::RelativePoint::new($x1,
+// $y1).expect("both x1 and y1 are within the interval [0.0, 1.0]"),
+// crate::config::geometry::RelativePoint::new($x2, $y2).expect("both x2 and y2
+// are within the interval [0.0, 1.0]")))     };
 // }
 
 // A regular point in 2D space.
@@ -305,7 +309,7 @@ macro_rules! polygon {
     [$(($x:expr, $y:expr)),+ $(,)?] => {{
         let vertices = vec![
             $(
-                Point::new($x, $y)
+                crate::config::geometry::Point::new($x, $y)
             ),+
         ];
         Shape::Polygon(OneOrMore::new(vertices).expect("at least one vertex"))

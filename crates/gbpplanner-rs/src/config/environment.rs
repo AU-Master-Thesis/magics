@@ -41,6 +41,22 @@ impl TileGrid {
 #[serde(rename_all = "kebab-case")]
 pub struct Rotation(Angle);
 
+impl Rotation {
+    pub fn new(value: Float) -> Self {
+        Rotation(Angle::from_degrees(value).expect("Invalid angle"))
+    }
+}
+
+impl Rotation {
+    pub fn as_radians(&self) -> Float {
+        self.0.as_radians()
+    }
+
+    pub fn as_degrees(&self) -> Float {
+        self.0.as_degrees()
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Cell {
@@ -64,19 +80,29 @@ pub enum PlaceableShape {
         base_length: StrictlyPositiveFinite<Float>,
         /// The height of the triangle
         /// Intersects the base perpendicularly at the mid-point
-        height: StrictlyPositiveFinite<Float>,
+        height:      StrictlyPositiveFinite<Float>,
         /// The mid-point of the base of the triangle
         /// This is a value in the range [0, 1]
         /// Defines where the height of the triangle intersects the base
         /// perpendicularly
-        mid_point: UnitInterval,
+        mid_point:   UnitInterval,
     },
     RegularPolygon {
         /// The number of sides of the polygon
-        sides: usize,
+        sides:       usize,
         /// Side length of the polygon
         side_length: StrictlyPositiveFinite<Float>,
         /// Where to place the center of the polygon
+        translation: RelativePoint,
+    },
+    Rectangle {
+        /// The width of the rectangle
+        /// This is a value in the range [0, 1]
+        width:       StrictlyPositiveFinite<Float>,
+        /// The height of the rectangle
+        /// This is a value in the range [0, 1]
+        height:      StrictlyPositiveFinite<Float>,
+        /// The center of the rectangle
         translation: RelativePoint,
     },
 }
@@ -92,8 +118,8 @@ impl PlaceableShape {
     pub fn triangle(base_length: Float, height: Float, mid_point: Float) -> Self {
         PlaceableShape::Triangle {
             base_length: StrictlyPositiveFinite::<Float>::new(base_length).unwrap(),
-            height: StrictlyPositiveFinite::<Float>::new(height).unwrap(),
-            mid_point: UnitInterval::new(mid_point).unwrap(),
+            height:      StrictlyPositiveFinite::<Float>::new(height).unwrap(),
+            mid_point:   UnitInterval::new(mid_point).unwrap(),
         }
     }
 
@@ -104,7 +130,7 @@ impl PlaceableShape {
         let left = RelativePoint::new(center.0 - half_width, center.1 - half_height).unwrap();
         let right = RelativePoint::new(center.0 + half_width, center.1 - half_height).unwrap();
         PlaceableShape::RegularPolygon {
-            sides: 4,
+            sides:       4,
             side_length: StrictlyPositiveFinite::<Float>::new(width).unwrap(),
             translation: RelativePoint::new(center.0, center.1).unwrap(),
         }
@@ -116,7 +142,7 @@ impl PlaceableShape {
         let left = RelativePoint::new(center.0 - half_side, center.1 - half_side).unwrap();
         let right = RelativePoint::new(center.0 + half_side, center.1 - half_side).unwrap();
         PlaceableShape::RegularPolygon {
-            sides: 4,
+            sides:       4,
             side_length: StrictlyPositiveFinite::<Float>::new(side_length).unwrap(),
             translation: RelativePoint::new(center.0, center.1).unwrap(),
         }
@@ -134,17 +160,20 @@ impl PlaceableShape {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Obstacle {
+    /// Which tile in the grid the obstacle should be placed
     pub tile_coordinates: TileCoordinates,
+    /// The shape to be placed as an obstacle
     pub shape: PlaceableShape,
+    /// Rotation of the obstacle in degrees around the up-axis
     pub rotation: Rotation,
 }
 
 impl Obstacle {
-    pub fn new((row, col): (usize, usize), shape: PlaceableShape, rotation: Angle) -> Self {
+    pub fn new((row, col): (usize, usize), shape: PlaceableShape, rotation: Float) -> Self {
         Obstacle {
             tile_coordinates: TileCoordinates::new(row, col),
             shape,
-            rotation: Rotation(rotation),
+            rotation: Rotation(Angle::from_degrees(rotation).expect("Invalid angle")),
         }
     }
 }
@@ -172,25 +201,25 @@ impl Obstacles {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileSettings {
-    pub tile_size: f32,
-    pub path_width: f32,
+    pub tile_size:       f32,
+    pub path_width:      f32,
     pub obstacle_height: f32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Tiles {
-    pub grid: TileGrid,
+    pub grid:     TileGrid,
     pub settings: TileSettings,
 }
 
 impl Tiles {
     pub fn empty() -> Self {
         Tiles {
-            grid: TileGrid(vec!["█".to_string()]),
+            grid:     TileGrid(vec!["█".to_string()]),
             settings: TileSettings {
-                tile_size: 0.0,
-                path_width: 0.0,
+                tile_size:       0.0,
+                path_width:      0.0,
                 obstacle_height: 0.0,
             },
         }
@@ -221,7 +250,7 @@ pub enum EnvironmentType {
 #[derive(Debug, Serialize, Deserialize, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub struct Environment {
-    pub tiles: Tiles,
+    pub tiles:     Tiles,
     pub obstacles: Obstacles,
 }
 
@@ -320,8 +349,8 @@ impl Environment {
         tile_size: f32,
     ) -> Self {
         Environment {
-            tiles: Tiles {
-                grid: TileGrid(matrix_representation),
+            tiles:     Tiles {
+                grid:     TileGrid(matrix_representation),
                 settings: TileSettings {
                     tile_size,
                     path_width,
@@ -334,11 +363,11 @@ impl Environment {
 
     pub fn intersection() -> Self {
         Environment {
-            tiles: Tiles {
-                grid: TileGrid(vec!["┼".to_string()]),
+            tiles:     Tiles {
+                grid:     TileGrid(vec!["┼".to_string()]),
                 settings: TileSettings {
-                    tile_size: 100.0,
-                    path_width: 0.1325,
+                    tile_size:       100.0,
+                    path_width:      0.1325,
                     obstacle_height: 1.0,
                 },
             },
@@ -388,25 +417,13 @@ impl Environment {
 
     pub fn circle() -> Self {
         Environment {
-            tiles: Tiles::empty()
+            tiles:     Tiles::empty()
                 .with_tile_size(100.0)
                 .with_obstacle_height(1.0),
             obstacles: Obstacles(vec![
-                Obstacle::new(
-                    (0, 0),
-                    PlaceableShape::circle(0.1, (0.5, 0.5)),
-                    Angle::new(0.0).unwrap(),
-                ),
-                Obstacle::new(
-                    (0, 0),
-                    PlaceableShape::triangle(0.1, 0.1, 0.5),
-                    Angle::new(0.0).unwrap(),
-                ),
-                Obstacle::new(
-                    (0, 0),
-                    PlaceableShape::square(0.1, (0.75, 0.5)),
-                    Angle::new(0.0).unwrap(),
-                ),
+                Obstacle::new((0, 0), PlaceableShape::circle(0.1, (0.5, 0.5)), 0.0),
+                Obstacle::new((0, 0), PlaceableShape::triangle(0.1, 0.1, 0.5), 0.0),
+                Obstacle::new((0, 0), PlaceableShape::square(0.1, (0.75, 0.5)), 0.0),
             ]),
         }
     }

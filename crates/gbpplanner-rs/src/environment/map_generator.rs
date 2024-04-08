@@ -1,3 +1,4 @@
+use angle::Angle;
 use bevy::prelude::*;
 // use bevy_more_shapes::Cylinder;
 // use bevy_math::RegularPolygon;
@@ -115,9 +116,6 @@ fn build_obstacles(
                 side_length,
                 translation,
             } => {
-                if sides != 4 {
-                    unimplemented!("Only squares are currently supported")
-                }
                 let center = Vec3::new(
                     offset_x + translation.x.get() as f32 * tile_size - pos_offset,
                     obstacle_height / 2.0,
@@ -129,11 +127,6 @@ fn build_obstacles(
                     sides, side_length, center
                 );
 
-                // let mesh = meshes.add(Cuboid::new(
-                //     side_length.get() as f32 * tile_size,
-                //     obstacle_height,
-                //     side_length.get() as f32 * tile_size,
-                // ));
                 let mesh = meshes.add(Mesh::from(bevy_more_shapes::Cylinder {
                     height: obstacle_height,
                     radius_bottom: side_length.get() as f32 * tile_size / 2.0,
@@ -141,7 +134,44 @@ fn build_obstacles(
                     radial_segments: sides as u32,
                     height_segments: 1,
                 }));
-                let transform = Transform::from_translation(center);
+
+                info!(
+                    "obstacle.rotation.as_radians() = {:?}, std::f32::consts::FRAC_PI_4 = {:?}",
+                    obstacle.rotation.as_radians() as f32,
+                    std::f32::consts::FRAC_PI_4
+                );
+
+                let rotation = Quat::from_rotation_y(
+                    std::f32::consts::FRAC_PI_4 + obstacle.rotation.as_radians() as f32,
+                );
+                let transform = Transform::from_translation(center).with_rotation(rotation);
+
+                Some((mesh, transform))
+            }
+            PlaceableShape::Rectangle {
+                width,
+                height,
+                translation,
+            } => {
+                let center = Vec3::new(
+                    offset_x + translation.x.get() as f32 * tile_size - pos_offset,
+                    obstacle_height / 2.0,
+                    offset_z + translation.y.get() as f32 * tile_size - pos_offset,
+                );
+
+                info!(
+                    "Spawning rectangle: width = {}, height = {}, at {:?}",
+                    width, height, center
+                );
+
+                let mesh = meshes.add(Cuboid::new(
+                    height.get() as f32 * tile_size / 2.0,
+                    obstacle_height,
+                    width.get() as f32 * tile_size / 2.0,
+                ));
+
+                let rotation = Quat::from_rotation_y(obstacle.rotation.as_radians() as f32);
+                let transform = Transform::from_translation(center).with_rotation(rotation);
 
                 Some((mesh, transform))
             }

@@ -1,10 +1,15 @@
+#![warn(missing_docs)]
+//! A simple library for working with angles in radians.
 use std::{error::Error, fmt::Display};
 
 use serde::{Deserialize, Deserializer, Serialize};
 
+/// Error type for [`Angle`].
 #[derive(Debug, PartialEq)]
 pub enum AngleError {
+    /// The angle value is not in the interval [0, 2π].
     OutOfRangeRadians(f64),
+    /// The angle value is not in the interval [0, 360].
     OutOfRangeDegrees(f64),
 }
 
@@ -23,12 +28,15 @@ impl Display for AngleError {
 
 impl Error for AngleError {}
 
+/// Represents an angle in radians.
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct Angle(f64);
 
+/// Result type for [`Angle`].
 pub type Result<T> = std::result::Result<T, AngleError>;
 
 impl Angle {
+    /// Creates a new [`Angle`] from a value in radians.
     pub fn new(value: f64) -> Result<Self> {
         if value < 0.0 || value > 2.0 * std::f64::consts::PI {
             return Err(AngleError::OutOfRangeRadians(value));
@@ -36,6 +44,7 @@ impl Angle {
         Ok(Self(value))
     }
 
+    /// Creates a new [`Angle`] from a value in degrees.
     pub fn from_degrees(value: f64) -> Result<Self> {
         if value < 0.0 || value > 360.0 {
             return Err(AngleError::OutOfRangeDegrees(value));
@@ -43,10 +52,12 @@ impl Angle {
         Ok(Self(value.to_radians()))
     }
 
+    /// Returns the angle in radians.
     pub fn as_radians(&self) -> f64 {
         self.0
     }
 
+    /// Returns the angle in degrees.
     pub fn as_degrees(&self) -> f64 {
         self.0.to_degrees()
     }
