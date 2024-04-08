@@ -8,7 +8,10 @@ use bevy_notify::prelude::*;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(NotifyPlugin::default())
+        .add_plugins(NotifyPlugin {
+            anchor: Anchor::BottomCenter,
+            ..Default::default()
+        })
         .add_systems(
             Update,
             create_toast.run_if(input_just_pressed(KeyCode::Space)),

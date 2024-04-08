@@ -10,6 +10,7 @@ members = [
   "crates/gbp_multivariate_normal",
   # "crates/bevy_undo_redo",
   "crates/gbpplanner-rs",
+  "crates/bevy_notify",
 ]
 
 [workspace.package]

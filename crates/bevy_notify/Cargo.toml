@@ -8,9 +8,9 @@ rust-version.workspace = true
 license.workspace      = true
 
 [dependencies]
-bevy = "0.13"
-# bevy_egui = "0.26"
-bevy_egui = { git = "https://github.com/mvlabat/bevy_egui", branch = "main" } # 0.26 does not support egui 0.27, which egui-notify needs
+bevy      = "0.13"
+bevy_egui = "0.26"
+# bevy_egui = { git = "https://github.com/mvlabat/bevy_egui", branch = "main" } # 0.26 does not support egui 0.27, which egui-notify needs
 # egui-notify = "0.13"
 egui-notify = { git = "https://github.com/AU-Master-Thesis/egui-notify", branch = "master" }
 

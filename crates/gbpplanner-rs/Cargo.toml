@@ -18,6 +18,7 @@ unit_interval           = { path = "../unit_interval" }
 min_len_vec             = { path = "../min_len_vec" }
 gbp_linalg              = { path = "../gbp_linalg" }
 gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
+bevy_notify             = { path = "../bevy_notify" }
 
 glob = "0.3.1"
 better-panic = "0.3.0"
@@ -27,6 +28,9 @@ bevy = { version = "0.13.0", default-features = true, features = [
 ] }
 bevy-inspector-egui = "0.23.2"
 bevy_egui = "0.26.0"
+
+# bevy_egui = { git = "https://github.com/mvlabat/bevy_egui", branch = "main" } # 0.26 does not support egui 0.27, which egui-notify needs
+
 egui_extras = { version = "0.26.2", features = [
   "all_loaders",
 ] }

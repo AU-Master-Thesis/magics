@@ -17,9 +17,13 @@ pub(crate) mod macros;
 
 use std::path::PathBuf;
 
-use bevy::{asset::AssetMetaCheck, core::FrameCount, prelude::*, window::WindowMode};
+use bevy::{
+    asset::AssetMetaCheck, core::FrameCount, input::common_conditions::input_just_pressed,
+    prelude::*, window::WindowMode,
+};
 // use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
+use bevy_notify::prelude::*;
 // use rand_core::RngCore;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
@@ -281,6 +285,7 @@ fn main() -> anyhow::Result<()> {
         .init_state::<SimulationState>()
         .add_plugins(DefaultPlugins.set(window_plugin))
         // third-party plugins
+        .add_plugins(bevy_egui::EguiPlugin)
         .add_plugins(EntropyPlugin::<WyRand>::default())
 
         // our plugins
@@ -299,7 +304,7 @@ fn main() -> anyhow::Result<()> {
             // // FactorGraphPlugin,   // Custom
             EguiInterfacePlugin, // Custom
             PlannerPlugin,
-
+            NotifyPlugin::default()
         ))
         // .add_plugins(NotifyPlugin)
         //         .insert_resource(Notifications(Toasts::default()))
@@ -310,6 +315,11 @@ fn main() -> anyhow::Result<()> {
         // .add_plugins(PerfUiPlugin)
         // .add_systems(Startup, spawn_perf_ui)
         // .add_systems(Update, make_window_visible)
+
+        .add_systems(
+            Update,
+            create_toast.run_if(input_just_pressed(KeyCode::KeyZ)),
+        )
         .add_systems(PostUpdate, end_simulation.run_if(time_exceeds_max_time));
 
     app.run();
@@ -379,4 +389,19 @@ pub enum SimulationState {
     Paused,
     #[display(fmt = "Finished")]
     Finished,
+}
+
+fn create_toast(mut toast_event: EventWriter<ToastEvent>, mut n: Local<usize>) {
+    *n += 1;
+
+    toast_event.send(ToastEvent {
+        caption: format!("call: {}", *n),
+        // caption: "hello".into(),
+        options: ToastOptions {
+            level: ToastLevel::Success,
+            // closable: false,
+            // show_progress_bar: false,
+            ..Default::default()
+        },
+    });
 }
