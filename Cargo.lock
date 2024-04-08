@@ -2898,6 +2898,7 @@ dependencies = [
  "ndarray-inverse",
  "num-traits",
  "open",
+ "paste",
  "percentage",
  "petgraph",
  "pretty_assertions",
