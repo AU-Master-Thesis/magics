@@ -567,10 +567,10 @@ impl FactorGraph {
             .as_variable_mut()
             .expect("just added the variable to the graph in the previous statement")
             .set_node_index(node_index);
-        info!(
-            "added a variable with node_index: {:?} to factorgraph: {:?}",
-            node_index, self.id
-        );
+        // info!(
+        //     "added a variable with node_index: {:?} to factorgraph: {:?}",
+        //     node_index, self.id
+        // );
         node_index.into()
     }
 
@@ -583,14 +583,14 @@ impl FactorGraph {
         self.graph[node_index]
             .as_factor_mut()
             .expect("just added the factor to the graph in the previous statement")
-            .tap(|f| {
-                info!(
-                    "adding a '{}' factor with node_index: {:?} to factorgraph: {:?}",
-                    f.variant(),
-                    node_index,
-                    self.id
-                );
-            })
+            // .tap(|f| {
+            //     info!(
+            //         "adding a '{}' factor with node_index: {:?} to factorgraph: {:?}",
+            //         f.variant(),
+            //         node_index,
+            //         self.id
+            //     );
+            // })
             .set_node_index(node_index);
         self.factor_indices.push(node_index);
 
@@ -1074,7 +1074,7 @@ impl FactorGraph {
             };
 
             if interrobot.connection.id_of_robot_connected_with == other {
-                info!("deleting interrobot factor {:?}", node_index);
+                // info!("deleting interrobot factor {:?}", node_index);
                 self.graph.remove_node(node_index).expect(
                     "The node index was retrieved from the graph in the previous statement",
                 );

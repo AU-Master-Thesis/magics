@@ -194,10 +194,10 @@ fn advance_time(
             spawn_event_writer.send(FormationSpawnEvent {
                 formation_group_index: countdown.formation_group_index,
             });
-            info!(
-                "sending formation spawn event for group: {}",
-                countdown.formation_group_index
-            );
+            // info!(
+            //     "sending formation spawn event for group: {}",
+            //     countdown.formation_group_index
+            // );
             if config.simulation.pause_on_spawn {
                 pause_play_event.send(PausePlayEvent::Pause);
             }
@@ -225,7 +225,7 @@ fn spawn_formation(
     let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
 
     for event in spawn_event_reader.read() {
-        warn!("new formation spawn event received: {:?}", event);
+        // warn!("new formation spawn event received: {:?}", event);
         let formation = &formation_group.formations[event.formation_group_index];
         let first_wp = formation.waypoints.first();
 
@@ -314,7 +314,7 @@ fn spawn_formation(
                 waypoints_with_speed.back().unwrap().x,
                 waypoints_with_speed.back().unwrap().y,
             ));
-            println!("{:?}", waypoints_with_speed);
+            // println!("{:?}", waypoints_with_speed);
             let robotbundle = RobotBundle::new(
                 robot_id,
                 waypoints_with_speed,
@@ -368,7 +368,7 @@ fn spawn_formation(
 
             spawn_robot_event.send(SpawnRobotEvent(robot_id));
         }
-        info!("spawning formation group {}", event.formation_group_index);
+        // info!("spawning formation group {}", event.formation_group_index);
     }
 }
 

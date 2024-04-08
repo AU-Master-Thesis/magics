@@ -42,7 +42,7 @@ fn listen_for_robot_reached_waypoint_event(
             .find(|(_, AssociatedWithRobot(robot_id))| *robot_id == event.robot_id)
             .map(|(entity, _)| entity)
         {
-            info!("sending delete waypoint event: {:?}", waypoint_id);
+            // info!("sending delete waypoint event: {:?}", waypoint_id);
             delete_waypoint_event.send(DeleteWaypointEvent(waypoint_id));
         };
     }
@@ -54,7 +54,7 @@ fn delete_waypoint_mesh(
 ) {
     for event in delete_waypoint_event.read() {
         commands.entity(event.0).despawn();
-        info!("deleted waypoint {:?}", event.0);
+        // info!("deleted waypoint {:?}", event.0);
     }
 }
 
@@ -89,10 +89,10 @@ fn create_waypoint_mesh(
                 ..default()
             },
         ));
-        info!(
-            "created waypoint at {:?} for robot {:?}",
-            event.position, event.for_robot
-        );
+        // info!(
+        //     "created waypoint at {:?} for robot {:?}",
+        //     event.position, event.for_robot
+        // );
     }
 }
 

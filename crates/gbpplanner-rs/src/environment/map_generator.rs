@@ -69,6 +69,8 @@ fn build_obstacles(
     let obstacles_to_spawn = env_config.obstacles.iter().map(|obstacle| {
         let TileCoordinates { row, col } = obstacle.tile_coordinates;
 
+        info!("Spawning obstacle at {:?}", (row, col));
+
         let tile_offset_x = col as f32;
         let tile_offset_z = row as f32;
 

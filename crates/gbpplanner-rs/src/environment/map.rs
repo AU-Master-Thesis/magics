@@ -171,16 +171,16 @@ fn obstacles(
     let extent = config.simulation.world_size.get();
     let intensity = config.visualisation.height.height_map;
 
-    info!("image.texture_descriptor.size.width: {}", width);
-    info!("image.texture_descriptor.size.height: {}", height);
-    info!("image.data.len(): {}", image.data.len());
-    info!("bytes_per_pixel: {}", bytes_per_pixel);
-    info!(
-        "image.data.len() / bytes_per_pixel: {}",
-        image.data.len() / bytes_per_pixel
-    );
-    info!("vertices_count: {}", vertices_count);
-    info!("triangle_count: {}", triangle_count);
+    // info!("image.texture_descriptor.size.width: {}", width);
+    // info!("image.texture_descriptor.size.height: {}", height);
+    // info!("image.data.len(): {}", image.data.len());
+    // info!("bytes_per_pixel: {}", bytes_per_pixel);
+    // info!(
+    //     "image.data.len() / bytes_per_pixel: {}",
+    //     image.data.len() / bytes_per_pixel
+    // );
+    // info!("vertices_count: {}", vertices_count);
+    // info!("triangle_count: {}", triangle_count);
 
     let mut heightmap = Vec::<f32>::with_capacity(vertices_count);
     for w in 0..width {
@@ -191,7 +191,7 @@ fn obstacles(
         }
     }
 
-    info!("heightmap.len(): {}", heightmap.len());
+    // info!("heightmap.len(): {}", heightmap.len());
 
     // Defining vertices.
     let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
