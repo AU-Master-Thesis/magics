@@ -6,62 +6,80 @@ members = [ "crates/angle",
   "crates/min_len_vec",
   "crates/percentage",
   "crates/unit_interval",
-  "gbp_linalg",
-  "gbp_multivariate_normal",
-  "gbpplanner-rs",
+  "crates/gbp_linalg",
+  "crates/gbp_multivariate_normal",
+  # "crates/bevy_undo_redo",
+  "crates/gbpplanner-rs",
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "1.0.0"
 edition = "2021"
 repository = "https://github.com/AU-Master-Thesis/gbp-rs"
 authors = [
   "Jens Høigaard Jensen <jens.jens@live.dk>",
   "Kristoffer Plagborg Bak Sørensen <kristoffer.pbs@tuta.io>",
 ]
-rust-version = "1.76"
+rust-version = "1.77"
 license = "MIT"
+
 
 [workspace.dependencies]
 ndarray = "0.15.6"
 anyhow = "1.0.81"
 thiserror = "1.0.58"
-serde = { version = "1.0.197", features = ["derive"] }
+serde = { version = "1.0.197", features = [
+  "derive",
+] }
 
 [workspace.lints.rust]
 # unsafe_code = "forbid"
 missing_debug_implementations = "warn"
+missing_docs                  = "warn"
 
 
 [workspace.lints.clippy]
-undocumented_unsafe_blocks = "warn"
-enum_glob_use = "warn"
-cast_possible_truncation = "warn"
-tests_outside_test_module = "warn"
+undocumented_unsafe_blocks  = "warn"
+enum_glob_use               = "warn"
+cast_possible_truncation    = "warn"
+tests_outside_test_module   = "warn"
 assertions_on_result_states = "warn"
 # pedantic = "deny"
 # nursery = "deny"
 unwrap_used = "warn"
 # expect_used = "deny"
+dbg_macro = "warn"
+todo      = "warn"
+
 
 [profile.release]
-codegen-units = 1
-debug = false
+codegen-units    = 1
+debug            = false
 debug-assertions = false
-lto = "fat"
-opt-level = 3
-panic = "abort"
-rpath = false
-strip = true
-incremental = true
+lto              = "fat"
+opt-level        = 3
+panic            = "abort"
+rpath            = false
+strip            = true
+incremental      = true
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
-opt-level = 1
-debug = true
+opt-level   = 1
+debug       = true
 incremental = true
 # codegen-backend = "cranelift" # requires nightly
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
 opt-level = 3
+
+[profile.wasm]
+inherits      = "release"
+opt-level     = "z"
+debug         = false
+strip         = true
+lto           = true
+codegen-units = 1
+incremental   = false
+panic         = "abort"

@@ -1,40 +1,30 @@
 (
   formations: [
     (
-      repeat: false,
+      repeat: true,
       delay: (
-        secs: 1,
+        secs: 4,
         nanos: 0
       ),
-      robots: 4,
+      robots: 1,
       waypoints: [
         (
           shape: line(((
             x: 0.45,
-            y: 0,
+            y: 0.0,
           ), (
             x: 0.55,
-            y: 0,
+            y: 0.0,
           ))),
           r#placement-strategy: equal,
         ),
         (
           shape: line(((
             x: 0.45,
-            y: 0.55,
+            y: 1.25,
           ), (
             x: 0.55,
-            y: 0.45,
-          ))),
-          r#placement-strategy: map,
-        ),
-        (
-          shape: line(((
-            x: 1.0,
-            y: 0.45,
-          ), (
-            x: 1.0,
-            y: 0.55,
+            y: 1.25,
           ))),
           r#placement-strategy: map,
         ),
@@ -43,21 +33,11 @@
     (
       repeat: true,
       delay: (
-        secs: 5,
+        secs: 4,
         nanos: 0
       ),
       robots: 1,
       waypoints: [
-        (
-          shape: line(((
-            x: 0.45,
-            y: 1,
-          ), (
-            x: 0.55,
-            y: 1,
-          ))),
-          r#placement-strategy: equal,
-        ),
         (
           shape: line(((
             x: 0.0,
@@ -66,10 +46,101 @@
             x: 0.0,
             y: 0.55,
           ))),
+          r#placement-strategy: equal,
+        ),
+        (
+          shape: line(((
+            x: 1.25,
+            y: 0.45,
+          ), (
+            x: 1.25,
+            y: 0.55,
+          ))),
           r#placement-strategy: map,
         ),
       ],
     ),
+    // (
+    //   repeat: true,
+    //   delay: (
+    //     secs: 2,
+    //     nanos: 0
+    //   ),
+    //   robots: 1,
+    //   waypoints: [
+    //     (
+    //       shape: line(((
+    //         x: 0.45,
+    //         y: 0.0,
+    //       ), (
+    //         x: 0.55,
+    //         y: 0.0,
+    //       ))),
+    //       r#placement-strategy: equal,
+    //     ),
+    //     (
+    //       shape: line(((
+    //         x: 0.45,
+    //         y: 0.55,
+    //       ), (
+    //         x: 0.55,
+    //         y: 0.45,
+    //       ))),
+    //       r#placement-strategy: map,
+    //     ),
+    //     (
+    //       shape: line(((
+    //         x: 1.0,
+    //         y: 0.55,
+    //       ), (
+    //         x: 1.0,
+    //         y: 0.45,
+    //       ))),
+    //       r#placement-strategy: map,
+    //     ),
+    //   ],
+    // ),
+     // (
+     //   repeat: true,
+     //   delay: (
+     //     secs: 5,
+     //     nanos: 0
+     //   ),
+     //   robots: 2,
+     //   waypoints: [
+     //     (
+     //       shape: line(((
+     //         x: 0.45,
+     //         y: 1,
+     //       ), (
+     //         x: 0.55,
+     //         y: 1,
+     //       ))),
+     //       r#placement-strategy: equal,
+     //     ),
+     //     (
+     //       shape: line(((
+     //         x: 0.45,
+     //         y: 0.45,
+     //       ), (
+     //         x: 0.55,
+     //         y: 0.55,
+     //       ))),
+     //       r#placement-strategy: map,
+     //     ),
+
+     //     (
+     //       shape: line(((
+     //         x: 0.0,
+     //         y: 0.45,
+     //       ), (
+     //         x: 0.0,
+     //         y: 0.55,
+     //       ))),
+     //       r#placement-strategy: map,
+     //     ),
+     //   ],
+     // ),
 
   ],
 )

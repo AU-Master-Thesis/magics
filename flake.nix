@@ -4,17 +4,27 @@
     # wgsl_analyzer.url = "github:wgsl-analyzer/wgsl-analyzer";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
+    rust-overlay,
     flake-utils,
-    # wgsl_analyzer,
     ...
   } @ inputs:
     inputs.flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import inputs.nixpkgs {inherit system;};
+      overlays = [(import rust-overlay)];
+      pkgs = import inputs.nixpkgs {inherit system overlays;};
+      rust-extensions = ["rust-src" "rust-analyzer"];
+      rust-targets = ["wasm32-unknown-unknown"];
       # wgsl-analyzer-pkgs = import inputs.wgsl_analyzer {inherit system;};
       bevy-deps = with pkgs; [
         udev
@@ -34,21 +44,23 @@
       cargo-subcommands = with pkgs; [
         cargo-bloat
         cargo-expand
-        cargo-info
         cargo-outdated
         cargo-show-asm
-        cargo-nextest
+        cargo-make
         cargo-modules
-        cargo-watch
+        cargo-nextest
         cargo-rr
         cargo-udeps
+        cargo-watch
+        cargo-wizard
+        # cargo-tree
 
         #   # cargo-profiler
         #   # cargo-feature
       ];
       rust-deps = with pkgs;
         [
-          rustup
+          # rustup
           taplo # TOML formatter and LSP
           bacon
           mold # A Modern Linker
@@ -64,13 +76,37 @@
         devShells.default = pkgs.mkShell rec {
           nativeBuildInputs = with pkgs; [
             pkgs.pkg-config
-            # cargo
-            # rustc
           ];
           buildInputs =
             [
+              (rust-bin.stable.latest.default.override
+                {
+                  extensions = rust-extensions;
+                  targets = rust-targets;
+                })
+              # (rust-bin.beta.latest.default.override {
+              #     extensions = ["rust-src" "rust-analyzer"];
+              # })
+              # (
+              #   rust-bin.selectLatestNightlyWith (toolchain:
+              #     toolchain.default.override {
+              #       extensions = [
+              #         "rust-src"
+              #         "rust-analyzer"
+              #         "rustc-codegen-cranelift-preview"
+              #       ];
+              #       targets = ["wasm32-unknown-unknown"];
+              #     })
+              # )
+
               nodejs
               just
+              typos
+              trunk # rust wasm bundler
+              wasm-bindgen-cli
+              binaryen # wasm-opt
+              sass
+              tailwindcss
               d2
               graphviz
               dot-language-server
