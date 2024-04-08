@@ -144,29 +144,29 @@ impl Shape {
     }
 }
 
-/// Shorthand to construct `Shape::Polygon(vec![Point {x: $x, y: $y}, ... ])`
-#[macro_export]
-macro_rules! polygon {
-    [$(($x:expr, $y:expr)),+ $(,)?] => {{
-        let vertices = vec![
-            $(
-                Point::new($x, $y)
-            ),+
-        ];
-        Shape::Polygon(OneOrMore::new(vertices).expect("at least one vertex"))
-    }}
-}
+// /// Shorthand to construct `Shape::Polygon(vec![Point {x: $x, y: $y}, ... ])`
+// #[macro_export]
+// macro_rules! polygon {
+//     [$(($x:expr, $y:expr)),+ $(,)?] => {{
+//         let vertices = vec![
+//             $(
+//                 Point::new($x, $y)
+//             ),+
+//         ];
+//         Shape::Polygon(OneOrMore::new(vertices).expect("at least one vertex"))
+//     }}
+// }
 
-/// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x: $x2,
-/// y: $y2}))`
-#[macro_export]
-macro_rules! line {
-    [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
-        // Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
-        // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1 as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(), y: f64::try_from().unwrap() }))
-        Shape::Line((Point::new($x1, $y1), Point::new($x2, $y2)))
-    };
-}
+// /// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x: $x2,
+// /// y: $y2}))`
+// #[macro_export]
+// macro_rules! line {
+//     [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
+//         // Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
+//         // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1 as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(), y: f64::try_from().unwrap() }))
+//         Shape::Line((Point::new($x1, $y1), Point::new($x2, $y2)))
+//     };
+// }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

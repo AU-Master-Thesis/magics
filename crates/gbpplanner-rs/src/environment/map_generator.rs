@@ -1,19 +1,121 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
-use crate::{asset_loader::SceneAssets, config::Environment};
+use crate::{
+    asset_loader::SceneAssets,
+    config::{environment::PlaceableShape, Environment, Obstacle, Obstacles},
+};
 
 pub struct GenMapPlugin;
 
 impl Plugin for GenMapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, build_system);
+        app.add_systems(Startup, (build_tile_grid, build_obstacles));
+    }
+}
+#[derive(Debug, Serialize, Deserialize, Component)]
+#[serde(rename_all = "kebab-case")]
+pub struct TileCoordinates {
+    row: usize,
+    col: usize,
+}
+
+impl TileCoordinates {
+    pub fn new(row: usize, col: usize) -> Self {
+        Self { row, col }
     }
 }
 
-#[derive(Component)]
-pub struct MapCell {
-    x: usize,
-    y: usize,
+/// **Bevy** [`Startup`] _system_.
+/// Takes the [`Environment`] configuration and generates all specified
+/// ['Obstacles'].
+///
+/// [`Obstacles`] example:
+/// ```rust
+/// Obstacles(vec![
+///     Obstacle::new(
+///         (0, 0),
+///         PlaceableShape::circle(0.1, (0.5, 0.5)),
+///         Angle::new(0.0).unwrap(),
+///     ),
+///     Obstacle::new(
+///         (0, 0),
+///         PlaceableShape::triangle(0.1, 0.1, 0.5),
+///         Angle::new(0.0).unwrap(),
+///     ),
+///     Obstacle::new(
+///         (0, 0),
+///         PlaceableShape::square(0.1, (0.75, 0.5)),
+///         Angle::new(0.0).unwrap(),
+///     ),
+/// ]),
+/// ```
+///
+/// Placement of all shapes is given as a `(x, y)` percentage local to a
+/// specific tile
+fn build_obstacles(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    env_config: Res<Environment>,
+    scene_assets: Res<SceneAssets>,
+) {
+    let tile_grid = &env_config.tiles.grid;
+    let tile_size = env_config.tile_size();
+    let obstacle_height = env_config.obstacle_height();
+
+    let grid_offset_x = tile_grid.cols() as f32 / 2.0 - 0.5;
+    let grid_offset_z = tile_grid.rows() as f32 / 2.0 - 0.5;
+
+    let obstacles_to_spawn = env_config.obstacles.iter().map(|obstacle| {
+        let TileCoordinates { row, col } = obstacle.tile_coordinates;
+
+        let tile_offset_x = col as f32;
+        let tile_offset_z = row as f32;
+
+        let offset_x = (tile_offset_x - grid_offset_x) * tile_size;
+        let offset_z = (tile_offset_z - grid_offset_z) * tile_size;
+
+        let pos_offset = tile_size / 2.0;
+
+        // Construct the correct shape
+        match obstacle.shape {
+            PlaceableShape::Circle { radius, center } => {
+                let center = Vec3::new(
+                    offset_x + center.x.get() as f32 * tile_size - pos_offset,
+                    obstacle_height / 2.0,
+                    offset_z + center.y.get() as f32 * tile_size - pos_offset,
+                );
+
+                info!("Spawning circle r = {}, at {:?}", radius, center);
+                let radius = radius.get() as f32 * tile_size;
+
+                let mesh = meshes.add(Cylinder::new(radius, obstacle_height));
+                let transform = Transform::from_translation(center);
+
+                info!(
+                    "Spawning cylinder r = {}, h = {}, at {:?}",
+                    radius, obstacle_height, transform
+                );
+
+                Some((mesh, transform))
+            }
+            _ => None,
+        }
+    });
+
+    // obstacles_to_spawn
+    //     .filter_map(|obstacle| obstacle) // filter out None
+    //     .for_each(|(mesh, transform)| {
+    //         commands.spawn(PbrBundle {
+    //             mesh,
+    //             material: scene_assets.materials.obstacle.clone(),
+    //             transform,
+    //             ..Default::default()
+    //         });
+    //     });
+
+    // exit
+    // std::process::exit(0);
 }
 
 /// **Bevy** [`Startup`] _system_.
@@ -29,20 +131,20 @@ pub struct MapCell {
 /// - The lines are not walls, but paths
 /// - Where the empty space are walls/obstacles
 ///
-/// Each cell e.g. cell (0,0) in the above grid "┌" or (3,1) "┬"
+/// Each tile e.g. tile (0,0) in the above grid "┌" or (3,1) "┬"
 /// - Transforms into a 1x1 section of the map - later to be scaled
-/// - Each cell's world position is calculated from the cell's position in the
+/// - Each tile's world position is calculated from the tile's position in the
 ///   grid
 ///     - Such that the map is centered
 /// - Uses the `Environment.width` to determine the width of the paths,
 ///    - Otherwise, the empty space is filled with solid meshes
-fn build_system(
+fn build_tile_grid(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     env_config: Res<Environment>,
     scene_assets: Res<SceneAssets>,
 ) {
-    let matrix = &env_config.grid;
+    let tile_grid = &env_config.tiles.grid;
 
     let obstacle_height = env_config.obstacle_height();
     let obstacle_y = obstacle_height / 2.0;
@@ -54,26 +156,26 @@ fn build_system(
 
     // offset caused by the size of the grid
     // - this centers the map
-    let grid_offset_x = matrix.cols() as f32 / 2.0 - 0.5;
-    let grid_offset_z = matrix.rows() as f32 / 2.0 - 0.5;
+    let grid_offset_x = tile_grid.cols() as f32 / 2.0 - 0.5;
+    let grid_offset_z = tile_grid.rows() as f32 / 2.0 - 0.5;
 
     let pos_offset = (base_dim + path_width * tile_size) / 2.0;
 
-    for (y, row) in matrix.iter().enumerate() {
-        for (x, cell) in row.chars().enumerate() {
-            // offset of the individual cell in the grid
+    for (y, row) in tile_grid.iter().enumerate() {
+        for (x, tile) in row.chars().enumerate() {
+            // offset of the individual tile in the grid
             // used in all match cases
-            let cell_offset_x = x as f32;
-            let cell_offset_z = y as f32;
+            let tile_offset_x = x as f32;
+            let tile_offset_z = y as f32;
 
-            // total offset caused by grid and cell
-            let offset_x = (cell_offset_x - grid_offset_x) * tile_size;
-            let offset_z = (cell_offset_z - grid_offset_z) * tile_size;
-            if let Some(mesh_transforms) = match cell {
+            // total offset caused by grid and tile
+            let offset_x = (tile_offset_x - grid_offset_x) * tile_size;
+            let offset_z = (tile_offset_z - grid_offset_z) * tile_size;
+            if let Some(mesh_transforms) = match tile {
                 '─' => {
                     // Horizontal straight path
                     // - 2 equal-sized larger cuboid on either side, spanning the entire width of
-                    //   the cell
+                    //   the tile
 
                     Some(vec![
                         (
@@ -101,7 +203,7 @@ fn build_system(
                 '│' => {
                     // Vertical straight path
                     // - 2 equal-sized larger cuboid on either side, spanning the entire height of
-                    //   the cell
+                    //   the tile
 
                     Some(vec![
                         (
@@ -129,7 +231,7 @@ fn build_system(
                 '╴' => {
                     // Termination from the left
                     // - 2 larger cuboids on the top and bottom, spanning the entire width of the
-                    //   cell
+                    //   tile
                     // - 1 smaller 'plug' cuboid on the right, to terminate the path
 
                     Some(vec![
@@ -172,7 +274,7 @@ fn build_system(
                 '╶' => {
                     // Termination from the right
                     // - 2 larger cuboids on the top and bottom, spanning the entire width of the
-                    //   cell
+                    //   tile
                     // - 1 smaller 'plug' cuboid on the left, to terminate the path
 
                     Some(vec![
@@ -215,7 +317,7 @@ fn build_system(
                 '╷' => {
                     // Termination from the bottom
                     // - 2 larger cuboids on the left and right, spanning the entire height of the
-                    //   cell
+                    //   tile
                     // - 1 smaller 'plug' cuboid on the top, to terminate the path
 
                     Some(vec![
@@ -258,7 +360,7 @@ fn build_system(
                 '╵' => {
                     // Termination from the top
                     // - 2 larger cuboids on the left and right, spanning the entire height of the
-                    //   cell
+                    //   tile
                     // - 1 smaller 'plug' cuboid on the bottom, to terminate the path
 
                     Some(vec![
@@ -302,7 +404,7 @@ fn build_system(
                     // Top right hand turn
                     // - 1 cube in the bottom right corner
                     // - 1 larger cuboid on the left hand side, spanning the entire height of the
-                    //   cell
+                    //   tile
                     // - 1 larger cuboid on the top side, spanning from the right to the above
                     //   cuboid
 
@@ -343,7 +445,7 @@ fn build_system(
                     // Top left hand turn
                     // - 1 cube in the bottom left corner
                     // - 1 larger cuboid on the right hand side, spanning the entire height of the
-                    //   cell
+                    //   tile
                     // - 1 larger cuboid on the top side, spanning from the left to the above cuboid
 
                     Some(vec![
@@ -383,7 +485,7 @@ fn build_system(
                     // Bottom right hand turn
                     // - 1 cube in the top right corner
                     // - 1 larger cuboid on the left hand side, spanning the entire height of the
-                    //   cell
+                    //   tile
                     // - 1 larger cuboid on the bottom side, spanning from the right to the above
                     //   cuboid
 
@@ -424,7 +526,7 @@ fn build_system(
                     // Bottom left hand turn
                     // - 1 cube in the top left corner
                     // - 1 larger cuboid on the right hand side, spannding the entire height of the
-                    //   cell
+                    //   tile
                     // - 1 larger cuboid on the bottom side, spanning from the left to the above
                     //   cuboid
 
@@ -464,7 +566,7 @@ fn build_system(
                 '┬' => {
                     // Top T-junction
                     // - 2 equal-sized cubes, one in each bottom corner
-                    // - 1 larger cuboid in the top center, spanning the entire width of the cell
+                    // - 1 larger cuboid in the top center, spanning the entire width of the tile
 
                     let cube = meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim));
                     let top = meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim));
@@ -505,7 +607,7 @@ fn build_system(
                 '┴' => {
                     // Bottom T-junction
                     // - 2 equal-sized cubes, one in each top corner
-                    // - 1 larger cuboid in the bottom center, spanning the entire width of the cell
+                    // - 1 larger cuboid in the bottom center, spanning the entire width of the tile
 
                     let cube = meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim));
                     let bottom = meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim));
@@ -546,7 +648,7 @@ fn build_system(
                 '├' => {
                     // Right T-junction
                     // - 2 equal-sized cubes, one in each right corner
-                    // - 1 larger cuboid in the left center, spanning the entire height of the cell
+                    // - 1 larger cuboid in the left center, spanning the entire height of the tile
 
                     let cube = meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim));
                     let left = meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size));
@@ -587,7 +689,7 @@ fn build_system(
                 '┤' => {
                     // Left T-junction
                     // - 2 equal-sized cubes, one in each left corner
-                    // - 1 larger cuboid in the right center, spanning the entire height of the cell
+                    // - 1 larger cuboid in the right center, spanning the entire height of the tile
 
                     let cube = meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim));
                     let right = meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size));
@@ -675,7 +777,7 @@ fn build_system(
                 }
                 ' ' => {
                     // Empty space
-                    // - 1 larger cuboid, spanning the entire cell
+                    // - 1 larger cuboid, spanning the entire tile
                     Some(vec![(
                         meshes.add(Cuboid::new(tile_size, obstacle_height, tile_size)),
                         Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z)),
@@ -691,7 +793,7 @@ fn build_system(
                             material: scene_assets.materials.obstacle.clone(),
                             ..Default::default()
                         },
-                        MapCell { x, y },
+                        TileCoordinates::new(x, y),
                     ));
                 });
             }

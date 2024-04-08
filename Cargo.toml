@@ -9,7 +9,7 @@ members = [
   "crates/gbp_linalg",
   "crates/gbp_multivariate_normal",
   # "crates/bevy_undo_redo",
-  "crates/gbpplanner-rs",
+  "crates/gbpplanner-rs", "crates/angle",
 ]
 
 [workspace.package]

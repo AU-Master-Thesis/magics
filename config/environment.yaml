@@ -1,0 +1,35 @@
+tiles:
+  grid:
+  - █
+  settings:
+    tile-size: 100.0
+    path-width: 0.0
+    obstacle-height: 1.0
+obstacles:
+- tile-coordinates:
+    row: 0
+    col: 0
+  shape: !circle
+    radius: 0.1
+    center:
+      x: 0.5
+      y: 0.5
+  rotation: 0.0
+- tile-coordinates:
+    row: 0
+    col: 0
+  shape: !triangle
+    base_length: 0.1
+    height: 0.1
+    mid_point: 0.5
+  rotation: 0.0
+- tile-coordinates:
+    row: 0
+    col: 0
+  shape: !regular-polygon
+    sides: 4
+    side_length: 0.1
+    translation:
+      x: 0.75
+      y: 0.5
+  rotation: 0.0
