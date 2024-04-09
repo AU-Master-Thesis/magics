@@ -16,6 +16,11 @@ use crate::{
     planner,
 };
 
+#[derive(Component, Debug)]
+pub struct ColorAssociation {
+    pub color: Color,
+}
+
 /// Catppuccin **Bevy** theme wrapper
 #[derive(Resource, Debug)]
 pub struct CatppuccinTheme {
@@ -85,6 +90,30 @@ impl CatppuccinTheme {
     /// teal, sky, sapphire, blue, lavender]`
     pub fn colours(&self) -> FlavourColours {
         self.flavour.colours()
+    }
+
+    /// Iterator over colours for display
+    /// The 'colourful' colours so to say
+    /// i.e. not the text, subtext, overlay, surface, base, mantle, crust
+    /// colours
+    pub fn into_display_iter(&self) -> std::array::IntoIter<Colour, 14> {
+        [
+            self.flavour.rosewater(),
+            self.flavour.flamingo(),
+            self.flavour.pink(),
+            self.flavour.mauve(),
+            self.flavour.red(),
+            self.flavour.maroon(),
+            self.flavour.peach(),
+            self.flavour.yellow(),
+            self.flavour.green(),
+            self.flavour.teal(),
+            self.flavour.sky(),
+            self.flavour.sapphire(),
+            self.flavour.blue(),
+            self.flavour.lavender(),
+        ]
+        .into_iter()
     }
 }
 
@@ -239,43 +268,43 @@ impl CatppuccinThemeWidgetsExt for Widgets {
         Self {
             noninteractive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), /* separators, indentation lines */
-                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), /* normal text color */
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), /* separators, indentation lines */
+                fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), /* normal text color */
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
             inactive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke: Default::default(), // default = 0 width stroke
-                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), /* button text */
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke:    Default::default(), // default = 0 width stroke
+                fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), /* button text */
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
             hovered: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), /* e.g. hover over window edge or button */
-                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding: Rounding::same(7.0),
-                expansion: 2.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface2()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), /* e.g. hover over window edge or button */
+                fg_stroke:    Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding:     Rounding::same(7.0),
+                expansion:    2.0,
             },
             active: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                fg_stroke: Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                rounding: Rounding::same(7.0),
-                expansion: 2.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                fg_stroke:    Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                rounding:     Rounding::same(7.0),
+                expansion:    2.0,
             },
             open: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
-                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
+                fg_stroke:    Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
         }
     }
@@ -285,7 +314,7 @@ impl CatppuccinThemeSelectionExt for Selection {
     fn catppuccin_flavour(flavour: Flavour) -> Selection {
         Self {
             bg_fill: Color32::from_catppuccin_colour(flavour.lavender()),
-            stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
+            stroke:  Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
         }
     }
 }
@@ -427,26 +456,28 @@ fn handle_infinite_grid(
 //         for handle in query_variable.iter_mut() {
 //             if let Some(material) = materials.get_mut(handle.clone()) {
 //                 material.base_color =
-//                     Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(), 0.75);
-//             }
+//
+// Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(),
+// 0.75);             }
 //         }
 //     }
 // }
 
-// /// **Bevy** `Update` system to handle the theme change for `VariableVisualiser`
-// /// Reads `ThemeChangedEvent` to know when to change the variable colour
-// fn handle_variable_visualisers(
+// /// **Bevy** `Update` system to handle the theme change for
+// `VariableVisualiser` /// Reads `ThemeChangedEvent` to know when to change the
+// variable colour fn handle_variable_visualisers(
 //     catppuccin_theme: Res<CatppuccinTheme>,
 //     mut theme_changed_event: EventReader<ThemeChangedEvent>,
 //     mut materials: ResMut<Assets<StandardMaterial>>,
-//     mut query_variable: Query<&mut Handle<StandardMaterial>, With<planner::VariableVisualiser>>,
-// ) {
+//     mut query_variable: Query<&mut Handle<StandardMaterial>,
+// With<planner::VariableVisualiser>>, ) {
 //     for _ in theme_changed_event.read() {
 //         for handle in query_variable.iter_mut() {
 //             if let Some(material) = materials.get_mut(handle.clone()) {
 //                 material.base_color =
-//                     Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(), 0.75);
-//             }
+//
+// Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(),
+// 0.75);             }
 //         }
 //     }
 // }
@@ -462,9 +493,9 @@ fn handle_infinite_grid(
 //     for _ in theme_changed_event.read() {
 //         for handle in query_factor.iter_mut() {
 //             if let Some(material) = materials.get_mut(handle.clone()) {
-//                 material.base_color = Color::from_catppuccin_colour_with_alpha(
-//                     catppuccin_theme.flavour.green(),
-//                     0.75,
+//                 material.base_color =
+// Color::from_catppuccin_colour_with_alpha(
+// catppuccin_theme.flavour.green(),                     0.75,
 //                 );
 //             }
 //         }
@@ -483,8 +514,9 @@ fn handle_infinite_grid(
 //         for handle in query_line.iter_mut() {
 //             if let Some(material) = materials.get_mut(handle.clone()) {
 //                 material.base_color =
-//                     Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.text(), 0.75);
-//             }
+//
+// Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.text(),
+// 0.75);             }
 //         }
 //     }
 // }

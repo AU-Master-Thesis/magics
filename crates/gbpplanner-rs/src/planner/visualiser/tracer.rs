@@ -14,7 +14,7 @@ use crate::{
         RobotId, RobotState,
     },
     robot_spawner::RobotSpawnedEvent,
-    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
 pub struct TracerVisualiserPlugin;
@@ -33,12 +33,17 @@ impl Plugin for TracerVisualiserPlugin {
     }
 }
 
+pub struct Trace {
+    color:       Color,
+    ring_buffer: StaticRb<Vec3, MAX_TRACE_LENGTH>,
+}
+
 /// **Bevy** [`Resource`] to store all robot traces
 // Uses a ring buffer to store the traces, to ensure a maximum fixed size.
 #[derive(Default, Resource)]
 // pub struct Traces(pub BTreeMap<RobotId, Vec<Vec3>>);
 // pub struct Traces(pub BTreeMap<RobotId, HeapRb<Vec3>>);
-pub struct Traces(pub BTreeMap<RobotId, StaticRb<Vec3, MAX_TRACE_LENGTH>>);
+pub struct Traces(pub BTreeMap<RobotId, Trace>);
 
 fn remove_trace_of_despawned_robot(
     mut traces: ResMut<Traces>,
@@ -56,20 +61,23 @@ fn remove_trace_of_despawned_robot(
 }
 
 fn track_initial_robot_positions(
-    query: Query<(RobotId, &Transform), With<RobotState>>,
+    query: Query<(RobotId, &Transform, &ColorAssociation), With<RobotState>>,
     mut traces: ResMut<Traces>,
     mut spawn_robot_event: EventReader<SpawnRobotEvent>,
 ) {
     spawn_robot_event
         .read()
         .for_each(|SpawnRobotEvent(robot_id)| {
-            for (other_robot_id, transform) in query.iter() {
+            for (other_robot_id, transform, color_association) in query.iter() {
+                // initialise the first position of the robot into the ring buffer
+                let mut ring_buffer = StaticRb::default();
+                let _ = ring_buffer.push_overwrite(transform.translation);
+
                 if other_robot_id == *robot_id {
-                    let _ = traces
-                        .0
-                        .entry(*robot_id)
-                        .or_default()
-                        .push_overwrite(transform.translation);
+                    let _ = traces.0.entry(*robot_id).or_insert(Trace {
+                        color: color_association.color,
+                        ring_buffer,
+                    });
                 }
             }
         });
@@ -78,21 +86,30 @@ fn track_initial_robot_positions(
 /// **Bevy** [`Update`] system
 /// To update the [`Traces`] resource
 fn track_robots(
-    query: Query<(RobotId, &Transform), (With<RobotState>, Changed<Transform>)>,
+    query: Query<(RobotId, &Transform, &ColorAssociation), (With<RobotState>, Changed<Transform>)>,
     mut traces: ResMut<Traces>,
 ) {
     debug!("sampling robot positions");
 
-    for (robot_id, transform) in query.iter() {
+    for (robot_id, transform, color_association) in query.iter() {
         let _ = traces
             .0
             .entry(robot_id)
-            .or_default()
-            // .or_insert_with(StaticRb::default)
-            // .or_insert_with(|| HeapRb::new(MAX_TRACE_LENGTH))
+            .or_insert(Trace {
+                color:       color_association.color,
+                ring_buffer: StaticRb::default(),
+            })
+            .ring_buffer
             .push_overwrite(transform.translation);
+        // .or_insert_with(StaticRb::default)
+        // .or_insert_with(|| HeapRb::new(MAX_TRACE_LENGTH))
+        // .push_overwrite(transform.translation);
         // .or_insert_with(Vec::new)
         // .push(transform.translation);
+
+        // if let Some(trace) = traces.0.get_mut(&robot_id) {
+        //     let _ = trace.ring_buffer.push_overwrite(transform.translation);
+        // }
     }
 }
 
@@ -110,33 +127,17 @@ fn draw_traces(mut gizmos: Gizmos, traces: Res<Traces>, catppuccin_theme: Res<Ca
     // }
 
     // TODO: avoid allocating a new iterator every frame
-    let mut colours = catppuccin_theme.colours().into_iter().cycle();
+    let mut colours = catppuccin_theme.into_display_iter().cycle();
     // let colours = catppuccin_theme.colours().into_iter().collect::<Vec<_>>();
 
-    for (robot_id, trace) in traces.0.iter() {
-        let color = colours.next().unwrap();
-        // PERF: compute the color once, and store it in the traces resource or a Local
-        // let color = colours[robot_id.index() as usize % colours.len()];
-        let color = Color::from_catppuccin_colour(color);
-
-        // error!("trace: {:?}", trace);
-
+    for (_, trace) in traces.0.iter() {
         // use a window of length 2 to iterate over the trace, and draw a line between
         // each pair of points
         // for window in trace.windows(2) {
-        for (start, end) in trace.iter().tuple_windows() {
+        for (start, end) in trace.ring_buffer.iter().tuple_windows() {
             // let start = window[0];
             // let end = window[1];
-            gizmos.line(*start, *end, color);
+            gizmos.line(*start, *end, trace.color);
         }
-
-        // let initial_position = trace.first().unwrap();
-        // gizmos.primitive_3d(
-        //     Polyline3d::<100>::new(trace.clone()),
-        //     *initial_position,
-        //     // Vec3::ZERO,
-        //     Quat::IDENTITY,
-        //     color,
-        // );
     }
 }

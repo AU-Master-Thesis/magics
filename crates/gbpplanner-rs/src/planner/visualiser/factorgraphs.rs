@@ -13,7 +13,7 @@ use crate::{
         RobotState,
     },
     pretty_print_title,
-    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
     ui::DrawSettingsEvent,
 };
 
@@ -46,8 +46,8 @@ fn remove_rendered_factorgraph_when_robot_despawns(
 ) {
     for DespawnRobotEvent(robot_id) in despawn_robot_event.read() {
         // info!(
-        //     "received DespawnRobotEvent({:?}), despawning the robots factorgraph visualizer \
-        //      entities",
+        //     "received DespawnRobotEvent({:?}), despawning the robots factorgraph
+        // visualizer \      entities",
         //     robot_id
         // );
         for (entity, tracker) in query.iter() {
@@ -126,12 +126,15 @@ fn on_variable_clicked(
 fn create_factorgraph_visualizer(
     mut commands: Commands,
     mut spawn_robot_event: EventReader<SpawnRobotEvent>,
-    query: Query<(Entity, &FactorGraph), With<RobotState>>,
+    mut matierals: ResMut<Assets<StandardMaterial>>,
+    query: Query<(Entity, &FactorGraph, &ColorAssociation), With<RobotState>>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
 ) {
     for SpawnRobotEvent(robot_id) in spawn_robot_event.read() {
-        let Some((_, factorgraph)) = query.iter().find(|(entity, _)| entity == robot_id) else {
+        let Some((_, factorgraph, color_association)) =
+            query.iter().find(|(entity, _, _)| entity == robot_id)
+        else {
             error!(
                 "should not happen, a factorgraph should be attached to the newly spawned robot"
             );
@@ -158,7 +161,11 @@ fn create_factorgraph_visualizer(
                 On::<Pointer<Click>>::send_event::<VariableClickEvent>(),
                 PbrBundle {
                     mesh: scene_assets.meshes.variable.clone(),
-                    material: scene_assets.materials.variable.clone(),
+                    // material: scene_assets.materials.variable.clone(),
+                    material: matierals.add(StandardMaterial {
+                        base_color: color_association.color,
+                        ..Default::default()
+                    }),
                     transform: Transform::from_translation(transform),
                     visibility: match config.visualisation.draw.predicted_trajectories {
                         true => Visibility::Visible,

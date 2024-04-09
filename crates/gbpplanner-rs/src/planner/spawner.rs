@@ -5,7 +5,7 @@ use std::{collections::VecDeque, num::NonZeroUsize, sync::OnceLock};
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use itertools::Itertools;
-use rand::Rng;
+use rand::{seq::IteratorRandom, thread_rng, Rng};
 use typed_floats::StrictlyPositiveFinite;
 
 use super::{
@@ -19,6 +19,7 @@ use crate::{
         Config, FormationGroup,
     },
     planner::robot::RobotBundle,
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
 pub struct SpawnerPlugin;
@@ -51,7 +52,7 @@ fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
 #[derive(Event)]
 pub struct CreateWaypointEvent {
     pub for_robot: RobotId,
-    pub position: Vec2,
+    pub position:  Vec2,
 }
 
 #[derive(Event)]
@@ -91,8 +92,8 @@ pub struct DeleteWaypointEvent(pub Entity);
 //     // q_windows: Query<&Window, With<PrimaryWindow>>,
 // ) {
 //     for MouseButtonInput { button, state, .. } in mousebutton_event.read() {
-//         let (ButtonState::Pressed, MouseButton::Left) = (state, button) else {
-//             continue;
+//         let (ButtonState::Pressed, MouseButton::Left) = (state, button) else
+// {             continue;
 //         };
 
 //         error!("pressed left click");
@@ -105,8 +106,8 @@ pub struct DeleteWaypointEvent(pub Entity);
 //             continue;
 //         };
 
-//         // let Some(cursor_position) = q_windows.single().cursor_position() else {
-//         //     continue;
+//         // let Some(cursor_position) = q_windows.single().cursor_position()
+// else {         //     continue;
 //         // };
 
 //         create_waypoint_event.send(CreateWaypointEvent {
@@ -116,8 +117,8 @@ pub struct DeleteWaypointEvent(pub Entity);
 
 //         // waypoints
 //         //     .0
-//         //     .push_front(Vec4::new(cursor_position.x, cursor_position.y, 0.0, 0.0));
-//         //
+//         //     .push_front(Vec4::new(cursor_position.x, cursor_position.y,
+// 0.0, 0.0));         //
 //         error!("placed waypoint");
 //         selected_robot.deselect();
 //     }
@@ -126,7 +127,8 @@ pub struct DeleteWaypointEvent(pub Entity);
 /// Every [`ObstacleFactor`] has a static reference to the obstacle image.
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
 // static OBSTACLE_IMAGE: OnceLock<Image> =
-//     OnceLock::new().get_or_init(|| include_bytes!("./assets/imgs/junction_sdf.png"));
+//     OnceLock::new().get_or_init(||
+// include_bytes!("./assets/imgs/junction_sdf.png"));
 
 /// Component attached to an entity that spawns formations.
 #[derive(Component)]
@@ -206,11 +208,13 @@ fn spawn_formation(
     mut spawn_event_reader: EventReader<FormationSpawnEvent>,
     mut spawn_robot_event: EventWriter<SpawnRobotEvent>,
     mut create_waypoint_event: EventWriter<CreateWaypointEvent>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
     image_assets: ResMut<Assets<Image>>,
     formation_group: Res<FormationGroup>,
     variable_timesteps: Res<VariableTimesteps>,
+    theme: Res<CatppuccinTheme>,
 ) {
     // only continue if the image has been loaded
     let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else {
@@ -292,7 +296,7 @@ fn spawn_formation(
             let robot_id = entity.id();
             create_waypoint_event.send_batch(waypoints.iter().map(|p| CreateWaypointEvent {
                 for_robot: robot_id,
-                position: *p,
+                position:  *p,
             }));
 
             let mut waypoints_with_speed = waypoints
@@ -334,9 +338,20 @@ fn spawn_formation(
                 Visibility::Hidden
             };
 
+            // TODO: Make this depend on random seed
+            let random_color = theme.into_display_iter().choose(&mut thread_rng()).expect(
+                "Choosing random colour from an iterator that is hard-coded with values should be \
+                 ok.",
+            );
+
+            let material = materials.add(StandardMaterial {
+                base_color: Color::from_catppuccin_colour(random_color),
+                ..Default::default()
+            });
+
             let pbrbundle = PbrBundle {
                 mesh: scene_assets.meshes.robot.clone(),
-                material: scene_assets.materials.robot.clone(),
+                material,
                 transform: Transform::from_translation(initial_translation),
                 visibility: initial_visibility,
                 ..Default::default()
@@ -355,6 +370,9 @@ fn spawn_formation(
                 pbrbundle,
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickEvent>(),
+                ColorAssociation {
+                    color: Color::from_catppuccin_colour(random_color),
+                },
                 crate::environment::FollowCameraMe::new(0.0, 15.0, 0.0)
                     .with_up_direction(Direction3d::new(initial_direction).expect(
                         "Vector between initial position and first waypoint should be different \
@@ -410,7 +428,7 @@ impl From<ListenerInput<Pointer<Click>>> for RobotClickEvent {
 
 #[derive(Debug, Clone, Copy)]
 struct WorldDimensions {
-    width: StrictlyPositiveFinite<f64>,
+    width:  StrictlyPositiveFinite<f64>,
     height: StrictlyPositiveFinite<f64>,
 }
 
@@ -423,7 +441,7 @@ struct WorldDimensions {
 impl WorldDimensions {
     fn new(width: f64, height: f64) -> Self {
         Self {
-            width: width.try_into().expect("width is not zero"),
+            width:  width.try_into().expect("width is not zero"),
             height: height.try_into().expect("height is not zero"),
         }
     }
