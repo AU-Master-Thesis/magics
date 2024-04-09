@@ -39,7 +39,13 @@ impl Plugin for EguiInterfacePlugin {
             .init_resource::<OccupiedScreenSpace>()
             .init_resource::<UiState>()
             // .init_resource::<PreviousUiState>()
-            .add_plugins(( ControlsPanelPlugin, SettingsPanelPlugin, DataPanelPlugin))
+            .add_plugins(( ControlsPanelPlugin,
+                
+                  SettingsPanelPlugin,
+                
+                  // DataPanelPlugin
+              
+              ))
             .add_systems(OnEnter(SimulationState::Loading), load_fonts)
             .add_systems(Startup, configure_visuals)
             .add_systems(Update, action_block)
