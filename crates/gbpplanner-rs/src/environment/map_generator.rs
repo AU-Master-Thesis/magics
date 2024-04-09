@@ -111,6 +111,65 @@ fn build_obstacles(
 
                 Some((mesh, transform))
             }
+            PlaceableShape::Triangle {
+                base_length,
+                height,
+                mid_point,
+                translation,
+            } => {
+                let center = Vec3::new(
+                    offset_x + translation.x.get() as f32 * tile_size - pos_offset,
+                    // obstacle_height / 2.0,
+                    0.0,
+                    offset_z + translation.y.get() as f32 * tile_size - pos_offset,
+                );
+
+                // Example triangle
+                // |\
+                // | \
+                // |__\
+                // In this case the `base_length` is 1.0, `height` is 3.0, and the `mid_point`
+                // is 0.0, the 3.0 height is placed at the very left of the triangle.
+                // This creates a right-angled triangle.
+                // One could also have a negative `mid_point`, which would make the current
+                // right-angle more obtuse, or a positive `mid_point`, which
+                // would make the current right-angle more acute.
+
+                let points = vec![
+                    // bottom-left corner
+                    Vec2::new(
+                        -base_length.get() as f32 / 2.0 * tile_size,
+                        -height.get() as f32 / 2.0 * tile_size,
+                    ),
+                    // bottom-right corner
+                    Vec2::new(
+                        base_length.get() as f32 / 2.0 * tile_size,
+                        -height.get() as f32 / 2.0 * tile_size,
+                    ),
+                    // top corner
+                    Vec2::new(
+                        (mid_point as f32 - 0.5) * base_length.get() as f32 * tile_size,
+                        height.get() as f32 / 2.0 * tile_size,
+                    ),
+                ];
+
+                info!(
+                    "Spawning triangle: base_length = {}, height = {}, at {:?}",
+                    base_length, height, center
+                );
+
+                let mesh = meshes.add(
+                    Mesh::try_from(bevy_more_shapes::Prism::new(obstacle_height, points))
+                        .expect("Failed to create triangle mesh"),
+                );
+
+                let rotation = Quat::from_rotation_y(
+                    std::f32::consts::FRAC_PI_2 + obstacle.rotation.as_radians() as f32,
+                );
+                let transform = Transform::from_translation(center).with_rotation(rotation);
+
+                Some((mesh, transform))
+            }
             PlaceableShape::RegularPolygon {
                 sides,
                 side_length,

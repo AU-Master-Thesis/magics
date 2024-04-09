@@ -1,49 +1,8 @@
 tiles:
   grid:
-  - █
+  - ┼
   settings:
     tile-size: 100.0
-    path-width: 0.0
+    path-width: 0.1325
     obstacle-height: 1.0
-obstacles:
-- tile-coordinates:
-    row: 0
-    col: 0
-  shape: !regular-polygon
-    sides: 4
-    side_length: 0.0525
-    translation:
-      x: 0.625
-      y: 0.60125
-  rotation: 0.0
-- tile-coordinates:
-    row: 0
-    col: 0
-  shape: !regular-polygon
-    sides: 4
-    side_length: 0.035
-    translation:
-      x: 0.44125
-      y: 0.57125
-  rotation: 0.0
-- tile-coordinates:
-    row: 0
-    col: 0
-  shape: !regular-polygon
-    sides: 4
-    side_length: 0.0225
-    translation:
-      x: 0.4835
-      y: 0.428
-  rotation: 0.0
-- tile-coordinates:
-    row: 0
-    col: 0
-  shape: !rectangle
-    width: 0.0875
-    height: 0.035
-    translation:
-      x: 0.589
-      y: 0.3965
-  rotation: 0.0
-
+obstacles: []

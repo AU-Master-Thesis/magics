@@ -85,7 +85,9 @@ pub enum PlaceableShape {
         /// This is a value in the range [0, 1]
         /// Defines where the height of the triangle intersects the base
         /// perpendicularly
-        mid_point:   UnitInterval,
+        mid_point:   Float,
+        /// Where to place the center of the triangle
+        translation: RelativePoint,
     },
     RegularPolygon {
         /// The number of sides of the polygon
@@ -115,32 +117,29 @@ impl PlaceableShape {
         }
     }
 
-    pub fn triangle(base_length: Float, height: Float, mid_point: Float) -> Self {
+    pub fn triangle(
+        base_length: Float,
+        height: Float,
+        mid_point: Float,
+        translation: (Float, Float),
+    ) -> Self {
         PlaceableShape::Triangle {
             base_length: StrictlyPositiveFinite::<Float>::new(base_length).unwrap(),
-            height:      StrictlyPositiveFinite::<Float>::new(height).unwrap(),
-            mid_point:   UnitInterval::new(mid_point).unwrap(),
+            height: StrictlyPositiveFinite::<Float>::new(height).unwrap(),
+            mid_point,
+            translation: RelativePoint::new(translation.0, translation.1).unwrap(),
         }
     }
 
     pub fn rectangle(width: Float, height: Float, center: (Float, Float)) -> Self {
-        let half_width = width / 2.0;
-        let half_height = height / 2.0;
-        let top = RelativePoint::new(center.0, center.1 + half_height).unwrap();
-        let left = RelativePoint::new(center.0 - half_width, center.1 - half_height).unwrap();
-        let right = RelativePoint::new(center.0 + half_width, center.1 - half_height).unwrap();
-        PlaceableShape::RegularPolygon {
-            sides:       4,
-            side_length: StrictlyPositiveFinite::<Float>::new(width).unwrap(),
+        PlaceableShape::Rectangle {
+            width:       StrictlyPositiveFinite::<Float>::new(width).unwrap(),
+            height:      StrictlyPositiveFinite::<Float>::new(height).unwrap(),
             translation: RelativePoint::new(center.0, center.1).unwrap(),
         }
     }
 
     pub fn square(side_length: Float, center: (Float, Float)) -> Self {
-        let half_side = side_length / 2.0;
-        let top = RelativePoint::new(center.0, center.1 + half_side).unwrap();
-        let left = RelativePoint::new(center.0 - half_side, center.1 - half_side).unwrap();
-        let right = RelativePoint::new(center.0 + half_side, center.1 - half_side).unwrap();
         PlaceableShape::RegularPolygon {
             sides:       4,
             side_length: StrictlyPositiveFinite::<Float>::new(side_length).unwrap(),
@@ -160,12 +159,12 @@ impl PlaceableShape {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Obstacle {
-    /// Which tile in the grid the obstacle should be placed
-    pub tile_coordinates: TileCoordinates,
     /// The shape to be placed as an obstacle
     pub shape: PlaceableShape,
     /// Rotation of the obstacle in degrees around the up-axis
     pub rotation: Rotation,
+    /// Which tile in the grid the obstacle should be placed
+    pub tile_coordinates: TileCoordinates,
 }
 
 impl Obstacle {
@@ -173,7 +172,7 @@ impl Obstacle {
         Obstacle {
             tile_coordinates: TileCoordinates::new(row, col),
             shape,
-            rotation: Rotation(Angle::from_degrees(rotation).expect("Invalid angle")),
+            rotation: Rotation(Angle::new(rotation).expect("Invalid angle")),
         }
     }
 }
@@ -421,9 +420,36 @@ impl Environment {
                 .with_tile_size(100.0)
                 .with_obstacle_height(1.0),
             obstacles: Obstacles(vec![
-                Obstacle::new((0, 0), PlaceableShape::circle(0.1, (0.5, 0.5)), 0.0),
-                Obstacle::new((0, 0), PlaceableShape::triangle(0.1, 0.1, 0.5), 0.0),
-                Obstacle::new((0, 0), PlaceableShape::square(0.1, (0.75, 0.5)), 0.0),
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::regular_polygon(4, 0.0525, (0.625, 0.60125)),
+                    0.0,
+                ),
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::regular_polygon(4, 0.035, (0.44125, 0.57125)),
+                    0.0,
+                ),
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::regular_polygon(4, 0.0225, (0.4835, 0.428)),
+                    0.0,
+                ),
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::rectangle(0.0875, 0.035, (0.589, 0.3965)),
+                    0.0,
+                ),
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::triangle(0.03, 0.0415, 0.575, (0.5575, 0.5145)),
+                    0.0,
+                ),
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::triangle(0.012, 0.025, 1.25, (0.38, 0.432)),
+                    5.225,
+                ),
             ]),
         }
     }
