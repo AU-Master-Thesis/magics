@@ -6,16 +6,22 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     asset_loader::SceneAssets,
-    config::{environment::PlaceableShape, Environment, Obstacle, Obstacles},
+    config::{environment::PlaceableShape, Config, DrawSetting, Environment, Obstacle, Obstacles},
+    ui::DrawSettingsEvent,
 };
 
 pub struct GenMapPlugin;
 
 impl Plugin for GenMapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (build_tile_grid, build_obstacles));
+        app.add_systems(Startup, (build_tile_grid, build_obstacles))
+            .add_systems(Update, show_or_hide_generated_map);
     }
 }
+
+#[derive(Debug, Component)]
+pub struct ObstacleMarker;
+
 #[derive(Debug, Serialize, Deserialize, Component)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileCoordinates {
@@ -60,6 +66,7 @@ fn build_obstacles(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     env_config: Res<Environment>,
+    config: Res<Config>,
     scene_assets: Res<SceneAssets>,
 ) {
     let tile_grid = &env_config.tiles.grid;
@@ -234,19 +241,26 @@ fn build_obstacles(
 
                 Some((mesh, transform))
             }
-            _ => None,
         }
     });
 
     obstacles_to_spawn
         .filter_map(|obstacle| obstacle) // filter out None
         .for_each(|(mesh, transform)| {
-            commands.spawn(PbrBundle {
-                mesh,
-                material: scene_assets.materials.obstacle.clone(),
-                transform,
-                ..Default::default()
-            });
+            commands.spawn((
+                PbrBundle {
+                    mesh,
+                    material: scene_assets.materials.obstacle.clone(),
+                    transform,
+                    visibility: if config.visualisation.draw.generated_map {
+                        Visibility::Visible
+                    } else {
+                        Visibility::Hidden
+                    },
+                    ..Default::default()
+                },
+                ObstacleMarker
+            ));
         });
 
     // exit
@@ -277,6 +291,7 @@ fn build_tile_grid(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     env_config: Res<Environment>,
+    config: Res<Config>,
     scene_assets: Res<SceneAssets>,
 ) {
     let tile_grid = &env_config.tiles.grid;
@@ -926,11 +941,39 @@ fn build_tile_grid(
                             mesh: mesh.clone(),
                             transform: *transform,
                             material: scene_assets.materials.obstacle.clone(),
+                            visibility: if config.visualisation.draw.generated_map {
+                                Visibility::Visible
+                            } else {
+                                Visibility::Hidden
+                            },
                             ..Default::default()
                         },
                         TileCoordinates::new(x, y),
+                        ObstacleMarker,
                     ));
                 });
+            }
+        }
+    }
+}
+
+/// **Bevy** [`Update`] _system_.
+/// Shows or hides the generated map based on event from [`DrawSettingsEvent`].
+/// - If `DrawSettingsEvent` is `ShowGeneratedMap`, all generated map entities'
+///   visibility is changed according to the `DrawSettingsEvent.draw` boolean
+///   field
+fn show_or_hide_generated_map(
+    mut draw_settings_event: EventReader<DrawSettingsEvent>,
+    mut query: Query<&mut Visibility, With<ObstacleMarker>>,
+) {
+    for event in draw_settings_event.read() {
+        if matches!(event.setting, DrawSetting::GeneratedMap) {
+            for mut visibility in query.iter_mut() {
+                *visibility = if event.draw {
+                    Visibility::Visible
+                } else {
+                    Visibility::Hidden
+                };
             }
         }
     }

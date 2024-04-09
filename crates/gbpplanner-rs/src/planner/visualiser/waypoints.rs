@@ -106,9 +106,9 @@ pub struct WaypointVisualiser;
 /// set the visibility of the [`WaypointVisualiser`] entities
 fn show_or_hide_waypoints_meshes(
     mut query: Query<(&WaypointVisualiser, &mut Visibility)>,
-    mut draw_setting_event: EventReader<DrawSettingsEvent>,
+    mut draw_settings_event: EventReader<DrawSettingsEvent>,
 ) {
-    for event in draw_setting_event.read() {
+    for event in draw_settings_event.read() {
         if matches!(event.setting, DrawSetting::Waypoints) {
             for (_, mut visibility) in query.iter_mut() {
                 if event.draw {

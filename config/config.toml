@@ -1,7 +1,7 @@
 # environment = "junction"
-environment_image = "circle_cluttered"
-environment = "./config/environment.yaml"
-formation_group = "./config/formation.ron"
+environment_image = "junction"
+environment       = "./config/environment.yaml"
+formation_group   = "./config/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
@@ -21,8 +21,9 @@ predicted-trajectories = true
 waypoints              = false
 uncertainty            = false
 paths                  = true
+generated-map          = true
 height-map             = false
-flat-map               = true
+sdf                    = false
 communication-radius   = false
 
 [gbp]
