@@ -257,12 +257,12 @@ fn draw_predicted_trajectories_is_enabled(config: Res<Config>) -> bool {
 fn draw_lines_between_variables(
     mut gizmos: Gizmos,
     query_variables: Query<(&RobotTracker, &Transform), With<VariableVisualiser>>,
-    query_factorgraphs: Query<Entity, With<FactorGraph>>,
+    query_factorgraphs: Query<(Entity, &ColorAssociation), With<FactorGraph>>,
     catppuccin_theme: Res<CatppuccinTheme>,
 ) {
-    let color = Color::from_catppuccin_colour(catppuccin_theme.text());
+    // let color = Color::from_catppuccin_colour(catppuccin_theme.text());
 
-    for entity in query_factorgraphs.iter() {
+    for (entity, color_association) in query_factorgraphs.iter() {
         // PERF: reuse the same vector, as all factorgraphs have the same variables
         let positions = query_variables
             .iter()
@@ -275,7 +275,7 @@ fn draw_lines_between_variables(
         for window in positions.windows(2) {
             let start = window[0];
             let end = window[1];
-            gizmos.line(start, end, color);
+            gizmos.line(start, end, color_association.color);
         }
     }
 }
