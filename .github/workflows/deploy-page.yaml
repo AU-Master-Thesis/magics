@@ -3,6 +3,10 @@ name: deploy-github-page
 on: [workflow_dispatch]
 # on: [push, workflow_dispatch]
 
+
+env: 
+  CARGO_TERM_COLOR: always
+
 permissions:
   contents: write
 

@@ -1,8 +1,8 @@
 mod controls;
 mod custom;
-mod data;
+// mod data;
 mod decoration;
-mod selected_entity;
+// mod selected_entity;
 mod settings;
 
 use bevy::{input::common_conditions::*, prelude::*, window::WindowTheme};
@@ -15,7 +15,11 @@ pub use decoration::ToDisplayString;
 pub use settings::{DrawSettingsEvent, ExportGraphEvent};
 use strum_macros::EnumIter;
 
-use self::{controls::ControlsPanelPlugin, data::DataPanelPlugin, settings::SettingsPanelPlugin};
+use self::{
+    controls::ControlsPanelPlugin,
+    // data::DataPanelPlugin,
+    settings::SettingsPanelPlugin,
+};
 use crate::{theme::CatppuccinThemeVisualsExt, SimulationState};
 
 //  _     _ _______ _______  ______
