@@ -1,6 +1,0 @@
-grid = [
-    "┼",
-]
-path-width = 0.1325
-obstacle-height = 1.0
-tile-size = 100.0

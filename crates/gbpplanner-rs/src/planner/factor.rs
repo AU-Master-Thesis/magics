@@ -210,10 +210,10 @@ impl Model for InterRobotFactor {
             // println!("h = {}", h);
         } else {
             if !self.skip {
-                info!(
-                    "outside safety distance, radius = {}, setting self.skip to true",
-                    radius
-                );
+                // info!(
+                //     "outside safety distance, radius = {}, setting self.skip to true",
+                //     radius
+                // );
             }
             self.skip = true;
         }

@@ -1,11 +1,12 @@
 pub mod environment;
 pub mod formation;
+pub mod geometry;
 
 use std::num::NonZeroUsize;
 
 use bevy::{ecs::system::Resource, reflect::Reflect};
-pub use environment::Environment;
-pub use formation::FormationGroup;
+pub use environment::{Environment, EnvironmentType, Obstacle, Obstacles};
+pub use formation::{Formation, FormationGroup};
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
 use typed_floats::{PositiveFinite, StrictlyPositiveFinite};
@@ -26,7 +27,7 @@ pub struct Meter(f64);
 pub struct GraphvizEdgeAttributes {
     // TODO: implement a way to validate this field to only match the valid edge styles: https://graphviz.org/docs/attr-types/style/
     pub style: String,
-    pub len: f32,
+    pub len:   f32,
     pub color: String,
 }
 
@@ -39,17 +40,17 @@ pub struct GraphvizInterrbotSection {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizSection {
-    pub interrobot: GraphvizInterrbotSection,
+    pub interrobot:      GraphvizInterrbotSection,
     pub export_location: String,
 }
 
 impl Default for GraphvizSection {
     fn default() -> Self {
         Self {
-            interrobot: GraphvizInterrbotSection {
+            interrobot:      GraphvizInterrbotSection {
                 edge: GraphvizEdgeAttributes {
                     style: "solid".to_string(),
-                    len: 8.0,
+                    len:   8.0,
                     color: "red".to_string(),
                 },
             },
@@ -61,14 +62,14 @@ impl Default for GraphvizSection {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct HeightSection {
-    pub objects: f32,
+    pub objects:    f32,
     pub height_map: f32,
 }
 
 impl Default for HeightSection {
     fn default() -> Self {
         Self {
-            objects: 0.5,
+            objects:    0.5,
             height_map: 1.0,
         }
     }
@@ -78,14 +79,14 @@ impl Default for HeightSection {
 #[serde(rename_all = "kebab-case")]
 pub struct UncertaintySection {
     pub max_radius: f32,
-    pub scale: f32,
+    pub scale:      f32,
 }
 
 impl Default for UncertaintySection {
     fn default() -> Self {
         Self {
             max_radius: 5.0,
-            scale: 100.0,
+            scale:      100.0,
         }
     }
 }
@@ -119,8 +120,9 @@ pub enum DrawSetting {
     Waypoints,
     Uncertainty,
     Paths,
+    GeneratedMap,
     HeightMap,
-    FlatMap,
+    Sdf,
     CommunicationRadius,
     Robots,
 }
@@ -138,8 +140,9 @@ impl std::str::FromStr for DrawSetting {
             "waypoints" => Self::Waypoints,
             "uncertainty" => Self::Uncertainty,
             "paths" => Self::Paths,
+            "generated_map" => Self::GeneratedMap,
             "height_map" => Self::HeightMap,
-            "flat_map" => Self::FlatMap,
+            "sdf" => Self::Sdf,
             "communication_radius" => Self::CommunicationRadius,
             "robots" => Self::Robots,
             _ => return Err(ParseDrawSettingError),
@@ -177,8 +180,9 @@ pub struct DrawSection {
     pub waypoints: bool,
     pub uncertainty: bool,
     pub paths: bool,
+    pub generated_map: bool,
     pub height_map: bool,
-    pub flat_map: bool,
+    pub sdf: bool,
     pub communication_radius: bool,
 }
 
@@ -191,8 +195,9 @@ impl Default for DrawSection {
             waypoints: false,
             uncertainty: false,
             paths: true,
+            generated_map: true,
             height_map: false,
-            flat_map: false,
+            sdf: false,
             communication_radius: false,
         }
     }
@@ -206,8 +211,9 @@ impl DrawSection {
             "waypoints" => "Waypoints".to_string(),
             "uncertainty" => "Uncertainty".to_string(),
             "paths" => "Paths".to_string(),
+            "generated_map" => "Generated Map".to_string(),
             "height_map" => "Height Map".to_string(),
-            "flat_map" => "Flat Map".to_string(),
+            "sdf" => "SDF".to_string(),
             "communication_radius" => "Communication Radius".to_string(),
             "robots" => "Robots".to_string(),
             _ => "Unknown".to_string(),
@@ -245,7 +251,7 @@ pub struct SimulationSection {
     /// The side length of the smallest square that contains the entire
     /// simulated environment. Size of the environment in meters.
     /// SI unit: m
-    pub world_size: StrictlyPositiveFinite<f32>,
+    pub world_size:  StrictlyPositiveFinite<f32>,
     /// The seed at which random number generators should be seeded, to ensure
     /// deterministic results across simulation runs.
     pub random_seed: usize,
@@ -315,7 +321,7 @@ pub struct CommunicationSection {
 impl Default for CommunicationSection {
     fn default() -> Self {
         Self {
-            radius: 20.0.try_into().expect("20.0 > 0.0"),
+            radius:       20.0.try_into().expect("20.0 > 0.0"),
             failure_rate: 0.2,
         }
     }
@@ -398,7 +404,7 @@ impl Default for Config {
         // exists"); let default_environment =
         // cwd.join("gbpplanner-rs/assets/imgs/junction.png");
         let default_environment_image = "junction".to_string();
-        let default_environment_config = "./config/environment.toml".to_string();
+        let default_environment_config = "./config/environment.yaml".to_string();
         let default_formation_config = "./config/formation.ron".to_string();
 
         Self {

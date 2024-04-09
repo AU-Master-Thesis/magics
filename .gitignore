@@ -7,10 +7,11 @@
 # pixi environments
 .pixi
 
-*.png
 *.dot
 
-!**/assets/imgs/*.png
+# factorgraphs.png
+# screenshot_*.png
+**/*.png
+!**/assets/**/*
 
-screenshot_*.png
 .bacon-locations

@@ -42,7 +42,7 @@ fn listen_for_robot_reached_waypoint_event(
             .find(|(_, AssociatedWithRobot(robot_id))| *robot_id == event.robot_id)
             .map(|(entity, _)| entity)
         {
-            info!("sending delete waypoint event: {:?}", waypoint_id);
+            // info!("sending delete waypoint event: {:?}", waypoint_id);
             delete_waypoint_event.send(DeleteWaypointEvent(waypoint_id));
         };
     }
@@ -54,7 +54,7 @@ fn delete_waypoint_mesh(
 ) {
     for event in delete_waypoint_event.read() {
         commands.entity(event.0).despawn();
-        info!("deleted waypoint {:?}", event.0);
+        // info!("deleted waypoint {:?}", event.0);
     }
 }
 
@@ -89,10 +89,10 @@ fn create_waypoint_mesh(
                 ..default()
             },
         ));
-        info!(
-            "created waypoint at {:?} for robot {:?}",
-            event.position, event.for_robot
-        );
+        // info!(
+        //     "created waypoint at {:?} for robot {:?}",
+        //     event.position, event.for_robot
+        // );
     }
 }
 
@@ -106,9 +106,9 @@ pub struct WaypointVisualiser;
 /// set the visibility of the [`WaypointVisualiser`] entities
 fn show_or_hide_waypoints_meshes(
     mut query: Query<(&WaypointVisualiser, &mut Visibility)>,
-    mut draw_setting_event: EventReader<DrawSettingsEvent>,
+    mut draw_settings_event: EventReader<DrawSettingsEvent>,
 ) {
-    for event in draw_setting_event.read() {
+    for event in draw_settings_event.read() {
         if matches!(event.setting, DrawSetting::Waypoints) {
             for (_, mut visibility) in query.iter_mut() {
                 if event.draw {

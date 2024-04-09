@@ -196,7 +196,7 @@ fn despawn_robots(
         }
 
         if let Some(mut entitycommand) = commands.get_entity(*robot_id) {
-            info!("despawning robot: {:?}", entitycommand.id());
+            // info!("despawning robot: {:?}", entitycommand.id());
             entitycommand.despawn();
         } else {
             error!(
@@ -517,10 +517,11 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
             .1;
 
         match factorgraph1.delete_interrobot_factors_connected_to(robot2) {
-            Ok(_) => info!(
-                "Deleted interrobot factor between factorgraph {:?} and {:?}",
-                robot1, robot2
-            ),
+            Ok(_) => (),
+            // info!(
+            //     "Deleted interrobot factor between factorgraph {:?} and {:?}",
+            //     robot1, robot2
+            // ),
             Err(err) => {
                 error!(
                     "Could not delete interrobot factor between {:?} -> {:?}, with error msg: {}",
@@ -659,10 +660,10 @@ fn create_interrobot_factors(
         factorgraph
             .factor_mut(factor_index)
             .receive_message_from(variable_id, variable_message);
-        info!(
-            "sent initial message from {:?} to {:?}",
-            robot_id, variable_id
-        );
+        // info!(
+        //     "sent initial message from {:?} to {:?}",
+        //     robot_id, variable_id
+        // );
     }
 }
 
@@ -753,7 +754,7 @@ fn update_prior_of_horizon_state(
             .front()
             .map(|wp| array![wp.x as Float, wp.y as Float])
         else {
-            info!("robot {:?}, has reached its final waypoint", robot_id);
+            // info!("robot {:?}, has reached its final waypoint", robot_id);
             ids_of_robots_to_despawn.push(robot_id);
 
             continue;
@@ -818,7 +819,7 @@ fn update_prior_of_horizon_state(
         // println!("waypoints.0.len() = {:?}", waypoints.0.len());
 
         if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
-            info!("robot {:?}, has reached its waypoint", robot_id);
+            // info!("robot {:?}, has reached its waypoint", robot_id);
 
             waypoints.0.pop_front();
             robot_reached_waypoint_event.send(RobotReachedWaypointEvent {

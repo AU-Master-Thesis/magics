@@ -28,7 +28,7 @@ use bevy_notify::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
 use clap::Parser;
-use config::Environment;
+use config::{environment::EnvironmentType, Environment};
 use iyes_perf_ui::prelude::*;
 // use rand::{Rng, SeedableRng};
 
@@ -67,6 +67,10 @@ struct Cli {
     /// What default configuration information to optionally dump to stdout
     #[arg(long, value_enum)]
     dump_default: Option<DumpDefault>,
+
+    /// Dump a specific [`EnvironmentType`] to stdout
+    #[arg(long, value_name = "ENVIRONMENT_TYPE")]
+    dump_environment: Option<EnvironmentType>,
 
     /// Run the app without a window for rendering the environment
     #[arg(long, group = "display")]
@@ -193,9 +197,22 @@ fn main() -> anyhow::Result<()> {
                 println!("{}", ron::ser::to_string_pretty(&default, config)?);
             }
             DumpDefault::Environment => {
-                println!("{}", toml::to_string_pretty(&Environment::default())?);
+                println!("{}", serde_yaml::to_string(&Environment::default())?);
             }
         };
+
+        return Ok(());
+    }
+    
+    // dump_environment
+    if let Some(dump_environment) = cli.dump_environment {
+        let env = match dump_environment {
+            EnvironmentType::Intersection => Environment::intersection(),
+            EnvironmentType::Circle => Environment::circle(),
+            EnvironmentType::Intermediate => Environment::intermediate(),
+            EnvironmentType::Complex => Environment::complex(),
+        };
+        println!("{}", serde_yaml::to_string(&env)?);
 
         return Ok(());
     }

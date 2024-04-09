@@ -1,6 +1,6 @@
 # environment = "junction"
 environment_image = "junction"
-environment       = "./config/environment.toml"
+environment       = "./config/environment.yaml"
 formation_group   = "./config/formation.ron"
 
 [interaction]
@@ -21,8 +21,9 @@ predicted-trajectories = true
 waypoints              = false
 uncertainty            = false
 paths                  = true
+generated-map          = true
 height-map             = false
-flat-map               = false
+sdf                    = false
 communication-radius   = false
 
 [gbp]

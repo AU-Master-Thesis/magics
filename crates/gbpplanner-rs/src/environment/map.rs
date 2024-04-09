@@ -88,21 +88,18 @@ fn flat_map(
     });
 
     // Spawn an entity with the mesh and material, and position it in 3D space
-    commands.spawn((
-        FlatMap,
-        PbrBundle {
-            mesh: scene_assets.meshes.plane.clone(),
-            material: material_handle,
-            visibility: if config.visualisation.draw.flat_map {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            },
-            transform: Transform::from_xyz(0.0, -0.1, 0.0)
-                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-            ..default()
+    commands.spawn((FlatMap, PbrBundle {
+        mesh: scene_assets.meshes.plane.clone(),
+        material: material_handle,
+        visibility: if config.visualisation.draw.sdf {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
         },
-    ));
+        transform: Transform::from_xyz(0.0, -0.1, 0.0)
+            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        ..default()
+    }));
 }
 
 /// **Bevy** [`Update`] system
@@ -114,7 +111,7 @@ fn show_or_hide_flat_map(
     mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
 ) {
     for event in draw_setting_event.read() {
-        if matches!(event.setting, config::DrawSetting::FlatMap) {
+        if matches!(event.setting, config::DrawSetting::Sdf) {
             for (_, mut visibility) in query.iter_mut() {
                 if event.draw {
                     *visibility = Visibility::Visible;
@@ -171,16 +168,16 @@ fn obstacles(
     let extent = config.simulation.world_size.get();
     let intensity = config.visualisation.height.height_map;
 
-    info!("image.texture_descriptor.size.width: {}", width);
-    info!("image.texture_descriptor.size.height: {}", height);
-    info!("image.data.len(): {}", image.data.len());
-    info!("bytes_per_pixel: {}", bytes_per_pixel);
-    info!(
-        "image.data.len() / bytes_per_pixel: {}",
-        image.data.len() / bytes_per_pixel
-    );
-    info!("vertices_count: {}", vertices_count);
-    info!("triangle_count: {}", triangle_count);
+    // info!("image.texture_descriptor.size.width: {}", width);
+    // info!("image.texture_descriptor.size.height: {}", height);
+    // info!("image.data.len(): {}", image.data.len());
+    // info!("bytes_per_pixel: {}", bytes_per_pixel);
+    // info!(
+    //     "image.data.len() / bytes_per_pixel: {}",
+    //     image.data.len() / bytes_per_pixel
+    // );
+    // info!("vertices_count: {}", vertices_count);
+    // info!("triangle_count: {}", triangle_count);
 
     let mut heightmap = Vec::<f32>::with_capacity(vertices_count);
     for w in 0..width {
@@ -191,7 +188,7 @@ fn obstacles(
         }
     }
 
-    info!("heightmap.len(): {}", heightmap.len());
+    // info!("heightmap.len(): {}", heightmap.len());
 
     // Defining vertices.
     let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
@@ -245,19 +242,16 @@ fn obstacles(
         ..default()
     });
 
-    commands.spawn((
-        HeightMap,
-        PbrBundle {
-            mesh: meshes.add(mesh),
-            material: material_handle,
-            visibility: if config.visualisation.draw.height_map {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            },
-            ..default()
+    commands.spawn((HeightMap, PbrBundle {
+        mesh: meshes.add(mesh),
+        material: material_handle,
+        visibility: if config.visualisation.draw.height_map {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
         },
-    ));
+        ..default()
+    }));
 }
 
 /// **Bevy** [`Component`] to represent the heightmap.

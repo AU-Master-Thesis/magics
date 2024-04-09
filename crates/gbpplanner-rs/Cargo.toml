@@ -14,6 +14,7 @@ dev = [
 
 [dependencies]
 percentage              = { path = "../percentage" }
+angle                   = { path = "../angle" }
 unit_interval           = { path = "../unit_interval" }
 min_len_vec             = { path = "../min_len_vec" }
 gbp_linalg              = { path = "../gbp_linalg" }
@@ -49,6 +50,7 @@ image = { version = "0.25.0", default-features = false, features = [
 leafwing-input-manager = "0.13.3"
 # bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
 bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "bevy-v0.13.0" }
+bevy_more_shapes   = { git = "https://github.com/AU-Master-Thesis/bevy_more_shapes", branch = "bevy-v0.13.0" }
 # bevy_mesh_terrain = "0.6.1"
 
 bevy_asset_loader = "0.20.0"
@@ -95,6 +97,7 @@ derive_more      = "0.99.17"
 paste            = "1.0.14"
 egui_plot        = "0.26"
 egui_graphs      = "0.19.0"
+serde_yaml       = "0.9.34"
 # font-kit = { version = "0.13.0", features = ["freetype"] }
 
 
