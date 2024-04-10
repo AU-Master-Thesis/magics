@@ -14,7 +14,9 @@ use petgraph::prelude::NodeIndex;
 use typed_floats::StrictlyPositiveFinite;
 
 use super::{
-    factorgraph::{FactorGraphNode, MessagesFromFactors, MessagesToVariables, VariableId},
+    factorgraph::{
+        FactorGraphNode, MessageCount, MessagesFromFactors, MessagesToVariables, VariableId,
+    },
     message::Message,
     robot::RobotId,
 };
@@ -506,7 +508,7 @@ impl Model for ObstacleFactor {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, derive_more::IsVariant)]
 pub enum FactorKind {
     Pose(PoseFactor),
     InterRobot(InterRobotFactor),
@@ -515,37 +517,37 @@ pub enum FactorKind {
 }
 
 impl FactorKind {
-    /// Returns `true` if the factor kind is [`Obstacle`].
-    ///
-    /// [`Obstacle`]: FactorKind::Obstacle
-    #[must_use]
-    pub fn is_obstacle(&self) -> bool {
-        matches!(self, Self::Obstacle(..))
-    }
+    // /// Returns `true` if the factor kind is [`Obstacle`].
+    // ///
+    // /// [`Obstacle`]: FactorKind::Obstacle
+    // #[must_use]
+    // pub fn is_obstacle(&self) -> bool {
+    //     matches!(self, Self::Obstacle(..))
+    // }
 
-    /// Returns `true` if the factor kind is [`Dynamic`].
-    ///
-    /// [`Dynamic`]: FactorKind::Dynamic
-    #[must_use]
-    pub fn is_dynamic(&self) -> bool {
-        matches!(self, Self::Dynamic(..))
-    }
+    // /// Returns `true` if the factor kind is [`Dynamic`].
+    // ///
+    // /// [`Dynamic`]: FactorKind::Dynamic
+    // #[must_use]
+    // pub fn is_dynamic(&self) -> bool {
+    //     matches!(self, Self::Dynamic(..))
+    // }
 
-    /// Returns `true` if the factor kind is [`InterRobot`].
-    ///
-    /// [`InterRobot`]: FactorKind::InterRobot
-    #[must_use]
-    pub fn is_inter_robot(&self) -> bool {
-        matches!(self, Self::InterRobot(..))
-    }
+    // /// Returns `true` if the factor kind is [`InterRobot`].
+    // ///
+    // /// [`InterRobot`]: FactorKind::InterRobot
+    // #[must_use]
+    // pub fn is_inter_robot(&self) -> bool {
+    //     matches!(self, Self::InterRobot(..))
+    // }
 
-    /// Returns `true` if the factor kind is [`Pose`].
-    ///
-    /// [`Pose`]: FactorKind::Pose
-    #[must_use]
-    pub fn is_pose(&self) -> bool {
-        matches!(self, Self::Pose(..))
-    }
+    // /// Returns `true` if the factor kind is [`Pose`].
+    // ///
+    // /// [`Pose`]: FactorKind::Pose
+    // #[must_use]
+    // pub fn is_pose(&self) -> bool {
+    //     matches!(self, Self::Pose(..))
+    // }
 
     pub fn as_pose(&self) -> Option<&PoseFactor> {
         if let Self::Pose(v) = self {
@@ -579,6 +581,8 @@ impl FactorKind {
         }
     }
 }
+
+// TODO(kpbaks): use enum_dispatch crate
 
 impl Model for FactorKind {
     fn name(&self) -> &'static str {
@@ -701,6 +705,8 @@ pub struct Factor {
     pub kind: FactorKind,
     /// Mailbox for incoming message storage
     pub inbox: MessagesFromFactors,
+
+    message_count: MessageCount,
 }
 
 impl Factor {
@@ -710,6 +716,7 @@ impl Factor {
             state,
             kind,
             inbox: MessagesFromFactors::new(),
+            message_count: MessageCount::default(),
         }
     }
 
@@ -798,6 +805,7 @@ impl Factor {
             // warn!("received an empty message from {:?}", from);
         }
         let _ = self.inbox.insert(from, message);
+        self.message_count.received += 1;
     }
 
     #[inline(always)]
@@ -809,6 +817,7 @@ impl Factor {
         &self.state.initial_measurement - &self.state.cached_measurement
     }
 
+    #[must_use]
     pub fn update(&mut self) -> MessagesToVariables {
         let dofs = 4;
         debug_assert_eq!(
@@ -830,6 +839,7 @@ impl Factor {
                 .iter()
                 .map(|(variable_id, _)| (*variable_id, Message::empty(dofs)))
                 .collect::<BTreeMap<_, _>>();
+            self.message_count.sent += messages.len();
             return messages;
         }
 
@@ -918,34 +928,7 @@ impl Factor {
             marginalisation_idx += dofs;
         }
 
-        // messages.iter().for_each(|(variable_id, message)| {
-        //     pretty_print_message!(
-        //         match self.kind {
-        //             FactorKind::Pose(_) => FactorId::new_pose(
-        //                 variable_id.get_factor_graph_id(),
-        //                 self.node_index.unwrap().into()
-        //             ),
-        //             FactorKind::InterRobot(_) => FactorId::new_interrobot(
-        //                 variable_id.get_factor_graph_id(),
-        //                 self.node_index.unwrap().into()
-        //             ),
-        //             FactorKind::Dynamic(_) => FactorId::new_dynamic(
-        //                 variable_id.get_factor_graph_id(),
-        //                 self.node_index.unwrap().into()
-        //             ),
-        //             FactorKind::Obstacle(_) => FactorId::new_obstacle(
-        //                 variable_id.get_factor_graph_id(),
-        //                 self.node_index.unwrap().into()
-        //             ),
-        //         },
-        //         variable_id,
-        //         self.kind.name()
-        //     );
-        //     pretty_print_vector!(message.information_vector().unwrap());
-        //     pretty_print_matrix!(message.precision_matrix().unwrap());
-        //     pretty_print_vector!(message.mean().unwrap());
-        // });
-
+        self.message_count.sent += messages.len();
         messages
     }
 }
@@ -966,5 +949,15 @@ impl FactorGraphNode for Factor {
         } else {
             Ok(())
         }
+    }
+
+    #[inline]
+    fn messages_sent(&self) -> usize {
+        self.message_count.sent
+    }
+
+    #[inline]
+    fn messages_received(&self) -> usize {
+        self.message_count.received
     }
 }

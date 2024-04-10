@@ -249,7 +249,12 @@ fn export_graph_on_event(
     mut toast_event: EventWriter<ToastEvent>,
 ) {
     if theme_event_reader.read().next().is_some() {
-        if let Err(e) = handle_export_graph(query, config.as_ref(), export_graph_finished_event, toast_event) {
+        if let Err(e) = handle_export_graph(
+            query,
+            config.as_ref(),
+            export_graph_finished_event,
+            toast_event,
+        ) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
     }
@@ -267,10 +272,11 @@ fn handle_export_graph(
     export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
     mut toast_event: EventWriter<ToastEvent>,
 ) -> std::io::Result<()> {
-
     let Some(output) = export_factorgraphs_as_graphviz(q, config) else {
         warn!("There are no factorgraphs in the world");
-        toast_event.send(ToastEvent::warning("There are no factorgraphs in the world".to_string()));
+        toast_event.send(ToastEvent::warning(
+            "There are no factorgraphs in the world".to_string(),
+        ));
 
         return Ok(());
     };
@@ -284,7 +290,10 @@ fn handle_export_graph(
         warn!("overwriting ./{:#?}", dot_output_path);
     }
     info!("exporting all factorgraphs to ./{:#?}", dot_output_path);
-    toast_event.send(ToastEvent::info(format!("exporting all factorgraphs to ./{:#?}", dot_output_path)));
+    toast_event.send(ToastEvent::info(format!(
+        "exporting all factorgraphs to ./{:#?}",
+        dot_output_path
+    )));
 
     std::fs::write(&dot_output_path, output.as_bytes())?;
 
@@ -314,11 +323,7 @@ fn handle_export_graph(
             };
 
             if output.status.success() {
-                let msg = format!(
-                    "successfully compiled ./{:?} with dot",
-                    dot_output_path,
-
-                );
+                let msg = format!("successfully compiled ./{:?} with dot", dot_output_path,);
                 info!(
                     "compiled {:?} to {:?} with dot",
                     dot_output_path, png_output_path
@@ -383,9 +388,12 @@ fn general_actions_system(
     if action_state.just_pressed(&GeneralAction::ToggleTheme) {
         handle_toggle_theme(&mut theme_event, catppuccin_theme);
     } else if action_state.just_pressed(&GeneralAction::ExportGraph) {
-        if let Err(e) =
-            handle_export_graph(query_graphs, config.as_ref(), export_graph_finished_event, toast_event)
-        {
+        if let Err(e) = handle_export_graph(
+            query_graphs,
+            config.as_ref(),
+            export_graph_finished_event,
+            toast_event,
+        ) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
     } else if action_state.just_pressed(&GeneralAction::QuitApplication) {

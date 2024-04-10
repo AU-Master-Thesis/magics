@@ -5,7 +5,8 @@ use tap::Tap;
 
 use super::{
     factorgraph::{
-        FactorGraphNode, FactorId, MessagesFromVariables, MessagesToFactors, VariableId,
+        FactorGraphNode, FactorId, MessageCount, MessagesFromVariables, MessagesToFactors,
+        VariableId,
     },
     message::{Eta, Lam, Message, Mu},
 };
@@ -87,6 +88,8 @@ pub struct Variable {
 
     /// index
     pub node_index: Option<NodeIndex>,
+
+    message_count: MessageCount,
 }
 
 impl Variable {
@@ -152,6 +155,7 @@ impl Variable {
             // valid: false,
             inbox: MessagesToFactors::new(),
             node_index: None,
+            message_count: MessageCount::default(),
         }
 
         // Self {
@@ -191,6 +195,7 @@ impl Variable {
             // warn!("Empty message received from factor {:?}", from);
         }
         let _ = self.inbox.insert(from, message);
+        self.message_count.received += 1;
     }
 
     // TODO: why never used?
@@ -341,6 +346,8 @@ impl Variable {
         //     pretty_print_vector!(message.mean().unwrap());
         // });
 
+        self.message_count.sent += messages.len();
+
         messages
 
         // self.inbox
@@ -379,5 +386,15 @@ impl FactorGraphNode for Variable {
         } else {
             Ok(())
         }
+    }
+
+    #[inline(always)]
+    fn messages_sent(&self) -> usize {
+        self.message_count.sent
+    }
+
+    #[inline(always)]
+    fn messages_received(&self) -> usize {
+        self.message_count.received
     }
 }

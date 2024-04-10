@@ -22,9 +22,7 @@ pub struct PlannerPlugin;
 
 impl Plugin for PlannerPlugin {
     fn build(&self, app: &mut App) {
-        app
-        // .init_resource::<PausePlay>()
-        .insert_state(PausedState::Running)
+        app.insert_state(PausedState::Running)
             .add_event::<PausePlayEvent>()
             .add_systems(PreUpdate, pause_play_simulation)
             .add_plugins((
@@ -35,6 +33,8 @@ impl Plugin for PlannerPlugin {
             ));
     }
 }
+
+// TODO(kpbaks): move out of planner
 
 // /// **Bevy** [`Resource`] for pausing or playing the simulation
 // #[derive(Default, Resource)]

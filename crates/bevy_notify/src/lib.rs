@@ -15,7 +15,7 @@
 //!         .add_systems(Update, notify_example_system.run_if(input_just_pressed(KeyCode::Space))
 //!         .run();
 //! }
-//!    
+//!
 //! fn notify_example_system(mut toast_event: EventWriter<ToastEvent>) {
 //!      toast_event.send(ToastEvent {
 //!          caption: "hello".into(),
@@ -68,7 +68,7 @@ impl Default for NotifyPlugin {
 
 impl Plugin for NotifyPlugin {
     fn build(&self, app: &mut App) {
-        if app.get_added_plugins::<bevy_egui::EguiPlugin>().is_empty() {
+        if !app.is_plugin_added::<bevy_egui::EguiPlugin>() {
             app.add_plugins(EguiPlugin);
         }
 
@@ -141,7 +141,7 @@ impl ToastEvent {
             },
         }
     }
-	
+
     /// Create an error toast
     /// options is set to `ToastOptions::default()`
     pub fn error(caption: String) -> Self {
@@ -187,7 +187,7 @@ pub struct ToastOptions {
     /// If `None`, the toast will exist until closed by the user or number of toasts
     /// exceeds the [max](struct.NotifyPlugin.html#structfield.max)
     pub duration: Option<std::time::Duration>,
-    /// Level of the toast 
+    /// Level of the toast
     pub level: ToastLevel,
     /// Whether to show a progress bar
     /// Defaults to true

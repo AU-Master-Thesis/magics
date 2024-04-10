@@ -1,12 +1,14 @@
 //! The main entry point of the simulation.
 pub(crate) mod asset_loader;
 pub(crate) mod config;
+mod diagnostic;
 mod environment;
 mod input;
 mod moveable_object;
 mod movement;
 mod planner;
 mod robot_spawner;
+
 pub(crate) mod theme;
 mod toggle_fullscreen;
 pub(crate) mod ui;

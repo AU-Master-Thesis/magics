@@ -24,11 +24,34 @@ pub struct RemoveConnectionToError;
 
 impl std::error::Error for RemoveConnectionToError {}
 
+// pub
+
 pub(super) trait FactorGraphNode {
+    #[must_use]
     fn remove_connection_to(
         &mut self,
         factorgraph_id: FactorGraphId,
     ) -> Result<(), RemoveConnectionToError>;
+
+    fn messages_sent(&self) -> usize;
+    fn messages_received(&self) -> usize;
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub(super) struct MessageCount {
+    pub sent: usize,
+    pub received: usize,
+}
+
+impl std::ops::Add for MessageCount {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        MessageCount {
+            sent: self.sent + rhs.sent,
+            received: self.received + rhs.received,
+        }
+    }
 }
 
 // /// How the messages are passed between factors and variables in the
@@ -122,7 +145,8 @@ impl std::cmp::PartialOrd for FactorId {
 
 impl std::cmp::Ord for FactorId {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
+        self.partial_cmp(other)
+            .expect("every branch in partial_cmp() returns Some()")
     }
 }
 
@@ -352,6 +376,20 @@ impl FactorGraphNode for Node {
             NodeKind::Variable(ref mut variable) => variable.remove_connection_to(factorgraph_id),
         }
     }
+
+    fn messages_sent(&self) -> usize {
+        match self.kind {
+            NodeKind::Factor(ref factor) => factor.messages_sent(),
+            NodeKind::Variable(ref variable) => variable.messages_sent(),
+        }
+    }
+
+    fn messages_received(&self) -> usize {
+        match self.kind {
+            NodeKind::Factor(ref factor) => factor.messages_received(),
+            NodeKind::Variable(ref variable) => variable.messages_received(),
+        }
+    }
 }
 
 /// The type used to represent indices into the nodes of the factorgraph.
@@ -536,7 +574,7 @@ impl FactorGraph {
     }
 
     /// Returns the `FactorGraphId` of the factorgraph
-    #[inline]
+    #[inline(always)]
     pub fn id(&self) -> FactorGraphId {
         self.id
     }
@@ -1138,6 +1176,14 @@ impl FactorGraph {
         } else {
             Ok(())
         }
+    }
+
+    #[must_use]
+    pub fn messages_sent(&self) -> usize {
+        self.graph
+            .node_weights()
+            .map(|node| node.messages_sent())
+            .sum()
     }
 }
 
