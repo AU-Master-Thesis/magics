@@ -11,7 +11,9 @@ use bevy::{
 use bevy_egui::egui;
 use egui_plot::{Line, Plot, PlotPoints};
 
-use crate::{diagnostic::prelude::RobotDiagnosticsPlugin, SimulationState};
+use crate::{config::Config, diagnostic::prelude::RobotDiagnosticsPlugin, SimulationState};
+
+use super::UiState;
 
 pub struct MetricsPlugin {
     wait_duration: Duration,
@@ -87,38 +89,39 @@ impl MetricsPlugin {
         time: Res<Time<Real>>,
         diagnostics: Res<DiagnosticsStore>,
         timer: Local<Timer>,
+        config: Res<Config>,
+        mut ui_state: ResMut<UiState>,
+        mut current_pos: Local<egui::Pos2>,
     ) {
         let window = egui::Window::new("Metrics")
             .collapsible(true)
             .interactable(true)
+            .movable(true)
+            .default_pos(*current_pos)
             .show(egui_ctx.ctx_mut(), |ui| {
+                if ui.rect_contains_pointer(ui.max_rect())
+                    && config.interaction.ui_focus_cancels_inputs
+                {
+                    ui_state.mouse_over.floating_window = true;
+                } else {
+                    ui_state.mouse_over.floating_window = false;
+                }
+
                 // for diagnostic in &[EntityCountDiagnosticsPlugin::ENTITY_COUNT]
 
-                if let Some(diagnostic) =
-                    diagnostics.get(&EntityCountDiagnosticsPlugin::ENTITY_COUNT)
-                {
-                    if diagnostic.is_enabled {
-                        ui.label(format!("entities: {}", diagnostic.value().unwrap() as i64));
+                // TODO: add diagnostic source for number of collisions
+                for (name, diagnostic_path) in [
+                    ("entities", &EntityCountDiagnosticsPlugin::ENTITY_COUNT),
+                    ("robots", &RobotDiagnosticsPlugin::ROBOT_COUNT),
+                    ("variables", &RobotDiagnosticsPlugin::VARIABLE_COUNT),
+                    ("factors", &RobotDiagnosticsPlugin::FACTOR_COUNT),
+                ] {
+                    if let Some(value) = diagnostics
+                        .get_measurement(diagnostic_path)
+                        .map(|d| d.value as i64)
+                    {
+                        ui.label(format!("{}: {}", name, value));
                     }
-                }
-
-                // if let Some(diagnostic) = diagnostics.get(&RobotDiagnosticsPlugin::ROBOT_COUNT) {
-                //     if diagnostic.is_enabled {
-                //         ui.label(format!("robots: {}", diagnostic.value().unwrap() as i64));
-                //     }
-                // }
-
-                if let Some(diagnostic) = diagnostics.get(&RobotDiagnosticsPlugin::VARIABLE_COUNT) {
-                    if let Some(value) = diagnostic.value() {
-                        ui.label(format!("variables: {}", value as i64));
-                    }
-                }
-
-                if let Some(robots) = diagnostics
-                    .get(&RobotDiagnosticsPlugin::ROBOT_COUNT)
-                    .and_then(|d| d.value())
-                {
-                    ui.label(format!("robots: {}", robots as i64));
                 }
 
                 if let Some(messages_sent) =
@@ -135,52 +138,17 @@ impl MetricsPlugin {
                     plot.show(ui, |plot_ui| plot_ui.line(line));
                 }
 
-                // if let Some(diagnostic) = diagnostics.get(&RobotDiagnosticsPlugin::ROBOT_COUNT) {
-                //     // if let Some(robots) = diagnostics
-                //     //     .get(&RobotDiagnosticsPlugin::ROBOT_COUNT)
-                //     //     .and_then(|d| d.values())
-                //     // {
-                //     let points: PlotPoints = diagnostic.values()
-                //         // .iter()
-                //         .enumerate()
-                //         .map(|(i, robot)| [i as f64, *robot])
-                //         .collect();
-                //     let line = Line::new(points);
-
-                //     let plot = Plot::new("my_plot").view_aspect(2.0).show_grid(true);
-                //     plot.show(ui, |plot_ui| plot_ui.line(line));
-                // }
-
-                // if let Some(diagnostic) = diagnostics.get(&RobotDiagnosticsPlugin::FACTOR_COUNT) {
-                //     if let Some(value) = diagnostic.value() {
-                //         ui.label(format!("factors: {}", value as i64));
-                //     }
-                // }
-
-                //         let sin: PlotPoints = (0..1000)
-                //             .map(|i| {
-                //                 let x = i as f64 * 0.01;
-                //                 [x, x.sin()]
-                //             })
-                //             .collect();
-                //         let line = Line::new(sin);
-
-                //         Plot::new("my_plot")
-                //             .view_aspect(2.0)
-                //             .show(ui, |plot_ui| plot_ui.line(line));
-                //         // let plot = Plot::new("my_plot").view_aspect(2.0).show_grid(true);
-                //         // plot.show(ui, |plot_ui| plot_ui.line(line));
-
-                // if let Some(diagnostic) = diagnostics.get(&SYSTEM_ITERATION_COUNT) {
-                //     if diagnostic.is_enabled {
-                //         ui.label(format!("diagnostic: {}", diagnostic.value().unwrap()));
-                //     }
-                // }
-
-                // diagnostics.get_measurement()
-                // ui.label(format!("{}", egui::special_emojis::GITHUB));
-                // ui.allocate_space(ui.available_size()); // put this LAST in your panel/window code    ui.allocate_space(ui.available_size()); // put this LAST in your panel/window code
+                ui.label(format!("{}", egui::special_emojis::GITHUB));
+                ui.allocate_space(ui.available_size()); // put this LAST in your panel/window code    ui.allocate_space(ui.available_size()); // put this LAST in your panel/window code
             });
+
+        // occupied_screen_space.left = left_panel
+        //     .map(|ref inner| inner.response.rect.width())
+        //     .unwrap_or(0.0);
+
+        *current_pos = window
+            .map(|ref inner| inner.response.rect.min)
+            .unwrap_or_default();
     }
 
     fn system_iteration_count(mut diagnostics: Diagnostics, time: Res<Time<Real>>) {

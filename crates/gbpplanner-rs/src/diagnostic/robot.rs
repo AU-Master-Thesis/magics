@@ -1,4 +1,5 @@
 use std::num::{NonZeroU64, NonZeroUsize};
+use std::ops::Deref;
 use std::time::Duration;
 
 use bevy::prelude::*;
@@ -9,44 +10,46 @@ use typed_floats::StrictlyPositiveFinite;
 
 use crate::planner::{FactorGraph, RobotState};
 
-/// Newtype representing a sample rate in seconds.
-/// The newtype wraps a `std::time::Duration` to ensure the invariant that the Duration is
-/// never zero time.
-pub struct SampleRate(Duration);
+use units::sample_rate::SampleRate;
 
-impl SampleRate {
-    #[inline]
-    pub const fn from_hz(hz: NonZeroUsize) -> SampleRate {
-        Self(Duration::div_f32(``, ), ))
-        Self(Duration::from_secs(1.0 / hz.get() as f64))
-    }
+// /// Newtype representing a sample rate in seconds.
+// /// The newtype wraps a `std::time::Duration` to ensure the invariant that the Duration is
+// /// never zero time.
+// pub struct SampleRate(Duration);
 
-    // /// delay in seconds
-    // #[inline]
-    // pub fn from_delay(delay: StrictlyPositiveFinite) -> SampleRate {
-    //     Self(Duration::from_secs(delay.into()))
-    // }
+// impl SampleRate {
+//     #[inline]
+//     pub const fn from_hz(hz: NonZeroUsize) -> SampleRate {
+//         Self(Duration::div_f32(``, ), ))
+//         Self(Duration::from_secs(1.0 / hz.get() as f64))
+//     }
 
-    /// delay in milliseconds
-    #[inline]
-    pub const fn from_millis(delay: NonZeroU64) -> SampleRate {
-        Self(Duration::from_millis(delay.into()))
-    }
+//     // /// delay in seconds
+//     // #[inline]
+//     // pub fn from_delay(delay: StrictlyPositiveFinite) -> SampleRate {
+//     //     Self(Duration::from_secs(delay.into()))
+//     // }
 
-    /// Takes ownership of `Self` and returns the inner `std::time::Duration` type
-    #[inline]
-    pub fn as_duration(self) -> Duration {
-        self.0
-    }
-}
+//     /// delay in milliseconds
+//     #[inline]
+//     pub const fn from_millis(delay: NonZeroU64) -> SampleRate {
+//         Self(Duration::from_millis(delay.into()))
+//     }
 
-impl std::ops::Deref for SampleRate {
-    type Target = Duration;
+//     /// Takes ownership of `Self` and returns the inner `std::time::Duration` type
+//     #[inline]
+//     pub fn as_duration(self) -> Duration {
+//         self.0
+//     }
+// }
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+// impl std::ops::Deref for SampleRate {
+//     type Target = Duration;
+
+//     fn deref(&self) -> &Self::Target {
+//         &self.0
+//     }
+// }
 
 #[derive(Default)]
 pub struct RobotDiagnosticsPlugin {
@@ -83,11 +86,13 @@ impl Plugin for RobotDiagnosticsPlugin {
             .count_robots_sample_rate
             .map(SampleRate::as_duration)
         {
-            app.add_systems(
-                PostUpdate,
-                Self::count_robots.run_if(repeating_after_delay(duration)),
+            info!(
+                "creating system to count number of robots every {:?}",
+                duration
             );
+            app.add_systems(PostUpdate, Self::count_robots.run_if(on_timer(duration)));
         } else {
+            info!("creating system to count number of robots every `Update`");
             app.add_systems(PostUpdate, Self::count_robots);
         }
 
@@ -96,22 +101,13 @@ impl Plugin for RobotDiagnosticsPlugin {
             .count_variables_and_factors
             .map(SampleRate::as_duration)
         {
-            app.add_systems(
-                PostUpdate,
-                Self::count_variables_and_factors.run_if(repeating_after_delay(duration)),
+            info!(
+                "creating system to count number of variables and factors every {:?}",
+                duration
             );
-        } else {
-            app.add_systems(PostUpdate, Self::count_variables_and_factors);
-        }
-
-        if let Some(duration) = self
-            .config
-            .count_variables_and_factors
-            .map(SampleRate::as_duration)
-        {
             app.add_systems(
                 PostUpdate,
-                Self::count_variables_and_factors.run_if(repeating_after_delay(duration)),
+                Self::count_variables_and_factors.run_if(on_timer(duration)),
             );
         } else {
             app.add_systems(PostUpdate, Self::count_variables_and_factors);
@@ -122,9 +118,13 @@ impl Plugin for RobotDiagnosticsPlugin {
             .messages_sent_sample_rate
             .map(SampleRate::as_duration)
         {
+            info!(
+                "creating system to count number of messages sent every {:?}",
+                duration
+            );
             app.add_systems(
                 PostUpdate,
-                Self::count_messages_sent.run_if(repeating_after_delay(duration)),
+                Self::count_messages_sent.run_if(on_timer(duration)),
             );
         } else {
             app.add_systems(PostUpdate, Self::count_messages_sent);

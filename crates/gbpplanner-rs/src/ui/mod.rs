@@ -154,6 +154,7 @@ pub struct MouseOverPanel {
     pub right_panel: bool,
     pub top_panel: bool,
     pub bottom_panel: bool,
+    pub floating_window: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -266,6 +267,7 @@ fn action_block(mut action_block: ResMut<ActionBlock>, ui_state: Res<UiState>) {
     // TODO: add top and bottom
     if (ui_state.left_panel_visible && ui_state.mouse_over.left_panel)
         || (ui_state.right_panel_visible && ui_state.mouse_over.right_panel)
+        || (ui_state.mouse_over.floating_window)
     {
         action_block.block();
     } else {

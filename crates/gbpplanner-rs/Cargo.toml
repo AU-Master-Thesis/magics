@@ -19,6 +19,7 @@ min_len_vec             = { path = "../min_len_vec" }
 gbp_linalg              = { path = "../gbp_linalg" }
 gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
 bevy_notify             = { path = "../bevy_notify" }
+units                   = { path = "../units" }
 
 glob = "0.3.1"
 better-panic = "0.3.0"
@@ -95,6 +96,7 @@ derive_more      = "0.99.17"
 paste            = "1.0.14"
 egui_plot        = "0.26"
 egui_graphs      = "0.19.0"
+colored = "2.1.0"
 # font-kit = { version = "0.13.0", features = ["freetype"] }
 
 

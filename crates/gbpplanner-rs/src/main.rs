@@ -17,6 +17,7 @@ pub(crate) mod utils;
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
+use colored::Colorize;
 use std::path::PathBuf;
 
 use bevy::{
@@ -143,35 +144,43 @@ const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
+// fn print_build_information() {
+
+// }
+
 fn main() -> anyhow::Result<()> {
     if cfg!(all(not(target_arch = "wasm32"), debug_assertions)) {
-        println!("installing better_panic panic hook");
+        eprintln!("installing better_panic panic hook");
         better_panic::debug_install();
     }
-
-    // if cfg!(target_os = "linux") {}
-    // if cfg!(wasm32-unknown-unknown) {}
-    // if cfg!(linux) {}
-
-    // if cfg!(windows) {
-    //     compile_error!("compiling on wasm32");
-    // }
 
     let name = env!("CARGO_PKG_NAME");
     let version = env!("CARGO_PKG_VERSION");
     let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
 
-    println!("target arch:   {}", std::env::consts::ARCH);
-    println!("target os:     {}", std::env::consts::OS);
-    println!("target family: {}", std::env::consts::FAMILY);
+    println!(
+        "{}:   {}",
+        "target arch".green().bold(),
+        std::env::consts::ARCH
+    );
+    println!(
+        "{}:     {}",
+        "target os".green().bold(),
+        std::env::consts::OS
+    );
+    println!(
+        "{}: {}",
+        "target family".green().bold(),
+        std::env::consts::FAMILY
+    );
 
-    println!("name:         {}", NAME);
-    println!("authors:");
+    println!("{}:          {}", "name".green().bold(), NAME);
+    println!("{}:", "authors".green().bold());
     authors.iter().for_each(|&author| {
         println!(" - {}", author);
     });
-    println!("version:      {}", VERSION);
-    println!("manifest_dir: {}", MANIFEST_DIR);
+    println!("{}:       {}", "version".green().bold(), VERSION);
+    println!("{}:  {}", "manifest_dir".green().bold(), MANIFEST_DIR);
 
     // let cli  = parse_arguments();
 
