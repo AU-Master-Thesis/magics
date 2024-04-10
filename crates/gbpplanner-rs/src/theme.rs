@@ -637,7 +637,7 @@ fn handle_obstacles(
     catppuccin_theme: Res<CatppuccinTheme>,
     mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query_obstacle: Query<&mut Handle<StandardMaterial>, With<environment::TileCoordinates>>,
+    mut query_obstacle: Query<&mut Handle<StandardMaterial>, With<environment::ObstacleMarker>>,
 ) {
     for _ in theme_changed_event.read() {
         for handle in query_obstacle.iter_mut() {

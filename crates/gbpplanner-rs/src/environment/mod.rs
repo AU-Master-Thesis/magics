@@ -12,6 +12,7 @@ use map::MapPlugin;
 
 use self::map_generator::GenMapPlugin;
 pub use self::map_generator::TileCoordinates;
+pub use map_generator::ObstacleMarker;
 
 pub struct EnvironmentPlugin;
 
