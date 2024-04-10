@@ -1,10 +1,10 @@
-name: deploy-github-page
+name: build-github-page
 
 on: [workflow_dispatch]
 # on: [push, workflow_dispatch]
 
 
-env: 
+env:
   CARGO_TERM_COLOR: always
 
 permissions:
