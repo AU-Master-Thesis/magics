@@ -1,4 +1,4 @@
-mod controls;
+pub mod controls;
 mod custom;
 // mod data;
 mod decoration;
@@ -21,7 +21,6 @@ use self::{
     settings::SettingsPanelPlugin,
 };
 use crate::{theme::CatppuccinThemeVisualsExt, SimulationState};
-
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/
 //  |_____| ______| |______ |    \_

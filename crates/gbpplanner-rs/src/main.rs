@@ -29,6 +29,7 @@ use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
 use clap::Parser;
 use config::{environment::EnvironmentType, Environment};
+use gbpplanner_rs::SimulationState;
 use iyes_perf_ui::prelude::*;
 // use rand::{Rng, SeedableRng};
 
@@ -203,7 +204,7 @@ fn main() -> anyhow::Result<()> {
 
         return Ok(());
     }
-    
+
     // dump_environment
     if let Some(dump_environment) = cli.dump_environment {
         let env = match dump_environment {
@@ -379,33 +380,6 @@ fn make_window_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) 
         // It will work, but it will have one white frame before it starts rendering
         window.single_mut().visible = true;
     }
-}
-
-// TODO: use in app
-#[derive(
-    Debug,
-    Default,
-    States,
-    PartialEq,
-    Eq,
-    Hash,
-    Clone,
-    Copy,
-    derive_more::Display,
-    derive_more::IsVariant,
-)]
-pub enum SimulationState {
-    #[default]
-    #[display(fmt = "Loading")]
-    Loading,
-    #[display(fmt = "Starting")]
-    Starting,
-    #[display(fmt = "Running")]
-    Running,
-    #[display(fmt = "Paused")]
-    Paused,
-    #[display(fmt = "Finished")]
-    Finished,
 }
 
 fn create_toast(mut toast_event: EventWriter<ToastEvent>, mut n: Local<usize>) {

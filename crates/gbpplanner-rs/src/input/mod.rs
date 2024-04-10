@@ -3,10 +3,10 @@ use std::fmt::Display;
 use bevy::prelude::*;
 use strum_macros::EnumIter;
 
-mod camera;
-mod general;
-mod moveable_object;
-mod ui;
+pub mod camera;
+pub mod general;
+pub mod moveable_object;
+pub mod ui;
 
 pub use camera::{CameraAction, CameraSensitivity};
 pub use general::{GeneralAction, ScreenShotEvent};
