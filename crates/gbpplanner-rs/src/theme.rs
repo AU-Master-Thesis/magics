@@ -9,16 +9,18 @@ use bevy_egui::{
 };
 use bevy_infinite_grid::InfiniteGridSettings;
 use catppuccin::{Colour, Flavour, FlavourColours};
+use strum_macros::EnumIter;
 
 use crate::{
     environment,
     // factorgraph::{Factor, Line, Variable},
-    planner,
+    planner::{self, RobotTracker},
 };
 
 #[derive(Component, Debug)]
 pub struct ColorAssociation {
-    pub color: Color,
+    // pub color: Color,
+    pub name: DisplayColour,
 }
 
 /// Catppuccin **Bevy** theme wrapper
@@ -49,6 +51,24 @@ impl Default for CatppuccinTheme {
 //         impl_colour_method!($($y),+);
 //     );
 // }
+
+#[derive(EnumIter, Debug)]
+pub enum DisplayColour {
+    Rosewater,
+    Flamingo,
+    Pink,
+    Mauve,
+    Red,
+    Maroon,
+    Peach,
+    Yellow,
+    Green,
+    Teal,
+    Sky,
+    Sapphire,
+    Blue,
+    Lavender,
+}
 
 // macro to implement all colour getters on `CatppuccinTheme` itself
 macro_rules! impl_colour_getters {
@@ -114,6 +134,25 @@ impl CatppuccinTheme {
             self.flavour.lavender(),
         ]
         .into_iter()
+    }
+
+    pub fn get_display_colour(&self, display_colour: &DisplayColour) -> Colour {
+        match display_colour {
+            DisplayColour::Rosewater => self.flavour.rosewater(),
+            DisplayColour::Flamingo => self.flavour.flamingo(),
+            DisplayColour::Pink => self.flavour.pink(),
+            DisplayColour::Mauve => self.flavour.mauve(),
+            DisplayColour::Red => self.flavour.red(),
+            DisplayColour::Maroon => self.flavour.maroon(),
+            DisplayColour::Peach => self.flavour.peach(),
+            DisplayColour::Yellow => self.flavour.yellow(),
+            DisplayColour::Green => self.flavour.green(),
+            DisplayColour::Teal => self.flavour.teal(),
+            DisplayColour::Sky => self.flavour.sky(),
+            DisplayColour::Sapphire => self.flavour.sapphire(),
+            DisplayColour::Blue => self.flavour.blue(),
+            DisplayColour::Lavender => self.flavour.lavender(),
+        }
     }
 }
 
@@ -268,43 +307,43 @@ impl CatppuccinThemeWidgetsExt for Widgets {
         Self {
             noninteractive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), /* separators, indentation lines */
-                fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), /* normal text color */
-                rounding:     Rounding::same(5.0),
-                expansion:    0.0,
+                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), /* separators, indentation lines */
+                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), /* normal text color */
+                rounding: Rounding::same(5.0),
+                expansion: 0.0,
             },
             inactive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke:    Default::default(), // default = 0 width stroke
-                fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), /* button text */
-                rounding:     Rounding::same(5.0),
-                expansion:    0.0,
+                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke: Default::default(), // default = 0 width stroke
+                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), /* button text */
+                rounding: Rounding::same(5.0),
+                expansion: 0.0,
             },
             hovered: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
-                bg_fill:      Color32::from_catppuccin_colour(flavour.surface2()),
-                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), /* e.g. hover over window edge or button */
-                fg_stroke:    Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding:     Rounding::same(7.0),
-                expansion:    2.0,
+                bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
+                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), /* e.g. hover over window edge or button */
+                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding: Rounding::same(7.0),
+                expansion: 2.0,
             },
             active: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                fg_stroke:    Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                rounding:     Rounding::same(7.0),
-                expansion:    2.0,
+                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                fg_stroke: Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                rounding: Rounding::same(7.0),
+                expansion: 2.0,
             },
             open: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
-                fg_stroke:    Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding:     Rounding::same(5.0),
-                expansion:    0.0,
+                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
+                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding: Rounding::same(5.0),
+                expansion: 0.0,
             },
         }
     }
@@ -314,7 +353,7 @@ impl CatppuccinThemeSelectionExt for Selection {
     fn catppuccin_flavour(flavour: Flavour) -> Selection {
         Self {
             bg_fill: Color32::from_catppuccin_colour(flavour.lavender()),
-            stroke:  Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
+            stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
         }
     }
 }
@@ -351,7 +390,7 @@ impl Plugin for ThemePlugin {
                     change_theme,
                     handle_clear_color,
                     handle_infinite_grid,
-                    // handle_variables,
+                    handle_variables,
                     // handle_factors,
                     // handle_lines,
                     handle_robots,
@@ -387,7 +426,7 @@ fn init_window_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
 fn change_theme(
     mut windows: Query<&mut Window>,
     mut theme_event_reader: EventReader<ThemeEvent>,
-    mut catppuccin_theme: ResMut<CatppuccinTheme>,
+    mut theme: ResMut<CatppuccinTheme>,
     mut theme_toggled_event: EventWriter<ThemeChangedEvent>,
     mut contexts: EguiContexts,
 ) {
@@ -397,15 +436,12 @@ fn change_theme(
             Flavour::Latte | Flavour::Frappe => WindowTheme::Light,
             Flavour::Macchiato | Flavour::Mocha => WindowTheme::Dark,
         };
-        info!(
-            "switching theme {:?} -> {:?}",
-            catppuccin_theme.flavour, new_flavour
-        );
+        info!("switching theme {:?} -> {:?}", theme.flavour, new_flavour);
         window.window_theme = Some(new_window_theme);
         contexts
             .ctx_mut()
             .style_mut(|style| style.visuals = Visuals::catppuccin_flavour(*new_flavour));
-        catppuccin_theme.flavour = *new_flavour;
+        theme.flavour = *new_flavour;
         theme_toggled_event.send(ThemeChangedEvent);
     }
 }
@@ -427,19 +463,19 @@ fn handle_clear_color(
 /// **Bevy** `Update` system to handle the infinite grid theme change
 /// Reads `ThemeChangedEvent` to know when to change the infinite grid theme
 fn handle_infinite_grid(
-    catppuccin_theme: Res<CatppuccinTheme>,
+    theme: Res<CatppuccinTheme>,
     mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut query_infinite_grid: Query<&mut InfiniteGridSettings>,
 ) {
-    let grid_colour = catppuccin_theme.grid_colour();
+    let grid_colour = theme.grid_colour();
     for _ in theme_changed_event.read() {
         if let Ok(mut settings) = query_infinite_grid.get_single_mut() {
             settings.major_line_color = grid_colour.with_a(0.5);
             settings.minor_line_color = grid_colour.with_a(0.25);
             settings.x_axis_color =
-                Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.red(), 0.1);
+                Color::from_catppuccin_colour_with_alpha(theme.flavour.red(), 0.1);
             settings.z_axis_color =
-                Color::from_catppuccin_colour_with_alpha(catppuccin_theme.flavour.blue(), 0.1);
+                Color::from_catppuccin_colour_with_alpha(theme.flavour.blue(), 0.1);
         }
     }
 }
@@ -521,19 +557,22 @@ fn handle_infinite_grid(
 //     }
 // }
 
-/// **Bevy** `Update` system to handle theme change for Robots
-/// Reads `ThemeChangedEvent` to know when to change the robot colour
+/// **Bevy** [`Update`] system to handle theme change for Robots
+/// Reads [`ThemeChangedEvent`] to know when to change the robot colour
 fn handle_robots(
-    catppuccin_theme: Res<CatppuccinTheme>,
+    theme: Res<CatppuccinTheme>,
     mut theme_changed_event: EventReader<ThemeChangedEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query_robot: Query<&mut Handle<StandardMaterial>, With<planner::RobotState>>,
+    mut query_robot: Query<
+        (&mut Handle<StandardMaterial>, &ColorAssociation),
+        With<planner::RobotState>,
+    >,
 ) {
     for _ in theme_changed_event.read() {
-        for handle in query_robot.iter_mut() {
+        for (handle, color_association) in query_robot.iter_mut() {
             if let Some(material) = materials.get_mut(handle.clone()) {
                 material.base_color = Color::from_catppuccin_colour_with_alpha(
-                    catppuccin_theme.flavour.green(),
+                    theme.get_display_colour(&color_association.name),
                     0.75,
                 );
             }
@@ -557,6 +596,35 @@ fn handle_waypoints(
                     catppuccin_theme.flavour.maroon(),
                     0.75,
                 );
+            }
+        }
+    }
+}
+
+/// **Bevy** [`Update`] system to handle the theme change for variables
+/// Reads [`ThemeChangedEvent`] to know when to change the variable colour
+/// Queries all [`StandardMaterial`] handles with [`VariableVisualiser`] and [`RobotTracker`] components
+/// The [`RobotTracker`] component is used to query for the robot's [`ColorAssociation`] to get the correct colour
+fn handle_variables(
+    theme: Res<CatppuccinTheme>,
+    mut theme_changed_event: EventReader<ThemeChangedEvent>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut query_variable: Query<
+        (&mut Handle<StandardMaterial>, &RobotTracker),
+        With<planner::VariableVisualiser>,
+    >,
+    query_robot: Query<(Entity, &ColorAssociation), With<planner::RobotState>>,
+) {
+    for _ in theme_changed_event.read() {
+        for (handle, robot_tracker) in query_variable.iter_mut() {
+            if let Some(material) = materials.get_mut(handle.clone()) {
+                // query to get the robot's `ColorAssociation`
+                if let Ok((_, color_association)) = query_robot.get(robot_tracker.robot_id) {
+                    material.base_color = Color::from_catppuccin_colour_with_alpha(
+                        theme.get_display_colour(&color_association.name),
+                        0.75,
+                    );
+                }
             }
         }
     }

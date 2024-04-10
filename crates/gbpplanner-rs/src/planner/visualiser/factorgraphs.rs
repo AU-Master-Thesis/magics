@@ -13,7 +13,7 @@ use crate::{
         RobotState,
     },
     pretty_print_title,
-    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
+    theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
     ui::DrawSettingsEvent,
 };
 
@@ -130,6 +130,7 @@ fn create_factorgraph_visualizer(
     query: Query<(Entity, &FactorGraph, &ColorAssociation), With<RobotState>>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
+    theme: Res<CatppuccinTheme>,
 ) {
     for SpawnRobotEvent(robot_id) in spawn_robot_event.read() {
         let Some((_, factorgraph, color_association)) =
@@ -163,7 +164,9 @@ fn create_factorgraph_visualizer(
                     mesh: scene_assets.meshes.variable.clone(),
                     // material: scene_assets.materials.variable.clone(),
                     material: matierals.add(StandardMaterial {
-                        base_color: color_association.color,
+                        base_color: Color::from_catppuccin_colour(
+                            theme.get_display_colour(&color_association.name),
+                        ),
                         ..Default::default()
                     }),
                     transform: Transform::from_translation(transform),
@@ -258,7 +261,7 @@ fn draw_lines_between_variables(
     mut gizmos: Gizmos,
     query_variables: Query<(&RobotTracker, &Transform), With<VariableVisualiser>>,
     query_factorgraphs: Query<(Entity, &ColorAssociation), With<FactorGraph>>,
-    catppuccin_theme: Res<CatppuccinTheme>,
+    theme: Res<CatppuccinTheme>,
 ) {
     // let color = Color::from_catppuccin_colour(catppuccin_theme.text());
 
@@ -275,7 +278,11 @@ fn draw_lines_between_variables(
         for window in positions.windows(2) {
             let start = window[0];
             let end = window[1];
-            gizmos.line(start, end, color_association.color);
+            gizmos.line(
+                start,
+                end,
+                Color::from_catppuccin_colour(theme.get_display_colour(&color_association.name)),
+            );
         }
     }
 }

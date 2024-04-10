@@ -6,6 +6,7 @@ use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use itertools::Itertools;
 use rand::{seq::IteratorRandom, thread_rng, Rng};
+use strum::IntoEnumIterator;
 use typed_floats::StrictlyPositiveFinite;
 
 use super::{
@@ -19,7 +20,7 @@ use crate::{
         Config, FormationGroup,
     },
     planner::robot::RobotBundle,
-    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
 
 pub struct SpawnerPlugin;
@@ -52,7 +53,7 @@ fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
 #[derive(Event)]
 pub struct CreateWaypointEvent {
     pub for_robot: RobotId,
-    pub position:  Vec2,
+    pub position: Vec2,
 }
 
 #[derive(Event)]
@@ -296,7 +297,7 @@ fn spawn_formation(
             let robot_id = entity.id();
             create_waypoint_event.send_batch(waypoints.iter().map(|p| CreateWaypointEvent {
                 for_robot: robot_id,
-                position:  *p,
+                position: *p,
             }));
 
             let mut waypoints_with_speed = waypoints
@@ -339,13 +340,14 @@ fn spawn_formation(
             };
 
             // TODO: Make this depend on random seed
-            let random_color = theme.into_display_iter().choose(&mut thread_rng()).expect(
-                "Choosing random colour from an iterator that is hard-coded with values should be \
-                 ok.",
-            );
+            // let random_color = theme.into_display_iter().choose(&mut thread_rng()).expect(
+            //     "Choosing random colour from an iterator that is hard-coded with values should be \
+            //      ok.",
+            // );
+            let random_color = DisplayColour::iter().choose(&mut thread_rng()).unwrap();
 
             let material = materials.add(StandardMaterial {
-                base_color: Color::from_catppuccin_colour(random_color),
+                base_color: Color::from_catppuccin_colour(theme.get_display_colour(&random_color)),
                 ..Default::default()
             });
 
@@ -370,9 +372,7 @@ fn spawn_formation(
                 pbrbundle,
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickEvent>(),
-                ColorAssociation {
-                    color: Color::from_catppuccin_colour(random_color),
-                },
+                ColorAssociation { name: random_color },
                 crate::environment::FollowCameraMe::new(0.0, 15.0, 0.0)
                     .with_up_direction(Direction3d::new(initial_direction).expect(
                         "Vector between initial position and first waypoint should be different \
@@ -428,7 +428,7 @@ impl From<ListenerInput<Pointer<Click>>> for RobotClickEvent {
 
 #[derive(Debug, Clone, Copy)]
 struct WorldDimensions {
-    width:  StrictlyPositiveFinite<f64>,
+    width: StrictlyPositiveFinite<f64>,
     height: StrictlyPositiveFinite<f64>,
 }
 
@@ -441,7 +441,7 @@ struct WorldDimensions {
 impl WorldDimensions {
     fn new(width: f64, height: f64) -> Self {
         Self {
-            width:  width.try_into().expect("width is not zero"),
+            width: width.try_into().expect("width is not zero"),
             height: height.try_into().expect("height is not zero"),
         }
     }

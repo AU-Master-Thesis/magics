@@ -34,7 +34,7 @@ impl Plugin for TracerVisualiserPlugin {
 }
 
 pub struct Trace {
-    color:       Color,
+    color: Color,
     ring_buffer: StaticRb<Vec3, MAX_TRACE_LENGTH>,
 }
 
@@ -64,6 +64,7 @@ fn track_initial_robot_positions(
     query: Query<(RobotId, &Transform, &ColorAssociation), With<RobotState>>,
     mut traces: ResMut<Traces>,
     mut spawn_robot_event: EventReader<SpawnRobotEvent>,
+    theme: Res<CatppuccinTheme>,
 ) {
     spawn_robot_event
         .read()
@@ -75,7 +76,9 @@ fn track_initial_robot_positions(
 
                 if other_robot_id == *robot_id {
                     let _ = traces.0.entry(*robot_id).or_insert(Trace {
-                        color: color_association.color,
+                        color: Color::from_catppuccin_colour(
+                            theme.get_display_colour(&color_association.name),
+                        ),
                         ring_buffer,
                     });
                 }
@@ -88,6 +91,7 @@ fn track_initial_robot_positions(
 fn track_robots(
     query: Query<(RobotId, &Transform, &ColorAssociation), (With<RobotState>, Changed<Transform>)>,
     mut traces: ResMut<Traces>,
+    theme: Res<CatppuccinTheme>,
 ) {
     debug!("sampling robot positions");
 
@@ -96,7 +100,9 @@ fn track_robots(
             .0
             .entry(robot_id)
             .or_insert(Trace {
-                color:       color_association.color,
+                color: Color::from_catppuccin_colour(
+                    theme.get_display_colour(&color_association.name),
+                ),
                 ring_buffer: StaticRb::default(),
             })
             .ring_buffer

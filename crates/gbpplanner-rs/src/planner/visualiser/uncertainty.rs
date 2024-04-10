@@ -3,7 +3,11 @@ use bevy::prelude::*;
 
 // use gbp_linalg::pretty_print_matrix;
 use super::{super::FactorGraph, RobotTracker, Z_FIGHTING_OFFSET};
-use crate::{asset_loader::SceneAssets, config::Config, theme::ColorAssociation};
+use crate::{
+    asset_loader::SceneAssets,
+    config::Config,
+    theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
+};
 
 /// Plugin that adds the functionality to visualise the position uncertainty of
 /// each variable in a factorgraph.
@@ -61,6 +65,7 @@ fn init_uncertainty(
     query: Query<(Entity, &FactorGraph, &ColorAssociation), Without<HasUncertaintyVisualiser>>,
     scene_assets: Res<SceneAssets>,
     config: Res<Config>,
+    theme: Res<CatppuccinTheme>,
 ) {
     query
         .iter()
@@ -143,13 +148,10 @@ fn init_uncertainty(
                 let material = if attenable {
                     // scene_assets.materials.uncertainty.clone()
                     materials.add(StandardMaterial {
-                        // base_color: color_association.color.with_a(0.2),
-                        base_color: Color::Rgba {
-                            red:   color_association.color.r(),
-                            green: color_association.color.g(),
-                            blue:  color_association.color.b(),
-                            alpha: 0.2,
-                        },
+                        base_color: Color::from_catppuccin_colour_with_alpha(
+                            theme.get_display_colour(&color_association.name),
+                            0.2,
+                        ),
                         ..Default::default()
                     })
                 } else {
@@ -201,6 +203,7 @@ fn update_uncertainty(
     mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
+    theme: Res<CatppuccinTheme>,
 ) {
     // Update the `RobotTracker` components
     for (tracker, mut transform, mut mesh, mut material) in tracker_query.iter_mut() {
@@ -260,13 +263,10 @@ fn update_uncertainty(
                 *material = if attenable {
                     // scene_assets.materials.uncertainty.clone()
                     materials.add(StandardMaterial {
-                        // base_color: color_association.color.with_a(0.2),
-                        base_color: Color::Rgba {
-                            red:   color_association.color.r(),
-                            green: color_association.color.g(),
-                            blue:  color_association.color.b(),
-                            alpha: 0.2,
-                        },
+                        base_color: Color::from_catppuccin_colour_with_alpha(
+                            theme.get_display_colour(&color_association.name),
+                            0.2,
+                        ),
                         ..Default::default()
                     })
                 } else {
