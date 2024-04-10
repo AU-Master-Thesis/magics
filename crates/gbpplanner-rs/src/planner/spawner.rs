@@ -51,7 +51,7 @@ fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
 #[derive(Event)]
 pub struct CreateWaypointEvent {
     pub for_robot: RobotId,
-    pub position: Vec2,
+    pub position:  Vec2,
 }
 
 #[derive(Event)]
@@ -91,8 +91,8 @@ pub struct DeleteWaypointEvent(pub Entity);
 //     // q_windows: Query<&Window, With<PrimaryWindow>>,
 // ) {
 //     for MouseButtonInput { button, state, .. } in mousebutton_event.read() {
-//         let (ButtonState::Pressed, MouseButton::Left) = (state, button) else {
-//             continue;
+//         let (ButtonState::Pressed, MouseButton::Left) = (state, button) else
+// {             continue;
 //         };
 
 //         error!("pressed left click");
@@ -105,8 +105,8 @@ pub struct DeleteWaypointEvent(pub Entity);
 //             continue;
 //         };
 
-//         // let Some(cursor_position) = q_windows.single().cursor_position() else {
-//         //     continue;
+//         // let Some(cursor_position) = q_windows.single().cursor_position()
+// else {         //     continue;
 //         // };
 
 //         create_waypoint_event.send(CreateWaypointEvent {
@@ -116,8 +116,8 @@ pub struct DeleteWaypointEvent(pub Entity);
 
 //         // waypoints
 //         //     .0
-//         //     .push_front(Vec4::new(cursor_position.x, cursor_position.y, 0.0, 0.0));
-//         //
+//         //     .push_front(Vec4::new(cursor_position.x, cursor_position.y,
+// 0.0, 0.0));         //
 //         error!("placed waypoint");
 //         selected_robot.deselect();
 //     }
@@ -126,12 +126,13 @@ pub struct DeleteWaypointEvent(pub Entity);
 /// Every [`ObstacleFactor`] has a static reference to the obstacle image.
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
 // static OBSTACLE_IMAGE: OnceLock<Image> =
-//     OnceLock::new().get_or_init(|| include_bytes!("./assets/imgs/junction_sdf.png"));
+//     OnceLock::new().get_or_init(||
+// include_bytes!("./assets/imgs/junction_sdf.png"));
 
 /// Component attached to an entity that spawns formations.
 #[derive(Component)]
 pub struct FormationSpawnerCountdown {
-    pub timer: Timer,
+    pub timer:                 Timer,
     pub formation_group_index: usize,
 }
 
@@ -292,7 +293,7 @@ fn spawn_formation(
             let robot_id = entity.id();
             create_waypoint_event.send_batch(waypoints.iter().map(|p| CreateWaypointEvent {
                 for_robot: robot_id,
-                position: *p,
+                position:  *p,
             }));
 
             let mut waypoints_with_speed = waypoints
@@ -410,7 +411,7 @@ impl From<ListenerInput<Pointer<Click>>> for RobotClickEvent {
 
 #[derive(Debug, Clone, Copy)]
 struct WorldDimensions {
-    width: StrictlyPositiveFinite<f64>,
+    width:  StrictlyPositiveFinite<f64>,
     height: StrictlyPositiveFinite<f64>,
 }
 
@@ -423,7 +424,7 @@ struct WorldDimensions {
 impl WorldDimensions {
     fn new(width: f64, height: f64) -> Self {
         Self {
-            width: width.try_into().expect("width is not zero"),
+            width:  width.try_into().expect("width is not zero"),
             height: height.try_into().expect("height is not zero"),
         }
     }

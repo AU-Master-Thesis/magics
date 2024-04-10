@@ -1,20 +1,22 @@
-use std::num::{NonZeroU64, NonZeroUsize};
-use std::ops::Deref;
-use std::time::Duration;
+use std::{
+    num::{NonZeroU64, NonZeroUsize},
+    ops::Deref,
+    time::Duration,
+};
 
-use bevy::prelude::*;
-use bevy::time::common_conditions::*;
-
-use bevy::diagnostic::{Diagnostic, DiagnosticPath, Diagnostics, RegisterDiagnostic};
+use bevy::{
+    diagnostic::{Diagnostic, DiagnosticPath, Diagnostics, RegisterDiagnostic},
+    prelude::*,
+    time::common_conditions::*,
+};
 use typed_floats::StrictlyPositiveFinite;
+use units::sample_rate::SampleRate;
 
 use crate::planner::{FactorGraph, RobotState};
 
-use units::sample_rate::SampleRate;
-
 // /// Newtype representing a sample rate in seconds.
-// /// The newtype wraps a `std::time::Duration` to ensure the invariant that the Duration is
-// /// never zero time.
+// /// The newtype wraps a `std::time::Duration` to ensure the invariant that
+// the Duration is /// never zero time.
 // pub struct SampleRate(Duration);
 
 // impl SampleRate {
@@ -36,8 +38,8 @@ use units::sample_rate::SampleRate;
 //         Self(Duration::from_millis(delay.into()))
 //     }
 
-//     /// Takes ownership of `Self` and returns the inner `std::time::Duration` type
-//     #[inline]
+//     /// Takes ownership of `Self` and returns the inner `std::time::Duration`
+// type     #[inline]
 //     pub fn as_duration(self) -> Duration {
 //         self.0
 //     }
@@ -57,17 +59,17 @@ pub struct RobotDiagnosticsPlugin {
 }
 
 pub struct RobotDiagnosticsConfig {
-    pub count_robots_sample_rate: Option<SampleRate>,
+    pub count_robots_sample_rate:    Option<SampleRate>,
     pub count_variables_and_factors: Option<SampleRate>,
-    pub messages_sent_sample_rate: Option<SampleRate>,
+    pub messages_sent_sample_rate:   Option<SampleRate>,
 }
 
 impl Default for RobotDiagnosticsConfig {
     fn default() -> Self {
         Self {
-            count_robots_sample_rate: None,
+            count_robots_sample_rate:    None,
             count_variables_and_factors: Some(SampleRate::from_hz(2.try_into().unwrap())),
-            messages_sent_sample_rate: Some(SampleRate::from_hz(2.try_into().unwrap())),
+            messages_sent_sample_rate:   Some(SampleRate::from_hz(2.try_into().unwrap())),
         }
     }
 }
@@ -135,21 +137,24 @@ impl Plugin for RobotDiagnosticsPlugin {
         //     (
         //         Self::count_robots,
         //         Self::count_variables_and_factors
-        //             .run_if(repeating_after_delay(self.config.count_variables_and_factors.)),
-        //             .run_if(repeating_after_delay(Duration::from_millis(500))),
+        //
+        // .run_if(repeating_after_delay(self.config.
+        // count_variables_and_factors.)),
+        // .run_if(repeating_after_delay(Duration::from_millis(500))),
         //         Self::count_messages_sent
-        //             .run_if(repeating_after_delay(Duration::from_millis(500))),
+        //
+        // .run_if(repeating_after_delay(Duration::from_millis(500))),
         //     ),
         // );
     }
 }
 
 impl RobotDiagnosticsPlugin {
-    pub const ROBOT_COUNT: DiagnosticPath = DiagnosticPath::const_new("robot_count");
-    pub const VARIABLE_COUNT: DiagnosticPath = DiagnosticPath::const_new("variable_count");
     pub const FACTOR_COUNT: DiagnosticPath = DiagnosticPath::const_new("factor_count");
     pub const MESSAGES_SENT_COUNT: DiagnosticPath =
         DiagnosticPath::const_new("messages_sent_count");
+    pub const ROBOT_COUNT: DiagnosticPath = DiagnosticPath::const_new("robot_count");
+    pub const VARIABLE_COUNT: DiagnosticPath = DiagnosticPath::const_new("variable_count");
 
     fn count_robots(mut diagnostics: Diagnostics, query: Query<(), With<RobotState>>) {
         diagnostics.add_measurement(&Self::ROBOT_COUNT, || query.iter().count() as f64);

@@ -4,8 +4,8 @@
 use std::{num::NonZeroU64, time::Duration};
 
 /// Newtype representing a sample rate
-/// The newtype wraps a `std::time::Duration` to ensure the invariant that the Duration is
-/// never zero time.
+/// The newtype wraps a `std::time::Duration` to ensure the invariant that the
+/// Duration is never zero time.
 #[derive(Debug, Clone, Copy)]
 pub struct SampleRate(Duration);
 
@@ -14,7 +14,8 @@ pub struct SampleRate(Duration);
 pub enum SampleRateError {
     /// A `SampleRate` cannot be negative
     NegativeTime(f64),
-    /// A `SampleRate` cannot be instantaneous, i.e. the delay it represents takes 0 time
+    /// A `SampleRate` cannot be instantaneous, i.e. the delay it represents
+    /// takes 0 time
     Instantaneous,
 }
 
@@ -26,7 +27,11 @@ impl std::fmt::Display for SampleRateError {
                 "A SampleRate cannot be negative, provided value is {}",
                 t
             ),
-            SampleRateError::Instantaneous => write!(f, "An instantaneous SampleRate is not allowed. I.e. a Duration of 0.0 seconds is invalid"),
+            SampleRateError::Instantaneous => write!(
+                f,
+                "An instantaneous SampleRate is not allowed. I.e. a Duration of 0.0 seconds is \
+                 invalid"
+            ),
         }
     }
 }
@@ -38,9 +43,9 @@ pub type Result<T> = std::result::Result<T, SampleRateError>;
 
 impl SampleRate {
     /// Create a SampleRate from a number of seconds.
-    /// Returns `Err(SampleRateError::NegativeTime)` if the provided seconds is negative.
-    /// Returns `Err(SampleRateError::Instantaneous)` if the provided seconds is 0.0
-    /// Returns `Ok` otherwise.
+    /// Returns `Err(SampleRateError::NegativeTime)` if the provided seconds is
+    /// negative. Returns `Err(SampleRateError::Instantaneous)` if the
+    /// provided seconds is 0.0 Returns `Ok` otherwise.
     pub fn from_secs(secs: f64) -> Result<Self> {
         if secs.is_sign_negative() {
             Err(SampleRateError::NegativeTime(secs))

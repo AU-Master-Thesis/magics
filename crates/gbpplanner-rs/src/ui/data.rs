@@ -5,9 +5,8 @@ use egui_graphs::{DefaultEdgeShape, DefaultNodeShape, Graph, GraphView};
 use egui_plot::{Line, Plot, PlotPoints};
 use petgraph::stable_graph::StableGraph;
 
-use crate::config::Config;
-
 use super::{OccupiedScreenSpace, UiState};
+use crate::config::Config;
 
 /// **Bevy** `Plugin` to add the data panel to the UI
 pub struct DataPanelPlugin;

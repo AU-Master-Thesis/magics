@@ -180,7 +180,7 @@ pub struct SpawnRobotEvent(pub RobotId);
 
 #[derive(Event)]
 pub struct RobotReachedWaypointEvent {
-    pub robot_id: RobotId,
+    pub robot_id:       RobotId,
     pub waypoint_index: usize,
     // pub waypoint_id: Entity,
 }
@@ -265,10 +265,10 @@ pub struct RobotState {
     pub ids_of_robots_within_comms_range: BTreeSet<RobotId>,
     /// List of robot ids that are currently connected via inter-robot factors
     /// to this robot called `connected_r_ids_` in **gbpplanner**.
-    pub ids_of_robots_connected_with: BTreeSet<RobotId>,
+    pub ids_of_robots_connected_with:     BTreeSet<RobotId>,
     // pub ids_of_robots_connected_with: Vec<RobotId>,
     /// Flag for whether this factorgraph/robot communicates with other robots
-    pub interrobot_comms_active: bool,
+    pub interrobot_comms_active:          bool,
 }
 
 impl RobotState {
@@ -276,8 +276,8 @@ impl RobotState {
     pub fn new() -> Self {
         Self {
             ids_of_robots_within_comms_range: BTreeSet::new(),
-            ids_of_robots_connected_with: BTreeSet::new(),
-            interrobot_comms_active: true,
+            ids_of_robots_connected_with:     BTreeSet::new(),
+            interrobot_comms_active:          true,
         }
     }
 }
@@ -291,14 +291,14 @@ pub struct RobotBundle {
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
-    pub radius: Radius,
+    pub radius:      Radius,
     /// The current state of the robot
-    pub state: RobotState,
+    pub state:       RobotState,
     // pub transform: Transform,
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A VecDeque is used to allow for efficient pop_front operations, and
     /// push_back operations.
-    pub waypoints: Waypoints,
+    pub waypoints:   Waypoints,
     // NOTE: Using the **Bevy** entity id as the robot id
     // pub id: RobotId,
     // NOTE: These are accessible as **Bevy** resources

@@ -18,7 +18,7 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct VariablePrior {
-    eta: Vector<Float>,
+    eta:    Vector<Float>,
     lambda: Matrix<Float>,
 }
 
@@ -30,14 +30,14 @@ impl VariablePrior {
 
 #[derive(Debug, Clone)]
 pub struct VariableBelief {
-    pub eta: Vector<Float>,
+    pub eta:    Vector<Float>,
     pub lambda: Matrix<Float>,
-    pub mu: Vector<Float>,
-    pub sigma: Matrix<Float>,
+    pub mu:     Vector<Float>,
+    pub sigma:  Matrix<Float>,
     /// Flag to indicate if the variable's covariance is finite, i.e. it does
     /// not contain NaNs or Infs In gbpplanner it is used to control if a
     /// variable can be rendered.
-    valid: bool,
+    valid:      bool,
 }
 
 impl VariableBelief {
@@ -68,8 +68,8 @@ impl From<VariableBelief> for Message {
 #[derive(Debug)]
 pub struct Variable {
     /// Degrees of freedom. For 2D case n_dofs_ = 4 ([x,y,xdot,ydot])
-    pub dofs: usize,
-    pub prior: VariablePrior,
+    pub dofs:   usize,
+    pub prior:  VariablePrior,
     pub belief: VariableBelief,
 
     // pub eta_prior: Vector<Float>,

@@ -17,7 +17,6 @@ pub(crate) mod utils;
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
-use colored::Colorize;
 use std::path::PathBuf;
 
 use bevy::{
@@ -31,10 +30,11 @@ use bevy_notify::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
 use clap::Parser;
+use colored::Colorize;
 use config::Environment;
 use iyes_perf_ui::prelude::*;
-// use rand::{Rng, SeedableRng};
 
+// use rand::{Rng, SeedableRng};
 use crate::{
     asset_loader::AssetLoaderPlugin,
     config::{Config, FormationGroup},
@@ -83,7 +83,8 @@ struct Cli {
     #[arg(short, long)]
     debug: bool,
 
-    /// use default values for all configuration, simulation and environment settings
+    /// use default values for all configuration, simulation and environment
+    /// settings
     #[arg(long)]
     default: bool,
 }
@@ -286,7 +287,8 @@ fn main() -> anyhow::Result<()> {
     let mut app = App::new();
 
     if cfg!(target_arch = "wasm32") {
-        app.insert_resource(AssetMetaCheck::Never); // needed for wasm build to work
+        app.insert_resource(AssetMetaCheck::Never); // needed for wasm build to
+                                                    // work
     }
 
     app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))

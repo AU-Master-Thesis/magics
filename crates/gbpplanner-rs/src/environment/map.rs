@@ -88,21 +88,18 @@ fn flat_map(
     });
 
     // Spawn an entity with the mesh and material, and position it in 3D space
-    commands.spawn((
-        FlatMap,
-        PbrBundle {
-            mesh: scene_assets.meshes.plane.clone(),
-            material: material_handle,
-            visibility: if config.visualisation.draw.flat_map {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            },
-            transform: Transform::from_xyz(0.0, -0.1, 0.0)
-                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-            ..default()
+    commands.spawn((FlatMap, PbrBundle {
+        mesh: scene_assets.meshes.plane.clone(),
+        material: material_handle,
+        visibility: if config.visualisation.draw.flat_map {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
         },
-    ));
+        transform: Transform::from_xyz(0.0, -0.1, 0.0)
+            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        ..default()
+    }));
 }
 
 /// **Bevy** [`Update`] system
@@ -245,19 +242,16 @@ fn obstacles(
         ..default()
     });
 
-    commands.spawn((
-        HeightMap,
-        PbrBundle {
-            mesh: meshes.add(mesh),
-            material: material_handle,
-            visibility: if config.visualisation.draw.height_map {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            },
-            ..default()
+    commands.spawn((HeightMap, PbrBundle {
+        mesh: meshes.add(mesh),
+        material: material_handle,
+        visibility: if config.visualisation.draw.height_map {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
         },
-    ));
+        ..default()
+    }));
 }
 
 /// **Bevy** [`Component`] to represent the heightmap.

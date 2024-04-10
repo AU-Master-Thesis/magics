@@ -23,7 +23,7 @@ fn main() {
 
 #[derive(Resource)]
 struct WindowResolution {
-    width: f32,
+    width:  f32,
     height: f32,
 }
 
@@ -47,14 +47,14 @@ fn draw_cartesian_coordinate_system(mut gizmos: Gizmos, window_resolution: Res<W
 
 struct Line {
     start: Vec2,
-    end: Vec2,
+    end:   Vec2,
 }
 
 macro_rules! line {
     ($x1:expr, $y1:expr => $x2:expr, $y2:expr) => {
         Line {
             start: Vec2::new($x1, $y1),
-            end: Vec2::new($x2, $y2),
+            end:   Vec2::new($x2, $y2),
         }
     };
 }

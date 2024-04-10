@@ -4,7 +4,6 @@ use bevy::{
     app::AppExit, prelude::*, render::view::screenshot::ScreenshotManager, tasks::IoTaskPool,
     window::PrimaryWindow,
 };
-
 use bevy_notify::prelude::*;
 use glob::glob;
 use itertools::Itertools;
@@ -58,17 +57,13 @@ pub enum GeneralAction {
 
 impl std::fmt::Display for GeneralAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::ToggleTheme => "Toggle Theme",
-                Self::ExportGraph => "Export Graph",
-                Self::ScreenShot => "Take Screenshot",
-                Self::QuitApplication => "Quit Application",
-                Self::PausePlaySimulation => "Pause/Play Simulation",
-            }
-        )
+        write!(f, "{}", match self {
+            Self::ToggleTheme => "Toggle Theme",
+            Self::ExportGraph => "Export Graph",
+            Self::ScreenShot => "Take Screenshot",
+            Self::QuitApplication => "Quit Application",
+            Self::PausePlaySimulation => "Pause/Play Simulation",
+        })
     }
 }
 

@@ -171,7 +171,7 @@ macro_rules! line {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Waypoint {
-    pub shape: Shape,
+    pub shape:              Shape,
     pub placement_strategy: PlacementStrategy,
 }
 
@@ -192,14 +192,14 @@ pub struct Formation {
     /// If true then then a new formation instance will be spawned every
     /// [`Self::delay`]. If false, a single formation will be spawned after
     /// [`Self::delay`]
-    pub repeat: bool,
+    pub repeat:    bool,
     /// The delay from the start of the simulation after which the formation
     /// should spawn. If [`Self::repeat`] is true, then `delay` is
     /// interpreted as a timeout between every formation spawn.
     // pub delay:     f32,
     pub delay: Duration,
     /// Number of robots to spawn
-    pub robots: NonZeroUsize,
+    pub robots:    NonZeroUsize,
     /// A list of waypoints.
     /// `NOTE` The first waypoint is assumed to be the spawning point.
     /// < 2 waypoints is an invalid state
@@ -211,21 +211,21 @@ pub struct Formation {
 impl Default for Formation {
     fn default() -> Self {
         Self {
-            repeat: false,
-            delay: Duration::from_secs(5),
-            robots: NonZeroUsize::new(1).expect("1 > 0"),
+            repeat:    false,
+            delay:     Duration::from_secs(5),
+            robots:    NonZeroUsize::new(1).expect("1 > 0"),
             waypoints: vec![
                 Waypoint {
                     placement_strategy: PlacementStrategy::Random,
-                    shape: line![(0.4, 0.0), (0.6, 0.0)],
+                    shape:              line![(0.4, 0.0), (0.6, 0.0)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
-                    shape: line![(0.4, 0.4), (0.6, 0.6)],
+                    shape:              line![(0.4, 0.4), (0.6, 0.6)],
                 },
                 Waypoint {
                     placement_strategy: PlacementStrategy::Map,
-                    shape: line![(0.0, 0.4), (0.0, 0.6)],
+                    shape:              line![(0.0, 0.4), (0.0, 0.6)],
                 },
             ]
             .try_into()
@@ -389,34 +389,34 @@ impl Default for FormationGroup {
             // formations: vec![Formation::default()],
             formations: vec![
                 Formation {
-                    repeat: true,
-                    delay: Duration::from_secs(4),
-                    robots: 1.try_into().expect("1 > 0"),
+                    repeat:    true,
+                    delay:     Duration::from_secs(4),
+                    robots:    1.try_into().expect("1 > 0"),
                     waypoints: vec![
                         Waypoint {
                             placement_strategy: PlacementStrategy::Equal,
-                            shape: line![(0.45, 0.0), (0.55, 0.0)],
+                            shape:              line![(0.45, 0.0), (0.55, 0.0)],
                         },
                         Waypoint {
                             placement_strategy: PlacementStrategy::Map,
-                            shape: line![(0.45, 1.25), (0.55, 1.25)],
+                            shape:              line![(0.45, 1.25), (0.55, 1.25)],
                         },
                     ]
                     .try_into()
                     .expect("there are 2 waypoints"),
                 },
                 Formation {
-                    repeat: true,
-                    delay: Duration::from_secs(4),
-                    robots: 1.try_into().expect("1 > 0"),
+                    repeat:    true,
+                    delay:     Duration::from_secs(4),
+                    robots:    1.try_into().expect("1 > 0"),
                     waypoints: vec![
                         Waypoint {
                             placement_strategy: PlacementStrategy::Equal,
-                            shape: line![(0.0, 0.45), (0.0, 0.55)],
+                            shape:              line![(0.0, 0.45), (0.0, 0.55)],
                         },
                         Waypoint {
                             placement_strategy: PlacementStrategy::Map,
-                            shape: line![(1.25, 0.45), (1.25, 0.55)],
+                            shape:              line![(1.25, 0.45), (1.25, 0.55)],
                         },
                     ]
                     .try_into()

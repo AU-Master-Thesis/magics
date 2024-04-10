@@ -45,9 +45,9 @@ impl Plugin for ControlsPanelPlugin {
 /// binding
 #[derive(Debug, Default, Resource)]
 pub struct ChangingBinding {
-    pub action: InputAction,
+    pub action:  InputAction,
     pub binding: usize,
-    cooldown: f32,
+    cooldown:    f32,
 }
 
 impl ChangingBinding {

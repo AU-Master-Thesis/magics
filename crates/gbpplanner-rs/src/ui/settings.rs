@@ -65,7 +65,7 @@ pub struct ExportGraphEvent;
 #[derive(Event, Debug, Clone)]
 pub struct DrawSettingsEvent {
     pub setting: DrawSetting,
-    pub draw: bool,
+    pub draw:    bool,
 }
 
 fn install_egui_image_loaders(mut egui_ctx: EguiContexts) {
@@ -133,7 +133,7 @@ fn ui_settings_exclusive(world: &mut World) {
 }
 
 struct TitleColors {
-    colors: [Colour; 5],
+    colors:  [Colour; 5],
     current: usize,
 }
 
@@ -308,7 +308,7 @@ fn ui_settings_panel(
                                     // );
                                     let event = DrawSettingsEvent {
                                         setting: setting_kind,
-                                        draw: *setting,
+                                        draw:    *setting,
                                     };
                                     world.send_event::<DrawSettingsEvent>(event);
                                 }
@@ -422,17 +422,24 @@ fn ui_settings_panel(
                         });
                         custom::fill_x(ui, |ui| {
                             if ui.button("Open").clicked() {
-                                // #[cfg(not(target_os = "wasm32-unknown-unknown"))]
-                                // let _ = open::that(&png_output_path).inspect_err(|e| {
+                                // #[cfg(not(target_os =
+                                // "wasm32-unknown-unknown"))]
+                                // let _ = open::that(&png_output_path).
+                                // inspect_err(|e| {
                                 //     // TODO: show a popup with the error
-                                //     // create a notification system, that can be send events with
+                                //     // create a notification system, that can
+                                // be send events with
                                 //     // notifications to show
 
-                                //     // let popup_id = ui.make_persistent_id("my_unique_id");
+                                //     // let popup_id =
+                                // ui.make_persistent_id("my_unique_id");
                                 //     // let above = egui::AboveOrBelow::Above;
-                                //     // egui::popup_above_or_below_widget(ui, popup_id,
-                                //     // widget_response, above_or_below, add_contents)
-                                //     error!("failed to open ./{:?}: {e}", png_output_path)
+                                //     // egui::popup_above_or_below_widget(ui,
+                                // popup_id,
+                                //     // widget_response, above_or_below,
+                                // add_contents)
+                                //     error!("failed to open ./{:?}: {e}",
+                                // png_output_path)
                                 // });
                             }
                         });

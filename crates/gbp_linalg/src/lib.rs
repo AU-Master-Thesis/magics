@@ -2,7 +2,8 @@
 
 pub mod pretty_print;
 
-/// `use gbp_linalg::prelude::*` to import all the common symbols from this crate
+/// `use gbp_linalg::prelude::*` to import all the common symbols from this
+/// crate
 pub mod prelude {
     pub use super::{
         pretty_print::*, Float, GbpFloat, Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm,

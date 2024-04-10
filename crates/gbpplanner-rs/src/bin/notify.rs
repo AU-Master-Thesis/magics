@@ -51,7 +51,7 @@ impl NotificationIdGenerator {
 #[derive(Resource, Default)]
 struct NotificationStore {
     notifications: VecDeque<Notification>,
-    id_generator: NotificationIdGenerator,
+    id_generator:  NotificationIdGenerator,
 }
 
 impl NotificationStore {
@@ -85,9 +85,9 @@ type NotificationId = usize;
 
 #[derive(Debug)]
 struct Notification {
-    id: NotificationId,
-    title: String,
-    body: String,
+    id:       NotificationId,
+    title:    String,
+    body:     String,
     category: NotificationCategory,
     duration: Duration,
 }
@@ -112,8 +112,8 @@ impl Notification {
 
 #[derive(Debug, Event, Clone)]
 pub struct CreateNotificationEvent {
-    title: String,
-    body: String,
+    title:    String,
+    body:     String,
     category: NotificationCategory,
     duration: Duration,
 }
@@ -222,7 +222,7 @@ pub enum NotificationRowPlacement {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NotificationPlacement {
-    row: NotificationRowPlacement,
+    row:    NotificationRowPlacement,
     column: NotificationColumnPlacement,
 }
 

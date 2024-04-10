@@ -11,9 +11,8 @@ use bevy::{
 use bevy_egui::egui;
 use egui_plot::{Line, Plot, PlotPoints};
 
-use crate::{config::Config, diagnostic::prelude::RobotDiagnosticsPlugin, SimulationState};
-
 use super::UiState;
+use crate::{config::Config, diagnostic::prelude::RobotDiagnosticsPlugin, SimulationState};
 
 pub struct MetricsPlugin {
     wait_duration: Duration,
@@ -66,8 +65,8 @@ impl Plugin for MetricsPlugin {
         }
 
         // Diagnostics must be initialized before measurements can be added.
-        // app.register_diagnostic(Diagnostic::new(SYSTEM_ITERATION_COUNT).with_suffix(" iterations"));
-        // app.add_systems(Update, Self::system_iteration_count);
+        // app.register_diagnostic(Diagnostic::new(SYSTEM_ITERATION_COUNT).with_suffix("
+        // iterations")); app.add_systems(Update, Self::system_iteration_count);
 
         // app.add_system(Startup, setup);
         app.add_systems(PostUpdate, Self::render);
@@ -144,7 +143,12 @@ impl MetricsPlugin {
                 }
 
                 ui.label(format!("{}", egui::special_emojis::GITHUB));
-                ui.allocate_space(ui.available_size()); // put this LAST in your panel/window code    ui.allocate_space(ui.available_size()); // put this LAST in your panel/window code
+                ui.allocate_space(ui.available_size()); // put this LAST in your
+                                                        // panel/window code
+                                                        // ui.allocate_space(ui.
+                                                        // available_size()); //
+                                                        // put this LAST in your
+                                                        // panel/window code
             });
 
         // occupied_screen_space.left = left_panel
