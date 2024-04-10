@@ -1,4 +1,6 @@
-# cargo-features = ["codegen-backend"]
+cargo-features = [
+  "codegen-backend",
+]
 
 [workspace]
 resolver = "2" # Important! wgpu/bevy needs this!
@@ -10,7 +12,8 @@ members = [
   "crates/gbp_multivariate_normal",
   # "crates/bevy_undo_redo",
   "crates/gbpplanner-rs",
-  "crates/bevy_notify", "crates/units",
+  "crates/bevy_notify",
+  "crates/units",
 ]
 
 [workspace.package]

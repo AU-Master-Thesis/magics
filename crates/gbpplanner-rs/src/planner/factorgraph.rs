@@ -35,12 +35,21 @@ pub(super) trait FactorGraphNode {
 
     fn messages_sent(&self) -> usize;
     fn messages_received(&self) -> usize;
+
+    fn reset_message_count(&mut self);
 }
 
 #[derive(Debug, Default, Clone, Copy)]
 pub(super) struct MessageCount {
     pub sent: usize,
     pub received: usize,
+}
+
+impl MessageCount {
+    pub fn reset(&mut self) {
+        self.sent = 0;
+        self.received = 0;
+    }
 }
 
 impl std::ops::Add for MessageCount {
@@ -389,6 +398,13 @@ impl FactorGraphNode for Node {
             NodeKind::Factor(ref factor) => factor.messages_received(),
             NodeKind::Variable(ref variable) => variable.messages_received(),
         }
+    }
+
+    fn reset_message_count(&mut self) {
+        match self.kind {
+            NodeKind::Factor(ref mut factor) => factor.reset_message_count(),
+            NodeKind::Variable(ref mut variable) => variable.reset_message_count(),
+        };
     }
 }
 
@@ -1179,10 +1195,15 @@ impl FactorGraph {
     }
 
     #[must_use]
-    pub fn messages_sent(&self) -> usize {
+    pub fn messages_sent(&mut self) -> usize {
         self.graph
-            .node_weights()
-            .map(|node| node.messages_sent())
+            .node_weights_mut()
+            .map(|node| {
+                let messages_sent = node.messages_sent();
+
+                node.reset_message_count();
+                messages_sent
+            })
             .sum()
     }
 }

@@ -79,25 +79,25 @@
           ];
           buildInputs =
             [
-              (rust-bin.stable.latest.default.override
-                {
-                  extensions = rust-extensions;
-                  targets = rust-targets;
-                })
+              # (rust-bin.stable.latest.default.override
+              #   {
+              #     extensions = rust-extensions;
+              #     targets = rust-targets;
+              #   })
               # (rust-bin.beta.latest.default.override {
               #     extensions = ["rust-src" "rust-analyzer"];
               # })
-              # (
-              #   rust-bin.selectLatestNightlyWith (toolchain:
-              #     toolchain.default.override {
-              #       extensions = [
-              #         "rust-src"
-              #         "rust-analyzer"
-              #         "rustc-codegen-cranelift-preview"
-              #       ];
-              #       targets = ["wasm32-unknown-unknown"];
-              #     })
-              # )
+              (
+                rust-bin.selectLatestNightlyWith (toolchain:
+                  toolchain.default.override {
+                    extensions = [
+                      "rust-src"
+                      "rust-analyzer"
+                      "rustc-codegen-cranelift-preview"
+                    ];
+                    targets = ["wasm32-unknown-unknown"];
+                  })
+              )
 
               nodejs
               just

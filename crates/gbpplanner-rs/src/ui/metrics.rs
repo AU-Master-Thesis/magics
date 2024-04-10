@@ -134,7 +134,12 @@ impl MetricsPlugin {
                         .collect();
                     let line = Line::new(points);
 
-                    let plot = Plot::new("my_plot").view_aspect(2.0).show_grid(true);
+                    let plot = Plot::new("my_plot")
+                        .view_aspect(2.0)
+                        .show_grid(true)
+                        .x_axis_label("samples recorded")
+                        .y_axis_label("messages sent");
+
                     plot.show(ui, |plot_ui| plot_ui.line(line));
                 }
 

@@ -960,4 +960,9 @@ impl FactorGraphNode for Factor {
     fn messages_received(&self) -> usize {
         self.message_count.received
     }
+
+    #[inline(always)]
+    fn reset_message_count(&mut self) {
+        self.message_count.reset();
+    }
 }

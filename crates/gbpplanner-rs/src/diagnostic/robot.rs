@@ -176,13 +176,17 @@ impl RobotDiagnosticsPlugin {
 
     fn count_messages_sent(
         mut diagnostics: Diagnostics,
-        query: Query<&FactorGraph, With<RobotState>>,
+        mut query: Query<&mut FactorGraph, With<RobotState>>,
+        mut messages_sent_in_total: Local<usize>,
     ) {
         diagnostics.add_measurement(&Self::MESSAGES_SENT_COUNT, || {
-            query
-                .iter()
-                .map(|factorgraph| factorgraph.messages_sent())
-                .sum::<usize>() as f64
+            let messages_sent = query
+                .iter_mut()
+                .map(|mut factorgraph| factorgraph.messages_sent())
+                .sum::<usize>();
+
+            *messages_sent_in_total += messages_sent;
+            *messages_sent_in_total as f64
         })
     }
 }
