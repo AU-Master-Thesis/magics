@@ -1,7 +1,8 @@
 mod controls;
 mod custom;
-// mod data;
+mod data;
 mod decoration;
+mod metrics;
 // mod selected_entity;
 mod settings;
 
@@ -16,8 +17,7 @@ pub use settings::{DrawSettingsEvent, ExportGraphEvent};
 use strum_macros::EnumIter;
 
 use self::{
-    controls::ControlsPanelPlugin,
-    // data::DataPanelPlugin,
+    controls::ControlsPanelPlugin, data::DataPanelPlugin, metrics::MetricsPlugin,
     settings::SettingsPanelPlugin,
 };
 use crate::{theme::CatppuccinThemeVisualsExt, SimulationState};
@@ -33,19 +33,28 @@ use crate::{theme::CatppuccinThemeVisualsExt, SimulationState};
 
 pub struct EguiInterfacePlugin;
 
+pub struct UiPlugins;
+
+impl PluginGroup for UiPlugins {
+    fn build(self) -> bevy::app::PluginGroupBuilder {
+        bevy::app::PluginGroupBuilder::start::<Self>()
+            .add(ControlsPanelPlugin)
+            .add(SettingsPanelPlugin)
+            .add(DataPanelPlugin)
+            .add(MetricsPlugin::default())
+    }
+}
+
 impl Plugin for EguiInterfacePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ActionBlock>()
             .init_resource::<OccupiedScreenSpace>()
             .init_resource::<UiState>()
             // .init_resource::<PreviousUiState>()
-            .add_plugins(( ControlsPanelPlugin,
-                
-                  SettingsPanelPlugin,
-                
-                  // DataPanelPlugin
-              
-              ))
+            .add_plugins(( ControlsPanelPlugin, SettingsPanelPlugin, DataPanelPlugin,
+
+
+                MetricsPlugin::default()            ))
             .add_systems(OnEnter(SimulationState::Loading), load_fonts)
             .add_systems(Startup, configure_visuals)
             .add_systems(Update, action_block)
@@ -112,9 +121,9 @@ impl ActionBlock {
 /// Resource to store the occupied screen space by each `egui` panel
 #[derive(Debug, Default, Resource)]
 struct OccupiedScreenSpace {
-    left: f32,
-    right: f32,
-    top: f32,
+    left:   f32,
+    right:  f32,
+    top:    f32,
     bottom: f32,
 }
 
@@ -141,10 +150,11 @@ impl ToDisplayString for UiScaleType {
 
 #[derive(Debug, Default)]
 pub struct MouseOverPanel {
-    pub left_panel: bool,
-    pub right_panel: bool,
-    pub top_panel: bool,
-    pub bottom_panel: bool,
+    pub left_panel:      bool,
+    pub right_panel:     bool,
+    pub top_panel:       bool,
+    pub bottom_panel:    bool,
+    pub floating_window: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -193,7 +203,7 @@ impl Default for UiState {
             left_panel_visible: false,
             right_panel_visible: false,
             top_panel_visible: false,
-            bottom_panel_visible: true,
+            bottom_panel_visible: false,
             scale_type: UiScaleType::default(),
             scale_percent: 100, // start at default factor 1.0 = 100%
             // environment_sdf: false,
@@ -257,6 +267,7 @@ fn action_block(mut action_block: ResMut<ActionBlock>, ui_state: Res<UiState>) {
     // TODO: add top and bottom
     if (ui_state.left_panel_visible && ui_state.mouse_over.left_panel)
         || (ui_state.right_panel_visible && ui_state.mouse_over.right_panel)
+        || (ui_state.mouse_over.floating_window)
     {
         action_block.block();
     } else {

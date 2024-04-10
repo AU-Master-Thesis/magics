@@ -2055,6 +2055,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
+name = "colored"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cbf2150cce219b664a8a70df7a1f933836724b503f8a413af9365b4dcc4d90b8"
+dependencies = [
+ "lazy_static",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "com"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2939,6 +2949,7 @@ dependencies = [
  "bevy_rand",
  "catppuccin",
  "clap",
+ "colored",
  "derive_more",
  "egui_extras",
  "egui_graphs",
@@ -2975,6 +2986,7 @@ dependencies = [
  "toml 0.8.12",
  "typed_floats",
  "unit_interval",
+ "units",
 ]
 
 [[package]]
@@ -5576,6 +5588,10 @@ version = "1.0.0"
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "units"
+version = "1.0.0"
 
 [[package]]
 name = "unsafe-libyaml"

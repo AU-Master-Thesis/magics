@@ -15,7 +15,7 @@
 //!         .add_systems(Update, notify_example_system.run_if(input_just_pressed(KeyCode::Space))
 //!         .run();
 //! }
-//!    
+//!
 //! fn notify_example_system(mut toast_event: EventWriter<ToastEvent>) {
 //!      toast_event.send(ToastEvent {
 //!          caption: "hello".into(),
@@ -29,12 +29,10 @@
 //! }
 //! ```
 
-use std::num::NonZeroU8;
-use std::time::Duration;
+use std::{num::NonZeroU8, time::Duration};
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
-
 // Reexport symbols from egui_notify
 pub use egui_notify::Anchor;
 pub use egui_notify::ToastLevel;
@@ -45,7 +43,8 @@ pub mod prelude {
 }
 
 /// Adds event `ToastEvent` to be used in systems.
-/// Uses a `Update` system to render the toasts on the screen at the specified anchor
+/// Uses a `Update` system to render the toasts on the screen at the specified
+/// anchor
 pub struct NotifyPlugin {
     /// Anchor for where to render the toasts in the main window
     /// Defaults to `Anchor::TopCenter`
@@ -53,7 +52,7 @@ pub struct NotifyPlugin {
     /// Maximum number of toasts to show at once
     /// Defaults to 5
     /// When the max is reached, the oldest toast is removed
-    pub max: NonZeroU8,
+    pub max:    NonZeroU8,
 }
 
 impl Default for NotifyPlugin {
@@ -61,14 +60,14 @@ impl Default for NotifyPlugin {
         Self {
             anchor: egui_notify::Anchor::TopCenter,
             // anchor: egui_notify::Anchor::BottomCenter,
-            max: NonZeroU8::new(5).expect("5 > 0"),
+            max:    NonZeroU8::new(5).expect("5 > 0"),
         }
     }
 }
 
 impl Plugin for NotifyPlugin {
     fn build(&self, app: &mut App) {
-        if app.get_added_plugins::<bevy_egui::EguiPlugin>().is_empty() {
+        if !app.is_plugin_added::<bevy_egui::EguiPlugin>() {
             app.add_plugins(EguiPlugin);
         }
 
@@ -83,7 +82,7 @@ impl Plugin for NotifyPlugin {
 #[derive(Resource)]
 struct Toasts {
     toasts: egui_notify::Toasts,
-    max: NonZeroU8,
+    max:    NonZeroU8,
 }
 
 impl Toasts {
@@ -113,7 +112,8 @@ impl Toasts {
 pub struct ToastEvent {
     /// The caption of the toast
     pub caption: String,
-    /// Options for the toast, to configure properties like duration, closable, etc
+    /// Options for the toast, to configure properties like duration, closable,
+    /// etc
     pub options: ToastOptions,
 }
 
@@ -141,7 +141,7 @@ impl ToastEvent {
             },
         }
     }
-	
+
     /// Create an error toast
     /// options is set to `ToastOptions::default()`
     pub fn error(caption: String) -> Self {
@@ -184,10 +184,10 @@ impl ToastEvent {
 pub struct ToastOptions {
     /// Duration of the toast
     /// Defaults to 5 seconds
-    /// If `None`, the toast will exist until closed by the user or number of toasts
-    /// exceeds the [max](struct.NotifyPlugin.html#structfield.max)
+    /// If `None`, the toast will exist until closed by the user or number of
+    /// toasts exceeds the [max](struct.NotifyPlugin.html#structfield.max)
     pub duration: Option<std::time::Duration>,
-    /// Level of the toast 
+    /// Level of the toast
     pub level: ToastLevel,
     /// Whether to show a progress bar
     /// Defaults to true

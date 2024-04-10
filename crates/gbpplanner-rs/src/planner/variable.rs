@@ -5,7 +5,8 @@ use tap::Tap;
 
 use super::{
     factorgraph::{
-        FactorGraphNode, FactorId, MessagesFromVariables, MessagesToFactors, VariableId,
+        FactorGraphNode, FactorId, MessageCount, MessagesFromVariables, MessagesToFactors,
+        VariableId,
     },
     message::{Eta, Lam, Message, Mu},
 };
@@ -17,7 +18,7 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct VariablePrior {
-    eta: Vector<Float>,
+    eta:    Vector<Float>,
     lambda: Matrix<Float>,
 }
 
@@ -29,14 +30,14 @@ impl VariablePrior {
 
 #[derive(Debug, Clone)]
 pub struct VariableBelief {
-    pub eta: Vector<Float>,
+    pub eta:    Vector<Float>,
     pub lambda: Matrix<Float>,
-    pub mu: Vector<Float>,
-    pub sigma: Matrix<Float>,
+    pub mu:     Vector<Float>,
+    pub sigma:  Matrix<Float>,
     /// Flag to indicate if the variable's covariance is finite, i.e. it does
     /// not contain NaNs or Infs In gbpplanner it is used to control if a
     /// variable can be rendered.
-    valid: bool,
+    valid:      bool,
 }
 
 impl VariableBelief {
@@ -67,8 +68,8 @@ impl From<VariableBelief> for Message {
 #[derive(Debug)]
 pub struct Variable {
     /// Degrees of freedom. For 2D case n_dofs_ = 4 ([x,y,xdot,ydot])
-    pub dofs: usize,
-    pub prior: VariablePrior,
+    pub dofs:   usize,
+    pub prior:  VariablePrior,
     pub belief: VariableBelief,
 
     // pub eta_prior: Vector<Float>,
@@ -87,6 +88,8 @@ pub struct Variable {
 
     /// index
     pub node_index: Option<NodeIndex>,
+
+    message_count: MessageCount,
 }
 
 impl Variable {
@@ -152,6 +155,7 @@ impl Variable {
             // valid: false,
             inbox: MessagesToFactors::new(),
             node_index: None,
+            message_count: MessageCount::default(),
         }
 
         // Self {
@@ -191,6 +195,7 @@ impl Variable {
             // warn!("Empty message received from factor {:?}", from);
         }
         let _ = self.inbox.insert(from, message);
+        self.message_count.received += 1;
     }
 
     // TODO: why never used?
@@ -341,6 +346,8 @@ impl Variable {
         //     pretty_print_vector!(message.mean().unwrap());
         // });
 
+        self.message_count.sent += messages.len();
+
         messages
 
         // self.inbox
@@ -379,5 +386,20 @@ impl FactorGraphNode for Variable {
         } else {
             Ok(())
         }
+    }
+
+    #[inline(always)]
+    fn messages_sent(&self) -> usize {
+        self.message_count.sent
+    }
+
+    #[inline(always)]
+    fn messages_received(&self) -> usize {
+        self.message_count.received
+    }
+
+    #[inline(always)]
+    fn reset_message_count(&mut self) {
+        self.message_count.reset();
     }
 }

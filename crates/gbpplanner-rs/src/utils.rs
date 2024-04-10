@@ -36,12 +36,12 @@ pub fn get_variable_timesteps(lookahead_horizon: u32, lookahead_multiple: u32) -
     let mut timesteps = Vec::<u32>::with_capacity(estimated_capacity);
     // timesteps.push(0);
 
-    let N = 1
+    let n = 1
         + (0.5
             * (-1.0 + f32::sqrt(1.0 + 8.0 * lookahead_horizon as f32 / lookahead_multiple as f32)))
             as u32;
     // TODO: use std::iter::successors instead
-    for i in 0..(lookahead_multiple * (N + 1)) {
+    for i in 0..(lookahead_multiple * (n + 1)) {
         let section = i / lookahead_multiple;
         let f = (i as f32 - section as f32 * lookahead_multiple as f32
             + lookahead_multiple as f32 / 2.0 * section as f32)

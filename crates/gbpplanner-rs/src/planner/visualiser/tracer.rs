@@ -34,7 +34,7 @@ impl Plugin for TracerVisualiserPlugin {
 }
 
 pub struct Trace {
-    color: Color,
+    color:       Color,
     ring_buffer: StaticRb<Vec3, MAX_TRACE_LENGTH>,
 }
 
@@ -100,7 +100,7 @@ fn track_robots(
             .0
             .entry(robot_id)
             .or_insert(Trace {
-                color: Color::from_catppuccin_colour(
+                color:       Color::from_catppuccin_colour(
                     theme.get_display_colour(&color_association.name),
                 ),
                 ring_buffer: StaticRb::default(),

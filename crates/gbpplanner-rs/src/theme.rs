@@ -307,43 +307,43 @@ impl CatppuccinThemeWidgetsExt for Widgets {
         Self {
             noninteractive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), /* separators, indentation lines */
-                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), /* normal text color */
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), /* separators, indentation lines */
+                fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), /* normal text color */
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
             inactive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke: Default::default(), // default = 0 width stroke
-                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), /* button text */
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke:    Default::default(), // default = 0 width stroke
+                fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), /* button text */
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
             hovered: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), /* e.g. hover over window edge or button */
-                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding: Rounding::same(7.0),
-                expansion: 2.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface2()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), /* e.g. hover over window edge or button */
+                fg_stroke:    Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding:     Rounding::same(7.0),
+                expansion:    2.0,
             },
             active: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                fg_stroke: Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                rounding: Rounding::same(7.0),
-                expansion: 2.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                fg_stroke:    Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                rounding:     Rounding::same(7.0),
+                expansion:    2.0,
             },
             open: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
-                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
+                fg_stroke:    Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
         }
     }
@@ -353,7 +353,7 @@ impl CatppuccinThemeSelectionExt for Selection {
     fn catppuccin_flavour(flavour: Flavour) -> Selection {
         Self {
             bg_fill: Color32::from_catppuccin_colour(flavour.lavender()),
-            stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
+            stroke:  Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
         }
     }
 }
@@ -603,8 +603,9 @@ fn handle_waypoints(
 
 /// **Bevy** [`Update`] system to handle the theme change for variables
 /// Reads [`ThemeChangedEvent`] to know when to change the variable colour
-/// Queries all [`StandardMaterial`] handles with [`VariableVisualiser`] and [`RobotTracker`] components
-/// The [`RobotTracker`] component is used to query for the robot's [`ColorAssociation`] to get the correct colour
+/// Queries all [`StandardMaterial`] handles with [`VariableVisualiser`] and
+/// [`RobotTracker`] components The [`RobotTracker`] component is used to query
+/// for the robot's [`ColorAssociation`] to get the correct colour
 fn handle_variables(
     theme: Res<CatppuccinTheme>,
     mut theme_changed_event: EventReader<ThemeChangedEvent>,

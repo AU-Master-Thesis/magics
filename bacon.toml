@@ -10,7 +10,7 @@ default_job = "check"
 [jobs.planner]
 command = [
   "cargo",
-  "+stable",
+  # "+stable",
   "check",
   "--color",
   "always",

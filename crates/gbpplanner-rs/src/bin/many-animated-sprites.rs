@@ -1,7 +1,8 @@
 //! Renders a lot of animated sprites to allow performance testing.
 //!
-//! This example sets up many animated sprites in different sizes, rotations, and scales in the world.
-//! It also moves the camera over them to see how well frustum culling works.
+//! This example sets up many animated sprites in different sizes, rotations,
+//! and scales in the world. It also moves the camera over them to see how well
+//! frustum culling works.
 
 use std::time::Duration;
 
@@ -13,7 +14,6 @@ use bevy::{
     window::{PresentMode, WindowResolution},
     winit::{UpdateMode, WinitSettings},
 };
-
 use rand::Rng;
 
 const CAMERA_SPEED: f32 = 1000.0;

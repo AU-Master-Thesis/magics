@@ -60,14 +60,14 @@ impl Orbit {
 
 #[derive(Bundle)]
 pub struct LinearMovementBundle {
-    pub velocity: Velocity,
+    pub velocity:     Velocity,
     pub acceleration: Acceleration,
 }
 
 impl Default for LinearMovementBundle {
     fn default() -> Self {
         Self {
-            velocity: Velocity::new(Vec3::ZERO),
+            velocity:     Velocity::new(Vec3::ZERO),
             acceleration: Acceleration::new(Vec3::ZERO),
         }
     }
@@ -75,14 +75,14 @@ impl Default for LinearMovementBundle {
 
 #[derive(Bundle)]
 pub struct AngularMovementBundle {
-    pub angular_velocity: AngularVelocity,
+    pub angular_velocity:     AngularVelocity,
     pub angular_acceleration: AngularAcceleration,
 }
 
 impl Default for AngularMovementBundle {
     fn default() -> Self {
         Self {
-            angular_velocity: AngularVelocity::new(Vec3::ZERO),
+            angular_velocity:     AngularVelocity::new(Vec3::ZERO),
             angular_acceleration: AngularAcceleration::new(Vec3::ZERO),
         }
     }
@@ -90,7 +90,7 @@ impl Default for AngularMovementBundle {
 
 #[derive(Bundle, Default)]
 pub struct MovementBundle {
-    pub linear_movement: LinearMovementBundle,
+    pub linear_movement:  LinearMovementBundle,
     pub angular_movement: AngularMovementBundle,
 }
 

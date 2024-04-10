@@ -24,11 +24,43 @@ pub struct RemoveConnectionToError;
 
 impl std::error::Error for RemoveConnectionToError {}
 
+// pub
+
 pub(super) trait FactorGraphNode {
+    #[must_use]
     fn remove_connection_to(
         &mut self,
         factorgraph_id: FactorGraphId,
     ) -> Result<(), RemoveConnectionToError>;
+
+    fn messages_sent(&self) -> usize;
+    fn messages_received(&self) -> usize;
+
+    fn reset_message_count(&mut self);
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub(super) struct MessageCount {
+    pub sent:     usize,
+    pub received: usize,
+}
+
+impl MessageCount {
+    pub fn reset(&mut self) {
+        self.sent = 0;
+        self.received = 0;
+    }
+}
+
+impl std::ops::Add for MessageCount {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        MessageCount {
+            sent:     self.sent + rhs.sent,
+            received: self.received + rhs.received,
+        }
+    }
 }
 
 // /// How the messages are passed between factors and variables in the
@@ -122,7 +154,8 @@ impl std::cmp::PartialOrd for FactorId {
 
 impl std::cmp::Ord for FactorId {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
+        self.partial_cmp(other)
+            .expect("every branch in partial_cmp() returns Some()")
     }
 }
 
@@ -154,9 +187,13 @@ macro_rules! impl_factor_id_constructor {
 
 impl FactorId {
     impl_factor_id_constructor!(ambiguous, color = CYAN);
+
     impl_factor_id_constructor!(obstacle, color = RED);
+
     impl_factor_id_constructor!(interrobot, color = GREEN);
+
     impl_factor_id_constructor!(pose, color = MAGENTA);
+
     impl_factor_id_constructor!(dynamic, color = BLUE);
 
     #[inline]
@@ -233,15 +270,15 @@ impl VariableId {
 
 #[derive(Debug)]
 pub struct VariableToFactorMessage {
-    pub from: VariableId,
-    pub to: FactorId,
+    pub from:    VariableId,
+    pub to:      FactorId,
     pub message: Message,
 }
 
 #[derive(Debug)]
 pub struct FactorToVariableMessage {
-    pub from: FactorId,
-    pub to: VariableId,
+    pub from:    FactorId,
+    pub to:      VariableId,
     pub message: Message,
 }
 
@@ -262,7 +299,7 @@ pub enum NodeKind {
 pub struct Node {
     // TODO: change to factorgraph_id
     robot_id: RobotId,
-    kind: NodeKind,
+    kind:     NodeKind,
 }
 
 // #[derive(Debug, Clone, Copy)]
@@ -352,6 +389,27 @@ impl FactorGraphNode for Node {
             NodeKind::Variable(ref mut variable) => variable.remove_connection_to(factorgraph_id),
         }
     }
+
+    fn messages_sent(&self) -> usize {
+        match self.kind {
+            NodeKind::Factor(ref factor) => factor.messages_sent(),
+            NodeKind::Variable(ref variable) => variable.messages_sent(),
+        }
+    }
+
+    fn messages_received(&self) -> usize {
+        match self.kind {
+            NodeKind::Factor(ref factor) => factor.messages_received(),
+            NodeKind::Variable(ref variable) => variable.messages_received(),
+        }
+    }
+
+    fn reset_message_count(&mut self) {
+        match self.kind {
+            NodeKind::Factor(ref mut factor) => factor.reset_message_count(),
+            NodeKind::Variable(ref mut variable) => variable.reset_message_count(),
+        };
+    }
 }
 
 /// The type used to represent indices into the nodes of the factorgraph.
@@ -373,7 +431,7 @@ pub type Graph = petgraph::stable_graph::StableGraph<Node, (), Undirected, u32>;
 /// the factorgraph, such a query for the counts, is **O(1)**.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct NodeCount {
-    pub factors: usize,
+    pub factors:   usize,
     pub variables: usize,
 }
 
@@ -536,7 +594,7 @@ impl FactorGraph {
     }
 
     /// Returns the `FactorGraphId` of the factorgraph
-    #[inline]
+    #[inline(always)]
     pub fn id(&self) -> FactorGraphId {
         self.id
     }
@@ -556,7 +614,7 @@ impl FactorGraph {
     pub fn add_variable(&mut self, variable: Variable) -> VariableIndex {
         let node = Node {
             robot_id: self.id,
-            kind: NodeKind::Variable(variable),
+            kind:     NodeKind::Variable(variable),
         };
         let node_index = self.graph.add_node(node);
         self.variable_indices.push(node_index);
@@ -574,7 +632,7 @@ impl FactorGraph {
     pub fn add_factor(&mut self, factor: Factor) -> FactorIndex {
         let node = Node {
             robot_id: self.id,
-            kind: NodeKind::Factor(factor),
+            kind:     NodeKind::Factor(factor),
         };
         let node_index = self.graph.add_node(node);
         self.graph[node_index]
@@ -707,7 +765,7 @@ impl FactorGraph {
     #[must_use]
     pub fn node_count(&self) -> NodeCount {
         NodeCount {
-            factors: self.factor_indices.len(),
+            factors:   self.factor_indices.len(),
             variables: self.variable_indices.len(),
         }
     }
@@ -808,7 +866,7 @@ impl FactorGraph {
                 let node = &self.graph[node_index];
                 graphviz::Node {
                     index: node_index.index(),
-                    kind: match &node.kind {
+                    kind:  match &node.kind {
                         NodeKind::Factor(factor) => match factor.kind {
                             FactorKind::Dynamic(_) => graphviz::NodeKind::DynamicFactor,
                             FactorKind::Obstacle(_) => graphviz::NodeKind::ObstacleFactor,
@@ -839,7 +897,7 @@ impl FactorGraph {
                     .edge_endpoints(edge_index)
                     .map(|(from, to)| graphviz::Edge {
                         from: from.index(),
-                        to: to.index(),
+                        to:   to.index(),
                     })
             })
             .collect::<Vec<_>>();
@@ -1139,6 +1197,19 @@ impl FactorGraph {
             Ok(())
         }
     }
+
+    #[must_use]
+    pub fn messages_sent(&mut self) -> usize {
+        self.graph
+            .node_weights_mut()
+            .map(|node| {
+                let messages_sent = node.messages_sent();
+
+                node.reset_message_count();
+                messages_sent
+            })
+            .sum()
+    }
 }
 
 pub mod graphviz {
@@ -1146,7 +1217,7 @@ pub mod graphviz {
 
     pub struct Node {
         pub index: usize,
-        pub kind: NodeKind,
+        pub kind:  NodeKind,
     }
 
     impl Node {
@@ -1206,6 +1277,6 @@ pub mod graphviz {
 
     pub struct Edge {
         pub from: usize,
-        pub to: usize,
+        pub to:   usize,
     }
 }

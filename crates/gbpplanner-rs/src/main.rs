@@ -1,12 +1,14 @@
 //! The main entry point of the simulation.
 pub(crate) mod asset_loader;
 pub(crate) mod config;
+mod diagnostic;
 mod environment;
 mod input;
 mod moveable_object;
 mod movement;
 mod planner;
 mod robot_spawner;
+
 pub(crate) mod theme;
 mod toggle_fullscreen;
 pub(crate) mod ui;
@@ -28,10 +30,11 @@ use bevy_notify::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
 use clap::Parser;
+use colored::Colorize;
 use config::{environment::EnvironmentType, Environment};
 use iyes_perf_ui::prelude::*;
-// use rand::{Rng, SeedableRng};
 
+// use rand::{Rng, SeedableRng};
 use crate::{
     asset_loader::AssetLoaderPlugin,
     config::{Config, FormationGroup},
@@ -84,7 +87,8 @@ struct Cli {
     #[arg(short, long)]
     debug: bool,
 
-    /// use default values for all configuration, simulation and environment settings
+    /// use default values for all configuration, simulation and environment
+    /// settings
     #[arg(long)]
     default: bool,
 }
@@ -145,35 +149,43 @@ const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
+// fn print_build_information() {
+
+// }
+
 fn main() -> anyhow::Result<()> {
     if cfg!(all(not(target_arch = "wasm32"), debug_assertions)) {
-        println!("installing better_panic panic hook");
+        eprintln!("installing better_panic panic hook");
         better_panic::debug_install();
     }
-
-    // if cfg!(target_os = "linux") {}
-    // if cfg!(wasm32-unknown-unknown) {}
-    // if cfg!(linux) {}
-
-    // if cfg!(windows) {
-    //     compile_error!("compiling on wasm32");
-    // }
 
     let name = env!("CARGO_PKG_NAME");
     let version = env!("CARGO_PKG_VERSION");
     let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
 
-    println!("target arch:   {}", std::env::consts::ARCH);
-    println!("target os:     {}", std::env::consts::OS);
-    println!("target family: {}", std::env::consts::FAMILY);
+    println!(
+        "{}:   {}",
+        "target arch".green().bold(),
+        std::env::consts::ARCH
+    );
+    println!(
+        "{}:     {}",
+        "target os".green().bold(),
+        std::env::consts::OS
+    );
+    println!(
+        "{}: {}",
+        "target family".green().bold(),
+        std::env::consts::FAMILY
+    );
 
-    println!("name:         {}", NAME);
-    println!("authors:");
+    println!("{}:          {}", "name".green().bold(), NAME);
+    println!("{}:", "authors".green().bold());
     authors.iter().for_each(|&author| {
         println!(" - {}", author);
     });
-    println!("version:      {}", VERSION);
-    println!("manifest_dir: {}", MANIFEST_DIR);
+    println!("{}:       {}", "version".green().bold(), VERSION);
+    println!("{}:  {}", "manifest_dir".green().bold(), MANIFEST_DIR);
 
     // let cli  = parse_arguments();
 
@@ -203,7 +215,7 @@ fn main() -> anyhow::Result<()> {
 
         return Ok(());
     }
-    
+
     // dump_environment
     if let Some(dump_environment) = cli.dump_environment {
         let env = match dump_environment {
@@ -292,7 +304,8 @@ fn main() -> anyhow::Result<()> {
     let mut app = App::new();
 
     if cfg!(target_arch = "wasm32") {
-        app.insert_resource(AssetMetaCheck::Never); // needed for wasm build to work
+        app.insert_resource(AssetMetaCheck::Never); // needed for wasm build to
+                                                    // work
     }
 
     app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))

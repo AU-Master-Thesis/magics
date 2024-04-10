@@ -53,7 +53,7 @@ fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
 #[derive(Event)]
 pub struct CreateWaypointEvent {
     pub for_robot: RobotId,
-    pub position: Vec2,
+    pub position:  Vec2,
 }
 
 #[derive(Event)]
@@ -297,7 +297,7 @@ fn spawn_formation(
             let robot_id = entity.id();
             create_waypoint_event.send_batch(waypoints.iter().map(|p| CreateWaypointEvent {
                 for_robot: robot_id,
-                position: *p,
+                position:  *p,
             }));
 
             let mut waypoints_with_speed = waypoints
@@ -340,9 +340,9 @@ fn spawn_formation(
             };
 
             // TODO: Make this depend on random seed
-            // let random_color = theme.into_display_iter().choose(&mut thread_rng()).expect(
-            //     "Choosing random colour from an iterator that is hard-coded with values should be \
-            //      ok.",
+            // let random_color = theme.into_display_iter().choose(&mut
+            // thread_rng()).expect(     "Choosing random colour from an
+            // iterator that is hard-coded with values should be \      ok.",
             // );
             let random_color = DisplayColour::iter().choose(&mut thread_rng()).unwrap();
 
@@ -428,7 +428,7 @@ impl From<ListenerInput<Pointer<Click>>> for RobotClickEvent {
 
 #[derive(Debug, Clone, Copy)]
 struct WorldDimensions {
-    width: StrictlyPositiveFinite<f64>,
+    width:  StrictlyPositiveFinite<f64>,
     height: StrictlyPositiveFinite<f64>,
 }
 
@@ -441,7 +441,7 @@ struct WorldDimensions {
 impl WorldDimensions {
     fn new(width: f64, height: f64) -> Self {
         Self {
-            width: width.try_into().expect("width is not zero"),
+            width:  width.try_into().expect("width is not zero"),
             height: height.try_into().expect("height is not zero"),
         }
     }

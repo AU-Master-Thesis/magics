@@ -77,24 +77,21 @@ fn setup(mut commands: Commands, query_window: Query<&Window, With<PrimaryWindow
     commands.spawn(Camera2dBundle::default());
 
     let root = commands
-        .spawn((
-            HoverWindow,
-            NodeBundle {
-                style: Style {
-                    position_type: PositionType::Absolute,
-                    top: 5.0.percent(),
-                    // top: percent(5.0),
-                    left: 5.0.percent(),
+        .spawn((HoverWindow, NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                top: 5.0.percent(),
+                // top: percent(5.0),
+                left: 5.0.percent(),
 
-                    width: 200.px(),
-                    height: 400.px(),
-                    ..default()
-                },
-                background_color: Color::RED.into(),
-                border_color: Color::GREEN.into(),
+                width: 200.px(),
+                height: 400.px(),
                 ..default()
             },
-        ))
+            background_color: Color::RED.into(),
+            border_color: Color::GREEN.into(),
+            ..default()
+        }))
         .id();
 
     // all the different combinations of border edges
@@ -155,13 +152,10 @@ fn setup(mut commands: Commands, query_window: Query<&Window, With<PrimaryWindow
     ];
 
     let title = commands
-        .spawn(TextBundle::from_section(
-            "variable",
-            TextStyle {
-                font_size: 10.0,
-                ..Default::default()
-            },
-        ))
+        .spawn(TextBundle::from_section("variable", TextStyle {
+            font_size: 10.0,
+            ..Default::default()
+        }))
         .id();
 
     let container = commands

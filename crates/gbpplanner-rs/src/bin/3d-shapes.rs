@@ -1,5 +1,6 @@
 //! This example demonstrates the built-in 3d shapes in Bevy.
-//! The scene includes a patterned texture and a rotation for visualizing the normals and UVs.
+//! The scene includes a patterned texture and a rotation for visualizing the
+//! normals and UVs.
 
 use std::f32::consts::PI;
 
@@ -19,7 +20,8 @@ fn main() {
         .run();
 }
 
-/// A marker component for our shapes so we can query them separately from the ground plane
+/// A marker component for our shapes so we can query them separately from the
+/// ground plane
 #[derive(Component)]
 struct Shape;
 

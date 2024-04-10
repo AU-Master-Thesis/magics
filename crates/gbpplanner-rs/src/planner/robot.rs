@@ -180,7 +180,7 @@ pub struct SpawnRobotEvent(pub RobotId);
 
 #[derive(Event)]
 pub struct RobotReachedWaypointEvent {
-    pub robot_id: RobotId,
+    pub robot_id:       RobotId,
     pub waypoint_index: usize,
     // pub waypoint_id: Entity,
 }
@@ -291,14 +291,14 @@ pub struct RobotBundle {
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
-    pub radius: Radius,
+    pub radius:      Radius,
     /// The current state of the robot
-    pub state: RobotState,
+    pub state:       RobotState,
     // pub transform: Transform,
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A VecDeque is used to allow for efficient pop_front operations, and
     /// push_back operations.
-    pub waypoints: Waypoints,
+    pub waypoints:   Waypoints,
     // NOTE: Using the **Bevy** entity id as the robot id
     // pub id: RobotId,
     // NOTE: These are accessible as **Bevy** resources
