@@ -10,11 +10,14 @@ use crate::{
     ui::DrawSettingsEvent,
 };
 
+use parry2d::shape;
+
 pub struct GenMapPlugin;
 
 impl Plugin for GenMapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (build_tile_grid, build_obstacles))
+        app.init_resource::<Colliders>()
+            .add_systems(Startup, (build_tile_grid, build_obstacles))
             .add_systems(Update, show_or_hide_generated_map);
     }
 }
@@ -32,6 +35,15 @@ pub struct TileCoordinates {
 impl TileCoordinates {
     pub fn new(row: usize, col: usize) -> Self {
         Self { row, col }
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct Colliders(Vec<Box<dyn shape::Shape>>);
+
+impl Colliders {
+    pub fn push(&mut self, shape: Box<dyn shape::Shape>) {
+        self.0.push(shape);
     }
 }
 
@@ -290,6 +302,7 @@ fn build_obstacles(
 fn build_tile_grid(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut colliders: ResMut<Colliders>,
     env_config: Res<Environment>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
@@ -321,16 +334,21 @@ fn build_tile_grid(
             // total offset caused by grid and tile
             let offset_x = (tile_offset_x - grid_offset_x) * tile_size;
             let offset_z = (tile_offset_z - grid_offset_z) * tile_size;
-            if let Some(mesh_transforms) = match tile {
+            // Vec<(Handle<Mesh>, Transform, parry2d::shape::Cuboid)>
+            if let Some(obstacle_information) = match tile {
                 '─' => {
                     // Horizontal straight path
                     // - 2 equal-sized larger cuboid on either side, spanning the entire width of
                     //   the tile
 
+                    let cuboid = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    // let parry_cuboid: parry2d::shape::Cuboid = cuboid.into();
+                    // let mesh_handle = meshes.add(cuboid);
+
                     Some(vec![
                         (
                             // left side
-                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            cuboid,
                             // left side transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -340,7 +358,7 @@ fn build_tile_grid(
                         ),
                         (
                             // right side
-                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            cuboid,
                             // right side transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -355,10 +373,15 @@ fn build_tile_grid(
                     // - 2 equal-sized larger cuboid on either side, spanning the entire height of
                     //   the tile
 
+                    let cuboid = Cuboid::new(tile_size, obstacle_height, base_dim);
+                    // let parry_cuboid: parry2d::shape::Cuboid = cuboid.into();
+                    // let mesh_handle = meshes.add(cuboid);
+
                     Some(vec![
                         (
                             // left side
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            // mesh_handle.clone(),
+                            cuboid,
                             // left side transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -368,7 +391,8 @@ fn build_tile_grid(
                         ),
                         (
                             // right side
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            // mesh_handle.clone(),
+                            cuboid,
                             // right side transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -384,10 +408,20 @@ fn build_tile_grid(
                     //   tile
                     // - 1 smaller 'plug' cuboid on the right, to terminate the path
 
+                    // Top and bottom
+                    let cuboid = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    // let parry_cuboid: parry2d::shape::Cuboid = cuboid.into();
+                    // let mesh_handle = meshes.add(cuboid);
+
+                    // Plug at the right
+                    let cuboid_plug =
+                        Cuboid::new(base_dim, obstacle_height, path_width * tile_size);
+                    // let parry_cuboid_plug: parry2d::shape::Cuboid = cuboid_plug.into();
+
                     Some(vec![
                         (
                             // top
-                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            cuboid,
                             // top transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -397,7 +431,7 @@ fn build_tile_grid(
                         ),
                         (
                             // bottom
-                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            cuboid,
                             // bottom transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -407,11 +441,7 @@ fn build_tile_grid(
                         ),
                         (
                             // right plug
-                            meshes.add(Cuboid::new(
-                                base_dim,
-                                obstacle_height,
-                                path_width * tile_size,
-                            )),
+                            cuboid_plug,
                             // right plug transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -427,10 +457,20 @@ fn build_tile_grid(
                     //   tile
                     // - 1 smaller 'plug' cuboid on the left, to terminate the path
 
+                    // Top and bottom
+                    let cuboid = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    // let parry_cuboid: parry2d::shape::Cuboid = cuboid.into();
+                    // let mesh_handle = meshes.add(cuboid);
+
+                    // Plug at the left
+                    let cuboid_plug =
+                        Cuboid::new(base_dim, obstacle_height, path_width * tile_size);
+                    // let parry_cuboid_plug: parry2d::shape::Cuboid = cuboid_plug.into();
+
                     Some(vec![
                         (
                             // top
-                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            cuboid,
                             // top transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -440,7 +480,7 @@ fn build_tile_grid(
                         ),
                         (
                             // bottom
-                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            cuboid,
                             // bottom transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -450,11 +490,7 @@ fn build_tile_grid(
                         ),
                         (
                             // left plug
-                            meshes.add(Cuboid::new(
-                                base_dim,
-                                obstacle_height,
-                                path_width * tile_size,
-                            )),
+                            cuboid_plug,
                             // left plug transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -470,10 +506,20 @@ fn build_tile_grid(
                     //   tile
                     // - 1 smaller 'plug' cuboid on the top, to terminate the path
 
+                    // Left and right
+                    let cuboid = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    // let parry_cuboid: parry2d::shape::Cuboid = cuboid.into();
+                    // let mesh_handle = meshes.add(cuboid);
+
+                    // Plug at the top
+                    let cuboid_plug =
+                        Cuboid::new(path_width * tile_size, obstacle_height, base_dim);
+                    // let parry_cuboid_plug: parry2d::shape::Cuboid = cuboid_plug.into();
+
                     Some(vec![
                         (
                             // left
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            cuboid,
                             // left transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -483,7 +529,7 @@ fn build_tile_grid(
                         ),
                         (
                             // right
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            cuboid,
                             // right transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -493,11 +539,7 @@ fn build_tile_grid(
                         ),
                         (
                             // top plug
-                            meshes.add(Cuboid::new(
-                                path_width * tile_size,
-                                obstacle_height,
-                                base_dim,
-                            )),
+                            cuboid_plug,
                             // top plug transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -513,10 +555,20 @@ fn build_tile_grid(
                     //   tile
                     // - 1 smaller 'plug' cuboid on the bottom, to terminate the path
 
+                    // Left and right
+                    let cuboid = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    // let parry_cuboid: parry2d::shape::Cuboid = cuboid.into();
+                    // let mesh_handle = meshes.add(cuboid);
+
+                    // Plug at the bottom
+                    let cuboid_plug =
+                        Cuboid::new(path_width * tile_size, obstacle_height, base_dim);
+                    // let parry_cuboid_plug: parry2d::shape::Cuboid = cuboid_plug.into();
+
                     Some(vec![
                         (
                             // left
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            cuboid,
                             // left transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -526,7 +578,7 @@ fn build_tile_grid(
                         ),
                         (
                             // right
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            cuboid,
                             // right transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -536,11 +588,7 @@ fn build_tile_grid(
                         ),
                         (
                             // bottom plug
-                            meshes.add(Cuboid::new(
-                                path_width * tile_size,
-                                obstacle_height,
-                                base_dim,
-                            )),
+                            cuboid_plug,
                             // bottom plug transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -558,10 +606,14 @@ fn build_tile_grid(
                     // - 1 larger cuboid on the top side, spanning from the right to the above
                     //   cuboid
 
+                    let cuboid_bottom_right = Cuboid::new(base_dim, obstacle_height, base_dim);
+                    let cuboid_left = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    let cuboid_top = Cuboid::new(tile_size, obstacle_height, base_dim);
+
                     Some(vec![
                         (
                             // bottom right cube
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim)),
+                            cuboid_bottom_right,
                             // bottom right cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -571,7 +623,7 @@ fn build_tile_grid(
                         ),
                         (
                             // left side
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            cuboid_left,
                             // left side transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -581,7 +633,7 @@ fn build_tile_grid(
                         ),
                         (
                             // top
-                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            cuboid_top,
                             // top transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -598,10 +650,14 @@ fn build_tile_grid(
                     //   tile
                     // - 1 larger cuboid on the top side, spanning from the left to the above cuboid
 
+                    let cuboid_bottom_left = Cuboid::new(base_dim, obstacle_height, base_dim);
+                    let cuboid_right = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    let cuboid_top = Cuboid::new(tile_size, obstacle_height, base_dim);
+
                     Some(vec![
                         (
                             // bottom left cube
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim)),
+                            cuboid_bottom_left,
                             // bottom left cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -611,7 +667,7 @@ fn build_tile_grid(
                         ),
                         (
                             // right side
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            cuboid_right,
                             // right side transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -621,7 +677,7 @@ fn build_tile_grid(
                         ),
                         (
                             // top
-                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            cuboid_top,
                             // top transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -639,10 +695,14 @@ fn build_tile_grid(
                     // - 1 larger cuboid on the bottom side, spanning from the right to the above
                     //   cuboid
 
+                    let cuboid_top_right = Cuboid::new(base_dim, obstacle_height, base_dim);
+                    let cuboid_left = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    let cuboid_bottom = Cuboid::new(tile_size, obstacle_height, base_dim);
+
                     Some(vec![
                         (
                             // top right cube
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim)),
+                            cuboid_top_right,
                             // top right cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -652,7 +712,7 @@ fn build_tile_grid(
                         ),
                         (
                             // left side
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            cuboid_left,
                             // left side transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -662,7 +722,7 @@ fn build_tile_grid(
                         ),
                         (
                             // bottom
-                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            cuboid_bottom,
                             // bottom transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -680,10 +740,14 @@ fn build_tile_grid(
                     // - 1 larger cuboid on the bottom side, spanning from the left to the above
                     //   cuboid
 
+                    let cuboid_top_left = Cuboid::new(base_dim, obstacle_height, base_dim);
+                    let cuboid_right = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    let cuboid_bottom = Cuboid::new(tile_size, obstacle_height, base_dim);
+
                     Some(vec![
                         (
                             // top left cube
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim)),
+                            cuboid_top_left,
                             // top left cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -693,7 +757,7 @@ fn build_tile_grid(
                         ),
                         (
                             // right side
-                            meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size)),
+                            cuboid_right,
                             // right side transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -703,7 +767,7 @@ fn build_tile_grid(
                         ),
                         (
                             // bottom
-                            meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim)),
+                            cuboid_bottom,
                             // bottom transform
                             Transform::from_translation(Vec3::new(
                                 offset_x,
@@ -718,8 +782,8 @@ fn build_tile_grid(
                     // - 2 equal-sized cubes, one in each bottom corner
                     // - 1 larger cuboid in the top center, spanning the entire width of the tile
 
-                    let cube = meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim));
-                    let top = meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim));
+                    let cube = Cuboid::new(base_dim, obstacle_height, base_dim);
+                    let top = Cuboid::new(tile_size, obstacle_height, base_dim);
 
                     Some(vec![
                         (
@@ -759,8 +823,8 @@ fn build_tile_grid(
                     // - 2 equal-sized cubes, one in each top corner
                     // - 1 larger cuboid in the bottom center, spanning the entire width of the tile
 
-                    let cube = meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim));
-                    let bottom = meshes.add(Cuboid::new(tile_size, obstacle_height, base_dim));
+                    let cube = Cuboid::new(base_dim, obstacle_height, base_dim);
+                    let bottom = Cuboid::new(tile_size, obstacle_height, base_dim);
 
                     Some(vec![
                         (
@@ -800,8 +864,8 @@ fn build_tile_grid(
                     // - 2 equal-sized cubes, one in each right corner
                     // - 1 larger cuboid in the left center, spanning the entire height of the tile
 
-                    let cube = meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim));
-                    let left = meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size));
+                    let cube = Cuboid::new(base_dim, obstacle_height, base_dim);
+                    let left = Cuboid::new(tile_size, obstacle_height, base_dim);
 
                     Some(vec![
                         (
@@ -841,8 +905,8 @@ fn build_tile_grid(
                     // - 2 equal-sized cubes, one in each left corner
                     // - 1 larger cuboid in the right center, spanning the entire height of the tile
 
-                    let cube = meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim));
-                    let right = meshes.add(Cuboid::new(base_dim, obstacle_height, tile_size));
+                    let cube = Cuboid::new(base_dim, obstacle_height, base_dim);
+                    let right = Cuboid::new(base_dim, obstacle_height, tile_size);
 
                     Some(vec![
                         (
@@ -880,7 +944,8 @@ fn build_tile_grid(
                 '┼' => {
                     // 4-way intersection
                     // - 4 equal-sized cubes, one in each corner
-                    let cube = meshes.add(Cuboid::new(base_dim, obstacle_height, base_dim));
+
+                    let cube = Cuboid::new(base_dim, obstacle_height, base_dim);
 
                     Some(vec![
                         (
@@ -926,19 +991,23 @@ fn build_tile_grid(
                     ])
                 }
                 ' ' => {
-                    // Empty space
+                    // Filled space
                     // - 1 larger cuboid, spanning the entire tile
+
+                    let cuboid = Cuboid::new(tile_size, obstacle_height, tile_size);
+
                     Some(vec![(
-                        meshes.add(Cuboid::new(tile_size, obstacle_height, tile_size)),
+                        cuboid,
                         Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z)),
                     )])
                 }
                 _ => None,
             } {
-                mesh_transforms.iter().for_each(|(mesh, transform)| {
+                obstacle_information.iter().for_each(|(cuboid, transform)| {
+                    colliders.push(Box::<shape::Cuboid>::new(cuboid.clone().into()));
                     commands.spawn((
                         PbrBundle {
-                            mesh: mesh.clone(),
+                            mesh: meshes.add(*cuboid),
                             transform: *transform,
                             material: scene_assets.materials.obstacle.clone(),
                             visibility: if config.visualisation.draw.generated_map {
