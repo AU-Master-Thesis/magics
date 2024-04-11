@@ -7,16 +7,21 @@ use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
 use gbpplanner_rs::environment::camera::{CameraMovementMode, CameraResetEvent};
-use gbpplanner_rs::environment::MainCamera;
+use gbpplanner_rs::environment::{MainCamera, ObstacleMarker};
 use gbpplanner_rs::input::camera::CameraInputPlugin;
 use gbpplanner_rs::movement::{self, LinearMovementBundle, MovementPlugin, OrbitMovementBundle};
 use gbpplanner_rs::theme::{CatppuccinTheme, ColorFromCatppuccinColourExt};
 use gbpplanner_rs::ui::controls::ChangingBinding;
 use gbpplanner_rs::ui::ActionBlock;
-use ncollide3d::na::{self, Isometry3, Vector3};
-use ncollide3d::query;
-use ncollide3d::query::Proximity;
-use ncollide3d::shape;
+// use ncollide3d::na::{self, Isometry3, Vector3};
+// use ncollide3d::query;
+// use ncollide3d::query::Proximity;
+// use ncollide3d::shape;
+use parry3d::{
+    na::{self, Isometry3, Vector3},
+    query::{self, intersection_test},
+    shape,
+};
 use rand::distributions::{Distribution, Uniform};
 
 const INITIAL_CAMERA_DISTANCE: f32 = 5.0;
@@ -80,47 +85,60 @@ impl std::ops::Index<usize> for Path {
     }
 }
 
+// pub struct Obstacles(Vec<dyn Primitive3d>);
+
 fn spawn_colliders(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // spawn a cuboid with dimensions 0.5 x 0.25 x 0.15
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(Cuboid::new(1.0, 0.5, 0.25))),
-        material: materials.add(StandardMaterial {
-            base_color: Color::from_catppuccin_colour(Flavour::Macchiato.maroon()),
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(Mesh::from(Cuboid::new(1.0, 0.5, 0.25))),
+            material: materials.add(StandardMaterial {
+                base_color: Color::from_catppuccin_colour(Flavour::Macchiato.maroon()),
+                ..Default::default()
+            }),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..Default::default()
-        }),
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-        ..Default::default()
-    });
+        },
+        ObstacleMarker,
+    ));
 
     // spawn a sphere with radius 0.05
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(
-            Sphere::new(0.05)
-                .mesh()
-                .ico(4)
-                .expect("4 subdivisions is less than the maximum allowed of 80"),
-        )),
-        // material: materials.add(Color::from_catppuccin_colour(Flavour::Macchiato.maroon())),
-        material: materials.add(StandardMaterial {
-            base_color: Color::from_catppuccin_colour(Flavour::Macchiato.maroon()),
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(Mesh::from(
+                Sphere::new(0.05)
+                    .mesh()
+                    .ico(4)
+                    .expect("4 subdivisions is less than the maximum allowed of 80"),
+            )),
+            // material: materials.add(Color::from_catppuccin_colour(Flavour::Macchiato.maroon())),
+            material: materials.add(StandardMaterial {
+                base_color: Color::from_catppuccin_colour(Flavour::Macchiato.maroon()),
+                ..Default::default()
+            }),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..Default::default()
-        }),
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-        ..Default::default()
-    });
+        },
+        ObstacleMarker,
+    ));
 }
 
-fn rrt_path(mut path: ResMut<Path>, mut index: Local<usize>) {
+fn rrt_path(
+    mut path: ResMut<Path>,
+    mut index: Local<usize>,
+    // mut query: Query<&Mesh, With<ObstacleMarker>>,
+) {
     let start = [2.0f64, 2.0, 2.0];
     let goal = [-2.0f64, -2.0, -2.0];
 
     let p = CollisionProblem {
-        obstacle: shape::Cuboid::new(Vector3::new(1.0f32, 0.5, 0.25)),
-        ball: shape::Ball::new(0.05f32),
+        obstacle: shape::Cuboid::new(Vector3::new(0.5f32, 0.5, 0.25)),
+        // intersection sphere does not need a very big radius
+        ball: shape::Ball::new(0.1f32),
     };
 
     if *index == path.len() {
@@ -128,6 +146,7 @@ fn rrt_path(mut path: ResMut<Path>, mut index: Local<usize>) {
             &start,
             &goal,
             |x: &[f64]| p.is_feasible(x),
+            // |x: &[f64]| true,
             || p.random_sample(),
             0.05,
             1000,
@@ -143,7 +162,6 @@ fn rrt_path(mut path: ResMut<Path>, mut index: Local<usize>) {
         *index = 0;
     }
 
-    let point = &path[*index % path.len()];
     *index += 1;
 }
 
@@ -204,27 +222,30 @@ fn infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinTheme>)
 }
 
 struct CollisionProblem {
-    obstacle: shape::Cuboid<f32>,
-    ball: shape::Ball<f32>,
+    obstacle: shape::Cuboid,
+    ball: shape::Ball,
 }
 
 impl CollisionProblem {
     fn is_feasible(&self, point: &[f64]) -> bool {
+        // place the cuboid at the origin
         let cuboid_pos = Isometry3::new(Vector3::new(0.0f32, 0.0, 0.0), na::zero());
+
+        // place the intersection ball at the point
         let ball_pos = Isometry3::new(
             Vector3::new(point[0] as f32, point[1] as f32, point[2] as f32),
             na::zero(),
         );
-        let prediction = 0.1;
-        let contact_state = query::proximity(
-            &ball_pos,
-            &self.ball,
-            &cuboid_pos,
-            &self.obstacle,
-            prediction,
-        );
-        contact_state == Proximity::Disjoint
+
+        // test for intersection
+        let intersecting =
+            query::intersection_test(&ball_pos, &self.ball, &cuboid_pos, &self.obstacle)
+                .expect("Correct shapes should have been given.");
+
+        // return true if not intersecting
+        !intersecting
     }
+
     fn random_sample(&self) -> Vec<f64> {
         let between = Uniform::new(-4.0, 4.0);
         let mut rng = rand::thread_rng();
