@@ -1,5 +1,7 @@
 //! The main entry point of the simulation.
 pub(crate) mod asset_loader;
+mod bevy_utils;
+mod cli;
 pub(crate) mod config;
 mod diagnostic;
 mod environment;
@@ -8,6 +10,7 @@ mod moveable_object;
 mod movement;
 mod planner;
 mod robot_spawner;
+mod scene;
 
 pub(crate) mod theme;
 mod toggle_fullscreen;
@@ -17,141 +20,36 @@ pub(crate) mod utils;
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use bevy::{
-    asset::AssetMetaCheck, core::FrameCount, input::common_conditions::input_just_pressed,
-    prelude::*, window::WindowMode,
-};
+use bevy::{asset::AssetMetaCheck, prelude::*, window::WindowMode};
 // use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_notify::prelude::*;
-// use rand_core::RngCore;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
-use clap::Parser;
 use colored::Colorize;
 use config::{environment::EnvironmentType, Environment};
-use iyes_perf_ui::prelude::*;
 
-// use rand::{Rng, SeedableRng};
+// use iyes_perf_ui::prelude::*;
 use crate::{
     asset_loader::AssetLoaderPlugin,
+    cli::DumpDefault,
     config::{Config, FormationGroup},
     environment::EnvironmentPlugin,
     input::InputPlugin,
-    // moveable_object::MoveableObjectPlugin,
     movement::MovementPlugin,
     planner::PlannerPlugin,
     robot_spawner::RobotSpawnerPlugin,
+    scene::ScenePlugin,
     theme::ThemePlugin,
     toggle_fullscreen::ToggleFullscreenPlugin,
     ui::EguiInterfacePlugin,
 };
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
-enum DumpDefault {
-    /// Dump the default config to stdout
-    Config,
-    /// Dump the default formation config to stdout
-    Formation,
-    /// Dump the default environment config to stdout
-    Environment,
-}
-
-#[derive(Parser)]
-#[clap(version, author, about)]
-struct Cli {
-    /// Specify the configuration file to use, overrides the normal
-    /// configuration file resolution
-    #[arg(short, long, value_name = "CONFIG_FILE")]
-    config: Option<std::path::PathBuf>,
-
-    /// What default configuration information to optionally dump to stdout
-    #[arg(long, value_enum)]
-    dump_default: Option<DumpDefault>,
-
-    /// Dump a specific [`EnvironmentType`] to stdout
-    #[arg(long, value_name = "ENVIRONMENT_TYPE")]
-    dump_environment: Option<EnvironmentType>,
-
-    /// Run the app without a window for rendering the environment
-    #[arg(long, group = "display")]
-    headless: bool,
-
-    /// Start the app in fullscreen mode
-    #[arg(short, long, group = "display")]
-    fullscreen: bool,
-
-    /// Enable debug plugins
-    #[arg(short, long)]
-    debug: bool,
-
-    /// use default values for all configuration, simulation and environment
-    /// settings
-    #[arg(long)]
-    default: bool,
-}
-
-// fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
-fn read_config<P>(path: Option<P>) -> anyhow::Result<Config>
-where
-    P: AsRef<std::path::Path>,
-{
-    if let Some(path) = path {
-        Ok(Config::from_file(path)?)
-    } else {
-        let mut conf_paths = Vec::<PathBuf>::new();
-
-        if let Ok(home) = std::env::var("HOME") {
-            let xdg_config_home = std::path::Path::new(&home).join(".config");
-            let user_config_dir = xdg_config_home.join("gbpplanner");
-
-            conf_paths.push(user_config_dir.join("config.toml"));
-        }
-
-        let cwd = std::env::current_dir()?;
-
-        conf_paths.push(cwd.join("config/config.toml"));
-
-        for conf_path in conf_paths {
-            if conf_path.exists() {
-                return Ok(Config::from_file(&conf_path)?);
-            }
-        }
-
-        anyhow::bail!("No config file found")
-    }
-}
-
-// #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
-// enum DebugState {
-//     #[default]
-//     Disabled,
-//     Enabled,
-// }
-
-#[cfg(not(target_arch = "wasm32"))]
-fn parse_arguments() -> Cli {
-    eprintln!("parsing arguments not on wasm32");
-    Cli::parse()
-}
-
-#[cfg(target_arch = "wasm32")]
-fn parse_arguments() -> Cli {
-    eprintln!("parsing arguments on wasm32");
-    let mut cli = Cli::parse();
-    cli.default = true;
-    cli
-}
-
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
-
-// fn print_build_information() {
-
-// }
 
 fn main() -> anyhow::Result<()> {
     if cfg!(all(not(target_arch = "wasm32"), debug_assertions)) {
@@ -159,8 +57,6 @@ fn main() -> anyhow::Result<()> {
         better_panic::debug_install();
     }
 
-    let name = env!("CARGO_PKG_NAME");
-    let version = env!("CARGO_PKG_VERSION");
     let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
 
     println!(
@@ -189,13 +85,15 @@ fn main() -> anyhow::Result<()> {
 
     // let cli  = parse_arguments();
 
-    let cli = if cfg!(not(target_arch = "wasm32")) {
-        Cli::parse()
-    } else {
-        let mut cli = Cli::parse();
-        cli.default = true;
-        cli
-    };
+    let cli = cli::parse_arguments();
+
+    // let cli = if cfg!(not(target_arch = "wasm32")) {
+    //     Cli::parse()
+    // } else {
+    //     let mut cli = Cli::parse();
+    //     cli.default = true;
+    //     cli
+    // };
 
     if let Some(dump) = cli.dump_default {
         match dump {
@@ -312,7 +210,7 @@ fn main() -> anyhow::Result<()> {
         .insert_resource(config)
         .insert_resource(formation)
         .insert_resource(environment)
-        .init_state::<SimulationState>()
+        .init_state::<AppState>()
         .add_plugins(DefaultPlugins.set(window_plugin))
         // third-party plugins
         .add_plugins(bevy_egui::EguiPlugin)
@@ -336,6 +234,8 @@ fn main() -> anyhow::Result<()> {
             PlannerPlugin,
             NotifyPlugin::default()
         ))
+
+        .add_plugins(ScenePlugin)
         // .add_plugins(NotifyPlugin)
         //         .insert_resource(Notifications(Toasts::default()))
         // we want Bevy to measure these values for us:
@@ -346,10 +246,10 @@ fn main() -> anyhow::Result<()> {
         // .add_systems(Startup, spawn_perf_ui)
         // .add_systems(Update, make_window_visible)
 
-        .add_systems(
-            Update,
-            create_toast.run_if(input_just_pressed(KeyCode::KeyZ)),
-        )
+        // .add_systems(
+        //     Update,
+        //     create_toast.run_if(input_just_pressed(KeyCode::KeyZ)),
+        // )
         .add_systems(PostUpdate, end_simulation.run_if(time_exceeds_max_time));
 
     app.run();
@@ -378,23 +278,24 @@ fn end_simulation(config: Res<Config>) {
     // std::process::exit(0);
 }
 
-fn spawn_perf_ui(mut commands: Commands) {
-    commands.spawn(PerfUiCompleteBundle::default());
-}
+// fn spawn_perf_ui(mut commands: Commands) {
+//     commands.spawn(PerfUiCompleteBundle::default());
+// }
 
-/// Makes the window visible after a few frames has been rendered.
-/// This is a **hack** to prevent the window from flickering at startup.
-fn make_window_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) {
-    // The delay may be different for your app or system.
-    if frames.0 == 3 {
-        // At this point the gpu is ready to show the app so we can make the window
-        // visible. Alternatively, you could toggle the visibility in Startup.
-        // It will work, but it will have one white frame before it starts rendering
-        window.single_mut().visible = true;
-    }
-}
+// /// Makes the window visible after a few frames has been rendered.
+// /// This is a **hack** to prevent the window from flickering at startup.
+// fn make_window_visible(mut window: Query<&mut Window>, frames:
+// Res<FrameCount>) {     // The delay may be different for your app or system.
+//     if frames.0 == 3 {
+//         // At this point the gpu is ready to show the app so we can make the
+// window         // visible. Alternatively, you could toggle the visibility in
+// Startup.         // It will work, but it will have one white frame before it
+// starts rendering         window.single_mut().visible = true;
+//     }
+// }
 
 // TODO: use in app
+/// Set of distinct states the application can be in.
 #[derive(
     Debug,
     Default,
@@ -405,33 +306,71 @@ fn make_window_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) 
     Clone,
     Copy,
     derive_more::Display,
-    derive_more::IsVariant,
+    /* derive_more::IsVariant, */
 )]
-pub enum SimulationState {
+pub enum AppState {
+    /// Start of the application where assets e.g. data in `./assets` is being
+    /// loaded into memory
     #[default]
     #[display(fmt = "Loading")]
     Loading,
-    #[display(fmt = "Starting")]
-    Starting,
+    // #[display(fmt = "Starting")]
+    // Starting,
+    /// A simulation is running in the application
     #[display(fmt = "Running")]
     Running,
-    #[display(fmt = "Paused")]
-    Paused,
-    #[display(fmt = "Finished")]
-    Finished,
+    // #[display(fmt = "Paused")]
+    // Paused,
+    // #[display(fmt = "Finished")]
+    // Finished,
 }
 
-fn create_toast(mut toast_event: EventWriter<ToastEvent>, mut n: Local<usize>) {
-    *n += 1;
+// fn create_toast(mut toast_event: EventWriter<ToastEvent>, mut n:
+// Local<usize>) {     *n += 1;
 
-    toast_event.send(ToastEvent {
-        caption: format!("call: {}", *n),
-        // caption: "hello".into(),
-        options: ToastOptions {
-            level: ToastLevel::Success,
-            // closable: false,
-            // show_progress_bar: false,
-            ..Default::default()
-        },
-    });
+//     toast_event.send(ToastEvent {
+//         caption: format!("call: {}", *n),
+//         // caption: "hello".into(),
+//         options: ToastOptions {
+//             level: ToastLevel::Success,
+//             // closable: false,
+//             // show_progress_bar: false,
+//             ..Default::default()
+//         },
+//     });
+// }
+
+// fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
+fn read_config<P: AsRef<Path>>(path: Option<P>) -> anyhow::Result<Config> {
+    if let Some(path) = path {
+        Ok(Config::from_file(path)?)
+    } else {
+        let mut conf_paths = Vec::<PathBuf>::new();
+
+        if let Ok(home) = std::env::var("HOME") {
+            let xdg_config_home = Path::new(&home).join(".config");
+            let user_config_dir = xdg_config_home.join("gbpplanner");
+
+            conf_paths.push(user_config_dir.join("config.toml"));
+        }
+
+        let cwd = std::env::current_dir()?;
+
+        conf_paths.push(cwd.join("config/config.toml"));
+
+        for conf_path in conf_paths {
+            if conf_path.exists() {
+                return Ok(Config::from_file(&conf_path)?);
+            }
+        }
+
+        anyhow::bail!("No config file found")
+    }
 }
+
+// #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
+// enum DebugState {
+//     #[default]
+//     Disabled,
+//     Enabled,
+// }
