@@ -12,7 +12,7 @@ use bevy_egui::egui;
 use egui_plot::{Line, Plot, PlotPoints};
 
 use super::UiState;
-use crate::{config::Config, diagnostic::prelude::RobotDiagnosticsPlugin, SimulationState};
+use crate::{config::Config, diagnostic::prelude::RobotDiagnosticsPlugin, AppState};
 
 pub struct MetricsPlugin {
     wait_duration: Duration,
@@ -110,6 +110,11 @@ impl MetricsPlugin {
 
                 // TODO: add diagnostic source for number of collisions
                 for (name, diagnostic_path) in [
+                    ("CPU", &SystemInformationDiagnosticsPlugin::CPU_USAGE),
+                    ("MEM", &SystemInformationDiagnosticsPlugin::MEM_USAGE),
+                    ("FPS", &FrameTimeDiagnosticsPlugin::FPS),
+                    // ("frame_count", &FrameTimeDiagnosticsPlugin::FRAME_COUNT),
+                    ("frame_time", &FrameTimeDiagnosticsPlugin::FRAME_TIME),
                     ("entities", &EntityCountDiagnosticsPlugin::ENTITY_COUNT),
                     ("robots", &RobotDiagnosticsPlugin::ROBOT_COUNT),
                     ("variables", &RobotDiagnosticsPlugin::VARIABLE_COUNT),
