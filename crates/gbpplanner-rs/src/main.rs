@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 //! The main entry point of the simulation.
 pub(crate) mod asset_loader;
 mod bevy_utils;
@@ -13,7 +15,6 @@ mod robot_spawner;
 mod scene;
 
 pub(crate) mod theme;
-mod toggle_fullscreen;
 pub(crate) mod ui;
 pub(crate) mod utils;
 
@@ -22,7 +23,8 @@ pub(crate) mod macros;
 
 use std::path::{Path, PathBuf};
 
-use bevy::{asset::AssetMetaCheck, prelude::*, window::WindowMode};
+use bevy::{asset::AssetMetaCheck, log::LogPlugin, prelude::*, window::WindowMode};
+use bevy_fullscreen::ToggleFullscreenPlugin;
 // use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_notify::prelude::*;
@@ -35,7 +37,7 @@ use config::{environment::EnvironmentType, Environment};
 use crate::{
     asset_loader::AssetLoaderPlugin,
     cli::DumpDefault,
-    config::{Config, FormationGroup},
+    config::{read_config, Config, FormationGroup},
     environment::EnvironmentPlugin,
     input::InputPlugin,
     movement::MovementPlugin,
@@ -43,7 +45,6 @@ use crate::{
     robot_spawner::RobotSpawnerPlugin,
     scene::ScenePlugin,
     theme::ThemePlugin,
-    toggle_fullscreen::ToggleFullscreenPlugin,
     ui::EguiInterfacePlugin,
 };
 
@@ -83,17 +84,7 @@ fn main() -> anyhow::Result<()> {
     println!("{}:       {}", "version".green().bold(), VERSION);
     println!("{}:  {}", "manifest_dir".green().bold(), MANIFEST_DIR);
 
-    // let cli  = parse_arguments();
-
     let cli = cli::parse_arguments();
-
-    // let cli = if cfg!(not(target_arch = "wasm32")) {
-    //     Cli::parse()
-    // } else {
-    //     let mut cli = Cli::parse();
-    //     cli.default = true;
-    //     cli
-    // };
 
     if let Some(dump) = cli.dump_default {
         match dump {
@@ -140,13 +131,13 @@ fn main() -> anyhow::Result<()> {
             Environment::default(),
         )
     } else {
-        let config = read_config(cli.config)?;
-        // if let Some(ref inner) = cli.config {
-        //     println!(
-        //         "successfully read config from: {}",
-        //         inner.as_os_str().to_string_lossy()
-        //     );
-        // }
+        let config = read_config(cli.config.as_ref())?;
+        if let Some(ref inner) = cli.config {
+            println!(
+                "successfully read config from: {}",
+                inner.as_os_str().to_string_lossy()
+            );
+        }
 
         let formation = FormationGroup::from_file(&config.formation_group)?;
         println!(
@@ -206,14 +197,36 @@ fn main() -> anyhow::Result<()> {
                                                     // work
     }
 
+    // let mut default_plugins = DefaultPlugins;
+
+    // let log_plugin = if cfg!(debug_assertions) {
+    //     // dev build
+    //     LogPlugin {
+    //         level: bevy::log::Level::DEBUG,
+    //         filter: format!("error,wgpu_core=warn,wgpu_hal=warn,{}=debug", NAME),
+    //         ..default()
+    //     }
+    // } else {
+    //     // release build
+    //     LogPlugin {
+    //         level: bevy::log::Level::INFO,
+    //         filter: format!("error,wgpu_core=warn,wgpu_hal=warn,{}=info", NAME),
+    //         ..default()
+    //     }
+    // };
+
     app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
         .insert_resource(config)
         .insert_resource(formation)
         .insert_resource(environment)
         .init_state::<AppState>()
-        .add_plugins(DefaultPlugins.set(window_plugin))
+        .add_plugins(DefaultPlugins
+            .set(window_plugin)
+            // .set(log_plugin)
+        )
         // third-party plugins
         .add_plugins(bevy_egui::EguiPlugin)
+        // TODO: use
         .add_plugins(EntropyPlugin::<WyRand>::default())
 
         // our plugins
@@ -224,7 +237,6 @@ fn main() -> anyhow::Result<()> {
             EnvironmentPlugin, // Custom
             MovementPlugin,    // Custom
             InputPlugin,       // Custom
-            ToggleFullscreenPlugin,
             // // MoveableObjectPlugin, // Custom
             // // CameraPlugin,        // Custom
             // // FollowCamerasPlugin, // Custom
@@ -234,6 +246,7 @@ fn main() -> anyhow::Result<()> {
             PlannerPlugin,
             NotifyPlugin::default()
         ))
+        .add_plugins(ToggleFullscreenPlugin::default())
 
         .add_plugins(ScenePlugin)
         // .add_plugins(NotifyPlugin)
@@ -339,34 +352,6 @@ pub enum AppState {
 //         },
 //     });
 // }
-
-// fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
-fn read_config<P: AsRef<Path>>(path: Option<P>) -> anyhow::Result<Config> {
-    if let Some(path) = path {
-        Ok(Config::from_file(path)?)
-    } else {
-        let mut conf_paths = Vec::<PathBuf>::new();
-
-        if let Ok(home) = std::env::var("HOME") {
-            let xdg_config_home = Path::new(&home).join(".config");
-            let user_config_dir = xdg_config_home.join("gbpplanner");
-
-            conf_paths.push(user_config_dir.join("config.toml"));
-        }
-
-        let cwd = std::env::current_dir()?;
-
-        conf_paths.push(cwd.join("config/config.toml"));
-
-        for conf_path in conf_paths {
-            if conf_path.exists() {
-                return Ok(Config::from_file(&conf_path)?);
-            }
-        }
-
-        anyhow::bail!("No config file found")
-    }
-}
 
 // #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 // enum DebugState {
