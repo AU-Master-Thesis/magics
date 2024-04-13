@@ -21,6 +21,7 @@ gbp_linalg              = { path = "../gbp_linalg" }
 gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
 bevy_notify             = { path = "../bevy_notify" }
 units                   = { path = "../units" }
+bevy_fullscreen         = { path = "../bevy_fullscreen" }
 
 glob = "0.3.1"
 better-panic = "0.3.0"
@@ -99,7 +100,8 @@ paste            = "1.0.14"
 egui_plot        = "0.26"
 egui_graphs      = "0.19.0"
 serde_yaml       = "0.9.34"
-colored = "2.1.0"
+colored          = "2.1.0"
+directories = "5.0.1"
 # font-kit = { version = "0.13.0", features = ["freetype"] }
 
 

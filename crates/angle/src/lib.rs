@@ -38,7 +38,7 @@ pub type Result<T> = std::result::Result<T, AngleError>;
 impl Angle {
     /// Creates a new [`Angle`] from a value in radians.
     pub fn new(value: f64) -> Result<Self> {
-        if value < 0.0 || value > 2.0 * std::f64::consts::PI {
+        if !(0.0..=2.0 * std::f64::consts::PI).contains(&value) {
             return Err(AngleError::OutOfRangeRadians(value));
         }
         Ok(Self(value))
@@ -46,18 +46,20 @@ impl Angle {
 
     /// Creates a new [`Angle`] from a value in degrees.
     pub fn from_degrees(value: f64) -> Result<Self> {
-        if value < 0.0 || value > 360.0 {
+        if !(0.0..=360.0).contains(&value) {
             return Err(AngleError::OutOfRangeDegrees(value));
         }
         Ok(Self(value.to_radians()))
     }
 
     /// Returns the angle in radians.
+    #[inline(always)]
     pub fn as_radians(&self) -> f64 {
         self.0
     }
 
     /// Returns the angle in degrees.
+    #[inline(always)]
     pub fn as_degrees(&self) -> f64 {
         self.0.to_degrees()
     }
