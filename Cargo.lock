@@ -3003,6 +3003,7 @@ dependencies = [
  "petgraph",
  "pretty_assertions",
  "rand",
+ "repeating_array",
  "ringbuf",
  "ron",
  "serde",
@@ -4690,6 +4691,10 @@ name = "renderdoc-sys"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
+
+[[package]]
+name = "repeating_array"
+version = "1.0.0"
 
 [[package]]
 name = "resvg"

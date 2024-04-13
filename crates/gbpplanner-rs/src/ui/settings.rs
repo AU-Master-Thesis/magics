@@ -1,16 +1,24 @@
 use std::{path::PathBuf, time::Duration};
 
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{
+    input::{keyboard::KeyboardInput, mouse::MouseWheel, ButtonState},
+    prelude::*,
+    window::PrimaryWindow,
+};
 use bevy_egui::{
     egui::{self, Color32, Context, RichText},
     EguiContext, EguiContexts, EguiSettings,
 };
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
 use catppuccin::Colour;
+use repeating_array::RepeatingArray;
 use struct_iterable::Iterable;
 use strum::IntoEnumIterator;
 
-use super::{custom, ChangingBinding, OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
+use super::{
+    custom, scale::ScaleUi, ChangingBinding, OccupiedScreenSpace, ToDisplayString, UiScaleType,
+    UiState,
+};
 use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
@@ -24,17 +32,15 @@ pub struct SettingsPanelPlugin;
 
 impl Plugin for SettingsPanelPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<UiScaleEvent>()
-            .add_event::<EnvironmentEvent>()
+        app.add_event::<EnvironmentEvent>()
             .add_event::<ExportGraphEvent>()
             .add_event::<DrawSettingsEvent>()
-            .add_systems(Startup, (install_egui_image_loaders, scale_ui))
+            .add_systems(Startup, (install_egui_image_loaders,))
             .add_systems(
                 Update,
                 (
                     ui_settings_exclusive,
                     // ui_settings_exclusive.run_if(show_right_panel),
-                    scale_ui.run_if(on_event::<UiScaleEvent>()),
                 ),
             )
             .add_plugins(DefaultInspectorConfigPlugin);
@@ -49,11 +55,6 @@ impl Plugin for SettingsPanelPlugin {
 /// Write to this event whenever you want to toggle the environment
 #[derive(Event, Debug, Copy, Clone)]
 pub struct EnvironmentEvent;
-
-/// Simple **Bevy** trigger `Event`
-/// Write to this event whenever you want the UI scale to update
-#[derive(Event, Debug, Copy, Clone)]
-pub struct UiScaleEvent;
 
 /// Simple **Bevy** trigger `Event`
 /// Write to this event whenever you want to export the graph to a `.dot` file
@@ -132,22 +133,7 @@ fn ui_settings_exclusive(world: &mut World) {
     });
 }
 
-struct TitleColors {
-    colors:  [Colour; 5],
-    current: usize,
-}
-
-impl TitleColors {
-    pub fn new(colors: [Colour; 5]) -> Self {
-        Self { colors, current: 0 }
-    }
-
-    pub fn next(&mut self) -> Colour {
-        let color = self.colors[self.current];
-        self.current = (self.current + 1) % self.colors.len();
-        color
-    }
-}
+type TitleColors = RepeatingArray<Colour, 5>;
 
 /// **Bevy** `Update` system to display the `egui` settings panel
 #[allow(clippy::too_many_arguments)]
@@ -202,7 +188,9 @@ fn ui_settings_panel(
                     custom::subheading(
                         ui,
                         "General",
-                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                        Some(Color32::from_catppuccin_colour(
+                            title_colors.next_or_first(),
+                        )),
                     );
                     custom::grid("settings_general_grid", 2).show(ui, |ui| {
                         // THEME SELECTOR
@@ -235,7 +223,7 @@ fn ui_settings_panel(
                                     ui.vertical_centered_justified(|ui| {
                                         if ui.button(scale.to_display_string()).clicked() {
                                             ui_state.scale_type = scale;
-                                            world.send_event::<UiScaleEvent>(UiScaleEvent);
+                                            // world.send_event::<UiScaleEvent>(UiScaleEvent);
                                             // scale_event.send(UiScaleEvent);
                                             ui.close_menu();
                                         }
@@ -257,15 +245,21 @@ fn ui_settings_panel(
                             ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                         let slider_response = ui.add_enabled(
                             matches!(ui_state.scale_type, UiScaleType::Custom),
-                            egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
-                                .text("%")
-                                .show_value(true),
+                            // egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
+                            egui::Slider::new(
+                                &mut ui_state.scale_percent,
+                                UiState::VALID_SCALE_INTERVAL,
+                            )
+                            .text("%")
+                            .show_value(true),
                         );
                         // Only trigger ui scale update when the slider is released or lost focus
                         // otherwise it would be imposssible to drag the slider while the ui is
                         // scaling
                         if slider_response.drag_released() || slider_response.lost_focus() {
-                            world.send_event::<UiScaleEvent>(UiScaleEvent);
+                            world.send_event::<ScaleUi>(ScaleUi::Set(
+                                ui_state.scale_percent as f32 / 100.0,
+                            ));
                         }
 
                         ui.end_row();
@@ -273,7 +267,7 @@ fn ui_settings_panel(
                         ui.label("Take Screenhot");
                         custom::fill_x(ui, |ui| {
                             if ui.button("").clicked() {
-                                world.send_event::<ScreenShotEvent>(ScreenShotEvent);
+                                world.send_event::<ScreenShotEvent>(ScreenShotEvent::default());
                             }
                         });
                         ui.end_row();
@@ -282,7 +276,9 @@ fn ui_settings_panel(
                     custom::subheading(
                         ui,
                         "Draw",
-                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                        Some(Color32::from_catppuccin_colour(
+                            title_colors.next_or_first(),
+                        )),
                     );
                     // egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
                     custom::grid("draw_grid", 2).show(ui, |ui| {
@@ -328,7 +324,9 @@ fn ui_settings_panel(
                     custom::subheading(
                         ui,
                         "Simulation",
-                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                        Some(Color32::from_catppuccin_colour(
+                            title_colors.next_or_first(),
+                        )),
                     );
                     custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
                         ui.label("Simulation Time");
@@ -407,7 +405,9 @@ fn ui_settings_panel(
                     custom::subheading(
                         ui,
                         "Export",
-                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                        Some(Color32::from_catppuccin_colour(
+                            title_colors.next_or_first(),
+                        )),
                     );
 
                     let png_output_path = PathBuf::from("./factorgraphs").with_extension("png");
@@ -453,7 +453,9 @@ fn ui_settings_panel(
                     custom::subheading(
                         ui,
                         "Inspector",
-                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                        Some(Color32::from_catppuccin_colour(
+                            title_colors.next_or_first(),
+                        )),
                     );
                     custom::grid("inspector_grid", 3).show(ui, |ui| {
                         ui.label("Cursor");
@@ -501,7 +503,9 @@ fn ui_settings_panel(
                     custom::subheading(
                         ui,
                         "Other",
-                        Some(Color32::from_catppuccin_colour(title_colors.next())),
+                        Some(Color32::from_catppuccin_colour(
+                            title_colors.next_or_first(),
+                        )),
                     );
                     custom::grid("other_grid", 2).show(ui, |ui| {
                         ui.label("UI Focus Cancels Inputs");
@@ -517,22 +521,4 @@ fn ui_settings_panel(
     occupied_screen_space.right = right_panel
         .map(|ref inner| inner.response.rect.width())
         .unwrap_or(0.0);
-}
-
-fn scale_ui(
-    mut egui_settings: ResMut<EguiSettings>,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    ui_state: Res<UiState>,
-) {
-    let Ok(window) = windows.get_single() else {
-        error!("tried to scale the ui, but found no primary window!");
-        return;
-    };
-
-    let scale_factor = match ui_state.scale_type {
-        UiScaleType::None => 1.0,
-        UiScaleType::Custom => ui_state.scale_percent as f32 / 100.0,
-        UiScaleType::Window => 1.0 / window.scale_factor(),
-    };
-    egui_settings.scale_factor = scale_factor;
 }

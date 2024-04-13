@@ -3,8 +3,11 @@ mod custom;
 mod data;
 mod decoration;
 mod metrics;
+mod scale;
 // mod selected_entity;
 mod settings;
+
+use std::ops::{Range, RangeInclusive};
 
 use bevy::{input::common_conditions::*, prelude::*, window::WindowTheme};
 use bevy_egui::{
@@ -18,7 +21,7 @@ use strum_macros::EnumIter;
 
 use self::{
     controls::ControlsPanelPlugin, data::DataPanelPlugin, metrics::MetricsPlugin,
-    settings::SettingsPanelPlugin,
+    scale::ScaleUiPlugin, settings::SettingsPanelPlugin,
 };
 use crate::theme::CatppuccinThemeVisualsExt;
 
@@ -42,6 +45,7 @@ impl PluginGroup for UiPlugins {
             .add(SettingsPanelPlugin)
             .add(DataPanelPlugin)
             .add(MetricsPlugin::default())
+            .add(ScaleUiPlugin::default())
     }
 }
 
@@ -52,6 +56,7 @@ impl Plugin for EguiInterfacePlugin {
             .init_resource::<UiState>()
             // .init_resource::<PreviousUiState>()
             .add_plugins(( ControlsPanelPlugin, SettingsPanelPlugin, DataPanelPlugin,
+                ScaleUiPlugin::default(),
 
 
                 MetricsPlugin::default()            ))
@@ -192,10 +197,31 @@ pub struct UiState {
     /// The type of UI scaling to use
     pub scale_type: UiScaleType,
     /// When `scale_type` is `Custom`, the percentage to scale by
-    pub scale_percent: usize,
+    scale_percent: usize,
     // /// Whether the environment SDF is visible
     // pub environment_sdf: bool,
     pub mouse_over: MouseOverPanel,
+}
+
+impl UiState {
+    pub const DEFAULT_SCALE_PERCENTAGE: usize = 100;
+    pub const MAX_SCALE_PERCENTAGE: usize = 200;
+    pub const MIN_SCALE_PERCENTAGE: usize = 50;
+    pub const VALID_SCALE_INTERVAL: RangeInclusive<usize> =
+        Self::MIN_SCALE_PERCENTAGE..=Self::MAX_SCALE_PERCENTAGE;
+
+    pub fn set_scale(&mut self, percentage: usize) {
+        if Self::VALID_SCALE_INTERVAL.contains(&percentage) {
+            // if (Self::MIN_SCALE_PERCENTAGE..=Self::MAX_SCALE_PERCENTAGE).contains(&
+            // percentage) {
+            self.scale_percent = percentage;
+        }
+    }
+
+    #[inline(always)]
+    pub fn scale(&self) -> usize {
+        self.scale_percent
+    }
 }
 
 impl Default for UiState {
@@ -206,7 +232,8 @@ impl Default for UiState {
             top_panel_visible: false,
             bottom_panel_visible: false,
             scale_type: UiScaleType::default(),
-            scale_percent: 100, // start at default factor 1.0 = 100%
+            scale_percent: Self::DEFAULT_SCALE_PERCENTAGE,
+            // scale_percent: 100, // start at default factor 1.0 = 100%
             // environment_sdf: false,
             mouse_over: MouseOverPanel::default(),
         }

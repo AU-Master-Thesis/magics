@@ -408,9 +408,40 @@ fn general_actions_system(
     }
 }
 
-/// Signal to take a screenshot
-#[derive(Event, Debug, Copy, Clone)]
-pub struct ScreenShotEvent;
+/// **Bevy** event to take a screenshot and save it to disk
+#[derive(Event, Debug, Clone)]
+pub struct ScreenShotEvent {
+    pub save_at_location: ScreenShotSaveLocation,
+}
+
+impl Default for ScreenShotEvent {
+    fn default() -> Self {
+        Self {
+            save_at_location: ScreenShotSaveLocation::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum ScreenShotSaveLocation {
+    At(std::path::PathBuf),
+    Default,
+    // Clipboard,
+}
+
+impl Default for ScreenShotSaveLocation {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
+impl ScreenShotSaveLocation {
+    pub const DEFAULT: &str = "./";
+}
+
+// pub enum ScreenShot {
+//     SaveAt(std::path::PathBuf),
+// }
 
 fn screenshot(
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
@@ -427,7 +458,7 @@ fn screenshot(
     };
 
     if action_state.just_pressed(&GeneralAction::ScreenShot) {
-        screen_shot_event.send(ScreenShotEvent);
+        screen_shot_event.send(ScreenShotEvent::default());
     }
 }
 

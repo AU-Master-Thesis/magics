@@ -1,5 +1,8 @@
-use bevy::prelude::*;
-use leafwing_input_manager::prelude::*;
+use bevy::{
+    input::{keyboard::KeyboardInput, ButtonState},
+    prelude::*,
+};
+use leafwing_input_manager::{common_conditions::action_just_pressed, prelude::*};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
@@ -12,14 +15,20 @@ use crate::{
     ui::{ActionBlock, ChangingBinding},
 };
 
+#[derive(Default)]
 pub struct CameraInputPlugin;
 
 impl Plugin for CameraInputPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CameraSensitivity>()
-            .add_plugins((InputManagerPlugin::<CameraAction>::default(),))
-            .add_systems(PostStartup, (bind_camera_input /* bind_camera_switch */,))
-            .add_systems(Update, (camera_actions, switch_camera));
+            .add_plugins(InputManagerPlugin::<CameraAction>::default())
+            .add_systems(PostStartup, bind_camera_input)
+            // .add_systems(
+            //     Update,
+            //     switch_camera.run_if(action_just_pressed(CameraAction::Switch)),
+            // )
+            // .add_systems(Update, camera_actions);
+        .add_systems(Update, (camera_actions, switch_camera));
     }
 }
 
@@ -117,7 +126,7 @@ impl CameraAction {
     }
 }
 
-fn bind_camera_input(mut commands: Commands, query: Query<Entity, With<MainCamera>>) {
+fn bind_camera_input(mut commands: Commands, main_camera: Query<Entity, With<MainCamera>>) {
     let mut input_map = InputMap::default();
 
     for action in CameraAction::iter() {
@@ -132,7 +141,7 @@ fn bind_camera_input(mut commands: Commands, query: Query<Entity, With<MainCamer
         }
     }
 
-    if let Ok(entity) = query.get_single() {
+    if let Ok(entity) = main_camera.get_single() {
         commands
             .entity(entity)
             .insert(InputManagerBundle::with_map(input_map));
@@ -160,7 +169,23 @@ fn camera_actions(
     sensitivity: Res<CameraSensitivity>,
     // mut window: Query<&PrimaryWindow>,
     windows: Query<&Window>,
+    mut keyboard_events: EventReader<KeyboardInput>,
+    mut control_key_pressed: Local<bool>,
 ) {
+    for event in keyboard_events.read() {
+        match event.key_code {
+            KeyCode::ControlLeft | KeyCode::ControlRight => match event.state {
+                ButtonState::Pressed => *control_key_pressed = true,
+                ButtonState::Released => *control_key_pressed = false,
+            },
+            _ => {}
+        }
+    }
+
+    // if !*control_key_pressed {
+    //     return;
+    // }
+
     if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
         query.get_single_mut()
     {
@@ -261,14 +286,16 @@ fn camera_actions(
             tmp_angular_velocity.y = 0.0;
         }
 
-        if action_state.pressed(&CameraAction::ZoomIn) {
-            // info!("Zooming in");
-            tmp_velocity.y = -environment::camera::SPEED * camera_distance / 10.0;
-        } else if action_state.pressed(&CameraAction::ZoomOut) {
-            // info!("Zooming out");
-            tmp_velocity.y = environment::camera::SPEED * camera_distance / 10.0;
-        } else {
-            tmp_velocity.y = 0.0;
+        if !*control_key_pressed {
+            if action_state.pressed(&CameraAction::ZoomIn) {
+                // info!("Zooming in");
+                tmp_velocity.y = -environment::camera::SPEED * camera_distance / 10.0;
+            } else if action_state.pressed(&CameraAction::ZoomOut) {
+                // info!("Zooming out");
+                tmp_velocity.y = environment::camera::SPEED * camera_distance / 10.0;
+            } else {
+                tmp_velocity.y = 0.0;
+            }
         }
 
         velocity.value = tmp_velocity;
@@ -290,37 +317,54 @@ fn camera_actions(
     }
 }
 
+// #[derive(Debug, Event, Clone, Copy)]
+// pub enum ChangeCameraFocus;
+
 fn switch_camera(
     query: Query<&ActionState<CameraAction>>,
-    mut query_cameras: Query<&mut Camera>,
+    mut query_cameras: Query<(&mut Camera, Option<&MainCamera>)>,
     currently_changing: Res<ChangingBinding>,
+    // mut
 ) {
+    let action_state = query.single();
+    if !action_state.just_pressed(&CameraAction::Switch) {
+        return;
+    }
+
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
     }
-    let action_state = query.single();
 
+    // let last_active_camera: Option<_> = query_cameras.iter_mut().find(|camera|
+    // camera.is_active);
+
+    // if let Some(last_active_camera) = query_cameras.iter_mut()
+    //     .find(|camera| camera.is_active) {}
+
+    // }
+    // FIXME: avoid heap allocation
     // collect all cameras in a vector
     // let mut cameras = vec![query_main_camera.single_mut()];
     let mut cameras = vec![];
+
     let mut last_active_camera = 0;
 
-    for (i, camera) in query_cameras.iter_mut().enumerate() {
+    for (i, (camera, _main_camera)) in query_cameras.iter_mut().enumerate() {
         if camera.is_active {
             last_active_camera = i;
         }
         cameras.push(camera);
     }
 
-    if action_state.just_pressed(&CameraAction::Switch) {
-        let next_active_camera = (last_active_camera + 1) % cameras.len();
-        info!(
-            "Switching camera from {} to {}, with a total of {} cameras",
-            last_active_camera,
-            next_active_camera,
-            cameras.len()
-        );
-        cameras[last_active_camera].is_active = false;
-        cameras[next_active_camera].is_active = true;
-    }
+    info!("cameras.len() = {}", cameras.len());
+
+    let next_active_camera = (last_active_camera + 1) % cameras.len();
+    info!(
+        "Switching camera from {} to {}, with a total of {} cameras",
+        last_active_camera,
+        next_active_camera,
+        cameras.len()
+    );
+    cameras[last_active_camera].is_active = false;
+    cameras[next_active_camera].is_active = true;
 }

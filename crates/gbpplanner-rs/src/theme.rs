@@ -75,6 +75,7 @@ macro_rules! impl_colour_getters {
     ($($x:ident),+ $(,)?) => (
         $(
             #[allow(dead_code)]
+            #[inline(always)]
             pub const fn $x(&self) -> Colour {
                 self.flavour.$x()
             }
@@ -101,6 +102,8 @@ impl CatppuccinTheme {
         Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8)
     }
 
+    /// Check if the theme is a "dark" theme
+    #[inline(always)]
     pub fn is_dark(&self) -> bool {
         self.flavour.base().lightness() < 0.5
     }
@@ -108,6 +111,7 @@ impl CatppuccinTheme {
     /// Get iterator over all colours:
     /// `[rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green,
     /// teal, sky, sapphire, blue, lavender]`
+    #[inline]
     pub fn colours(&self) -> FlavourColours {
         self.flavour.colours()
     }
