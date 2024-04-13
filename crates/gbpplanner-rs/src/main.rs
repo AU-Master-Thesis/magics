@@ -7,6 +7,7 @@ mod cli;
 pub(crate) mod config;
 mod diagnostic;
 mod environment;
+mod factorgraph;
 mod input;
 mod moveable_object;
 mod movement;

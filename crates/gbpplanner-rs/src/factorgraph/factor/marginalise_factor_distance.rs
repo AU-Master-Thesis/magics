@@ -2,14 +2,11 @@ use gbp_linalg::prelude::*;
 use ndarray::prelude::*;
 use ndarray_inverse::Inverse;
 
-use super::message::Message;
-use crate::planner::message::{Eta, Lam, Mu};
-
-/// Utility function to create `start..start + n`
-/// Similar to `Eigen::seqN`
-const fn seq_n(start: usize, n: usize) -> std::ops::Range<usize> {
-    start..start + n
-}
+use crate::factorgraph::{
+    message::{InformationVec, Mean, PrecisionMatrix},
+    prelude::Message,
+    DOFS,
+};
 
 type Aa<'a, T> = MatrixView<'a, T>;
 type Ab<'a, T> = MatrixView<'a, T>;
@@ -18,29 +15,28 @@ type Bb<'a, T> = MatrixView<'a, T>;
 
 fn extract_submatrices_from_precision_matrix<T: GbpFloat>(
     precision_matrix: &Matrix<T>,
-    dofs: usize,
     marg_idx: usize,
 ) -> (Aa<T>, Ab<T>, Ba<T>, Bb<T>) {
     debug_assert!(precision_matrix.is_square());
-    debug_assert_eq!(precision_matrix.nrows() % dofs, 0);
-    debug_assert_eq!(precision_matrix.ncols() % dofs, 0);
+    debug_assert_eq!(precision_matrix.nrows() % DOFS, 0);
+    debug_assert_eq!(precision_matrix.ncols() % DOFS, 0);
 
-    let aa = precision_matrix.slice(s![seq_n(marg_idx, dofs), seq_n(marg_idx, dofs)]);
+    let aa = precision_matrix.slice(s![seq_n(marg_idx, DOFS), seq_n(marg_idx, DOFS)]);
 
     let ab = if marg_idx == 0 {
-        precision_matrix.slice(s![seq_n(marg_idx, dofs), marg_idx + dofs..])
+        precision_matrix.slice(s![seq_n(marg_idx, DOFS), marg_idx + DOFS..])
     } else {
-        precision_matrix.slice(s![seq_n(marg_idx, dofs), ..marg_idx])
+        precision_matrix.slice(s![seq_n(marg_idx, DOFS), ..marg_idx])
     };
 
     let ba = if marg_idx == 0 {
-        precision_matrix.slice(s![marg_idx + dofs.., seq_n(marg_idx, dofs)])
+        precision_matrix.slice(s![marg_idx + DOFS.., seq_n(marg_idx, DOFS)])
     } else {
-        precision_matrix.slice(s![..marg_idx, seq_n(marg_idx, dofs)])
+        precision_matrix.slice(s![..marg_idx, seq_n(marg_idx, DOFS)])
     };
 
     let bb = if marg_idx == 0 {
-        precision_matrix.slice(s![marg_idx + dofs.., marg_idx + dofs..])
+        precision_matrix.slice(s![marg_idx + DOFS.., marg_idx + DOFS..])
     } else {
         precision_matrix.slice(s![..marg_idx, ..marg_idx])
     };
@@ -51,132 +47,53 @@ fn extract_submatrices_from_precision_matrix<T: GbpFloat>(
 pub fn marginalise_factor_distance(
     information_vector: Vector<Float>,
     precision_matrix: Matrix<Float>,
-    variable_dofs: usize,
     marginalisation_idx: usize,
 ) -> Result<Message, &'static str> {
-    let ndofs = variable_dofs;
+    // let ndofs = variable_dofs;
     let marg_idx = marginalisation_idx;
 
     debug_assert_eq!(information_vector.len(), precision_matrix.nrows());
     debug_assert_eq!(precision_matrix.nrows(), precision_matrix.ncols());
-    // pretty_print_vector!(&information_vector);
-    // pretty_print_matrix!(&precision_matrix);
 
-    let factor_only_connected_to_one_variable = information_vector.len() == variable_dofs;
+    let factor_only_connected_to_one_variable = information_vector.len() == DOFS;
     if factor_only_connected_to_one_variable {
         let mu = Vector::<Float>::zeros(information_vector.len());
         return Ok(Message::new(
-            Eta(information_vector),
-            Lam(precision_matrix),
-            Mu(mu),
+            InformationVec(information_vector),
+            PrecisionMatrix(precision_matrix),
+            Mean(mu),
         ));
-        // dbg!(&information_vector);
-        // dbg!(&precision_matrix);
-        // TODO: return None
-        // let mvn = MultivariateNormal::from_information_and_precision(
-        //     information_vector,
-        //     precision_matrix,
-        // )
-        // .inspect_err(|_| {
-        //     // pretty_print_matrix!(&precision_matrix);
-        // })
-        // .expect(
-        //     "the given information vector and precision matrix is a valid
-        // multivariate gaussian", );
-        // return Ok(Message::new(mvn));
     }
 
-    // eprintln!(
-    //     "information_vector shape = {:?}, ndofs = {:?}",
-    //     information_vector.shape(),
-    //     variable_dofs
-    // );
-    // eprintln!("precision_matrix shape = {:?}", precision_matrix.shape());
-
-    // eprintln!("show me precision_matrix = \n{:?}", precision_matrix);
-
-    // let iv = &information_vector;
-    // let pm = &precision_matrix;
-
-    let eta_a = information_vector.slice(s![seq_n(marg_idx, ndofs)]);
-    assert_eq!(eta_a.len(), ndofs);
+    let eta_a = information_vector.slice(s![seq_n(marg_idx, DOFS)]);
+    assert_eq!(eta_a.len(), DOFS);
 
     let eta_b = if marg_idx == 0 {
-        information_vector.slice(s![ndofs..])
+        information_vector.slice(s![DOFS..])
     } else {
         information_vector.slice(s![..marg_idx])
     };
-    assert_eq!(eta_b.len(), information_vector.len() - ndofs);
+    assert_eq!(eta_b.len(), information_vector.len() - DOFS);
 
     let (lam_aa, lam_ab, lam_ba, lam_bb) =
-        extract_submatrices_from_precision_matrix(&precision_matrix, ndofs, marg_idx);
-
-    // let lam_aa = precision_matrix.slice(s![seq_n(marg_idx, ndofs),
-    // seq_n(marg_idx, ndofs)]);
-
-    // let lam_ab = if marg_idx == 0 {
-    //     precision_matrix.slice(s![seq_n(marg_idx, ndofs), marg_idx + ndofs..])
-    // } else {
-    //     precision_matrix.slice(s![seq_n(marg_idx, ndofs), ..marg_idx])
-    // };
-
-    // assert_eq!(lam_ab.shape(), &[ndofs, precision_matrix.ncols() - ndofs]);
-
-    // // eprintln!("margin_idx = {}", marg_idx);
-
-    // let lam_ba = if marg_idx == 0 {
-    //     precision_matrix.slice(s![marg_idx + ndofs.., seq_n(marg_idx, ndofs)])
-    // } else {
-    //     precision_matrix.slice(s![..marg_idx, seq_n(marg_idx, ndofs)])
-    // };
-
-    // let lam_bb = if marg_idx == 0 {
-    //     precision_matrix.slice(s![marg_idx + ndofs.., marg_idx + ndofs..])
-    // } else {
-    //     precision_matrix.slice(s![..marg_idx, ..marg_idx])
-    // };
-
-    // assert_eq!(
-    //     lam_bb.shape(),
-    //     &[
-    //         precision_matrix.shape()[0] - ndofs,
-    //         precision_matrix.shape()[1] - ndofs
-    //     ]
-    // );
-
-    // eprintln!("lam_bb = {:?}", lam_bb);
+        extract_submatrices_from_precision_matrix(&precision_matrix, marg_idx);
 
     let Some(lam_bb_inv) = lam_bb.to_owned().inv() else {
-        return Ok(Message::empty(ndofs));
+        return Ok(Message::empty());
     };
 
-    // let lam_bb_inv = lam_bb.to_owned().inv().expect("should have an inverse");
-    // let information_vector = (&eta_a - &lam_ab).dot(&lam_bb_inv).dot(&eta_b);
     let information_vector = &eta_a - &lam_ab.dot(&lam_bb_inv).dot(&eta_b);
-    // eprintln!("information_vector = {:?}", information_vector);
     let precision_matrix = &lam_aa - &lam_ab.dot(&lam_bb_inv).dot(&lam_ba);
-    // eprintln!("precision_matrix = {:?}", precision_matrix);
 
     if precision_matrix.iter().any(|elem| elem.is_infinite()) {
-        Ok(Message::empty(information_vector.len()))
-        // Message::with_dofs(information_vector.len())
-        // Message::zeros(information_vector.len())
+        Ok(Message::empty())
     } else {
         let mu = Vector::<Float>::zeros(information_vector.len());
         Ok(Message::new(
-            Eta(information_vector),
-            Lam(precision_matrix),
-            Mu(mu),
+            InformationVec(information_vector),
+            PrecisionMatrix(precision_matrix),
+            Mean(mu),
         ))
-
-        // let mvn = MultivariateNormal::from_information_and_precision(
-        //     information_vector,
-        //     precision_matrix,
-        // )
-        // .expect(
-        //     "the given information vector and precision matrix is a valid
-        // multivariate gaussian", );
-        // Ok(Message::new(mvn))
     }
 }
 
@@ -240,7 +157,7 @@ mod tests {
 
         assert!(precision_matrix.is_square());
 
-        let (aa, ab, ba, bb) = extract_submatrices_from_precision_matrix(&precision_matrix, 4, 0);
+        let (aa, ab, ba, bb) = extract_submatrices_from_precision_matrix(&precision_matrix, 0);
 
         assert_eq!(aa, upper_left);
         assert_eq!(ab, upper_right);
@@ -255,7 +172,7 @@ mod tests {
 
         assert!(precision_matrix.is_square());
 
-        let (aa, ab, ba, bb) = extract_submatrices_from_precision_matrix(&precision_matrix, 4, 4);
+        let (aa, ab, ba, bb) = extract_submatrices_from_precision_matrix(&precision_matrix, 4);
 
         assert_eq!(aa, lower_right);
         assert_eq!(ab, lower_left);
@@ -272,21 +189,19 @@ mod tests {
                 0., 0., 0.3, 5.
             ]];
 
-        let ndofs = 4;
         let marginalisation_idx = 0;
 
         let mut marginalised_msg = marginalise_factor_distance(
             information_vector.clone(),
             precision_matrix.clone(),
-            ndofs,
             marginalisation_idx,
         )
         .unwrap();
 
         let payload = marginalised_msg.take().unwrap();
 
-        assert_eq!(payload.eta, information_vector);
-        assert_eq!(payload.lam, precision_matrix);
+        assert_eq!(payload.information_factor, information_vector);
+        assert_eq!(payload.precision_matrix, precision_matrix);
     }
 
     // #[test]
@@ -332,4 +247,11 @@ mod tests {
     //     .into_iter()
     //     .collect::<Vec<_>>();
     // }
+}
+
+/// Utility function to create `start..start + n`
+/// Similar to `Eigen::seqN`
+#[inline]
+const fn seq_n(start: usize, n: usize) -> std::ops::Range<usize> {
+    start..start + n
 }

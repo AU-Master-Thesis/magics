@@ -1,9 +1,13 @@
+//! Pose factor
+
 use gbp_linalg::prelude::*;
+
+use super::{FactorState, IFactor};
 
 #[derive(Debug)]
 pub struct PoseFactor;
 
-impl Model for PoseFactor {
+impl IFactor for PoseFactor {
     #[inline(always)]
     fn name(&self) -> &'static str {
         "PoseFactor"

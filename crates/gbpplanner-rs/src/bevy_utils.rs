@@ -35,3 +35,26 @@ pub fn despawn_entities_with_component<T: Component>(
         commands.entity(entity).despawn_recursive();
     }
 }
+
+pub mod run_conditions {
+    use bevy::{
+        ecs::system::Res,
+        input::{keyboard::KeyCode, ButtonInput},
+    };
+
+    //     pub fn any_input_just_pressed(
+    //         // inputs: impl IntoIterator<Item = ButtonInput<KeyCode>>,
+    //         // inputs: impl IntoIterator<Item = KeyCode>,
+    //         // inputs: Vec<KeyCode>,
+    //     ) -> impl Fn(Res<ButtonInput<KeyCode>>) -> bool
+    // // where
+    //     //     T: Copy + Eq + Send + Sync + 'static,
+    //     {
+    //         move |keyboard_input: Res<ButtonInput<KeyCode>>|
+    // keyboard_input.any_pressed(inputs)
+
+    //         // move |keyboard_input: Res<ButtonInput<T>>| {
+    //         //     inputs.into_iter().any(|it|
+    // keyboard_input.just_pressed(it))         // }
+    //     }
+}

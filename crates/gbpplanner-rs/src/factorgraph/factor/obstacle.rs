@@ -1,9 +1,10 @@
 //! Obstacle factor
 
-use bevy::render::texture::Image;
+use bevy::{log::warn, render::texture::Image};
 use gbp_linalg::{prelude::*, Float};
+use ndarray::{array, concatenate, s};
 
-use super::Model;
+use super::{FactorState, IFactor};
 
 #[derive(Clone)]
 pub struct ObstacleFactor {
@@ -37,7 +38,7 @@ impl ObstacleFactor {
     }
 }
 
-impl Model for ObstacleFactor {
+impl IFactor for ObstacleFactor {
     #[inline]
     fn name(&self) -> &'static str {
         "ObstacleFactor"

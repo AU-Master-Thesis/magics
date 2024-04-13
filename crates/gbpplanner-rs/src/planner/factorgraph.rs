@@ -24,8 +24,6 @@ pub struct RemoveConnectionToError;
 
 impl std::error::Error for RemoveConnectionToError {}
 
-// pub
-
 pub(super) trait FactorGraphNode {
     #[must_use]
     fn remove_connection_to(

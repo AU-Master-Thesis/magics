@@ -13,7 +13,7 @@ members = [ "crates/angle",
   # "crates/bevy_undo_redo",
   "crates/gbpplanner-rs",
   "crates/bevy_notify",
-  "crates/units",
+  "crates/units", "crates/bevy_fullscreen",
 ]
 
 [workspace.package]

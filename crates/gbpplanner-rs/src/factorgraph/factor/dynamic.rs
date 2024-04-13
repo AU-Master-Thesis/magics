@@ -1,8 +1,9 @@
 //!
 
 use gbp_linalg::prelude::*;
+use ndarray::{concatenate, Axis};
 
-use super::{FactorState, Model};
+use super::{FactorState, IFactor};
 use crate::factorgraph::DOFS;
 
 /// Dynamic factor: constant velocity model
@@ -50,7 +51,7 @@ impl DynamicFactor {
     }
 }
 
-impl Model for DynamicFactor {
+impl IFactor for DynamicFactor {
     #[inline]
     fn name(&self) -> &'static str {
         "DynamicFactor"

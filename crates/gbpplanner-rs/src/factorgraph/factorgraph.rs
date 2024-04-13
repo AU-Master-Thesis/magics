@@ -5,7 +5,7 @@ use bevy::{
 use petgraph::Undirected;
 
 use super::{
-    factor::Factor,
+    factor::{interrobot::InterRobotFactor, Factor},
     node::{Node, NodeKind},
     variable::Variable,
 };
@@ -20,7 +20,7 @@ pub type FactorGraphId = Entity;
 /// we make an alias for it here, such that it is easier to use the same
 /// index type across modules, as the various node index types `petgraph`
 /// are not interchangeable.
-pub type NodeIndex = petgraph::stable_graph::NodeIndex;
+pub(crate) type NodeIndex = petgraph::stable_graph::NodeIndex;
 /// The type used to represent indices into the nodes of the factorgraph.
 pub type EdgeIndex = petgraph::stable_graph::EdgeIndex;
 /// A factorgraph is an undirected graph
@@ -293,7 +293,9 @@ impl std::ops::Index<FactorIndex> for FactorGraph {
     // type Output = Option<Factor>;
 
     fn index(&self, index: FactorIndex) -> &Self::Output {
-        self.graph[index.into()].as_factor()
+        &self.graph[index.into()]
+            .as_factor()
+            .expect("a factor index points to a factor node in the graph")
     }
 }
 
@@ -306,3 +308,11 @@ impl std::ops::Index<VariableIndex> for FactorGraph {
             .expect("a variable index points to a variable node in the graph")
     }
 }
+
+// impl std::ops::Index<FactodId> for FactorGraph {
+//     type Output = Factor;
+//
+//     fn index(&self, index: FactodId) -> &Self::Output {
+//         todo!()
+//     }
+// }

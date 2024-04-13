@@ -4,13 +4,13 @@
 use bevy::ecs::entity::Entity;
 use petgraph::Undirected;
 
-mod factor;
-mod factorgraph;
-mod graphviz;
-mod id;
-mod message;
-mod node;
-mod variable;
+pub(super) mod factor;
+pub(super) mod factorgraph;
+pub(super) mod graphviz;
+pub(crate) mod id;
+pub(crate) mod message;
+pub(crate) mod node;
+pub(crate) mod variable;
 
 /// Degrees of Freedom of the ground robot.
 /// The robot has 4 degrees, of freedom:
@@ -19,7 +19,7 @@ mod variable;
 /// 3. velocity.x
 /// 4. velocity.y
 /// [x, y, x', y']
-pub const DOFS: u32 = 4;
+pub const DOFS: usize = 4;
 
 /// prelude module bringing entire public API into score
 pub mod prelude {

@@ -6,16 +6,15 @@ use ndarray_inverse::Inverse;
 use tap::Tap;
 
 use super::{
-    factorgraph::{
-        FactorGraphNode, FactorId, MessageCount, MessagesFromVariables, MessagesToFactors,
-        VariableId,
-    },
-    message::{InformationVec, Mean, Message, PrecisionMatrix},
+    factorgraph::NodeIndex,
+    id::FactorId,
+    message::{InformationVec, Mean, Message, MessagesToFactors, PrecisionMatrix},
+    node::FactorGraphNode,
+    MessageCount,
 };
 use crate::{
-    escape_codes::*,
-    planner::{factorgraph::VariableIndex, NodeIndex},
-    pretty_print_line, pretty_print_message, pretty_print_subtitle, pretty_print_title,
+    escape_codes::*, pretty_print_line, pretty_print_message, pretty_print_subtitle,
+    pretty_print_title,
 };
 
 #[derive(Debug, Clone)]
@@ -33,6 +32,13 @@ impl VariablePrior {
         }
     }
 }
+
+// TODO: use pretty_print_matrix!
+// impl std::fmt::Display for VariablePrior {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         todo!()
+//     }
+// }
 
 #[derive(Debug, Clone)]
 pub struct VariableBelief {
@@ -188,7 +194,7 @@ impl Variable {
     /// It updates the belief of the variable.
     /// The prior acts as the pose factor
     /// Called `Variable::change_variable_prior` in **gbpplanner**
-    pub fn change_prior(&mut self, mean: Vector<Float>) -> MessagesFromVariables {
+    pub fn change_prior(&mut self, mean: Vector<Float>) -> MessagesToFactors {
         // let subtitle = format!("{}{}{}", RED, "Changing prior", RESET);
         // pretty_print_subtitle!(subtitle);
         // pretty_print_matrix!(&self.prior.lambda);
@@ -203,14 +209,14 @@ impl Variable {
         // FIXME: forgot this line in the original code
         // this->belief_ = Message {this->eta_, this->lam_, this->mu_};
 
-        let messages: MessagesFromVariables = self
+        let messages: MessagesToFactors = self
             .inbox
             .keys()
             .map(|factor_id| (*factor_id, self.belief.clone().into()))
             .collect();
 
         for message in self.inbox.values_mut() {
-            *message = Message::empty(self.dofs);
+            *message = Message::empty();
         }
 
         messages
@@ -233,7 +239,7 @@ impl Variable {
     // *******************************************************/
     /// Variable Belief Update step (Step 1 in the GBP algorithm)
     /// called `Variable::update_belief` in **gbpplanner**
-    pub fn update_belief_and_create_factor_responses(&mut self) -> MessagesFromVariables {
+    pub fn update_belief_and_create_factor_responses(&mut self) -> MessagesToFactors {
         // Collect messages from all other factors, begin by "collecting message from
         // pose factor prior"
         self.belief.information_vector = self.prior.information_vector.clone();
@@ -252,8 +258,10 @@ impl Variable {
                 // info!("skipping empty message");
                 continue;
             };
-            self.belief.information_vector = &self.belief.information_vector + &payload.eta;
-            self.belief.precision_matrix = &self.belief.precision_matrix + &payload.lam;
+            self.belief.information_vector =
+                &self.belief.information_vector + &payload.information_factor;
+            self.belief.precision_matrix =
+                &self.belief.precision_matrix + &payload.precision_matrix;
         }
 
         // Update belief
@@ -288,7 +296,7 @@ impl Variable {
         // pretty_print_vector!(&self.belief.mu);
         // pretty_print_line!();
 
-        let messages = self
+        let messages: MessagesToFactors = self
             .inbox
             .iter()
             .map(|(&factor_id, received_message)| {
@@ -302,12 +310,14 @@ impl Variable {
                         // pretty_print_line!();
                         let msg = Message::new(
                             InformationVec(
-                                &self.belief.information_vector - &message_from_factor.eta,
+                                &self.belief.information_vector
+                                    - &message_from_factor.information_factor,
                             ),
                             PrecisionMatrix(
-                                &self.belief.precision_matrix - &message_from_factor.lam,
+                                &self.belief.precision_matrix
+                                    - &message_from_factor.precision_matrix,
                             ),
-                            Mean(&self.belief.mean - &message_from_factor.mu),
+                            Mean(&self.belief.mean - &message_from_factor.mean),
                         );
                         // pretty_print_subtitle!("AFTER FACTOR SUBSTRACTION");
                         // pretty_print_vector!(&self.belief.eta);
@@ -318,7 +328,7 @@ impl Variable {
                 );
                 (factor_id, response)
             })
-            .collect::<MessagesFromVariables>();
+            .collect();
 
         // messages.iter().for_each(|(factor_id, message)| {
         //     pretty_print_message!(

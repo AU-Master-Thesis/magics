@@ -79,6 +79,7 @@ impl Plugin for RobotDiagnosticsPlugin {
         app.register_diagnostic(Diagnostic::new(Self::ROBOT_COUNT))
             .register_diagnostic(Diagnostic::new(Self::VARIABLE_COUNT))
             .register_diagnostic(Diagnostic::new(Self::FACTOR_COUNT))
+            .register_diagnostic(Diagnostic::new(Self::EXTERNAL_MESSAGES_SENT_COUNT))
             .register_diagnostic(Diagnostic::new(Self::MESSAGES_SENT_COUNT));
 
         let sample_schedule = PostUpdate;
@@ -150,6 +151,8 @@ impl Plugin for RobotDiagnosticsPlugin {
 }
 
 impl RobotDiagnosticsPlugin {
+    pub const EXTERNAL_MESSAGES_SENT_COUNT: DiagnosticPath =
+        DiagnosticPath::const_new("external_messages_sent_count");
     pub const FACTOR_COUNT: DiagnosticPath = DiagnosticPath::const_new("factor_count");
     pub const MESSAGES_SENT_COUNT: DiagnosticPath =
         DiagnosticPath::const_new("messages_sent_count");
@@ -194,4 +197,15 @@ impl RobotDiagnosticsPlugin {
             *messages_sent_in_total as f64
         })
     }
+
+    // fn count_external_messages_sent(
+    //     mut diagnostics: Diagnostics,
+    //     mut messages_sent_in_total: Local<usize>,
+    //     mut factorgraphs: Query<&mut FactorGraph, With<RobotState>>,
+    // ) {
+    //     diagnostics.add_measurement(&Self::EXTERNAL_MESSAGES_SENT_COUNT, || {
+    //         *messages_sent_in_total += *messages_sent_in_total;
+    //         *messages_sent_in_total as f64
+    //     })
+    // }
 }

@@ -1,10 +1,11 @@
 use bevy::render::texture::Image;
 use gbp_linalg::prelude::*;
+use ndarray::{array, concatenate, s};
 use typed_floats::StrictlyPositiveFinite;
 
 use self::{
     dynamic::DynamicFactor,
-    interrobot::{InterRobotConnection, InterRobotFactor, InterRobotFactorError},
+    interrobot::{InterRobotFactor, InterRobotFactorConnection},
     obstacle::ObstacleFactor,
     pose::PoseFactor,
 };
@@ -12,20 +13,23 @@ use super::{
     factorgraph::NodeIndex,
     id::VariableId,
     message::{MessagesToFactors, MessagesToVariables},
+    node::FactorGraphNode,
     prelude::Message,
     MessageCount, DOFS,
 };
 
-mod dynamic;
-mod interrobot;
-mod obstacle;
-mod pose;
-mod marginalize_factor_distance;
+pub(in crate::factorgraph) mod dynamic;
+pub(in crate::factorgraph) mod interrobot;
+mod marginalise_factor_distance;
+pub(in crate::factorgraph) mod obstacle;
+pub(in crate::factorgraph) mod pose;
+
+use marginalise_factor_distance::marginalise_factor_distance;
 
 // TODO: make generic over f32 | f64
 // TODO: hide the state parameter from the public API, by having the `Factor`
 // struct expose similar methods that dispatch to the `FactorState` struct.
-pub trait Model {
+pub trait IFactor {
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
 
@@ -48,17 +52,20 @@ pub trait Model {
     /// Measurement function
     /// **Note**: This method takes a mutable reference to self, because the
     /// interrobot factor
+    #[must_use]
     fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
 
     fn first_order_jacobian(&mut self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
         let h0 = self.measure(state, &x); // value at linearization point
         let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
 
+        let delta = self.jacobian_delta();
+
         for i in 0..x.len() {
-            x[i] += self.jacobian_delta(); // perturb by delta
-            let derivatives = (self.measure(state, &x) - &h0) / self.jacobian_delta();
+            x[i] += delta; // perturb by delta
+            let derivatives = (self.measure(state, &x) - &h0) / delta;
             jacobian.column_mut(i).assign(&derivatives);
-            x[i] -= self.jacobian_delta(); // reset the perturbation
+            x[i] -= delta; // reset the perturbation
         }
 
         jacobian
@@ -127,13 +134,13 @@ impl Factor {
         strength: Float,
         measurement: Vector<Float>,
         safety_radius: StrictlyPositiveFinite<Float>,
-        connection: InterRobotConnection,
-    ) -> Result<Self, InterRobotFactorError> {
-        let interrobot_factor = InterRobotFactor::new(safety_radius.get(), connection)?;
+        connection: InterRobotFactorConnection,
+    ) -> Self {
+        let interrobot_factor = InterRobotFactor::new(safety_radius, connection);
         let kind = FactorKind::InterRobot(interrobot_factor);
         let state = FactorState::new(measurement, strength, InterRobotFactor::NEIGHBORS);
 
-        Ok(Self::new(state, kind))
+        Self::new(state, kind)
     }
 
     pub fn new_pose_factor() -> Self {
@@ -275,39 +282,29 @@ impl Factor {
         self.message_count.sent += messages.len();
         messages
     }
-}
 
-impl FactorGraphNode for Factor {
-    fn remove_connection_to(
-        &mut self,
-        factorgraph_id: super::factorgraph::FactorGraphId,
-    ) -> Result<(), super::factorgraph::RemoveConnectionToError> {
-        let connections_before = self.inbox.len();
-        self.inbox
-            .retain(|variable_id, v| variable_id.factorgraph_id != factorgraph_id);
-        let connections_after = self.inbox.len();
-
-        let no_connections_removed = connections_before == connections_after;
-        if no_connections_removed {
-            Err(super::factorgraph::RemoveConnectionToError)
-        } else {
-            Ok(())
-        }
-    }
-
-    #[inline]
-    fn messages_sent(&self) -> usize {
-        self.message_count.sent
-    }
-
-    #[inline]
-    fn messages_received(&self) -> usize {
-        self.message_count.received
-    }
-
+    /// Check if the factor is an [`InterRobotFactor`]
     #[inline(always)]
-    fn reset_message_count(&mut self) {
-        self.message_count.reset();
+    pub fn is_inter_robot(&self) -> bool {
+        self.kind.is_inter_robot()
+    }
+
+    /// Check if the factor is a [`DynamicFactor`]
+    #[inline(always)]
+    pub fn is_dynamic(&self) -> bool {
+        self.kind.is_dynamic()
+    }
+
+    /// Check if the factor is an [`ObstacleFactor`]
+    #[inline(always)]
+    pub fn is_obstacle(&self) -> bool {
+        self.kind.is_obstacle()
+    }
+
+    /// Check if the factor is a [`PoseFactor`]
+    #[inline(always)]
+    pub fn is_pose(&self) -> bool {
+        self.kind.is_pose()
     }
 }
 
@@ -357,7 +354,7 @@ impl FactorKind {
     }
 }
 
-impl Model for FactorKind {
+impl IFactor for FactorKind {
     fn name(&self) -> &'static str {
         match self {
             FactorKind::Pose(f) => f.name(),
@@ -459,7 +456,6 @@ impl FactorState {
         }
     }
 }
-
 
 impl FactorGraphNode for Factor {
     fn remove_connection_to(

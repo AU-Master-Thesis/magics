@@ -1,12 +1,12 @@
-use super::{factorgraph::FactorGraphId, variable::Variable};
+use super::{factor::Factor, factorgraph::FactorGraphId, variable::Variable};
 
 #[derive(Debug, derive_more::Display)]
 #[display(fmt = "no connection to the given factorgraph")]
-pub struct RemoveConnectionToError;
+pub(in crate::factorgraph) struct RemoveConnectionToError;
 
 impl std::error::Error for RemoveConnectionToError {}
 
-pub(super) trait FactorGraphNode {
+pub(in crate::factorgraph) trait FactorGraphNode {
     #[must_use]
     fn remove_connection_to(
         &mut self,

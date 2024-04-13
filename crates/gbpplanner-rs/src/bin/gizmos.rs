@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_macros)]
+#![allow(dead_code, unused_macros, missing_docs)]
 
 use bevy::{prelude::*, window::WindowResized};
 // use std::f32::consts::{PI, TAU};
