@@ -7,39 +7,26 @@ use typed_floats::StrictlyPositiveFinite;
 
 use super::{FactorState, IFactor};
 use crate::factorgraph::{
-    factorgraph::NodeIndex,
+    factorgraph::{FactorGraphId, NodeIndex, VariableIndex},
     id::{FactorId, VariableId},
     DOFS,
 };
 
-// TODO: add to and from
 #[derive(Debug, Clone, Copy)]
-pub struct InterRobotFactorConnection {
-    pub interrobot:     FactorId,
-    pub other_variable: VariableId,
-    // pub id_of_robot_connected_with: RobotId,
-    // pub index_of_connected_variable_in_other_robots_factorgraph: NodeIndex,
+pub struct ExternalVariableId {
+    pub factorgraph_id: FactorGraphId,
+    pub variable_index: VariableIndex,
 }
 
-impl InterRobotFactorConnection {
-    #[must_use]
-    pub fn new(
-        interrobot: FactorId,
-        other_variable: VariableId,
-        // id_of_robot_connected_with: RobotId,
-        // index_of_connected_variable_in_other_robots_factorgraph: NodeIndex,
-    ) -> Self {
+impl ExternalVariableId {
+    /// Create a new `ExternalVariableId`
+    pub fn new(factorgraph_id: FactorGraphId, variable_index: VariableIndex) -> Self {
         Self {
-            interrobot,
-            other_variable,
-            // id_of_robot_connected_with,
-            // index_of_connected_variable_in_other_robots_factorgraph,
+            factorgraph_id,
+            variable_index,
         }
     }
 }
-
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// pub struct Skip(bool);
 
 /// Interrobot factor: for avoidance of other robots
 /// This factor results in a high energy or cost if two robots are planning to
@@ -50,14 +37,8 @@ impl InterRobotFactorConnection {
 pub struct InterRobotFactor {
     safety_distance: Float,
     skip: bool,
-    pub connection: InterRobotFactorConnection,
+    pub external_variable: ExternalVariableId,
 }
-
-// #[derive(Debug, thiserror::Error)]
-// pub enum InterRobotFactorError {
-//     #[error("The robot radius must be positive, but it was {0}")]
-//     NegativeRobotRadius(Float),
-// }
 
 impl InterRobotFactor {
     pub const NEIGHBORS: usize = 2;
@@ -65,19 +46,15 @@ impl InterRobotFactor {
     #[must_use]
     pub fn new(
         robot_radius: StrictlyPositiveFinite<Float>,
-        connection: InterRobotFactorConnection,
-        // ) -> Result<Self, InterRobotFactorError> {
+        external_variable: ExternalVariableId,
     ) -> Self {
-        // if robot_radius < 0.0 {
-        //     return Err(InterRobotFactorError::NegativeRobotRadius(robot_radius));
-        // }
         let robot_radius = robot_radius.get();
         let epsilon = 0.2 * robot_radius;
 
         Self {
             safety_distance: 2.0 * robot_radius + epsilon,
             skip: false,
-            connection,
+            external_variable,
         }
     }
 
@@ -106,7 +83,9 @@ impl IFactor for InterRobotFactor {
             for i in 0..offset {
                 // x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as
                 // Float;
-                x_diff[i] += 1e-6 * self.connection.other_variable.factorgraph_id.index() as Float;
+                // x_diff[i] += 1e-6 * self.connection.other_variable.factorgraph_id.index() as
+                // Float;
+                x_diff[i] += 1e-6 * self.external_variable.factorgraph_id.index() as Float;
                 // Add a tiny random offset to avoid div/0 errors
             }
             x_diff
@@ -142,7 +121,7 @@ impl IFactor for InterRobotFactor {
                 // Add a tiny random offset to avoid div/0 errors
                 // x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as
                 // Float;
-                x_diff[i] += 1e-6 * self.connection.other_variable.factorgraph_id.index() as Float;
+                x_diff[i] += 1e-6 * self.external_variable.factorgraph_id.index() as Float;
             }
             x_diff
         };

@@ -6,9 +6,7 @@ use ndarray::{array, concatenate, prelude::*, s, Axis};
 use typed_floats::StrictlyPositiveFinite;
 
 use self::{
-    dynamic::DynamicFactor,
-    interrobot::{InterRobotFactor, InterRobotFactorConnection},
-    obstacle::ObstacleFactor,
+    dynamic::DynamicFactor, interrobot::InterRobotFactor, obstacle::ObstacleFactor,
     pose::PoseFactor,
 };
 use super::{
@@ -28,6 +26,9 @@ pub(in crate::factorgraph) mod obstacle;
 pub(in crate::factorgraph) mod pose;
 
 use marginalise_factor_distance::marginalise_factor_distance;
+
+// pub use crate::factorgraph::factor::interrobot::InterRobotFactorConnection;
+pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 
 // TODO: make generic over f32 | f64
 // TODO: hide the state parameter from the public API, by having the `Factor`
@@ -137,9 +138,9 @@ impl Factor {
         strength: Float,
         measurement: Vector<Float>,
         safety_radius: StrictlyPositiveFinite<Float>,
-        connection: InterRobotFactorConnection,
+        external_variable: ExternalVariableId,
     ) -> Self {
-        let interrobot_factor = InterRobotFactor::new(safety_radius, connection);
+        let interrobot_factor = InterRobotFactor::new(safety_radius, external_variable);
         let kind = FactorKind::InterRobot(interrobot_factor);
         let state = FactorState::new(measurement, strength, InterRobotFactor::NEIGHBORS);
 

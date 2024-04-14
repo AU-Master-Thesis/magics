@@ -40,11 +40,14 @@ impl VariablePrior {
 //     }
 // }
 
+/// PERF: use fixed size vectors and matrices, either bevy Vec4, or nalgebra
+/// Vec4
 #[derive(Debug, Clone)]
 pub struct VariableBelief {
     pub information_vector: Vector<Float>,
     pub precision_matrix: Matrix<Float>,
     pub mean: Vector<Float>,
+
     pub covariance_matrix: Matrix<Float>,
     /// Flag to indicate if the variable's covariance is finite, i.e. it does
     /// not contain NaNs or Infs In gbpplanner it is used to control if a

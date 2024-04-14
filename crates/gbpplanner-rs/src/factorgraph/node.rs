@@ -2,7 +2,7 @@ use super::{factor::Factor, factorgraph::FactorGraphId, variable::Variable};
 
 #[derive(Debug, derive_more::Display)]
 #[display(fmt = "no connection to the given factorgraph")]
-pub(in crate::factorgraph) struct RemoveConnectionToError;
+pub(crate) struct RemoveConnectionToError;
 
 impl std::error::Error for RemoveConnectionToError {}
 
@@ -29,7 +29,7 @@ pub enum NodeKind {
 #[derive(Debug)]
 pub struct Node {
     factorgraph_id: FactorGraphId,
-    kind: NodeKind,
+    pub kind:       NodeKind,
 }
 
 impl Node {
@@ -97,5 +97,38 @@ impl Node {
         } else {
             None
         }
+    }
+}
+
+impl FactorGraphNode for Node {
+    fn remove_connection_to(
+        &mut self,
+        factorgraph_id: FactorGraphId,
+    ) -> Result<(), RemoveConnectionToError> {
+        match self.kind {
+            NodeKind::Factor(ref mut factor) => factor.remove_connection_to(factorgraph_id),
+            NodeKind::Variable(ref mut variable) => variable.remove_connection_to(factorgraph_id),
+        }
+    }
+
+    fn messages_sent(&self) -> usize {
+        match self.kind {
+            NodeKind::Factor(ref factor) => factor.messages_sent(),
+            NodeKind::Variable(ref variable) => variable.messages_sent(),
+        }
+    }
+
+    fn messages_received(&self) -> usize {
+        match self.kind {
+            NodeKind::Factor(ref factor) => factor.messages_received(),
+            NodeKind::Variable(ref variable) => variable.messages_received(),
+        }
+    }
+
+    fn reset_message_count(&mut self) {
+        match self.kind {
+            NodeKind::Factor(ref mut factor) => factor.reset_message_count(),
+            NodeKind::Variable(ref mut variable) => variable.reset_message_count(),
+        };
     }
 }

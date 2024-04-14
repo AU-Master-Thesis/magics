@@ -2,10 +2,11 @@
 use bevy::prelude::*;
 
 // use gbp_linalg::pretty_print_matrix;
-use super::{super::FactorGraph, RobotTracker, Z_FIGHTING_OFFSET};
+use super::{RobotTracker, Z_FIGHTING_OFFSET};
 use crate::{
     asset_loader::SceneAssets,
     config::Config,
+    factorgraph::prelude::FactorGraph,
     theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
@@ -97,7 +98,7 @@ fn init_uncertainty(
                 //  [b, c, _, _],
                 //  [_, _, _, _],
                 //  [_, _, _, _]]
-                let covariance = &v.belief.sigma;
+                let covariance = &v.belief.covariance_matrix;
 
                 // half major axis λ₁ and half minor axis λ₂
                 // λ₁ = (a + c) / 2 + √((a - c)² / 4 + b²)
@@ -220,8 +221,8 @@ fn update_uncertainty(
                     continue;
                 }
 
-                let mean = &v.belief.mu;
-                let covariance = &v.belief.sigma;
+                let mean = &v.belief.mean;
+                let covariance = &v.belief.covariance_matrix;
                 // pretty_print_matrix!(covariance);
 
                 let mut attenable = true;

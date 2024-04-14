@@ -12,7 +12,7 @@ use bevy::{
 use typed_floats::StrictlyPositiveFinite;
 use units::sample_rate::SampleRate;
 
-use crate::planner::{FactorGraph, RobotState};
+use crate::{factorgraph::prelude::FactorGraph, planner::RobotState};
 
 // /// Newtype representing a sample rate in seconds.
 // /// The newtype wraps a `std::time::Duration` to ensure the invariant that

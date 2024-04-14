@@ -15,8 +15,12 @@ use tap::Tap;
 use super::super::theme::ThemeEvent;
 use crate::{
     config::Config,
+    factorgraph::{
+        graphviz::{Graph, NodeKind},
+        prelude::FactorGraph,
+    },
     pause_play::PausePlay,
-    planner::{FactorGraph, NodeKind, RobotId, RobotState},
+    planner::{RobotId, RobotState},
     theme::CatppuccinTheme,
     ui::{ChangingBinding, ExportGraphEvent},
 };
@@ -108,7 +112,6 @@ fn bind_general_input(mut commands: Commands) {
 fn export_factorgraphs_as_graphviz(
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: &Config,
-    // config: Res<Config>,
 ) -> Option<String> {
     if query.is_empty() {
         // There are no factorgraph in the scene/world
@@ -184,13 +187,15 @@ fn export_factorgraphs_as_graphviz(
         let external_connections: HashMap<usize, (RobotId, usize)> = nodes
             .into_iter()
             .filter_map(|node| match node.kind {
-                NodeKind::InterRobotFactor(connection) => Some((
+                NodeKind::InterRobotFactor(external_variable) => Some((
                     node.index,
                     (
-                        connection.id_of_robot_connected_with,
-                        connection
-                            .index_of_connected_variable_in_other_robots_factorgraph
-                            .index(),
+                        external_variable.factorgraph_id,
+                        external_variable.variable_index.index(),
+                        // connection.id_of_robot_connected_with,
+                        // connection
+                        //     .index_of_connected_variable_in_other_robots_factorgraph
+                        //     .index(),
                     ),
                 )),
                 _ => None,
