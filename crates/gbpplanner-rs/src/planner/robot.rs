@@ -12,11 +12,11 @@ use super::{
     factor::{Factor, InterRobotConnection},
     factorgraph::{FactorGraph, FactorId, VariableId},
     variable::Variable,
-    NodeIndex, PausePlayEvent,
+    NodeIndex,
 };
 use crate::{
-    boolean_bevy_resource, config::Config, pretty_print_subtitle, pretty_print_title,
-    utils::get_variable_timesteps,
+    boolean_bevy_resource, config::Config, pause_play::PausePlay, pretty_print_subtitle,
+    pretty_print_title, utils::get_variable_timesteps,
 };
 
 pub struct RobotPlugin;
@@ -58,7 +58,7 @@ fn start_manual_step(
     state: Res<State<ManualModeState>>,
     mut next_state: ResMut<NextState<ManualModeState>>,
     mut keyboard_input_events: EventReader<KeyboardInput>,
-    mut pause_play_event: EventWriter<PausePlayEvent>,
+    mut pause_play_event: EventWriter<PausePlay>,
     config: Res<Config>,
 ) {
     for event in keyboard_input_events.read() {
@@ -71,7 +71,7 @@ fn start_manual_step(
                 next_state.set(ManualModeState::Enabled {
                     iterations_remaining: config.manual.timesteps_per_step.into(),
                 });
-                pause_play_event.send(PausePlayEvent::Play);
+                pause_play_event.send(PausePlay::Play);
             }
             ManualModeState::Enabled { .. } => {
                 warn!("manual step already in progress");
@@ -88,14 +88,14 @@ fn finish_manual_step(
     // mut mode: ResMut<ManualMode>,
     state: Res<State<ManualModeState>>,
     mut next_state: ResMut<NextState<ManualModeState>>,
-    mut pause_play_event: EventWriter<PausePlayEvent>,
+    mut pause_play_event: EventWriter<PausePlay>,
 ) {
     match state.get() {
         ManualModeState::Enabled {
             iterations_remaining,
         } if (0..=1).contains(iterations_remaining) => {
             next_state.set(ManualModeState::Disabled);
-            pause_play_event.send(PausePlayEvent::Pause);
+            pause_play_event.send(PausePlay::Pause);
         }
         ManualModeState::Enabled {
             iterations_remaining,

@@ -11,7 +11,7 @@ use typed_floats::StrictlyPositiveFinite;
 
 use super::{
     robot::{SpawnRobotEvent, VariableTimesteps},
-    PausePlayEvent, RobotId,
+    RobotId,
 };
 use crate::{
     asset_loader::SceneAssets,
@@ -19,6 +19,7 @@ use crate::{
         geometry::{Point, RelativePoint, Shape},
         Config, FormationGroup,
     },
+    pause_play::PausePlay,
     planner::robot::RobotBundle,
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
@@ -183,7 +184,7 @@ fn advance_time(
     time: Res<Time>,
     mut query: Query<&mut FormationSpawnerCountdown>,
     mut spawn_event_writer: EventWriter<FormationSpawnEvent>,
-    mut pause_play_event: EventWriter<PausePlayEvent>,
+    mut pause_play_event: EventWriter<PausePlay>,
     config: Res<Config>,
 ) {
     for mut countdown in query.iter_mut() {
@@ -197,7 +198,7 @@ fn advance_time(
             //     countdown.formation_group_index
             // );
             if config.simulation.pause_on_spawn {
-                pause_play_event.send(PausePlayEvent::Pause);
+                pause_play_event.send(PausePlay::Pause);
             }
         }
     }

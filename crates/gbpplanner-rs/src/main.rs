@@ -11,6 +11,7 @@ mod factorgraph;
 mod input;
 mod moveable_object;
 mod movement;
+pub(crate) mod pause_play;
 mod planner;
 mod robot_spawner;
 mod scene;
