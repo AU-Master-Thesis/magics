@@ -275,7 +275,9 @@ impl<'a> Iterator for InterRobotFactors<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let &index = self.factor_indices.next()?;
         let node = &self.graph[index];
-        node.as_factor().map(|factor| (index, factor))
+        node.as_factor()
+            .and_then(|factor| factor.kind.as_inter_robot())
+            .map(|interrobot| (index, interrobot))
     }
 }
 
@@ -293,8 +295,8 @@ impl std::ops::Index<FactorIndex> for FactorGraph {
     // type Output = Option<Factor>;
 
     fn index(&self, index: FactorIndex) -> &Self::Output {
-        &self.graph[index.into()]
-            .as_factor()
+        let node = &self.graph[index.0];
+        node.as_factor()
             .expect("a factor index points to a factor node in the graph")
     }
 }
@@ -303,16 +305,8 @@ impl std::ops::Index<VariableIndex> for FactorGraph {
     type Output = Variable;
 
     fn index(&self, index: VariableIndex) -> &Self::Output {
-        self.graph[index.into()]
+        self.graph[index.0]
             .as_variable()
             .expect("a variable index points to a variable node in the graph")
     }
 }
-
-// impl std::ops::Index<FactodId> for FactorGraph {
-//     type Output = Factor;
-//
-//     fn index(&self, index: FactodId) -> &Self::Output {
-//         todo!()
-//     }
-// }

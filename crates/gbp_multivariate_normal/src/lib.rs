@@ -1,30 +1,38 @@
-// #![warn(missing_docs)]
+//! Multivariate normal distribution type
 use gbp_linalg::{Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
+/// Error type use by this module
 #[derive(Debug, thiserror::Error)]
 pub enum MultivariateNormalError {
+    /// The precision matrix is not square
     #[error("the precision matrix is not square, it has shape {0}x{1}")]
     NonSquarePrecisionMatrix(usize, usize),
     #[error(
         "the length of the information vector ({0}) is not equal to the number of rows ({1}) or \
          columns ({2}) of the precision matrix"
     )]
+    /// The length of the information vector is not equal to the number of rows
+    /// or columns of the precision matrix
     VectorLengthNotEqualMatrixShape(usize, usize, usize),
     #[error(
         "the covariance matrix is not invertible, which is required to calculate the precision \
          matrix"
     )]
+    /// The covariance matrix is not invertible
     NonInvertibleCovarianceMatrix,
     #[error(
         "the precision matrix is not invertible, which is required to calculate the covariance \
          matrix"
     )]
+    /// The precision matrix is not invertible
     NonInvertiblePrecisionMatrix,
 }
 
+/// Result type used by this module
 pub type Result<T> = std::result::Result<T, MultivariateNormalError>;
 
+/// Multivariate normal distribution stored in information form
 #[allow(clippy::len_without_is_empty)]
 #[derive(Debug, Clone)]
 pub struct MultivariateNormal {
@@ -145,11 +153,15 @@ impl MultivariateNormal {
         &self.precision
     }
 
+    /// Set the information vector of the multivariate normal distribution
+    /// Updates the cached mean internally.
     pub fn update_information_vector(&mut self, value: &Vector<Float>) {
         self.information.clone_from(value);
         self.update();
     }
 
+    /// Set the precision matrix of the multivariate normal distribution
+    /// Updates the cached mean internally.
     pub fn update_precision_matrix(&mut self, value: &Matrix<Float>) -> Result<()> {
         // if value.det() == Float::zero() {
         if value.det() == 0.0 {

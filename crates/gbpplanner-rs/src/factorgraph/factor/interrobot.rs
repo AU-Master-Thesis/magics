@@ -1,3 +1,5 @@
+use std::ops::Sub;
+
 use bevy::log::info;
 use gbp_linalg::prelude::*;
 use ndarray::s;
@@ -138,7 +140,9 @@ impl IFactor for InterRobotFactor {
             // semantics of distance/weight.
             for i in 0..offset {
                 // Add a tiny random offset to avoid div/0 errors
-                x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as Float;
+                // x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as
+                // Float;
+                x_diff[i] += 1e-6 * self.connection.other_variable.factorgraph_id.index() as Float;
             }
             x_diff
         };

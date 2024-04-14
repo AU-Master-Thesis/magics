@@ -9,7 +9,7 @@ use super::{
     factorgraph::NodeIndex,
     id::FactorId,
     message::{InformationVec, Mean, Message, MessagesToFactors, PrecisionMatrix},
-    node::FactorGraphNode,
+    node::{FactorGraphNode, RemoveConnectionToError},
     MessageCount,
 };
 use crate::{
@@ -159,22 +159,6 @@ impl Variable {
         self.node_index = Some(index);
     }
 
-    // pub fn new(mut mu_prior: Vector<Float>, mut
-
-    // pub fn set_node_index(&mut self, node_index: NodeIndex) {
-    //     match self.node_index {
-    //         Some(_) => panic!("The node index is already set"),
-    //         None => self.node_index = Some(node_index),
-    //     }
-    // }
-    //
-    // pub fn get_node_index(&self) -> NodeIndex {
-    //     match self.node_index {
-    //         Some(node_index) => node_index,
-    //         None => panic!("The node index has not been set"),
-    //     }
-    // }
-
     pub fn receive_message_from(&mut self, from: FactorId, message: Message) {
         debug!("variable ? received message from {:?}", from);
         if message.is_empty() {
@@ -184,27 +168,19 @@ impl Variable {
         self.message_count.received += 1;
     }
 
-    // TODO: why never used?
-    #[inline]
-    pub fn read_message_from(&mut self, from: FactorId) -> Option<&Message> {
-        self.inbox.get(&from)
-    }
+    // // TODO: why never used?
+    // #[inline]
+    // pub fn read_message_from(&mut self, from: FactorId) -> Option<&Message> {
+    //     self.inbox.get(&from)
+    // }
 
     /// Change the prior of the variable.
     /// It updates the belief of the variable.
     /// The prior acts as the pose factor
     /// Called `Variable::change_variable_prior` in **gbpplanner**
     pub fn change_prior(&mut self, mean: Vector<Float>) -> MessagesToFactors {
-        // let subtitle = format!("{}{}{}", RED, "Changing prior", RESET);
-        // pretty_print_subtitle!(subtitle);
-        // pretty_print_matrix!(&self.prior.lambda);
-        // pretty_print_vector!(&mean);
         self.prior.information_vector = self.prior.precision_matrix.dot(&mean);
-        // pretty_print_vector!(&self.prior.eta);
-        // pretty_print_line!();
-        // self.eta_prior = self.lam_prior.dot(&mean);
         self.belief.mean = mean;
-        // dbg!(&self.mu);
 
         // FIXME: forgot this line in the original code
         // this->belief_ = Message {this->eta_, this->lam_, this->mu_};
@@ -245,17 +221,9 @@ impl Variable {
         self.belief.information_vector = self.prior.information_vector.clone();
         self.belief.precision_matrix = self.prior.precision_matrix.clone();
 
-        // let mut title = format!("{}{}{}", YELLOW, "Variable belief BEFORE update:",
-        // RESET); pretty_print_subtitle!(title);
-        // pretty_print_vector!(&self.belief.eta);
-        // pretty_print_matrix!(&self.belief.lambda);
-        // pretty_print_vector!(&self.belief.mu);
-
         // Go through received messages and update belief
         for (_, message) in self.inbox.iter() {
             let Some(payload) = message.payload() else {
-                // empty message
-                // info!("skipping empty message");
                 continue;
             };
             self.belief.information_vector =
@@ -268,10 +236,8 @@ impl Variable {
         // NOTE: This might not be correct, but it seems the `.inv()` method doesn't
         // catch and all-zero matrix
         let lam_not_zero = self.belief.precision_matrix.iter().any(|x| *x - 1e-6 > 0.0);
-        // println!("lam_not_zero: {}", lam_not_zero);
         if lam_not_zero {
             if let Some(sigma) = self.belief.precision_matrix.inv() {
-                // pretty_print_matrix!(&sigma);
                 self.belief.covariance_matrix = sigma;
                 self.belief.valid = self.belief.covariance_matrix.iter().all(|x| x.is_finite());
                 if self.belief.valid {
@@ -289,13 +255,6 @@ impl Variable {
             }
         }
 
-        // let title = format!("{}{}{}", YELLOW, "Variable belief update:", RESET);
-        // pretty_print_subtitle!(title);
-        // pretty_print_vector!(&self.belief.eta);
-        // pretty_print_matrix!(&self.belief.lambda);
-        // pretty_print_vector!(&self.belief.mu);
-        // pretty_print_line!();
-
         let messages: MessagesToFactors = self
             .inbox
             .iter()
@@ -303,11 +262,6 @@ impl Variable {
                 let response = received_message.payload().map_or_else(
                     || self.prepare_message(),
                     |message_from_factor| {
-                        // pretty_print_subtitle!("BEFORE FACTOR SUBSTRACTION");
-                        // pretty_print_vector!(&self.belief.eta);
-                        // pretty_print_matrix!(&self.belief.lam);
-                        // pretty_print_vector!(&self.belief.mu);
-                        // pretty_print_line!();
                         let msg = Message::new(
                             InformationVec(
                                 &self.belief.information_vector
@@ -319,10 +273,6 @@ impl Variable {
                             ),
                             Mean(&self.belief.mean - &message_from_factor.mean),
                         );
-                        // pretty_print_subtitle!("AFTER FACTOR SUBSTRACTION");
-                        // pretty_print_vector!(&self.belief.eta);
-                        // pretty_print_matrix!(&self.belief.lam);
-                        // pretty_print_vector!(&self.belief.mu);
                         msg
                     },
                 );
@@ -330,35 +280,9 @@ impl Variable {
             })
             .collect();
 
-        // messages.iter().for_each(|(factor_id, message)| {
-        //     pretty_print_message!(
-        //         VariableId::new(
-        //             factor_id.get_factor_graph_id(),
-        //             self.node_index.unwrap().into()
-        //         ),
-        //         factor_id,
-        //         ""
-        //     );
-        //     pretty_print_vector!(message.information_vector().unwrap());
-        //     pretty_print_matrix!(message.precision_matrix().unwrap());
-        //     pretty_print_vector!(message.mean().unwrap());
-        // });
-
         self.message_count.sent += messages.len();
 
         messages
-
-        // self.inbox
-        //     .iter()
-        //     .map(|(&factor_id, received_message)| {
-        //         let response = Message::new(
-        //             Eta(&self.eta - &received_message.eta),
-        //             Lam(&self.lam - &received_message.lam),
-        //             Mu(&self.mu - &received_message.mu),
-        //         );
-        //         (factor_id, response)
-        //     })
-        //     .collect()
     }
 
     /// Returns `true` if the covariance matrix is finite, `false` otherwise.
@@ -372,7 +296,7 @@ impl FactorGraphNode for Variable {
     fn remove_connection_to(
         &mut self,
         factorgraph_id: super::factorgraph::FactorGraphId,
-    ) -> Result<(), super::factorgraph::RemoveConnectionToError> {
+    ) -> Result<(), RemoveConnectionToError> {
         let connections_before = self.inbox.len();
         self.inbox
             .retain(|factor_id, v| factor_id.factorgraph_id != factorgraph_id);
@@ -380,7 +304,7 @@ impl FactorGraphNode for Variable {
 
         let no_connections_removed = connections_before == connections_after;
         if no_connections_removed {
-            Err(super::factorgraph::RemoveConnectionToError)
+            Err(RemoveConnectionToError)
         } else {
             Ok(())
         }

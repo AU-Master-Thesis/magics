@@ -1,6 +1,8 @@
+use std::ops::AddAssign;
+
 use bevy::render::texture::Image;
 use gbp_linalg::prelude::*;
-use ndarray::{array, concatenate, s};
+use ndarray::{array, concatenate, prelude::*, s, Axis};
 use typed_floats::StrictlyPositiveFinite;
 
 use self::{
@@ -17,6 +19,7 @@ use super::{
     prelude::Message,
     MessageCount, DOFS,
 };
+use crate::factorgraph::node::RemoveConnectionToError;
 
 pub(in crate::factorgraph) mod dynamic;
 pub(in crate::factorgraph) mod interrobot;
@@ -82,7 +85,7 @@ pub struct Factor {
     /// Variant storing the specialized behavior of each Factor kind.
     pub kind:       FactorKind,
     /// Mailbox for incoming message storage
-    pub inbox:      MessagesToFactors,
+    pub inbox:      MessagesToVariables,
 
     message_count: MessageCount,
 }
@@ -93,7 +96,7 @@ impl Factor {
             node_index: None,
             state,
             kind,
-            inbox: MessagesToFactors::new(),
+            inbox: MessagesToVariables::new(),
             message_count: MessageCount::default(),
         }
     }
@@ -242,7 +245,7 @@ impl Factor {
         let mut marginalisation_idx = 0;
         let mut messages = MessagesToVariables::new();
 
-        // let zero_precision = Matrix::<Float>::zeros((DOFS, DOFS));
+        let zero_precision = Matrix::<Float>::zeros((DOFS, DOFS));
 
         for variable_id in self.inbox.keys() {
             let mut information_vec = potential_information_vec.clone();
@@ -262,7 +265,8 @@ impl Factor {
                 // other_message.precision_matrix().unwrap_or(&zero_precision);
                 let message_precision = other_message
                     .precision_matrix()
-                    .unwrap_or_else(|| &Matrix::<Float>::zeros((DOFS, DOFS)));
+                    .unwrap_or_else(|| &zero_precision);
+                // .unwrap_or_else(|| &Matrix::<Float>::zeros((DOFS, DOFS)));
 
                 information_vec
                     .slice_mut(s![j * DOFS..(j + 1) * DOFS])
@@ -461,7 +465,7 @@ impl FactorGraphNode for Factor {
     fn remove_connection_to(
         &mut self,
         factorgraph_id: super::factorgraph::FactorGraphId,
-    ) -> Result<(), super::factorgraph::RemoveConnectionToError> {
+    ) -> Result<(), RemoveConnectionToError> {
         let connections_before = self.inbox.len();
         self.inbox
             .retain(|variable_id, v| variable_id.factorgraph_id != factorgraph_id);
@@ -469,18 +473,18 @@ impl FactorGraphNode for Factor {
 
         let no_connections_removed = connections_before == connections_after;
         if no_connections_removed {
-            Err(super::factorgraph::RemoveConnectionToError)
+            Err(RemoveConnectionToError)
         } else {
             Ok(())
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn messages_sent(&self) -> usize {
         self.message_count.sent
     }
 
-    #[inline]
+    #[inline(always)]
     fn messages_received(&self) -> usize {
         self.message_count.received
     }

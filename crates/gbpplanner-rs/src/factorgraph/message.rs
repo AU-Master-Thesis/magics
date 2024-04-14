@@ -155,11 +155,11 @@ pub struct FactorToVariableMessage {
 /// (`HashMap`)[std::collections::HashMap] to ensure that the messages are
 /// stored in a consistent order This is necessary for the **gbpplanner**
 /// algorithm to work correctly.
-pub type MessagesToVariables = BTreeMap<FactorId, Message>;
+pub type MessagesToFactors = BTreeMap<FactorId, Message>;
 
 /// Type alias for a map of messages from variables connected to a factor
 /// A (`BTreeMap`)[std::collections::BTreeMap] is used, instead of a
 /// (`HashMap`)[std::collections::HashMap] to ensure that the messages are
 /// stored in a consistent order This is necessary for the **gbpplanner**
 /// algorithm to work correctly.
-pub type MessagesToFactors = BTreeMap<VariableId, Message>;
+pub type MessagesToVariables = BTreeMap<VariableId, Message>;
