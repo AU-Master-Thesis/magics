@@ -8,122 +8,38 @@ use bevy::{
 use gbp_linalg::{prelude::*, pretty_print_matrix, pretty_print_vector};
 use ndarray::{array, concatenate, s, Axis};
 
-use super::{
-    factor::{Factor, InterRobotConnection},
-    factorgraph::{FactorGraph, FactorId, VariableId},
-    variable::Variable,
-    NodeIndex, PausePlayEvent,
+// use super::{
+//     factor::{Factor, InterRobotConnection},
+//     factorgraph::{FactorGraph, FactorId, VariableId},
+//     variable::Variable,
+//     NodeIndex,
+// };
+use crate::factorgraph::{
+    factor::{ExternalVariableId, Factor},
+    factorgraph::{FactorGraph, NodeIndex, VariableIndex},
+    id::{FactorId, VariableId},
 };
 use crate::{
-    boolean_bevy_resource, config::Config, pretty_print_subtitle, pretty_print_title,
+    boolean_bevy_resource,
+    config::Config,
+    factorgraph::{factor, variable::Variable, DOFS},
+    pause_play::PausePlay,
+    pretty_print_subtitle, pretty_print_title,
     utils::get_variable_timesteps,
 };
 
+pub type RobotId = Entity;
+
 pub struct RobotPlugin;
-
-boolean_bevy_resource!(ManualMode, default = false);
-
-#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ManualModeState {
-    #[default]
-    Disabled,
-    Enabled {
-        iterations_remaining: usize,
-    },
-}
-
-impl ManualModeState {
-    pub fn enabled(state: Res<State<ManualModeState>>) -> bool {
-        matches!(state.get(), Self::Enabled { .. })
-    }
-
-    pub fn disabled(state: Res<State<ManualModeState>>) -> bool {
-        matches!(state.get(), Self::Disabled)
-    }
-}
-
-// fn keyboard_input_is<M>(key_code: KeyCode, state: ButtonState) -> impl
-// Condition<M> {     move |mut keyboard_input_events:
-// EventReader<KeyboardInput>| {         for event in
-// keyboard_input_events.read() {             if (event.key_code, event.state)
-// == (key_code, state) {                 return true;
-//             }
-//         }
-//         false;
-//     }
-// }
-
-fn start_manual_step(
-    // mut mode: ResMut<ManualMode>,
-    state: Res<State<ManualModeState>>,
-    mut next_state: ResMut<NextState<ManualModeState>>,
-    mut keyboard_input_events: EventReader<KeyboardInput>,
-    mut pause_play_event: EventWriter<PausePlayEvent>,
-    config: Res<Config>,
-) {
-    for event in keyboard_input_events.read() {
-        let (KeyCode::KeyM, ButtonState::Pressed) = (event.key_code, event.state) else {
-            continue;
-        };
-
-        match state.get() {
-            ManualModeState::Disabled => {
-                next_state.set(ManualModeState::Enabled {
-                    iterations_remaining: config.manual.timesteps_per_step.into(),
-                });
-                pause_play_event.send(PausePlayEvent::Play);
-            }
-            ManualModeState::Enabled { .. } => {
-                warn!("manual step already in progress");
-            }
-        }
-
-        // mode.enable();
-        // pause_play_event.send(PausePlayEvent::Play);
-        // debug!("starting manual step");
-    }
-}
-
-fn finish_manual_step(
-    // mut mode: ResMut<ManualMode>,
-    state: Res<State<ManualModeState>>,
-    mut next_state: ResMut<NextState<ManualModeState>>,
-    mut pause_play_event: EventWriter<PausePlayEvent>,
-) {
-    match state.get() {
-        ManualModeState::Enabled {
-            iterations_remaining,
-        } if (0..=1).contains(iterations_remaining) => {
-            next_state.set(ManualModeState::Disabled);
-            pause_play_event.send(PausePlayEvent::Pause);
-        }
-        ManualModeState::Enabled {
-            iterations_remaining,
-        } => {
-            next_state.set(ManualModeState::Enabled {
-                iterations_remaining: iterations_remaining - 1,
-            });
-        }
-        ManualModeState::Disabled => {
-            error!("manual step not in progress");
-        }
-    };
-
-    // mode.disable();
-    // pause_play_event.send(PausePlayEvent::Pause);
-}
-
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GbpSet;
 
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<VariableTimesteps>()
             .init_resource::<ManualMode>()
             .insert_state(ManualModeState::Disabled)
-            .add_event::<SpawnRobotEvent>()
-            .add_event::<DespawnRobotEvent>()
-            .add_event::<RobotReachedWaypointEvent>()
+            .add_event::<RobotSpawned>()
+            .add_event::<RobotDespawned>()
+            .add_event::<RobotReachedWaypoint>()
             .add_systems(PreUpdate, start_manual_step.run_if(time_is_paused))
             .add_systems(
                 FixedUpdate,
@@ -143,55 +59,58 @@ impl Plugin for RobotPlugin {
                 )
                     .chain()
                     .run_if(not(time_is_paused)),
-            )
-            .configure_sets(Update, GbpSet.run_if(time_changed));
+            );
+        // .configure_sets(Update, GbpSet.run_if(time_changed));
     }
 }
 
-fn time_changed(time: Res<Time<Fixed>>) -> bool {
-    // error!("time changed: {}", time.delta_seconds());
-    time.delta_seconds() > 0.
-    // time.is_changed()
-}
+// fn time_changed(time: Res<Time<Fixed>>) -> bool {
+//     // error!("time changed: {}", time.delta_seconds());
+//     time.delta_seconds() > 0.
+//     // time.is_changed()
+// }
 
-fn time_is_not_paused_and_manual_mode_is_disabled(
-    time: Res<Time<Virtual>>,
-    mode: Res<ManualMode>,
-) -> bool {
-    !time.is_paused() && ManualMode::disabled(mode)
-}
+// fn time_is_not_paused_and_manual_mode_is_disabled(
+//     time: Res<Time<Virtual>>,
+//     mode: Res<ManualMode>,
+// ) -> bool {
+//     !time.is_paused() && ManualMode::disabled(mode)
+// }
 
-fn manual_mode(mode: Res<ManualMode>) -> bool {
-    mode.0
-}
+// fn manual_mode(mode: Res<ManualMode>) -> bool {
+//     mode.0
+// }
+//
 
 /// run criteria if time is not paused
+#[inline]
 fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
     time.is_paused()
 }
 
-pub type RobotId = Entity;
+/// Event emitted when a robot is spawned
+#[derive(Debug, Event)]
+pub struct RobotSpawned(pub RobotId);
 
-#[derive(Event)]
-pub struct DespawnRobotEvent(pub RobotId);
+/// Event emitted when a robot is despawned
+#[derive(Debug, Event)]
+pub struct RobotDespawned(pub RobotId);
 
+/// Event emitted when a robot reaches a waypoint
 #[derive(Event)]
-pub struct SpawnRobotEvent(pub RobotId);
-
-#[derive(Event)]
-pub struct RobotReachedWaypointEvent {
+pub struct RobotReachedWaypoint {
     pub robot_id:       RobotId,
     pub waypoint_index: usize,
-    // pub waypoint_id: Entity,
 }
 
 fn despawn_robots(
     mut commands: Commands,
+    // TODO: change query
     mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
-    mut despawn_robot_event: EventReader<DespawnRobotEvent>,
+    mut despawn_robot_event: EventReader<RobotDespawned>,
 ) {
-    for DespawnRobotEvent(robot_id) in despawn_robot_event.read() {
-        for (entity, mut factorgraph, mut robotstate) in query.iter_mut() {
+    for RobotDespawned(robot_id) in despawn_robot_event.read() {
+        for (_, mut factorgraph, _) in query.iter_mut() {
             let _ = factorgraph.remove_connection_to(*robot_id);
         }
 
@@ -208,13 +127,32 @@ fn despawn_robots(
     }
 }
 
-// /// Sigma for Unary pose factor on current and horizon states
-// /// from **gbpplanner** `Globals.h`
-// const SIGMA_POSE_FIXED: f32 = 1e-6;
-
+/// Resource that stores the horizon timesteps sequence
 #[derive(Resource, Debug)]
 pub struct VariableTimesteps {
-    pub timesteps: Vec<u32>,
+    timesteps: Vec<u32>,
+}
+
+impl VariableTimesteps {
+    /// Returns the number of timesteps
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+        self.timesteps.len()
+    }
+
+    /// Extracts a slice containing the entire vector.
+    #[inline(always)]
+    pub fn as_slice(&self) -> &[u32] {
+        self.timesteps.as_slice()
+    }
+}
+
+impl std::ops::Index<usize> for VariableTimesteps {
+    type Output = u32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.timesteps[index]
+    }
 }
 
 impl FromWorld for VariableTimesteps {
@@ -234,7 +172,6 @@ impl FromWorld for VariableTimesteps {
 }
 
 #[derive(Debug, thiserror::Error)]
-
 pub enum RobotInitError {
     #[error("No waypoints were provided")]
     NoWaypoints,
@@ -242,18 +179,15 @@ pub enum RobotInitError {
     NoVariableTimesteps,
 }
 
-/// A component to encapsulate the idea of a radius.
+/// Component for entities with a radius, used for robots
 #[derive(Component, Debug)]
-
 pub struct Radius(pub f32);
 
-/// A waypoint is a position that the robot should move to.
+/// A waypoint is a position and velocity that the robot should move to and
+/// achieve.
 #[allow(clippy::similar_names)]
 #[derive(Component, Debug)]
-
 pub struct Waypoints(pub VecDeque<Vec4>);
-
-// pub struct Waypoints(pub VecDeque<Vec2>);
 
 /// A robot's state, consisting of other robots within communication range,
 /// and other robots that are connected via inter-robot factors.
@@ -272,6 +206,7 @@ pub struct RobotState {
 }
 
 impl RobotState {
+    /// Create a new `RobotState`
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -294,17 +229,10 @@ pub struct RobotBundle {
     pub radius:      Radius,
     /// The current state of the robot
     pub state:       RobotState,
-    // pub transform: Transform,
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A VecDeque is used to allow for efficient pop_front operations, and
     /// push_back operations.
     pub waypoints:   Waypoints,
-    // NOTE: Using the **Bevy** entity id as the robot id
-    // pub id: RobotId,
-    // NOTE: These are accessible as **Bevy** resources
-    // obstacle_sdf: Option<Rc<image::RgbImage>>,
-    // settings: &'a RobotSettings,
-    // id_generator: Rc<RefCell<IdGenerator>>,
 }
 
 impl RobotBundle {
@@ -342,8 +270,6 @@ impl RobotBundle {
                 (config.robot.planning_horizon * config.robot.max_speed).get(),
             ) * start2goal.normalize();
 
-        let ndofs = 4; // [x, y, x', y']
-
         let mut factorgraph = FactorGraph::new(robot_id);
         let last_variable_timestep = *variable_timesteps
             .last()
@@ -371,8 +297,7 @@ impl RobotBundle {
                 Float::INFINITY
             };
 
-            let precision_matrix = Matrix::<Float>::from_diag_elem(ndofs, sigma);
-            // pretty_print_matrix!(&precision_matrix);
+            let precision_matrix = Matrix::<Float>::from_diag_elem(DOFS, sigma);
 
             let mean = array![
                 mean.x as Float,
@@ -380,14 +305,11 @@ impl RobotBundle {
                 mean.z as Float,
                 mean.w as Float
             ];
-            // pretty_print_vector!(&mean);
 
-            let variable = Variable::new(mean, precision_matrix, ndofs);
+            let variable = Variable::new(mean, precision_matrix, DOFS);
             let variable_index = factorgraph.add_variable(variable);
             variable_node_indices.push(variable_index);
         }
-
-        // std::process::exit(1);
 
         // Create Dynamics factors between variables
         for i in 0..variable_timesteps.len() - 1 {
@@ -400,12 +322,11 @@ impl RobotBundle {
             let dynamic_factor = Factor::new_dynamic_factor(
                 config.gbp.sigma_factor_dynamics as Float,
                 measurement,
-                config.robot.dofs,
                 delta_t as Float,
             );
 
             let factor_node_index = factorgraph.add_factor(dynamic_factor);
-            let factor_id = FactorId::new_dynamic(factorgraph.id(), factor_node_index);
+            let factor_id = FactorId::new(factorgraph.id(), factor_node_index);
             // A dynamic factor connects two variables
             let _ = factorgraph.add_internal_edge(
                 VariableId::new(factorgraph.id(), variable_node_indices[i + 1]),
@@ -416,7 +337,6 @@ impl RobotBundle {
                 factor_id,
             );
         }
-        // std::process::exit(0);
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
         #[allow(clippy::needless_range_loop)]
@@ -424,19 +344,17 @@ impl RobotBundle {
             let obstacle_factor = Factor::new_obstacle_factor(
                 config.gbp.sigma_factor_obstacle as Float,
                 array![0.0],
-                config.robot.dofs,
                 obstacle_sdf,
                 config.simulation.world_size.get() as Float,
             );
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
-            let factor_id = FactorId::new_obstacle(factorgraph.id(), factor_node_index);
+            let factor_id = FactorId::new(factorgraph.id(), factor_node_index);
             let _ = factorgraph.add_internal_edge(
                 VariableId::new(factorgraph.id(), variable_node_indices[i]),
                 factor_id,
             );
         }
-        // std::process::exit(0);
 
         Ok(Self {
             factorgraph,
@@ -592,24 +510,26 @@ fn create_interrobot_factors(
                 .expect("the key is in the map");
 
             for i in 1..number_of_variables {
-                let dofs = 4;
-                let z = Vector::<Float>::zeros(dofs);
+                let z = Vector::<Float>::zeros(DOFS);
                 let eps = 0.2 * config.robot.radius.get();
                 let safety_radius = 2.0 * config.robot.radius.get() + eps;
                 // TODO: should it be i - 1 or i?
-                let connection =
-                    InterRobotConnection::new(*other_robot_id, other_variable_indices[i - 1]);
-
+                let external_variable_id = ExternalVariableId::new(
+                    *other_robot_id,
+                    VariableIndex(other_variable_indices[i - 1]),
+                );
+                // let connection =
+                //     InterRobotFactorConnection::new(*other_robot_id, other_variable_indices[i
+                // - 1]);
+                //
                 let interrobot_factor = Factor::new_interrobot_factor(
                     config.gbp.sigma_factor_interrobot as Float,
                     z,
-                    dofs.try_into().expect("dofs > 0"),
                     (safety_radius as Float)
                         .try_into()
                         .expect("safe radius is positive and finite"),
-                    connection,
-                )
-                .expect("safe radius is positive and finite");
+                    external_variable_id,
+                );
 
                 let factor_index = factorgraph.add_factor(interrobot_factor);
 
@@ -617,7 +537,7 @@ fn create_interrobot_factors(
                     .nth_variable_index(i)
                     .expect("there should be an i'th variable");
 
-                let factor_id = FactorId::new_interrobot(robot_id, factor_index);
+                let factor_id = FactorId::new(robot_id, factor_index);
                 let graph_id = factorgraph.id();
                 factorgraph.add_internal_edge(VariableId::new(graph_id, variable_index), factor_id);
                 external_edges_to_add.push((robot_id, factor_index, *other_robot_id, i));
@@ -638,7 +558,7 @@ fn create_interrobot_factors(
             .expect("the other_robot_id should be in the query")
             .1;
 
-        other_factorgraph.add_external_edge(FactorId::new_interrobot(robot_id, factor_index), i);
+        other_factorgraph.add_external_edge(FactorId::new(robot_id, factor_index), i);
 
         let (nth_variable_index, nth_variable) = other_factorgraph
             .nth_variable(i)
@@ -657,13 +577,14 @@ fn create_interrobot_factors(
             .expect("the robot_id should be in the query")
             .1;
 
-        factorgraph
-            .factor_mut(factor_index)
-            .receive_message_from(variable_id, variable_message);
-        // info!(
-        //     "sent initial message from {:?} to {:?}",
-        //     robot_id, variable_id
-        // );
+        if let Some(factor) = factorgraph.get_factor_mut(factor_index) {
+            factor.receive_message_from(variable_id, variable_message.clone());
+        } else {
+            error!(
+                "factorgraph {:?} has no factor with index {:?}",
+                robot_id, factor_index
+            );
+        }
     }
 }
 
@@ -699,14 +620,15 @@ fn iterate_gbp(
                 .find(|(id, _)| *id == message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving variable should exist in the world");
 
-            // info!(
-            //     "Ext message factor {:?}\t->\tvariable {:?}",
-            //     message.from, message.to
-            // );
-
-            external_factorgraph
-                .variable_mut(message.to.variable_index)
-                .receive_message_from(message.from, message.message.clone());
+            if let Some(variable) = external_factorgraph.get_variable_mut(message.to.variable_index)
+            {
+                variable.receive_message_from(message.from, message.message.clone());
+            } else {
+                error!(
+                    "variablegraph {:?} has no variable with index {:?}",
+                    message.to.factorgraph_id, message.to.variable_index
+                );
+            }
         }
 
         // ╭────────────────────────────────────────────────────────────────────────────────────────
@@ -723,14 +645,13 @@ fn iterate_gbp(
                 .find(|(id, _)| *id == message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving factor should exist in the world");
 
-            // info!(
-            //     "Ext message variable {:?}\t->\tfactor {:?}",
-            //     message.from, message.to
-            // );
+            if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
+                factor.receive_message_from(message.from, message.message.clone());
+            }
 
-            external_factorgraph
-                .factor_mut(message.to.factor_index)
-                .receive_message_from(message.from, message.message.clone());
+            // external_factorgraph
+            //     .factor_mut(message.to.factor_index)
+            //     .receive_message_from(message.from, message.message.clone());
         }
     }
 }
@@ -740,8 +661,8 @@ fn update_prior_of_horizon_state(
     mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints), With<RobotState>>,
     config: Res<Config>,
     time: Res<Time>,
-    mut despawn_robot_event: EventWriter<DespawnRobotEvent>,
-    mut robot_reached_waypoint_event: EventWriter<RobotReachedWaypointEvent>,
+    mut despawn_robot_event: EventWriter<RobotDespawned>,
+    mut robot_reached_waypoint_event: EventWriter<RobotReachedWaypoint>,
 ) {
     let delta_t = time.delta_seconds();
 
@@ -766,10 +687,10 @@ fn update_prior_of_horizon_state(
                 .last_variable()
                 .expect("factorgraph has a horizon variable");
 
-            debug_assert_eq!(horizon_variable.belief.mu.len(), 4);
+            debug_assert_eq!(horizon_variable.belief.mean.len(), 4);
 
-            let estimated_position = horizon_variable.belief.mu.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
-                                                                                // dbg!(&estimated_position);
+            let estimated_position = horizon_variable.belief.mean.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
+                                                                                  // dbg!(&estimated_position);
 
             let horizon2goal_dir = current_waypoint - estimated_position;
 
@@ -806,7 +727,7 @@ fn update_prior_of_horizon_state(
             .last_variable_mut()
             .expect("factorgraph has a horizon variable");
 
-        horizon_variable.belief.mu.clone_from(&new_mean);
+        horizon_variable.belief.mean.clone_from(&new_mean);
 
         let messages_to_external_factors =
             factorgraph.change_prior_of_variable(variable_index, new_mean);
@@ -822,7 +743,7 @@ fn update_prior_of_horizon_state(
             // info!("robot {:?}, has reached its waypoint", robot_id);
 
             waypoints.0.pop_front();
-            robot_reached_waypoint_event.send(RobotReachedWaypointEvent {
+            robot_reached_waypoint_event.send(RobotReachedWaypoint {
                 robot_id,
                 waypoint_index: 0,
             });
@@ -836,13 +757,16 @@ fn update_prior_of_horizon_state(
             .find(|(id, _, _)| *id == message.to.factorgraph_id)
             .expect("the factorgraph_id of the receiving factor should exist in the world");
 
-        external_factorgraph
-            .factor_mut(message.to.factor_index)
-            .receive_message_from(message.from, message.message.clone());
+        if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
+            factor.receive_message_from(message.from, message.message.clone());
+        }
+        // external_factorgraph
+        //     .factor_mut(message.to.factor_index)
+        //     .receive_message_from(message.from, message.message.clone());
     }
 
     if !ids_of_robots_to_despawn.is_empty() {
-        despawn_robot_event.send_batch(ids_of_robots_to_despawn.into_iter().map(DespawnRobotEvent));
+        despawn_robot_event.send_batch(ids_of_robots_to_despawn.into_iter().map(RobotDespawned));
     }
 }
 
@@ -861,9 +785,9 @@ fn update_prior_of_current_state(
         let (_, next_variable) = factorgraph
             .nth_variable(1)
             .expect("factorgraph should have a next variable");
-        let mean_of_current_variable = current_variable.belief.mu.clone();
+        let mean_of_current_variable = current_variable.belief.mean.clone();
         let change_in_position =
-            scale as Float * (&next_variable.belief.mu - &mean_of_current_variable);
+            scale as Float * (&next_variable.belief.mean - &mean_of_current_variable);
 
         factorgraph.change_prior_of_variable(
             current_variable_index,
@@ -885,3 +809,83 @@ fn update_prior_of_current_state(
         transform.translation += increment;
     }
 }
+
+boolean_bevy_resource!(ManualMode, default = false);
+
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ManualModeState {
+    #[default]
+    Disabled,
+    Enabled {
+        iterations_remaining: usize,
+    },
+}
+
+impl ManualModeState {
+    pub fn enabled(state: Res<State<ManualModeState>>) -> bool {
+        matches!(state.get(), Self::Enabled { .. })
+    }
+
+    pub fn disabled(state: Res<State<ManualModeState>>) -> bool {
+        matches!(state.get(), Self::Disabled)
+    }
+}
+
+fn start_manual_step(
+    // mut mode: ResMut<ManualMode>,
+    state: Res<State<ManualModeState>>,
+    mut next_state: ResMut<NextState<ManualModeState>>,
+    mut keyboard_input_events: EventReader<KeyboardInput>,
+    mut pause_play_event: EventWriter<PausePlay>,
+    config: Res<Config>,
+) {
+    for event in keyboard_input_events.read() {
+        let (KeyCode::KeyM, ButtonState::Pressed) = (event.key_code, event.state) else {
+            continue;
+        };
+
+        match state.get() {
+            ManualModeState::Disabled => {
+                next_state.set(ManualModeState::Enabled {
+                    iterations_remaining: config.manual.timesteps_per_step.into(),
+                });
+                pause_play_event.send(PausePlay::Play);
+            }
+            ManualModeState::Enabled { .. } => {
+                warn!("manual step already in progress");
+            }
+        }
+    }
+}
+
+fn finish_manual_step(
+    // mut mode: ResMut<ManualMode>,
+    state: Res<State<ManualModeState>>,
+    mut next_state: ResMut<NextState<ManualModeState>>,
+    mut pause_play_event: EventWriter<PausePlay>,
+) {
+    match state.get() {
+        ManualModeState::Enabled {
+            iterations_remaining,
+        } if (0..=1).contains(iterations_remaining) => {
+            next_state.set(ManualModeState::Disabled);
+            pause_play_event.send(PausePlay::Pause);
+        }
+        ManualModeState::Enabled {
+            iterations_remaining,
+        } => {
+            next_state.set(ManualModeState::Enabled {
+                iterations_remaining: iterations_remaining - 1,
+            });
+        }
+        ManualModeState::Disabled => {
+            error!("manual step not in progress");
+        }
+    };
+
+    // mode.disable();
+    // pause_play_event.send(PausePlayEvent::Pause);
+}
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct GbpSet;

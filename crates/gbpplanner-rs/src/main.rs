@@ -7,9 +7,11 @@ mod cli;
 pub(crate) mod config;
 mod diagnostic;
 mod environment;
+mod factorgraph;
 mod input;
 mod moveable_object;
 mod movement;
+pub(crate) mod pause_play;
 mod planner;
 mod robot_spawner;
 mod scene;
@@ -41,6 +43,7 @@ use crate::{
     environment::EnvironmentPlugin,
     input::InputPlugin,
     movement::MovementPlugin,
+    pause_play::PausePlayPlugin,
     planner::PlannerPlugin,
     robot_spawner::RobotSpawnerPlugin,
     scene::ScenePlugin,
@@ -232,6 +235,7 @@ fn main() -> anyhow::Result<()> {
         // our plugins
         .add_plugins((
             DefaultPickingPlugins,
+            PausePlayPlugin::default(),
             ThemePlugin,       // Custom
             AssetLoaderPlugin, // Custom
             EnvironmentPlugin, // Custom

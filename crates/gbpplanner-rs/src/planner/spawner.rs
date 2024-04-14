@@ -10,8 +10,8 @@ use strum::IntoEnumIterator;
 use typed_floats::StrictlyPositiveFinite;
 
 use super::{
-    robot::{SpawnRobotEvent, VariableTimesteps},
-    PausePlayEvent, RobotId,
+    robot::{RobotSpawned, VariableTimesteps},
+    RobotId,
 };
 use crate::{
     asset_loader::SceneAssets,
@@ -19,6 +19,7 @@ use crate::{
         geometry::{Point, RelativePoint, Shape},
         Config, FormationGroup,
     },
+    pause_play::PausePlay,
     planner::robot::RobotBundle,
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
@@ -183,7 +184,7 @@ fn advance_time(
     time: Res<Time>,
     mut query: Query<&mut FormationSpawnerCountdown>,
     mut spawn_event_writer: EventWriter<FormationSpawnEvent>,
-    mut pause_play_event: EventWriter<PausePlayEvent>,
+    mut pause_play_event: EventWriter<PausePlay>,
     config: Res<Config>,
 ) {
     for mut countdown in query.iter_mut() {
@@ -197,7 +198,7 @@ fn advance_time(
             //     countdown.formation_group_index
             // );
             if config.simulation.pause_on_spawn {
-                pause_play_event.send(PausePlayEvent::Pause);
+                pause_play_event.send(PausePlay::Pause);
             }
         }
     }
@@ -207,7 +208,7 @@ fn advance_time(
 fn spawn_formation(
     mut commands: Commands,
     mut spawn_event_reader: EventReader<FormationSpawnEvent>,
-    mut spawn_robot_event: EventWriter<SpawnRobotEvent>,
+    mut spawn_robot_event: EventWriter<RobotSpawned>,
     mut create_waypoint_event: EventWriter<CreateWaypointEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<Config>,
@@ -323,7 +324,7 @@ fn spawn_formation(
                 //     .iter()
                 //     .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
                 //     .collect::<VecDeque<_>>(),
-                variable_timesteps.timesteps.as_slice(),
+                variable_timesteps.as_slice(),
                 &config,
                 OBSTACLE_IMAGE
                     .get()
@@ -381,7 +382,7 @@ fn spawn_formation(
                     .with_attached(true),
             ));
 
-            spawn_robot_event.send(SpawnRobotEvent(robot_id));
+            spawn_robot_event.send(RobotSpawned(robot_id));
         }
         // info!("spawning formation group {}", event.formation_group_index);
     }

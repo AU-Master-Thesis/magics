@@ -23,7 +23,7 @@ use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
     input::screenshot::TakeScreenshot,
-    planner::{PausePlayEvent, PausedState},
+    pause_play::{PausePlay, PausedState},
     theme::{CatppuccinTheme, CycleTheme, FromCatppuccinColourExt},
 };
 
@@ -334,19 +334,20 @@ fn ui_settings_panel(
                         ui.label("Simulation Time");
                         let progress =
                             time_fixed.elapsed_seconds() / config.simulation.max_time.get();
-                        let progressbar =
-                            egui::widgets::ProgressBar::new(progress).fill(Color32::RED);
-                        ui.add(progressbar);
+                        // let progressbar =
+                        //     egui::widgets::ProgressBar::new(progress).fill(Color32::RED);
+                        // ui.add(progressbar);
 
-                        // custom::rect_label(
-                        //     ui,
-                        //     format!(
-                        //         "{:.2} / {:.2}",
-                        //         time_fixed.elapsed_seconds(),
-                        //         config.simulation.max_time.get()
-                        //     ),
-                        //     None,
-                        // );
+                        custom::rect_label(
+                            ui,
+                            format!(
+                                "{:.2} / {:.2}",
+                                // time_fixed.elapsed_seconds(),
+                                time_virtual.elapsed_seconds(),
+                                config.simulation.max_time.get()
+                            ),
+                            None,
+                        );
                         ui.end_row();
 
                         // slider for simulation time between 0 and 100
@@ -395,7 +396,7 @@ fn ui_settings_panel(
                                     .on_hover_text("Play or pause the simulation")
                                     .clicked()
                                 {
-                                    world.send_event::<PausePlayEvent>(PausePlayEvent::Toggle);
+                                    world.send_event::<PausePlay>(PausePlay::Toggle);
                                 }
                             });
 

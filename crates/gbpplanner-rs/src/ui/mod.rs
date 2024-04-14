@@ -23,7 +23,7 @@ use self::{
     controls::ControlsPanelPlugin, data::DataPanelPlugin, metrics::MetricsPlugin,
     scale::ScaleUiPlugin, settings::SettingsPanelPlugin,
 };
-use crate::theme::CatppuccinThemeVisualsExt;
+use crate::{theme::CatppuccinThemeVisualsExt, AppState};
 
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/
@@ -62,6 +62,7 @@ impl Plugin for EguiInterfacePlugin {
                 MetricsPlugin::default()            ))
             // .add_systems(OnEnter(SimulationState::Loading), load_fonts)
             .add_systems(Startup, load_fonts)
+            // .add_systems(OnEnter(AppState::Loading), load_fonts)
             .add_systems(Startup, configure_visuals)
             .add_systems(Update, action_block)
             .add_systems(

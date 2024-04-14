@@ -15,7 +15,12 @@ use tap::Tap;
 use super::{super::theme::CycleTheme, screenshot::TakeScreenshot};
 use crate::{
     config::Config,
-    planner::{FactorGraph, NodeKind, PausePlayEvent, RobotId, RobotState},
+    factorgraph::{
+        graphviz::{Graph, NodeKind},
+        prelude::FactorGraph,
+    },
+    pause_play::PausePlay,
+    planner::{RobotId, RobotState},
     theme::CatppuccinTheme,
     ui::{ChangingBinding, ExportGraphEvent},
 };
@@ -105,7 +110,6 @@ fn bind_general_input(mut commands: Commands) {
 fn export_factorgraphs_as_graphviz(
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: &Config,
-    // config: Res<Config>,
 ) -> Option<String> {
     if query.is_empty() {
         // There are no factorgraph in the scene/world
@@ -181,13 +185,15 @@ fn export_factorgraphs_as_graphviz(
         let external_connections: HashMap<usize, (RobotId, usize)> = nodes
             .into_iter()
             .filter_map(|node| match node.kind {
-                NodeKind::InterRobotFactor(connection) => Some((
+                NodeKind::InterRobotFactor(external_variable) => Some((
                     node.index,
                     (
-                        connection.id_of_robot_connected_with,
-                        connection
-                            .index_of_connected_variable_in_other_robots_factorgraph
-                            .index(),
+                        external_variable.factorgraph_id,
+                        external_variable.variable_index.index(),
+                        // connection.id_of_robot_connected_with,
+                        // connection
+                        //     .index_of_connected_variable_in_other_robots_factorgraph
+                        //     .index(),
                     ),
                 )),
                 _ => None,
@@ -374,7 +380,7 @@ fn general_actions_system(
     // mut app_exit_event: EventWriter<AppExit>,
     mut quit_application_event: EventWriter<QuitApplicationEvent>,
     export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
-    mut pause_play_event: EventWriter<PausePlayEvent>,
+    mut pause_play_event: EventWriter<PausePlay>,
     mut toast_event: EventWriter<ToastEvent>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
@@ -402,7 +408,7 @@ fn general_actions_system(
         // app_exit_event.send(AppExit);
     } else if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {
         info!("toggling pause/play simulation");
-        pause_play_event.send(PausePlayEvent::Toggle);
+        pause_play_event.send(PausePlay::Toggle);
     }
 }
 

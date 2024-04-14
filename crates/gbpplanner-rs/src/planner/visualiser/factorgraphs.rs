@@ -3,13 +3,13 @@ use bevy_mod_picking::prelude::*;
 use gbp_linalg::{pretty_print_matrix, pretty_print_vector};
 use itertools::Itertools;
 
-use super::{super::FactorGraph, RobotTracker};
+use super::RobotTracker;
 use crate::{
     asset_loader::SceneAssets,
     config::{Config, DrawSetting},
-    // factorgraph,
+    factorgraph::prelude::FactorGraph,
     planner::{
-        robot::{DespawnRobotEvent, SpawnRobotEvent},
+        robot::{RobotDespawned, RobotSpawned},
         RobotState,
     },
     pretty_print_title,
@@ -42,9 +42,9 @@ impl Plugin for FactorGraphVisualiserPlugin {
 fn remove_rendered_factorgraph_when_robot_despawns(
     mut commands: Commands,
     query: Query<(Entity, &RobotTracker)>,
-    mut despawn_robot_event: EventReader<DespawnRobotEvent>,
+    mut despawn_robot_event: EventReader<RobotDespawned>,
 ) {
-    for DespawnRobotEvent(robot_id) in despawn_robot_event.read() {
+    for RobotDespawned(robot_id) in despawn_robot_event.read() {
         // info!(
         //     "received DespawnRobotEvent({:?}), despawning the robots factorgraph
         // visualizer \      entities",
@@ -112,9 +112,9 @@ fn on_variable_clicked(
             return;
         };
 
-        pretty_print_vector!(&variable.belief.eta);
-        pretty_print_matrix!(&variable.belief.lambda);
-        pretty_print_vector!(&variable.belief.mu);
+        pretty_print_vector!(&variable.belief.information_vector);
+        pretty_print_matrix!(&variable.belief.precision_matrix);
+        pretty_print_vector!(&variable.belief.mean);
     }
 }
 
@@ -125,14 +125,14 @@ fn on_variable_clicked(
 /// be ignored
 fn create_factorgraph_visualizer(
     mut commands: Commands,
-    mut spawn_robot_event: EventReader<SpawnRobotEvent>,
+    mut spawn_robot_event: EventReader<RobotSpawned>,
     mut matierals: ResMut<Assets<StandardMaterial>>,
     query: Query<(Entity, &FactorGraph, &ColorAssociation), With<RobotState>>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
     theme: Res<CatppuccinTheme>,
 ) {
-    for SpawnRobotEvent(robot_id) in spawn_robot_event.read() {
+    for RobotSpawned(robot_id) in spawn_robot_event.read() {
         let Some((_, factorgraph, color_association)) =
             query.iter().find(|(entity, _, _)| entity == robot_id)
         else {
@@ -147,7 +147,7 @@ fn create_factorgraph_visualizer(
             let transform = Vec3::new(x as f32, config.visualisation.height.objects, y as f32);
             let robottracker = RobotTracker {
                 robot_id: *robot_id,
-                variable_index: index.into(),
+                variable_index: index.index(),
                 order: i,
             };
 

@@ -5,6 +5,8 @@ pub mod pretty_print;
 /// `use gbp_linalg::prelude::*` to import all the common symbols from this
 /// crate
 pub mod prelude {
+    // pub use ndarray::{array, concatenate, s, Axis};
+
     pub use super::{
         pretty_print::*, Float, GbpFloat, Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm,
         VectorView,
@@ -41,12 +43,16 @@ pub type VectorView<'a, T> = ndarray::ArrayView1<'a, T>;
 /// Type alias for `ndarray::ArrayView2<T>`
 pub type MatrixView<'a, T> = ndarray::ArrayView2<'a, T>;
 
-///
+/// Trait for vector norms
 pub trait VectorNorm {
+    /// The scalar type of the vector
     type Scalar: GbpFloat;
+    /// Calculate the Euclidean norm of the vector
     fn euclidean_norm(&self) -> Self::Scalar;
+    /// Calculate the L1 norm of the vector
     fn l1_norm(&self) -> Self::Scalar;
 
+    /// Calculate the L2 norm of the vector
     #[inline(always)]
     fn l2_norm(&self) -> Self::Scalar {
         self.euclidean_norm()
@@ -73,8 +79,11 @@ macro_rules! vector_norm_trait_impl {
 vector_norm_trait_impl!(f32);
 vector_norm_trait_impl!(f64);
 
+/// Extension trait for `ndarray::Array1<T>`
 pub trait NdarrayVectorExt: Clone + VectorNorm {
+    /// The scalar type of the vector
     type Scalar: GbpFloat;
+    /// Normalize the vector in place.
     fn normalize(&mut self);
     /// Return a normalized copy of the vector.
     fn normalized(&self) -> Self {

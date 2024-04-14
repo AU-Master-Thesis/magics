@@ -10,7 +10,7 @@ const SAMPLE_DELAY: f32 = 0.5;
 use crate::{
     config::Config,
     planner::{
-        robot::{DespawnRobotEvent, SpawnRobotEvent},
+        robot::{RobotDespawned, RobotSpawned},
         RobotId, RobotState,
     },
     robot_spawner::RobotSpawnedEvent,
@@ -47,9 +47,9 @@ pub struct Traces(pub BTreeMap<RobotId, Trace>);
 
 fn remove_trace_of_despawned_robot(
     mut traces: ResMut<Traces>,
-    mut despawn_robot_event: EventReader<DespawnRobotEvent>,
+    mut despawn_robot_event: EventReader<RobotDespawned>,
 ) {
-    for DespawnRobotEvent(robot_id) in despawn_robot_event.read() {
+    for RobotDespawned(robot_id) in despawn_robot_event.read() {
         match traces.0.remove(robot_id) {
             Some(_) => info!("removed trace of robot: {:?}", robot_id),
             None => error!(
@@ -63,27 +63,25 @@ fn remove_trace_of_despawned_robot(
 fn track_initial_robot_positions(
     query: Query<(RobotId, &Transform, &ColorAssociation), With<RobotState>>,
     mut traces: ResMut<Traces>,
-    mut spawn_robot_event: EventReader<SpawnRobotEvent>,
+    mut spawn_robot_event: EventReader<RobotSpawned>,
     theme: Res<CatppuccinTheme>,
 ) {
-    spawn_robot_event
-        .read()
-        .for_each(|SpawnRobotEvent(robot_id)| {
-            for (other_robot_id, transform, color_association) in query.iter() {
-                // initialise the first position of the robot into the ring buffer
-                let mut ring_buffer = StaticRb::default();
-                let _ = ring_buffer.push_overwrite(transform.translation);
+    spawn_robot_event.read().for_each(|RobotSpawned(robot_id)| {
+        for (other_robot_id, transform, color_association) in query.iter() {
+            // initialise the first position of the robot into the ring buffer
+            let mut ring_buffer = StaticRb::default();
+            let _ = ring_buffer.push_overwrite(transform.translation);
 
-                if other_robot_id == *robot_id {
-                    let _ = traces.0.entry(*robot_id).or_insert(Trace {
-                        color: Color::from_catppuccin_colour(
-                            theme.get_display_colour(&color_association.name),
-                        ),
-                        ring_buffer,
-                    });
-                }
+            if other_robot_id == *robot_id {
+                let _ = traces.0.entry(*robot_id).or_insert(Trace {
+                    color: Color::from_catppuccin_colour(
+                        theme.get_display_colour(&color_association.name),
+                    ),
+                    ring_buffer,
+                });
             }
-        });
+        }
+    });
 }
 
 /// **Bevy** [`Update`] system

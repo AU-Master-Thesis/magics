@@ -45,6 +45,7 @@ pub mod prelude {
 /// Adds event `ToastEvent` to be used in systems.
 /// Uses a `Update` system to render the toasts on the screen at the specified
 /// anchor
+#[derive(Debug)]
 pub struct NotifyPlugin {
     /// Anchor for where to render the toasts in the main window
     /// Defaults to `Anchor::TopCenter`
@@ -108,7 +109,7 @@ impl Toasts {
 }
 
 /// Event for creating a toast
-#[derive(Event)]
+#[derive(Debug, Event)]
 pub struct ToastEvent {
     /// The caption of the toast
     pub caption: String,

@@ -4,7 +4,8 @@ cargo-features = [
 
 [workspace]
 resolver = "2" # Important! wgpu/bevy needs this!
-members = [ "crates/angle",
+members = [
+  "crates/angle",
   "crates/min_len_vec",
   "crates/percentage",
   "crates/unit_interval",
@@ -13,7 +14,11 @@ members = [ "crates/angle",
   # "crates/bevy_undo_redo",
   "crates/gbpplanner-rs",
   "crates/bevy_notify",
-  "crates/units", "crates/repeating_array",
+  "crates/units",
+  "crates/repeating_array",
+  "crates/units",
+  "crates/units",
+  "crates/bevy_fullscreen",
 ]
 
 [workspace.package]
