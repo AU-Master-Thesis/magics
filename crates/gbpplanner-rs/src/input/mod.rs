@@ -6,11 +6,13 @@ use strum_macros::EnumIter;
 mod camera;
 mod general;
 mod moveable_object;
+pub(crate) mod screenshot;
 mod ui;
 
 pub use camera::{CameraAction, CameraSensitivity};
-pub use general::{GeneralAction, ScreenShotEvent};
+pub use general::GeneralAction;
 pub use moveable_object::{MoveableObjectAction, MoveableObjectSensitivity};
+use screenshot::ScreenshotPlugin;
 pub use ui::UiAction;
 
 use self::{camera::CameraInputPlugin, general::GeneralInputPlugin, ui::UiInputPlugin};
@@ -115,6 +117,7 @@ impl Plugin for InputPlugin {
             // MoveableObjectInputPlugin,
             GeneralInputPlugin,
             UiInputPlugin,
+            ScreenshotPlugin::default(),
         ));
     }
 }

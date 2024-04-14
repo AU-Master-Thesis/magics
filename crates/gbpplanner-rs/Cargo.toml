@@ -103,6 +103,7 @@ egui_graphs      = "0.19.0"
 serde_yaml       = "0.9.34"
 colored          = "2.1.0"
 directories      = "5.0.1"
+chrono = "0.4.37"
 # font-kit = { version = "0.13.0", features = ["freetype"] }
 
 

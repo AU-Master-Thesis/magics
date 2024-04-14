@@ -12,7 +12,7 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use tap::Tap;
 
-use super::super::theme::ThemeEvent;
+use super::{super::theme::ThemeEvent, screenshot::TakeScreenshot};
 use crate::{
     config::Config,
     planner::{FactorGraph, NodeKind, PausePlayEvent, RobotId, RobotState},
@@ -27,18 +27,16 @@ pub struct GeneralInputPlugin;
 
 impl Plugin for GeneralInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ScreenShotEvent>()
-            .add_event::<QuitApplicationEvent>()
+        app.add_event::<QuitApplicationEvent>()
             .add_event::<ExportGraphFinishedEvent>()
-            .add_plugins((InputManagerPlugin::<GeneralAction>::default(),))
-            .add_systems(PostStartup, (bind_general_input,))
+            .add_plugins(InputManagerPlugin::<GeneralAction>::default())
+            .add_systems(PostStartup, bind_general_input)
             .add_systems(
                 Update,
                 (
                     general_actions_system,
                     export_graph_on_event,
                     screenshot,
-                    handle_screenshot_event,
                     quit_application_system,
                 ),
             );
@@ -220,7 +218,7 @@ fn export_factorgraphs_as_graphviz(
     Some(buf)
 }
 
-fn handle_toggle_theme(
+fn cycle_theme(
     theme_event_writer: &mut EventWriter<ThemeEvent>,
     catppuccin_theme: Res<CatppuccinTheme>,
 ) {
@@ -388,7 +386,7 @@ fn general_actions_system(
     };
 
     if action_state.just_pressed(&GeneralAction::ToggleTheme) {
-        handle_toggle_theme(&mut theme_event, catppuccin_theme);
+        cycle_theme(&mut theme_event, catppuccin_theme);
     } else if action_state.just_pressed(&GeneralAction::ExportGraph) {
         if let Err(e) = handle_export_graph(
             query_graphs,
@@ -408,45 +406,10 @@ fn general_actions_system(
     }
 }
 
-/// **Bevy** event to take a screenshot and save it to disk
-#[derive(Event, Debug, Clone)]
-pub struct ScreenShotEvent {
-    pub save_at_location: ScreenShotSaveLocation,
-}
-
-impl Default for ScreenShotEvent {
-    fn default() -> Self {
-        Self {
-            save_at_location: ScreenShotSaveLocation::default(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum ScreenShotSaveLocation {
-    At(std::path::PathBuf),
-    Default,
-    // Clipboard,
-}
-
-impl Default for ScreenShotSaveLocation {
-    fn default() -> Self {
-        Self::Default
-    }
-}
-
-impl ScreenShotSaveLocation {
-    pub const DEFAULT: &str = "./";
-}
-
-// pub enum ScreenShot {
-//     SaveAt(std::path::PathBuf),
-// }
-
 fn screenshot(
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
     currently_changing: Res<ChangingBinding>,
-    mut screen_shot_event: EventWriter<ScreenShotEvent>,
+    mut screen_shot_event: EventWriter<TakeScreenshot>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
@@ -458,53 +421,6 @@ fn screenshot(
     };
 
     if action_state.just_pressed(&GeneralAction::ScreenShot) {
-        screen_shot_event.send(ScreenShotEvent::default());
-    }
-}
-
-fn handle_screenshot_event(
-    main_window: Query<Entity, With<PrimaryWindow>>,
-    mut screenshot_manager: ResMut<ScreenshotManager>,
-    mut screen_shot_event: EventReader<ScreenShotEvent>,
-    mut toast_event: EventWriter<ToastEvent>,
-) {
-    for _ in screen_shot_event.read() {
-        let Ok(window) = main_window.get_single() else {
-            warn!("screenshot action was called without a main window!");
-            return;
-        };
-
-        let existing_screenshots = glob("./screenshot_*.png").expect("valid glob pattern");
-        let latest_screenshot_id = existing_screenshots
-            .filter_map(|result| result.ok())
-            .filter_map(|path| {
-                path.file_name()
-                    .map(|file_name| file_name.to_str().map(|s| s.to_string()))
-                    .flatten()
-            })
-            .filter_map(|basename| {
-                basename["screenshot_".len()..basename.len() - 4]
-                    .parse::<usize>()
-                    .ok()
-            })
-            .max();
-
-        let screenshot_id = latest_screenshot_id.map(|id| id + 1).unwrap_or(0);
-
-        let path = format!("screenshot_{}.png", screenshot_id);
-
-        if let Err(err) = screenshot_manager.save_screenshot_to_disk(window, &path) {
-            let error_msg = format!("failed to save screenshot to disk: {}", err);
-            error!("failed to write screenshot to disk, error: {}", err);
-            toast_event.send(ToastEvent::error(error_msg));
-            continue;
-        };
-
-        info!("saved screenshot to ./{}", path);
-
-        toast_event.send(ToastEvent::success(format!(
-            "saved screenshot to ./{}",
-            path
-        )));
+        screen_shot_event.send(TakeScreenshot::default());
     }
 }

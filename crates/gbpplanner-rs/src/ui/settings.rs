@@ -22,7 +22,7 @@ use super::{
 use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
-    input::ScreenShotEvent,
+    input::screenshot::TakeScreenshot,
     planner::{PausePlayEvent, PausedState},
     theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
 };
@@ -267,7 +267,9 @@ fn ui_settings_panel(
                         ui.label("Take Screenhot");
                         custom::fill_x(ui, |ui| {
                             if ui.button("").clicked() {
-                                world.send_event::<ScreenShotEvent>(ScreenShotEvent::default());
+                                world.send_event::<TakeScreenshot>(Default::default());
+
+                                // world.send_event::<ScreenShotEvent>(ScreenShotEvent::default());
                             }
                         });
                         ui.end_row();

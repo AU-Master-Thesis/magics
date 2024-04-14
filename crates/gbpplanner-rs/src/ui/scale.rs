@@ -1,5 +1,10 @@
+/// **Bevy** module that manages the scale/zoom of all egui UI elements.
 use bevy::{
-    input::{keyboard::KeyboardInput, mouse::MouseWheel, ButtonState},
+    input::{
+        keyboard::{Key, KeyboardInput},
+        mouse::MouseWheel,
+        ButtonState,
+    },
     prelude::*,
     window::PrimaryWindow,
 };
@@ -8,6 +13,7 @@ use bevy_egui::{EguiPlugin, EguiSettings};
 use super::UiState;
 use crate::ui::UiScaleType;
 
+/// **Bevy** plugin that manages the scale/zoom of all egui UI elements.
 #[derive(Default)]
 pub struct ScaleUiPlugin;
 
@@ -18,8 +24,18 @@ impl Plugin for ScaleUiPlugin {
         }
         app.add_event::<ScaleUi>()
             .add_systems(Startup, scale_ui)
-            .add_systems(Update, Self::scale_ui_when_ctrl_scroll)
             .add_systems(Update, scale_ui);
+
+        // Browser already use these input actions to scale the webpage
+        if cfg!(not(target_arch = "wasm32")) {
+            app.add_systems(
+                Update,
+                (
+                    Self::scale_ui_when_ctrl_scroll,
+                    Self::scale_ui_on_ctrl_plus_minus_equal,
+                ),
+            );
+        }
     }
 }
 
@@ -80,7 +96,7 @@ fn scale_ui(
     mut ui_scale_event: EventReader<ScaleUi>,
 ) {
     for event in ui_scale_event.read() {
-        info!("scale event: {:?}", event);
+        // info!("scale event: {:?}", event);
         let scale_factor = match ui_state.scale_type {
             UiScaleType::None => 1.0,
             UiScaleType::Window => {
@@ -101,6 +117,7 @@ fn scale_ui(
 }
 
 impl ScaleUiPlugin {
+    pub const BUTTON_INCREMENT: f32 = 0.05;
     /// The increment/decrement amount used when the user scrolls the mouse
     /// wheel
     pub const SCROLL_INCREMENT: f32 = 0.01;
@@ -139,6 +156,44 @@ impl ScaleUiPlugin {
                 ui_scale_event.send(ScaleUi::Decrement(Self::SCROLL_INCREMENT));
                 return;
             }
+        }
+    }
+
+    /// **Bevy** system that scales the UI if the user presses ctrl +
+    /// - <kbd>0</kbd>: reset the UI scale
+    /// + <kbd>=</kbd>: increment the UI scale by `Self::BUTTON_INCREMENT`
+    /// - <kbd>-</kbd>: decrement the UI scale by `Self::BUTTON_INCREMENT`
+    fn scale_ui_on_ctrl_plus_minus_equal(
+        mut keyboard_events: EventReader<KeyboardInput>,
+        mut scale_ui_event: EventWriter<ScaleUi>,
+        mut control_key_pressed: Local<bool>,
+    ) {
+        for event in keyboard_events.read() {
+            match event.key_code {
+                KeyCode::ControlLeft | KeyCode::ControlRight => match event.state {
+                    ButtonState::Pressed => *control_key_pressed = true,
+                    ButtonState::Released => *control_key_pressed = false,
+                },
+                _ => {}
+            }
+
+            if !*control_key_pressed {
+                return;
+            }
+
+            let ButtonState::Pressed = event.state else {
+                return;
+            };
+
+            let event = match event.key_code {
+                KeyCode::Digit0 => ScaleUi::Reset,
+                KeyCode::Equal => ScaleUi::Increment(Self::BUTTON_INCREMENT),
+                KeyCode::Minus => ScaleUi::Decrement(Self::BUTTON_INCREMENT),
+                _ => {
+                    return;
+                }
+            };
+            scale_ui_event.send(event);
         }
     }
 }
