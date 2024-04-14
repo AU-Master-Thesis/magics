@@ -1,4 +1,5 @@
 use bevy::{input::common_conditions::*, prelude::*};
+use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 
 use crate::config::{Config, Environment, FormationGroup};
 
@@ -7,8 +8,12 @@ pub struct ScenePlugin;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ActiveSimulation>()
-            .add_event::<LoadSimulationEvent>()
-            .add_event::<ReloadSimulationEvent>()
+            .add_event::<LoadSimulation>()
+            .add_event::<ReloadSimulation>()
+            .add_systems(
+                Update,
+                show_toast_when_simulation_reloads.run_if(on_event::<ReloadSimulation>()),
+            )
             .add_systems(
                 PostUpdate,
                 reload_scene.run_if(input_just_pressed(KeyCode::F5)),
@@ -57,10 +62,11 @@ impl FromWorld for ActiveSimulation {
 }
 
 #[derive(Event)]
-pub struct LoadSimulationEvent(SimulationId);
+pub struct LoadSimulation(SimulationId);
 
-#[derive(Event)]
-pub struct ReloadSimulationEvent;
+// TODO: send an simulation generation or id with
+#[derive(Event, Default)]
+pub struct ReloadSimulation;
 
 /// Marker component used to mark entities which can be reloaded as part of a
 /// scene reload
@@ -92,6 +98,9 @@ fn reload_scene(world: &mut World) {
 
     world.insert_resource::<Time<Virtual>>(new_virtual_clock);
 
+    world.send_event_default::<ReloadSimulation>();
+    // world.send_event::<ReloadSimulation>()
+
     // time.pause();
 
     // let time = time.bypass_change_detection();
@@ -102,4 +111,16 @@ fn reload_scene(world: &mut World) {
     // *time.as_deref_mut() = new_virtual_clock;
 
     // time = new_virtual_clock;
+}
+
+fn show_toast_when_simulation_reloads(mut evw_toast: EventWriter<ToastEvent>) {
+    evw_toast.send(ToastEvent {
+        caption: "reloaded simulation".into(),
+        options: ToastOptions {
+            level: ToastLevel::Success,
+            closable: false,
+            show_progress_bar: false,
+            ..Default::default()
+        },
+    });
 }

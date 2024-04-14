@@ -1,3 +1,4 @@
+#![allow(dead_code, missing_docs, clippy::default_constructed_unit_structs)]
 use bevy::prelude::*;
 use bevy_touchpad::prelude::*;
 
