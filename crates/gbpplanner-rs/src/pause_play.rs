@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 
 /// Plugin for pausing and resuming the simulation.
+#[derive(Default)]
 pub struct PausePlayPlugin;
 
 impl Plugin for PausePlayPlugin {

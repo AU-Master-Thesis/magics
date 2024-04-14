@@ -43,6 +43,7 @@ use crate::{
     environment::EnvironmentPlugin,
     input::InputPlugin,
     movement::MovementPlugin,
+    pause_play::PausePlayPlugin,
     planner::PlannerPlugin,
     robot_spawner::RobotSpawnerPlugin,
     scene::ScenePlugin,
@@ -234,6 +235,7 @@ fn main() -> anyhow::Result<()> {
         // our plugins
         .add_plugins((
             DefaultPickingPlugins,
+            PausePlayPlugin::default(),
             ThemePlugin,       // Custom
             AssetLoaderPlugin, // Custom
             EnvironmentPlugin, // Custom
