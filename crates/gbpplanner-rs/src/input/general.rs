@@ -12,7 +12,7 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use tap::Tap;
 
-use super::{super::theme::ThemeEvent, screenshot::TakeScreenshot};
+use super::{super::theme::CycleTheme, screenshot::TakeScreenshot};
 use crate::{
     config::Config,
     planner::{FactorGraph, NodeKind, PausePlayEvent, RobotId, RobotState},
@@ -219,7 +219,7 @@ fn export_factorgraphs_as_graphviz(
 }
 
 fn cycle_theme(
-    theme_event_writer: &mut EventWriter<ThemeEvent>,
+    theme_event_writer: &mut EventWriter<CycleTheme>,
     catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     info!("toggling application theme");
@@ -231,7 +231,7 @@ fn cycle_theme(
         catppuccin::Flavour::Mocha => catppuccin::Flavour::Latte,
     };
 
-    theme_event_writer.send(ThemeEvent(next_theme));
+    theme_event_writer.send(CycleTheme(next_theme));
 }
 
 fn export_graph_on_event(
@@ -365,7 +365,7 @@ fn quit_application_system(
 }
 
 fn general_actions_system(
-    mut theme_event: EventWriter<ThemeEvent>,
+    mut theme_event: EventWriter<CycleTheme>,
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
     query_graphs: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,

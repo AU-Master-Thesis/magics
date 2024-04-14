@@ -24,7 +24,7 @@ use crate::{
     environment::cursor::CursorCoordinates,
     input::screenshot::TakeScreenshot,
     planner::{PausePlayEvent, PausedState},
-    theme::{CatppuccinTheme, FromCatppuccinColourExt, ThemeEvent},
+    theme::{CatppuccinTheme, CycleTheme, FromCatppuccinColourExt},
 };
 
 /// **Bevy** `Plugin` to add the settings panel to the UI
@@ -205,7 +205,7 @@ fn ui_settings_panel(
                                 ] {
                                     ui.vertical_centered_justified(|ui| {
                                         if ui.button(flavour.to_display_string()).clicked() {
-                                            world.send_event::<ThemeEvent>(ThemeEvent(*flavour));
+                                            world.send_event::<CycleTheme>(CycleTheme(*flavour));
                                             // theme_event.send(ThemeEvent(*flavour));
                                             ui.close_menu();
                                         }
