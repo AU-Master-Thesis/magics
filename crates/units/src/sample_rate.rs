@@ -46,6 +46,7 @@ impl SampleRate {
     /// Returns `Err(SampleRateError::NegativeTime)` if the provided seconds is
     /// negative. Returns `Err(SampleRateError::Instantaneous)` if the
     /// provided seconds is 0.0 Returns `Ok` otherwise.
+    #[allow(clippy::cast_possible_truncation)]
     pub fn from_secs(secs: f64) -> Result<Self> {
         if secs.is_sign_negative() {
             Err(SampleRateError::NegativeTime(secs))

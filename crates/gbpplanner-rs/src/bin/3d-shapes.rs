@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used)]
 //! This example demonstrates the built-in 3d shapes in Bevy.
 //! The scene includes a patterned texture and a rotation for visualizing the
 //! normals and UVs.
@@ -114,8 +115,8 @@ fn uv_debug_texture() -> Image {
 
     Image::new_fill(
         Extent3d {
-            width: TEXTURE_SIZE as u32,
-            height: TEXTURE_SIZE as u32,
+            width: u32::try_from(TEXTURE_SIZE).unwrap(),
+            height: u32::try_from(TEXTURE_SIZE).unwrap(),
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,

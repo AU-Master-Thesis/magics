@@ -35,7 +35,7 @@ impl Percentage {
     /// 100.0. If the value is outside of this range, an error of type
     /// [`PercentageError`] is returned.
     pub fn new(p: f64) -> Result<Percentage, PercentageError> {
-        if p < 0.0 || p > 100.0 {
+        if !(0.0..=100.0).contains(&p) {
             return Err(PercentageError::InvalidPercentage(p));
         }
         Ok(Percentage(p / 100.0))
@@ -45,6 +45,10 @@ impl Percentage {
     /// 100.0. # Safety
     /// This function is unsafe because it does not check if the value is within
     /// the valid range.
+    ///
+    /// # Safety
+    /// It is up to the caller to ensure the invariant that the input is between
+    /// [0.0, 100.0]
     pub unsafe fn new_unchecked(p: f64) -> Percentage {
         Percentage(p / 100.0)
     }
@@ -127,6 +131,7 @@ impl Serialize for Percentage {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use approx::assert_relative_eq;
     use pretty_assertions::assert_eq;
@@ -134,6 +139,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::undocumented_unsafe_blocks)]
     fn creating_percentages() {
         assert!(matches!(Percentage::new(0.0), Ok(Percentage(0.0))));
         assert!(matches!(Percentage::new(100.0), Ok(Percentage(1.0))));

@@ -143,6 +143,7 @@ impl<'de> Deserialize<'de> for Angle {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use approx::assert_abs_diff_eq;
 
@@ -150,18 +151,18 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(Angle::new(-1.0).is_err());
-        assert!(Angle::new(0.0).is_ok());
-        assert!(Angle::new(2.0 * std::f64::consts::PI).is_ok());
-        assert!(Angle::new(2.0 * std::f64::consts::PI + 1.0).is_err());
+        Angle::new(-1.0).unwrap_err();
+        Angle::new(0.0).unwrap();
+        Angle::new(2.0 * std::f64::consts::PI).unwrap();
+        Angle::new(2.0 * std::f64::consts::PI + 1.0).unwrap_err();
     }
 
     #[test]
     fn test_from_degrees() {
-        assert!(Angle::from_degrees(-1.0).is_err());
-        assert!(Angle::from_degrees(0.0).is_ok());
-        assert!(Angle::from_degrees(360.0).is_ok());
-        assert!(Angle::from_degrees(361.0).is_err());
+        Angle::from_degrees(-1.0).unwrap_err();
+        Angle::from_degrees(0.0).unwrap();
+        Angle::from_degrees(360.0).unwrap();
+        Angle::from_degrees(361.0).unwrap_err();
     }
 
     #[test]
@@ -263,7 +264,7 @@ mod tests {
         assert!(matches!(Angle::try_from(0.0), Ok(Angle(0.0))));
 
         let angle = Angle::try_from(2.0 * std::f64::consts::PI);
-        assert!(angle.is_ok());
+        angle.unwrap();
 
         assert!(matches!(
             Angle::try_from(-1.0),

@@ -30,11 +30,20 @@ impl<T: Copy, const N: usize> RepeatingArray<T, N> {
         self.index = 0;
     }
 
-    /// Turn the RepeatingArray into an `Iterator`
-    pub fn into_iter(self) -> std::array::IntoIter<T, N> {
-        self.array.into_iter()
-    }
+    // /// Turn the RepeatingArray into an `Iterator`
+    // pub fn into_iter(self) -> std::array::IntoIter<T, N> {
+    //     self.array.into_iter()
+    // }
 }
+
+// impl<T: Copy, const N: usize> std::iter::IntoIterator for RepeatingArray<T,
+// N> {     type IntoIter = std::array::IntoIter<T, N>;
+//     type Item = T;
+
+//     fn into_iter(self) -> Self::IntoIter {
+//         self.array.into_iter()
+//     }
+// }
 
 impl<T: Copy, const N: usize> Iterator for RepeatingArray<T, N> {
     type Item = T;
