@@ -18,7 +18,7 @@ members = [
   "crates/repeating_array",
   "crates/units",
   "crates/units",
-  "crates/bevy_fullscreen",
+  "crates/bevy_fullscreen", "crates/bevy_touchpad",
 ]
 
 [workspace.package]

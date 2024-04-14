@@ -1621,6 +1621,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_touchpad"
+version = "1.0.0"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_transform"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3075,6 +3082,7 @@ dependencies = [
  "bevy_notify",
  "bevy_prng",
  "bevy_rand",
+ "bevy_touchpad",
  "catppuccin",
  "chrono",
  "clap",

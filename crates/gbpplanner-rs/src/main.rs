@@ -251,6 +251,7 @@ fn main() -> anyhow::Result<()> {
             NotifyPlugin::default()
         ))
         .add_plugins(ToggleFullscreenPlugin::default())
+        // .add_plugins(bevy_touchpad::BevyTouchpadPlugin::default())
 
         .add_plugins(ScenePlugin)
         // .add_plugins(NotifyPlugin)

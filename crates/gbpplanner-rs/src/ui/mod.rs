@@ -14,6 +14,7 @@ use bevy_egui::{
     egui::{self, Visuals},
     EguiContexts, EguiPlugin,
 };
+use bevy_touchpad::TwoFingerSwipe;
 pub use controls::ChangingBinding;
 pub use decoration::ToDisplayString;
 pub use settings::{DrawSettingsEvent, ExportGraphEvent};
@@ -51,6 +52,9 @@ impl PluginGroup for UiPlugins {
 
 impl Plugin for EguiInterfacePlugin {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<bevy_touchpad::BevyTouchpadPlugin>() {
+            app.add_plugins(bevy_touchpad::BevyTouchpadPlugin::default());
+        }
         app.init_resource::<ActionBlock>()
             .init_resource::<OccupiedScreenSpace>()
             .init_resource::<UiState>()
@@ -72,6 +76,9 @@ impl Plugin for EguiInterfacePlugin {
                     // toggle_visibility_of_panels.run_if(input_just_pressed(KeyCode::Escape)),
                 ),
             );
+        // .add_systems(Update,
+        // toggle_visibility_of_side_panels_when_two_finger_swiping);
+
         // .add_systems(
         //     Update,
         //     snapshot_
@@ -82,6 +89,25 @@ impl Plugin for EguiInterfacePlugin {
 fn load_fonts() {}
 
 fn toggle_visibility_of_panels(mut ui_state: ResMut<UiState>) {}
+
+fn toggle_visibility_of_side_panels_when_two_finger_swiping(
+    mut ui_state: ResMut<UiState>,
+    mut evr_two_finger_swipe: EventReader<TwoFingerSwipe>,
+    // mut timeout: Local<Timer>,
+) {
+    for event in evr_two_finger_swipe.read() {
+        match event.direction {
+            bevy_touchpad::TwoFingerSwipeDirection::Up
+            | bevy_touchpad::TwoFingerSwipeDirection::Down => {}
+            bevy_touchpad::TwoFingerSwipeDirection::Left => {
+                ui_state.left_panel_visible = !ui_state.left_panel_visible;
+            }
+            bevy_touchpad::TwoFingerSwipeDirection::Right => {
+                ui_state.right_panel_visible = !ui_state.right_panel_visible;
+            }
+        }
+    }
+}
 
 /// **Bevy** system that hides both the left and right ui panels, if any of them
 /// are visible.
