@@ -100,6 +100,10 @@ fn hide_panels(mut ui_state: ResMut<UiState>) {
     if ui_state.bottom_panel_visible {
         ui_state.bottom_panel_visible = false;
     }
+
+    if ui_state.metrics_window_visible {
+        ui_state.metrics_window_visible = false;
+    }
 }
 
 /// **Bevy** [`Resource`] to block actions from being performed
@@ -160,6 +164,7 @@ pub struct MouseOverPanel {
     pub right_panel:     bool,
     pub top_panel:       bool,
     pub bottom_panel:    bool,
+    pub metrics_window:  bool,
     pub floating_window: bool,
 }
 
@@ -194,6 +199,8 @@ pub struct UiState {
     pub top_panel_visible: bool,
     /// Whether the bottom panel is open
     pub bottom_panel_visible: bool,
+    /// Wheter the metrics window is open
+    pub metrics_window_visible: bool,
     /// The type of UI scaling to use
     pub scale_type: UiScaleType,
     /// When `scale_type` is `Custom`, the percentage to scale by
@@ -231,6 +238,7 @@ impl Default for UiState {
             right_panel_visible: false,
             top_panel_visible: false,
             bottom_panel_visible: false,
+            metrics_window_visible: false,
             scale_type: UiScaleType::default(),
             scale_percent: Self::DEFAULT_SCALE_PERCENTAGE,
             // scale_percent: 100, // start at default factor 1.0 = 100%

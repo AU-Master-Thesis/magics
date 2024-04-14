@@ -6,7 +6,9 @@ use bevy::{
         FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin, RegisterDiagnostic,
         SystemInformationDiagnosticsPlugin,
     },
+    input::{keyboard::KeyboardInput, ButtonState},
     prelude::*,
+    reflect::TypeData,
 };
 use bevy_egui::egui;
 use egui_plot::{Line, Plot, PlotPoints};
@@ -32,7 +34,8 @@ impl Default for MetricsPlugin {
 // }
 
 // All diagnostics should have a unique DiagnosticPath.
-const SYSTEM_ITERATION_COUNT: DiagnosticPath = DiagnosticPath::const_new("system_iteration_count");
+// const SYSTEM_ITERATION_COUNT: DiagnosticPath =
+// DiagnosticPath::const_new("system_iteration_count");
 
 impl Plugin for MetricsPlugin {
     fn build(&self, app: &mut App) {
@@ -74,14 +77,6 @@ impl Plugin for MetricsPlugin {
     }
 }
 
-// fn setup(mut commands: Commands, mut egui_ctx: bevy_egui::EguiContexts) {
-//     // let window = egui::
-//     let window = egui::Window::new("Hello").show(contexts.ctx_mut(), |ui| {
-//         ui.label("world");
-//     });
-
-// }
-
 impl MetricsPlugin {
     fn render(
         mut egui_ctx: bevy_egui::EguiContexts,
@@ -91,7 +86,27 @@ impl MetricsPlugin {
         config: Res<Config>,
         mut ui_state: ResMut<UiState>,
         mut current_pos: Local<egui::Pos2>,
+        // ui_state: Res<UiState>,
+        // mut visible: Local<bool>,
+        // mut keyboard_events: EventReader<KeyboardInput>,
     ) {
+        // for event in keyboard_events.read() {
+        //     match (event.key_code, event.state) {
+        //         (KeyCode::KeyM, ButtonState::Pressed) => {
+        //             *visible = !*visible;
+        //         }
+        //         _ => {}
+        //     }
+        // }
+
+        // if !*visible {
+        //     return;
+        // }
+
+        if !ui_state.metrics_window_visible {
+            return;
+        }
+
         let window = egui::Window::new("Metrics")
             .collapsible(true)
             .interactable(true)
@@ -148,6 +163,15 @@ impl MetricsPlugin {
                 }
 
                 ui.label(format!("{}", egui::special_emojis::GITHUB));
+
+                // if ui.color_edit_button_rgb(&mut [0.1, 0.5, 0.6]).clicked() {
+                //     info!("todo");
+                // }
+
+                if ui.button("export").clicked() {
+                    info!("todo, not implemented");
+                }
+
                 ui.allocate_space(ui.available_size()); // put this LAST in your
                                                         // panel/window code
                                                         // ui.allocate_space(ui.
@@ -165,8 +189,8 @@ impl MetricsPlugin {
             .unwrap_or_default();
     }
 
-    fn system_iteration_count(mut diagnostics: Diagnostics, time: Res<Time<Real>>) {
-        // Add a measurement of 10.0 for our diagnostic each time this system runs.
-        diagnostics.add_measurement(&SYSTEM_ITERATION_COUNT, || time.delta_seconds_f64());
-    }
+    // fn system_iteration_count(mut diagnostics: Diagnostics, time:
+    // Res<Time<Real>>) {     // Add a measurement of 10.0 for our diagnostic
+    // each time this system runs.     diagnostics.add_measurement(&
+    // SYSTEM_ITERATION_COUNT, || time.delta_seconds_f64()); }
 }

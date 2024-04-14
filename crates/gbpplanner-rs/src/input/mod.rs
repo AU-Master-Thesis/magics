@@ -98,13 +98,15 @@ impl ToDisplayString for MoveableObjectAction {
 
 impl ToDisplayString for UiAction {
     fn to_display_string(&self) -> String {
-        match self {
-            UiAction::ToggleLeftPanel => "Toggle Left Panel".to_string(),
-            UiAction::ToggleRightPanel => "Toggle Right Panel".to_string(),
-            UiAction::ChangeScaleKind => "Toggle Scale Factor".to_string(),
-            UiAction::ToggleTopPanel => "Toggle Top Panel".to_string(),
-            UiAction::ToggleBottomPanel => "Toggle Bottom Panel".to_string(),
-        }
+        self.to_string()
+        // match self {
+        //     UiAction::ToggleLeftPanel => "Toggle Left Panel".to_string(),
+        //     UiAction::ToggleRightPanel => "Toggle Right Panel".to_string(),
+        //     UiAction::ChangeScaleKind => "Toggle Scale Factor".to_string(),
+        //     UiAction::ToggleTopPanel => "Toggle Top Panel".to_string(),
+        //     UiAction::ToggleBottomPanel => "Toggle Bottom Panel".to_string(),
+        //     UiAction::ToggleMetricsWindow => "",
+        // }
     }
 }
 
