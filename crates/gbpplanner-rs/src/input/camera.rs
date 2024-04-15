@@ -14,7 +14,10 @@ use super::{
     ChangingBinding,
 };
 use crate::{
-    environment::{self, camera::CameraResetEvent},
+    environment::{
+        self,
+        camera::{CameraResetEvent, CameraSettings},
+    },
     movement::MovementPlugin,
     ui::ActionBlock,
 };
@@ -178,6 +181,7 @@ fn camera_actions(
     windows: Query<&Window>,
     mut keyboard_events: EventReader<KeyboardInput>,
     mut control_key_pressed: Local<bool>,
+    camera_settings: Res<CameraSettings>,
 ) {
     for event in keyboard_events.read() {
         match event.key_code {
@@ -231,12 +235,12 @@ fn camera_actions(
                     {
                         tmp_velocity.x =
                             action.x * camera_distance * sensitivity.move_sensitivity / 10.0;
-                        // * environment::camera::SPEED;
+                        // * camera_settings.speed;
                         // * windows_height_scaling
                         tmp_velocity.z =
                             action.y * camera_distance * sensitivity.move_sensitivity / 10.0;
                         // * windows_height_scaling
-                        // * environment::camera::SPEED;
+                        // * camera_settings.speed;
                     }
                 }
                 CameraMovementMode::Orbit => {
@@ -245,10 +249,10 @@ fn camera_actions(
                         .map(|axis| axis.xy())
                     {
                         tmp_angular_velocity.x = -action.x * sensitivity.move_sensitivity / 10.0;
-                        // * environment::camera::ANGULAR_SPEED;
+                        // * camera_settings.angular_speed;
                         // * windows_height_scaling
                         tmp_angular_velocity.y = action.y * sensitivity.move_sensitivity / 10.0;
-                        // * environment::camera::ANGULAR_SPEED;
+                        // * camera_settings.angular_speed;
                         // * windows_height_scaling
                     }
                 }
@@ -261,12 +265,12 @@ fn camera_actions(
                         .map(|axis| axis.xy().normalize_or_zero())
                     {
                         tmp_velocity.x = -action.x
-                            * environment::camera::SPEED
+                            * camera_settings.speed
                             * camera_distance
                             * sensitivity.move_sensitivity
                             / 35.0;
                         tmp_velocity.z = action.y
-                            * environment::camera::SPEED
+                            * camera_settings.speed
                             * camera_distance
                             * sensitivity.move_sensitivity
                             / 35.0;
@@ -278,12 +282,10 @@ fn camera_actions(
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize())
                     {
-                        tmp_angular_velocity.x = action.x
-                            * environment::camera::ANGULAR_SPEED
-                            * sensitivity.move_sensitivity;
-                        tmp_angular_velocity.y = action.y
-                            * environment::camera::ANGULAR_SPEED
-                            * sensitivity.move_sensitivity;
+                        tmp_angular_velocity.x =
+                            action.x * camera_settings.angular_speed * sensitivity.move_sensitivity;
+                        tmp_angular_velocity.y =
+                            action.y * camera_settings.angular_speed * sensitivity.move_sensitivity;
                     }
                 }
             }
@@ -297,10 +299,10 @@ fn camera_actions(
         if !*control_key_pressed {
             if action_state.pressed(&CameraAction::ZoomIn) {
                 // info!("Zooming in");
-                tmp_velocity.y = -environment::camera::SPEED * camera_distance / 10.0;
+                tmp_velocity.y = -camera_settings.speed * camera_distance / 10.0;
             } else if action_state.pressed(&CameraAction::ZoomOut) {
                 // info!("Zooming out");
-                tmp_velocity.y = environment::camera::SPEED * camera_distance / 10.0;
+                tmp_velocity.y = camera_settings.speed * camera_distance / 10.0;
             } else {
                 tmp_velocity.y = 0.0;
             }

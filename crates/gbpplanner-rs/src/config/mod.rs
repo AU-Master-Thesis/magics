@@ -373,12 +373,14 @@ impl Default for RobotSection {
 #[serde(rename_all = "kebab-case")]
 pub struct InteractionSection {
     pub ui_focus_cancels_inputs: bool,
+    pub default_cam_distance:    f32,
 }
 
 impl Default for InteractionSection {
     fn default() -> Self {
         Self {
             ui_focus_cancels_inputs: true,
+            default_cam_distance:    125.0,
         }
     }
 }

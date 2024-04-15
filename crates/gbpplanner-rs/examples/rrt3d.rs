@@ -5,13 +5,16 @@ use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
 use gbpplanner_rs::{
+    asset_loader::AssetLoaderPlugin,
+    cli,
+    config::{read_config, Config, Environment, FormationGroup},
     environment::{
         camera::{CameraMovementMode, CameraResetEvent},
-        MainCamera, ObstacleMarker,
+        EnvironmentPlugin, MainCamera, ObstacleMarker,
     },
     input::{camera::CameraInputPlugin, ChangingBinding},
     movement::{self, LinearMovementBundle, MovementPlugin, OrbitMovementBundle},
-    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
+    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt, ThemePlugin},
     ui::ActionBlock,
 };
 use parry3d::{
@@ -26,34 +29,74 @@ const CAMERA_UP: Vec3 = Vec3::NEG_Y;
 const CAMERA_INITIAL_TARGET: Vec3 = Vec3::ZERO;
 const CAMERA_INITIAL_POSITION: Vec3 = Vec3::new(0.0, INITIAL_CAMERA_DISTANCE, 0.0);
 
-fn main() {
-    better_panic::install();
+fn main() -> anyhow::Result<()> {
+    better_panic::debug_install();
+
+    let cli = cli::parse_arguments();
+
+    let (config, formation, environment): (Config, FormationGroup, Environment) = if cli.default {
+        (
+            Config::default(),
+            FormationGroup::default(),
+            Environment::default(),
+        )
+    } else {
+        let config = read_config(cli.config.as_ref())?;
+        if let Some(ref inner) = cli.config {
+            println!(
+                "successfully read config from: {}",
+                inner.as_os_str().to_string_lossy()
+            );
+        }
+
+        let formation = FormationGroup::from_file(&config.formation_group)?;
+        println!(
+            "successfully read formation config from: {}",
+            config.formation_group
+        );
+        let environment = Environment::from_file(&config.environment)?;
+        println!(
+            "successfully read environment config from: {}",
+            config.environment
+        );
+
+        (config, formation, environment)
+    };
+
     let mut app = App::new();
-    app.add_plugins((
-        DefaultPlugins,
-        InfiniteGridPlugin,
-        MovementPlugin,
-        CameraInputPlugin,
-    ))
-    .init_state::<CameraMovementMode>()
-    .insert_resource(AmbientLight {
-        color:      Color::default(),
-        brightness: 1000.0,
-    })
-    .insert_resource(ClearColor(Color::from_catppuccin_colour(
-        Flavour::Macchiato.base(),
-    )))
-    .init_resource::<CatppuccinTheme>()
-    .init_resource::<Path>()
-    .init_resource::<ChangingBinding>()
-    .add_event::<CameraResetEvent>()
-    .init_resource::<ActionBlock>()
-    .add_systems(
-        Startup,
-        (spawn_camera, infinite_grid, spawn_colliders, lighting),
-    )
-    .add_systems(Update, (rrt_path, draw_gizmos))
-    .run();
+    app.insert_resource(config)
+        .insert_resource(formation)
+        .insert_resource(environment)
+        .add_plugins((
+            DefaultPlugins,
+            // InfiniteGridPlugin,
+            MovementPlugin,
+            CameraInputPlugin,
+            EnvironmentPlugin,
+            ThemePlugin,
+            AssetLoaderPlugin,
+        ))
+        // .init_state::<CameraMovementMode>()
+        // .insert_resource(AmbientLight {
+        //     color:      Color::default(),
+        //     brightness: 1000.0,
+        // })
+        // .insert_resource(ClearColor(Color::from_catppuccin_colour(
+        //     Flavour::Macchiato.base(),
+        // )))
+        // .init_resource::<CatppuccinTheme>()
+        .init_resource::<Path>()
+        .init_resource::<ChangingBinding>()
+        // .add_event::<CameraResetEvent>()
+        // .init_resource::<ActionBlock>()
+        .add_systems(
+            Startup,
+            spawn_colliders,
+        )
+        .add_systems(Update, (rrt_path, draw_gizmos))
+        .run();
+
+    Ok(())
 }
 
 #[derive(Debug, Resource, Default)]
@@ -235,9 +278,8 @@ impl CollisionProblem {
         );
 
         // test for intersection
-        let intersecting =
-            query::intersection_test(&ball_pos, &self.ball, &cuboid_pos, &self.obstacle)
-                .expect("Correct shapes should have been given.");
+        let intersecting = intersection_test(&ball_pos, &self.ball, &cuboid_pos, &self.obstacle)
+            .expect("Correct shapes should have been given.");
 
         // return true if not intersecting
         !intersecting

@@ -57,7 +57,7 @@ pub enum DisplayColour {
     Lavender,
 }
 
-// macro to implement all colour getters on `CatppuccinTheme` itself
+/// macro to implement all colour getters on [`CatppuccinTheme`] itself
 macro_rules! impl_colour_getters {
     ($($x:ident),+ $(,)?) => (
         $(
@@ -70,8 +70,31 @@ macro_rules! impl_colour_getters {
     );
 }
 
+/// macro to implement all [`StandardMaterial`] colour getters on
+/// [`CatppuccinTheme`]
+macro_rules! impl_material_getters {
+    ($($x:ident),+ $(,)?) => (
+        paste::paste!{$(
+            #[allow(dead_code)]
+            #[inline(always)]
+            pub fn [<$x _material>](&self) -> StandardMaterial {
+                StandardMaterial {
+                    base_color: Color::from_catppuccin_colour(self.flavour.$x()),
+                    ..Default::default()
+                }
+            }
+        )+}
+    );
+}
+
 impl CatppuccinTheme {
     impl_colour_getters!(
+        rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green, teal, sky, sapphire,
+        blue, lavender, text, subtext1, subtext0, overlay2, overlay1, overlay0, surface2, surface1,
+        surface0, base, mantle, crust,
+    );
+
+    impl_material_getters!(
         rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green, teal, sky, sapphire,
         blue, lavender, text, subtext1, subtext0, overlay2, overlay1, overlay0, surface2, surface1,
         surface0, base, mantle, crust,
@@ -145,6 +168,13 @@ impl CatppuccinTheme {
             DisplayColour::Lavender => self.flavour.lavender(),
         }
     }
+
+    // pub fn get_rosewater_material(&self) -> StandardMaterial {
+    //     StandardMaterial {
+    //         base_color: Color::from_catppuccin_colour(self.flavour.rosewater()),
+    //         ..Default::default()
+    //     }
+    // }
 }
 
 pub trait ColourExt {
@@ -668,3 +698,8 @@ fn handle_obstacles(
         }
     }
 }
+
+// /// **Bevy** [`Resource`] for Catppuccin theme assets
+// /// Contains base-materials for all the colours in the Catppuccin theme
+// #[derive(Debug, Default, Resource)]
+// pub struct CatppuccinThemeAssets {}

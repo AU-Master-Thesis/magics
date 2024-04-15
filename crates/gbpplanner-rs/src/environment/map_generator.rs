@@ -1,6 +1,11 @@
+use std::sync::Arc;
+
 use angle::Angle;
 use bevy::prelude::*;
-use parry2d::shape;
+use parry2d::{
+    na::{self, Isometry2, Vector2},
+    shape,
+};
 // use bevy_more_shapes::Cylinder;
 // use bevy_math::RegularPolygon;
 use serde::{Deserialize, Serialize};
@@ -41,12 +46,22 @@ impl TileCoordinates {
     }
 }
 
+pub trait DebugShape: shape::Shape + std::fmt::Debug {}
+
+impl DebugShape for shape::Cuboid {}
+
 #[derive(Resource, Default)]
-pub struct Colliders(Vec<Box<dyn shape::Shape>>);
+pub struct Colliders(Vec<(Isometry2<f32>, Arc<dyn shape::Shape>)>);
+// where
+//     S: shape::Shape + std::fmt::Debug;
 
 impl Colliders {
-    pub fn push(&mut self, shape: Box<dyn shape::Shape>) {
-        self.0.push(shape);
+    pub fn push(&mut self, position: Isometry2<f32>, shape: Arc<dyn shape::Shape>) {
+        self.0.push((position, shape));
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &(Isometry2<f32>, Arc<dyn shape::Shape>)> {
+        self.0.iter()
     }
 }
 
@@ -1008,7 +1023,13 @@ fn build_tile_grid(
                 _ => None,
             } {
                 obstacle_information.iter().for_each(|(cuboid, transform)| {
-                    colliders.push(Box::<shape::Cuboid>::new(cuboid.clone().into()));
+                    colliders.push(
+                        Isometry2::new(
+                            Vector2::new(transform.translation.x, transform.translation.z),
+                            na::zero(),
+                        ),
+                        Arc::new(Into::<shape::Cuboid>::into(*cuboid)),
+                    );
                     commands.spawn((
                         PbrBundle {
                             mesh: meshes.add(*cuboid),

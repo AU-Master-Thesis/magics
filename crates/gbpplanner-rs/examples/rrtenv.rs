@@ -1,14 +1,26 @@
 //! example crate to take the environment config from the config file
 //! and generate the necessary environment and colliders for rrt to work
+use std::sync::Arc;
+
 use bevy::prelude::*;
 use gbpplanner_rs::{
     asset_loader::AssetLoaderPlugin,
     cli,
     config::{read_config, Config, Environment, FormationGroup},
-    environment::EnvironmentPlugin,
-    input::{camera::CameraInputPlugin, ChangingBinding, InputPlugin},
-    theme::ThemePlugin,
+    environment::{map_generator::Colliders, EnvironmentPlugin},
+    input::{camera::CameraInputPlugin, ChangingBinding},
+    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt, ThemePlugin},
 };
+use parry2d::{
+    na::{self, Isometry2, Vector2},
+    query::intersection_test,
+    shape,
+};
+// use parry3d::shape;
+use rand::distributions::{Distribution, Uniform};
+
+const START: Vec2 = Vec2::new(-100.0 + 12.5, 62.5 - 2.0);
+const END: Vec2 = Vec2::new(100.0 - 2.0, -62.5 + 12.5);
 
 fn main() -> anyhow::Result<()> {
     better_panic::debug_install();
@@ -49,6 +61,7 @@ fn main() -> anyhow::Result<()> {
         .insert_resource(formation)
         .insert_resource(environment)
         .init_resource::<ChangingBinding>()
+        .init_resource::<Path>()
         .add_plugins((
             DefaultPlugins,
             AssetLoaderPlugin,
@@ -56,7 +69,160 @@ fn main() -> anyhow::Result<()> {
             EnvironmentPlugin,
             ThemePlugin,
         ))
+        .add_systems(Startup, spawn_waypoints)
+        .add_systems(Update, (rrt_path, draw_gizmos))
         .run();
 
     Ok(())
+}
+
+fn spawn_waypoints(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    theme: Res<CatppuccinTheme>,
+) {
+    // let start = Vec2::new(-100.0 + 12.5, 62.5 - 2.0);
+    // let end = Vec2::new(100.0 - 2.0, -62.5 + 12.5);
+
+    let sphere = meshes.add(Sphere::new(1.0).mesh().ico(5).unwrap());
+
+    commands.spawn(PbrBundle {
+        mesh: sphere.clone(),
+        material: materials.add(theme.blue_material()),
+        transform: Transform::from_translation(Vec3::new(START.x, 0.0, START.y)),
+        ..Default::default()
+    });
+
+    commands.spawn(PbrBundle {
+        mesh: sphere,
+        material: materials.add(theme.green_material()),
+        transform: Transform::from_translation(Vec3::new(END.x, 0.0, END.y)),
+        ..Default::default()
+    });
+}
+
+/// **Bevy** [`Update`] system to find an RRT path through the environment
+fn rrt_path(mut path: ResMut<Path>, mut index: Local<usize>, colliders: Res<Colliders>) {
+    let collision_solver = CollisionProblem::new(Arc::new(colliders.into_inner()));
+
+    let start = [START.x as f64, START.y as f64];
+    let end = [END.x as f64, END.y as f64];
+
+    if let Ok(mut res) = rrt::dual_rrt_connect(
+        &start,
+        &end,
+        |x: &[f64]| collision_solver.is_feasible(x),
+        || collision_solver.random_sample(),
+        1.0,
+        10000,
+    )
+    .inspect_err(|e| {
+        error!("Error: {:?}", e);
+    }) {
+        rrt::smooth_path(
+            &mut res,
+            |x: &[f64]| collision_solver.is_feasible(x),
+            1.0,
+            100,
+        );
+        path.clear();
+        res.iter().for_each(|x| {
+            path.push(Vec3::new(x[0] as f32, 0.0, x[1] as f32));
+        });
+    };
+}
+
+/// **Bevy** [`Resource`] for storing a path
+/// Simply a wrapper for a list of [`Vec3`] points
+#[derive(Debug, Resource, Default)]
+pub struct Path(Vec<Vec3>);
+
+impl Path {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    fn clear(&mut self) {
+        self.0.clear();
+    }
+
+    fn push(&mut self, point: Vec3) {
+        self.0.push(point);
+    }
+}
+
+// make Path indexable like a Vec
+impl std::ops::Index<usize> for Path {
+    type Output = Vec3;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+/// **Bevy** [`Update`] system for drawing the path with gizmos
+fn draw_gizmos(mut gizmos: Gizmos, path: Res<Path>, theme: Res<CatppuccinTheme>) {
+    if path.len() < 2 {
+        return;
+    }
+    for i in 0..path.len() - 1 {
+        gizmos.line(
+            path[i],
+            path[i + 1],
+            Color::from_catppuccin_colour(theme.teal()),
+        );
+    }
+}
+
+struct CollisionProblem<'world> {
+    colliders: Arc<&'world Colliders>,
+    ball:      shape::Ball,
+}
+
+impl<'world> CollisionProblem<'world> {
+    fn new(colliders: Arc<&'world Colliders>) -> Self {
+        let ball = shape::Ball::new(0.1f32);
+        Self { colliders, ball }
+    }
+
+    fn with_collision_radius(mut self, radius: f32) -> Self {
+        let ball = shape::Ball::new(radius);
+        self.ball = ball;
+        self
+    }
+
+    fn is_feasible(&self, point: &[f64]) -> bool {
+        // place the intersection ball at the point
+        let ball_pos = Isometry2::new(Vector2::new(point[0] as f32, point[1] as f32), na::zero());
+
+        let mut intersecting = false;
+
+        // self.colliders.iter().for_each(|(isometry, collider)| {
+        //     // info!("isometry: {:?}", isometry);
+        //     // info!("collider: {:?}", *collider);
+        //     intersecting = intersection_test(&ball_pos, &self.ball, &isometry,
+        // collider.as_ref())         .expect("Correct shapes should have been
+        // given."); });
+
+        for (i, (isometry, collider)) in self.colliders.iter().enumerate() {
+            intersecting = intersection_test(&ball_pos, &self.ball, &isometry, collider.as_ref())
+                .expect("Correct shapes should have been given.");
+            if intersecting {
+                // info!("intersecting with collider: {}", i);
+                break;
+            }
+        }
+
+        // std::process::exit(0);
+
+        // return true if not intersecting
+        !intersecting
+    }
+
+    fn random_sample(&self) -> Vec<f64> {
+        let between = Uniform::new(-2000.0, 2000.0);
+        let mut rng = rand::thread_rng();
+        vec![between.sample(&mut rng), between.sample(&mut rng)]
+    }
 }
