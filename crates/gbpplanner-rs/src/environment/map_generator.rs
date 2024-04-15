@@ -1,16 +1,16 @@
 use angle::Angle;
 use bevy::prelude::*;
+use parry2d::shape;
 // use bevy_more_shapes::Cylinder;
 // use bevy_math::RegularPolygon;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     asset_loader::SceneAssets,
+    bevy_utils::run_conditions::event_exists,
     config::{environment::PlaceableShape, Config, DrawSetting, Environment, Obstacle, Obstacles},
-    ui::DrawSettingsEvent,
+    input::DrawSettingsEvent,
 };
-
-use parry2d::shape;
 
 pub struct GenMapPlugin;
 
@@ -18,7 +18,10 @@ impl Plugin for GenMapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Colliders>()
             .add_systems(Startup, (build_tile_grid, build_obstacles))
-            .add_systems(Update, show_or_hide_generated_map);
+            .add_systems(
+                Update,
+                show_or_hide_generated_map.run_if(event_exists::<DrawSettingsEvent>),
+            );
     }
 }
 

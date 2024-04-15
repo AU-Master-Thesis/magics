@@ -6,13 +6,16 @@ use leafwing_input_manager::{common_conditions::action_just_pressed, prelude::*}
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use super::super::{
-    environment::camera::{CameraMovementMode, MainCamera},
-    movement::{AngularVelocity, Orbit, Velocity},
+use super::{
+    super::{
+        environment::camera::{CameraMovementMode, MainCamera},
+        movement::{AngularVelocity, Orbit, Velocity},
+    },
+    ChangingBinding,
 };
 use crate::{
     environment::{self, camera::CameraResetEvent},
-    ui::{ActionBlock, ChangingBinding},
+    ui::ActionBlock,
 };
 
 #[derive(Default)]
@@ -164,7 +167,7 @@ fn camera_actions(
     >,
     // mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
-    action_block: Res<ActionBlock>,
+    action_block: Option<Res<ActionBlock>>,
     mut camera_reset_event: EventWriter<CameraResetEvent>,
     sensitivity: Res<CameraSensitivity>,
     // mut window: Query<&PrimaryWindow>,
@@ -189,11 +192,12 @@ fn camera_actions(
     if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
         query.get_single_mut()
     {
-        // if currently_changing.on_cooldown() || currently_changing.is_changing() {
-        if currently_changing.on_cooldown()
-            || currently_changing.is_changing()
-            || action_block.is_blocked()
+        let is_action_blocked =
+            action_block.is_some() && action_block.as_ref().unwrap().is_blocked();
+
+        if currently_changing.on_cooldown() || currently_changing.is_changing() || is_action_blocked
         {
+            info!("Camera actions are blocked");
             velocity.value = Vec3::ZERO;
             angular_velocity.value = Vec3::ZERO;
             return;

@@ -1,17 +1,19 @@
 //! Library interface to the GBPPlanner
 use bevy::ecs::schedule::States;
 
-pub(crate) mod asset_loader;
-pub(crate) mod config;
-pub(crate) mod diagnostic;
+pub mod asset_loader;
+pub mod bevy_utils;
+pub mod cli;
+pub mod config;
+pub mod diagnostic;
 pub mod environment;
-pub(crate) mod factorgraph;
+pub mod factorgraph;
 pub mod input;
-mod moveable_object;
+pub mod moveable_object;
 pub mod movement;
-pub(crate) mod pause_play;
-mod planner;
-mod robot_spawner;
+pub mod pause_play;
+pub mod planner;
+pub mod robot_spawner;
 pub mod theme;
 pub mod ui;
 pub(crate) mod utils;

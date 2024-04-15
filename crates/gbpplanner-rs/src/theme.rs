@@ -5,7 +5,7 @@ use bevy_egui::{
         style::{HandleShape, Selection, WidgetVisuals, Widgets},
         Color32, Rounding, Stroke, Visuals,
     },
-    EguiContexts,
+    EguiContexts, EguiPlugin,
 };
 use bevy_infinite_grid::InfiniteGridSettings;
 use catppuccin::{Colour, Flavour, FlavourColours};
@@ -401,6 +401,10 @@ impl Plugin for ThemePlugin {
                     handle_obstacles,
                 ),
             );
+
+        if app.is_plugin_added::<EguiPlugin>() {
+            app.add_systems(Update, handle_egui);
+        }
     }
 }
 
@@ -430,7 +434,7 @@ fn change_theme(
     mut theme_event_reader: EventReader<CycleTheme>,
     mut theme: ResMut<CatppuccinTheme>,
     mut theme_toggled_event: EventWriter<ThemeChanged>,
-    mut contexts: EguiContexts,
+    // mut contexts: EguiContexts,
 ) {
     let mut window = windows.single_mut();
     for CycleTheme(new_flavour) in theme_event_reader.read() {
@@ -440,11 +444,24 @@ fn change_theme(
         };
         info!("switching theme {:?} -> {:?}", theme.flavour, new_flavour);
         window.window_theme = Some(new_window_theme);
-        contexts
-            .ctx_mut()
-            .style_mut(|style| style.visuals = Visuals::catppuccin_flavour(*new_flavour));
+        // contexts
+        //     .ctx_mut()
+        //     .style_mut(|style| style.visuals =
+        // Visuals::catppuccin_flavour(*new_flavour));
         theme.flavour = *new_flavour;
         theme_toggled_event.send(ThemeChanged);
+    }
+}
+
+fn handle_egui(
+    mut egui_contexts: EguiContexts,
+    theme: Res<CatppuccinTheme>,
+    mut theme_changed_event: EventReader<ThemeChanged>,
+) {
+    for _ in theme_changed_event.read() {
+        egui_contexts
+            .ctx_mut()
+            .style_mut(|style| style.visuals = Visuals::catppuccin_flavour(theme.flavour));
     }
 }
 

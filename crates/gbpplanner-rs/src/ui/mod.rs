@@ -15,9 +15,7 @@ use bevy_egui::{
     EguiContexts, EguiPlugin,
 };
 use bevy_touchpad::TwoFingerSwipe;
-pub use controls::ChangingBinding;
 pub use decoration::ToDisplayString;
-pub use settings::{DrawSettingsEvent, ExportGraphEvent};
 use strum_macros::EnumIter;
 
 use self::{
@@ -158,9 +156,9 @@ impl ActionBlock {
 /// Resource to store the occupied screen space by each `egui` panel
 #[derive(Debug, Default, Resource)]
 struct OccupiedScreenSpace {
-    left: f32,
-    right: f32,
-    top: f32,
+    left:   f32,
+    right:  f32,
+    top:    f32,
     bottom: f32,
 }
 
@@ -187,11 +185,11 @@ impl ToDisplayString for UiScaleType {
 
 #[derive(Debug, Default)]
 pub struct MouseOverPanel {
-    pub left_panel: bool,
-    pub right_panel: bool,
-    pub top_panel: bool,
-    pub bottom_panel: bool,
-    pub metrics_window: bool,
+    pub left_panel:      bool,
+    pub right_panel:     bool,
+    pub top_panel:       bool,
+    pub bottom_panel:    bool,
+    pub metrics_window:  bool,
     pub floating_window: bool,
 }
 

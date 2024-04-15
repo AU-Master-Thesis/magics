@@ -12,9 +12,9 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use tap::Tap;
 
-use super::{super::theme::CycleTheme, screenshot::TakeScreenshot};
+use super::{super::theme::CycleTheme, screenshot::TakeScreenshot, ChangingBinding};
 use crate::{
-    config::Config,
+    config::{Config, DrawSetting},
     factorgraph::{
         graphviz::{Graph, NodeKind},
         prelude::FactorGraph,
@@ -22,7 +22,6 @@ use crate::{
     pause_play::PausePlay,
     planner::{RobotId, RobotState},
     theme::CatppuccinTheme,
-    ui::{ChangingBinding, ExportGraphEvent},
 };
 
 #[derive(Component)]
@@ -32,7 +31,10 @@ pub struct GeneralInputPlugin;
 
 impl Plugin for GeneralInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<QuitApplicationEvent>()
+        app.add_event::<EnvironmentEvent>()
+            .add_event::<ExportGraphEvent>()
+            .add_event::<DrawSettingsEvent>()
+            .add_event::<QuitApplicationEvent>()
             .add_event::<ExportGraphFinishedEvent>()
             .add_plugins(InputManagerPlugin::<GeneralAction>::default())
             .add_systems(PostStartup, bind_general_input)
@@ -46,6 +48,24 @@ impl Plugin for GeneralInputPlugin {
                 ),
             );
     }
+}
+
+/// Simple **Bevy** trigger `Event`
+/// Write to this event whenever you want to toggle the environment
+#[derive(Event, Debug, Copy, Clone)]
+pub struct EnvironmentEvent;
+
+/// Simple **Bevy** trigger `Event`
+/// Write to this event whenever you want to export the graph to a `.dot` file
+#[derive(Event, Debug, Copy, Clone)]
+pub struct ExportGraphEvent;
+
+/// **Bevy** `Event` for the draw settings
+/// This event is triggered when a draw setting is toggled
+#[derive(Event, Debug, Clone)]
+pub struct DrawSettingsEvent {
+    pub setting: DrawSetting,
+    pub draw:    bool,
 }
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter, Default)]

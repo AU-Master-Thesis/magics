@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use std::ops::Range;
 
 use bevy::{

@@ -6,15 +6,16 @@ use itertools::Itertools;
 use super::RobotTracker;
 use crate::{
     asset_loader::SceneAssets,
+    bevy_utils::run_conditions::event_exists,
     config::{Config, DrawSetting},
     factorgraph::prelude::FactorGraph,
+    input::DrawSettingsEvent,
     planner::{
         robot::{RobotDespawned, RobotSpawned},
         RobotState,
     },
     pretty_print_title,
     theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
-    ui::DrawSettingsEvent,
 };
 
 pub struct FactorGraphVisualiserPlugin;
@@ -28,7 +29,7 @@ impl Plugin for FactorGraphVisualiserPlugin {
             (
                 // init_factorgraphs,
                 update_factorgraphs,
-                show_or_hide_factorgraphs,
+                show_or_hide_factorgraphs.run_if(event_exists::<DrawSettingsEvent>),
                 draw_lines_between_variables.run_if(draw_predicted_trajectories_is_enabled),
                 remove_rendered_factorgraph_when_robot_despawns,
                 on_variable_clicked

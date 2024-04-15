@@ -1,22 +1,19 @@
 //! This is a simple example of the `rrt` crate within Bevy.
 // mod super::theme;
 
-use bevy::math::primitives::Cuboid;
 use bevy::prelude::*;
-// use bevy::render::primitives::Sphere;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
-use gbpplanner_rs::environment::camera::{CameraMovementMode, CameraResetEvent};
-use gbpplanner_rs::environment::{MainCamera, ObstacleMarker};
-use gbpplanner_rs::input::camera::CameraInputPlugin;
-use gbpplanner_rs::movement::{self, LinearMovementBundle, MovementPlugin, OrbitMovementBundle};
-use gbpplanner_rs::theme::{CatppuccinTheme, ColorFromCatppuccinColourExt};
-use gbpplanner_rs::ui::controls::ChangingBinding;
-use gbpplanner_rs::ui::ActionBlock;
-// use ncollide3d::na::{self, Isometry3, Vector3};
-// use ncollide3d::query;
-// use ncollide3d::query::Proximity;
-// use ncollide3d::shape;
+use gbpplanner_rs::{
+    environment::{
+        camera::{CameraMovementMode, CameraResetEvent},
+        MainCamera, ObstacleMarker,
+    },
+    input::{camera::CameraInputPlugin, ChangingBinding},
+    movement::{self, LinearMovementBundle, MovementPlugin, OrbitMovementBundle},
+    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
+    ui::ActionBlock,
+};
 use parry3d::{
     na::{self, Isometry3, Vector3},
     query::{self, intersection_test},
@@ -40,7 +37,7 @@ fn main() {
     ))
     .init_state::<CameraMovementMode>()
     .insert_resource(AmbientLight {
-        color: Color::default(),
+        color:      Color::default(),
         brightness: 1000.0,
     })
     .insert_resource(ClearColor(Color::from_catppuccin_colour(
@@ -138,7 +135,7 @@ fn rrt_path(
     let p = CollisionProblem {
         obstacle: shape::Cuboid::new(Vector3::new(0.5f32, 0.5, 0.25)),
         // intersection sphere does not need a very big radius
-        ball: shape::Ball::new(0.1f32),
+        ball:     shape::Ball::new(0.1f32),
     };
 
     if *index == path.len() {
@@ -223,7 +220,7 @@ fn infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinTheme>)
 
 struct CollisionProblem {
     obstacle: shape::Cuboid,
-    ball: shape::Ball,
+    ball:     shape::Ball,
 }
 
 impl CollisionProblem {

@@ -3,11 +3,14 @@ use leafwing_input_manager::{prelude::*, user_input::InputKind};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use super::super::{
-    moveable_object::{self, MoveableObject, MoveableObjectMovementState},
-    movement::{AngularVelocity, Velocity},
+use super::{
+    super::{
+        moveable_object::{self, MoveableObject, MoveableObjectMovementState},
+        movement::{AngularVelocity, Velocity},
+    },
+    ChangingBinding,
 };
-use crate::ui::{ActionBlock, ChangingBinding};
+use crate::ui::ActionBlock;
 
 pub struct MoveableObjectInputPlugin;
 

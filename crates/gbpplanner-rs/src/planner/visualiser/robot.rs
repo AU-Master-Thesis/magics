@@ -17,7 +17,7 @@ boolean_bevy_resource!(RobotVisualiserEnabled, default = true);
 fn toggle_visibility_of_robot_meshes(
     mut enabled: ResMut<RobotVisualiserEnabled>,
     mut query: Query<&mut Visibility, With<RobotState>>,
-    mut draw_setting_event: EventReader<crate::ui::DrawSettingsEvent>,
+    mut draw_setting_event: EventReader<crate::input::DrawSettingsEvent>,
 ) {
     for event in draw_setting_event.read() {
         if matches!(event.setting, crate::config::DrawSetting::Robots) {
