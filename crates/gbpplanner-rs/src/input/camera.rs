@@ -15,6 +15,7 @@ use super::{
 };
 use crate::{
     environment::{self, camera::CameraResetEvent},
+    movement::MovementPlugin,
     ui::ActionBlock,
 };
 
@@ -23,15 +24,18 @@ pub struct CameraInputPlugin;
 
 impl Plugin for CameraInputPlugin {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<MovementPlugin>() {
+            info!(
+                "Automatically adding `MovementPlugin` to the app, as it is needed to handle \
+                 camera movement"
+            );
+            app.add_plugins(MovementPlugin);
+        }
+
         app.init_resource::<CameraSensitivity>()
             .add_plugins(InputManagerPlugin::<CameraAction>::default())
             .add_systems(PostStartup, bind_camera_input)
-            // .add_systems(
-            //     Update,
-            //     switch_camera.run_if(action_just_pressed(CameraAction::Switch)),
-            // )
-            // .add_systems(Update, camera_actions);
-        .add_systems(Update, (camera_actions, switch_camera));
+            .add_systems(Update, (camera_actions, switch_camera));
     }
 }
 

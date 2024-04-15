@@ -344,7 +344,8 @@ fn build_tile_grid(
                     // - 2 equal-sized larger cuboid on either side, spanning the entire width of
                     //   the tile
 
-                    let cuboid = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    // let cuboid = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    let cuboid = Cuboid::new(tile_size, obstacle_height, base_dim);
                     // let parry_cuboid: parry2d::shape::Cuboid = cuboid.into();
                     // let mesh_handle = meshes.add(cuboid);
 
@@ -376,7 +377,7 @@ fn build_tile_grid(
                     // - 2 equal-sized larger cuboid on either side, spanning the entire height of
                     //   the tile
 
-                    let cuboid = Cuboid::new(tile_size, obstacle_height, base_dim);
+                    let cuboid = Cuboid::new(base_dim, obstacle_height, tile_size);
                     // let parry_cuboid: parry2d::shape::Cuboid = cuboid.into();
                     // let mesh_handle = meshes.add(cuboid);
 
@@ -412,7 +413,7 @@ fn build_tile_grid(
                     // - 1 smaller 'plug' cuboid on the right, to terminate the path
 
                     // Top and bottom
-                    let cuboid = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    let cuboid = Cuboid::new(tile_size, obstacle_height, base_dim);
                     // let parry_cuboid: parry2d::shape::Cuboid = cuboid.into();
                     // let mesh_handle = meshes.add(cuboid);
 
@@ -461,7 +462,7 @@ fn build_tile_grid(
                     // - 1 smaller 'plug' cuboid on the left, to terminate the path
 
                     // Top and bottom
-                    let cuboid = Cuboid::new(base_dim, obstacle_height, tile_size);
+                    let cuboid = Cuboid::new(tile_size, obstacle_height, base_dim);
                     // let parry_cuboid: parry2d::shape::Cuboid = cuboid.into();
                     // let mesh_handle = meshes.add(cuboid);
 
@@ -868,7 +869,7 @@ fn build_tile_grid(
                     // - 1 larger cuboid in the left center, spanning the entire height of the tile
 
                     let cube = Cuboid::new(base_dim, obstacle_height, base_dim);
-                    let left = Cuboid::new(tile_size, obstacle_height, base_dim);
+                    let left = Cuboid::new(base_dim, obstacle_height, tile_size);
 
                     Some(vec![
                         (
