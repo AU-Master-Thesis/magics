@@ -13,7 +13,6 @@ pub mod moveable_object;
 pub mod movement;
 pub mod pause_play;
 pub mod planner;
-pub mod robot_spawner;
 pub mod theme;
 pub mod ui;
 pub(crate) mod utils;

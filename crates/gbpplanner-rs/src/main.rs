@@ -13,7 +13,6 @@ mod moveable_object;
 mod movement;
 pub(crate) mod pause_play;
 mod planner;
-mod robot_spawner;
 mod scene;
 
 pub(crate) mod theme;
@@ -47,7 +46,6 @@ use crate::{
     movement::MovementPlugin,
     pause_play::PausePlayPlugin,
     planner::PlannerPlugin,
-    robot_spawner::RobotSpawnerPlugin,
     scene::ScenePlugin,
     theme::ThemePlugin,
     ui::EguiInterfacePlugin,
@@ -248,7 +246,6 @@ fn main() -> anyhow::Result<()> {
             // // MoveableObjectPlugin, // Custom
             // // CameraPlugin,        // Custom
             // // FollowCamerasPlugin, // Custom
-            RobotSpawnerPlugin, // Custom
             // // FactorGraphPlugin,   // Custom
             EguiInterfacePlugin, // Custom
             PlannerPlugin,

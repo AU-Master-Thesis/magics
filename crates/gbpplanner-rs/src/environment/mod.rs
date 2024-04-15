@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 pub mod camera;
 pub mod cursor;
 pub mod follow_cameras;

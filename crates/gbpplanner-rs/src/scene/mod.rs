@@ -8,7 +8,7 @@ pub struct ScenePlugin;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ActiveSimulation>()
-            .add_event::<LoadSimulation>()
+            .add_event::<SimulationLoaded>()
             .add_event::<ReloadSimulation>()
             .add_systems(
                 Update,
@@ -20,6 +20,9 @@ impl Plugin for ScenePlugin {
             );
     }
 }
+
+#[derive(Debug, Component)]
+pub struct Ephemeral;
 
 pub struct Scene;
 
@@ -62,7 +65,7 @@ impl FromWorld for ActiveSimulation {
 }
 
 #[derive(Event)]
-pub struct LoadSimulation(SimulationId);
+pub struct SimulationLoaded(SimulationId);
 
 // TODO: send an simulation generation or id with
 #[derive(Event, Default)]

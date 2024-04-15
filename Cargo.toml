@@ -61,7 +61,7 @@ inline_always                    = "allow"
 default_constructed_unit_structs = "allow" # nice for adding plugins, that may later have config values
 needless_pass_by_value           = "allow" # bevy uses a lot of pass by value wrapper types like `Query`, `Res` etc.
 module_name_repetitions          = "allow"
-missing_docs                     = "warn"
+missing_docs                     = "allow"
 
 # expect_used = "deny"
 dbg_macro = "warn"
