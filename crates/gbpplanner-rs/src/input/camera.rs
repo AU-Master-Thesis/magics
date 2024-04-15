@@ -6,13 +6,20 @@ use leafwing_input_manager::prelude::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use super::super::{
-    environment::camera::{CameraMovementMode, MainCamera},
-    movement::{AngularVelocity, Orbit, Velocity},
+use super::{
+    super::{
+        environment::camera::{CameraMovementMode, MainCamera},
+        movement::{AngularVelocity, Orbit, Velocity},
+    },
+    ChangingBinding,
 };
 use crate::{
-    environment::{self, camera::CameraResetEvent},
-    ui::{ActionBlock, ChangingBinding},
+    environment::{
+        self,
+        camera::{CameraResetEvent, CameraSettings},
+    },
+    movement::MovementPlugin,
+    ui::ActionBlock,
 };
 
 #[derive(Default)]
@@ -20,15 +27,18 @@ pub struct CameraInputPlugin;
 
 impl Plugin for CameraInputPlugin {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<MovementPlugin>() {
+            info!(
+                "Automatically adding `MovementPlugin` to the app, as it is needed to handle \
+                 camera movement"
+            );
+            app.add_plugins(MovementPlugin);
+        }
+
         app.init_resource::<CameraSensitivity>()
             .add_plugins(InputManagerPlugin::<CameraAction>::default())
             .add_systems(PostStartup, bind_camera_input)
-            // .add_systems(
-            //     Update,
-            //     switch_camera.run_if(action_just_pressed(CameraAction::Switch)),
-            // )
-            // .add_systems(Update, camera_actions);
-        .add_systems(Update, (camera_actions, switch_camera));
+            .add_systems(Update, (camera_actions, switch_camera));
     }
 }
 
@@ -169,13 +179,14 @@ fn camera_actions(
     >,
     // mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
-    action_block: Res<ActionBlock>,
+    action_block: Option<Res<ActionBlock>>,
     mut camera_reset_event: EventWriter<CameraResetEvent>,
     sensitivity: Res<CameraSensitivity>,
     // mut window: Query<&PrimaryWindow>,
     windows: Query<&Window>,
     mut keyboard_events: EventReader<KeyboardInput>,
     mut control_key_pressed: Local<bool>,
+    camera_settings: Res<CameraSettings>,
 ) {
     for event in keyboard_events.read() {
         match event.key_code {
@@ -194,11 +205,12 @@ fn camera_actions(
     if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
         query.get_single_mut()
     {
-        // if currently_changing.on_cooldown() || currently_changing.is_changing() {
-        if currently_changing.on_cooldown()
-            || currently_changing.is_changing()
-            || action_block.is_blocked()
+        let is_action_blocked =
+            action_block.is_some() && action_block.as_ref().unwrap().is_blocked();
+
+        if currently_changing.on_cooldown() || currently_changing.is_changing() || is_action_blocked
         {
+            info!("Camera actions are blocked");
             velocity.value = Vec3::ZERO;
             angular_velocity.value = Vec3::ZERO;
             return;
@@ -228,12 +240,12 @@ fn camera_actions(
                     {
                         tmp_velocity.x =
                             action.x * camera_distance * sensitivity.move_sensitivity / 10.0;
-                        // * environment::camera::SPEED;
+                        // * camera_settings.speed;
                         // * windows_height_scaling
                         tmp_velocity.z =
                             action.y * camera_distance * sensitivity.move_sensitivity / 10.0;
                         // * windows_height_scaling
-                        // * environment::camera::SPEED;
+                        // * camera_settings.speed;
                     }
                 }
                 CameraMovementMode::Orbit => {
@@ -242,10 +254,10 @@ fn camera_actions(
                         .map(|axis| axis.xy())
                     {
                         tmp_angular_velocity.x = -action.x * sensitivity.move_sensitivity / 10.0;
-                        // * environment::camera::ANGULAR_SPEED;
+                        // * camera_settings.angular_speed;
                         // * windows_height_scaling
                         tmp_angular_velocity.y = action.y * sensitivity.move_sensitivity / 10.0;
-                        // * environment::camera::ANGULAR_SPEED;
+                        // * camera_settings.angular_speed;
                         // * windows_height_scaling
                     }
                 }
@@ -258,12 +270,12 @@ fn camera_actions(
                         .map(|axis| axis.xy().normalize_or_zero())
                     {
                         tmp_velocity.x = -action.x
-                            * environment::camera::SPEED
+                            * camera_settings.speed
                             * camera_distance
                             * sensitivity.move_sensitivity
                             / 35.0;
                         tmp_velocity.z = action.y
-                            * environment::camera::SPEED
+                            * camera_settings.speed
                             * camera_distance
                             * sensitivity.move_sensitivity
                             / 35.0;
@@ -275,12 +287,10 @@ fn camera_actions(
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize())
                     {
-                        tmp_angular_velocity.x = action.x
-                            * environment::camera::ANGULAR_SPEED
-                            * sensitivity.move_sensitivity;
-                        tmp_angular_velocity.y = action.y
-                            * environment::camera::ANGULAR_SPEED
-                            * sensitivity.move_sensitivity;
+                        tmp_angular_velocity.x =
+                            action.x * camera_settings.angular_speed * sensitivity.move_sensitivity;
+                        tmp_angular_velocity.y =
+                            action.y * camera_settings.angular_speed * sensitivity.move_sensitivity;
                     }
                 }
             }
@@ -294,10 +304,10 @@ fn camera_actions(
         if !*control_key_pressed {
             if action_state.pressed(&CameraAction::ZoomIn) {
                 // info!("Zooming in");
-                tmp_velocity.y = -environment::camera::SPEED * camera_distance / 10.0;
+                tmp_velocity.y = -camera_settings.speed * camera_distance / 10.0;
             } else if action_state.pressed(&CameraAction::ZoomOut) {
                 // info!("Zooming out");
-                tmp_velocity.y = environment::camera::SPEED * camera_distance / 10.0;
+                tmp_velocity.y = camera_settings.speed * camera_distance / 10.0;
             } else {
                 tmp_velocity.y = 0.0;
             }

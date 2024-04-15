@@ -1,10 +1,11 @@
 # environment = "junction"
 environment_image = "junction"
-environment       = "./config/environment.yaml"
+environment       = "./config/environment_intersection.yaml"
 formation_group   = "./config/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
+default-cam-distance    = 250.0
 
 [visualisation.uncertainty]
 max-radius = 2.5

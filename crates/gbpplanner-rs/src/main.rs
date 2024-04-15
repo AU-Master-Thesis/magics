@@ -3,7 +3,7 @@
 //! The main entry point of the simulation.
 pub(crate) mod asset_loader;
 mod bevy_utils;
-mod cli;
+pub mod cli;
 pub(crate) mod config;
 mod diagnostic;
 mod environment;
@@ -32,6 +32,10 @@ use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
 use colored::Colorize;
 use config::{environment::EnvironmentType, Environment};
+use gbpplanner_rs::{AppState, SimulationState};
+use iyes_perf_ui::prelude::*;
+
+// use rand::{Rng, SeedableRng};
 
 // use iyes_perf_ui::prelude::*;
 use crate::{
@@ -114,6 +118,7 @@ fn main() -> anyhow::Result<()> {
             EnvironmentType::Circle => Environment::circle(),
             EnvironmentType::Intermediate => Environment::intermediate(),
             EnvironmentType::Complex => Environment::complex(),
+            EnvironmentType::Test => Environment::test(),
         };
         println!("{}", serde_yaml::to_string(&env)?);
 
@@ -311,55 +316,17 @@ fn end_simulation(config: Res<Config>) {
 //     }
 // }
 
-// TODO: use in app
-/// Set of distinct states the application can be in.
-#[derive(
-    Debug,
-    Default,
-    States,
-    PartialEq,
-    Eq,
-    Hash,
-    Clone,
-    Copy,
-    derive_more::Display,
-    /* derive_more::IsVariant, */
-)]
-pub enum AppState {
-    /// Start of the application where assets e.g. data in `./assets` is being
-    /// loaded into memory
-    #[default]
-    #[display(fmt = "Loading")]
-    Loading,
-    // #[display(fmt = "Starting")]
-    // Starting,
-    /// A simulation is running in the application
-    #[display(fmt = "Running")]
-    Running,
-    // #[display(fmt = "Paused")]
-    // Paused,
-    // #[display(fmt = "Finished")]
-    // Finished,
+fn create_toast(mut toast_event: EventWriter<ToastEvent>, mut n: Local<usize>) {
+    *n += 1;
+
+    toast_event.send(ToastEvent {
+        caption: format!("call: {}", *n),
+        // caption: "hello".into(),
+        options: ToastOptions {
+            level: ToastLevel::Success,
+            // closable: false,
+            // show_progress_bar: false,
+            ..Default::default()
+        },
+    });
 }
-
-// fn create_toast(mut toast_event: EventWriter<ToastEvent>, mut n:
-// Local<usize>) {     *n += 1;
-
-//     toast_event.send(ToastEvent {
-//         caption: format!("call: {}", *n),
-//         // caption: "hello".into(),
-//         options: ToastOptions {
-//             level: ToastLevel::Success,
-//             // closable: false,
-//             // show_progress_bar: false,
-//             ..Default::default()
-//         },
-//     });
-// }
-
-// #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
-// enum DebugState {
-//     #[default]
-//     Disabled,
-//     Enabled,
-// }

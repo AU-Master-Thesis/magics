@@ -5,7 +5,10 @@ use bevy::{
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
 
-use crate::{asset_loader::SceneAssets, config, theme::CatppuccinTheme, ui};
+use crate::{
+    asset_loader::SceneAssets, bevy_utils::run_conditions::event_exists, config,
+    input::DrawSettingsEvent, theme::CatppuccinTheme,
+};
 
 pub struct MapPlugin;
 
@@ -21,7 +24,12 @@ impl Plugin for MapPlugin {
             .init_state::<HeightMapState>()
             .add_plugins(InfiniteGridPlugin)
             .add_systems(Startup, (infinite_grid, lighting, flat_map))
-            .add_systems(Update, (obstacles.run_if(environment_png_is_loaded), show_or_hide_height_map, show_or_hide_flat_map));
+            .add_systems(Update,
+                (
+                    obstacles.run_if(environment_png_is_loaded),
+                    show_or_hide_height_map.run_if(event_exists::<DrawSettingsEvent>),
+                    show_or_hide_flat_map.run_if(event_exists::<DrawSettingsEvent>))
+                );
     }
 }
 
@@ -109,7 +117,7 @@ fn flat_map(
 /// set the visibility of the [`VariableVisualiser`] entities
 fn show_or_hide_flat_map(
     mut query: Query<(&FlatMap, &mut Visibility)>,
-    mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
+    mut draw_setting_event: EventReader<DrawSettingsEvent>,
 ) {
     for event in draw_setting_event.read() {
         if matches!(event.setting, config::DrawSetting::Sdf) {
@@ -273,7 +281,7 @@ pub struct HeightMap;
 /// to set the visibility of the [`HeightMap`] entities
 fn show_or_hide_height_map(
     mut query: Query<(&HeightMap, &mut Visibility)>,
-    mut draw_setting_event: EventReader<ui::DrawSettingsEvent>,
+    mut draw_setting_event: EventReader<DrawSettingsEvent>,
 ) {
     for event in draw_setting_event.read() {
         if matches!(event.setting, config::DrawSetting::HeightMap) {

@@ -2,17 +2,13 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/camera.rs
 use bevy::prelude::*;
 
-use crate::movement::{LinearMovementBundle, Local, Orbit, OrbitMovementBundle};
+use crate::{
+    config::Config,
+    movement::{LinearMovementBundle, Local, Orbit, OrbitMovementBundle},
+};
 
-const INITIAL_CAMERA_DISTANCE: f32 = 125.0;
-// pub const SPEED: f32 = 20.0;
-pub const SPEED: f32 = INITIAL_CAMERA_DISTANCE / 10.0;
-pub const ANGULAR_SPEED: f32 = 2.0;
-
-// const CAMERA_UP: Vec3 = Vec3::NEG_Z;
 const CAMERA_UP: Vec3 = Vec3::NEG_Y;
 const CAMERA_INITIAL_TARGET: Vec3 = Vec3::ZERO;
-const CAMERA_INITIAL_POSITION: Vec3 = Vec3::new(0.0, INITIAL_CAMERA_DISTANCE, 0.0);
 
 pub struct CameraPlugin;
 
@@ -20,20 +16,41 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<CameraResetEvent>()
             .init_state::<CameraMovementMode>()
-            .add_systems(Startup, spawn_camera)
+            .add_systems(Startup, (init_cam_settings, spawn_camera).chain())
             .add_systems(Update, reset_camera.run_if(on_event::<CameraResetEvent>()));
     }
 }
 
-/// **Bevy** `Event` to reset the main camera's position and rotation
+fn init_cam_settings(mut commands: Commands, config: Res<Config>) {
+    commands.insert_resource(CameraSettings {
+        speed: config.interaction.default_cam_distance / 10.0,
+        angular_speed: 2.0,
+        start_pos: Vec3::new(0.0, config.interaction.default_cam_distance, 0.0),
+    });
+}
+
+/// **Bevy** [`Resource`] for the main camera's settings
+/// Is initialised partially from the [`Config`] resource, otherwise with some
+/// sensible defaults
+#[derive(Debug, Resource)]
+pub struct CameraSettings {
+    /// The speed at which the camera moves in [`CameraMovementMode::Pan`]
+    pub speed: f32,
+    /// The speed at which the camera rotates in [`CameraMovementMode::Orbit`]
+    pub angular_speed: f32,
+    /// The initial position of the camera in 3D space
+    pub start_pos: Vec3,
+}
+
+/// **Bevy** [`Event`] to reset the main camera's position and rotation
 #[derive(Debug, Event)]
 pub struct CameraResetEvent;
 
-/// **Bevy** `Component` for the main camera
+/// **Bevy** [`Component`] for the main camera
 #[derive(Component, Debug)]
 pub struct MainCamera;
 
-/// **Bevy** `State` representing the main camera's movement mode
+/// **Bevy** [`State`] representing the main camera's movement mode
 /// Enables the camera to `Pan` and `Orbit`
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum CameraMovementMode {
@@ -42,12 +59,14 @@ pub enum CameraMovementMode {
     Orbit,
 }
 
-/// `Startup` system to spawn the main camera
-fn spawn_camera(mut commands: Commands) {
+/// **Bevy** [`Startup`] system to spawn the main camera
+fn spawn_camera(mut commands: Commands, config: Res<Config>) {
+    let transform = Transform::from_xyz(0.0, config.interaction.default_cam_distance, 0.0)
+        .looking_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
+
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_translation(CAMERA_INITIAL_POSITION)
-                .looking_at(CAMERA_INITIAL_TARGET, CAMERA_UP),
+            transform,
             ..default()
         },
         LinearMovementBundle::default(),
@@ -62,11 +81,12 @@ fn spawn_camera(mut commands: Commands) {
 fn reset_camera(
     mut camera_query: Query<(&mut Transform, &mut Orbit), With<MainCamera>>,
     mut next_movement_mode: ResMut<NextState<CameraMovementMode>>,
+    cam_settings: Res<CameraSettings>,
 ) {
     next_movement_mode.set(CameraMovementMode::Pan);
 
     for (mut transform, mut orbit) in &mut camera_query {
-        transform.translation = CAMERA_INITIAL_POSITION;
+        transform.translation = cam_settings.start_pos;
         transform.look_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
 
         orbit.origin = Vec3::ZERO;

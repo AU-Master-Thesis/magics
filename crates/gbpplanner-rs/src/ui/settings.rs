@@ -11,14 +11,11 @@ use repeating_array::RepeatingArray;
 use struct_iterable::Iterable;
 use strum::IntoEnumIterator;
 
-use super::{
-    custom, scale::ScaleUi, ChangingBinding, OccupiedScreenSpace, ToDisplayString, UiScaleType,
-    UiState,
-};
+use super::{custom, scale::ScaleUi, OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
 use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
-    input::screenshot::TakeScreenshot,
+    input::{screenshot::TakeScreenshot, ChangingBinding, DrawSettingsEvent, ExportGraphEvent},
     pause_play::{PausePlay, PausedState},
     theme::{CatppuccinTheme, CycleTheme, FromCatppuccinColourExt},
 };
@@ -28,10 +25,7 @@ pub struct SettingsPanelPlugin;
 
 impl Plugin for SettingsPanelPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<EnvironmentEvent>()
-            .add_event::<ExportGraphEvent>()
-            .add_event::<DrawSettingsEvent>()
-            .add_systems(Startup, (install_egui_image_loaders,))
+        app.add_systems(Startup, (install_egui_image_loaders,))
             .add_systems(
                 Update,
                 (
@@ -46,24 +40,6 @@ impl Plugin for SettingsPanelPlugin {
 // fn show_right_panel(ui: Res<UiState>) -> bool {
 //     ui.right_panel_visible
 // }
-
-/// Simple **Bevy** trigger `Event`
-/// Write to this event whenever you want to toggle the environment
-#[derive(Event, Debug, Copy, Clone)]
-pub struct EnvironmentEvent;
-
-/// Simple **Bevy** trigger `Event`
-/// Write to this event whenever you want to export the graph to a `.dot` file
-#[derive(Event, Debug, Copy, Clone)]
-pub struct ExportGraphEvent;
-
-/// **Bevy** `Event` for the draw settings
-/// This event is triggered when a draw setting is toggled
-#[derive(Event, Debug, Clone)]
-pub struct DrawSettingsEvent {
-    pub setting: DrawSetting,
-    pub draw:    bool,
-}
 
 fn install_egui_image_loaders(mut egui_ctx: EguiContexts) {
     egui_extras::install_image_loaders(egui_ctx.ctx_mut());

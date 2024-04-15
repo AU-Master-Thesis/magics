@@ -261,6 +261,7 @@ pub enum EnvironmentType {
     Intermediate,
     Complex,
     Circle,
+    Test,
 }
 
 /// **Bevy** [`Resource`]
@@ -438,6 +439,26 @@ impl Environment {
     }
 
     #[must_use]
+    #[rustfmt::skip]
+    pub fn test() -> Self {
+        Environment {
+            tiles: Tiles {
+                grid: TileGrid(vec![
+                    "┌┬┐├".to_string(),
+                    "└┴┘┤".to_string(),
+                    "│─ ┼".to_string(),
+                    "╴╵╶╷".to_string(),
+                ]),
+                settings: TileSettings {
+                    tile_size: 50.0,
+                    path_width: 0.1325,
+                    obstacle_height: 1.0,
+                },
+            },
+            obstacles: Obstacles::empty(),
+        }
+    }
+
     pub fn circle() -> Self {
         Self {
             tiles:     Tiles::empty()

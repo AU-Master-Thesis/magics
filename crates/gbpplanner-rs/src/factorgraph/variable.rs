@@ -1,4 +1,4 @@
-#![deny(missing_docs)]
+#![warn(missing_docs)]
 
 use bevy::log::debug;
 use gbp_linalg::{Float, Matrix, Vector};

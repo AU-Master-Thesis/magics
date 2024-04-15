@@ -5,9 +5,11 @@ use bevy::prelude::*;
 use super::{RobotTracker, Z_FIGHTING_OFFSET};
 use crate::{
     asset_loader::SceneAssets,
+    bevy_utils::run_conditions::event_exists,
     config::Config,
     factorgraph::prelude::FactorGraph,
-    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
+    input::DrawSettingsEvent,
+    theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
 /// Plugin that adds the functionality to visualise the position uncertainty of
@@ -23,7 +25,7 @@ impl Plugin for UncertaintyVisualiserPlugin {
                 Update,
                 (
                     init_uncertainty,
-                    show_or_hide_uncertainty,
+                    show_or_hide_uncertainty.run_if(event_exists::<DrawSettingsEvent>),
                     update_uncertainty.run_if(uncertainty_visualizer_enabled),
                 ),
             );
@@ -287,7 +289,7 @@ fn update_uncertainty(
 /// to set the visibility of the [`UncertaintyVisualiser`] entities
 fn show_or_hide_uncertainty(
     mut query: Query<(&UncertaintyVisualiser, &mut Visibility)>,
-    mut draw_setting_event: EventReader<crate::ui::DrawSettingsEvent>,
+    mut draw_setting_event: EventReader<DrawSettingsEvent>,
     mut enabled: ResMut<UncertaintyVisualizerEnabled>,
 ) {
     for event in draw_setting_event.read() {

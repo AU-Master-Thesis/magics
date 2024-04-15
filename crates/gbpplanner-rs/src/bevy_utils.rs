@@ -1,4 +1,4 @@
-#![deny(missing_docs)]
+#![warn(missing_docs)]
 //! Useful function when working with bevy
 
 use bevy::{app::Plugin, ecs::prelude::*, hierarchy::DespawnRecursiveExt};
@@ -61,6 +61,18 @@ impl BevyPluginExt for bevy::app::App {
 }
 
 pub mod run_conditions {
+    use bevy::{
+        ecs::{
+            event::{Event, Events},
+            system::Res,
+        },
+        input::{keyboard::KeyCode, ButtonInput},
+    };
+
+    /// Trait for checking if an event exists
+    pub fn event_exists<T: Event>(res_event: Option<Res<Events<T>>>) -> bool {
+        res_event.is_some()
+    }
 
     //     pub fn any_input_just_pressed(
     //         // inputs: impl IntoIterator<Item = ButtonInput<KeyCode>>,

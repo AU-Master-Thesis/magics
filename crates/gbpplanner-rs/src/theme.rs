@@ -5,7 +5,7 @@ use bevy_egui::{
         style::{HandleShape, Selection, WidgetVisuals, Widgets},
         Color32, Rounding, Stroke, Visuals,
     },
-    EguiContexts,
+    EguiContexts, EguiPlugin,
 };
 use bevy_infinite_grid::InfiniteGridSettings;
 use catppuccin::{Colour, Flavour, FlavourColours};
@@ -57,7 +57,7 @@ pub enum DisplayColour {
     Lavender,
 }
 
-// macro to implement all colour getters on `CatppuccinTheme` itself
+/// macro to implement all colour getters on [`CatppuccinTheme`] itself
 macro_rules! impl_colour_getters {
     ($($x:ident),+ $(,)?) => (
         $(
@@ -70,8 +70,31 @@ macro_rules! impl_colour_getters {
     );
 }
 
+/// macro to implement all [`StandardMaterial`] colour getters on
+/// [`CatppuccinTheme`]
+macro_rules! impl_material_getters {
+    ($($x:ident),+ $(,)?) => (
+        paste::paste!{$(
+            #[allow(dead_code)]
+            #[inline(always)]
+            pub fn [<$x _material>](&self) -> StandardMaterial {
+                StandardMaterial {
+                    base_color: Color::from_catppuccin_colour(self.flavour.$x()),
+                    ..Default::default()
+                }
+            }
+        )+}
+    );
+}
+
 impl CatppuccinTheme {
     impl_colour_getters!(
+        rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green, teal, sky, sapphire,
+        blue, lavender, text, subtext1, subtext0, overlay2, overlay1, overlay0, surface2, surface1,
+        surface0, base, mantle, crust,
+    );
+
+    impl_material_getters!(
         rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green, teal, sky, sapphire,
         blue, lavender, text, subtext1, subtext0, overlay2, overlay1, overlay0, surface2, surface1,
         surface0, base, mantle, crust,
@@ -145,6 +168,13 @@ impl CatppuccinTheme {
             DisplayColour::Lavender => self.flavour.lavender(),
         }
     }
+
+    // pub fn get_rosewater_material(&self) -> StandardMaterial {
+    //     StandardMaterial {
+    //         base_color: Color::from_catppuccin_colour(self.flavour.rosewater()),
+    //         ..Default::default()
+    //     }
+    // }
 }
 
 pub trait ColourExt {
@@ -401,6 +431,10 @@ impl Plugin for ThemePlugin {
                     handle_obstacles,
                 ),
             );
+
+        if app.is_plugin_added::<EguiPlugin>() {
+            app.add_systems(Update, handle_egui);
+        }
     }
 }
 
@@ -430,7 +464,7 @@ fn change_theme(
     mut theme_event_reader: EventReader<CycleTheme>,
     mut theme: ResMut<CatppuccinTheme>,
     mut theme_toggled_event: EventWriter<ThemeChanged>,
-    mut contexts: EguiContexts,
+    // mut contexts: EguiContexts,
 ) {
     let mut window = windows.single_mut();
     for CycleTheme(new_flavour) in theme_event_reader.read() {
@@ -440,11 +474,24 @@ fn change_theme(
         };
         info!("switching theme {:?} -> {:?}", theme.flavour, new_flavour);
         window.window_theme = Some(new_window_theme);
-        contexts
-            .ctx_mut()
-            .style_mut(|style| style.visuals = Visuals::catppuccin_flavour(*new_flavour));
+        // contexts
+        //     .ctx_mut()
+        //     .style_mut(|style| style.visuals =
+        // Visuals::catppuccin_flavour(*new_flavour));
         theme.flavour = *new_flavour;
         theme_toggled_event.send(ThemeChanged);
+    }
+}
+
+fn handle_egui(
+    mut egui_contexts: EguiContexts,
+    theme: Res<CatppuccinTheme>,
+    mut theme_changed_event: EventReader<ThemeChanged>,
+) {
+    for _ in theme_changed_event.read() {
+        egui_contexts
+            .ctx_mut()
+            .style_mut(|style| style.visuals = Visuals::catppuccin_flavour(theme.flavour));
     }
 }
 
@@ -651,3 +698,8 @@ fn handle_obstacles(
         }
     }
 }
+
+// /// **Bevy** [`Resource`] for Catppuccin theme assets
+// /// Contains base-materials for all the colours in the Catppuccin theme
+// #[derive(Debug, Default, Resource)]
+// pub struct CatppuccinThemeAssets {}

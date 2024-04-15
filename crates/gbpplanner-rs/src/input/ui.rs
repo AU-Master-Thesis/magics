@@ -4,7 +4,7 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 use super::super::ui::UiState;
-use crate::ui::{ChangingBinding, UiScaleType};
+use crate::{input::ChangingBinding, ui::UiScaleType};
 
 pub struct UiInputPlugin;
 

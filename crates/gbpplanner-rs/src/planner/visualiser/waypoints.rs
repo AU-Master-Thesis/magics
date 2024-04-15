@@ -5,13 +5,14 @@ use bevy::prelude::*;
 
 use crate::{
     asset_loader::SceneAssets,
+    bevy_utils::run_conditions::event_exists,
     config::{Config, DrawSetting},
+    input::DrawSettingsEvent,
     planner::{
         robot::RobotReachedWaypoint,
         spawner::{CreateWaypointEvent, DeleteWaypointEvent},
         RobotId,
     },
-    ui::DrawSettingsEvent,
 };
 
 pub struct WaypointVisualiserPlugin;
@@ -24,7 +25,7 @@ impl Plugin for WaypointVisualiserPlugin {
                 listen_for_robot_reached_waypoint_event,
                 create_waypoint_mesh,
                 delete_waypoint_mesh,
-                show_or_hide_waypoints_meshes,
+                show_or_hide_waypoints_meshes.run_if(event_exists::<DrawSettingsEvent>),
             ),
         );
     }

@@ -1,4 +1,4 @@
-#![deny(missing_docs)]
+#![warn(missing_docs)]
 //! Message module.
 //!
 //! Contains the message struct that variables and factors send between each
