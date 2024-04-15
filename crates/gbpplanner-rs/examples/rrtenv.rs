@@ -62,6 +62,7 @@ fn main() -> anyhow::Result<()> {
         .insert_resource(environment)
         .init_resource::<ChangingBinding>()
         .init_resource::<Path>()
+        .init_state::<PathFindingState>()
         .add_plugins((
             DefaultPlugins,
             AssetLoaderPlugin,
@@ -103,8 +104,18 @@ fn spawn_waypoints(
 }
 
 /// **Bevy** [`Update`] system to find an RRT path through the environment
-fn rrt_path(mut path: ResMut<Path>, mut index: Local<usize>, colliders: Res<Colliders>) {
-    let collision_solver = CollisionProblem::new(Arc::new(colliders.into_inner()));
+fn rrt_path(
+    mut path: ResMut<Path>,
+    mut next_state_path_found: ResMut<NextState<PathFindingState>>,
+    state_path_found: Res<State<PathFindingState>>,
+    colliders: Res<Colliders>,
+) {
+    let colliders = colliders.into_inner();
+    if colliders.is_empty() || matches!(state_path_found.get(), PathFindingState::Found) {
+        return;
+    }
+
+    let collision_solver = CollisionProblem::new(Arc::new(colliders));
 
     let start = [START.x as f64, START.y as f64];
     let end = [END.x as f64, END.y as f64];
@@ -124,12 +135,13 @@ fn rrt_path(mut path: ResMut<Path>, mut index: Local<usize>, colliders: Res<Coll
             &mut res,
             |x: &[f64]| collision_solver.is_feasible(x),
             1.0,
-            100,
+            1000,
         );
         path.clear();
         res.iter().for_each(|x| {
             path.push(Vec3::new(x[0] as f32, 0.0, x[1] as f32));
         });
+        next_state_path_found.set(PathFindingState::Found);
     };
 }
 
@@ -137,6 +149,16 @@ fn rrt_path(mut path: ResMut<Path>, mut index: Local<usize>, colliders: Res<Coll
 /// Simply a wrapper for a list of [`Vec3`] points
 #[derive(Debug, Resource, Default)]
 pub struct Path(Vec<Vec3>);
+
+/// **Bevy** [`State`] for keeping track of the state of the path-finding
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum PathFindingState {
+    /// The path has not been found yet
+    #[default]
+    NotFound,
+    /// The path has been found
+    Found,
+}
 
 impl Path {
     fn len(&self) -> usize {

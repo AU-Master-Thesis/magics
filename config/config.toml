@@ -1,6 +1,6 @@
 # environment = "junction"
 environment_image = "junction"
-environment       = "./config/environment_intersection.yaml"
+environment       = "./config/environment_complex.yaml"
 formation_group   = "./config/formation.ron"
 
 [interaction]

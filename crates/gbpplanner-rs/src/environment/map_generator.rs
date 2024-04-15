@@ -63,6 +63,10 @@ impl Colliders {
     pub fn iter(&self) -> impl Iterator<Item = &(Isometry2<f32>, Arc<dyn shape::Shape>)> {
         self.0.iter()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 /// **Bevy** [`Startup`] _system_.
