@@ -78,7 +78,7 @@ impl From<VariableBelief> for Message {
 
 /// A variable in the factor graph.
 #[derive(Debug)]
-pub struct Variable {
+pub struct VariableNode {
     pub prior:  VariablePrior,
     pub belief: VariableBelief,
 
@@ -95,7 +95,7 @@ pub struct Variable {
     message_count: MessageCount,
 }
 
-impl Variable {
+impl VariableNode {
     /// Returns the node index of the variable
     ///
     /// # Panics
@@ -293,7 +293,7 @@ impl Variable {
     }
 }
 
-impl FactorGraphNode for Variable {
+impl FactorGraphNode for VariableNode {
     fn remove_connection_to(
         &mut self,
         factorgraph_id: super::factorgraph::FactorGraphId,

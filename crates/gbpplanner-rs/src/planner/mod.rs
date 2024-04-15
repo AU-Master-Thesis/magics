@@ -15,7 +15,7 @@ pub use visualiser::{
     factorgraphs::VariableVisualiser, waypoints::WaypointVisualiser, RobotTracker,
 };
 
-use self::{robot::RobotPlugin, spawner::SpawnerPlugin, visualiser::VisualiserPlugin};
+use self::{robot::RobotPlugin, spawner::RobotSpawnerPlugin, visualiser::VisualiserPlugin};
 
 pub struct PlannerPlugin;
 
@@ -23,7 +23,7 @@ impl Plugin for PlannerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             RobotPlugin,
-            SpawnerPlugin,
+            RobotSpawnerPlugin,
             VisualiserPlugin,
             // PlannerDebugPlugin,
         ));

@@ -26,7 +26,7 @@ pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 // TODO: make generic over f32 | f64
 // TODO: hide the state parameter from the public API, by having the `Factor`
 // struct expose similar methods that dispatch to the `FactorState` struct.
-pub trait IFactor {
+pub trait Factor {
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
 
@@ -70,7 +70,7 @@ pub trait IFactor {
 }
 
 #[derive(Debug)]
-pub struct Factor {
+pub struct FactorNode {
     /// Unique identifier that associates the variable with the factorgraph it
     /// is part of.
     pub node_index: Option<NodeIndex>,
@@ -84,7 +84,7 @@ pub struct Factor {
     message_count: MessageCount,
 }
 
-impl Factor {
+impl FactorNode {
     fn new(state: FactorState, kind: FactorKind) -> Self {
         Self {
             node_index: None,
@@ -348,7 +348,7 @@ impl FactorKind {
     // }
 }
 
-impl IFactor for FactorKind {
+impl Factor for FactorKind {
     fn name(&self) -> &'static str {
         match self {
             // Self::Pose(f) => f.name(),
@@ -451,7 +451,7 @@ impl FactorState {
     }
 }
 
-impl FactorGraphNode for Factor {
+impl FactorGraphNode for FactorNode {
     fn remove_connection_to(
         &mut self,
         factorgraph_id: super::factorgraph::FactorGraphId,

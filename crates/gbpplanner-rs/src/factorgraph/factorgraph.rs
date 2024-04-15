@@ -10,12 +10,12 @@ use gbp_linalg::prelude::*;
 use petgraph::Undirected;
 
 use super::{
-    factor::{interrobot::InterRobotFactor, Factor, FactorKind},
+    factor::{interrobot::InterRobotFactor, FactorKind, FactorNode},
     id::{FactorId, VariableId},
     message::{FactorToVariableMessage, VariableToFactorMessage},
     node::{FactorGraphNode, Node, NodeKind, RemoveConnectionToError},
     prelude::Message,
-    variable::Variable,
+    variable::VariableNode,
 };
 
 /// type alias used to represent the id of the factorgraph
@@ -133,13 +133,14 @@ impl FactorGraph {
 
     /// Returns the `FactorGraphId` of the factorgraph
     #[inline(always)]
+    #[must_use]
     pub const fn id(&self) -> FactorGraphId {
         self.id
     }
 
     /// Adds a variable to the factorgraph
     /// Returns the index of the variable in the factorgraph
-    pub fn add_variable(&mut self, variable: Variable) -> VariableIndex {
+    pub fn add_variable(&mut self, variable: VariableNode) -> VariableIndex {
         let node = Node::new(self.id, NodeKind::Variable(variable));
         let node_index = self.graph.add_node(node);
         self.variable_indices.push(node_index);
@@ -154,7 +155,7 @@ impl FactorGraph {
         node_index.into()
     }
 
-    pub fn add_factor(&mut self, factor: Factor) -> FactorIndex {
+    pub fn add_factor(&mut self, factor: FactorNode) -> FactorIndex {
         let is_interrobot = factor.is_inter_robot();
         let node = Node::new(self.id, NodeKind::Factor(factor));
         let node_index = self.graph.add_node(node);
@@ -274,14 +275,14 @@ impl FactorGraph {
         self.variable_indices.get(index).copied().map(VariableIndex)
     }
 
-    pub fn nth_variable(&self, index: usize) -> Option<(VariableIndex, &Variable)> {
+    pub fn nth_variable(&self, index: usize) -> Option<(VariableIndex, &VariableNode)> {
         let variable_index = self.nth_variable_index(index)?;
         let node = &self.graph[variable_index.0];
         let variable = node.as_variable()?;
         Some((variable_index, variable))
     }
 
-    pub fn nth_variable_mut(&mut self, index: usize) -> Option<(VariableIndex, &mut Variable)> {
+    pub fn nth_variable_mut(&mut self, index: usize) -> Option<(VariableIndex, &mut VariableNode)> {
         let variable_index = self.nth_variable_index(index)?;
         let node = &mut self.graph[variable_index.0];
         let variable = node.as_variable_mut()?;
@@ -418,36 +419,36 @@ impl FactorGraph {
         messages_to_external_factors
     }
 
-    pub fn get_factor(&self, index: FactorIndex) -> Option<&Factor> {
+    pub fn get_factor(&self, index: FactorIndex) -> Option<&FactorNode> {
         self.graph
             .node_weight(index.0)
             .and_then(|node| node.as_factor())
     }
 
-    pub fn get_factor_mut(&mut self, index: FactorIndex) -> Option<&mut Factor> {
+    pub fn get_factor_mut(&mut self, index: FactorIndex) -> Option<&mut FactorNode> {
         self.graph
             .node_weight_mut(*index)
             .and_then(|node| node.as_factor_mut())
     }
 
-    pub fn get_variable(&self, index: VariableIndex) -> Option<&Variable> {
+    pub fn get_variable(&self, index: VariableIndex) -> Option<&VariableNode> {
         self.graph
             .node_weight(*index)
             .and_then(|node| node.as_variable())
     }
 
-    pub fn get_variable_mut(&mut self, index: VariableIndex) -> Option<&mut Variable> {
+    pub fn get_variable_mut(&mut self, index: VariableIndex) -> Option<&mut VariableNode> {
         self.graph
             .node_weight_mut(*index)
             .and_then(|node| node.as_variable_mut())
     }
 
     #[inline(always)]
-    pub fn first_variable(&self) -> Option<(VariableIndex, &Variable)> {
+    pub fn first_variable(&self) -> Option<(VariableIndex, &VariableNode)> {
         self.nth_variable(0usize)
     }
 
-    pub fn last_variable(&self) -> Option<(VariableIndex, &Variable)> {
+    pub fn last_variable(&self) -> Option<(VariableIndex, &VariableNode)> {
         if self.variable_indices.is_empty() {
             None
         } else {
@@ -455,7 +456,7 @@ impl FactorGraph {
         }
     }
 
-    pub fn last_variable_mut(&mut self) -> Option<(VariableIndex, &mut Variable)> {
+    pub fn last_variable_mut(&mut self) -> Option<(VariableIndex, &mut VariableNode)> {
         if self.variable_indices.is_empty() {
             None
         } else {
@@ -644,7 +645,7 @@ impl FactorGraph {
 }
 
 impl<'a> Iterator for Factors<'a> {
-    type Item = (NodeIndex, &'a Factor);
+    type Item = (NodeIndex, &'a FactorNode);
 
     fn next(&mut self) -> Option<Self::Item> {
         let &index = self.factor_indices.next()?;
@@ -675,7 +676,7 @@ impl<'a> Variables<'a> {
 }
 
 impl<'a> Iterator for Variables<'a> {
-    type Item = (VariableIndex, &'a Variable);
+    type Item = (VariableIndex, &'a VariableNode);
 
     fn next(&mut self) -> Option<Self::Item> {
         let &index = self.variable_indices.next()?;
@@ -734,7 +735,7 @@ impl FactorGraph {
 }
 
 impl std::ops::Index<FactorIndex> for FactorGraph {
-    type Output = Factor;
+    type Output = FactorNode;
 
     // type Output = Option<Factor>;
 
@@ -746,7 +747,7 @@ impl std::ops::Index<FactorIndex> for FactorGraph {
 }
 
 impl std::ops::Index<VariableIndex> for FactorGraph {
-    type Output = Variable;
+    type Output = VariableNode;
 
     fn index(&self, index: VariableIndex) -> &Self::Output {
         self.graph[index.0]

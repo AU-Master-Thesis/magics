@@ -14,14 +14,14 @@ use ndarray::{array, concatenate, s, Axis};
 //     NodeIndex,
 // };
 use crate::factorgraph::{
-    factor::{ExternalVariableId, Factor},
+    factor::{ExternalVariableId, FactorNode},
     factorgraph::{FactorGraph, NodeIndex, VariableIndex},
     id::{FactorId, VariableId},
 };
 use crate::{
     boolean_bevy_resource,
     config::Config,
-    factorgraph::{variable::Variable, DOFS},
+    factorgraph::{variable::VariableNode, DOFS},
     pause_play::PausePlay,
     utils::get_variable_timesteps,
 };
@@ -305,7 +305,7 @@ impl RobotBundle {
                 Float::from(mean.w)
             ];
 
-            let variable = Variable::new(mean, precision_matrix, DOFS);
+            let variable = VariableNode::new(mean, precision_matrix, DOFS);
             let variable_index = factorgraph.add_variable(variable);
             variable_node_indices.push(variable_index);
         }
@@ -319,7 +319,7 @@ impl RobotBundle {
 
             let measurement = Vector::<Float>::zeros(config.robot.dofs.get());
 
-            let dynamic_factor = Factor::new_dynamic_factor(
+            let dynamic_factor = FactorNode::new_dynamic_factor(
                 Float::from(config.gbp.sigma_factor_dynamics),
                 measurement,
                 Float::from(delta_t),
@@ -341,7 +341,7 @@ impl RobotBundle {
         // Create Obstacle factors for all variables excluding start, excluding horizon
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
-            let obstacle_factor = Factor::new_obstacle_factor(
+            let obstacle_factor = FactorNode::new_obstacle_factor(
                 Float::from(config.gbp.sigma_factor_obstacle),
                 array![0.0],
                 obstacle_sdf,
@@ -525,7 +525,7 @@ fn create_interrobot_factors(
                 //     InterRobotFactorConnection::new(*other_robot_id, other_variable_indices[i
                 // - 1]);
                 //
-                let interrobot_factor = Factor::new_interrobot_factor(
+                let interrobot_factor = FactorNode::new_interrobot_factor(
                     Float::from(config.gbp.sigma_factor_interrobot),
                     z,
                     Float::from(safety_radius)

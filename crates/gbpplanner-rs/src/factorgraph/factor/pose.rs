@@ -2,18 +2,19 @@
 
 use gbp_linalg::prelude::*;
 
-use super::{FactorState, IFactor};
+use super::{Factor, FactorState};
 
 #[derive(Debug)]
 pub struct PoseFactor;
 
-impl IFactor for PoseFactor {
+impl Factor for PoseFactor {
     #[inline(always)]
     fn name(&self) -> &'static str {
         "PoseFactor"
     }
 
     /// Default jacobian is the first order taylor series jacobian
+    #[inline]
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         self.first_order_jacobian(state, x.clone())
     }

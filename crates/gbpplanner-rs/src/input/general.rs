@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, marker::PhantomData};
 
 use bevy::{app::AppExit, prelude::*, tasks::IoTaskPool};
 use bevy_notify::prelude::*;
@@ -28,7 +28,7 @@ impl Plugin for GeneralInputPlugin {
         app.add_event::<EnvironmentEvent>()
             .add_event::<ExportGraphEvent>()
             .add_event::<DrawSettingsEvent>()
-            .add_event::<QuitApplicationEvent>()
+            .add_event::<QuitApplication>()
             .add_plugins(InputManagerPlugin::<GeneralAction>::default())
             .add_systems(PostStartup, bind_general_input)
             .add_systems(
@@ -61,20 +61,69 @@ pub struct DrawSettingsEvent {
     pub draw:    bool,
 }
 
+// TODO: refactor to this
+
+// Toggle<DrawSetting<Uncertainty>>
+
+// pub trait Toggleable {}
+
+// #[derive(Clone, Copy, Event)]
+// pub enum OnOff<T> {
+//     On,
+//     Off,
+//     Toggle, // _phantom_data: PhantomData<T>,
+// }
+
+// pub struct Uncertainty;
+
+// pub struct Setting<T> {
+//     _phantom_data: PhantomData<T>,
+// }
+
+// pub struct Draw<T> {
+//     _phantom_data: PhantomData<T>,
+// }
+
+// type Foo = OnOff<Setting<Draw<Uncertainty>>>;
+
+// // OnOff<Setting<Draw<Uncertainty>>>
+
+// // OnOff<DrawSetting<Uncertainty>>
+
+// pub struct Toggle<T: Toggleable> {
+//     _phantom_data: PhantomData<T>,
+// }
+
+// #[derive(Event, Debug, Clone)]
+// pub struct DrawSettings<T>
+// where
+//     T: std::fmt::Debug,
+// {
+//     pub draw:      bool,
+//     _phantom_data: PhantomData<T>,
+// }
+
+/// General actions that can be triggered either affecting the simulation or the
+/// UI
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter, Default)]
 pub enum GeneralAction {
     #[default]
-    ToggleTheme,
+    /// Cycle between catppuccin themes
+    CycleTheme,
+    /// Export all factorgraphs as `graphviz` format
     ExportGraph,
+    /// Take a screenshot of the primary window and save it to disk
     ScreenShot,
+    /// Quit the application, and end the program
     QuitApplication,
+    /// Toggle the simulation time between paused and playing
     PausePlaySimulation,
 }
 
 impl std::fmt::Display for GeneralAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            Self::ToggleTheme => "Toggle Theme",
+            Self::CycleTheme => "Cycle Theme",
             Self::ExportGraph => "Export Graph",
             Self::ScreenShot => "Take Screenshot",
             Self::QuitApplication => "Quit Application",
@@ -86,7 +135,7 @@ impl std::fmt::Display for GeneralAction {
 impl GeneralAction {
     fn default_keyboard_input(action: Self) -> UserInput {
         match action {
-            Self::ToggleTheme => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT)),
+            Self::CycleTheme => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT)),
             Self::ExportGraph => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG)),
             Self::ScreenShot => {
                 UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyS))
@@ -371,10 +420,10 @@ fn handle_export_graph(
 }
 
 #[derive(Event, Clone, Copy, Debug, Default)]
-pub struct QuitApplicationEvent;
+pub struct QuitApplication;
 
 fn quit_application_system(
-    mut quit_application_reader: EventReader<QuitApplicationEvent>,
+    mut quit_application_reader: EventReader<QuitApplication>,
     mut app_exit_event: EventWriter<AppExit>,
 ) {
     for _ in quit_application_reader.read() {
@@ -392,7 +441,7 @@ fn general_actions_system(
     currently_changing: Res<ChangingBinding>,
     catppuccin_theme: Res<CatppuccinTheme>,
     // mut app_exit_event: EventWriter<AppExit>,
-    mut quit_application_event: EventWriter<QuitApplicationEvent>,
+    mut quit_application_event: EventWriter<QuitApplication>,
     // export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
     mut pause_play_event: EventWriter<PausePlay>,
     toast_event: EventWriter<ToastEvent>,
@@ -405,7 +454,7 @@ fn general_actions_system(
         return;
     };
 
-    if action_state.just_pressed(&GeneralAction::ToggleTheme) {
+    if action_state.just_pressed(&GeneralAction::CycleTheme) {
         cycle_theme(&mut theme_event, catppuccin_theme);
     } else if action_state.just_pressed(&GeneralAction::ExportGraph) {
         if let Err(e) = handle_export_graph(
@@ -417,7 +466,7 @@ fn general_actions_system(
             error!("failed to export factorgraphs with error: {:?}", e);
         }
     } else if action_state.just_pressed(&GeneralAction::QuitApplication) {
-        quit_application_event.send(QuitApplicationEvent);
+        quit_application_event.send(QuitApplication);
         // info!("quitting application");
         // app_exit_event.send(AppExit);
     } else if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {

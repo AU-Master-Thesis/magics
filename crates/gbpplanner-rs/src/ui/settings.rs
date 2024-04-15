@@ -139,6 +139,20 @@ fn ui_settings_panel(
         .resizable(panel_resizable)
         .show_animated(ctx, ui_state.top_panel_visible, |ui| {
             ui.strong("top panel");
+            // #[derive(PartialEq, Eq)]
+            // enum Enum {
+            //     First,
+            //     Second,
+            //     Third,
+            // }
+            // let mut selected = "foo".to_string();
+            // egui::ComboBox::from_label("Select one!")
+            //     .selected_text(format!("{:?}", selected))
+            //     .show_ui(ui, |ui| {
+            //         ui.selectable_value(&mut selected, Enum::First, "First");
+            //         ui.selectable_value(&mut selected, Enum::Second,
+            // "Second");         ui.selectable_value(&mut selected,
+            // Enum::Third, "Third");     });
         });
 
     occupied_screen_space.top = top_panel.map_or(0.0, |ref inner| inner.response.rect.width());

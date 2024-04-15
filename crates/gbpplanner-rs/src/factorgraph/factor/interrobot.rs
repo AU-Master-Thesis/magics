@@ -5,7 +5,7 @@ use gbp_linalg::prelude::*;
 use ndarray::s;
 use typed_floats::StrictlyPositiveFinite;
 
-use super::{FactorState, IFactor};
+use super::{Factor, FactorState};
 use crate::factorgraph::{
     factorgraph::{FactorGraphId, VariableIndex},
     DOFS,
@@ -64,7 +64,7 @@ impl InterRobotFactor {
     }
 }
 
-impl IFactor for InterRobotFactor {
+impl Factor for InterRobotFactor {
     #[inline(always)]
     fn name(&self) -> &'static str {
         "InterRobotFactor"

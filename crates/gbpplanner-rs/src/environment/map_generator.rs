@@ -40,6 +40,7 @@ pub struct TileCoordinates {
 }
 
 impl TileCoordinates {
+    #[must_use]
     pub const fn new(row: usize, col: usize) -> Self {
         Self { row, col }
     }

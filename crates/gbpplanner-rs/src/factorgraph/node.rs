@@ -1,4 +1,4 @@
-use super::{factor::Factor, factorgraph::FactorGraphId, variable::Variable};
+use super::{factor::FactorNode, factorgraph::FactorGraphId, variable::VariableNode};
 
 #[derive(Debug, derive_more::Display)]
 #[display(fmt = "no connection to the given factorgraph")]
@@ -20,9 +20,9 @@ pub(in crate::factorgraph) trait FactorGraphNode {
 
 #[derive(Debug, derive_more::IsVariant)]
 pub enum NodeKind {
-    Factor(Factor),
+    Factor(FactorNode),
     // TODO: wrap in Box<>
-    Variable(Variable),
+    Variable(VariableNode),
 }
 
 #[derive(Debug)]
@@ -51,7 +51,7 @@ impl Node {
 
     /// Returns `Some(&Factor)` if the node]s variant is [`Factor`], otherwise
     /// `None`.
-    pub const fn as_factor(&self) -> Option<&Factor> {
+    pub const fn as_factor(&self) -> Option<&FactorNode> {
         if let NodeKind::Factor(ref v) = self.kind {
             Some(v)
         } else {
@@ -61,7 +61,7 @@ impl Node {
 
     /// Returns `Some(&mut Factor)` if the node]s variant is [`Factor`],
     /// otherwise `None`.
-    pub fn as_factor_mut(&mut self) -> Option<&mut Factor> {
+    pub fn as_factor_mut(&mut self) -> Option<&mut FactorNode> {
         if let NodeKind::Factor(ref mut v) = self.kind {
             Some(v)
         } else {
@@ -80,7 +80,7 @@ impl Node {
 
     /// Returns `Some(&Variable)` if the node]s variant is [`Variable`],
     /// otherwise `None`.
-    pub const fn as_variable(&self) -> Option<&Variable> {
+    pub const fn as_variable(&self) -> Option<&VariableNode> {
         if let NodeKind::Variable(ref v) = self.kind {
             Some(v)
         } else {
@@ -90,7 +90,7 @@ impl Node {
 
     /// Returns `Some(&mut Variable)` if the node]s variant is [`Variable`],
     /// otherwise `None`.
-    pub fn as_variable_mut(&mut self) -> Option<&mut Variable> {
+    pub fn as_variable_mut(&mut self) -> Option<&mut VariableNode> {
         if let NodeKind::Variable(ref mut v) = self.kind {
             Some(v)
         } else {

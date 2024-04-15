@@ -4,7 +4,7 @@ use bevy::{log::warn, render::texture::Image};
 use gbp_linalg::prelude::*;
 use ndarray::array;
 
-use super::{FactorState, IFactor};
+use super::{Factor, FactorState};
 
 #[derive(Clone)]
 pub struct ObstacleFactor {
@@ -39,7 +39,7 @@ impl ObstacleFactor {
     }
 }
 
-impl IFactor for ObstacleFactor {
+impl Factor for ObstacleFactor {
     #[inline]
     fn name(&self) -> &'static str {
         "ObstacleFactor"

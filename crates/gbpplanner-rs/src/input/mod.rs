@@ -75,7 +75,7 @@ impl ToDisplayString for CameraAction {
 impl ToDisplayString for GeneralAction {
     fn to_display_string(&self) -> String {
         match self {
-            Self::ToggleTheme => "Toggle Theme".to_string(),
+            Self::CycleTheme => "Toggle Theme".to_string(),
             Self::ExportGraph => "Export Graph".to_string(),
             Self::ScreenShot => "Take Screenshot".to_string(),
             Self::QuitApplication => "Quit Application".to_string(),

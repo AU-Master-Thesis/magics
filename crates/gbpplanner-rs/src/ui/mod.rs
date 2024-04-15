@@ -14,7 +14,7 @@ use bevy_egui::{
     egui::{self, Visuals},
     EguiContexts,
 };
-use bevy_touchpad::TwoFingerSwipe;
+// use bevy_touchpad::TwoFingerSwipe;
 pub use decoration::ToDisplayString;
 use strum_macros::EnumIter;
 
@@ -22,7 +22,7 @@ use self::{
     controls::ControlsPanelPlugin, data::DataPanelPlugin, metrics::MetricsPlugin,
     scale::ScaleUiPlugin, settings::SettingsPanelPlugin,
 };
-use crate::{theme::CatppuccinThemeVisualsExt, AppState, SimulationState};
+use crate::{theme::CatppuccinThemeVisualsExt, AppState};
 
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/

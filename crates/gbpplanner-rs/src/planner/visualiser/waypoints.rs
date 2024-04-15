@@ -10,7 +10,7 @@ use crate::{
     input::DrawSettingsEvent,
     planner::{
         robot::RobotReachedWaypoint,
-        spawner::{CreateWaypointEvent, DeleteWaypointEvent},
+        spawner::{WaypointCreated, WaypointDeleted},
         RobotId,
     },
 };
@@ -33,7 +33,7 @@ impl Plugin for WaypointVisualiserPlugin {
 
 fn listen_for_robot_reached_waypoint_event(
     mut robot_reached_waypoint_event: EventReader<RobotReachedWaypoint>,
-    mut delete_waypoint_event: EventWriter<DeleteWaypointEvent>,
+    mut delete_waypoint_event: EventWriter<WaypointDeleted>,
     query_waypoints: Query<(Entity, &AssociatedWithRobot), With<WaypointVisualiser>>,
 ) {
     for event in robot_reached_waypoint_event.read() {
@@ -44,14 +44,14 @@ fn listen_for_robot_reached_waypoint_event(
             .map(|(entity, _)| entity)
         {
             // info!("sending delete waypoint event: {:?}", waypoint_id);
-            delete_waypoint_event.send(DeleteWaypointEvent(waypoint_id));
+            delete_waypoint_event.send(WaypointDeleted(waypoint_id));
         };
     }
 }
 
 fn delete_waypoint_mesh(
     mut commands: Commands,
-    mut delete_waypoint_event: EventReader<DeleteWaypointEvent>,
+    mut delete_waypoint_event: EventReader<WaypointDeleted>,
 ) {
     for event in delete_waypoint_event.read() {
         commands.entity(event.0).despawn();
@@ -66,7 +66,7 @@ fn create_waypoint_mesh(
     mut commands: Commands,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
-    mut create_waypoint_event: EventReader<CreateWaypointEvent>,
+    mut create_waypoint_event: EventReader<WaypointCreated>,
 ) {
     for event in create_waypoint_event.read() {
         let transform = Transform::from_translation(Vec3::new(

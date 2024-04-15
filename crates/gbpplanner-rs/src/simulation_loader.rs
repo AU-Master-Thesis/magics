@@ -1,30 +1,32 @@
+use std::marker::PhantomData;
+
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 
 use crate::config::{Config, Environment, FormationGroup};
 
-pub struct ScenePlugin;
+pub struct SimulationLoaderPlugin;
 
-impl Plugin for ScenePlugin {
+impl Plugin for SimulationLoaderPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<ActiveSimulation>()
-            .add_event::<SimulationLoaded>()
-            .add_event::<ReloadSimulation>()
+        app.insert_resource(SimulationManager::default())
+            .init_resource::<ActiveSimulation>()
+            .add_event::<LoadSimulation>()
+            .add_event::<EndSimulation>()
+            .add_event::<SimulationReloaded>()
             .add_systems(
                 Update,
-                show_toast_when_simulation_reloads.run_if(on_event::<ReloadSimulation>()),
+                show_toast_when_simulation_reloads.run_if(on_event::<SimulationReloaded>()),
             )
             .add_systems(
-                PostUpdate,
-                reload_scene.run_if(input_just_pressed(KeyCode::F5)),
+                Update,
+                reload_simulation.run_if(input_just_pressed(KeyCode::F5)),
             );
     }
 }
 
 #[derive(Debug, Component)]
 pub struct Ephemeral;
-
-pub struct Scene;
 
 #[derive(Debug)]
 pub struct Simulation {
@@ -52,7 +54,27 @@ impl Simulation {
 
 // impl Time<Scene> {}
 
-pub struct SimulationId;
+#[derive(Debug, Resource, Default)]
+pub struct SimulationManager {
+    // _phantom_data: PhantomData<()>,
+}
+
+// impl<'world> SimulationManager<'world> {
+impl SimulationManager {
+    // pub fn get_config_for(id: SimulationId) -> Option<&'world Config> {
+    //     todo!()
+    // }
+
+    // pub fn get_environment_for(id: SimulationId) -> Option<&Environment> {
+    //     todo!()
+    // }
+
+    // pub fn get_formation_for(id: SimulationId) -> Option<&Formation> {
+    //     None
+    // }
+}
+
+pub struct SimulationId(usize);
 
 #[derive(Resource)]
 pub struct ActiveSimulation(Option<SimulationId>);
@@ -65,11 +87,14 @@ impl FromWorld for ActiveSimulation {
 }
 
 #[derive(Event)]
-pub struct SimulationLoaded(SimulationId);
+pub struct LoadSimulation(SimulationId);
+
+#[derive(Event)]
+pub struct EndSimulation(SimulationId);
 
 // TODO: send an simulation generation or id with
 #[derive(Event, Default)]
-pub struct ReloadSimulation;
+pub struct SimulationReloaded;
 
 /// Marker component used to mark entities which can be reloaded as part of a
 /// scene reload
@@ -101,7 +126,7 @@ fn reload_scene(world: &mut World) {
 
     world.insert_resource::<Time<Virtual>>(new_virtual_clock);
 
-    world.send_event_default::<ReloadSimulation>();
+    world.send_event_default::<SimulationReloaded>();
     // world.send_event::<ReloadSimulation>()
 
     // time.pause();
@@ -126,4 +151,39 @@ fn show_toast_when_simulation_reloads(mut evw_toast: EventWriter<ToastEvent>) {
             ..Default::default()
         },
     });
+}
+
+fn reload_simulation(
+    mut evw_reload_simulation: EventWriter<SimulationReloaded>,
+    mut end_simulation: EventWriter<EndSimulation>,
+) {
+    info!("ending simulation");
+    end_simulation.send(EndSimulation(SimulationId(0)));
+}
+
+// TODO: use in app
+#[derive(
+    Debug,
+    Default,
+    States,
+    PartialEq,
+    Eq,
+    Hash,
+    Clone,
+    Copy,
+    derive_more::Display,
+    derive_more::IsVariant,
+)]
+pub enum SimulationState {
+    #[default]
+    #[display(fmt = "Loading")]
+    Loading,
+    #[display(fmt = "Starting")]
+    Starting,
+    #[display(fmt = "Running")]
+    Running,
+    #[display(fmt = "Paused")]
+    Paused,
+    #[display(fmt = "Finished")]
+    Finished,
 }

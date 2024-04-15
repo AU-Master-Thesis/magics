@@ -1,4 +1,4 @@
-// #![allow(warnings)]
+#![allow(missing_docs)]
 
 //! The main entry point of the simulation.
 pub(crate) mod asset_loader;
@@ -13,7 +13,9 @@ mod moveable_object;
 mod movement;
 pub(crate) mod pause_play;
 mod planner;
-mod scene;
+// mod scene;
+
+pub(crate) mod simulation_loader;
 
 pub(crate) mod theme;
 pub(crate) mod ui;
@@ -31,8 +33,9 @@ use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
 use colored::Colorize;
 use config::{environment::EnvironmentType, Environment};
-use gbpplanner_rs::{AppState, SimulationState};
-use iyes_perf_ui::prelude::*;
+use gbpplanner_rs::AppState;
+
+// use iyes_perf_ui::prelude::*;
 
 // use rand::{Rng, SeedableRng};
 
@@ -46,7 +49,7 @@ use crate::{
     movement::MovementPlugin,
     pause_play::PausePlayPlugin,
     planner::PlannerPlugin,
-    scene::ScenePlugin,
+    simulation_loader::SimulationLoaderPlugin,
     theme::ThemePlugin,
     ui::EguiInterfacePlugin,
 };
@@ -249,12 +252,14 @@ fn main() -> anyhow::Result<()> {
             // // FactorGraphPlugin,   // Custom
             EguiInterfacePlugin, // Custom
             PlannerPlugin,
-            NotifyPlugin::default()
+            NotifyPlugin::default(),
+            SimulationLoaderPlugin,
         ))
         .add_plugins(ToggleFullscreenPlugin::default())
+        // .add_plugins(bevy_dev::DevPlugins)
+
         // .add_plugins(bevy_touchpad::BevyTouchpadPlugin::default())
 
-        .add_plugins(ScenePlugin)
         // .add_plugins(NotifyPlugin)
         //         .insert_resource(Notifications(Toasts::default()))
         // we want Bevy to measure these values for us:
@@ -313,17 +318,17 @@ fn end_simulation(config: Res<Config>) {
 //     }
 // }
 
-fn create_toast(mut toast_event: EventWriter<ToastEvent>, mut n: Local<usize>) {
-    *n += 1;
+// fn create_toast(mut toast_event: EventWriter<ToastEvent>, mut n:
+// Local<usize>) {     *n += 1;
 
-    toast_event.send(ToastEvent {
-        caption: format!("call: {}", *n),
-        // caption: "hello".into(),
-        options: ToastOptions {
-            level: ToastLevel::Success,
-            // closable: false,
-            // show_progress_bar: false,
-            ..Default::default()
-        },
-    });
-}
+//     toast_event.send(ToastEvent {
+//         caption: format!("call: {}", *n),
+//         // caption: "hello".into(),
+//         options: ToastOptions {
+//             level: ToastLevel::Success,
+//             // closable: false,
+//             // show_progress_bar: false,
+//             ..Default::default()
+//         },
+//     });
+// }

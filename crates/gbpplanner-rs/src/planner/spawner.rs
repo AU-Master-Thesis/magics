@@ -1,5 +1,3 @@
-#![warn(missing_docs)]
-//! ...
 use std::{collections::VecDeque, num::NonZeroUsize, sync::OnceLock};
 
 use bevy::prelude::*;
@@ -21,28 +19,34 @@ use crate::{
     },
     pause_play::PausePlay,
     planner::robot::RobotBundle,
+    simulation_loader::{EndSimulation, LoadSimulation, SimulationLoaderPlugin, SimulationManager},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
 
-pub struct SpawnerPlugin;
+pub struct RobotSpawnerPlugin;
 
-impl Plugin for SpawnerPlugin {
+impl Plugin for RobotSpawnerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<FormationSpawnEvent>()
+        app.add_event::<RobotFormationSpawned>()
             // .init_resource::<SelectedRobot>()
-            .add_event::<RobotClickEvent>()
-            .add_event::<CreateWaypointEvent>()
-            .add_event::<DeleteWaypointEvent>()
-            .add_systems(Startup, setup)
-            .add_systems(
-                Update,
-                (
-                    advance_time.run_if(not(time_is_paused)),
+            .add_event::<RobotClickedOn>()
+            .add_event::<WaypointCreated>()
+            .add_event::<WaypointDeleted>()
+        .add_systems(Update,
+
+            (
                     spawn_formation,
-                    // select_robot_when_clicked,
-                    // place_unplanned_waypoint.run_if(robot_is_selected),
-                ),
-            );
+advance_time.run_if(not(time_is_paused))        ));
+        app.add_systems(Startup, setup);
+        app.add_systems(Update, delete_formation_group_spawners);
+
+        // if app.is_plugin_added::<SimulationLoaderPlugin>() {
+        //     // app.add_systems(Update, create_formation_group_spawners);
+        // } else {
+        //     // .add_systems(Update,
+        //     // create_formation_group_spawners.run_if(on_event::<scene::()))
+        //     app.add_systems(Startup, setup);
+        // }
     }
 }
 
@@ -51,86 +55,21 @@ fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
     time.is_paused()
 }
 
+/// **bevy** event emitted whenever a robot waypoint is created
 #[derive(Event)]
-pub struct CreateWaypointEvent {
+pub struct WaypointCreated {
+    /// The id of the robot the waypoint is created for
     pub for_robot: RobotId,
+    /// The (x,y) position of the created waypoint in world coordinates.
     pub position:  Vec2,
 }
 
 #[derive(Event)]
-pub struct DeleteWaypointEvent(pub Entity);
+pub struct WaypointDeleted(pub Entity);
 
-// #[derive(Resource, Default)]
-// struct SelectedRobot(pub Option<Entity>);
-
-// impl SelectedRobot {
-//     #[inline]
-//     pub fn deselect(&mut self) {
-//         self.0 = None
-//     }
-
-//     #[inline]
-//     pub fn select(&mut self, entity: Entity) {
-//         self.0 = Some(entity)
-//     }
-
-//     #[inline]
-//     pub fn is_selected(&self) -> bool {
-//         self.0.is_some()
-//     }
-// }
-
-// fn robot_is_selected(selected_robot: Res<SelectedRobot>) -> bool {
-//     selected_robot.is_selected()
-// }
-
-// fn place_unplanned_waypoint(
-//     mut commands: Commands,
-//     mut mousebutton_event: EventReader<MouseButtonInput>,
-//     mut create_waypoint_event: EventWriter<CreateWaypointEvent>,
-//     mut selected_robot: ResMut<SelectedRobot>,
-//     mut query: Query<(Entity, &mut Waypoints), With<RobotState>>,
-//     cursor_position: ResMut<CursorCoordinates>,
-//     // q_windows: Query<&Window, With<PrimaryWindow>>,
-// ) {
-//     for MouseButtonInput { button, state, .. } in mousebutton_event.read() {
-//         let (ButtonState::Pressed, MouseButton::Left) = (state, button) else
-// {             continue;
-//         };
-
-//         error!("pressed left click");
-//         // prepend a waypoint at the mouse position
-//         let Some(mut waypoints) = query
-//             .iter_mut()
-//             .find(|(entity, _)| entity == &selected_robot.0.unwrap())
-//             .map(|(_, waypoints)| waypoints)
-//         else {
-//             continue;
-//         };
-
-//         // let Some(cursor_position) = q_windows.single().cursor_position()
-// else {         //     continue;
-//         // };
-
-//         create_waypoint_event.send(CreateWaypointEvent {
-//             for_robot: selected_robot.0.unwrap(),
-//             position: cursor_position.local(),
-//         });
-
-//         // waypoints
-//         //     .0
-//         //     .push_front(Vec4::new(cursor_position.x, cursor_position.y,
-// 0.0, 0.0));         //
-//         error!("placed waypoint");
-//         selected_robot.deselect();
-//     }
-// }
-
+// TODO: needs to be changed whenever the sim reloads, use resource?
 /// Every [`ObstacleFactor`] has a static reference to the obstacle image.
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
-// static OBSTACLE_IMAGE: OnceLock<Image> =
-//     OnceLock::new().get_or_init(||
-// include_bytes!("./assets/imgs/junction_sdf.png"));
 
 /// Component attached to an entity that spawns formations.
 #[derive(Component)]
@@ -166,6 +105,57 @@ fn setup(mut commands: Commands, formation_group: Res<FormationGroup>) {
     }
 }
 
+fn delete_formation_group_spawners(
+    mut commands: Commands,
+    mut evr_end_simulation: EventReader<EndSimulation>,
+    formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
+) {
+    for event in evr_end_simulation.read() {
+        for spawner in &formation_spawners {
+            info!("despawning formation spawner: {:?}", spawner);
+            commands.entity(spawner).despawn();
+        }
+    }
+}
+
+fn create_formation_group_spawners(
+    mut commands: Commands,
+
+    mut evr_load_simulation: EventReader<LoadSimulation>,
+    simulation_manager: Res<SimulationManager>,
+) {
+    //   for event in evr_load_simulation.read() {
+    //       let Some(formation_group) =
+    // simulation_manager.get_formation_group_for(event.id) else {
+    //           return;
+    //       };
+
+    // for (i, formation) in formation_group.formations.iter().enumerate() {
+    //     let mode = if formation.repeat {
+    //         TimerMode::Repeating
+    //     } else {
+    //         TimerMode::Once
+    //     };
+    //     let duration = formation.delay.as_secs_f32();
+    //     let timer = Timer::from_seconds(duration, mode);
+
+    //     let mut entity = commands.spawn_empty();
+    //     entity.insert(FormationSpawnerCountdown {
+    //         timer,
+    //         formation_group_index: i,
+    //     });
+
+    //     info!(
+    //         "spawned formation-group spawner: {} with mode {:?} spawning
+    // every {} seconds",         i + 1,
+    //         mode,
+    //         duration
+    //     );
+    // }
+
+    // }
+}
+
 /// Event that is sent when a formation should be spawned.
 /// The `formation_group_index` is the index of the formation group in the
 /// `FormationGroup` resource. Telling the event reader which formation group to
@@ -173,7 +163,7 @@ fn setup(mut commands: Commands, formation_group: Res<FormationGroup>) {
 /// Assumes that the `FormationGroup` resource has been initialised, and does
 /// not change during the program's execution.
 #[derive(Debug, Event)]
-pub struct FormationSpawnEvent {
+pub struct RobotFormationSpawned {
     pub formation_group_index: usize,
 }
 
@@ -183,14 +173,14 @@ pub struct FormationSpawnEvent {
 fn advance_time(
     time: Res<Time>,
     mut query: Query<&mut FormationSpawnerCountdown>,
-    mut spawn_event_writer: EventWriter<FormationSpawnEvent>,
+    mut spawn_event_writer: EventWriter<RobotFormationSpawned>,
     mut pause_play_event: EventWriter<PausePlay>,
     config: Res<Config>,
 ) {
     for mut countdown in &mut query {
         countdown.timer.tick(time.delta());
         if countdown.timer.just_finished() {
-            spawn_event_writer.send(FormationSpawnEvent {
+            spawn_event_writer.send(RobotFormationSpawned {
                 formation_group_index: countdown.formation_group_index,
             });
             // info!(
@@ -207,9 +197,9 @@ fn advance_time(
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn spawn_formation(
     mut commands: Commands,
-    mut spawn_event_reader: EventReader<FormationSpawnEvent>,
+    mut spawn_event_reader: EventReader<RobotFormationSpawned>,
     mut spawn_robot_event: EventWriter<RobotSpawned>,
-    mut create_waypoint_event: EventWriter<CreateWaypointEvent>,
+    mut create_waypoint_event: EventWriter<WaypointCreated>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
@@ -296,7 +286,7 @@ fn spawn_formation(
             let initial_translation = Vec3::new(initial_position.x, 0.5, initial_position.y);
             let mut entity = commands.spawn_empty();
             let robot_id = entity.id();
-            create_waypoint_event.send_batch(waypoints.iter().map(|p| CreateWaypointEvent {
+            create_waypoint_event.send_batch(waypoints.iter().map(|p| WaypointCreated {
                 for_robot: robot_id,
                 position:  *p,
             }));
@@ -372,7 +362,7 @@ fn spawn_formation(
                 robotbundle,
                 pbrbundle,
                 PickableBundle::default(),
-                On::<Pointer<Click>>::send_event::<RobotClickEvent>(),
+                On::<Pointer<Click>>::send_event::<RobotClickedOn>(),
                 ColorAssociation { name: random_color },
                 crate::environment::FollowCameraMe::new(0.0, 15.0, 0.0)
                     .with_up_direction(Direction3d::new(initial_direction).expect(
@@ -389,16 +379,16 @@ fn spawn_formation(
 }
 
 #[derive(Event)]
-struct RobotClickEvent(pub Entity);
+struct RobotClickedOn(pub Entity);
 
-impl RobotClickEvent {
+impl RobotClickedOn {
     #[inline]
     pub const fn target(&self) -> Entity {
         self.0
     }
 }
 
-impl From<ListenerInput<Pointer<Click>>> for RobotClickEvent {
+impl From<ListenerInput<Pointer<Click>>> for RobotClickedOn {
     fn from(value: ListenerInput<Pointer<Click>>) -> Self {
         Self(value.target)
     }
