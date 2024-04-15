@@ -22,8 +22,9 @@ pub enum DumpDefault {
 ///
 /// # NOTE
 /// Do not use `Cli::parse()` to parse arguments, use
-/// (`parse_arguments()`)[crate::cli::parse_arguments] instead as the default
-/// values are different when compiling for target_arch = "wasm32".
+/// (`parse_arguments()`)[`crate::cli::parse_arguments`] instead as the default
+/// values are different when compiling for `target_arch` = "wasm32".
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Parser)]
 #[clap(version, author, about)]
 pub struct Cli {

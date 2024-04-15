@@ -2,7 +2,7 @@ use bevy::{prelude::*, render::view::screenshot::ScreenshotManager, window::Prim
 use bevy_notify::ToastEvent;
 use image::ImageFormat;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ScreenshotPlugin {
     config: ScreenshotPluginConfig,
 }
@@ -23,14 +23,6 @@ impl Default for ScreenshotPluginConfig {
             override_if_screenshot_exists: true,
             with_egui_ui: true,
             // screenshot_save_location: ScreenShotSaveLocation::default(),
-        }
-    }
-}
-
-impl Default for ScreenshotPlugin {
-    fn default() -> Self {
-        Self {
-            config: ScreenshotPluginConfig::default(),
         }
     }
 }
@@ -103,11 +95,11 @@ fn handle_screenshot_event(
                 let existing_screenshots =
                     glob::glob("./screenshot_*.png").expect("valid glob pattern");
                 let latest_screenshot_id = existing_screenshots
-                    .filter_map(|result| result.ok())
+                    .filter_map(std::result::Result::ok)
                     .filter_map(|path| {
-                        path.file_name()
-                            .map(|file_name| file_name.to_str().map(|s| s.to_string()))
-                            .flatten()
+                        path.file_name().and_then(|file_name| {
+                            file_name.to_str().map(std::string::ToString::to_string)
+                        })
                     })
                     .filter_map(|basename| {
                         basename["screenshot_".len()..basename.len() - 4]
@@ -118,7 +110,7 @@ fn handle_screenshot_event(
 
                 // TODO: handle wasm32 constraints
 
-                let screenshot_id = latest_screenshot_id.map(|id| id + 1).unwrap_or(0);
+                let screenshot_id = latest_screenshot_id.map_or(0, |id| id + 1);
                 screenshot_id.to_string()
             }
             ScreenshotSavePostfix::UnixTimestamp => chrono::Utc::now().timestamp().to_string(),

@@ -110,7 +110,7 @@ fn show_or_hide_waypoints_meshes(
 ) {
     for event in draw_settings_event.read() {
         if matches!(event.setting, DrawSetting::Waypoints) {
-            for (_, mut visibility) in query.iter_mut() {
+            for (_, mut visibility) in &mut query {
                 if event.draw {
                     *visibility = Visibility::Visible;
                 } else {

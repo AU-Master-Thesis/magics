@@ -1,4 +1,6 @@
 #![allow(missing_docs)]
+#![allow(clippy::needless_pass_by_value)]
+#![allow(clippy::cast_precision_loss)]
 
 use std::time::Duration;
 
@@ -6,15 +8,13 @@ use bevy::prelude::*;
 
 const SPAWNERS: usize = 3;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .init_resource::<Countdown>()
         .add_systems(Startup, (setup,))
         .add_systems(Update, (countdown, advance_time, spawn_formation))
         .run();
-
-    Ok(())
 }
 
 #[derive(Debug, Resource)]
@@ -27,6 +27,7 @@ fn setup(mut commands: Commands) {
     for i in 0..SPAWNERS {
         info!("Spawning spawner {}", i);
         commands.spawn(FormationSpawnerCountdown(Timer::from_seconds(
+            // (i + 1).try_into().expect("i + 1 is representable as f32"),
             (i + 1) as f32,
             TimerMode::Repeating,
         )));
@@ -34,7 +35,7 @@ fn setup(mut commands: Commands) {
 }
 
 fn advance_time(time: Res<Time>, mut query: Query<&mut FormationSpawnerCountdown>) {
-    for mut countdown in query.iter_mut() {
+    for mut countdown in &mut query {
         countdown.tick(time.delta());
     }
 }
@@ -47,6 +48,7 @@ fn spawn_formation(query: Query<(Entity, &FormationSpawnerCountdown)>) {
     }
 }
 impl Countdown {
+    #[must_use]
     pub fn new(duration: Duration) -> Self {
         Self(Timer::from_seconds(
             duration.as_secs_f32(),

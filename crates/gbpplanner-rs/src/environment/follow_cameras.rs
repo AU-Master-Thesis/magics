@@ -2,10 +2,7 @@ use std::f32::consts::PI;
 
 use ::bevy::prelude::*;
 
-use crate::{
-    movement::{Local, OrbitMovementBundle, Velocity},
-    robot_spawner::RobotSpawnedEvent,
-};
+use crate::movement::{Local, OrbitMovementBundle, Velocity};
 
 pub struct FollowCamerasPlugin;
 
@@ -42,7 +39,7 @@ pub struct FollowCameraMe {
 }
 
 impl FollowCameraMe {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
+    pub const fn new(x: f32, y: f32, z: f32) -> Self {
         Self {
             offset:       Some(Vec3::new(x, y, z)),
             up_direction: None,
@@ -50,7 +47,7 @@ impl FollowCameraMe {
         }
     }
 
-    pub fn from_vec3(offset: Vec3) -> Self {
+    pub const fn from_vec3(offset: Vec3) -> Self {
         Self {
             offset:       Some(offset),
             up_direction: None,
@@ -58,12 +55,12 @@ impl FollowCameraMe {
         }
     }
 
-    pub fn with_up_direction(mut self, up_direction: Direction3d) -> Self {
+    pub const fn with_up_direction(mut self, up_direction: Direction3d) -> Self {
         self.up_direction = Some(up_direction);
         self
     }
 
-    pub fn with_attached(mut self, attached: bool) -> Self {
+    pub const fn with_attached(mut self, attached: bool) -> Self {
         self.attached = attached;
         self
     }
@@ -89,7 +86,7 @@ impl FollowCameraSettings {
         }
     }
 
-    pub fn with_offset(mut self, offset: Vec3) -> Self {
+    pub const fn with_offset(mut self, offset: Vec3) -> Self {
         self.offset = offset;
         self
     }
@@ -97,7 +94,7 @@ impl FollowCameraSettings {
 
 // **Bevy** marker [`Component`] for follow cameras that are attached as
 // children to other entities
-#[derive(Component, PartialEq)]
+#[derive(Component, PartialEq, Eq)]
 pub enum CamType {
     Attached,
     Free,
@@ -122,20 +119,14 @@ impl FollowCameraBundle {
         // attached: bool,
         params: FollowCameraMe,
     ) -> Self {
-        let target_transform = match target {
-            Some(t) => *t, // Dereference to copy the Transform
-            None => Transform::from_translation(Vec3::ZERO),
-        };
+        let target_transform =
+            target.map_or_else(|| Transform::from_translation(Vec3::ZERO), |t| *t);
         // let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
-        let offset = match params.offset {
-            Some(o) => o,
-            None => Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0,
-        };
+        let offset = params
+            .offset
+            .map_or_else(|| Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0, |o| o);
 
-        let up_direction = match params.up_direction {
-            Some(u) => u,
-            None => Direction3d::Y,
-        };
+        let up_direction = params.up_direction.map_or(Direction3d::Y, |u| u);
 
         let (cam_type, transform) = if params.attached {
             (
@@ -206,11 +197,12 @@ fn add_follow_cameras(
 /// `Update` system to move all cameras tagged with the `FollowCamera` component
 /// Queries for all targets with `Transforms` and their corresponding cameras
 /// with `FollowCameraSettings` to move cameras correctly
+#[allow(clippy::type_complexity)]
 fn move_cameras(
     mut query_cameras: Query<(&mut Transform, &FollowCameraSettings, &CamType), With<Camera>>,
     query_targets: Query<(Entity, &Transform), (With<FollowCameraMe>, Without<Camera>)>,
 ) {
-    for (mut camera_transform, follow_settings, cam_type) in query_cameras.iter_mut() {
+    for (mut camera_transform, follow_settings, cam_type) in &mut query_cameras {
         if matches!(cam_type, CamType::Attached) {
             continue;
         }
@@ -234,7 +226,7 @@ fn move_cameras(
                 let delta = target_position - camera_transform.translation;
                 let distance = delta.length();
 
-                if distance < std::f32::EPSILON {
+                if distance < f32::EPSILON {
                     continue;
                 }
 

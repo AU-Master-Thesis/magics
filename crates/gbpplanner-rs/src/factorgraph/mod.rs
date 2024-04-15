@@ -1,16 +1,14 @@
 #![deny(missing_docs)]
 //! ...
 
-use bevy::ecs::entity::Entity;
-use petgraph::Undirected;
-
-pub(super) mod factor;
-pub(super) mod factorgraph;
-pub(super) mod graphviz;
-pub(crate) mod id;
-pub(crate) mod message;
-pub(crate) mod node;
-pub(crate) mod variable;
+pub mod factor;
+#[allow(clippy::module_inception)]
+pub mod factorgraph;
+pub mod graphviz;
+pub mod id;
+pub mod message;
+pub mod node;
+pub mod variable;
 
 /// Degrees of Freedom of the ground robot.
 /// The robot has 4 degrees, of freedom:
@@ -22,12 +20,13 @@ pub(crate) mod variable;
 pub const DOFS: usize = 4;
 
 /// prelude module bringing entire public API into score
+#[allow(unused_imports)]
 pub mod prelude {
     pub use super::{factorgraph::FactorGraph, message::Message, DOFS};
 }
 
 #[derive(Debug, Default, Clone, Copy)]
-pub(super) struct MessageCount {
+pub struct MessageCount {
     pub sent:     usize,
     pub received: usize,
 }
@@ -43,7 +42,7 @@ impl std::ops::Add for MessageCount {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        MessageCount {
+        Self {
             sent:     self.sent + rhs.sent,
             received: self.received + rhs.received,
         }

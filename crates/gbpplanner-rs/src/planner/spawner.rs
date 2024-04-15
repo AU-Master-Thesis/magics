@@ -187,7 +187,7 @@ fn advance_time(
     mut pause_play_event: EventWriter<PausePlay>,
     config: Res<Config>,
 ) {
-    for mut countdown in query.iter_mut() {
+    for mut countdown in &mut query {
         countdown.timer.tick(time.delta());
         if countdown.timer.just_finished() {
             spawn_event_writer.send(FormationSpawnEvent {
@@ -204,7 +204,7 @@ fn advance_time(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn spawn_formation(
     mut commands: Commands,
     mut spawn_event_reader: EventReader<FormationSpawnEvent>,
@@ -310,6 +310,7 @@ fn spawn_formation(
                     Vec4::new(a.x, a.y, velocity.x, velocity.y)
                 })
                 .collect::<VecDeque<_>>();
+            #[allow(clippy::unwrap_used)]
             waypoints_with_speed.push_back(Vec4::new(
                 waypoints.last().unwrap().x,
                 waypoints.last().unwrap().y,
@@ -345,7 +346,9 @@ fn spawn_formation(
             // thread_rng()).expect(     "Choosing random colour from an
             // iterator that is hard-coded with values should be \      ok.",
             // );
-            let random_color = DisplayColour::iter().choose(&mut thread_rng()).unwrap();
+            let random_color = DisplayColour::iter()
+                .choose(&mut thread_rng())
+                .expect("there is more than 0 colors");
 
             let material = materials.add(StandardMaterial {
                 base_color: Color::from_catppuccin_colour(theme.get_display_colour(&random_color)),
@@ -361,11 +364,8 @@ fn spawn_formation(
             };
 
             let initial_direction = waypoints
-                // .iter()
-                // .nth(1)
                 .get(1)
-                .map(|p| Vec3::new(p.x, 0.0, p.y))
-                .unwrap_or_else(|| Vec3::ZERO)
+                .map_or_else(|| Vec3::ZERO, |p| Vec3::new(p.x, 0.0, p.y))
                 - initial_position.extend(0.0).xzy();
 
             entity.insert((
@@ -393,7 +393,7 @@ struct RobotClickEvent(pub Entity);
 
 impl RobotClickEvent {
     #[inline]
-    pub fn target(&self) -> Entity {
+    pub const fn target(&self) -> Entity {
         self.0
     }
 }
@@ -448,12 +448,12 @@ impl WorldDimensions {
     }
 
     /// Get the width of the world.
-    pub fn width(&self) -> f64 {
+    pub const fn width(&self) -> f64 {
         self.width.get()
     }
 
     /// Get the height of the world.
-    pub fn height(&self) -> f64 {
+    pub const fn height(&self) -> f64 {
         self.height.get()
     }
 }
@@ -468,6 +468,7 @@ fn relative_point_to_world_position(
     relative_point: &RelativePoint,
     world_dims: &WorldDimensions,
 ) -> Vec2 {
+    #[allow(clippy::cast_possible_truncation)]
     Vec2::new(
         ((relative_point.x.get() - 0.5) * world_dims.width()) as f32,
         ((relative_point.y.get() - 0.5) * world_dims.height()) as f32,
@@ -478,6 +479,7 @@ fn relative_point_to_world_position(
 /// given the dimensions of the world.
 /// The `Point` is not bound to the range [0, 1] x [0, 1]
 fn point_to_world_position(point: &Point, world_dims: &WorldDimensions) -> Vec2 {
+    #[allow(clippy::cast_possible_truncation)]
     Vec2::new(
         ((point.x - 0.5) * world_dims.width()) as f32,
         ((point.y - 0.5) * world_dims.height()) as f32,

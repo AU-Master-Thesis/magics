@@ -91,7 +91,7 @@ fn toggle_fullscreen(
     mut event_reader: EventReader<ToggleFullscreen>,
 ) {
     for _ in event_reader.read() {
-        for mut window in query.iter_mut() {
+        for mut window in &mut query {
             use WindowMode::{BorderlessFullscreen, Fullscreen, SizedFullscreen, Windowed};
             let new_window_mode = match window.mode {
                 Windowed => BorderlessFullscreen,

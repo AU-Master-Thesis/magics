@@ -32,8 +32,7 @@ fn default_paths() -> Vec<std::path::PathBuf> {
             base_dirs
                 .config_dir()
                 .join("gbpplanner")
-                .join("config.toml")
-                .to_path_buf(),
+                .join("config.toml"),
         );
     }
 
@@ -48,9 +47,8 @@ pub fn read_config<P: AsRef<Path>>(path: Option<P>) -> Result<Config> {
     if let Some(path) = path
         .map(|p| p.as_ref().to_path_buf())
         .into_iter()
-        .chain(default_paths().into_iter())
-        .filter(|p| p.exists())
-        .nth(0)
+        .chain(default_paths())
+        .find(|p| p.exists())
     {
         Ok(Config::from_file(path)?)
     } else {

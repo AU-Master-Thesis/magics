@@ -35,7 +35,7 @@ fn setup(mut commands: Commands) {
 }
 
 fn countdown(time: Res<Time>, mut q: Query<&mut Countdown>) {
-    for mut countdown in q.iter_mut() {
+    for mut countdown in &mut q {
         countdown.0.tick(time.delta());
         if countdown.0.just_finished() {
             info!("just finished");

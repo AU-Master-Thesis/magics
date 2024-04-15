@@ -11,9 +11,10 @@ pub struct RepeatingArray<T, const N: usize> {
 }
 
 impl<T: Copy, const N: usize> RepeatingArray<T, N> {
-    /// Create a new RepeatingArray
+    /// Create a new `RepeatingArray`
     #[inline]
-    pub fn new(array: [T; N]) -> Self {
+    #[must_use]
+    pub const fn new(array: [T; N]) -> Self {
         Self { array, index: 0 }
     }
 
@@ -78,7 +79,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn can_be_constructed() {
+    const fn can_be_constructed() {
         let _ = RepeatingArray::new([1, 2, 3, 4]);
     }
 

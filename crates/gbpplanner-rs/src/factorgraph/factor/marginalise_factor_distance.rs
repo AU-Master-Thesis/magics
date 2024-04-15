@@ -8,6 +8,13 @@ use crate::factorgraph::{
     DOFS,
 };
 
+/// Utility function to create `start..start + n`
+/// Similar to `Eigen::seqN`
+#[inline]
+const fn seq_n(start: usize, n: usize) -> std::ops::Range<usize> {
+    start..start + n
+}
+
 type Aa<'a, T> = MatrixView<'a, T>;
 type Ab<'a, T> = MatrixView<'a, T>;
 type Ba<'a, T> = MatrixView<'a, T>;
@@ -44,11 +51,12 @@ fn extract_submatrices_from_precision_matrix<T: GbpFloat>(
     (aa, ab, ba, bb)
 }
 
+#[allow(clippy::similar_names)]
 pub fn marginalise_factor_distance(
     information_vector: Vector<Float>,
     precision_matrix: Matrix<Float>,
     marginalisation_idx: usize,
-) -> Result<Message, &'static str> {
+) -> Message {
     // let ndofs = variable_dofs;
     let marg_idx = marginalisation_idx;
 
@@ -58,11 +66,17 @@ pub fn marginalise_factor_distance(
     let factor_only_connected_to_one_variable = information_vector.len() == DOFS;
     if factor_only_connected_to_one_variable {
         let mu = Vector::<Float>::zeros(information_vector.len());
-        return Ok(Message::new(
+        // return Ok(Message::new(
+        //     InformationVec(information_vector),
+        //     PrecisionMatrix(precision_matrix),
+        //     Mean(mu),
+        // ));
+
+        return Message::new(
             InformationVec(information_vector),
             PrecisionMatrix(precision_matrix),
             Mean(mu),
-        ));
+        );
     }
 
     let eta_a = information_vector.slice(s![seq_n(marg_idx, DOFS)]);
@@ -79,21 +93,27 @@ pub fn marginalise_factor_distance(
         extract_submatrices_from_precision_matrix(&precision_matrix, marg_idx);
 
     let Some(lam_bb_inv) = lam_bb.to_owned().inv() else {
-        return Ok(Message::empty());
+        return Message::empty();
+        // return Ok(Message::empty());
     };
 
     let information_vector = &eta_a - &lam_ab.dot(&lam_bb_inv).dot(&eta_b);
     let precision_matrix = &lam_aa - &lam_ab.dot(&lam_bb_inv).dot(&lam_ba);
 
     if precision_matrix.iter().any(|elem| elem.is_infinite()) {
-        Ok(Message::empty())
+        Message::empty()
     } else {
         let mu = Vector::<Float>::zeros(information_vector.len());
-        Ok(Message::new(
+        Message::new(
             InformationVec(information_vector),
             PrecisionMatrix(precision_matrix),
             Mean(mu),
-        ))
+        )
+        // Ok(Message::new(
+        //     InformationVec(information_vector),
+        //     PrecisionMatrix(precision_matrix),
+        //     Mean(mu),
+        // ))
     }
 }
 
@@ -104,9 +124,9 @@ mod tests {
 
     use super::*;
 
-    fn float_eq(lhs: f32, rhs: f32) -> bool {
-        f32::abs(lhs - rhs) <= f32::EPSILON
-    }
+    // fn float_eq(lhs: f32, rhs: f32) -> bool {
+    //     f32::abs(lhs - rhs) <= f32::EPSILON
+    // }
 
     macro_rules! generate_8x8_precision_matrix {
         () => {{
@@ -195,8 +215,7 @@ mod tests {
             information_vector.clone(),
             precision_matrix.clone(),
             marginalisation_idx,
-        )
-        .unwrap();
+        );
 
         let payload = marginalised_msg.take().unwrap();
 
@@ -247,11 +266,4 @@ mod tests {
     //     .into_iter()
     //     .collect::<Vec<_>>();
     // }
-}
-
-/// Utility function to create `start..start + n`
-/// Similar to `Eigen::seqN`
-#[inline]
-const fn seq_n(start: usize, n: usize) -> std::ops::Range<usize> {
-    start..start + n
 }

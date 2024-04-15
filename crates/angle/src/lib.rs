@@ -16,11 +16,11 @@ pub enum AngleError {
 impl Display for AngleError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            AngleError::OutOfRangeRadians(value) => {
-                write!(f, "Angle value {} is not inside [0,2π]", value)
+            Self::OutOfRangeRadians(value) => {
+                write!(f, "Angle value {value} is not inside [0,2π]")
             }
-            AngleError::OutOfRangeDegrees(value) => {
-                write!(f, "Angle value {} is not inside [0,360]", value)
+            Self::OutOfRangeDegrees(value) => {
+                write!(f, "Angle value {value} is not inside [0,360]")
             }
         }
     }
@@ -37,36 +37,48 @@ pub type Result<T> = std::result::Result<T, AngleError>;
 
 impl Angle {
     /// Creates a new [`Angle`] from a value in radians.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if `value` is not in interval [0.0, 2pi]
     pub fn new(value: f64) -> Result<Self> {
-        if !(0.0..=2.0 * std::f64::consts::PI).contains(&value) {
-            return Err(AngleError::OutOfRangeRadians(value));
+        if (0.0..=2.0 * std::f64::consts::PI).contains(&value) {
+            Ok(Self(value))
+        } else {
+            Err(AngleError::OutOfRangeRadians(value))
         }
-        Ok(Self(value))
     }
 
     /// Creates a new [`Angle`] from a value in degrees.
+    /// # Errors
+    ///
+    /// Will return `Err` if `value` is not in interval [0.0, 360.0]
     pub fn from_degrees(value: f64) -> Result<Self> {
-        if !(0.0..=360.0).contains(&value) {
-            return Err(AngleError::OutOfRangeDegrees(value));
+        if (0.0..=360.0).contains(&value) {
+            Ok(Self(value.to_radians()))
+        } else {
+            Err(AngleError::OutOfRangeDegrees(value))
         }
-        Ok(Self(value.to_radians()))
     }
 
     /// Returns the angle in radians.
     #[inline(always)]
-    pub fn as_radians(&self) -> f64 {
+    #[must_use]
+    pub const fn as_radians(&self) -> f64 {
         self.0
     }
 
     /// Returns the angle in degrees.
     #[inline(always)]
+    #[must_use]
     pub fn as_degrees(&self) -> f64 {
         self.0.to_degrees()
     }
 
     /// Adds two angles together
     /// wraps the result to the interval [0, 2π]
-    pub fn add(&self, other: Angle) -> Self {
+    #[must_use]
+    pub fn add(&self, other: Self) -> Self {
         let sum = self.0 + other.0;
         let wrapped = sum % (2.0 * std::f64::consts::PI);
         Self(wrapped)
@@ -74,21 +86,22 @@ impl Angle {
 
     /// Subtracts two angles
     /// wraps the result to the interval [0, 2π]
-    pub fn sub(&self, other: Angle) -> Self {
+    #[must_use]
+    pub fn sub(&self, other: Self) -> Self {
         let diff = self.0 - other.0;
-        let wrapped = (diff + 2.0 * std::f64::consts::PI) % (2.0 * std::f64::consts::PI);
+        let wrapped = (diff + std::f64::consts::TAU) % (std::f64::consts::TAU);
         Self(wrapped)
     }
 
     /// Adds and assigns two angles
     /// wraps the result to the interval [0, 2π]
-    pub fn add_assign(&mut self, other: Angle) {
+    pub fn add_assign(&mut self, other: Self) {
         *self = self.add(other);
     }
 
     /// Subtracts and assigns two angles
     /// wraps the result to the interval [0, 2π]
-    pub fn sub_assign(&mut self, other: Angle) {
+    pub fn sub_assign(&mut self, other: Self) {
         *self = self.sub(other);
     }
 }
@@ -97,7 +110,7 @@ impl std::ops::Add for Angle {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self {
-        Angle::add(&self, rhs)
+        Self::add(&self, rhs)
     }
 }
 
@@ -105,19 +118,19 @@ impl std::ops::Sub for Angle {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self {
-        Angle::sub(&self, rhs)
+        Self::sub(&self, rhs)
     }
 }
 
 impl std::ops::AddAssign for Angle {
     fn add_assign(&mut self, rhs: Self) {
-        Angle::add_assign(self, rhs);
+        Self::add_assign(self, rhs);
     }
 }
 
 impl std::ops::SubAssign for Angle {
     fn sub_assign(&mut self, rhs: Self) {
-        Angle::sub_assign(self, rhs);
+        Self::sub_assign(self, rhs);
     }
 }
 
@@ -128,17 +141,17 @@ impl TryFrom<f64> for Angle {
     type Error = AngleError;
 
     fn try_from(value: f64) -> Result<Self> {
-        Angle::new(value)
+        Self::new(value)
     }
 }
 
 impl<'de> Deserialize<'de> for Angle {
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Angle, D::Error>
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let value = f64::deserialize(deserializer)?;
-        Angle::try_from(value).map_err(serde::de::Error::custom)
+        Self::try_from(value).map_err(serde::de::Error::custom)
     }
 }
 
@@ -154,7 +167,7 @@ mod tests {
         Angle::new(-1.0).unwrap_err();
         Angle::new(0.0).unwrap();
         Angle::new(2.0 * std::f64::consts::PI).unwrap();
-        Angle::new(2.0 * std::f64::consts::PI + 1.0).unwrap_err();
+        Angle::new(std::f64::consts::TAU + 1.0).unwrap_err();
     }
 
     #[test]

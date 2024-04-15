@@ -1,4 +1,3 @@
-use angle::Angle;
 use bevy::prelude::*;
 // use bevy_more_shapes::Cylinder;
 // use bevy_math::RegularPolygon;
@@ -6,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     asset_loader::SceneAssets,
-    config::{environment::PlaceableShape, Config, DrawSetting, Environment, Obstacle, Obstacles},
+    config::{environment::PlaceableShape, Config, DrawSetting, Environment},
     ui::DrawSettingsEvent,
 };
 
@@ -30,14 +29,14 @@ pub struct TileCoordinates {
 }
 
 impl TileCoordinates {
-    pub fn new(row: usize, col: usize) -> Self {
+    pub const fn new(row: usize, col: usize) -> Self {
         Self { row, col }
     }
 }
 
 /// **Bevy** [`Startup`] _system_.
 /// Takes the [`Environment`] configuration and generates all specified
-/// ['Obstacles'].
+/// [`Obstacles`].
 ///
 /// [`Obstacles`] example:
 /// ```rust
@@ -62,6 +61,11 @@ impl TileCoordinates {
 ///
 /// Placement of all shapes is given as a `(x, y)` percentage local to a
 /// specific tile
+#[allow(
+    clippy::too_many_lines,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation
+)]
 fn build_obstacles(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -100,9 +104,9 @@ fn build_obstacles(
         match obstacle.shape {
             PlaceableShape::Circle { radius, center } => {
                 let center = Vec3::new(
-                    offset_x + center.x.get() as f32 * tile_size - pos_offset,
+                    (center.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
-                    offset_z + center.y.get() as f32 * tile_size - pos_offset,
+                    (center.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
                 );
 
                 info!("Spawning circle: r = {}, at {:?}", radius, center);
@@ -125,10 +129,10 @@ fn build_obstacles(
                 translation,
             } => {
                 let center = Vec3::new(
-                    offset_x + translation.x.get() as f32 * tile_size - pos_offset,
+                    (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     // obstacle_height / 2.0,
                     0.0,
-                    offset_z + translation.y.get() as f32 * tile_size - pos_offset,
+                    (translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
                 );
 
                 // Example triangle
@@ -183,9 +187,9 @@ fn build_obstacles(
                 translation,
             } => {
                 let center = Vec3::new(
-                    offset_x + translation.x.get() as f32 * tile_size - pos_offset,
+                    (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
-                    offset_z + translation.y.get() as f32 * tile_size - pos_offset,
+                    (translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
                 );
 
                 info!(
@@ -220,9 +224,9 @@ fn build_obstacles(
                 translation,
             } => {
                 let center = Vec3::new(
-                    offset_x + translation.x.get() as f32 * tile_size - pos_offset,
+                    (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
-                    offset_z + translation.y.get() as f32 * tile_size - pos_offset,
+                    (translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
                 );
 
                 info!(
@@ -245,7 +249,7 @@ fn build_obstacles(
     });
 
     obstacles_to_spawn
-        .filter_map(|obstacle| obstacle) // filter out None
+        .flatten() // filter out None
         .for_each(|(mesh, transform)| {
             commands.spawn((
                 PbrBundle {
@@ -287,6 +291,7 @@ fn build_obstacles(
 ///     - Such that the map is centered
 /// - Uses the `Environment.width` to determine the width of the paths,
 ///    - Otherwise, the empty space is filled with solid meshes
+#[allow(clippy::too_many_lines, clippy::cast_precision_loss)]
 fn build_tile_grid(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -309,7 +314,7 @@ fn build_tile_grid(
     let grid_offset_x = tile_grid.cols() as f32 / 2.0 - 0.5;
     let grid_offset_z = tile_grid.rows() as f32 / 2.0 - 0.5;
 
-    let pos_offset = (base_dim + path_width * tile_size) / 2.0;
+    let pos_offset = path_width.mul_add(tile_size, base_dim) / 2.0;
 
     for (y, row) in tile_grid.iter().enumerate() {
         for (x, tile) in row.chars().enumerate() {
@@ -935,7 +940,7 @@ fn build_tile_grid(
                 }
                 _ => None,
             } {
-                mesh_transforms.iter().for_each(|(mesh, transform)| {
+                for (mesh, transform) in &mesh_transforms {
                     commands.spawn((
                         PbrBundle {
                             mesh: mesh.clone(),
@@ -951,7 +956,7 @@ fn build_tile_grid(
                         TileCoordinates::new(x, y),
                         ObstacleMarker,
                     ));
-                });
+                }
             }
         }
     }
@@ -968,7 +973,7 @@ fn show_or_hide_generated_map(
 ) {
     for event in draw_settings_event.read() {
         if matches!(event.setting, DrawSetting::GeneratedMap) {
-            for mut visibility in query.iter_mut() {
+            for mut visibility in &mut query {
                 *visibility = if event.draw {
                     Visibility::Visible
                 } else {

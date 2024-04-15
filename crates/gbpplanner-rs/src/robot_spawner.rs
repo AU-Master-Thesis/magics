@@ -55,8 +55,8 @@ fn spawn_robot_periodically(
 
     if time.elapsed_seconds() % time_between_spawns < time.delta_seconds() {
         // pick a random location within 20x20 in the xz plane
-        let x = rand::random::<f32>() * 20.0 - 10.0;
-        let z = rand::random::<f32>() * 20.0 - 10.0;
+        let x = rand::random::<f32>().mul_add(20.0, -10.0);
+        let z = rand::random::<f32>().mul_add(20.0, -10.0);
 
         // create a cube mesh
         let size = 1.0;

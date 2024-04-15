@@ -7,7 +7,7 @@ use crate::{
     asset_loader::SceneAssets,
     config::Config,
     factorgraph::prelude::FactorGraph,
-    theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
 /// Plugin that adds the functionality to visualise the position uncertainty of
@@ -59,6 +59,7 @@ pub struct HasUncertaintyVisualiser;
 /// Initialises each new [`FactorGraph`] components to have a matching 2D circle
 /// and [`UncertaintyVisualiser`] component I.e. if the [`FactorGraph`]
 /// component already has a [`HasUncertaintyVisualiser`], it will be ignored
+#[allow(clippy::many_single_char_names, clippy::cast_possible_truncation)]
 fn init_uncertainty(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -78,9 +79,10 @@ fn init_uncertainty(
                 // let mean = v.belief.mean();
                 #[allow(clippy::cast_possible_truncation)]
                 let [x, y] = v.estimated_position();
+                #[allow(clippy::cast_possible_truncation)]
                 let transform = Vec3::new(
                     x as f32,
-                    config.visualisation.height.objects - 2.0 * Z_FIGHTING_OFFSET, /* just under
+                    2.0f32.mul_add(-Z_FIGHTING_OFFSET, config.visualisation.height.objects), /* just under
                                                                                     * the
                                                                                     * lines (z-fighting
                                                                                     * prevention) */
@@ -109,7 +111,7 @@ fn init_uncertainty(
 
                 let (half_major_axis, half_minor_axis) = {
                     let first_term = (a + c) / 2.0;
-                    let second_term = f64::sqrt((a - c).powi(2) / 4.0 + b * b);
+                    let second_term = f64::sqrt(b.mul_add(b, (a - c).powi(2) / 4.0));
 
                     (first_term + second_term, first_term - second_term)
                 };
@@ -189,6 +191,7 @@ fn init_uncertainty(
 /// that have matching [`Entity`] with the `RobotTracker.robot_id`
 /// and variables in the [`FactorGraph`] that have matching
 /// `RobotTracker.variable_id`
+#[allow(clippy::type_complexity, clippy::cast_possible_truncation)]
 fn update_uncertainty(
     mut tracker_query: Query<
         (
@@ -207,7 +210,7 @@ fn update_uncertainty(
     theme: Res<CatppuccinTheme>,
 ) {
     // Update the `RobotTracker` components
-    for (tracker, mut transform, mut mesh, mut material) in tracker_query.iter_mut() {
+    for (tracker, mut transform, mut mesh, mut material) in &mut tracker_query {
         for (entity, factorgraph, color_association) in factorgraph_query.iter() {
             // continue if we're not looking at the right robot
             if tracker.robot_id != entity {
@@ -254,7 +257,7 @@ fn update_uncertainty(
                 // else update the transform
                 *transform = Transform::from_translation(Vec3::new(
                     mean[0] as f32,
-                    config.visualisation.height.objects - 2.0 * Z_FIGHTING_OFFSET, // just under the lines (z-fighting prevention)
+                    2.0f32.mul_add(-Z_FIGHTING_OFFSET, config.visualisation.height.objects), // just under the lines (z-fighting prevention)
                     mean[1] as f32,
                 ))
                 .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
@@ -288,7 +291,7 @@ fn show_or_hide_uncertainty(
     mut enabled: ResMut<UncertaintyVisualizerEnabled>,
 ) {
     for event in draw_setting_event.read() {
-        debug!("received event to toggle draw visibility of gaussian uncertainty");
+        // debug!("received event to toggle draw visibility of gaussian uncertainty");
         if matches!(event.setting, crate::config::DrawSetting::Uncertainty) {
             let new_visibility_state = if event.draw {
                 Visibility::Visible
@@ -296,7 +299,7 @@ fn show_or_hide_uncertainty(
                 Visibility::Hidden
             };
             enabled.0 = event.draw;
-            for (_, mut visibility) in query.iter_mut() {
+            for (_, mut visibility) in &mut query {
                 *visibility = new_visibility_state;
             }
         }

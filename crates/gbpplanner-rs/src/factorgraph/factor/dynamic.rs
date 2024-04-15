@@ -1,4 +1,4 @@
-//!
+//! Dynamic factor in the factorgraph
 
 use gbp_linalg::prelude::*;
 use ndarray::{concatenate, Axis};
@@ -16,13 +16,12 @@ impl DynamicFactor {
     pub const NEIGHBORS: usize = 2;
 
     #[must_use]
+    #[allow(clippy::similar_names)]
     pub fn new(state: &mut FactorState, delta_t: Float) -> Self {
         let eye = Matrix::<Float>::eye(DOFS / 2);
         let zeros = Matrix::<Float>::zeros((DOFS / 2, DOFS / 2));
-        #[allow(clippy::similar_names)]
         let qc_inv = Float::powi(state.strength, -2) * &eye;
 
-        #[allow(clippy::similar_names)]
         let qi_inv = concatenate![
             Axis(0),
             concatenate![

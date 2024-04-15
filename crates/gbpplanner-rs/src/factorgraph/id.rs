@@ -13,7 +13,7 @@ pub struct FactorId {
 impl FactorId {
     /// Create a new `FactorId`.
     #[must_use]
-    pub fn new(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
+    pub const fn new(factorgraph_id: FactorGraphId, factor_index: FactorIndex) -> Self {
         Self {
             factorgraph_id,
             factor_index,
@@ -21,6 +21,7 @@ impl FactorId {
     }
 }
 
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl std::cmp::PartialOrd for FactorId {
     /// Returns `Some(std::cmp::ordering::Equal)` if `self` and `other` are
     /// equal, `Some(std::cmp::ordering::Less)` if `other.factorgraph_id` is
@@ -33,6 +34,7 @@ impl std::cmp::PartialOrd for FactorId {
     ///
     /// This ordering is really important for the **gbpplanner** algorithm, to
     /// work correctly.
+    #[allow(clippy::if_same_then_else)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         if self.factorgraph_id < other.factorgraph_id {
             Some(std::cmp::Ordering::Less)
@@ -77,6 +79,7 @@ pub struct VariableId {
     pub variable_index: VariableIndex,
 }
 
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl std::cmp::PartialOrd for VariableId {
     /// Returns `Some(std::cmp::ordering::Equal)` if `self` and `other` are
     /// equal, `Some(std::cmp::ordering::Less)` if `other.factorgraph_id` is
@@ -89,6 +92,7 @@ impl std::cmp::PartialOrd for VariableId {
     ///
     /// This ordering is really important for the **gbpplanner** algorithm, to
     /// work correctly.
+    #[allow(clippy::if_same_then_else)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         if self.factorgraph_id < other.factorgraph_id {
             Some(std::cmp::Ordering::Less)
@@ -124,7 +128,7 @@ impl std::cmp::Ord for VariableId {
 impl VariableId {
     /// Create a new `VariableId`.
     #[must_use]
-    pub fn new(factorgraph_id: FactorGraphId, variable_index: VariableIndex) -> Self {
+    pub const fn new(factorgraph_id: FactorGraphId, variable_index: VariableIndex) -> Self {
         Self {
             factorgraph_id,
             variable_index,

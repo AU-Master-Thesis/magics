@@ -6,21 +6,21 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn color(&self) -> &'static str {
+    pub const fn color(&self) -> &'static str {
         self.kind.color()
     }
 
-    pub fn shape(&self) -> &'static str {
+    pub const fn shape(&self) -> &'static str {
         self.kind.shape()
     }
 
-    pub fn width(&self) -> f64 {
+    pub const fn width(&self) -> f64 {
         self.kind.width()
     }
 }
 
 pub enum NodeKind {
-    Variable { x: f32, y: f32 },
+    Variable { x: f64, y: f64 },
     InterRobotFactor(ExternalVariableId),
     // InterRobotFactor {
     //     /// The id of the robot the interrobot factor is connected to
@@ -30,29 +30,29 @@ pub enum NodeKind {
     // },
     DynamicFactor,
     ObstacleFactor,
-    PoseFactor,
+    // PoseFactor,
 }
 
 impl NodeKind {
-    pub fn color(&self) -> &'static str {
+    pub const fn color(&self) -> &'static str {
         match self {
             Self::Variable { .. } => "#eff1f5",         // latte base (white)
             Self::InterRobotFactor { .. } => "#a6da95", // green
             Self::DynamicFactor => "#8aadf4",           // blue
             // Self::ObstacleFactor => "#c6a0f6",          // mauve (purple)
-            Self::ObstacleFactor => "#ee99a0", // mauve (purple)
-            Self::PoseFactor => "#c6aof6",     // maroon (red)
+            Self::ObstacleFactor => "#ee99a0", /* mauve (purple)
+                                                * Self::PoseFactor => "#c6aof6",     // maroon (red) */
         }
     }
 
-    pub fn shape(&self) -> &'static str {
+    pub const fn shape(&self) -> &'static str {
         match self {
             Self::Variable { .. } => "circle",
             _ => "square",
         }
     }
 
-    pub fn width(&self) -> f64 {
+    pub const fn width(&self) -> f64 {
         match self {
             Self::Variable { .. } => 0.8,
             _ => 0.2,

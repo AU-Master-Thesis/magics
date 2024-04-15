@@ -11,6 +11,7 @@ license.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
+approx = "0.5.1"
 # approx = "0.5"
 
 [lints]

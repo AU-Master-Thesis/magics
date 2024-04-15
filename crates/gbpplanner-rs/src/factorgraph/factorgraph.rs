@@ -11,9 +11,7 @@ use petgraph::Undirected;
 use super::{
     factor::{interrobot::InterRobotFactor, Factor, FactorKind},
     id::{FactorId, VariableId},
-    message::{
-        FactorToVariableMessage, InformationVec, Mean, PrecisionMatrix, VariableToFactorMessage,
-    },
+    message::{FactorToVariableMessage, VariableToFactorMessage},
     node::{FactorGraphNode, Node, NodeKind, RemoveConnectionToError},
     prelude::Message,
     variable::Variable,
@@ -29,7 +27,7 @@ pub type FactorGraphId = Entity;
 /// we make an alias for it here, such that it is easier to use the same
 /// index type across modules, as the various node index types `petgraph`
 /// are not interchangeable.
-pub(crate) type NodeIndex = petgraph::stable_graph::NodeIndex;
+pub type NodeIndex = petgraph::stable_graph::NodeIndex;
 /// The type used to represent indices into the nodes of the factorgraph.
 pub type EdgeIndex = petgraph::stable_graph::EdgeIndex;
 /// A factorgraph is an undirected graph
@@ -134,7 +132,7 @@ impl FactorGraph {
 
     /// Returns the `FactorGraphId` of the factorgraph
     #[inline(always)]
-    pub fn id(&self) -> FactorGraphId {
+    pub const fn id(&self) -> FactorGraphId {
         self.id
     }
 
@@ -225,28 +223,26 @@ impl FactorGraph {
     /// - Both `a` and `b` must already be in the factorgraph. Panics if any of
     ///   the nodes does not exist.
     pub fn add_internal_edge(&mut self, variable_id: VariableId, factor_id: FactorId) -> EdgeIndex {
-        let message_to_factor = {
-            let Some(variable) = self.graph[variable_id.variable_index.0].as_variable_mut() else {
-                panic!(
-                    "the variable index either does not exist or does not point to a variable node"
-                );
-            };
-            // TODO: explain why we send an empty message
-            variable.receive_message_from(factor_id, Message::empty());
-
-            Message::new(
-                InformationVec(variable.belief.information_vector.clone()),
-                PrecisionMatrix(variable.belief.precision_matrix.clone()),
-                Mean(variable.belief.mean.clone()),
-            )
+        // let message_to_factor = {
+        let Some(variable) = self.graph[variable_id.variable_index.0].as_variable_mut() else {
+            panic!("the variable index either does not exist or does not point to a variable node");
         };
+        // TODO: explain why we send an empty message
+        variable.receive_message_from(factor_id, Message::empty());
+
+        //     Message::new(
+        //         InformationVec(variable.belief.information_vector.clone()),
+        //         PrecisionMatrix(variable.belief.precision_matrix.clone()),
+        //         Mean(variable.belief.mean.clone()),
+        //     )
+        // };
 
         let node = &mut self.graph[factor_id.factor_index.0];
         match node.kind {
             NodeKind::Factor(ref mut factor) => {
                 // NOTE: If this message were not empty, half a variable iteration will have
                 // happened manually in secret, which is not wanted
-                factor.receive_message_from(variable_id, Message::empty())
+                factor.receive_message_from(variable_id, Message::empty());
             }
             NodeKind::Variable(_) => {
                 panic!("the factor index either does not exist or does not point to a factor node")
@@ -265,7 +261,6 @@ impl FactorGraph {
             .as_variable_mut()
             .expect("The variable index does not point to a variable node");
 
-        let dofs = 4;
         debug!(
             "adding external edge from {:?} to {:?} in factorgraph {:?}",
             variable_index, factor_id, self.id
@@ -292,15 +287,14 @@ impl FactorGraph {
         Some((variable_index, variable))
     }
 
-    pub(crate) fn delete_interrobot_factors_connected_to(
-        &mut self,
-        other: FactorGraphId,
-    ) -> Result<(), &'static str> {
+    pub(crate) fn delete_interrobot_factors_connected_to(&mut self, other: FactorGraphId) {
+        // ) -> Result<(), &'static str> {
         // 1. Find all interrobot factors connected to the robot with id `other`
         // and remove them from the graph
 
         let mut factor_indices_to_remove = Vec::new();
 
+        #[allow(clippy::needless_collect)]
         for node_index in self.graph.node_indices().collect::<Vec<_>>() {
             let node = &mut self.graph[node_index];
             if node.is_variable() {
@@ -332,6 +326,7 @@ impl FactorGraph {
             }
         }
 
+        #[allow(clippy::needless_collect)]
         for node_index in self.graph.node_indices().collect::<Vec<_>>() {
             let node = &mut self.graph[node_index];
             if !node.is_variable() {
@@ -348,12 +343,11 @@ impl FactorGraph {
                     .remove(&FactorId::new(self.id, *factor_index));
             }
         }
-
-        Ok(())
     }
 
     pub(crate) fn delete_messages_from_interrobot_factor_at(&mut self, other: FactorGraphId) {
         // PERF: avoid allocation
+        #[allow(clippy::needless_collect)]
         for node_index in self.graph.node_indices().collect::<Vec<_>>() {
             let node = &mut self.graph[node_index];
             let Some(variable) = node.as_variable_mut() else {
@@ -487,7 +481,7 @@ impl FactorGraph {
     pub fn variable_iteration(&mut self) -> Vec<VariableToFactorMessage> {
         let mut messages_to_external_factors: Vec<VariableToFactorMessage> = Vec::new();
 
-        for &node_index in self.variable_indices.iter() {
+        for &node_index in &self.variable_indices {
             let node = &mut self.graph[node_index];
             let variable = node.as_variable_mut().expect(
                 "self.variable_indices should only contain indices that point to Variables in the \
@@ -496,13 +490,13 @@ impl FactorGraph {
             let variable_index = VariableIndex(node_index);
 
             let factor_messages = variable.update_belief_and_create_factor_responses();
-            if factor_messages.is_empty() {
-                panic!(
-                    "The factorgraph {:?} with variable {:?} did not receive any messages from \
-                     its connected factors",
-                    self.id, variable_index
-                );
-            }
+            assert!(
+                !factor_messages.is_empty(),
+                "The factorgraph {:?} with variable {:?} did not receive any messages from its \
+                 connected factors",
+                self.id,
+                variable_index
+            );
 
             let variable_id = VariableId::new(self.id, variable_index);
             for (factor_id, message) in factor_messages {
@@ -523,9 +517,10 @@ impl FactorGraph {
                         .expect("A factor can only have variables as neighbours")
                         .receive_message_from(variable_id, message);
 
-                    let factor = self.graph[factor_id.factor_index.0]
-                        .as_factor()
-                        .expect("A factor index should point to a Factor in the graph");
+                    // let factor = self.graph[factor_id.factor_index.0]
+                    //     .as_factor()
+                    //     .expect("A factor index should point to a Factor in
+                    // the graph");
                 } else {
                     // error!(
                     //     "message from factor_id: {:?} to variable_id: {:?} is external",
@@ -551,6 +546,7 @@ impl FactorGraph {
     pub fn factor_iteration(&mut self) -> Vec<FactorToVariableMessage> {
         let mut messages_to_external_variables: Vec<FactorToVariableMessage> = Vec::new();
 
+        #[allow(clippy::needless_collect)]
         for node_index in self.graph.node_indices().collect::<Vec<_>>() {
             let node = &mut self.graph[node_index];
             let Some(factor) = node.as_factor_mut() else {
@@ -558,13 +554,13 @@ impl FactorGraph {
             };
 
             let variable_messages = factor.update();
-            if variable_messages.is_empty() {
-                panic!(
-                    "The factorgraph {:?} with factor {:?} did not receive any messages from its \
-                     connected variables",
-                    self.id, node_index
-                );
-            }
+            assert!(
+                !variable_messages.is_empty(),
+                "The factorgraph {:?} with factor {:?} did not receive any messages from its \
+                 connected variables",
+                self.id,
+                node_index
+            );
 
             let factor_id = FactorId::new(self.id, FactorIndex(node_index));
 
@@ -773,7 +769,7 @@ impl graphviz::Graph for FactorGraph {
                         NodeKind::Factor(factor) => match factor.kind {
                             FactorKind::Dynamic(_) => graphviz::NodeKind::DynamicFactor,
                             FactorKind::Obstacle(_) => graphviz::NodeKind::ObstacleFactor,
-                            FactorKind::Pose(_) => graphviz::NodeKind::PoseFactor,
+                            // FactorKind::Pose(_) => graphviz::NodeKind::PoseFactor,
                             FactorKind::InterRobot(ref inner) => {
                                 graphviz::NodeKind::InterRobotFactor(inner.external_variable)
                             }
@@ -782,10 +778,7 @@ impl graphviz::Graph for FactorGraph {
                             // let mean = variable.belief.mean();
                             // let mean = &variable.mu;
                             let [x, y] = variable.estimated_position();
-                            graphviz::NodeKind::Variable {
-                                x: x as f32,
-                                y: y as f32,
-                            }
+                            graphviz::NodeKind::Variable { x, y }
                         }
                     },
                 }

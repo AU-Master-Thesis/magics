@@ -1,3 +1,4 @@
+#![allow(clippy::module_name_repetitions)]
 //! Pretty printing of matrices and vectors. Useful for debugging and
 //! visualizing the contents of a matrix or vector.
 
@@ -39,6 +40,7 @@ const LOWER_RIGHT_CORNER: char = '╯';
 /// assert_eq!(num_of_integral_digits(f64::INFINITY), None);
 /// assert_eq!(num_of_integral_digits(f64::NEG_INFINITY), None);
 /// ```
+#[must_use]
 pub fn num_of_integral_digits(mut f: f64) -> Option<usize> {
     if f.is_nan() || f.is_infinite() {
         return None;
@@ -81,6 +83,9 @@ fn float_color(f: f64) -> &'static str {
 /// Pretty print a matrix.
 /// Not intended to be used directly. Use the [`pretty_print_matrix!`] macro
 /// instead.
+///
+/// # Panics
+/// - If any of the elements of the matrix cannot be converted to a `f64`
 pub fn _pretty_print_matrix<T, M>(
     matrix: &M,
     name: Option<&str>,
@@ -119,11 +124,11 @@ pub fn _pretty_print_matrix<T, M>(
 
     let right_padding = cell_width / 2;
     let total_width = ncols * cell_width + right_padding;
-    let dims = format!("{}x{}", nrows, ncols);
+    let dims = format!("{nrows}x{ncols}");
     let horizontal_line = "─".repeat(total_width);
 
     if let (Some(file), Some(line)) = (file, line) {
-        println!("{}:{}{}{}", file, YELLOW_TEXT, line, RESET_TEXT);
+        println!("{file}:{YELLOW_TEXT}{line}{RESET_TEXT}");
     }
 
     // print the top border
@@ -196,6 +201,9 @@ pub fn _pretty_print_matrix<T, M>(
 
 /// Internal function to pretty print a vector
 /// Use by the [`pretty_print_vector!`] macro
+///
+/// # Panics
+/// - If any of the elements of the matrix cannot be converted to a `f64`
 pub fn _pretty_print_vector<T, V>(
     vector: &V,
     name: Option<&str>,
@@ -304,10 +312,7 @@ pub fn _pretty_print_vector<T, V>(
 
     println!("{}{}", " ".repeat(right_padding), BAR);
 
-    println!(
-        "{}{}{}",
-        LOWER_LEFT_CORNER, horizontal_line, LOWER_RIGHT_CORNER
-    );
+    println!("{LOWER_LEFT_CORNER}{horizontal_line}{LOWER_RIGHT_CORNER}");
 }
 
 /// Extension trait that adds a [`pretty_print`] method to vectors

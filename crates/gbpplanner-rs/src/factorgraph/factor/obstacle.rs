@@ -1,8 +1,8 @@
 //! Obstacle factor
 
 use bevy::{log::warn, render::texture::Image};
-use gbp_linalg::{prelude::*, Float};
-use ndarray::{array, concatenate, s};
+use gbp_linalg::prelude::*;
+use ndarray::array;
 
 use super::{FactorState, IFactor};
 
@@ -16,6 +16,7 @@ pub struct ObstacleFactor {
     world_size:   Float,
 }
 
+#[allow(clippy::missing_fields_in_debug)]
 impl std::fmt::Debug for ObstacleFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ObstacleFactor")
@@ -30,7 +31,7 @@ impl ObstacleFactor {
 
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
-    pub fn new(obstacle_sdf: &'static Image, world_size: Float) -> Self {
+    pub const fn new(obstacle_sdf: &'static Image, world_size: Float) -> Self {
         Self {
             obstacle_sdf,
             world_size,
@@ -55,10 +56,10 @@ impl IFactor for ObstacleFactor {
         // pretty_print_vector!(x);
         debug_assert!(x.len() >= 2, "x.len() = {}", x.len());
         // White areas are obstacles, so h(0) should return a 1 for these regions.
-        let scale = self.obstacle_sdf.width() as Float / self.world_size;
+        let scale = Float::from(self.obstacle_sdf.width()) / self.world_size;
         // let offset = (self.world_size / 2.0) as usize;
         let offset = self.world_size / 2.0;
-        if (x[0] + offset) * scale > self.obstacle_sdf.width() as Float {
+        if (x[0] + offset) * scale > Float::from(self.obstacle_sdf.width()) {
             // warn!(
             //     "x[0] + offset = {}, scale = {}, width = {}",
             //     (x[0] + offset) * scale,
@@ -67,7 +68,7 @@ impl IFactor for ObstacleFactor {
             // );
             return array![0.0];
         }
-        if (x[1] + offset) * scale > self.obstacle_sdf.height() as Float {
+        if (x[1] + offset) * scale > Float::from(self.obstacle_sdf.height()) {
             // warn!(
             //     "x[1] + offset = {}, scale = {}, height = {}",
             //     (x[1] + offset) * scale,
@@ -77,7 +78,9 @@ impl IFactor for ObstacleFactor {
             return array![0.0];
         }
         // dbg!(offset);
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         let pixel_x = ((x[0] + offset) * scale) as u32;
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         let pixel_y = ((x[1] + offset) * scale) as u32;
         // println!("pixel_x = {}, pixel_y = {}", pixel_x, pixel_y);
         // dbg!(pixel_x, pixel_y);
@@ -99,7 +102,7 @@ impl IFactor for ObstacleFactor {
         // NOTE: do 1.0 - red to invert the value, as the obstacle sdf is white where
         // there are obstacles in gbpplanner, they do not do the inversion here,
         // but instead invert the entire image, when they load it from disk.
-        let hsv_value = 1.0 - red as Float / 255.0;
+        let hsv_value = 1.0 - Float::from(red) / 255.0;
         // let hsv_value = pixel as Float / 255.0;
         // if hsv_value <= 0.5 {
         //     println!("image(x={}, y={}).z {} (scale = {})", pixel_x, pixel_y,
@@ -113,7 +116,7 @@ impl IFactor for ObstacleFactor {
 
     #[inline(always)]
     fn jacobian_delta(&self) -> Float {
-        self.world_size / self.obstacle_sdf.width() as Float
+        self.world_size / Float::from(self.obstacle_sdf.width())
     }
 
     #[inline(always)]

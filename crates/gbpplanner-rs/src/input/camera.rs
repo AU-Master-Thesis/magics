@@ -2,7 +2,7 @@ use bevy::{
     input::{keyboard::KeyboardInput, ButtonState},
     prelude::*,
 };
-use leafwing_input_manager::{common_conditions::action_just_pressed, prelude::*};
+use leafwing_input_manager::prelude::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
@@ -76,7 +76,7 @@ impl std::fmt::Display for CameraAction {
 }
 
 impl CameraAction {
-    fn default_mouse_input(action: CameraAction) -> Option<UserInput> {
+    fn default_mouse_input(action: Self) -> Option<UserInput> {
         match action {
             Self::MouseMove => Some(UserInput::Chord(vec![
                 InputKind::Mouse(MouseButton::Left),
@@ -92,7 +92,7 @@ impl CameraAction {
         }
     }
 
-    fn default_keyboard_input(action: CameraAction) -> Option<UserInput> {
+    const fn default_keyboard_input(action: Self) -> Option<UserInput> {
         match action {
             Self::Move => Some(UserInput::VirtualDPad(VirtualDPad::arrow_keys())),
             Self::ToggleMovementMode => {
@@ -104,7 +104,7 @@ impl CameraAction {
         }
     }
 
-    fn default_gamepad_input(action: CameraAction) -> Option<UserInput> {
+    const fn default_gamepad_input(action: Self) -> Option<UserInput> {
         match action {
             Self::Move => Some(UserInput::Single(InputKind::DualAxis(
                 DualAxis::right_stick(),
@@ -148,6 +148,11 @@ fn bind_camera_input(mut commands: Commands, main_camera: Query<Entity, With<Mai
     }
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    clippy::too_many_lines,
+    clippy::type_complexity
+)]
 fn camera_actions(
     state: Res<State<CameraMovementMode>>,
     mut next_state: ResMut<NextState<CameraMovementMode>>,

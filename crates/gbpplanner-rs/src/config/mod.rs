@@ -7,8 +7,8 @@ pub mod reader;
 use std::num::NonZeroUsize;
 
 use bevy::{ecs::system::Resource, reflect::Reflect};
-pub use environment::{Environment, EnvironmentType, Obstacle, Obstacles};
-pub use formation::{Formation, FormationGroup};
+pub use environment::{Environment, EnvironmentType};
+pub use formation::FormationGroup;
 pub use reader::read_config;
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
@@ -174,6 +174,7 @@ impl std::str::FromStr for DrawSetting {
 // }
 
 // TODO: store in a bitset
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Serialize, Deserialize, Iterable, Reflect, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct DrawSection {

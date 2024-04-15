@@ -3,13 +3,11 @@
 use std::{num::NonZeroUsize, time::Duration};
 
 use bevy::ecs::system::Resource;
-use min_len_vec::{OneOrMore, TwoOrMore};
+use min_len_vec::TwoOrMore;
 use serde::{Deserialize, Serialize};
-use typed_floats::StrictlyPositiveFinite;
-use unit_interval::UnitInterval;
 
 use super::geometry::Shape;
-use crate::{line, planner::robot::Waypoints, polygon};
+use crate::line;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -179,11 +177,6 @@ pub struct Waypoint {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FormationError {
-    // #[error(
-    //     "At least two waypoints needs to be given, as the first and last waypoint represent the
-    // \      start and end for the formation"
-    // )]
-    // LessThanTwoWaypoints,
     #[error("FormationGroup has no formations")]
     NoFormations,
 }
@@ -231,7 +224,7 @@ impl Default for Formation {
                 },
             ]
             .try_into()
-            .unwrap(),
+            .expect("there are 3 waypoints which is more that the minimum of 2"),
         }
     }
 }
@@ -258,37 +251,37 @@ impl Formation {
     //     Ok(formation)
     // }
 
-    fn valid(&self) -> Result<(), FormationError> {
-        Ok(())
-    }
+    // fn valid(&self) -> Result<(), FormationError> {
+    //     Ok(())
+    // }
 
-    /// Ensure that the Formation is in a valid state
-    /// Invalid states are:
-    /// 1. self.time <= 0.0
-    /// 2. if self.shape is a circle and the radius is <= 0.0
-    /// 3. if self.shape is a polygon and polygon.is_empty()
-    pub fn validate(self) -> Result<Self, FormationError> {
-        // if self.delay < 0.0 {
-        //     Err(FormationError::NegativeTime)
-        // if self.waypoints.len() < 2 {
-        //     Err(FormationError::LessThanTwoWaypoints)
-        // } else {
-        // TODO: finish
-        // for (index, waypoint) in self.waypoints.iter().enumerate() {
-        // match &waypoint.shape {
-        //     Shape::Polygon(vertices) if vertices.is_empty() => {
-        //         return
-        // Err(ShapeError::PolygonWithZeroVertices.into())
-        //     }
-        //     // Shape::Circle { radius, center: _ } if *radius <= 0.0
-        // => {     //     return
-        // Err(ShapeError::NegativeRadius.into())     //
-        // }     _ => continue,
-        // }
-        // }
-        Ok(self)
-        // }
-    }
+    // / Ensure that the Formation is in a valid state
+    // / Invalid states are:
+    // / 1. self.time <= 0.0
+    // / 2. if self.shape is a circle and the radius is <= 0.0
+    // / 3. if self.shape is a polygon and polygon.is_empty()
+    // pub fn validate(self) -> Result<Self, FormationError> {
+    //     // if self.delay < 0.0 {
+    //     //     Err(FormationError::NegativeTime)
+    //     // if self.waypoints.len() < 2 {
+    //     //     Err(FormationError::LessThanTwoWaypoints)
+    //     // } else {
+    //     // TODO: finish
+    //     // for (index, waypoint) in self.waypoints.iter().enumerate() {
+    //     // match &waypoint.shape {
+    //     //     Shape::Polygon(vertices) if vertices.is_empty() => {
+    //     //         return
+    //     // Err(ShapeError::PolygonWithZeroVertices.into())
+    //     //     }
+    //     //     // Shape::Circle { radius, center: _ } if *radius <= 0.0
+    //     // => {     //     return
+    //     // Err(ShapeError::NegativeRadius.into())     //
+    //     // }     _ => continue,
+    //     // }
+    //     // }
+    //     Ok(self)
+    //     // }
+    // }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -297,8 +290,8 @@ pub enum ParseError {
     Io(#[from] std::io::Error),
     // #[error("TOML error: {0}")]
     // Toml(#[from] toml::de::Error),
-    #[error("Validation error: {0}")]
-    InvalidFormation(#[from] FormationError),
+    // #[error("Validation error: {0}")]
+    // InvalidFormation(#[from] FormationError),
     #[error("Invalid formation group: {0}")]
     InvalidFormationGroup(#[from] FormationGroupError),
     #[error("RON error: {0}")]
@@ -322,12 +315,12 @@ pub enum FormationGroupError {
 impl std::fmt::Display for FormationGroupError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FormationGroupError::NoFormations => write!(
+            Self::NoFormations => write!(
                 f,
                 "Formation group is empty. A formation group contains at least one formation",
             ),
-            FormationGroupError::InvalidFormations(ref inner) => {
-                for (index, error) in inner.iter() {
+            Self::InvalidFormations(ref inner) => {
+                for (index, error) in inner {
                     write!(f, "formation[{}] is invalid with error: {}", index, error)?;
                 }
                 Ok(())
@@ -356,33 +349,33 @@ impl FormationGroup {
     /// 1. `contents` is not valid RON.
     /// 2. The parsed data does not represent a valid `FormationGroup`.
     pub fn parse(contents: &str) -> Result<Self, ParseError> {
-        ron::from_str::<FormationGroup>(contents)
-            .map_err(|span| span.code)?
-            .validate()
-            .map_err(Into::into)
+        Ok(ron::from_str::<Self>(contents).map_err(|span| span.code)?)
+        // .validate()
+        // .map_err(Into::into)
     }
 
-    /// Ensure that the `FormationGroup` is in a valid state
-    /// 1. At least one `Formation` is required
-    /// 2. Validate each `Formation`
-    pub fn validate(self) -> Result<Self, FormationGroupError> {
-        if self.formations.is_empty() {
-            Err(FormationGroupError::NoFormations)
-        } else {
-            let invalid_formations = self
-                .formations
-                .iter()
-                .enumerate()
-                .filter_map(|(index, formation)| formation.valid().err().map(|err| (index, err)))
-                .collect::<Vec<_>>();
+    // /// Ensure that the `FormationGroup` is in a valid state
+    // /// 1. At least one `Formation` is required
+    // /// 2. Validate each `Formation`
+    // pub fn validate(self) -> Result<Self, FormationGroupError> {
+    //     if self.formations.is_empty() {
+    //         Err(FormationGroupError::NoFormations)
+    //     } else {
+    //         let invalid_formations = self
+    //             .formations
+    //             .iter()
+    //             .enumerate()
+    //             // .filter_map(|(index, formation)|
+    // formation.valid().err().map(|err| (index, err)))
+    // .collect::<Vec<_>>();
 
-            if !invalid_formations.is_empty() {
-                Err(FormationGroupError::InvalidFormations(invalid_formations))
-            } else {
-                Ok(self)
-            }
-        }
-    }
+    //         if !invalid_formations.is_empty() {
+    //             Err(FormationGroupError::InvalidFormations(invalid_formations))
+    //         } else {
+    //             Ok(self)
+    //         }
+    //     }
+    // }
 }
 
 impl Default for FormationGroup {
@@ -436,11 +429,11 @@ mod tests {
     mod formation {
         use super::*;
 
-        #[test]
-        fn default_is_valid() {
-            let default = Formation::default();
-            assert!(matches!(default.validate(), Ok(Formation { .. })));
-        }
+        // #[test]
+        // fn default_is_valid() {
+        //     let default = Formation::default();
+        //     assert!(matches!(default.validate(), Ok(Formation { .. })));
+        // }
 
         mod polygon_macro {
 

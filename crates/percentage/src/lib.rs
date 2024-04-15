@@ -19,11 +19,9 @@ pub enum PercentageError {
 impl std::fmt::Display for PercentageError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            PercentageError::InvalidPercentage(p) => write!(
-                f,
-                "invalid percentage: {} valid interval is [0.0, 100.0]",
-                p
-            ),
+            Self::InvalidPercentage(p) => {
+                write!(f, "invalid percentage: {p} valid interval is [0.0, 100.0]")
+            }
         }
     }
 }
@@ -32,13 +30,16 @@ impl std::error::Error for PercentageError {}
 
 impl Percentage {
     /// Create a new `Percentage` from a floating point number between 0.0 and
-    /// 100.0. If the value is outside of this range, an error of type
-    /// [`PercentageError`] is returned.
-    pub fn new(p: f64) -> Result<Percentage, PercentageError> {
+    /// 100.0.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if `p` is not in the interval [0.0, 100.0]
+    pub fn new(p: f64) -> Result<Self, PercentageError> {
         if !(0.0..=100.0).contains(&p) {
             return Err(PercentageError::InvalidPercentage(p));
         }
-        Ok(Percentage(p / 100.0))
+        Ok(Self(p / 100.0))
     }
 
     /// Create a new `Percentage` from a floating point number between 0.0 and
@@ -49,18 +50,21 @@ impl Percentage {
     /// # Safety
     /// It is up to the caller to ensure the invariant that the input is between
     /// [0.0, 100.0]
-    pub unsafe fn new_unchecked(p: f64) -> Percentage {
-        Percentage(p / 100.0)
+    #[must_use]
+    pub unsafe fn new_unchecked(p: f64) -> Self {
+        Self(p / 100.0)
     }
 
     /// Get the value of the `Percentage` as a floating point number
+    #[allow(clippy::must_use_candidate)]
     pub fn get(&self) -> f64 {
         self.0 * 100.0
     }
 
     /// Get the value of the `Percentage` as a floating point number between 0.0
     /// and 1.0
-    pub fn as_fraction(&self) -> f64 {
+    #[allow(clippy::must_use_candidate)]
+    pub const fn as_fraction(&self) -> f64 {
         self.0
     }
 }
@@ -72,9 +76,9 @@ impl std::fmt::Display for Percentage {
 }
 
 impl std::ops::Mul<Percentage> for f64 {
-    type Output = f64;
+    type Output = Self;
 
-    fn mul(self, rhs: Percentage) -> f64 {
+    fn mul(self, rhs: Percentage) -> Self {
         self * rhs.as_fraction()
     }
 }
@@ -88,10 +92,10 @@ impl std::ops::Mul<f64> for Percentage {
 }
 
 impl std::ops::Mul for Percentage {
-    type Output = Percentage;
+    type Output = Self;
 
-    fn mul(self, rhs: Percentage) -> Percentage {
-        Percentage(self.as_fraction() * rhs)
+    fn mul(self, rhs: Self) -> Self {
+        Self(self.as_fraction() * rhs)
     }
 }
 
@@ -99,25 +103,26 @@ impl TryFrom<f64> for Percentage {
     type Error = PercentageError;
 
     fn try_from(value: f64) -> Result<Self, Self::Error> {
-        Percentage::new(value)
+        Self::new(value)
     }
 }
 
 impl TryFrom<usize> for Percentage {
     type Error = PercentageError;
 
+    #[allow(clippy::cast_precision_loss)]
     fn try_from(value: usize) -> Result<Self, Self::Error> {
-        Percentage::new(value as f64)
+        Self::new(value as f64)
     }
 }
 
 impl<'de> Deserialize<'de> for Percentage {
-    fn deserialize<D>(deserializer: D) -> Result<Percentage, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let p = f64::deserialize(deserializer)?;
-        Percentage::new(p).map_err(serde::de::Error::custom)
+        Self::new(p).map_err(serde::de::Error::custom)
     }
 }
 
@@ -134,7 +139,6 @@ impl Serialize for Percentage {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use approx::assert_relative_eq;
-    use pretty_assertions::assert_eq;
 
     use super::*;
 
@@ -153,14 +157,17 @@ mod tests {
             Err(PercentageError::InvalidPercentage(101.0))
         ));
 
-        assert_eq!(Percentage::new(0.0).unwrap().get(), 0.0);
-        assert_eq!(Percentage::new(100.0).unwrap().get(), 100.0);
-        assert_eq!(Percentage::new(50.0).unwrap().get(), 50.0);
+        assert_relative_eq!(Percentage::new(0.0).unwrap().get(), 0.0f64);
+        assert_relative_eq!(Percentage::new(100.0).unwrap().get(), 100.0f64);
+        assert_relative_eq!(Percentage::new(50.0).unwrap().get(), 50.0f64);
 
-        assert_eq!(Percentage::new(0.0).unwrap().as_fraction(), 0.0);
-        assert_eq!(Percentage::new(100.0).unwrap().as_fraction(), 1.0);
-        assert_eq!(Percentage::new(50.0).unwrap().as_fraction(), 0.5);
-        assert_eq!(unsafe { Percentage::new_unchecked(0.0) }.as_fraction(), 0.0);
+        assert_relative_eq!(Percentage::new(0.0).unwrap().as_fraction(), 0.0f64);
+        assert_relative_eq!(Percentage::new(100.0).unwrap().as_fraction(), 1.0f64);
+        assert_relative_eq!(Percentage::new(50.0).unwrap().as_fraction(), 0.5f64);
+        assert_relative_eq!(
+            unsafe { Percentage::new_unchecked(0.0) }.as_fraction(),
+            0.0f64
+        );
     }
 
     #[test]

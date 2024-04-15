@@ -27,12 +27,12 @@ pub trait ToDisplayString {
 impl ToDisplayString for UserInput {
     fn to_display_string(&self) -> String {
         match self {
-            UserInput::Single(input) => input.to_display_string(),
-            UserInput::VirtualDPad(virtual_dpad) => virtual_dpad.to_display_string(),
-            UserInput::VirtualAxis(virtual_axis) => virtual_axis.to_display_string(),
-            UserInput::Chord(chord) => chord
+            Self::Single(input) => input.to_display_string(),
+            Self::VirtualDPad(virtual_dpad) => virtual_dpad.to_display_string(),
+            Self::VirtualAxis(virtual_axis) => virtual_axis.to_display_string(),
+            Self::Chord(chord) => chord
                 .iter()
-                .map(|x| x.to_display_string())
+                .map(ToDisplayString::to_display_string)
                 .collect::<Vec<String>>()
                 .join(" + "),
         }
@@ -64,17 +64,15 @@ impl ToDisplayString for VirtualAxis {
 impl ToDisplayString for InputKind {
     fn to_display_string(&self) -> String {
         match self {
-            InputKind::GamepadButton(gamepad_button) => gamepad_button.to_display_string(),
-            InputKind::SingleAxis(single_axis) => single_axis.to_display_string(),
-            InputKind::DualAxis(dual_axis) => dual_axis.to_display_string(),
-            InputKind::PhysicalKey(key_code) => key_code.to_display_string(),
-            // InputKind::KeyLocation(key_location) => key_location.to_display_string(),
-            InputKind::Modifier(modifier) => modifier.to_display_string(),
-            InputKind::Mouse(mouse) => mouse.to_display_string(),
-            InputKind::MouseWheel(mouse_wheel_direction) => {
-                mouse_wheel_direction.to_display_string()
-            }
-            InputKind::MouseMotion(mouse_motion) => mouse_motion.to_display_string(),
+            Self::GamepadButton(gamepad_button) => gamepad_button.to_display_string(),
+            Self::SingleAxis(single_axis) => single_axis.to_display_string(),
+            Self::DualAxis(dual_axis) => dual_axis.to_display_string(),
+            Self::PhysicalKey(key_code) => key_code.to_display_string(),
+            // Self::KeyLocation(key_location) => key_location.to_display_string(),
+            Self::Modifier(modifier) => modifier.to_display_string(),
+            Self::Mouse(mouse) => mouse.to_display_string(),
+            Self::MouseWheel(mouse_wheel_direction) => mouse_wheel_direction.to_display_string(),
+            Self::MouseMotion(mouse_motion) => mouse_motion.to_display_string(),
             _ => "Unknown".to_string(),
         }
     }
@@ -83,10 +81,10 @@ impl ToDisplayString for InputKind {
 impl ToDisplayString for MouseMotionDirection {
     fn to_display_string(&self) -> String {
         match self {
-            MouseMotionDirection::Up => "󰍽 ↑".to_string(),
-            MouseMotionDirection::Down => "󰍽 ↓".to_string(),
-            MouseMotionDirection::Left => "󰍽 ←".to_string(),
-            MouseMotionDirection::Right => "󰍽 →".to_string(),
+            Self::Up => "󰍽 ↑".to_string(),
+            Self::Down => "󰍽 ↓".to_string(),
+            Self::Left => "󰍽 ←".to_string(),
+            Self::Right => "󰍽 →".to_string(),
         }
     }
 }
@@ -94,10 +92,10 @@ impl ToDisplayString for MouseMotionDirection {
 impl ToDisplayString for MouseWheelDirection {
     fn to_display_string(&self) -> String {
         match self {
-            MouseWheelDirection::Up => "󰍽󰠳 ↑".to_string(), // Mouse Wheel Up
-            MouseWheelDirection::Down => "󰍽󰠳 ↓".to_string(), // Mouse Wheel Down
-            MouseWheelDirection::Left => "󰍽󰠳 ←".to_string(), // Mouse Wheel Left
-            MouseWheelDirection::Right => "󰍽󰠳 →".to_string(), // Mouse Wheel Right
+            Self::Up => "󰍽󰠳 ↑".to_string(),    // Mouse Wheel Up
+            Self::Down => "󰍽󰠳 ↓".to_string(),  // Mouse Wheel Down
+            Self::Left => "󰍽󰠳 ←".to_string(),  // Mouse Wheel Left
+            Self::Right => "󰍽󰠳 →".to_string(), // Mouse Wheel Right
         }
     }
 }
@@ -105,10 +103,10 @@ impl ToDisplayString for MouseWheelDirection {
 impl ToDisplayString for MouseButton {
     fn to_display_string(&self) -> String {
         match self {
-            MouseButton::Left => "LMB".to_string(),
-            MouseButton::Right => "RMB".to_string(),
-            MouseButton::Middle => "MMB".to_string(),
-            MouseButton::Other(x) => format!("Mouse {}", x).to_string(),
+            Self::Left => "LMB".to_string(),
+            Self::Right => "RMB".to_string(),
+            Self::Middle => "MMB".to_string(),
+            Self::Other(x) => format!("Mouse {x}"),
             // _ => unreachable!(),
             _ => " ".to_string(),
         }
@@ -118,10 +116,10 @@ impl ToDisplayString for MouseButton {
 impl ToDisplayString for Modifier {
     fn to_display_string(&self) -> String {
         match self {
-            Modifier::Alt => "Alt".to_string(),
-            Modifier::Control => "Ctrl".to_string(),
-            Modifier::Shift => "Shift".to_string(),
-            Modifier::Super => "Super".to_string(),
+            Self::Alt => "Alt".to_string(),
+            Self::Control => "Ctrl".to_string(),
+            Self::Shift => "Shift".to_string(),
+            Self::Super => "Super".to_string(),
         }
     }
 }
@@ -129,51 +127,51 @@ impl ToDisplayString for Modifier {
 impl ToDisplayString for KeyCode {
     fn to_display_string(&self) -> String {
         match self {
-            KeyCode::Digit0 => "0".to_string(),
-            KeyCode::Digit1 => "1".to_string(),
-            KeyCode::Digit2 => "2".to_string(),
-            KeyCode::Digit3 => "3".to_string(),
-            KeyCode::Digit4 => "4".to_string(),
-            KeyCode::Digit5 => "5".to_string(),
-            KeyCode::Digit6 => "6".to_string(),
-            KeyCode::Digit7 => "7".to_string(),
-            KeyCode::Digit8 => "8".to_string(),
-            KeyCode::Digit9 => "9".to_string(),
-            KeyCode::KeyA => "A".to_string(),
-            KeyCode::KeyB => "B".to_string(),
-            KeyCode::KeyC => "C".to_string(),
-            KeyCode::KeyD => "D".to_string(),
-            KeyCode::KeyE => "E".to_string(),
-            KeyCode::KeyF => "F".to_string(),
-            KeyCode::KeyG => "G".to_string(),
-            KeyCode::KeyH => "H".to_string(),
-            KeyCode::KeyI => "I".to_string(),
-            KeyCode::KeyJ => "J".to_string(),
-            KeyCode::KeyK => "K".to_string(),
-            KeyCode::KeyL => "L".to_string(),
-            KeyCode::KeyM => "M".to_string(),
-            KeyCode::KeyN => "N".to_string(),
-            KeyCode::KeyO => "O".to_string(),
-            KeyCode::KeyP => "P".to_string(),
-            KeyCode::KeyQ => "Q".to_string(),
-            KeyCode::KeyR => "R".to_string(),
-            KeyCode::KeyS => "S".to_string(),
-            KeyCode::KeyT => "T".to_string(),
-            KeyCode::KeyU => "U".to_string(),
-            KeyCode::KeyV => "V".to_string(),
-            KeyCode::KeyW => "W".to_string(),
-            KeyCode::KeyX => "X".to_string(),
-            KeyCode::KeyY => "Y".to_string(),
-            KeyCode::KeyZ => "Z".to_string(),
-            KeyCode::ArrowUp => "↑".to_string(),
-            KeyCode::ArrowDown => "↓".to_string(),
-            KeyCode::ArrowLeft => "←".to_string(),
-            KeyCode::ArrowRight => "→".to_string(),
-            KeyCode::Tab => "".to_string(),              // Tab  
-            KeyCode::Enter => "󰌑".to_string(),            // Enter 󰌑
-            KeyCode::Space => "󱁐".to_string(),            // Space 󱁐
-            KeyCode::ShiftLeft => "󰧇 Left".to_string(),   // Shift Left
-            KeyCode::ShiftRight => "󰧇 Right".to_string(), // Shift Right
+            Self::Digit0 => "0".to_string(),
+            Self::Digit1 => "1".to_string(),
+            Self::Digit2 => "2".to_string(),
+            Self::Digit3 => "3".to_string(),
+            Self::Digit4 => "4".to_string(),
+            Self::Digit5 => "5".to_string(),
+            Self::Digit6 => "6".to_string(),
+            Self::Digit7 => "7".to_string(),
+            Self::Digit8 => "8".to_string(),
+            Self::Digit9 => "9".to_string(),
+            Self::KeyA => "A".to_string(),
+            Self::KeyB => "B".to_string(),
+            Self::KeyC => "C".to_string(),
+            Self::KeyD => "D".to_string(),
+            Self::KeyE => "E".to_string(),
+            Self::KeyF => "F".to_string(),
+            Self::KeyG => "G".to_string(),
+            Self::KeyH => "H".to_string(),
+            Self::KeyI => "I".to_string(),
+            Self::KeyJ => "J".to_string(),
+            Self::KeyK => "K".to_string(),
+            Self::KeyL => "L".to_string(),
+            Self::KeyM => "M".to_string(),
+            Self::KeyN => "N".to_string(),
+            Self::KeyO => "O".to_string(),
+            Self::KeyP => "P".to_string(),
+            Self::KeyQ => "Q".to_string(),
+            Self::KeyR => "R".to_string(),
+            Self::KeyS => "S".to_string(),
+            Self::KeyT => "T".to_string(),
+            Self::KeyU => "U".to_string(),
+            Self::KeyV => "V".to_string(),
+            Self::KeyW => "W".to_string(),
+            Self::KeyX => "X".to_string(),
+            Self::KeyY => "Y".to_string(),
+            Self::KeyZ => "Z".to_string(),
+            Self::ArrowUp => "↑".to_string(),
+            Self::ArrowDown => "↓".to_string(),
+            Self::ArrowLeft => "←".to_string(),
+            Self::ArrowRight => "→".to_string(),
+            Self::Tab => "".to_string(),              // Tab  
+            Self::Enter => "󰌑".to_string(),            // Enter 󰌑
+            Self::Space => "󱁐".to_string(),            // Space 󱁐
+            Self::ShiftLeft => "󰧇 Left".to_string(),   // Shift Left
+            Self::ShiftRight => "󰧇 Right".to_string(), // Shift Right
             _ => format!("{:?}", self).to_title_case(),
         }
     }
@@ -183,20 +181,12 @@ impl ToDisplayString for DualAxis {
     fn to_display_string(&self) -> String {
         match (self.x.axis_type, self.y.axis_type) {
             (
-                AxisType::Gamepad(GamepadAxisType::LeftStickX),
-                AxisType::Gamepad(GamepadAxisType::LeftStickY),
+                AxisType::Gamepad(GamepadAxisType::LeftStickX | GamepadAxisType::LeftStickY),
+                AxisType::Gamepad(GamepadAxisType::LeftStickY | GamepadAxisType::LeftStickX),
             ) => "L3 󰆾".to_string(), // Left Stick Ⓛ
             (
-                AxisType::Gamepad(GamepadAxisType::LeftStickY),
-                AxisType::Gamepad(GamepadAxisType::LeftStickX),
-            ) => "L3 󰆾".to_string(), // Left Stick Ⓛ
-            (
-                AxisType::Gamepad(GamepadAxisType::RightStickX),
-                AxisType::Gamepad(GamepadAxisType::RightStickY),
-            ) => "R3 󰆾".to_string(), // Right Stick Ⓡ
-            (
-                AxisType::Gamepad(GamepadAxisType::RightStickY),
-                AxisType::Gamepad(GamepadAxisType::RightStickX),
+                AxisType::Gamepad(GamepadAxisType::RightStickX | GamepadAxisType::RightStickY),
+                AxisType::Gamepad(GamepadAxisType::RightStickY | GamepadAxisType::RightStickX),
             ) => "R3 󰆾".to_string(), // Right Stick Ⓡ
             (AxisType::MouseMotion(_), AxisType::MouseMotion(_)) => {
                 "󰍽 󰆾".to_string() //  Mouse Motion
@@ -210,26 +200,26 @@ impl ToDisplayString for DualAxis {
 impl ToDisplayString for GamepadButtonType {
     fn to_display_string(&self) -> String {
         match self {
-            GamepadButtonType::South => "󰸴".to_string(), // Cross/A
-            GamepadButtonType::East => "󰸷".to_string(),  // Circle/B
-            GamepadButtonType::North => "󰸸".to_string(), // Triangle/Y
-            GamepadButtonType::West => "󰸵".to_string(),  // Square/X
-            GamepadButtonType::C => "C".to_string(),
-            GamepadButtonType::Z => "Z".to_string(),
-            GamepadButtonType::LeftTrigger => "L1".to_string(), // Left bumper
-            GamepadButtonType::RightTrigger => "R1".to_string(), // Right bumper
-            GamepadButtonType::LeftTrigger2 => "L2".to_string(), // Left Trigger
-            GamepadButtonType::RightTrigger2 => "R2".to_string(), // Right Trigger
-            GamepadButtonType::Select => "Select".to_string(),
-            GamepadButtonType::Start => "Start".to_string(),
-            GamepadButtonType::Mode => "Mode".to_string(),
-            GamepadButtonType::LeftThumb => "L3 ↓".to_string(), // Left Stick Press Down Ⓛ
-            GamepadButtonType::RightThumb => "R3 ↓".to_string(), // Right Stick Press Down Ⓡ
-            GamepadButtonType::DPadUp => "󰹁".to_string(),       // DPad Up
-            GamepadButtonType::DPadDown => "󰸽".to_string(),     // DPad Down
-            GamepadButtonType::DPadLeft => "󰸾".to_string(),     // DPad Left
-            GamepadButtonType::DPadRight => "󰹀".to_string(),    // DPad Right
-            GamepadButtonType::Other(x) => format!("Gamepad {}", x).to_string(),
+            Self::South => "󰸴".to_string(), // Cross/A
+            Self::East => "󰸷".to_string(),  // Circle/B
+            Self::North => "󰸸".to_string(), // Triangle/Y
+            Self::West => "󰸵".to_string(),  // Square/X
+            Self::C => "C".to_string(),
+            Self::Z => "Z".to_string(),
+            Self::LeftTrigger => "L1".to_string(), // Left bumper
+            Self::RightTrigger => "R1".to_string(), // Right bumper
+            Self::LeftTrigger2 => "L2".to_string(), // Left Trigger
+            Self::RightTrigger2 => "R2".to_string(), // Right Trigger
+            Self::Select => "Select".to_string(),
+            Self::Start => "Start".to_string(),
+            Self::Mode => "Mode".to_string(),
+            Self::LeftThumb => "L3 ↓".to_string(), // Left Stick Press Down Ⓛ
+            Self::RightThumb => "R3 ↓".to_string(), // Right Stick Press Down Ⓡ
+            Self::DPadUp => "󰹁".to_string(),       // DPad Up
+            Self::DPadDown => "󰸽".to_string(),     // DPad Down
+            Self::DPadLeft => "󰸾".to_string(),     // DPad Left
+            Self::DPadRight => "󰹀".to_string(),    // DPad Right
+            Self::Other(x) => format!("Gamepad {x}"),
             // _ => "Unknown".to_string(),
         }
     }
@@ -250,13 +240,13 @@ impl ToDisplayString for SingleAxis {
 impl ToDisplayString for GamepadAxisType {
     fn to_display_string(&self) -> String {
         match self {
-            GamepadAxisType::LeftStickX => "L3 󰹳".to_string(), // Left Stick Axis X Ⓛ
-            GamepadAxisType::LeftStickY => "L3 󰹹".to_string(), // Left Stick Axis Y Ⓛ
-            GamepadAxisType::LeftZ => "L3 ↓".to_string(),      // Left Stick Axis Z (Press down) Ⓛ
-            GamepadAxisType::RightStickX => "R3 󰹳".to_string(), // Right Stick Axis X Ⓡ
-            GamepadAxisType::RightStickY => "R3 󰹹".to_string(), // Right Stick Axis Y Ⓡ
-            GamepadAxisType::RightZ => "R3 ↓".to_string(),     // Right Stick Axis Z (Press down) Ⓡ
-            GamepadAxisType::Other(x) => format!("Gamepad {}", x).to_string(),
+            Self::LeftStickX => "L3 󰹳".to_string(), // Left Stick Axis X Ⓛ
+            Self::LeftStickY => "L3 󰹹".to_string(), // Left Stick Axis Y Ⓛ
+            Self::LeftZ => "L3 ↓".to_string(),      // Left Stick Axis Z (Press down) Ⓛ
+            Self::RightStickX => "R3 󰹳".to_string(), // Right Stick Axis X Ⓡ
+            Self::RightStickY => "R3 󰹹".to_string(), // Right Stick Axis Y Ⓡ
+            Self::RightZ => "R3 ↓".to_string(),     // Right Stick Axis Z (Press down) Ⓡ
+            Self::Other(x) => format!("Gamepad {x}"),
             // _ => "Unknown".to_string(),
         }
     }
@@ -265,8 +255,8 @@ impl ToDisplayString for GamepadAxisType {
 impl ToDisplayString for MouseWheelAxisType {
     fn to_display_string(&self) -> String {
         match self {
-            MouseWheelAxisType::X => "󰍽󰠳 󰹳".to_string(), // Mouse Wheel Axis X (Horizontal)
-            MouseWheelAxisType::Y => "󰍽󰠳 󰹹".to_string(), // Mouse Wheel Axis Y (Vertical)
+            Self::X => "󰍽󰠳 󰹳".to_string(), // Mouse Wheel Axis X (Horizontal)
+            Self::Y => "󰍽󰠳 󰹹".to_string(), // Mouse Wheel Axis Y (Vertical)
         }
     }
 }
@@ -274,8 +264,8 @@ impl ToDisplayString for MouseWheelAxisType {
 impl ToDisplayString for MouseMotionAxisType {
     fn to_display_string(&self) -> String {
         match self {
-            MouseMotionAxisType::X => "󰍽 󰹳".to_string(), // Mouse Wheel Axis X (Horizontal)
-            MouseMotionAxisType::Y => "󰍽 󰹹".to_string(), // Mouse Wheel Axis Y (Vertical)
+            Self::X => "󰍽 󰹳".to_string(), // Mouse Wheel Axis X (Horizontal)
+            Self::Y => "󰍽 󰹹".to_string(), // Mouse Wheel Axis Y (Vertical)
         }
     }
 }

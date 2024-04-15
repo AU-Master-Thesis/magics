@@ -1,4 +1,4 @@
-//! bevy_notify
+//! `bevy_notify`
 //!
 //! `bevy_notify` is bevy plugin wrapping [egui-notify](https://crates.io/crates/egui-notify)
 //!
@@ -87,7 +87,7 @@ struct Toasts {
 }
 
 impl Toasts {
-    fn new(toasts: egui_notify::Toasts, max: NonZeroU8) -> Self {
+    const fn new(toasts: egui_notify::Toasts, max: NonZeroU8) -> Self {
         Self { toasts, max }
     }
 
@@ -121,6 +121,7 @@ pub struct ToastEvent {
 impl ToastEvent {
     /// Create an info toast
     /// options is set to `ToastOptions::default()`
+    #[must_use]
     pub fn info(caption: String) -> Self {
         Self {
             caption,
@@ -133,6 +134,7 @@ impl ToastEvent {
 
     /// Create a success toast
     /// options is set to `ToastOptions::default()`
+    #[must_use]
     pub fn success(caption: String) -> Self {
         Self {
             caption,
@@ -145,6 +147,7 @@ impl ToastEvent {
 
     /// Create an error toast
     /// options is set to `ToastOptions::default()`
+    #[must_use]
     pub fn error(caption: String) -> Self {
         Self {
             caption,
@@ -157,6 +160,7 @@ impl ToastEvent {
 
     /// Create a warning toast
     /// options is set to `ToastOptions::default()`
+    #[must_use]
     pub fn warning(caption: String) -> Self {
         Self {
             caption,
@@ -169,6 +173,7 @@ impl ToastEvent {
 
     /// Create a custom toast
     /// options is set to `ToastOptions::default()`
+    #[must_use]
     pub fn custom(caption: String, level: ToastLevel) -> Self {
         Self {
             caption,

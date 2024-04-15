@@ -1,15 +1,8 @@
-use std::{
-    num::{NonZeroU64, NonZeroUsize},
-    ops::Deref,
-    time::Duration,
-};
-
 use bevy::{
     diagnostic::{Diagnostic, DiagnosticPath, Diagnostics, RegisterDiagnostic},
     prelude::*,
-    time::common_conditions::*,
+    time::common_conditions::on_timer,
 };
-use typed_floats::StrictlyPositiveFinite;
 use units::sample_rate::SampleRate;
 
 use crate::{factorgraph::prelude::FactorGraph, planner::RobotState};
@@ -68,8 +61,8 @@ impl Default for RobotDiagnosticsConfig {
     fn default() -> Self {
         Self {
             count_robots_sample_rate:    None,
-            count_variables_and_factors: Some(SampleRate::from_hz(2.try_into().unwrap())),
-            messages_sent_sample_rate:   Some(SampleRate::from_hz(2.try_into().unwrap())),
+            count_variables_and_factors: Some(SampleRate::from_hz(2.try_into().expect("2 > 0"))),
+            messages_sent_sample_rate:   Some(SampleRate::from_hz(2.try_into().expect("2 > 0"))),
         }
     }
 }
@@ -82,7 +75,7 @@ impl Plugin for RobotDiagnosticsPlugin {
             .register_diagnostic(Diagnostic::new(Self::EXTERNAL_MESSAGES_SENT_COUNT))
             .register_diagnostic(Diagnostic::new(Self::MESSAGES_SENT_COUNT));
 
-        let sample_schedule = PostUpdate;
+        // let sample_schedule = PostUpdate;
 
         if let Some(duration) = self
             .config
@@ -159,10 +152,12 @@ impl RobotDiagnosticsPlugin {
     pub const ROBOT_COUNT: DiagnosticPath = DiagnosticPath::const_new("robot_count");
     pub const VARIABLE_COUNT: DiagnosticPath = DiagnosticPath::const_new("variable_count");
 
+    #[allow(clippy::cast_precision_loss)]
     fn count_robots(mut diagnostics: Diagnostics, query: Query<(), With<RobotState>>) {
         diagnostics.add_measurement(&Self::ROBOT_COUNT, || query.iter().count() as f64);
     }
 
+    #[allow(clippy::cast_precision_loss)]
     fn count_variables_and_factors(
         mut diagnostics: Diagnostics,
         query: Query<&FactorGraph, With<RobotState>>,
@@ -182,6 +177,7 @@ impl RobotDiagnosticsPlugin {
         });
     }
 
+    #[allow(clippy::cast_precision_loss)]
     fn count_messages_sent(
         mut diagnostics: Diagnostics,
         mut query: Query<&mut FactorGraph, With<RobotState>>,
@@ -195,7 +191,7 @@ impl RobotDiagnosticsPlugin {
 
             *messages_sent_in_total += messages_sent;
             *messages_sent_in_total as f64
-        })
+        });
     }
 
     // fn count_external_messages_sent(

@@ -2,11 +2,10 @@ use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 use bevy_inspector_egui::egui::{self};
 use egui_graphs::{DefaultEdgeShape, DefaultNodeShape, Graph, GraphView};
-use egui_plot::{Line, Plot, PlotPoints};
 use petgraph::stable_graph::StableGraph;
 
 use super::{OccupiedScreenSpace, UiState};
-use crate::config::Config;
+// use crate::config::Config;
 
 /// **Bevy** `Plugin` to add the data panel to the UI
 pub struct DataPanelPlugin;
@@ -33,7 +32,7 @@ fn data_panel_enabled(ui_state: Res<UiState>) -> bool {
 
 fn render_data_panel(
     mut contexts: EguiContexts,
-    config: Res<Config>,
+    // config: Res<Config>,
     ui_state: Res<UiState>,
     mut q_graph: Query<&mut BasicGraph>,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
@@ -96,9 +95,8 @@ fn render_data_panel(
             // });
         });
 
-    occupied_screen_space.bottom = bottom_panel
-        .map(|ref inner| inner.response.rect.width())
-        .unwrap_or(0.0);
+    occupied_screen_space.bottom =
+        bottom_panel.map_or(0.0, |ref inner| inner.response.rect.width());
 }
 
 #[derive(Component)]
@@ -130,18 +128,18 @@ fn setup(mut commands: Commands) {
     commands.spawn(BasicGraph::new());
 }
 
-fn update_graph(mut contexts: EguiContexts, mut q_graph: Query<&mut BasicGraph>) {
-    let ctx = contexts.ctx_mut();
-    let mut graph = q_graph.single_mut();
+// fn update_graph(mut contexts: EguiContexts, mut q_graph: Query<&mut
+// BasicGraph>) {     let ctx = contexts.ctx_mut();
+//     let mut graph = q_graph.single_mut();
 
-    egui::CentralPanel::default().show(ctx, |ui| {
-        ui.add(&mut GraphView::<
-            _,
-            _,
-            _,
-            _,
-            DefaultNodeShape,
-            DefaultEdgeShape,
-        >::new(&mut graph.0));
-    });
-}
+//     egui::CentralPanel::default().show(ctx, |ui| {
+//         ui.add(&mut GraphView::<
+//             _,
+//             _,
+//             _,
+//             _,
+//             DefaultNodeShape,
+//             DefaultEdgeShape,
+//         >::new(&mut graph.0));
+//     });
+// }

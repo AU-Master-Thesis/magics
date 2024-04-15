@@ -1,10 +1,10 @@
 mod communication;
-pub(crate) mod communication_radius;
-pub(crate) mod factorgraphs;
+pub mod communication_radius;
+pub mod factorgraphs;
 mod robot;
 mod tracer;
 mod uncertainty;
-pub(crate) mod waypoints;
+pub mod waypoints;
 
 const Z_FIGHTING_OFFSET: f32 = 0.04;
 
@@ -51,7 +51,7 @@ pub struct RobotTracker {
 
 impl RobotTracker {
     // REFACTOR: take all 3 arguments here
-    pub fn new(robot_id: RobotId) -> Self {
+    pub const fn new(robot_id: RobotId) -> Self {
         Self {
             robot_id,
             variable_index: 0,
@@ -59,12 +59,12 @@ impl RobotTracker {
         }
     }
 
-    pub fn with_variable_index(mut self, id: usize) -> Self {
+    pub const fn with_variable_index(mut self, id: usize) -> Self {
         self.variable_index = id;
         self
     }
 
-    pub fn with_order(mut self, order: usize) -> Self {
+    pub const fn with_order(mut self, order: usize) -> Self {
         self.order = order;
         self
     }
@@ -95,7 +95,7 @@ impl Path {
         Self { points, width: 0.1 }
     }
 
-    pub fn with_width(mut self, width: f32) -> Self {
+    pub const fn with_width(mut self, width: f32) -> Self {
         self.width = width;
         self
     }
@@ -103,7 +103,7 @@ impl Path {
 
 impl From<Path> for Mesh {
     fn from(line: Path) -> Self {
-        let vertices = line.points.clone();
+        let vertices = line.points;
         let width = line.width;
 
         let mut left_vertices = Vec::<Vec3>::with_capacity(vertices.len());
@@ -153,11 +153,11 @@ impl From<Path> for Mesh {
             .flat_map(|(l, r)| [*r, *l])
             .collect();
 
-        Mesh::new(
+        Self::new(
             PrimitiveTopology::TriangleStrip,
             RenderAssetUsages::MAIN_WORLD  | RenderAssetUsages::RENDER_WORLD
         )
         // Add the vertices positions as an attribute
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices)
+        .with_inserted_attribute(Self::ATTRIBUTE_POSITION, vertices)
     }
 }

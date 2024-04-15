@@ -111,10 +111,10 @@ macro_rules! pretty_print_message {
             line!(),
             $from.color,
             $from.global_id(),
-            crate::escape_codes::RESET,
+            $crate::escape_codes::RESET,
             $to.color,
             $to.global_id(),
-            crate::escape_codes::RESET,
+            $crate::escape_codes::RESET,
             $post
         );
     };
@@ -139,11 +139,11 @@ macro_rules! pretty_print_title {
 
         println!(
             "{}{} {} {}{}",
-            crate::escape_codes::BOLD,
+            $crate::escape_codes::BOLD,
             "═".repeat(left_padding),
             $title,
             "═".repeat(right_padding),
-            crate::escape_codes::RESET,
+            $crate::escape_codes::RESET,
         );
     }};
 }
@@ -168,11 +168,11 @@ macro_rules! pretty_print_subtitle {
 
         println!(
             "{}{} {} {}{}",
-            crate::escape_codes::BOLD,
+            $crate::escape_codes::BOLD,
             "─".repeat(left_padding),
             $subtitle,
             "─".repeat(right_padding),
-            crate::escape_codes::RESET,
+            $crate::escape_codes::RESET,
         );
     }};
 }
@@ -191,9 +191,9 @@ macro_rules! pretty_print_line {
 
         println!(
             "{}{}{}",
-            crate::escape_codes::BOLD,
+            $crate::escape_codes::BOLD,
             "─".repeat(columns),
-            crate::escape_codes::RESET,
+            $crate::escape_codes::RESET,
         );
     }};
 }

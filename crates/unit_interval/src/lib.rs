@@ -17,11 +17,10 @@ pub enum UnitIntervalError {
 impl std::fmt::Display for UnitIntervalError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            UnitIntervalError::OutOfBounds(value) => write!(
+            Self::OutOfBounds(value) => write!(
                 f,
-                "value {} is out of bounds, a UnitInterval represents the closed interval [0.0, \
-                 1.0]",
-                value
+                "value {value} is out of bounds, a UnitInterval represents the closed interval \
+                 [0.0, 1.0]",
             ),
         }
     }
@@ -35,11 +34,15 @@ pub type Result<T> = std::result::Result<T, UnitIntervalError>;
 impl UnitInterval {
     /// Creates a new `UnitInterval` from a value. Returns an error if the value
     /// is not in the interval [0.0, 1.0].
-    pub fn new(value: f64) -> Result<UnitInterval> {
-        if !(0.0..=1.0).contains(&value) {
-            Err(UnitIntervalError::OutOfBounds(value))
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if `value` is not in the interval [0.0, 1.0]
+    pub fn new(value: f64) -> Result<Self> {
+        if (0.0..=1.0).contains(&value) {
+            Ok(Self(value))
         } else {
-            Ok(UnitInterval(value))
+            Err(UnitIntervalError::OutOfBounds(value))
         }
     }
 
@@ -50,11 +53,13 @@ impl UnitInterval {
     /// # Safety
     /// You have to manually ensure the invariant that the given value is
     /// between [0.0, 1.0]
-    pub unsafe fn new_unchecked(value: f64) -> UnitInterval {
-        UnitInterval(value)
+    #[must_use]
+    pub const unsafe fn new_unchecked(value: f64) -> Self {
+        Self(value)
     }
 
     /// Returns the inner value of the `UnitInterval`.
+    #[must_use]
     pub const fn get(self) -> f64 {
         self.0
     }
@@ -63,29 +68,29 @@ impl UnitInterval {
 impl TryFrom<f64> for UnitInterval {
     type Error = UnitIntervalError;
 
-    fn try_from(value: f64) -> Result<UnitInterval> {
-        UnitInterval::new(value)
+    fn try_from(value: f64) -> Result<Self> {
+        Self::new(value)
     }
 }
 
 impl TryFrom<f32> for UnitInterval {
     type Error = UnitIntervalError;
 
-    fn try_from(value: f32) -> Result<UnitInterval> {
-        UnitInterval::new(f64::from(value))
+    fn try_from(value: f32) -> Result<Self> {
+        Self::new(f64::from(value))
     }
 }
 
 impl From<UnitInterval> for f64 {
-    fn from(unit_interval: UnitInterval) -> f64 {
+    fn from(unit_interval: UnitInterval) -> Self {
         unit_interval.0
     }
 }
 
 impl From<UnitInterval> for f32 {
     #[allow(clippy::cast_possible_truncation)]
-    fn from(unit_interval: UnitInterval) -> f32 {
-        unit_interval.0 as f32
+    fn from(unit_interval: UnitInterval) -> Self {
+        unit_interval.0 as Self
     }
 }
 
@@ -98,12 +103,12 @@ impl std::ops::Deref for UnitInterval {
 }
 
 impl<'de> Deserialize<'de> for UnitInterval {
-    fn deserialize<D>(deserializer: D) -> std::result::Result<UnitInterval, D::Error>
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let value = f64::deserialize(deserializer)?;
-        UnitInterval::new(value).map_err(serde::de::Error::custom)
+        Self::new(value).map_err(serde::de::Error::custom)
     }
 }
 
@@ -118,6 +123,8 @@ impl Serialize for UnitInterval {
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_relative_eq;
+
     use super::*;
 
     #[test]
@@ -155,9 +162,9 @@ mod tests {
 
     #[test]
     fn test_get() {
-        assert_eq!(UnitInterval(0.0).get(), 0.0);
-        assert_eq!(UnitInterval(0.5).get(), 0.5);
-        assert_eq!(UnitInterval(1.0).get(), 1.0);
+        assert_relative_eq!(UnitInterval(0.0).get(), 0.0f64);
+        assert_relative_eq!(UnitInterval(0.5).get(), 0.5f64);
+        assert_relative_eq!(UnitInterval(1.0).get(), 1.0f64);
     }
 
     #[test]

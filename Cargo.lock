@@ -5812,6 +5812,7 @@ checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
 name = "unit_interval"
 version = "1.0.0"
 dependencies = [
+ "approx",
  "serde",
 ]
 

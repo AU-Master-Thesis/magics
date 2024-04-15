@@ -28,7 +28,7 @@ fn toggle_visibility_of_robot_meshes(
             };
             enabled.set(event.draw);
 
-            for mut visibility in query.iter_mut() {
+            for mut visibility in &mut query {
                 *visibility = new_visibility_state;
             }
         }

@@ -1,4 +1,4 @@
-#![allow(warnings)]
+// #![allow(warnings)]
 
 //! The main entry point of the simulation.
 pub(crate) mod asset_loader;
@@ -23,9 +23,7 @@ pub(crate) mod utils;
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
-use std::path::{Path, PathBuf};
-
-use bevy::{asset::AssetMetaCheck, log::LogPlugin, prelude::*, window::WindowMode};
+use bevy::{asset::AssetMetaCheck, prelude::*, window::WindowMode};
 use bevy_fullscreen::ToggleFullscreenPlugin;
 // use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
@@ -55,6 +53,7 @@ const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
+#[allow(clippy::too_many_lines)]
 fn main() -> anyhow::Result<()> {
     if cfg!(all(not(target_arch = "wasm32"), debug_assertions)) {
         eprintln!("installing better_panic panic hook");
@@ -81,9 +80,9 @@ fn main() -> anyhow::Result<()> {
 
     println!("{}:          {}", "name".green().bold(), NAME);
     println!("{}:", "authors".green().bold());
-    authors.iter().for_each(|&author| {
+    for &author in &authors {
         println!(" - {}", author);
-    });
+    }
     println!("{}:       {}", "version".green().bold(), VERSION);
     println!("{}:  {}", "manifest_dir".green().bold(), MANIFEST_DIR);
 

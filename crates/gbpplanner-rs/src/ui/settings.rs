@@ -1,13 +1,9 @@
-use std::{path::PathBuf, time::Duration};
+use std::time::Duration;
 
-use bevy::{
-    input::{keyboard::KeyboardInput, mouse::MouseWheel, ButtonState},
-    prelude::*,
-    window::PrimaryWindow,
-};
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{
     egui::{self, Color32, Context, RichText},
-    EguiContext, EguiContexts, EguiSettings,
+    EguiContext, EguiContexts,
 };
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
 use catppuccin::Colour;
@@ -76,10 +72,10 @@ fn install_egui_image_loaders(mut egui_ctx: EguiContexts) {
 impl ToDisplayString for catppuccin::Flavour {
     fn to_display_string(&self) -> String {
         match self {
-            catppuccin::Flavour::Frappe => "Frappe".to_string(),
-            catppuccin::Flavour::Latte => "Latte".to_string(),
-            catppuccin::Flavour::Macchiato => "Macchiato".to_string(),
-            catppuccin::Flavour::Mocha => "Mocha".to_string(),
+            Self::Frappe => "Frappe".to_string(),
+            Self::Latte => "Latte".to_string(),
+            Self::Macchiato => "Macchiato".to_string(),
+            Self::Mocha => "Mocha".to_string(),
         }
     }
 }
@@ -136,9 +132,10 @@ fn ui_settings_exclusive(world: &mut World) {
 type TitleColors = RepeatingArray<Colour, 5>;
 
 /// **Bevy** `Update` system to display the `egui` settings panel
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn ui_settings_panel(
-    ctx: &mut Context,
+    // ctx: &mut Context,
+    ctx: &Context,
     mut ui_state: Mut<UiState>,
     mut config: Mut<Config>,
     mut occupied_screen_space: Mut<OccupiedScreenSpace>,
@@ -168,9 +165,7 @@ fn ui_settings_panel(
             ui.strong("top panel");
         });
 
-    occupied_screen_space.top = top_panel
-        .map(|ref inner| inner.response.rect.width())
-        .unwrap_or(0.0);
+    occupied_screen_space.top = top_panel.map_or(0.0, |ref inner| inner.response.rect.width());
 
     let right_panel = egui::SidePanel::right("Settings Panel")
         .default_width(200.0)
@@ -256,6 +251,7 @@ fn ui_settings_panel(
                         // Only trigger ui scale update when the slider is released or lost focus
                         // otherwise it would be imposssible to drag the slider while the ui is
                         // scaling
+                        #[allow(clippy::cast_precision_loss)]
                         if slider_response.drag_released() || slider_response.lost_focus() {
                             world.send_event::<ScaleUi>(ScaleUi::Set(
                                 ui_state.scale_percent as f32 / 100.0,
@@ -267,9 +263,7 @@ fn ui_settings_panel(
                         ui.label("Take Screenhot");
                         custom::fill_x(ui, |ui| {
                             if ui.button("").clicked() {
-                                world.send_event::<TakeScreenshot>(Default::default());
-
-                                // world.send_event::<ScreenShotEvent>(ScreenShotEvent::default());
+                                world.send_event::<TakeScreenshot>(TakeScreenshot::default());
                             }
                         });
                         ui.end_row();
@@ -299,7 +293,10 @@ fn ui_settings_panel(
                                 );
                             custom::float_right(ui, |ui| {
                                 if custom::toggle_ui(ui, setting).clicked() {
-                                    let setting_kind: DrawSetting = name.parse().unwrap();
+                                    let setting_kind: DrawSetting = name.parse().expect(
+                                        "the ui strings are generated from the enum, so parse \
+                                         should not fail",
+                                    );
                                     // let setting_kind = DrawSetting::from_str(name).expect(
                                     //     "The name of the draw section should be a valid \
                                     //      DrawSection",
@@ -332,8 +329,8 @@ fn ui_settings_panel(
                     );
                     custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
                         ui.label("Simulation Time");
-                        let progress =
-                            time_fixed.elapsed_seconds() / config.simulation.max_time.get();
+                        // let progress =
+                        //     time_fixed.elapsed_seconds() / config.simulation.max_time.get();
                         // let progressbar =
                         //     egui::widgets::ProgressBar::new(progress).fill(Color32::RED);
                         // ui.add(progressbar);
@@ -378,6 +375,10 @@ fn ui_settings_panel(
                                         .on_hover_text("Step forward one step in the simulation")
                                         .clicked()
                                     {
+                                        #[allow(
+                                            clippy::cast_precision_loss,
+                                            clippy::cast_possible_truncation
+                                        )]
                                         let step_size = config.simulation.manual_step_factor as f32
                                             / config.simulation.hz as f32;
                                         time_fixed.advance_by(Duration::from_secs_f32(step_size));
@@ -413,7 +414,7 @@ fn ui_settings_panel(
                         )),
                     );
 
-                    let png_output_path = PathBuf::from("./factorgraphs").with_extension("png");
+                    // let png_output_path = PathBuf::from("./factorgraphs").with_extension("png");
 
                     custom::grid("export_grid", 3).show(ui, |ui| {
                         // GRAPHVIZ EXPORT TOGGLE
@@ -471,7 +472,7 @@ fn ui_settings_panel(
                                     // this will only work if `interact =
                                     // Some(egui::Sense::click())` or similar
                                     o.copied_text = x_coordinate.to_string();
-                                })
+                                });
                             }
                         });
                         // x coordinate
@@ -483,7 +484,7 @@ fn ui_settings_panel(
                                     // this will only work if `interact =
                                     // Some(egui::Sense::click())` or similar
                                     o.copied_text = y_coordinate.to_string();
-                                })
+                                });
                             }
                         });
                         // custom::rect_label(ui, format!("y: {:7.2}",
@@ -521,7 +522,5 @@ fn ui_settings_panel(
                 });
         });
 
-    occupied_screen_space.right = right_panel
-        .map(|ref inner| inner.response.rect.width())
-        .unwrap_or(0.0);
+    occupied_screen_space.right = right_panel.map_or(0.0, |ref inner| inner.response.rect.width());
 }

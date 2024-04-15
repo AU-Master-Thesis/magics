@@ -1,16 +1,10 @@
 use std::collections::HashMap;
 
-use bevy::{
-    app::AppExit, prelude::*, render::view::screenshot::ScreenshotManager, tasks::IoTaskPool,
-    window::PrimaryWindow,
-};
+use bevy::{app::AppExit, prelude::*, tasks::IoTaskPool};
 use bevy_notify::prelude::*;
-use glob::glob;
-use itertools::Itertools;
 use leafwing_input_manager::prelude::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-use tap::Tap;
 
 use super::{super::theme::CycleTheme, screenshot::TakeScreenshot};
 use crate::{
@@ -33,7 +27,7 @@ pub struct GeneralInputPlugin;
 impl Plugin for GeneralInputPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<QuitApplicationEvent>()
-            .add_event::<ExportGraphFinishedEvent>()
+            // .add_event::<ExportGraphFinishedEvent>()
             .add_plugins(InputManagerPlugin::<GeneralAction>::default())
             .add_systems(PostStartup, bind_general_input)
             .add_systems(
@@ -71,8 +65,8 @@ impl std::fmt::Display for GeneralAction {
 }
 
 impl GeneralAction {
-    fn default_keyboard_input(action: GeneralAction) -> Option<UserInput> {
-        let input = match action {
+    fn default_keyboard_input(action: Self) -> UserInput {
+        match action {
             Self::ToggleTheme => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT)),
             Self::ExportGraph => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG)),
             Self::ScreenShot => {
@@ -83,9 +77,7 @@ impl GeneralAction {
             }
 
             Self::PausePlaySimulation => UserInput::Single(InputKind::PhysicalKey(KeyCode::Space)),
-        };
-
-        Some(input)
+        }
     }
 }
 
@@ -93,9 +85,11 @@ fn bind_general_input(mut commands: Commands) {
     let mut input_map = InputMap::default();
 
     for action in GeneralAction::iter() {
-        if let Some(input) = GeneralAction::default_keyboard_input(action) {
-            input_map.insert(action, input);
-        }
+        let input = GeneralAction::default_keyboard_input(action);
+        input_map.insert(action, input);
+        // if let Some(input) = GeneralAction::default_keyboard_input(action) {
+        //     input_map.insert(action, input);
+        // }
     }
 
     commands.spawn((
@@ -116,8 +110,8 @@ fn export_factorgraphs_as_graphviz(
         return None;
     }
 
-    let _external_edge_length = 8.0;
-    let _internal_edge_length = 1.0;
+    // let _external_edge_length = 8.0;
+    // let _internal_edge_length = 1.0;
     let cluster_margin = 16;
 
     let mut buf = String::with_capacity(4 * 1024); // 4 kB
@@ -144,7 +138,7 @@ fn export_factorgraphs_as_graphviz(
         append_line_to_output(&format!("  margin={}", cluster_margin));
         append_line_to_output(&format!(r#"  label="{:?}""#, robot_id));
         // Add all nodes
-        for node in nodes.iter() {
+        for node in &nodes {
             let pos = match node.kind {
                 NodeKind::Variable { x, y } => Some((x, y)),
                 _ => None,
@@ -174,7 +168,7 @@ fn export_factorgraphs_as_graphviz(
 
         append_line_to_output("");
         // Add all internal edges
-        for edge in edges.iter() {
+        for edge in &edges {
             let line = format!(
                 r#""{:?}_{:?}" -- "{:?}_{:?}""#,
                 robot_id, edge.from, robot_id, edge.to
@@ -205,8 +199,8 @@ fn export_factorgraphs_as_graphviz(
 
     // Add edges between interrobot factors and the variable they are connected to
     // in another robots graph
-    for (from_robot_id, from_connections) in all_external_connections.iter() {
-        for (from_factor, (to_robot_id, to_variable_index)) in from_connections.iter() {
+    for (from_robot_id, from_connections) in &all_external_connections {
+        for (from_factor, (to_robot_id, to_variable_index)) in from_connections {
             append_line_to_output(&format!(
                 r#" "{:?}_{:?}" -- "{:?}_{:?}" [len={}, style={}, color="{}"]"#,
                 from_robot_id,
@@ -244,14 +238,14 @@ fn export_graph_on_event(
     mut theme_event_reader: EventReader<ExportGraphEvent>,
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
-    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
-    mut toast_event: EventWriter<ToastEvent>,
+    // export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    toast_event: EventWriter<ToastEvent>,
 ) {
     if theme_event_reader.read().next().is_some() {
         if let Err(e) = handle_export_graph(
             query,
             config.as_ref(),
-            export_graph_finished_event,
+            // export_graph_finished_event,
             toast_event,
         ) {
             error!("failed to export factorgraphs with error: {:?}", e);
@@ -259,16 +253,16 @@ fn export_graph_on_event(
     }
 }
 
-#[derive(Event)]
-pub enum ExportGraphFinishedEvent {
-    Success(String),
-    Failure(String),
-}
+// #[derive(Event)]
+// pub enum ExportGraphFinishedEvent {
+//     Success(String),
+//     Failure(String),
+// }
 
 fn handle_export_graph(
     q: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: &Config,
-    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    // export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
     mut toast_event: EventWriter<ToastEvent>,
 ) -> std::io::Result<()> {
     if cfg!(target_arch = "wasm32") {
@@ -314,10 +308,10 @@ fn handle_export_graph(
                 dot_output_path.to_str().expect("is valid UTF8"),
             ];
             let Ok(output) = std::process::Command::new("dot").args(args).output() else {
-                let error_msg = format!(
-                    "failed to compile ./{:?} with dot. reason: dot was not found in $PATH",
-                    dot_output_path
-                );
+                // let error_msg = format!(
+                //     "failed to compile ./{:?} with dot. reason: dot was not found in $PATH",
+                //     dot_output_path
+                // );
                 error!(
                     "failed to compile ./{:?} with dot. reason: dot was not found in $PATH",
                     dot_output_path
@@ -329,7 +323,7 @@ fn handle_export_graph(
             };
 
             if output.status.success() {
-                let msg = format!("successfully compiled ./{:?} with dot", dot_output_path,);
+                // let msg = format!("successfully compiled ./{:?} with dot", dot_output_path,);
                 info!(
                     "compiled {:?} to {:?} with dot",
                     dot_output_path, png_output_path
@@ -370,6 +364,7 @@ fn quit_application_system(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn general_actions_system(
     mut theme_event: EventWriter<CycleTheme>,
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
@@ -379,9 +374,9 @@ fn general_actions_system(
     catppuccin_theme: Res<CatppuccinTheme>,
     // mut app_exit_event: EventWriter<AppExit>,
     mut quit_application_event: EventWriter<QuitApplicationEvent>,
-    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    // export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
     mut pause_play_event: EventWriter<PausePlay>,
-    mut toast_event: EventWriter<ToastEvent>,
+    toast_event: EventWriter<ToastEvent>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
@@ -397,7 +392,7 @@ fn general_actions_system(
         if let Err(e) = handle_export_graph(
             query_graphs,
             config.as_ref(),
-            export_graph_finished_event,
+            // export_graph_finished_event,
             toast_event,
         ) {
             error!("failed to export factorgraphs with error: {:?}", e);

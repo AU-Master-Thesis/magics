@@ -52,7 +52,7 @@ pub fn separator(
 /// A heading with color and a separator after
 pub fn heading(ui: &mut Ui, text: &str, color: Option<Color32>) {
     ui.add_space(10.0);
-    ui.heading(RichText::new(text).color(color.unwrap_or(ui.visuals().text_color())));
+    ui.heading(RichText::new(text).color(color.unwrap_or_else(|| ui.visuals().text_color())));
     separator(ui, color, Some(5.0), Some(0.0));
 }
 
@@ -62,7 +62,7 @@ pub fn subheading(ui: &mut Ui, text: &str, color: Option<Color32>) {
     ui.label(
         RichText::new(text)
             .size(16.0)
-            .color(color.unwrap_or(ui.visuals().text_color())),
+            .color(color.unwrap_or_else(|| ui.visuals().text_color())),
     );
     separator(ui, color, None, Some(5.0));
 }
@@ -137,7 +137,7 @@ pub fn rect_label(
 
     let desired_size = egui::vec2(available_width, desired_y);
 
-    let interaction = interact.unwrap_or(egui::Sense::focusable_noninteractive());
+    let interaction = interact.unwrap_or_else(egui::Sense::focusable_noninteractive);
     let (rect, mut response) = ui.allocate_exact_size(desired_size, interaction);
 
     if response.clicked() {
@@ -183,13 +183,13 @@ pub fn grid(
     // .show(ui, add_contents)
 }
 
-pub(crate) const ROW_HEIGHT: f32 = 20.0;
-pub(crate) const BINDING_ROW_HEIGHT: f32 = 35.0;
-pub(crate) const FIRST_COL_WIDTH: f32 = 200.0;
-pub(crate) const BINDING_COL_WIDTH: f32 = 100.0;
-pub(crate) const SPACING: f32 = 5.0;
-pub(crate) const SLIDER_EXTRA: f32 = 45.0;
-pub(crate) const SLIDER_EXTRA_WIDE: f32 = 65.0;
+pub const ROW_HEIGHT: f32 = 20.0;
+pub const BINDING_ROW_HEIGHT: f32 = 35.0;
+pub const FIRST_COL_WIDTH: f32 = 200.0;
+pub const BINDING_COL_WIDTH: f32 = 100.0;
+pub const SPACING: f32 = 5.0;
+pub const SLIDER_EXTRA: f32 = 45.0;
+pub const SLIDER_EXTRA_WIDE: f32 = 65.0;
 
 pub fn binding_table(ui: &mut Ui) -> TableBuilder<'_> {
     TableBuilder::new(ui)

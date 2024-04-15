@@ -7,14 +7,14 @@ mod scale;
 // mod selected_entity;
 mod settings;
 
-use std::ops::{Range, RangeInclusive};
+use std::ops::RangeInclusive;
 
-use bevy::{input::common_conditions::*, prelude::*, window::WindowTheme};
+use bevy::{input::common_conditions::input_just_pressed, prelude::*, window::WindowTheme};
 use bevy_egui::{
     egui::{self, Visuals},
-    EguiContexts, EguiPlugin,
+    EguiContexts,
 };
-use bevy_touchpad::TwoFingerSwipe;
+// use bevy_touchpad::TwoFingerSwipe;
 pub use controls::ChangingBinding;
 pub use decoration::ToDisplayString;
 pub use settings::{DrawSettingsEvent, ExportGraphEvent};
@@ -24,7 +24,7 @@ use self::{
     controls::ControlsPanelPlugin, data::DataPanelPlugin, metrics::MetricsPlugin,
     scale::ScaleUiPlugin, settings::SettingsPanelPlugin,
 };
-use crate::{theme::CatppuccinThemeVisualsExt, AppState};
+use crate::theme::CatppuccinThemeVisualsExt;
 
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/
@@ -65,7 +65,7 @@ impl Plugin for EguiInterfacePlugin {
 
                 MetricsPlugin::default()            ))
             // .add_systems(OnEnter(SimulationState::Loading), load_fonts)
-            .add_systems(Startup, load_fonts)
+            // .add_systems(Startup, load_fonts)
             // .add_systems(OnEnter(AppState::Loading), load_fonts)
             .add_systems(Startup, configure_visuals)
             .add_systems(Update, action_block)
@@ -86,28 +86,28 @@ impl Plugin for EguiInterfacePlugin {
     }
 }
 
-fn load_fonts() {}
+// fn load_fonts() {}
 
-fn toggle_visibility_of_panels(mut ui_state: ResMut<UiState>) {}
+// fn toggle_visibility_of_panels(mut ui_state: ResMut<UiState>) {}
 
-fn toggle_visibility_of_side_panels_when_two_finger_swiping(
-    mut ui_state: ResMut<UiState>,
-    mut evr_two_finger_swipe: EventReader<TwoFingerSwipe>,
-    // mut timeout: Local<Timer>,
-) {
-    for event in evr_two_finger_swipe.read() {
-        match event.direction {
-            bevy_touchpad::TwoFingerSwipeDirection::Up
-            | bevy_touchpad::TwoFingerSwipeDirection::Down => {}
-            bevy_touchpad::TwoFingerSwipeDirection::Left => {
-                ui_state.left_panel_visible = !ui_state.left_panel_visible;
-            }
-            bevy_touchpad::TwoFingerSwipeDirection::Right => {
-                ui_state.right_panel_visible = !ui_state.right_panel_visible;
-            }
-        }
-    }
-}
+// fn toggle_visibility_of_side_panels_when_two_finger_swiping(
+//     mut ui_state: ResMut<UiState>,
+//     mut evr_two_finger_swipe: EventReader<TwoFingerSwipe>,
+//     // mut timeout: Local<Timer>,
+// ) {
+//     for event in evr_two_finger_swipe.read() {
+//         match event.direction {
+//             bevy_touchpad::TwoFingerSwipeDirection::Up
+//             | bevy_touchpad::TwoFingerSwipeDirection::Down => {}
+//             bevy_touchpad::TwoFingerSwipeDirection::Left => {
+//                 ui_state.left_panel_visible = !ui_state.left_panel_visible;
+//             }
+//             bevy_touchpad::TwoFingerSwipeDirection::Right => {
+//                 ui_state.right_panel_visible = !ui_state.right_panel_visible;
+//             }
+//         }
+//     }
+// }
 
 /// **Bevy** system that hides both the left and right ui panels, if any of them
 /// are visible.
@@ -150,7 +150,7 @@ impl ActionBlock {
     }
 
     #[inline]
-    pub fn is_blocked(&self) -> bool {
+    pub const fn is_blocked(&self) -> bool {
         self.0
     }
 }
@@ -185,6 +185,7 @@ impl ToDisplayString for UiScaleType {
     }
 }
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Default)]
 pub struct MouseOverPanel {
     pub left_panel:      bool,
@@ -195,27 +196,28 @@ pub struct MouseOverPanel {
     pub floating_window: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PanelDirection {
-    Left,
-    Right,
-    Top,
-    Bottom,
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub enum PanelDirection {
+//     Left,
+//     Right,
+//     Top,
+//     Bottom,
+// }
 
-impl PanelDirection {
-    /// Get a vector containing all panel directions.
-    #[must_use]
-    pub fn all() -> impl ExactSizeIterator<Item = Self> {
-        [Self::Left, Self::Right, Self::Top, Self::Bottom]
-            .iter()
-            .copied()
-    }
-}
+// impl PanelDirection {
+//     /// Get a vector containing all panel directions.
+//     #[must_use]
+//     pub fn all() -> impl ExactSizeIterator<Item = Self> {
+//         [Self::Left, Self::Right, Self::Top, Self::Bottom]
+//             .iter()
+//             .copied()
+//     }
+// }
 
-struct PanelState;
+// struct PanelState;
 
 /// UI state to represent state of `egui` stateful widgets
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Resource)]
 pub struct UiState {
     /// Whether the left panel is open
@@ -252,10 +254,10 @@ impl UiState {
         }
     }
 
-    #[inline(always)]
-    pub fn scale(&self) -> usize {
-        self.scale_percent
-    }
+    // #[inline(always)]
+    // pub const fn scale(&self) -> usize {
+    //     self.scale_percent
+    // }
 }
 
 impl Default for UiState {
@@ -330,6 +332,8 @@ fn action_block(mut action_block: ResMut<ActionBlock>, ui_state: Res<UiState>) {
     // TODO: add top and bottom
     if (ui_state.left_panel_visible && ui_state.mouse_over.left_panel)
         || (ui_state.right_panel_visible && ui_state.mouse_over.right_panel)
+        || (ui_state.top_panel_visible && ui_state.mouse_over.top_panel)
+        || (ui_state.bottom_panel_visible && ui_state.mouse_over.bottom_panel)
         || (ui_state.mouse_over.floating_window)
     {
         action_block.block();

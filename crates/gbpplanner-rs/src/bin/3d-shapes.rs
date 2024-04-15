@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::cast_precision_loss)]
 //! This example demonstrates the built-in 3d shapes in Bevy.
 //! The scene includes a patterned texture and a rotation for visualizing the
 //! normals and UVs.
@@ -56,7 +56,7 @@ fn setup(
                 mesh: shape,
                 material: debug_material.clone(),
                 transform: Transform::from_xyz(
-                    -X_EXTENT / 2. + i as f32 / (num_shapes - 1) as f32 * X_EXTENT,
+                    (i as f32 / (num_shapes - 1) as f32).mul_add(X_EXTENT, -X_EXTENT / 2.),
                     2.0,
                     0.0,
                 )

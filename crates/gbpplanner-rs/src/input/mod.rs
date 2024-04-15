@@ -6,7 +6,7 @@ use strum_macros::EnumIter;
 mod camera;
 mod general;
 mod moveable_object;
-pub(crate) mod screenshot;
+pub mod screenshot;
 mod ui;
 
 pub use camera::{CameraAction, CameraSensitivity};
@@ -61,13 +61,13 @@ impl ToDisplayString for InputAction {
 impl ToDisplayString for CameraAction {
     fn to_display_string(&self) -> String {
         match self {
-            CameraAction::Move => "Move Camera".to_string(),
-            CameraAction::MouseMove => "Move Mouse".to_string(),
-            CameraAction::ToggleMovementMode => "Toggle Movement Mode".to_string(),
-            CameraAction::ZoomIn => "Zoom In".to_string(),
-            CameraAction::ZoomOut => "Zoom Out".to_string(),
-            CameraAction::Switch => "Switch Camera".to_string(),
-            CameraAction::Reset => "Reset Camera".to_string(),
+            Self::Move => "Move Camera".to_string(),
+            Self::MouseMove => "Move Mouse".to_string(),
+            Self::ToggleMovementMode => "Toggle Movement Mode".to_string(),
+            Self::ZoomIn => "Zoom In".to_string(),
+            Self::ZoomOut => "Zoom Out".to_string(),
+            Self::Switch => "Switch Camera".to_string(),
+            Self::Reset => "Reset Camera".to_string(),
         }
     }
 }
@@ -75,11 +75,11 @@ impl ToDisplayString for CameraAction {
 impl ToDisplayString for GeneralAction {
     fn to_display_string(&self) -> String {
         match self {
-            GeneralAction::ToggleTheme => "Toggle Theme".to_string(),
-            GeneralAction::ExportGraph => "Export Graph".to_string(),
-            GeneralAction::ScreenShot => "Take Screenshot".to_string(),
-            GeneralAction::QuitApplication => "Quit Application".to_string(),
-            GeneralAction::PausePlaySimulation => "Pause/Play Simulation".to_string(),
+            Self::ToggleTheme => "Toggle Theme".to_string(),
+            Self::ExportGraph => "Export Graph".to_string(),
+            Self::ScreenShot => "Take Screenshot".to_string(),
+            Self::QuitApplication => "Quit Application".to_string(),
+            Self::PausePlaySimulation => "Pause/Play Simulation".to_string(),
         }
     }
 }
@@ -87,11 +87,11 @@ impl ToDisplayString for GeneralAction {
 impl ToDisplayString for MoveableObjectAction {
     fn to_display_string(&self) -> String {
         match self {
-            MoveableObjectAction::Move => "Move Object".to_string(),
-            MoveableObjectAction::RotateClockwise => "Rotate Clockwise".to_string(),
-            MoveableObjectAction::RotateCounterClockwise => "Rotate Counter Clockwise".to_string(),
-            MoveableObjectAction::Boost => "Boost".to_string(),
-            MoveableObjectAction::Toggle => "Toggle Object".to_string(),
+            Self::Move => "Move Object".to_string(),
+            Self::RotateClockwise => "Rotate Clockwise".to_string(),
+            Self::RotateCounterClockwise => "Rotate Counter Clockwise".to_string(),
+            Self::Boost => "Boost".to_string(),
+            Self::Toggle => "Toggle Object".to_string(),
         }
     }
 }

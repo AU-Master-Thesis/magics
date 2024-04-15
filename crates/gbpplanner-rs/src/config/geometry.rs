@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 use unit_interval::UnitInterval;
 
-use crate::polygon;
-
 // /// A relative point within the boudaries of the map.
 // /// ...
 // #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
@@ -188,7 +186,7 @@ impl Point {
     /// Create a new `Point` from a pair of values.
     /// Returns an error if either `x` or `y` is not in the interval [0.0, 1.0].
     #[inline]
-    pub fn new(x: f64, y: f64) -> Self {
+    pub const fn new(x: f64, y: f64) -> Self {
         Self { x, y }
     }
 }
@@ -211,11 +209,11 @@ impl RelativePoint {
         })
     }
 
-    /// Returns the x and y values as a tuple
-    #[inline]
-    pub fn get(&self) -> (f64, f64) {
-        (self.x.get(), self.y.get())
-    }
+    // /// Returns the x and y values as a tuple
+    // #[inline]
+    // pub const fn get(&self) -> (f64, f64) {
+    //     (self.x.get(), self.y.get())
+    // }
 }
 
 impl TryFrom<(f64, f64)> for RelativePoint {
@@ -266,7 +264,7 @@ impl TryFrom<(f64, f64)> for RelativePoint {
 //     }
 // }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, derive_more::IsVariant)]
 #[serde(rename_all = "kebab-case")]
 pub enum Shape {
     Circle {
@@ -278,23 +276,7 @@ pub enum Shape {
 }
 
 impl Shape {
-    /// Returns `true` if the shape is [`Polygon`].
-    ///
-    /// [`Polygon`]: Shape::Polygon
-    #[must_use]
-    pub fn is_polygon(&self) -> bool {
-        matches!(self, Self::Polygon(..))
-    }
-
-    /// Returns `true` if the shape is [`Circle`].
-    ///
-    /// [`Circle`]: Shape::Circle
-    #[must_use]
-    pub fn is_circle(&self) -> bool {
-        matches!(self, Self::Circle { .. })
-    }
-
-    pub fn as_polygon(&self) -> Option<&OneOrMore<Point>> {
+    pub const fn as_polygon(&self) -> Option<&OneOrMore<Point>> {
         if let Self::Polygon(v) = self {
             Some(v)
         } else {
@@ -309,10 +291,11 @@ macro_rules! polygon {
     [$(($x:expr, $y:expr)),+ $(,)?] => {{
         let vertices = vec![
             $(
-                crate::config::geometry::Point::new($x, $y)
+                $crate::config::geometry::Point::new($x, $y)
             ),+
         ];
-        Shape::Polygon(OneOrMore::new(vertices).expect("at least one vertex"))
+        Shape::Polygon(::min_len_vec::OneOrMore::new(vertices).expect("at least one vertex"))
+
     }}
 }
 
@@ -323,6 +306,6 @@ macro_rules! line {
     [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
         // Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
         // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1 as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(), y: f64::try_from().unwrap() }))
-        Shape::Line((crate::config::geometry::Point::new($x1, $y1), crate::config::geometry::Point::new($x2, $y2)))
+        Shape::Line(($crate::config::geometry::Point::new($x1, $y1), $crate::config::geometry::Point::new($x2, $y2)))
     };
 }

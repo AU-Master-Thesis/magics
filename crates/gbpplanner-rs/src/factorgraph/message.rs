@@ -70,7 +70,7 @@ impl Message {
 
     /// Returns `true` if the message is [`Empty`].
     #[inline]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.payload.is_none()
     }
 
@@ -84,7 +84,7 @@ impl Message {
     /// Access the payload of the message.
     /// Returns `None` if the message is empty.
     #[inline]
-    pub fn payload(&self) -> Option<&Payload> {
+    pub const fn payload(&self) -> Option<&Payload> {
         self.payload.as_ref()
     }
 
@@ -151,15 +151,15 @@ pub struct FactorToVariableMessage {
 // pub type MessagesFromFactors = BTreeMap<VariableId, Message>;
 
 /// Type alias for a map of messages from factors connected to a variable
-/// A (`BTreeMap`)[std::collections::BTreeMap] is used, instead of a
-/// (`HashMap`)[std::collections::HashMap] to ensure that the messages are
+/// A (`BTreeMap`)[`std::collections::BTreeMap`] is used, instead of a
+/// (`HashMap`)[`std::collections::HashMap`] to ensure that the messages are
 /// stored in a consistent order This is necessary for the **gbpplanner**
 /// algorithm to work correctly.
 pub type MessagesToFactors = BTreeMap<FactorId, Message>;
 
 /// Type alias for a map of messages from variables connected to a factor
-/// A (`BTreeMap`)[std::collections::BTreeMap] is used, instead of a
-/// (`HashMap`)[std::collections::HashMap] to ensure that the messages are
+/// A (`BTreeMap`)[`std::collections::BTreeMap`] is used, instead of a
+/// (`HashMap`)[`std::collections::HashMap`] to ensure that the messages are
 /// stored in a consistent order This is necessary for the **gbpplanner**
 /// algorithm to work correctly.
 pub type MessagesToVariables = BTreeMap<VariableId, Message>;

@@ -46,6 +46,8 @@ pub struct MultivariateNormal {
 impl MultivariateNormal {
     /// Create a new multivariate normal distribution in information form.
     ///
+    /// # Errors
+
     /// # Example:
     /// ```
     /// use gbp_linalg::{Matrix, Vector};
@@ -93,6 +95,13 @@ impl MultivariateNormal {
     /// Create a new multivariate normal distribution from the mean and
     /// covariance matrix
     ///
+    /// # Errors
+    ///
+    /// Will return `Err` if:
+    /// - `covariance` is not a square matrix
+    /// - length `mean` of does not equal number of rows/columns of `covariance`
+    /// - `covariance` is not an invertible matrix
+    ///
     /// # Example:
     /// ```
     /// use gbp_linalg::{Matrix, Vector};
@@ -137,19 +146,23 @@ impl MultivariateNormal {
     /// Returns the "dimension" of the multivariate normal distribution, which
     /// is the length of the information vector equal to the number of rows
     /// and columns of the precision matrix.
+    #[inline]
+    #[must_use]
     pub fn len(&self) -> usize {
         self.information.len()
     }
 
     /// Get the information vector of the multivariate normal distribution
     #[inline(always)]
-    pub fn information_vector(&self) -> &Vector<Float> {
+    #[must_use]
+    pub const fn information_vector(&self) -> &Vector<Float> {
         &self.information
     }
 
     /// Get the precision matrix of the multivariate normal distribution
     #[inline(always)]
-    pub fn precision_matrix(&self) -> &Matrix<Float> {
+    #[must_use]
+    pub const fn precision_matrix(&self) -> &Matrix<Float> {
         &self.precision
     }
 
@@ -162,6 +175,10 @@ impl MultivariateNormal {
 
     /// Set the precision matrix of the multivariate normal distribution
     /// Updates the cached mean internally.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if `value` is not an invertible matrix
     pub fn update_precision_matrix(&mut self, value: &Matrix<Float>) -> Result<()> {
         // if value.det() == Float::zero() {
         if value.det() == 0.0 {
@@ -175,13 +192,17 @@ impl MultivariateNormal {
 
     /// Get the mean of the multivariate normal distribution
     #[inline(always)]
-    pub fn mean(&self) -> &Vector<Float> {
+    #[must_use]
+    pub const fn mean(&self) -> &Vector<Float> {
         &self.mean
     }
 
     /// Get the covariance matrix of the multivariate normal distribution
     /// Returns an owned value `Matrix<Float>`, as the covariance matrix is not
     /// stored internally
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)] // internally the invariant that `precision` is always non singular should be
+                                         // upheld
     pub fn covariance(&self) -> Matrix<Float> {
         self.precision
             .inv()
@@ -277,10 +298,10 @@ impl MultivariateNormal {
     }
 }
 
-impl std::ops::Add<&MultivariateNormal> for MultivariateNormal {
-    type Output = MultivariateNormal;
+impl std::ops::Add<&Self> for MultivariateNormal {
+    type Output = Self;
 
-    fn add(self, rhs: &MultivariateNormal) -> Self::Output {
+    fn add(self, rhs: &Self) -> Self::Output {
         let information = self.information + &rhs.information;
         let precision = self.precision + &rhs.precision;
         let mean = precision.dot(&information);
@@ -309,8 +330,8 @@ impl std::ops::Add<&MultivariateNormal> for &MultivariateNormal {
     }
 }
 
-impl std::ops::AddAssign<&MultivariateNormal> for MultivariateNormal {
-    fn add_assign(&mut self, rhs: &MultivariateNormal) {
+impl std::ops::AddAssign<&Self> for MultivariateNormal {
+    fn add_assign(&mut self, rhs: &Self) {
         self.information += &rhs.information;
         self.precision += &rhs.precision;
         self.dirty = true;
@@ -318,10 +339,10 @@ impl std::ops::AddAssign<&MultivariateNormal> for MultivariateNormal {
     }
 }
 
-impl std::ops::Sub<&MultivariateNormal> for MultivariateNormal {
-    type Output = MultivariateNormal;
+impl std::ops::Sub<&Self> for MultivariateNormal {
+    type Output = Self;
 
-    fn sub(self, rhs: &MultivariateNormal) -> Self::Output {
+    fn sub(self, rhs: &Self) -> Self::Output {
         let information = self.information - &rhs.information;
         let precision = self.precision - &rhs.precision;
         let mean = precision.dot(&information);
@@ -350,8 +371,8 @@ impl std::ops::Sub<&MultivariateNormal> for &MultivariateNormal {
     }
 }
 
-impl std::ops::SubAssign<&MultivariateNormal> for MultivariateNormal {
-    fn sub_assign(&mut self, rhs: &MultivariateNormal) {
+impl std::ops::SubAssign<&Self> for MultivariateNormal {
+    fn sub_assign(&mut self, rhs: &Self) {
         self.information -= &rhs.information;
         self.precision -= &rhs.precision;
         self.dirty = true;
@@ -359,10 +380,10 @@ impl std::ops::SubAssign<&MultivariateNormal> for MultivariateNormal {
     }
 }
 
-impl std::ops::Mul<&MultivariateNormal> for MultivariateNormal {
-    type Output = MultivariateNormal;
+impl std::ops::Mul<&Self> for MultivariateNormal {
+    type Output = Self;
 
-    fn mul(self, rhs: &MultivariateNormal) -> Self::Output {
+    fn mul(self, rhs: &Self) -> Self::Output {
         // In the information form, the product of two multivariate normal distributions
         // is the sum of the information vectors and the sum of the precision matrices
         let information = self.information + &rhs.information;
@@ -377,8 +398,8 @@ impl std::ops::Mul<&MultivariateNormal> for MultivariateNormal {
     }
 }
 
-impl std::ops::MulAssign<&MultivariateNormal> for MultivariateNormal {
-    fn mul_assign(&mut self, rhs: &MultivariateNormal) {
+impl std::ops::MulAssign<&Self> for MultivariateNormal {
+    fn mul_assign(&mut self, rhs: &Self) {
         // In the information form, the product of two multivariate normal distributions
         // is the sum of the information vectors and the sum of the precision matrices
         self.information += &rhs.information;

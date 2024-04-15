@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)]
 //! Shows how to render simple primitive shapes with a single color.
 
 use bevy::{
@@ -44,7 +45,7 @@ fn setup(
             material: materials.add(color),
             transform: Transform::from_xyz(
                 // Distribute shapes from -X_EXTENT to +X_EXTENT.
-                -X_EXTENT / 2. + i as f32 / (num_shapes - 1) as f32 * X_EXTENT,
+                (i as f32 / (num_shapes - 1) as f32).mul_add(X_EXTENT, -X_EXTENT / 2.),
                 0.0,
                 0.0,
             ),

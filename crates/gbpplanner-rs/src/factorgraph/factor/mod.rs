@@ -2,20 +2,13 @@ use std::ops::AddAssign;
 
 use bevy::render::texture::Image;
 use gbp_linalg::prelude::*;
-use ndarray::{array, concatenate, prelude::*, s, Axis};
+use ndarray::{array, s};
 use typed_floats::StrictlyPositiveFinite;
 
-use self::{
-    dynamic::DynamicFactor, interrobot::InterRobotFactor, obstacle::ObstacleFactor,
-    pose::PoseFactor,
-};
+use self::{dynamic::DynamicFactor, interrobot::InterRobotFactor, obstacle::ObstacleFactor};
 use super::{
-    factorgraph::NodeIndex,
-    id::VariableId,
-    message::{MessagesToFactors, MessagesToVariables},
-    node::FactorGraphNode,
-    prelude::Message,
-    MessageCount, DOFS,
+    factorgraph::NodeIndex, id::VariableId, message::MessagesToVariables, node::FactorGraphNode,
+    prelude::Message, MessageCount, DOFS,
 };
 use crate::factorgraph::node::RemoveConnectionToError;
 
@@ -108,10 +101,9 @@ impl Factor {
     ///
     /// Panics if the node index has not been set, which should not happen.
     #[inline]
+    #[allow(clippy::unwrap_used)]
     pub fn node_index(&self) -> NodeIndex {
-        if self.node_index.is_none() {
-            panic!("The node index has not been set");
-        }
+        assert!(self.node_index.is_some(), "The node index has not been set");
         self.node_index.unwrap()
     }
 
@@ -121,9 +113,7 @@ impl Factor {
     ///
     /// Panics if the node index has already been set.
     pub fn set_node_index(&mut self, node_index: NodeIndex) {
-        if self.node_index.is_some() {
-            panic!("The node index is already set");
-        }
+        assert!(self.node_index.is_none(), "The node index is already set");
         self.node_index = Some(node_index);
     }
 
@@ -147,9 +137,9 @@ impl Factor {
         Self::new(state, kind)
     }
 
-    pub fn new_pose_factor() -> Self {
-        unimplemented!("the pose factor is stored in the variable")
-    }
+    // pub fn new_pose_factor() -> Self {
+    //     unimplemented!("the pose factor is stored in the variable")
+    // }
 
     pub fn new_obstacle_factor(
         strength: Float,
@@ -189,10 +179,10 @@ impl Factor {
         self.message_count.received += 1;
     }
 
-    #[inline(always)]
-    pub fn read_message_from(&mut self, from: VariableId) -> Option<&Message> {
-        self.inbox.get(&from)
-    }
+    // #[inline(always)]
+    // pub fn read_message_from(&mut self, from: VariableId) -> Option<&Message> {
+    //     self.inbox.get(&from)
+    // }
 
     /// Calculates the residual between the current measurement and the initial
     /// measurement
@@ -222,14 +212,15 @@ impl Factor {
         if self.skip() {
             let messages: MessagesToVariables = self
                 .inbox
-                .iter()
-                .map(|(variable_id, _)| (*variable_id, Message::empty()))
+                .keys()
+                .map(|variable_id| (*variable_id, Message::empty()))
                 .collect();
             self.message_count.sent += messages.len();
             return messages;
         }
 
-        let meas = self.measure(&self.state.linearisation_point.clone());
+        // let meas = self.measure(&self.state.linearisation_point.clone());
+        let _ = self.measure(&self.state.linearisation_point.clone());
         let jacobian = self.jacobian(&self.state.linearisation_point.clone());
 
         let potential_precision_matrix = jacobian
@@ -264,9 +255,7 @@ impl Factor {
 
                 // let message_precision =
                 // other_message.precision_matrix().unwrap_or(&zero_precision);
-                let message_precision = other_message
-                    .precision_matrix()
-                    .unwrap_or_else(|| &zero_precision);
+                let message_precision = other_message.precision_matrix().unwrap_or(&zero_precision);
                 // .unwrap_or_else(|| &Matrix::<Float>::zeros((DOFS, DOFS)));
 
                 information_vec
@@ -278,8 +267,8 @@ impl Factor {
             }
 
             let message =
-                marginalise_factor_distance(information_vec, precision_matrix, marginalisation_idx)
-                    .expect("marginalise_factor_distance should not fail");
+                marginalise_factor_distance(information_vec, precision_matrix, marginalisation_idx);
+            // .expect("marginalise_factor_distance should not fail");
             messages.insert(*variable_id, message);
             marginalisation_idx += DOFS;
         }
@@ -306,16 +295,16 @@ impl Factor {
         self.kind.is_obstacle()
     }
 
-    /// Check if the factor is a [`PoseFactor`]
-    #[inline(always)]
-    pub fn is_pose(&self) -> bool {
-        self.kind.is_pose()
-    }
+    // /// Check if the factor is a [`PoseFactor`]
+    // #[inline(always)]
+    // pub fn is_pose(&self) -> bool {
+    //     self.kind.is_pose()
+    // }
 }
 
 #[derive(Debug, derive_more::IsVariant)]
 pub enum FactorKind {
-    Pose(PoseFactor),
+    // Pose(PoseFactor),
     InterRobot(InterRobotFactor),
     Dynamic(DynamicFactor),
     Obstacle(ObstacleFactor),
@@ -323,7 +312,7 @@ pub enum FactorKind {
 
 impl FactorKind {
     /// Returns `Some(&InterRobotFactor)` if self is [`InterRobot`], otherwise
-    pub fn as_inter_robot(&self) -> Option<&InterRobotFactor> {
+    pub const fn as_inter_robot(&self) -> Option<&InterRobotFactor> {
         if let Self::InterRobot(v) = self {
             Some(v)
         } else {
@@ -332,7 +321,7 @@ impl FactorKind {
     }
 
     /// Returns `Some(&DynamicFactor)` if self is [`Dynamic`], otherwise
-    pub fn as_dynamic(&self) -> Option<&DynamicFactor> {
+    pub const fn as_dynamic(&self) -> Option<&DynamicFactor> {
         if let Self::Dynamic(v) = self {
             Some(v)
         } else {
@@ -341,7 +330,7 @@ impl FactorKind {
     }
 
     /// Returns `Some(&ObstacleFactor)` if self is [`Obstacle`], otherwise
-    pub fn as_obstacle(&self) -> Option<&ObstacleFactor> {
+    pub const fn as_obstacle(&self) -> Option<&ObstacleFactor> {
         if let Self::Obstacle(v) = self {
             Some(v)
         } else {
@@ -349,68 +338,68 @@ impl FactorKind {
         }
     }
 
-    /// Returns `Some(&PoseFactor)` if self is [`Pose`], otherwise `None`.
-    pub fn as_pose(&self) -> Option<&PoseFactor> {
-        if let Self::Pose(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
+    // /// Returns `Some(&PoseFactor)` if self is [`Pose`], otherwise `None`.
+    // pub const fn as_pose(&self) -> Option<&PoseFactor> {
+    //     if let Self::Pose(v) = self {
+    //         Some(v)
+    //     } else {
+    //         None
+    //     }
+    // }
 }
 
 impl IFactor for FactorKind {
     fn name(&self) -> &'static str {
         match self {
-            FactorKind::Pose(f) => f.name(),
-            FactorKind::InterRobot(f) => f.name(),
-            FactorKind::Dynamic(f) => f.name(),
-            FactorKind::Obstacle(f) => f.name(),
+            // Self::Pose(f) => f.name(),
+            Self::InterRobot(f) => f.name(),
+            Self::Dynamic(f) => f.name(),
+            Self::Obstacle(f) => f.name(),
         }
     }
 
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
         match self {
-            FactorKind::Pose(f) => f.jacobian(state, x),
-            FactorKind::InterRobot(f) => f.jacobian(state, x),
-            FactorKind::Dynamic(f) => f.jacobian(state, x),
-            FactorKind::Obstacle(f) => f.jacobian(state, x),
+            // Self::Pose(f) => f.jacobian(state, x),
+            Self::Dynamic(f) => f.jacobian(state, x),
+            Self::InterRobot(f) => f.jacobian(state, x),
+            Self::Obstacle(f) => f.jacobian(state, x),
         }
     }
 
     fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         match self {
-            FactorKind::Pose(f) => f.measure(state, x),
-            FactorKind::InterRobot(f) => f.measure(state, x),
-            FactorKind::Dynamic(f) => f.measure(state, x),
-            FactorKind::Obstacle(f) => f.measure(state, x),
+            // Self::Pose(f) => f.measure(state, x),
+            Self::Dynamic(f) => f.measure(state, x),
+            Self::InterRobot(f) => f.measure(state, x),
+            Self::Obstacle(f) => f.measure(state, x),
         }
     }
 
     fn skip(&mut self, state: &FactorState) -> bool {
         match self {
-            FactorKind::Pose(f) => f.skip(state),
-            FactorKind::InterRobot(f) => f.skip(state),
-            FactorKind::Dynamic(f) => f.skip(state),
-            FactorKind::Obstacle(f) => f.skip(state),
+            // Self::Pose(f) => f.skip(state),
+            Self::Dynamic(f) => f.skip(state),
+            Self::InterRobot(f) => f.skip(state),
+            Self::Obstacle(f) => f.skip(state),
         }
     }
 
     fn jacobian_delta(&self) -> Float {
         match self {
-            FactorKind::Pose(f) => f.jacobian_delta(),
-            FactorKind::InterRobot(f) => f.jacobian_delta(),
-            FactorKind::Dynamic(f) => f.jacobian_delta(),
-            FactorKind::Obstacle(f) => f.jacobian_delta(),
+            // Self::Pose(f) => f.jacobian_delta(),
+            Self::Dynamic(f) => f.jacobian_delta(),
+            Self::InterRobot(f) => f.jacobian_delta(),
+            Self::Obstacle(f) => f.jacobian_delta(),
         }
     }
 
     fn linear(&self) -> bool {
         match self {
-            FactorKind::Pose(f) => f.linear(),
-            FactorKind::InterRobot(f) => f.linear(),
-            FactorKind::Dynamic(f) => f.linear(),
-            FactorKind::Obstacle(f) => f.linear(),
+            // Self::Pose(f) => f.linear(),
+            Self::Dynamic(f) => f.linear(),
+            Self::InterRobot(f) => f.linear(),
+            Self::Obstacle(f) => f.linear(),
         }
     }
 }
@@ -437,7 +426,7 @@ pub struct FactorState {
     /// called `h_` in **gbpplanner**
     /// TODO: wrap in Option<>
     pub cached_measurement: Vector<Float>,
-    /// Set to true after the first call to self.update()
+    /// Set to true after the first call to `self.update()`
     initialized: bool,
 }
 
@@ -469,7 +458,7 @@ impl FactorGraphNode for Factor {
     ) -> Result<(), RemoveConnectionToError> {
         let connections_before = self.inbox.len();
         self.inbox
-            .retain(|variable_id, v| variable_id.factorgraph_id != factorgraph_id);
+            .retain(|variable_id, _| variable_id.factorgraph_id != factorgraph_id);
         let connections_after = self.inbox.len();
 
         let no_connections_removed = connections_before == connections_after;

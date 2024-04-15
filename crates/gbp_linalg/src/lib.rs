@@ -14,11 +14,11 @@ pub mod prelude {
 }
 
 /// Marker trait for floating point types used in GBP.
-/// - ndarray::NdFloat is a trait for floating point types that can be used with
-///   ndarray.
+/// - `ndarray::NdFloat` is a trait for floating point types that can be used
+///   with ndarray.
 /// It is implemented for f32 and f64.
 /// - Copy, is to make some of the methods more ergonomic to use.
-/// - std::iter::Sum is required by the `det()` method by
+/// - `std::iter::Sum` is required by the `det()` method by
 ///   `ndarray_inverse::Inverse::det()`
 /// which we use in `gbp_multivariate_normal::MultivariateNormal` to calculate
 /// the determinant of the precision matrix.
@@ -86,6 +86,7 @@ pub trait NdarrayVectorExt: Clone + VectorNorm {
     /// Normalize the vector in place.
     fn normalize(&mut self);
     /// Return a normalized copy of the vector.
+    #[must_use]
     fn normalized(&self) -> Self {
         let mut copy = self.clone();
         copy.normalize();
@@ -145,9 +146,10 @@ mod tests {
                         }
 
                         let v: Vector<$ty> = array![a, b];
-                        assert_eq!(<$ty>::sqrt(a * a + b * b), v.euclidean_norm());
-                        assert_eq!(v.l1_norm(), a.abs() + b.abs());
-                        assert_eq!(v.l2_norm(), v.euclidean_norm());
+                        assert_relative_eq!(<$ty>::sqrt(a.mul_add(a, b * b)), v.euclidean_norm());
+                        assert_relative_eq!(v.l1_norm(), a.abs() + b.abs());
+                        assert_relative_eq!(v.l2_norm(), v.euclidean_norm());
+                        // assert_eq!(v.l2_norm(), v.euclidean_norm());
                         Ok(())
                     });
                 }
@@ -163,9 +165,9 @@ mod tests {
                         }
                         let v: Vector<$ty> = Vector::from(v);
 
-                        assert_eq!(v.euclidean_norm(), v.dot(&v).sqrt());
-                        assert_eq!(v.l1_norm(), v.iter().map(|x| x.abs()).sum());
-                        assert_eq!(v.l2_norm(), v.euclidean_norm());
+                        assert_relative_eq!(v.euclidean_norm(), v.dot(&v).sqrt());
+                        assert_relative_eq!(v.l1_norm(), v.iter().map(|x| x.abs()).sum());
+                        assert_relative_eq!(v.l2_norm(), v.euclidean_norm());
                         Ok(())
                     });
                 }
@@ -192,7 +194,8 @@ mod tests {
                             // To lazy to handle NaNs ¯\_(ツ)_/¯
                             return Ok(());
                         }
-                        let mag = <$ty>::sqrt(a * a + b * b + c * c);
+                        // let mag = <$ty>::sqrt(a * a + b * b + c * c);
+                        let mag = <$ty>::sqrt(c.mul_add(c, a.mul_add(a, b * b)));
                         if mag == 0.0 || mag.is_infinite() {
                             // To lazy to handle the edge cases ¯\_(ツ)_/¯
                             return Ok(());

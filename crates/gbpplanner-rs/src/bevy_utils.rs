@@ -4,6 +4,7 @@
 use bevy::{app::Plugin, ecs::prelude::*, hierarchy::DespawnRecursiveExt};
 
 /// Prelude module bringing entire public api of this module into scope
+#[allow(unused_imports)]
 pub mod prelude {
     pub use super::*;
 }
@@ -60,10 +61,6 @@ impl BevyPluginExt for bevy::app::App {
 }
 
 pub mod run_conditions {
-    use bevy::{
-        ecs::system::Res,
-        input::{keyboard::KeyCode, ButtonInput},
-    };
 
     //     pub fn any_input_just_pressed(
     //         // inputs: impl IntoIterator<Item = ButtonInput<KeyCode>>,

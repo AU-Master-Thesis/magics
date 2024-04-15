@@ -1,9 +1,8 @@
 #![deny(missing_docs)]
 
-use bevy::log::{debug, error};
-use gbp_linalg::{pretty_print_matrix, pretty_print_vector, Float, Matrix, Vector};
+use bevy::log::debug;
+use gbp_linalg::{Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
-use tap::Tap;
 
 use super::{
     factorgraph::NodeIndex,
@@ -11,10 +10,6 @@ use super::{
     message::{InformationVec, Mean, Message, MessagesToFactors, PrecisionMatrix},
     node::{FactorGraphNode, RemoveConnectionToError},
     MessageCount,
-};
-use crate::{
-    escape_codes::*, pretty_print_line, pretty_print_message, pretty_print_subtitle,
-    pretty_print_title,
 };
 
 #[derive(Debug, Clone)]
@@ -25,7 +20,7 @@ pub struct VariablePrior {
 
 impl VariablePrior {
     #[must_use]
-    fn new(information_vector: Vector<Float>, precision_matrix: Matrix<Float>) -> Self {
+    const fn new(information_vector: Vector<Float>, precision_matrix: Matrix<Float>) -> Self {
         Self {
             information_vector,
             precision_matrix,
@@ -75,7 +70,7 @@ impl VariableBelief {
 
 impl From<VariableBelief> for Message {
     fn from(value: VariableBelief) -> Self {
-        Message::new(
+        Self::new(
             InformationVec(value.information_vector),
             PrecisionMatrix(value.precision_matrix),
             Mean(value.mean),
@@ -109,10 +104,9 @@ impl Variable {
     ///
     /// Panics if the node index has not been set, which should not happen.
     #[inline]
+    #[allow(clippy::unwrap_used)]
     pub fn node_index(&self) -> NodeIndex {
-        if self.node_index.is_none() {
-            panic!("The node index has not been set");
-        }
+        assert!(self.node_index.is_some(), "The node index has not been set");
         self.node_index.unwrap()
     }
 
@@ -156,9 +150,7 @@ impl Variable {
     }
 
     pub fn set_node_index(&mut self, index: NodeIndex) {
-        if self.node_index.is_some() {
-            panic!("The node index is already set");
-        }
+        assert!(self.node_index.is_none(), "The node index is already set");
         self.node_index = Some(index);
     }
 
@@ -221,11 +213,17 @@ impl Variable {
     pub fn update_belief_and_create_factor_responses(&mut self) -> MessagesToFactors {
         // Collect messages from all other factors, begin by "collecting message from
         // pose factor prior"
-        self.belief.information_vector = self.prior.information_vector.clone();
-        self.belief.precision_matrix = self.prior.precision_matrix.clone();
+        // self.belief.information_vector = self.prior.information_vector.clone();
+        // self.belief.precision_matrix = self.prior.precision_matrix.clone();
+        self.belief
+            .information_vector
+            .clone_from(&self.prior.information_vector);
+        self.belief
+            .precision_matrix
+            .clone_from(&self.prior.precision_matrix);
 
         // Go through received messages and update belief
-        for (_, message) in self.inbox.iter() {
+        for message in self.inbox.values() {
             let Some(payload) = message.payload() else {
                 continue;
             };
@@ -251,7 +249,10 @@ impl Variable {
                 } else {
                     println!(
                         "{}:{},Variable covariance is not finite",
-                        file!().split('/').last().unwrap(),
+                        file!()
+                            .split('/')
+                            .last()
+                            .expect("the basename of the filename always exist"),
                         line!()
                     );
                 }
@@ -265,7 +266,7 @@ impl Variable {
                 let response = received_message.payload().map_or_else(
                     || self.prepare_message(),
                     |message_from_factor| {
-                        let msg = Message::new(
+                        Message::new(
                             InformationVec(
                                 &self.belief.information_vector
                                     - &message_from_factor.information_factor,
@@ -275,8 +276,7 @@ impl Variable {
                                     - &message_from_factor.precision_matrix,
                             ),
                             Mean(&self.belief.mean - &message_from_factor.mean),
-                        );
-                        msg
+                        )
                     },
                 );
                 (factor_id, response)
@@ -290,7 +290,7 @@ impl Variable {
 
     /// Returns `true` if the covariance matrix is finite, `false` otherwise.
     #[inline]
-    pub fn finite_covariance(&self) -> bool {
+    pub const fn finite_covariance(&self) -> bool {
         self.belief.valid
     }
 }
@@ -302,7 +302,7 @@ impl FactorGraphNode for Variable {
     ) -> Result<(), RemoveConnectionToError> {
         let connections_before = self.inbox.len();
         self.inbox
-            .retain(|factor_id, v| factor_id.factorgraph_id != factorgraph_id);
+            .retain(|factor_id, _| factor_id.factorgraph_id != factorgraph_id);
         let connections_after = self.inbox.len();
 
         let no_connections_removed = connections_before == connections_after;

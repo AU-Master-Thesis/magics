@@ -12,7 +12,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 pub struct MinLenVec<T, const N: usize>(Vec<T>);
 
 /// Error type for `MinLenVec`.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum MinLenVecError {
     /// Not enough elements in the vector.
     /// Happens when you call [`MinLenVec::new`] with a vector that has less
@@ -24,7 +24,7 @@ pub enum MinLenVecError {
 impl std::fmt::Display for MinLenVecError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::NotEnoughElements(n) => write!(f, "Not enough elements, expected at least {}", n),
+            Self::NotEnoughElements(n) => write!(f, "Not enough elements, expected at least {n}"),
         }
     }
 }
@@ -38,6 +38,10 @@ pub type Result<T> = std::result::Result<T, MinLenVecError>;
 impl<T, const N: usize> MinLenVec<T, N> {
     /// Create a new `MinLenVec` from a vector.
     /// Returns an error if the vector has less than `N` elements.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if then length of `data` is less than `N`
     pub fn new(data: Vec<T>) -> Result<Self> {
         if data.len() < N {
             return Err(MinLenVecError::NotEnoughElements(N));
@@ -47,6 +51,7 @@ impl<T, const N: usize> MinLenVec<T, N> {
 
     /// Consume the `MinLenVec` and return the inner vector.
     #[inline(always)]
+    #[must_use]
     pub fn into_inner(self) -> Vec<T> {
         self.0
     }
@@ -54,22 +59,14 @@ impl<T, const N: usize> MinLenVec<T, N> {
     /// Get the length of the vector.
     /// This is the length of the inner vector, not the minimum length.
     #[inline(always)]
+    #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
-    // #[inline(always)]
-    // pub fn is_empty(&self) -> bool {
-    //     self.0.is_empty()
-    // }
-
-    /// Get an iterator of &T to the elements of the vector.
-    pub fn iter(&self) -> std::slice::Iter<'_, T> {
-        self.0.iter()
-    }
-
     /// Get a slice of the elements of the vector.
     #[inline(always)]
+    #[must_use]
     pub fn as_slice(&self) -> &[T] {
         self.0.as_slice()
     }
@@ -80,6 +77,11 @@ impl<T, const N: usize> MinLenVec<T, N> {
         self.0.as_mut_slice()
     }
 
+    /// Returns an iterator over references of self
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.0.iter()
+    }
+
     /// Push an element to the vector.
     #[inline(always)]
     pub fn push(&mut self, value: T) {
@@ -87,10 +89,14 @@ impl<T, const N: usize> MinLenVec<T, N> {
     }
 
     /// Pop an element from the vector.
-    /// Returns an error if the vector has exactly `N` elements.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the vector has exactly `N` elements.
     /// This is to ensure the invariant that the vector always has at least `N`
     /// elements.
     #[inline(always)]
+    #[allow(clippy::missing_panics_doc)] // if it panics, it means there is a bug in our implementation
     pub fn pop(&mut self) -> Result<T> {
         if self.0.len() <= N {
             return Err(MinLenVecError::NotEnoughElements(N));
@@ -102,6 +108,7 @@ impl<T, const N: usize> MinLenVec<T, N> {
     /// Since the vector has at least `N` elements, this will always return a
     /// first element.
     #[inline(always)]
+    #[must_use]
     pub fn first(&self) -> &T {
         &self.0[0]
     }
@@ -110,6 +117,7 @@ impl<T, const N: usize> MinLenVec<T, N> {
     /// Since the vector has at least `N` elements, this will always return a
     /// last element.
     #[inline(always)]
+    #[must_use]
     pub fn last(&self) -> &T {
         &self.0[self.0.len() - 1]
     }

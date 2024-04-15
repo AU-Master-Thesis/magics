@@ -7,8 +7,7 @@ use typed_floats::StrictlyPositiveFinite;
 
 use super::{FactorState, IFactor};
 use crate::factorgraph::{
-    factorgraph::{FactorGraphId, NodeIndex, VariableIndex},
-    id::{FactorId, VariableId},
+    factorgraph::{FactorGraphId, VariableIndex},
     DOFS,
 };
 
@@ -20,7 +19,7 @@ pub struct ExternalVariableId {
 
 impl ExternalVariableId {
     /// Create a new `ExternalVariableId`
-    pub fn new(factorgraph_id: FactorGraphId, variable_index: VariableIndex) -> Self {
+    pub const fn new(factorgraph_id: FactorGraphId, variable_index: VariableIndex) -> Self {
         Self {
             factorgraph_id,
             variable_index,
@@ -52,7 +51,7 @@ impl InterRobotFactor {
         let epsilon = 0.2 * robot_radius;
 
         Self {
-            safety_distance: 2.0 * robot_radius + epsilon,
+            safety_distance: 2.0f64.mul_add(robot_radius, epsilon),
             skip: false,
             external_variable,
         }
@@ -60,7 +59,7 @@ impl InterRobotFactor {
 
     /// Get the safety distance
     #[inline(always)]
-    pub fn safety_distance(&self) -> Float {
+    pub const fn safety_distance(&self) -> Float {
         self.safety_distance
     }
 }
@@ -85,7 +84,7 @@ impl IFactor for InterRobotFactor {
                 // Float;
                 // x_diff[i] += 1e-6 * self.connection.other_variable.factorgraph_id.index() as
                 // Float;
-                x_diff[i] += 1e-6 * self.external_variable.factorgraph_id.index() as Float;
+                x_diff[i] += 1e-6 * Float::from(self.external_variable.factorgraph_id.index());
                 // Add a tiny random offset to avoid div/0 errors
             }
             x_diff
@@ -121,13 +120,13 @@ impl IFactor for InterRobotFactor {
                 // Add a tiny random offset to avoid div/0 errors
                 // x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as
                 // Float;
-                x_diff[i] += 1e-6 * self.external_variable.factorgraph_id.index() as Float;
+                x_diff[i] += 1e-6 * Float::from(self.external_variable.factorgraph_id.index());
             }
             x_diff
         };
 
         let radius = x_diff.euclidean_norm();
-        let within_safety_distance = radius <= self.safety_distance;
+        // let within_safety_distance = radius <= self.safety_distance;
         // match (self.skip, within_safety_distance) {
         //     (Skip(true), true) => {}
         //     (Skip(true), false) => {}

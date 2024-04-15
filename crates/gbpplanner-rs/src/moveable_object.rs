@@ -1,12 +1,7 @@
 use bevy::prelude::*;
 
 // use leafwing_input_manager::prelude::*;
-use crate::{
-    asset_loader::SceneAssets,
-    environment,
-    movement::{Local, MovingObjectBundle},
-    robot_spawner::RobotSpawnedEvent,
-};
+use crate::{asset_loader::SceneAssets, environment, movement::MovingObjectBundle};
 
 const SCALE: f32 = 0.2;
 const START_TRANSLATION: Vec3 = Vec3::new(0., 0., 0.);

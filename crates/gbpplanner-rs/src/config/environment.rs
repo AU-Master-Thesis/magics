@@ -1,9 +1,8 @@
 use angle::Angle;
-use bevy::ecs::{system::Resource, world::error};
+use bevy::ecs::system::Resource;
 use gbp_linalg::Float;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
-use unit_interval::UnitInterval;
 
 use super::geometry::RelativePoint;
 use crate::environment::TileCoordinates;
@@ -31,11 +30,23 @@ impl TileGrid {
         self.0[0].chars().count()
     }
 
-    // override the index operator to allow for easy access to the grid
-    pub fn get(&self, row: usize, col: usize) -> Option<char> {
-        self.0.get(row).and_then(|r| r.chars().nth(col))
-    }
+    // /// override the index operator to allow for easy access to the grid
+    // pub fn get(&self, row: usize, col: usize) -> Option<char> {
+    //     self.0.get(row).and_then(|r| r.chars().nth(col))
+    // }
 }
+
+// impl std::ops::Index<(usize, usize)> for TileGrid {
+//     type Output = char;
+
+//     fn index(&self, (row, col): (usize, usize)) -> &Self::Output {
+//         &self
+//             .0
+//             .get(row)
+//             .and_then(|r| r.chars().nth(col))
+//             .expect("index is within grid")
+//     }
+// }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -43,15 +54,17 @@ pub struct Rotation(Angle);
 
 impl Rotation {
     pub fn new(value: Float) -> Self {
-        Rotation(Angle::from_degrees(value).expect("Invalid angle"))
+        Self(Angle::from_degrees(value).expect("Invalid angle"))
     }
 }
 
 impl Rotation {
+    #[inline]
     pub fn as_radians(&self) -> Float {
         self.0.as_radians()
     }
 
+    #[inline]
     pub fn as_degrees(&self) -> Float {
         self.0.as_degrees()
     }
@@ -110,20 +123,22 @@ pub enum PlaceableShape {
 }
 
 impl PlaceableShape {
+    #[allow(clippy::unwrap_used)]
     pub fn circle(radius: Float, center: (Float, Float)) -> Self {
-        PlaceableShape::Circle {
+        Self::Circle {
             radius: StrictlyPositiveFinite::<Float>::new(radius).unwrap(),
             center: RelativePoint::new(center.0, center.1).unwrap(),
         }
     }
 
+    #[allow(clippy::unwrap_used)]
     pub fn triangle(
         base_length: Float,
         height: Float,
         mid_point: Float,
         translation: (Float, Float),
     ) -> Self {
-        PlaceableShape::Triangle {
+        Self::Triangle {
             base_length: StrictlyPositiveFinite::<Float>::new(base_length).unwrap(),
             height: StrictlyPositiveFinite::<Float>::new(height).unwrap(),
             mid_point,
@@ -131,24 +146,27 @@ impl PlaceableShape {
         }
     }
 
+    #[allow(clippy::unwrap_used)]
     pub fn rectangle(width: Float, height: Float, center: (Float, Float)) -> Self {
-        PlaceableShape::Rectangle {
+        Self::Rectangle {
             width:       StrictlyPositiveFinite::<Float>::new(width).unwrap(),
             height:      StrictlyPositiveFinite::<Float>::new(height).unwrap(),
             translation: RelativePoint::new(center.0, center.1).unwrap(),
         }
     }
 
+    #[allow(clippy::unwrap_used)]
     pub fn square(side_length: Float, center: (Float, Float)) -> Self {
-        PlaceableShape::RegularPolygon {
+        Self::RegularPolygon {
             sides:       4,
             side_length: StrictlyPositiveFinite::<Float>::new(side_length).unwrap(),
             translation: RelativePoint::new(center.0, center.1).unwrap(),
         }
     }
 
+    #[allow(clippy::unwrap_used)]
     pub fn regular_polygon(sides: usize, side_length: Float, translation: (Float, Float)) -> Self {
-        PlaceableShape::RegularPolygon {
+        Self::RegularPolygon {
             sides,
             side_length: StrictlyPositiveFinite::<Float>::new(side_length).unwrap(),
             translation: RelativePoint::new(translation.0, translation.1).unwrap(),
@@ -168,8 +186,9 @@ pub struct Obstacle {
 }
 
 impl Obstacle {
+    #[must_use]
     pub fn new((row, col): (usize, usize), shape: PlaceableShape, rotation: Float) -> Self {
-        Obstacle {
+        Self {
             tile_coordinates: TileCoordinates::new(row, col),
             shape,
             rotation: Rotation(Angle::new(rotation).expect("Invalid angle")),
@@ -188,8 +207,8 @@ impl Obstacle {
 pub struct Obstacles(Vec<Obstacle>);
 
 impl Obstacles {
-    pub fn empty() -> Self {
-        Obstacles(Vec::new())
+    pub const fn empty() -> Self {
+        Self(Vec::new())
     }
 
     pub fn iter(&self) -> std::slice::Iter<Obstacle> {
@@ -214,7 +233,7 @@ pub struct Tiles {
 
 impl Tiles {
     pub fn empty() -> Self {
-        Tiles {
+        Self {
             grid:     TileGrid(vec!["█".to_string()]),
             settings: TileSettings {
                 tile_size:       0.0,
@@ -224,12 +243,12 @@ impl Tiles {
         }
     }
 
-    pub fn with_tile_size(mut self, tile_size: f32) -> Self {
+    pub const fn with_tile_size(mut self, tile_size: f32) -> Self {
         self.settings.tile_size = tile_size;
         self
     }
 
-    pub fn with_obstacle_height(mut self, obstacle_height: f32) -> Self {
+    pub const fn with_obstacle_height(mut self, obstacle_height: f32) -> Self {
         self.settings.obstacle_height = obstacle_height;
         self
     }
@@ -255,7 +274,7 @@ pub struct Environment {
 
 impl Default for Environment {
     fn default() -> Self {
-        Environment::intersection()
+        Self::intersection()
     }
 }
 
@@ -282,10 +301,10 @@ pub enum EnvironmentError {
 impl std::fmt::Display for EnvironmentError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            EnvironmentError::EmptyGrid => {
+            Self::EmptyGrid => {
                 write!(f, "Environment matrix representation is empty")
             }
-            EnvironmentError::DifferentLengthRows => {
+            Self::DifferentLengthRows => {
                 write!(
                     f,
                     "Environment matrix representation has rows of different lengths"
@@ -318,7 +337,7 @@ impl Environment {
         //     .map_err(Into::into)
         // with yaml
 
-        serde_yaml::from_str::<Environment>(contents)
+        serde_yaml::from_str::<Self>(contents)
             .map_err(Into::into)
             .and_then(|env| env.validate().map_err(Into::into))
     }
@@ -341,13 +360,14 @@ impl Environment {
         }
     }
 
+    #[must_use]
     pub fn new(
         matrix_representation: Vec<String>,
         path_width: f32,
         obstacle_height: f32,
         tile_size: f32,
     ) -> Self {
-        Environment {
+        Self {
             tiles:     Tiles {
                 grid:     TileGrid(matrix_representation),
                 settings: TileSettings {
@@ -360,8 +380,9 @@ impl Environment {
         }
     }
 
+    #[must_use]
     pub fn intersection() -> Self {
-        Environment {
+        Self {
             tiles:     Tiles {
                 grid:     TileGrid(vec!["┼".to_string()]),
                 settings: TileSettings {
@@ -374,9 +395,10 @@ impl Environment {
         }
     }
 
+    #[must_use]
     #[rustfmt::skip]
     pub fn intermediate() -> Self {
-        Environment {
+        Self {
             tiles: Tiles {
                 grid: TileGrid(vec![
                     "┌┬┐ ".to_string(),
@@ -393,9 +415,10 @@ impl Environment {
         }
     }
 
+    #[must_use]
     #[rustfmt::skip]
     pub fn complex() -> Self {
-        Environment {
+        Self {
             tiles: Tiles {
                 grid: TileGrid(vec![
                     "┌─┼─┬─┐┌".to_string(),
@@ -414,8 +437,9 @@ impl Environment {
         }
     }
 
+    #[must_use]
     pub fn circle() -> Self {
-        Environment {
+        Self {
             tiles:     Tiles::empty()
                 .with_tile_size(100.0)
                 .with_obstacle_height(1.0),
@@ -454,15 +478,15 @@ impl Environment {
         }
     }
 
-    pub fn path_width(&self) -> f32 {
+    pub const fn path_width(&self) -> f32 {
         self.tiles.settings.path_width
     }
 
-    pub fn obstacle_height(&self) -> f32 {
+    pub const fn obstacle_height(&self) -> f32 {
         self.tiles.settings.obstacle_height
     }
 
-    pub fn tile_size(&self) -> f32 {
+    pub const fn tile_size(&self) -> f32 {
         self.tiles.settings.tile_size
     }
 }

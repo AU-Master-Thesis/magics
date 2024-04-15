@@ -65,7 +65,7 @@ fn reset_camera(
 ) {
     next_movement_mode.set(CameraMovementMode::Pan);
 
-    for (mut transform, mut orbit) in camera_query.iter_mut() {
+    for (mut transform, mut orbit) in &mut camera_query {
         transform.translation = CAMERA_INITIAL_POSITION;
         transform.look_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
 

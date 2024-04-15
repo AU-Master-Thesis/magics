@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, time::Duration};
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
 use itertools::Itertools;
-use ringbuf::{HeapRb, Rb, StaticRb};
+use ringbuf::{Rb, StaticRb};
 
 const MAX_TRACE_LENGTH: usize = 100;
 const SAMPLE_DELAY: f32 = 0.5;
@@ -13,7 +13,6 @@ use crate::{
         robot::{RobotDespawned, RobotSpawned},
         RobotId, RobotState,
     },
-    robot_spawner::RobotSpawnedEvent,
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
@@ -45,17 +44,19 @@ pub struct Trace {
 // pub struct Traces(pub BTreeMap<RobotId, HeapRb<Vec3>>);
 pub struct Traces(pub BTreeMap<RobotId, Trace>);
 
+#[allow(dead_code)]
 fn remove_trace_of_despawned_robot(
     mut traces: ResMut<Traces>,
     mut despawn_robot_event: EventReader<RobotDespawned>,
 ) {
     for RobotDespawned(robot_id) in despawn_robot_event.read() {
-        match traces.0.remove(robot_id) {
-            Some(_) => info!("removed trace of robot: {:?}", robot_id),
-            None => error!(
+        if traces.0.remove(robot_id).is_some() {
+            info!("removed trace of robot: {:?}", robot_id);
+        } else {
+            error!(
                 "attempted to remove trace of untracked robot: {:?}",
                 robot_id
-            ),
+            );
         }
     }
 }
@@ -86,6 +87,7 @@ fn track_initial_robot_positions(
 
 /// **Bevy** [`Update`] system
 /// To update the [`Traces`] resource
+#[allow(clippy::type_complexity)]
 fn track_robots(
     query: Query<(RobotId, &Transform, &ColorAssociation), (With<RobotState>, Changed<Transform>)>,
     mut traces: ResMut<Traces>,
@@ -124,17 +126,21 @@ fn draw_paths_enabled(config: Res<Config>) -> bool {
 
 /// **Bevy** [`Update`] system
 /// To draw the robot traces; using the [`Traces`] resource
-fn draw_traces(mut gizmos: Gizmos, traces: Res<Traces>, catppuccin_theme: Res<CatppuccinTheme>) {
+fn draw_traces(
+    mut gizmos: Gizmos,
+    traces: Res<Traces>,
+    // catppuccin_theme: Res<CatppuccinTheme>
+) {
     // if !config.visualisation.draw.paths {
     //     // error!("draw_traces: visualisation.draw.paths is false");
     //     return;
     // }
 
     // TODO: avoid allocating a new iterator every frame
-    let mut colours = catppuccin_theme.into_display_iter().cycle();
+    // let colours = catppuccin_theme.into_display_iter().cycle();
     // let colours = catppuccin_theme.colours().into_iter().collect::<Vec<_>>();
 
-    for (_, trace) in traces.0.iter() {
+    for trace in traces.0.values() {
         // use a window of length 2 to iterate over the trace, and draw a line between
         // each pair of points
         // for window in trace.windows(2) {

@@ -12,8 +12,7 @@ use crate::{
         robot::{RobotDespawned, RobotSpawned},
         RobotState,
     },
-    pretty_print_title,
-    theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
     ui::DrawSettingsEvent,
 };
 
@@ -54,7 +53,6 @@ fn remove_rendered_factorgraph_when_robot_despawns(
             if tracker.robot_id == *robot_id {
                 if let Some(mut entitycommands) = commands.get_entity(entity) {
                     entitycommands.despawn();
-                } else {
                 }
             }
         }
@@ -73,7 +71,7 @@ struct VariableClickEvent(pub Entity);
 
 impl VariableClickEvent {
     #[inline]
-    pub fn target(&self) -> Entity {
+    pub const fn target(&self) -> Entity {
         self.0
     }
 }
@@ -144,6 +142,7 @@ fn create_factorgraph_visualizer(
 
         for (i, (index, variable)) in factorgraph.variables().enumerate() {
             let [x, y] = variable.estimated_position();
+            #[allow(clippy::cast_possible_truncation)]
             let transform = Vec3::new(x as f32, config.visualisation.height.objects, y as f32);
             let robottracker = RobotTracker {
                 robot_id: *robot_id,
@@ -170,9 +169,10 @@ fn create_factorgraph_visualizer(
                         ..Default::default()
                     }),
                     transform: Transform::from_translation(transform),
-                    visibility: match config.visualisation.draw.predicted_trajectories {
-                        true => Visibility::Visible,
-                        false => Visibility::Hidden,
+                    visibility: if config.visualisation.draw.predicted_trajectories {
+                        Visibility::Visible
+                    } else {
+                        Visibility::Hidden
                     },
                     ..Default::default()
                 },
@@ -191,13 +191,14 @@ fn create_factorgraph_visualizer(
 /// that have matching [`Entity`] with the `RobotTracker.robot_id`
 /// and variables in the [`FactorGraph`] that have matching
 /// `RobotTracker.variable_id`
+#[allow(clippy::cast_possible_truncation)]
 fn update_factorgraphs(
     mut query_tracker: Query<(&RobotTracker, &mut Transform), With<VariableVisualiser>>,
     query_factorgraph: Query<(Entity, &FactorGraph)>,
     config: Res<Config>,
 ) {
     // Update the `RobotTracker` components
-    for (tracker, mut transform) in query_tracker.iter_mut() {
+    for (tracker, mut transform) in &mut query_tracker {
         for (entity, factorgraph) in query_factorgraph.iter() {
             // continue if we're not looking at the right robot
             let not_the_right_robot = tracker.robot_id != entity;
@@ -235,7 +236,7 @@ fn show_or_hide_factorgraphs(
 ) {
     for event in draw_setting_event.read() {
         if matches!(event.setting, DrawSetting::PredictedTrajectories) {
-            for mut visibility in query.iter_mut() {
+            for mut visibility in &mut query {
                 *visibility = if event.draw {
                     Visibility::Visible
                 } else {

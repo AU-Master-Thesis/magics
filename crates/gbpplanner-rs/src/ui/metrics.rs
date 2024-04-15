@@ -2,19 +2,16 @@ use std::time::Duration;
 
 use bevy::{
     diagnostic::{
-        Diagnostic, DiagnosticPath, Diagnostics, DiagnosticsStore, EntityCountDiagnosticsPlugin,
-        FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin, RegisterDiagnostic,
-        SystemInformationDiagnosticsPlugin,
+        DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
+        LogDiagnosticsPlugin, SystemInformationDiagnosticsPlugin,
     },
-    input::{keyboard::KeyboardInput, ButtonState},
     prelude::*,
-    reflect::TypeData,
 };
 use bevy_egui::egui;
 use egui_plot::{Line, Plot, PlotPoints};
 
 use super::UiState;
-use crate::{config::Config, diagnostic::prelude::RobotDiagnosticsPlugin, AppState};
+use crate::{config::Config, diagnostic::prelude::RobotDiagnosticsPlugin};
 
 pub struct MetricsPlugin {
     wait_duration: Duration,
@@ -80,9 +77,9 @@ impl Plugin for MetricsPlugin {
 impl MetricsPlugin {
     fn render(
         mut egui_ctx: bevy_egui::EguiContexts,
-        time: Res<Time<Real>>,
+        // time: Res<Time<Real>>,
         diagnostics: Res<DiagnosticsStore>,
-        timer: Local<Timer>,
+        // timer: Local<Timer>,
         config: Res<Config>,
         mut ui_state: ResMut<UiState>,
         mut current_pos: Local<egui::Pos2>,
@@ -113,13 +110,8 @@ impl MetricsPlugin {
             .movable(true)
             .default_pos(*current_pos)
             .show(egui_ctx.ctx_mut(), |ui| {
-                if ui.rect_contains_pointer(ui.max_rect())
-                    && config.interaction.ui_focus_cancels_inputs
-                {
-                    ui_state.mouse_over.floating_window = true;
-                } else {
-                    ui_state.mouse_over.floating_window = false;
-                }
+                ui_state.mouse_over.floating_window = ui.rect_contains_pointer(ui.max_rect())
+                    && config.interaction.ui_focus_cancels_inputs;
 
                 // for diagnostic in &[EntityCountDiagnosticsPlugin::ENTITY_COUNT]
 
@@ -135,6 +127,7 @@ impl MetricsPlugin {
                     ("variables", &RobotDiagnosticsPlugin::VARIABLE_COUNT),
                     ("factors", &RobotDiagnosticsPlugin::FACTOR_COUNT),
                 ] {
+                    #[allow(clippy::cast_possible_truncation)]
                     if let Some(value) = diagnostics
                         .get_measurement(diagnostic_path)
                         .map(|d| d.value as i64)
@@ -146,6 +139,7 @@ impl MetricsPlugin {
                 if let Some(messages_sent) =
                     diagnostics.get(&RobotDiagnosticsPlugin::MESSAGES_SENT_COUNT)
                 {
+                    #[allow(clippy::cast_precision_loss)]
                     let points: PlotPoints = messages_sent.values()
                         // .iter()
                         .enumerate()

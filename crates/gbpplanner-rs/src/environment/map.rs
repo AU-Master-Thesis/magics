@@ -27,6 +27,7 @@ impl Plugin for MapPlugin {
 
 /// **Bevy** [`Startup`] system to spawn the an infinite grid
 /// Using the [`InfiniteGridPlugin`] from the `bevy_infinite_grid` crate
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 fn infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinTheme>) {
     let grid_colour = catppuccin_theme.grid_colour();
 
@@ -112,7 +113,7 @@ fn show_or_hide_flat_map(
 ) {
     for event in draw_setting_event.read() {
         if matches!(event.setting, config::DrawSetting::Sdf) {
-            for (_, mut visibility) in query.iter_mut() {
+            for (_, mut visibility) in &mut query {
                 if event.draw {
                     *visibility = Visibility::Visible;
                 } else {
@@ -143,6 +144,11 @@ fn environment_png_is_loaded(
 /// **Bevy** [`Update`] system
 /// Spawn the heightmap obstacles as soon as the obstacle image is loaded by
 /// using the `environment_png_is_loaded` run criteria.
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation
+)]
 fn obstacles(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,
@@ -160,7 +166,8 @@ fn obstacles(
 
     let width = image.texture_descriptor.size.width as usize;
     let height = image.texture_descriptor.size.height as usize;
-    let bytes_per_pixel = image.texture_descriptor.format.block_dimensions().0 as usize;
+    // let bytes_per_pixel = image.texture_descriptor.format.block_dimensions().0 as
+    // usize;
     let channels = 4;
 
     let vertices_count = width * height;
@@ -184,7 +191,7 @@ fn obstacles(
         for h in 0..height {
             // heightmap.push((w + h) as f32);
             // heightmap.push(0.0);
-            heightmap.push(1.0 - image.data[(w * height + h) * channels] as f32 / 255.0);
+            heightmap.push(1.0 - f32::from(image.data[(w * height + h) * channels]) / 255.0);
         }
     }
 
@@ -200,7 +207,7 @@ fn obstacles(
 
             let pos = [
                 (w_f32 - width as f32 / 2.) * extent / width as f32,
-                heightmap[d * width + w] * intensity - 0.1,
+                heightmap[d * width + w].mul_add(intensity, -0.1),
                 (d_f32 - height as f32 / 2.) * extent / height as f32,
             ];
             positions.push(pos);
@@ -211,6 +218,7 @@ fn obstacles(
     // Defining triangles.
     let mut triangles: Vec<u32> = Vec::with_capacity(triangle_count);
 
+    assert!(height > 2);
     for d in 0..(height - 2) as u32 {
         for w in 0..(width - 2) as u32 {
             // First tringle
@@ -269,7 +277,7 @@ fn show_or_hide_height_map(
 ) {
     for event in draw_setting_event.read() {
         if matches!(event.setting, config::DrawSetting::HeightMap) {
-            for (_, mut visibility) in query.iter_mut() {
+            for (_, mut visibility) in &mut query {
                 if event.draw {
                     *visibility = Visibility::Visible;
                 } else {

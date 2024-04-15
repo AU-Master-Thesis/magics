@@ -1,4 +1,4 @@
-use bevy::{input::common_conditions::*, prelude::*};
+use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 
 use crate::config::{Config, Environment, FormationGroup};
@@ -32,7 +32,7 @@ pub struct Simulation {
 }
 
 impl Simulation {
-    pub fn new(
+    pub const fn new(
         name: String,
         config: Config,
         environment: Environment,
@@ -55,7 +55,7 @@ pub struct SimulationId;
 pub struct ActiveSimulation(Option<SimulationId>);
 
 impl FromWorld for ActiveSimulation {
-    fn from_world(world: &mut World) -> Self {
+    fn from_world(_world: &mut World) -> Self {
         Self(None)
         // todo!()
     }

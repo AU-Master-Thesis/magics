@@ -8,9 +8,9 @@
 // TODO: take a struct as argument for better names
 
 /// Compute the timesteps at which variables in the planned path are placed.
-/// For a lookahead_multiple of 3, variables are spaced at timesteps:
+/// For a `lookahead_multiple` of 3, variables are spaced at timesteps:
 /// 0,  1, 2, 3,  5, 7, 9, 12, 15, 18, ...
-/// e.g. variables ar in groups of size lookahead_multiple.
+/// e.g. variables ar in groups of size `lookahead_multiple`.
 /// The spacing within a group increases by one each time (1, for the first
 /// group, 2 for the second etc.) Seems convoluted, but the reasoning was:
 /// - The first variable should always be at 1 timestep from the current state
@@ -27,6 +27,11 @@
 ///     vec![0, 1, 2, 3, 5, 7, 9, 12, 15, 18, 20]
 /// );
 /// ```
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation
+)]
 pub fn get_variable_timesteps(lookahead_horizon: u32, lookahead_multiple: u32) -> Vec<u32> {
     // println!("lookahead_horizon: {}", lookahead_horizon);
     // println!("lookahead_multiple: {}", lookahead_multiple);
@@ -43,9 +48,10 @@ pub fn get_variable_timesteps(lookahead_horizon: u32, lookahead_multiple: u32) -
     // TODO: use std::iter::successors instead
     for i in 0..(lookahead_multiple * (n + 1)) {
         let section = i / lookahead_multiple;
-        let f = (i as f32 - section as f32 * lookahead_multiple as f32
-            + lookahead_multiple as f32 / 2.0 * section as f32)
-            * (section as f32 + 1.0);
+        let f = (lookahead_multiple as f32 / 2.0).mul_add(
+            section as f32,
+            (section as f32).mul_add(-(lookahead_multiple as f32), i as f32),
+        ) * (section as f32 + 1.0);
 
         if f >= lookahead_horizon as f32 {
             timesteps.push(lookahead_horizon);

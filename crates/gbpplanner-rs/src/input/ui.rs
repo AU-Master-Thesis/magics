@@ -45,7 +45,7 @@ pub enum UiAction {
 }
 
 impl UiAction {
-    fn default_keyboard_input(action: UiAction) -> Option<UserInput> {
+    const fn default_keyboard_input(action: Self) -> UserInput {
         let input_kind = match action {
             Self::ToggleLeftPanel => InputKind::PhysicalKey(KeyCode::KeyH),
             Self::ToggleRightPanel => InputKind::PhysicalKey(KeyCode::KeyL),
@@ -55,7 +55,7 @@ impl UiAction {
             Self::ToggleMetricsWindow => InputKind::PhysicalKey(KeyCode::KeyM),
         };
 
-        Some(UserInput::Single(input_kind))
+        UserInput::Single(input_kind)
     }
 }
 
@@ -63,9 +63,10 @@ fn bind_ui_input(mut commands: Commands) {
     let mut input_map = InputMap::default();
 
     for action in UiAction::iter() {
-        if let Some(input) = UiAction::default_keyboard_input(action) {
-            input_map.insert(action, input);
-        }
+        let input = UiAction::default_keyboard_input(action);
+        input_map.insert(action, input);
+        // if let Some(input) = UiAction::default_keyboard_input(action) {
+        // }
     }
 
     commands.spawn(InputManagerBundle::with_map(input_map));

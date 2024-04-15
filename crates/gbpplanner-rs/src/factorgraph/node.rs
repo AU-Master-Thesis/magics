@@ -2,12 +2,11 @@ use super::{factor::Factor, factorgraph::FactorGraphId, variable::Variable};
 
 #[derive(Debug, derive_more::Display)]
 #[display(fmt = "no connection to the given factorgraph")]
-pub(crate) struct RemoveConnectionToError;
+pub struct RemoveConnectionToError;
 
 impl std::error::Error for RemoveConnectionToError {}
 
 pub(in crate::factorgraph) trait FactorGraphNode {
-    #[must_use]
     fn remove_connection_to(
         &mut self,
         factorgraph_id: FactorGraphId,
@@ -34,7 +33,7 @@ pub struct Node {
 
 impl Node {
     /// Construct a new node
-    pub fn new(factorgraph_id: FactorGraphId, kind: NodeKind) -> Self {
+    pub const fn new(factorgraph_id: FactorGraphId, kind: NodeKind) -> Self {
         Self {
             factorgraph_id,
             kind,
@@ -52,7 +51,7 @@ impl Node {
 
     /// Returns `Some(&Factor)` if the node]s variant is [`Factor`], otherwise
     /// `None`.
-    pub fn as_factor(&self) -> Option<&Factor> {
+    pub const fn as_factor(&self) -> Option<&Factor> {
         if let NodeKind::Factor(ref v) = self.kind {
             Some(v)
         } else {
@@ -81,7 +80,7 @@ impl Node {
 
     /// Returns `Some(&Variable)` if the node]s variant is [`Variable`],
     /// otherwise `None`.
-    pub fn as_variable(&self) -> Option<&Variable> {
+    pub const fn as_variable(&self) -> Option<&Variable> {
         if let NodeKind::Variable(ref v) = self.kind {
             Some(v)
         } else {

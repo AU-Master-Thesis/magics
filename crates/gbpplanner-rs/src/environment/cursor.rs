@@ -29,12 +29,12 @@ pub struct CursorCoordinates {
 
 impl CursorCoordinates {
     /// Get the global (world-space) coordinates of the cursor
-    pub fn global(&self) -> Vec3 {
+    pub const fn global(&self) -> Vec3 {
         self.global
     }
 
     /// Get the local (relative to the ground plane) coordinates of the cursor
-    pub fn local(&self) -> Vec2 {
+    pub const fn local(&self) -> Vec2 {
         self.local
     }
 }

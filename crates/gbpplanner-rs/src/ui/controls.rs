@@ -51,7 +51,7 @@ pub struct ChangingBinding {
 }
 
 impl ChangingBinding {
-    pub fn new(action: InputAction, binding: usize) -> Self {
+    pub const fn new(action: InputAction, binding: usize) -> Self {
         Self {
             action,
             binding,
@@ -60,7 +60,7 @@ impl ChangingBinding {
     }
 
     #[inline]
-    pub fn is_changing(&self) -> bool {
+    pub const fn is_changing(&self) -> bool {
         !matches!(self.action, InputAction::Undefined)
     }
 
@@ -70,7 +70,7 @@ impl ChangingBinding {
     }
 
     #[inline]
-    pub fn with_cooldown(mut self, cooldown: f32) -> Self {
+    pub const fn with_cooldown(mut self, cooldown: f32) -> Self {
         self.cooldown = cooldown;
         self
     }
@@ -100,6 +100,7 @@ fn binding_cooldown_system(time: Res<Time<Real>>, mut currently_changing: ResMut
 /// `Update` **Bevy** system to render the `egui` UI
 /// Uses the `UiState` to understand which panels are open and should be
 /// rendered
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 fn ui_controls_panel(
     mut contexts: EguiContexts,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
@@ -130,12 +131,8 @@ fn ui_controls_panel(
         .default_width(300.0)
         .resizable(false)
         .show_animated(ctx, ui_state.left_panel_visible, |ui| {
-            if ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs
-            {
-                ui_state.mouse_over.left_panel = true;
-            } else {
-                ui_state.mouse_over.left_panel = false;
-            }
+            ui_state.mouse_over.left_panel = ui.rect_contains_pointer(ui.max_rect())
+                && config.interaction.ui_focus_cancels_inputs;
 
             custom::heading(ui, "Controls", None);
 
@@ -151,7 +148,7 @@ fn ui_controls_panel(
                     );
                     ui.push_id("sensitivity_table", |ui| {
                         custom::sens_table(ui).body(|mut body| {
-                            if let Some(mut object_sensitivity) = object_sensitivity.as_mut() {
+                            if let Some(object_sensitivity) = object_sensitivity.as_mut() {
                                 body.row(custom::ROW_HEIGHT + custom::SPACING, |mut row| {
                                     row.col(|col| {
                                         col.label("Object Movement");
@@ -339,8 +336,8 @@ fn ui_controls_panel(
                                                         for r in 0..2 {
                                                             let button_content =
                                                                 inner_action.1.get(r).map_or_else(
-                                                                    || "".to_string(),
-                                                                    |ia| ia.to_display_string(),
+                                                                    String::new,
+                                                                    super::decoration::ToDisplayString::to_display_string,
                                                                 );
 
                                                             row.col(|col| {
@@ -348,10 +345,8 @@ fn ui_controls_panel(
                                                                 let (rect, _) = col
                                                                     .allocate_exact_size(
                                                                     Vec2::new(
-                                                                        custom::BINDING_COL_WIDTH
-                                                                            - 2.0 * custom::SPACING,
-                                                                        custom::BINDING_ROW_HEIGHT
-                                                                            - 2.0 * custom::SPACING,
+                                                                        2.0f32.mul_add(-custom::SPACING, custom::BINDING_COL_WIDTH),
+                                                                        2.0f32.mul_add(-custom::SPACING, custom::BINDING_ROW_HEIGHT),
                                                                     ),
                                                                     Sense::hover(),
                                                                 );
@@ -422,8 +417,8 @@ fn ui_controls_panel(
                                                         for r in 0..2 {
                                                             let button_content =
                                                                 inner_action.1.get(r).map_or_else(
-                                                                    || "".to_string(),
-                                                                    |ia| ia.to_display_string(),
+                                                                    String::new,
+                                                                    super::decoration::ToDisplayString::to_display_string,
                                                                 );
 
                                                             row.col(|col| {
@@ -431,10 +426,8 @@ fn ui_controls_panel(
                                                                 let (rect, _) = col
                                                                     .allocate_exact_size(
                                                                     Vec2::new(
-                                                                        custom::BINDING_COL_WIDTH
-                                                                            - 2.0 * custom::SPACING,
-                                                                        custom::BINDING_ROW_HEIGHT
-                                                                            - 2.0 * custom::SPACING,
+                                                                        2.0f32.mul_add(-custom::SPACING, custom::BINDING_COL_WIDTH),
+                                                                        2.0f32.mul_add(-custom::SPACING, custom::BINDING_ROW_HEIGHT),
                                                                     ),
                                                                     Sense::hover(),
                                                                 );
@@ -505,8 +498,8 @@ fn ui_controls_panel(
                                                         for r in 0..2 {
                                                             let button_content =
                                                                 inner_action.1.get(r).map_or_else(
-                                                                    || "".to_string(),
-                                                                    |ia| ia.to_display_string(),
+                                                                    String::new,
+                                                                    super::decoration::ToDisplayString::to_display_string,
                                                                 );
 
                                                             row.col(|col| {
@@ -514,10 +507,8 @@ fn ui_controls_panel(
                                                                 let (rect, _) = col
                                                                     .allocate_exact_size(
                                                                     Vec2::new(
-                                                                        custom::BINDING_COL_WIDTH
-                                                                            - 2.0 * custom::SPACING,
-                                                                        custom::BINDING_ROW_HEIGHT
-                                                                            - 2.0 * custom::SPACING,
+                                                                        2.0f32.mul_add(-custom::SPACING, custom::BINDING_COL_WIDTH),
+                                                                        2.0f32.mul_add(-custom::SPACING, custom::BINDING_ROW_HEIGHT),
                                                                     ),
                                                                     Sense::hover(),
                                                                 );
@@ -590,8 +581,8 @@ fn ui_controls_panel(
                                                         for r in 0..2 {
                                                             let button_content =
                                                                 inner_action.1.get(r).map_or_else(
-                                                                    || "".to_string(),
-                                                                    |ia| ia.to_display_string(),
+                                                                    String::new,
+                                                                    super::decoration::ToDisplayString::to_display_string,
                                                                 );
 
                                                             // |(i, x)| {
@@ -600,10 +591,8 @@ fn ui_controls_panel(
                                                                 let (rect, _) = col
                                                                     .allocate_exact_size(
                                                                     Vec2::new(
-                                                                        custom::BINDING_COL_WIDTH
-                                                                            - 2.0 * custom::SPACING,
-                                                                        custom::BINDING_ROW_HEIGHT
-                                                                            - 2.0 * custom::SPACING,
+                                                                        2.0f32.mul_add(-custom::SPACING, custom::BINDING_COL_WIDTH),
+                                                                        2.0f32.mul_add(-custom::SPACING, custom::BINDING_ROW_HEIGHT),
                                                                     ),
                                                                     Sense::hover(),
                                                                 );
@@ -631,7 +620,7 @@ fn ui_controls_panel(
                                         });
                                     });
                                 }
-                                _ => { /* do nothing */ }
+                                InputAction::Undefined => { /* do nothing */ }
                             }
                         }
                     });
@@ -642,7 +631,14 @@ fn ui_controls_panel(
             ui.add_space(10.0);
 
             ui.horizontal(|ui| {
-                if !matches!(currently_changing.action, InputAction::Undefined) {
+
+                if  matches!(currently_changing.action, InputAction::Undefined) {
+                    ui.label(
+                        RichText::new("Select a binding to change")
+                            .italics()
+                            .color(Color32::from_catppuccin_colour(catppuccin_theme.overlay2())),
+                    );
+                    } else {
                     ui.columns(2, |columns| {
                         columns[0].label(
                             RichText::new("Currently binding:").italics().color(
@@ -653,13 +649,28 @@ fn ui_controls_panel(
                             let _ = ui.button(currently_changing.action.to_display_string());
                         });
                     });
-                } else {
-                    ui.label(
-                        RichText::new("Select a binding to change")
-                            .italics()
-                            .color(Color32::from_catppuccin_colour(catppuccin_theme.overlay2())),
-                    );
-                }
+
+                    }
+
+
+                // if !matches!(currently_changing.action, InputAction::Undefined) {
+                //     ui.columns(2, |columns| {
+                //         columns[0].label(
+                //             RichText::new("Currently binding:").italics().color(
+                //                 Color32::from_catppuccin_colour(catppuccin_theme.overlay2()),
+                //             ),
+                //         );
+                //         columns[1].centered_and_justified(|ui| {
+                //             let _ = ui.button(currently_changing.action.to_display_string());
+                //         });
+                //     });
+                // } else {
+                //     ui.label(
+                //         RichText::new("Select a binding to change")
+                //             .italics()
+                //             .color(Color32::from_catppuccin_colour(catppuccin_theme.overlay2())),
+                //     );
+                // }
             });
 
             // buttons to cancel the currently changing binding
@@ -712,7 +723,7 @@ fn ui_controls_panel(
                                             }
                                         }
                                     }
-                                    _ => { /* do nothing */ }
+                                    InputAction::Undefined => { /* do nothing */ }
                                 }
                                 *currently_changing = ChangingBinding::default();
                             }
@@ -722,9 +733,7 @@ fn ui_controls_panel(
             }
         });
 
-    occupied_screen_space.left = left_panel
-        .map(|ref inner| inner.response.rect.width())
-        .unwrap_or(0.0);
+    occupied_screen_space.left = left_panel.map_or(0.0, |ref inner| inner.response.rect.width());
 }
 
 /// **Bevy** [`Update`] system
@@ -751,7 +760,7 @@ fn change_binding_keyboard(
 
         rebind(
             // currently_changing.action,
-            &mut currently_changing,
+            &currently_changing,
             UserInput::Single(InputKind::PhysicalKey(key_code)),
             query_camera_action,
             query_general_action,
@@ -782,7 +791,7 @@ fn change_binding_gamepad(
 
         rebind(
             // currently_changing.action,
-            &mut currently_changing,
+            &currently_changing,
             UserInput::Single(InputKind::GamepadButton(button.button_type)),
             query_camera_action,
             query_general_action,
@@ -813,7 +822,7 @@ fn change_binding_mouse(
 
         rebind(
             // currently_changing.action,
-            &mut currently_changing,
+            &currently_changing,
             UserInput::Single(InputKind::Mouse(button)),
             query_camera_action,
             query_general_action,
@@ -827,7 +836,7 @@ fn change_binding_mouse(
 
 fn rebind(
     // action: InputAction,
-    currently_changing: &mut ChangingBinding,
+    currently_changing: &ChangingBinding,
     new_binding: UserInput,
     mut query_camera_action: Query<&mut InputMap<CameraAction>>,
     mut query_general_action: Query<&mut InputMap<GeneralAction>>,
@@ -884,6 +893,6 @@ fn rebind(
                 bindings.insert(currently_changing.binding, new_binding);
             }
         }
-        _ => { /* do nothing */ }
+        InputAction::Undefined => unimplemented!("not defined for this case"),
     }
 }

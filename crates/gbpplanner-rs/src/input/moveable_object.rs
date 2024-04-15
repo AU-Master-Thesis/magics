@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use leafwing_input_manager::{prelude::*, user_input::InputKind};
+use leafwing_input_manager::prelude::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
@@ -67,37 +67,31 @@ impl Default for MoveableObjectAction {
 }
 
 impl MoveableObjectAction {
-    fn default_keyboard_input(action: MoveableObjectAction) -> Option<UserInput> {
+    const fn default_keyboard_input(action: Self) -> UserInput {
         match action {
-            Self::Move => Some(UserInput::VirtualDPad(VirtualDPad::wasd())),
-            Self::RotateClockwise => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyE))),
+            Self::Move => UserInput::VirtualDPad(VirtualDPad::wasd()),
+            Self::RotateClockwise => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyE)),
             Self::RotateCounterClockwise => {
-                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyQ)))
+                UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyQ))
             }
-            Self::Boost => Some(UserInput::Single(InputKind::PhysicalKey(
-                KeyCode::ShiftLeft,
-            ))),
-            Self::Toggle => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyF))),
+            Self::Boost => UserInput::Single(InputKind::PhysicalKey(KeyCode::ShiftLeft)),
+            Self::Toggle => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyF)),
         }
     }
 
-    fn default_gamepad_input(action: MoveableObjectAction) -> Option<UserInput> {
+    const fn default_gamepad_input(action: Self) -> UserInput {
         match action {
-            Self::Move => Some(UserInput::Single(InputKind::DualAxis(
-                DualAxis::left_stick(),
-            ))),
-            Self::RotateClockwise => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::RightTrigger,
-            ))),
-            Self::RotateCounterClockwise => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::LeftTrigger,
-            ))),
-            Self::Boost => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::LeftTrigger2,
-            ))),
-            Self::Toggle => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::South,
-            ))),
+            Self::Move => UserInput::Single(InputKind::DualAxis(DualAxis::left_stick())),
+            Self::RotateClockwise => {
+                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::RightTrigger))
+            }
+            Self::RotateCounterClockwise => {
+                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::LeftTrigger))
+            }
+            Self::Boost => {
+                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::LeftTrigger2))
+            }
+            Self::Toggle => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::South)),
         }
     }
 }
@@ -109,12 +103,17 @@ fn bind_moveable_object_input(mut commands: Commands, query: Query<Entity, With<
     // `UserInput`, then insert each default input into input_map
 
     for action in MoveableObjectAction::iter() {
-        if let Some(input) = MoveableObjectAction::default_keyboard_input(action) {
-            input_map.insert(action, input);
-        }
-        if let Some(input) = MoveableObjectAction::default_gamepad_input(action) {
-            input_map.insert(action, input);
-        }
+        let input = MoveableObjectAction::default_keyboard_input(action);
+        input_map.insert(action, input);
+        // if let Some(input) = MoveableObjectAction::default_keyboard_input(action) {
+        //     input_map.insert(action, input);
+        // }
+        let input = MoveableObjectAction::default_gamepad_input(action);
+        input_map.insert(action, input);
+        // if let Some(input) =
+        // MoveableObjectAction::default_gamepad_input(action) {
+        //     input_map.insert(action, input);
+        // }
     }
 
     if let Ok(entity) = query.get_single() {

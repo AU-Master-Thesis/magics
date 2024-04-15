@@ -51,6 +51,7 @@ fn draw_communication_graph_v2(
     // Only this system has access to `edges`, as it is `Local<T>` state
     // Instead of heap allocating a new Vec for each call to this function
     // we reuse the space allocated in previous calls
+    #[allow(clippy::undocumented_unsafe_blocks)]
     unsafe {
         edges.0.set_len(0);
     }
@@ -64,7 +65,7 @@ fn draw_communication_graph_v2(
             continue;
         }
 
-        for connected_with_id in robot_state.ids_of_robots_connected_with.iter() {
+        for connected_with_id in &robot_state.ids_of_robots_connected_with {
             if let Some((_, _, other_transform)) = robots_query
                 .iter()
                 .find(|(id, _, _)| id == connected_with_id)

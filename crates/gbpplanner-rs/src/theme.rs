@@ -85,7 +85,7 @@ impl CatppuccinTheme {
         };
 
         let (r, g, b) = colour.into();
-        #[allow(clippy::cast_possible_truncation)]
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8)
     }
 
@@ -99,7 +99,7 @@ impl CatppuccinTheme {
     /// `[rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green,
     /// teal, sky, sapphire, blue, lavender]`
     #[inline]
-    pub fn colours(&self) -> FlavourColours {
+    pub const fn colours(&self) -> FlavourColours {
         self.flavour.colours()
     }
 
@@ -107,7 +107,7 @@ impl CatppuccinTheme {
     /// The 'colourful' colours so to say
     /// i.e. not the text, subtext, overlay, surface, base, mantle, crust
     /// colours
-    pub fn into_display_iter(&self) -> std::array::IntoIter<Colour, 14> {
+    pub fn into_display_iter(self) -> std::array::IntoIter<Colour, 14> {
         [
             self.flavour.rosewater(),
             self.flavour.flamingo(),
@@ -127,7 +127,7 @@ impl CatppuccinTheme {
         .into_iter()
     }
 
-    pub fn get_display_colour(&self, display_colour: &DisplayColour) -> Colour {
+    pub const fn get_display_colour(&self, display_colour: &DisplayColour) -> Colour {
         match display_colour {
             DisplayColour::Rosewater => self.flavour.rosewater(),
             DisplayColour::Flamingo => self.flavour.flamingo(),
@@ -154,8 +154,8 @@ pub trait ColourExt {
 impl ColourExt for Colour {
     fn lightness(&self) -> f32 {
         let (r, g, b) = Into::<(u8, u8, u8)>::into(*self);
-        let average = (r as u16 + g as u16 + b as u16) / 3;
-        average as f32 / 255.0
+        let average = (u16::from(r) + u16::from(g) + u16::from(b)) / 3;
+        f32::from(average) / 255.0
     }
 }
 
@@ -191,28 +191,28 @@ pub trait CatppuccinThemeSelectionExt {
 
 pub trait FromCatppuccinColourExt {
     fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color32;
-    fn from_catppuccin_colour_ref(colour: &catppuccin::Colour) -> Color32 {
-        Self::from_catppuccin_colour(*colour)
+    fn from_catppuccin_colour_ref(colour: catppuccin::Colour) -> Color32 {
+        Self::from_catppuccin_colour(colour)
     }
     fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Color32;
 }
 
 impl FromCatppuccinColourExt for Color32 {
     fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color32 {
-        Color32::from_rgb(colour.0, colour.1, colour.2)
+        Self::from_rgb(colour.0, colour.1, colour.2)
     }
 
     fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Color32 {
         let (r, g, b) = colour.into();
-        #[allow(clippy::cast_possible_truncation)]
-        Color32::from_rgba_unmultiplied(r, g, b, (alpha * 255.0) as u8)
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        Self::from_rgba_unmultiplied(r, g, b, (alpha * 255.0) as u8)
     }
 }
 
 pub trait ColorFromCatppuccinColourExt {
     fn from_catppuccin_colour(colour: catppuccin::Colour) -> Color;
-    fn from_catppuccin_colour_ref(colour: &catppuccin::Colour) -> Color {
-        Color::from_catppuccin_colour(*colour)
+    fn from_catppuccin_colour_ref(colour: catppuccin::Colour) -> Color {
+        Color::from_catppuccin_colour(colour)
     }
     fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Color;
 }
@@ -220,20 +220,20 @@ pub trait ColorFromCatppuccinColourExt {
 impl ColorFromCatppuccinColourExt for Color {
     fn from_catppuccin_colour(colour: catppuccin::Colour) -> Self {
         let (r, g, b) = colour.into();
-        Color::rgb_u8(r, g, b)
+        Self::rgb_u8(r, g, b)
     }
 
     fn from_catppuccin_colour_with_alpha(colour: catppuccin::Colour, alpha: f32) -> Self {
         let (r, g, b) = colour.into();
-        #[allow(clippy::cast_possible_truncation)]
-        Color::rgba_u8(r, g, b, (alpha * 255.0) as u8)
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        Self::rgba_u8(r, g, b, (alpha * 255.0) as u8)
     }
 }
 
 impl CatppuccinThemeVisualsExt for Visuals {
     fn catppuccin_flavour(flavour: Flavour) -> Visuals {
         let is_dark = flavour.base().lightness() < 0.5;
-        Visuals {
+        Self {
             dark_mode: is_dark,
             override_text_color: Some(Color32::from_catppuccin_colour(flavour.text())),
             widgets: Widgets::catppuccin_flavour(flavour),
@@ -307,7 +307,7 @@ impl CatppuccinThemeWidgetsExt for Widgets {
             inactive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
                 bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke:    Default::default(), // default = 0 width stroke
+                bg_stroke:    Stroke::default(), // default = 0 width stroke
                 fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), /* button text */
                 rounding:     Rounding::same(5.0),
                 expansion:    0.0,
@@ -571,7 +571,7 @@ fn handle_robots(
     >,
 ) {
     for _ in theme_changed_event.read() {
-        for (handle, color_association) in query_robot.iter_mut() {
+        for (handle, color_association) in &mut query_robot {
             if let Some(material) = materials.get_mut(handle.clone()) {
                 material.base_color = Color::from_catppuccin_colour_with_alpha(
                     theme.get_display_colour(&color_association.name),
@@ -592,7 +592,7 @@ fn handle_waypoints(
     mut query_waypoint: Query<&mut Handle<StandardMaterial>, With<planner::WaypointVisualiser>>,
 ) {
     for _ in theme_changed_event.read() {
-        for handle in query_waypoint.iter_mut() {
+        for handle in &mut query_waypoint {
             if let Some(material) = materials.get_mut(handle.clone()) {
                 material.base_color = Color::from_catppuccin_colour_with_alpha(
                     catppuccin_theme.flavour.maroon(),
@@ -619,7 +619,7 @@ fn handle_variables(
     query_robot: Query<(Entity, &ColorAssociation), With<planner::RobotState>>,
 ) {
     for _ in theme_changed_event.read() {
-        for (handle, robot_tracker) in query_variable.iter_mut() {
+        for (handle, robot_tracker) in &mut query_variable {
             if let Some(material) = materials.get_mut(handle.clone()) {
                 // query to get the robot's `ColorAssociation`
                 if let Ok((_, color_association)) = query_robot.get(robot_tracker.robot_id) {
@@ -633,7 +633,7 @@ fn handle_variables(
     }
 }
 
-/// **Bevy** ['Update'] system to handle the theme change for obstacles
+/// **Bevy** [`Update`] system to handle the theme change for obstacles
 /// Reads [`ThemeChangedEvent`] to know when to change the obstacle colour
 /// Queries all [`StandardMaterial`] handles with [`MapCell`] components
 fn handle_obstacles(
@@ -643,7 +643,7 @@ fn handle_obstacles(
     mut query_obstacle: Query<&mut Handle<StandardMaterial>, With<environment::ObstacleMarker>>,
 ) {
     for _ in theme_changed_event.read() {
-        for handle in query_obstacle.iter_mut() {
+        for handle in &mut query_obstacle {
             if let Some(material) = materials.get_mut(handle.clone()) {
                 material.base_color =
                     Color::from_catppuccin_colour(catppuccin_theme.flavour.text());

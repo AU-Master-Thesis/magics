@@ -1,10 +1,6 @@
 /// **Bevy** module that manages the scale/zoom of all egui UI elements.
 use bevy::{
-    input::{
-        keyboard::{Key, KeyboardInput},
-        mouse::MouseWheel,
-        ButtonState,
-    },
+    input::{keyboard::KeyboardInput, mouse::MouseWheel, ButtonState},
     prelude::*,
     window::PrimaryWindow,
 };
@@ -54,19 +50,20 @@ impl std::fmt::Display for UiScale {
     }
 }
 
+#[allow(dead_code)]
 impl UiScale {
     pub const MAX: f32 = 2.0;
     pub const MIN: f32 = 0.5;
 
     /// Get the UI scale as a percentage
     #[inline(always)]
-    pub fn percentage(&self) -> f32 {
+    pub fn percentage(self) -> f32 {
         self.0 * 100.0
     }
 
     /// Set the UI scale
     #[inline(always)]
-    pub fn ratio(&self) -> f32 {
+    pub const fn ratio(self) -> f32 {
         self.0
     }
 
@@ -74,7 +71,7 @@ impl UiScale {
     /// The value is clamped between `UiScale::MIN` and `UiScale::MAX`
     pub fn set(&mut self, value: f32) {
         if (Self::MIN..=Self::MAX).contains(&value) {
-            self.0 = value
+            self.0 = value;
         }
     }
 }
@@ -104,6 +101,7 @@ fn scale_ui(
                 1.0 / primary_window.scale_factor()
             }
 
+            #[allow(clippy::cast_precision_loss)]
             UiScaleType::Custom => match event {
                 ScaleUi::Reset => 1.0,
                 ScaleUi::Set(scale) => *scale,
@@ -111,6 +109,7 @@ fn scale_ui(
                 ScaleUi::Decrement(decrement) => ui_state.scale_percent as f32 / 100.0 - decrement,
             },
         };
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         ui_state.set_scale((scale_factor * 100.0) as usize);
         egui_settings.scale_factor = scale_factor;
     }
