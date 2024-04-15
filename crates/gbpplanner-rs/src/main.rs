@@ -58,37 +58,38 @@ const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 #[allow(clippy::too_many_lines)]
 fn main() -> anyhow::Result<()> {
     if cfg!(all(not(target_arch = "wasm32"), debug_assertions)) {
-        eprintln!("installing better_panic panic hook");
+        // eprintln!("installing better_panic panic hook");
         better_panic::debug_install();
     }
-
-    let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
-
-    println!(
-        "{}:   {}",
-        "target arch".green().bold(),
-        std::env::consts::ARCH
-    );
-    println!(
-        "{}:     {}",
-        "target os".green().bold(),
-        std::env::consts::OS
-    );
-    println!(
-        "{}: {}",
-        "target family".green().bold(),
-        std::env::consts::FAMILY
-    );
-
-    println!("{}:          {}", "name".green().bold(), NAME);
-    println!("{}:", "authors".green().bold());
-    for &author in &authors {
-        println!(" - {}", author);
-    }
-    println!("{}:       {}", "version".green().bold(), VERSION);
-    println!("{}:  {}", "manifest_dir".green().bold(), MANIFEST_DIR);
-
     let cli = cli::parse_arguments();
+
+    if cli.metadata {
+        let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
+
+        eprintln!(
+            "{}:   {}",
+            "target arch".green().bold(),
+            std::env::consts::ARCH
+        );
+        eprintln!(
+            "{}:     {}",
+            "target os".green().bold(),
+            std::env::consts::OS
+        );
+        eprintln!(
+            "{}: {}",
+            "target family".green().bold(),
+            std::env::consts::FAMILY
+        );
+
+        eprintln!("{}:          {}", "name".green().bold(), NAME);
+        eprintln!("{}:", "authors".green().bold());
+        for &author in &authors {
+            eprintln!(" - {}", author);
+        }
+        eprintln!("{}:       {}", "version".green().bold(), VERSION);
+        eprintln!("{}:  {}", "manifest_dir".green().bold(), MANIFEST_DIR);
+    }
 
     if let Some(dump) = cli.dump_default {
         match dump {
@@ -108,7 +109,6 @@ fn main() -> anyhow::Result<()> {
 
         return Ok(());
     }
-
     // dump_environment
     if let Some(dump_environment) = cli.dump_environment {
         let env = match dump_environment {

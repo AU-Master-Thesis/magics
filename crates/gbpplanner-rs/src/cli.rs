@@ -6,7 +6,7 @@ use clap::Parser;
 use crate::config::EnvironmentType;
 
 /// Which type of configuration data to dump to stdout
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum DumpDefault {
     /// Dump the default config to stdout
     Config,
@@ -25,7 +25,7 @@ pub enum DumpDefault {
 /// (`parse_arguments()`)[`crate::cli::parse_arguments`] instead as the default
 /// values are different when compiling for `target_arch` = "wasm32".
 #[allow(clippy::struct_excessive_bools)]
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 #[clap(version, author, about)]
 pub struct Cli {
     /// Specify the configuration file to use, overrides the normal
@@ -53,12 +53,17 @@ pub struct Cli {
     #[arg(short, long)]
     pub debug: bool,
 
+    /// print metadata about the project to the stderr
+    #[arg(short, long)]
+    pub metadata: bool,
+
     /// use default values for all configuration, simulation and environment
     /// settings
     #[arg(long)]
     pub default: bool,
 }
 
+/// Parse arguments from `std::env::args`
 #[cfg(not(target_arch = "wasm32"))]
 #[must_use]
 pub fn parse_arguments() -> Cli {

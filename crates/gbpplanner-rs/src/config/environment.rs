@@ -254,7 +254,7 @@ impl Tiles {
     }
 }
 
-#[derive(clap::ValueEnum, Default, Clone, Copy)]
+#[derive(Debug, clap::ValueEnum, Default, Clone, Copy)]
 pub enum EnvironmentType {
     #[default]
     Intersection,
