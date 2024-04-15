@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_macros)]
+#![allow(dead_code, unused_macros, missing_docs)]
 
 use bevy::{prelude::*, window::WindowResized};
 // use std::f32::consts::{PI, TAU};
@@ -29,7 +29,7 @@ fn main() {
 
 #[derive(Resource)]
 struct WindowResolution {
-    width: f32,
+    width:  f32,
     height: f32,
 }
 
@@ -53,28 +53,28 @@ fn draw_cartesian_coordinate_system(mut gizmos: Gizmos, window_resolution: Res<W
 
 struct Line {
     start: Vec2,
-    end: Vec2,
+    end:   Vec2,
 }
 
 macro_rules! line {
     ($x1:expr, $y1:expr => $x2:expr, $y2:expr) => {
         Line {
             start: Vec2::new($x1, $y1),
-            end: Vec2::new($x2, $y2),
+            end:   Vec2::new($x2, $y2),
         }
     };
 }
 
 struct LineSegment3d {
     start: Vec3,
-    end: Vec3,
+    end:   Vec3,
 }
 
 macro_rules! line3d {
     ($x1:expr, $y1:expr => $x2:expr, $y2:expr) => {
         LineSegment3d {
             start: Vec3::new($x1, 0.0, $y1),
-            end: Vec3::new($x2, 0.0, $y2),
+            end:   Vec3::new($x2, 0.0, $y2),
         }
     };
 }

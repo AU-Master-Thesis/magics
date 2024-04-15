@@ -7,7 +7,7 @@ use crate::{
     asset_loader::SceneAssets,
     config::{Config, DrawSetting},
     planner::{
-        robot::RobotReachedWaypointEvent,
+        robot::RobotReachedWaypoint,
         spawner::{CreateWaypointEvent, DeleteWaypointEvent},
         RobotId,
     },
@@ -31,7 +31,7 @@ impl Plugin for WaypointVisualiserPlugin {
 }
 
 fn listen_for_robot_reached_waypoint_event(
-    mut robot_reached_waypoint_event: EventReader<RobotReachedWaypointEvent>,
+    mut robot_reached_waypoint_event: EventReader<RobotReachedWaypoint>,
     mut delete_waypoint_event: EventWriter<DeleteWaypointEvent>,
     query_waypoints: Query<(Entity, &AssociatedWithRobot), With<WaypointVisualiser>>,
 ) {

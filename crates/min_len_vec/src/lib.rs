@@ -34,6 +34,7 @@ impl std::error::Error for MinLenVecError {}
 /// Result type for `MinLenVec`.
 pub type Result<T> = std::result::Result<T, MinLenVecError>;
 
+#[allow(clippy::len_without_is_empty)]
 impl<T, const N: usize> MinLenVec<T, N> {
     /// Create a new `MinLenVec` from a vector.
     /// Returns an error if the vector has less than `N` elements.
@@ -65,11 +66,6 @@ impl<T, const N: usize> MinLenVec<T, N> {
     /// Get an iterator of &T to the elements of the vector.
     pub fn iter(&self) -> std::slice::Iter<'_, T> {
         self.0.iter()
-    }
-
-    /// Take ownership of the vector and return an iterator of T.
-    pub fn into_iter(self) -> std::vec::IntoIter<T> {
-        self.0.into_iter()
     }
 
     /// Get a slice of the elements of the vector.
@@ -116,6 +112,15 @@ impl<T, const N: usize> MinLenVec<T, N> {
     #[inline(always)]
     pub fn last(&self) -> &T {
         &self.0[self.0.len() - 1]
+    }
+}
+
+impl<T, const N: usize> std::iter::IntoIterator for MinLenVec<T, N> {
+    type IntoIter = std::vec::IntoIter<T>;
+    type Item = T;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -184,6 +189,7 @@ pub type OneOrMore<T> = MinLenVec<T, 1>;
 pub type TwoOrMore<T> = MinLenVec<T, 2>;
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use pretty_assertions::assert_eq;
 

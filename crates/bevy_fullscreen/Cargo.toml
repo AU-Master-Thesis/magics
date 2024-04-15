@@ -1,0 +1,15 @@
+[package]
+name                   = "bevy_fullscreen"
+edition                = "2021"
+version.workspace      = true
+repository.workspace   = true
+authors.workspace      = true
+rust-version.workspace = true
+license.workspace      = true
+
+[dependencies]
+bevy = "0.13"
+# bevy.workspace = true
+
+[lints]
+workspace = true

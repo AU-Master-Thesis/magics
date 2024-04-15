@@ -38,7 +38,7 @@ pub type Result<T> = std::result::Result<T, AngleError>;
 impl Angle {
     /// Creates a new [`Angle`] from a value in radians.
     pub fn new(value: f64) -> Result<Self> {
-        if value < 0.0 || value > 2.0 * std::f64::consts::PI {
+        if !(0.0..=2.0 * std::f64::consts::PI).contains(&value) {
             return Err(AngleError::OutOfRangeRadians(value));
         }
         Ok(Self(value))
@@ -46,18 +46,20 @@ impl Angle {
 
     /// Creates a new [`Angle`] from a value in degrees.
     pub fn from_degrees(value: f64) -> Result<Self> {
-        if value < 0.0 || value > 360.0 {
+        if !(0.0..=360.0).contains(&value) {
             return Err(AngleError::OutOfRangeDegrees(value));
         }
         Ok(Self(value.to_radians()))
     }
 
     /// Returns the angle in radians.
+    #[inline(always)]
     pub fn as_radians(&self) -> f64 {
         self.0
     }
 
     /// Returns the angle in degrees.
+    #[inline(always)]
     pub fn as_degrees(&self) -> f64 {
         self.0.to_degrees()
     }
@@ -141,6 +143,7 @@ impl<'de> Deserialize<'de> for Angle {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use approx::assert_abs_diff_eq;
 
@@ -148,18 +151,18 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(Angle::new(-1.0).is_err());
-        assert!(Angle::new(0.0).is_ok());
-        assert!(Angle::new(2.0 * std::f64::consts::PI).is_ok());
-        assert!(Angle::new(2.0 * std::f64::consts::PI + 1.0).is_err());
+        Angle::new(-1.0).unwrap_err();
+        Angle::new(0.0).unwrap();
+        Angle::new(2.0 * std::f64::consts::PI).unwrap();
+        Angle::new(2.0 * std::f64::consts::PI + 1.0).unwrap_err();
     }
 
     #[test]
     fn test_from_degrees() {
-        assert!(Angle::from_degrees(-1.0).is_err());
-        assert!(Angle::from_degrees(0.0).is_ok());
-        assert!(Angle::from_degrees(360.0).is_ok());
-        assert!(Angle::from_degrees(361.0).is_err());
+        Angle::from_degrees(-1.0).unwrap_err();
+        Angle::from_degrees(0.0).unwrap();
+        Angle::from_degrees(360.0).unwrap();
+        Angle::from_degrees(361.0).unwrap_err();
     }
 
     #[test]
@@ -261,7 +264,7 @@ mod tests {
         assert!(matches!(Angle::try_from(0.0), Ok(Angle(0.0))));
 
         let angle = Angle::try_from(2.0 * std::f64::consts::PI);
-        assert!(angle.is_ok());
+        angle.unwrap();
 
         assert!(matches!(
             Angle::try_from(-1.0),

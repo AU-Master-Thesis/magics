@@ -20,6 +20,11 @@ min_len_vec             = { path = "../min_len_vec" }
 gbp_linalg              = { path = "../gbp_linalg" }
 gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
 bevy_notify             = { path = "../bevy_notify" }
+units                   = { path = "../units" }
+bevy_fullscreen         = { path = "../bevy_fullscreen" }
+
+bevy_touchpad   = { path = "../bevy_touchpad" }
+repeating_array = { path = "../repeating_array" }
 
 glob = "0.3.1"
 better-panic = "0.3.0"
@@ -27,8 +32,11 @@ bevy = { version = "0.13.0", default-features = true, features = [
   # "wayland",
   # "dynamic_linking",
 ] }
+
 bevy-inspector-egui = "0.23.2"
-bevy_egui = "0.26.0"
+bevy_egui           = "0.26.0"
+egui_dock           = "0.11.4"
+egui_tiles          = "0.7.2"
 
 # bevy_egui = { git = "https://github.com/mvlabat/bevy_egui", branch = "main" } # 0.26 does not support egui 0.27, which egui-notify needs
 
@@ -106,7 +114,14 @@ egui_graphs      = "0.19.0"
 serde_yaml       = "0.9.34"
 rrt = "0.7.0"
 # parry3d = "0.13.7"
+colored          = "2.1.0"
+directories      = "5.0.1"
+chrono           = "0.4.37"
+
+
 # font-kit = { version = "0.13.0", features = ["freetype"] }
+
+dark-light = "1.1.1"
 
 
 # TODO: change to not wasm

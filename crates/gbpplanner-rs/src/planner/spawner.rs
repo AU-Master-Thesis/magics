@@ -10,8 +10,8 @@ use strum::IntoEnumIterator;
 use typed_floats::StrictlyPositiveFinite;
 
 use super::{
-    robot::{SpawnRobotEvent, VariableTimesteps},
-    PausePlayEvent, RobotId,
+    robot::{RobotSpawned, VariableTimesteps},
+    RobotId,
 };
 use crate::{
     asset_loader::SceneAssets,
@@ -19,6 +19,7 @@ use crate::{
         geometry::{Point, RelativePoint, Shape},
         Config, FormationGroup,
     },
+    pause_play::PausePlay,
     planner::robot::RobotBundle,
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
@@ -53,7 +54,7 @@ fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
 #[derive(Event)]
 pub struct CreateWaypointEvent {
     pub for_robot: RobotId,
-    pub position: Vec2,
+    pub position:  Vec2,
 }
 
 #[derive(Event)]
@@ -183,7 +184,7 @@ fn advance_time(
     time: Res<Time>,
     mut query: Query<&mut FormationSpawnerCountdown>,
     mut spawn_event_writer: EventWriter<FormationSpawnEvent>,
-    mut pause_play_event: EventWriter<PausePlayEvent>,
+    mut pause_play_event: EventWriter<PausePlay>,
     config: Res<Config>,
 ) {
     for mut countdown in query.iter_mut() {
@@ -197,7 +198,7 @@ fn advance_time(
             //     countdown.formation_group_index
             // );
             if config.simulation.pause_on_spawn {
-                pause_play_event.send(PausePlayEvent::Pause);
+                pause_play_event.send(PausePlay::Pause);
             }
         }
     }
@@ -207,7 +208,7 @@ fn advance_time(
 fn spawn_formation(
     mut commands: Commands,
     mut spawn_event_reader: EventReader<FormationSpawnEvent>,
-    mut spawn_robot_event: EventWriter<SpawnRobotEvent>,
+    mut spawn_robot_event: EventWriter<RobotSpawned>,
     mut create_waypoint_event: EventWriter<CreateWaypointEvent>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<Config>,
@@ -297,7 +298,7 @@ fn spawn_formation(
             let robot_id = entity.id();
             create_waypoint_event.send_batch(waypoints.iter().map(|p| CreateWaypointEvent {
                 for_robot: robot_id,
-                position: *p,
+                position:  *p,
             }));
 
             let mut waypoints_with_speed = waypoints
@@ -323,7 +324,7 @@ fn spawn_formation(
                 //     .iter()
                 //     .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
                 //     .collect::<VecDeque<_>>(),
-                variable_timesteps.timesteps.as_slice(),
+                variable_timesteps.as_slice(),
                 &config,
                 OBSTACLE_IMAGE
                     .get()
@@ -340,9 +341,9 @@ fn spawn_formation(
             };
 
             // TODO: Make this depend on random seed
-            // let random_color = theme.into_display_iter().choose(&mut thread_rng()).expect(
-            //     "Choosing random colour from an iterator that is hard-coded with values should be \
-            //      ok.",
+            // let random_color = theme.into_display_iter().choose(&mut
+            // thread_rng()).expect(     "Choosing random colour from an
+            // iterator that is hard-coded with values should be \      ok.",
             // );
             let random_color = DisplayColour::iter().choose(&mut thread_rng()).unwrap();
 
@@ -381,7 +382,7 @@ fn spawn_formation(
                     .with_attached(true),
             ));
 
-            spawn_robot_event.send(SpawnRobotEvent(robot_id));
+            spawn_robot_event.send(RobotSpawned(robot_id));
         }
         // info!("spawning formation group {}", event.formation_group_index);
     }
@@ -428,7 +429,7 @@ impl From<ListenerInput<Pointer<Click>>> for RobotClickEvent {
 
 #[derive(Debug, Clone, Copy)]
 struct WorldDimensions {
-    width: StrictlyPositiveFinite<f64>,
+    width:  StrictlyPositiveFinite<f64>,
     height: StrictlyPositiveFinite<f64>,
 }
 
@@ -441,7 +442,7 @@ struct WorldDimensions {
 impl WorldDimensions {
     fn new(width: f64, height: f64) -> Self {
         Self {
-            width: width.try_into().expect("width is not zero"),
+            width:  width.try_into().expect("width is not zero"),
             height: height.try_into().expect("height is not zero"),
         }
     }

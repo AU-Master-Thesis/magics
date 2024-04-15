@@ -80,7 +80,7 @@ fn spawn_robot_periodically(
                     ..Default::default()
                 },
                 MovementBundle {
-                    linear_movement: LinearMovementBundle {
+                    linear_movement:  LinearMovementBundle {
                         velocity: Velocity {
                             value: Vec3::new(0.0, 0.0, 1.0),
                         },

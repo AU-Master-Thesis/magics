@@ -1,146 +1,59 @@
+#![allow(warnings)]
+
 //! The main entry point of the simulation.
 pub(crate) mod asset_loader;
+mod bevy_utils;
+mod cli;
 pub(crate) mod config;
+mod diagnostic;
 mod environment;
+mod factorgraph;
 mod input;
 mod moveable_object;
 mod movement;
+pub(crate) mod pause_play;
 mod planner;
 mod robot_spawner;
+mod scene;
+
 pub(crate) mod theme;
-mod toggle_fullscreen;
 pub(crate) mod ui;
 pub(crate) mod utils;
 
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use bevy::{
-    asset::AssetMetaCheck, core::FrameCount, input::common_conditions::input_just_pressed,
-    prelude::*, window::WindowMode,
-};
+use bevy::{asset::AssetMetaCheck, log::LogPlugin, prelude::*, window::WindowMode};
+use bevy_fullscreen::ToggleFullscreenPlugin;
 // use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_notify::prelude::*;
-// use rand_core::RngCore;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
-use clap::Parser;
+use colored::Colorize;
 use config::{environment::EnvironmentType, Environment};
 use gbpplanner_rs::SimulationState;
 use iyes_perf_ui::prelude::*;
+
 // use rand::{Rng, SeedableRng};
 
+// use iyes_perf_ui::prelude::*;
 use crate::{
     asset_loader::AssetLoaderPlugin,
-    config::{Config, FormationGroup},
+    cli::DumpDefault,
+    config::{read_config, Config, FormationGroup},
     environment::EnvironmentPlugin,
     input::InputPlugin,
-    // moveable_object::MoveableObjectPlugin,
     movement::MovementPlugin,
+    pause_play::PausePlayPlugin,
     planner::PlannerPlugin,
     robot_spawner::RobotSpawnerPlugin,
+    scene::ScenePlugin,
     theme::ThemePlugin,
-    toggle_fullscreen::ToggleFullscreenPlugin,
     ui::EguiInterfacePlugin,
 };
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
-enum DumpDefault {
-    /// Dump the default config to stdout
-    Config,
-    /// Dump the default formation config to stdout
-    Formation,
-    /// Dump the default environment config to stdout
-    Environment,
-}
-
-#[derive(Parser)]
-#[clap(version, author, about)]
-struct Cli {
-    /// Specify the configuration file to use, overrides the normal
-    /// configuration file resolution
-    #[arg(short, long, value_name = "CONFIG_FILE")]
-    config: Option<std::path::PathBuf>,
-
-    /// What default configuration information to optionally dump to stdout
-    #[arg(long, value_enum)]
-    dump_default: Option<DumpDefault>,
-
-    /// Dump a specific [`EnvironmentType`] to stdout
-    #[arg(long, value_name = "ENVIRONMENT_TYPE")]
-    dump_environment: Option<EnvironmentType>,
-
-    /// Run the app without a window for rendering the environment
-    #[arg(long, group = "display")]
-    headless: bool,
-
-    /// Start the app in fullscreen mode
-    #[arg(short, long, group = "display")]
-    fullscreen: bool,
-
-    /// Enable debug plugins
-    #[arg(short, long)]
-    debug: bool,
-
-    /// use default values for all configuration, simulation and environment settings
-    #[arg(long)]
-    default: bool,
-}
-
-// fn read_config(cli: &Cli) -> color_eyre::eyre::Result<Config> {
-fn read_config<P>(path: Option<P>) -> anyhow::Result<Config>
-where
-    P: AsRef<std::path::Path>,
-{
-    if let Some(path) = path {
-        Ok(Config::from_file(path)?)
-    } else {
-        let mut conf_paths = Vec::<PathBuf>::new();
-
-        if let Ok(home) = std::env::var("HOME") {
-            let xdg_config_home = std::path::Path::new(&home).join(".config");
-            let user_config_dir = xdg_config_home.join("gbpplanner");
-
-            conf_paths.push(user_config_dir.join("config.toml"));
-        }
-
-        let cwd = std::env::current_dir()?;
-
-        conf_paths.push(cwd.join("config/config.toml"));
-
-        for conf_path in conf_paths {
-            if conf_path.exists() {
-                return Ok(Config::from_file(&conf_path)?);
-            }
-        }
-
-        anyhow::bail!("No config file found")
-    }
-}
-
-// #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
-// enum DebugState {
-//     #[default]
-//     Disabled,
-//     Enabled,
-// }
-
-#[cfg(not(target_arch = "wasm32"))]
-fn parse_arguments() -> Cli {
-    eprintln!("parsing arguments not on wasm32");
-    Cli::parse()
-}
-
-#[cfg(target_arch = "wasm32")]
-fn parse_arguments() -> Cli {
-    eprintln!("parsing arguments on wasm32");
-    let mut cli = Cli::parse();
-    cli.default = true;
-    cli
-}
 
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -148,43 +61,37 @@ const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
 fn main() -> anyhow::Result<()> {
     if cfg!(all(not(target_arch = "wasm32"), debug_assertions)) {
-        println!("installing better_panic panic hook");
+        eprintln!("installing better_panic panic hook");
         better_panic::debug_install();
     }
 
-    // if cfg!(target_os = "linux") {}
-    // if cfg!(wasm32-unknown-unknown) {}
-    // if cfg!(linux) {}
-
-    // if cfg!(windows) {
-    //     compile_error!("compiling on wasm32");
-    // }
-
-    let name = env!("CARGO_PKG_NAME");
-    let version = env!("CARGO_PKG_VERSION");
     let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
 
-    println!("target arch:   {}", std::env::consts::ARCH);
-    println!("target os:     {}", std::env::consts::OS);
-    println!("target family: {}", std::env::consts::FAMILY);
+    println!(
+        "{}:   {}",
+        "target arch".green().bold(),
+        std::env::consts::ARCH
+    );
+    println!(
+        "{}:     {}",
+        "target os".green().bold(),
+        std::env::consts::OS
+    );
+    println!(
+        "{}: {}",
+        "target family".green().bold(),
+        std::env::consts::FAMILY
+    );
 
-    println!("name:         {}", NAME);
-    println!("authors:");
+    println!("{}:          {}", "name".green().bold(), NAME);
+    println!("{}:", "authors".green().bold());
     authors.iter().for_each(|&author| {
         println!(" - {}", author);
     });
-    println!("version:      {}", VERSION);
-    println!("manifest_dir: {}", MANIFEST_DIR);
+    println!("{}:       {}", "version".green().bold(), VERSION);
+    println!("{}:  {}", "manifest_dir".green().bold(), MANIFEST_DIR);
 
-    // let cli  = parse_arguments();
-
-    let cli = if cfg!(not(target_arch = "wasm32")) {
-        Cli::parse()
-    } else {
-        let mut cli = Cli::parse();
-        cli.default = true;
-        cli
-    };
+    let cli = cli::parse_arguments();
 
     if let Some(dump) = cli.dump_default {
         match dump {
@@ -231,13 +138,13 @@ fn main() -> anyhow::Result<()> {
             Environment::default(),
         )
     } else {
-        let config = read_config(cli.config)?;
-        // if let Some(ref inner) = cli.config {
-        //     println!(
-        //         "successfully read config from: {}",
-        //         inner.as_os_str().to_string_lossy()
-        //     );
-        // }
+        let config = read_config(cli.config.as_ref())?;
+        if let Some(ref inner) = cli.config {
+            println!(
+                "successfully read config from: {}",
+                inner.as_os_str().to_string_lossy()
+            );
+        }
 
         let formation = FormationGroup::from_file(&config.formation_group)?;
         println!(
@@ -293,28 +200,51 @@ fn main() -> anyhow::Result<()> {
     let mut app = App::new();
 
     if cfg!(target_arch = "wasm32") {
-        app.insert_resource(AssetMetaCheck::Never); // needed for wasm build to work
+        app.insert_resource(AssetMetaCheck::Never); // needed for wasm build to
+                                                    // work
     }
+
+    // let mut default_plugins = DefaultPlugins;
+
+    // let log_plugin = if cfg!(debug_assertions) {
+    //     // dev build
+    //     LogPlugin {
+    //         level: bevy::log::Level::DEBUG,
+    //         filter: format!("error,wgpu_core=warn,wgpu_hal=warn,{}=debug", NAME),
+    //         ..default()
+    //     }
+    // } else {
+    //     // release build
+    //     LogPlugin {
+    //         level: bevy::log::Level::INFO,
+    //         filter: format!("error,wgpu_core=warn,wgpu_hal=warn,{}=info", NAME),
+    //         ..default()
+    //     }
+    // };
 
     app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
         .insert_resource(config)
         .insert_resource(formation)
         .insert_resource(environment)
-        .init_state::<SimulationState>()
-        .add_plugins(DefaultPlugins.set(window_plugin))
+        .init_state::<AppState>()
+        .add_plugins(DefaultPlugins
+            .set(window_plugin)
+            // .set(log_plugin)
+        )
         // third-party plugins
         .add_plugins(bevy_egui::EguiPlugin)
+        // TODO: use
         .add_plugins(EntropyPlugin::<WyRand>::default())
 
         // our plugins
         .add_plugins((
             DefaultPickingPlugins,
+            PausePlayPlugin::default(),
             ThemePlugin,       // Custom
             AssetLoaderPlugin, // Custom
             EnvironmentPlugin, // Custom
             MovementPlugin,    // Custom
             InputPlugin,       // Custom
-            ToggleFullscreenPlugin,
             // // MoveableObjectPlugin, // Custom
             // // CameraPlugin,        // Custom
             // // FollowCamerasPlugin, // Custom
@@ -324,6 +254,10 @@ fn main() -> anyhow::Result<()> {
             PlannerPlugin,
             NotifyPlugin::default()
         ))
+        .add_plugins(ToggleFullscreenPlugin::default())
+        // .add_plugins(bevy_touchpad::BevyTouchpadPlugin::default())
+
+        .add_plugins(ScenePlugin)
         // .add_plugins(NotifyPlugin)
         //         .insert_resource(Notifications(Toasts::default()))
         // we want Bevy to measure these values for us:
@@ -334,10 +268,10 @@ fn main() -> anyhow::Result<()> {
         // .add_systems(Startup, spawn_perf_ui)
         // .add_systems(Update, make_window_visible)
 
-        .add_systems(
-            Update,
-            create_toast.run_if(input_just_pressed(KeyCode::KeyZ)),
-        )
+        // .add_systems(
+        //     Update,
+        //     create_toast.run_if(input_just_pressed(KeyCode::KeyZ)),
+        // )
         .add_systems(PostUpdate, end_simulation.run_if(time_exceeds_max_time));
 
     app.run();
@@ -366,20 +300,51 @@ fn end_simulation(config: Res<Config>) {
     // std::process::exit(0);
 }
 
-fn spawn_perf_ui(mut commands: Commands) {
-    commands.spawn(PerfUiCompleteBundle::default());
-}
+// fn spawn_perf_ui(mut commands: Commands) {
+//     commands.spawn(PerfUiCompleteBundle::default());
+// }
 
-/// Makes the window visible after a few frames has been rendered.
-/// This is a **hack** to prevent the window from flickering at startup.
-fn make_window_visible(mut window: Query<&mut Window>, frames: Res<FrameCount>) {
-    // The delay may be different for your app or system.
-    if frames.0 == 3 {
-        // At this point the gpu is ready to show the app so we can make the window
-        // visible. Alternatively, you could toggle the visibility in Startup.
-        // It will work, but it will have one white frame before it starts rendering
-        window.single_mut().visible = true;
-    }
+// /// Makes the window visible after a few frames has been rendered.
+// /// This is a **hack** to prevent the window from flickering at startup.
+// fn make_window_visible(mut window: Query<&mut Window>, frames:
+// Res<FrameCount>) {     // The delay may be different for your app or system.
+//     if frames.0 == 3 {
+//         // At this point the gpu is ready to show the app so we can make the
+// window         // visible. Alternatively, you could toggle the visibility in
+// Startup.         // It will work, but it will have one white frame before it
+// starts rendering         window.single_mut().visible = true;
+//     }
+// }
+
+// TODO: use in app
+/// Set of distinct states the application can be in.
+#[derive(
+    Debug,
+    Default,
+    States,
+    PartialEq,
+    Eq,
+    Hash,
+    Clone,
+    Copy,
+    derive_more::Display,
+    /* derive_more::IsVariant, */
+)]
+pub enum AppState {
+    /// Start of the application where assets e.g. data in `./assets` is being
+    /// loaded into memory
+    #[default]
+    #[display(fmt = "Loading")]
+    Loading,
+    // #[display(fmt = "Starting")]
+    // Starting,
+    /// A simulation is running in the application
+    #[display(fmt = "Running")]
+    Running,
+    // #[display(fmt = "Paused")]
+    // Paused,
+    // #[display(fmt = "Finished")]
+    // Finished,
 }
 
 fn create_toast(mut toast_event: EventWriter<ToastEvent>, mut n: Local<usize>) {

@@ -12,7 +12,7 @@ fn main() {
 
 fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
     commands.spawn(AudioBundle {
-        source: asset_server.load("audio/za-warudo.ogg"),
+        source:   asset_server.load("audio/za-warudo.ogg"),
         settings: PlaybackSettings::LOOP,
         // ..default(),
     });

@@ -1,26 +1,31 @@
 pub mod controls;
 mod custom;
-// mod data;
+mod data;
 mod decoration;
+mod metrics;
+mod scale;
 // mod selected_entity;
 mod settings;
+
+use std::ops::{Range, RangeInclusive};
 
 use bevy::{input::common_conditions::*, prelude::*, window::WindowTheme};
 use bevy_egui::{
     egui::{self, Visuals},
     EguiContexts, EguiPlugin,
 };
+use bevy_touchpad::TwoFingerSwipe;
 pub use controls::ChangingBinding;
 pub use decoration::ToDisplayString;
 pub use settings::{DrawSettingsEvent, ExportGraphEvent};
 use strum_macros::EnumIter;
 
 use self::{
-    controls::ControlsPanelPlugin,
-    // data::DataPanelPlugin,
-    settings::SettingsPanelPlugin,
+    controls::ControlsPanelPlugin, data::DataPanelPlugin, metrics::MetricsPlugin,
+    scale::ScaleUiPlugin, settings::SettingsPanelPlugin,
 };
-use crate::{theme::CatppuccinThemeVisualsExt, SimulationState};
+use crate::{theme::CatppuccinThemeVisualsExt, AppState, SimulationState};
+
 //  _     _ _______ _______  ______
 //  |     | |______ |______ |_____/
 //  |_____| ______| |______ |    \_
@@ -32,20 +37,36 @@ use crate::{theme::CatppuccinThemeVisualsExt, SimulationState};
 
 pub struct EguiInterfacePlugin;
 
+pub struct UiPlugins;
+
+impl PluginGroup for UiPlugins {
+    fn build(self) -> bevy::app::PluginGroupBuilder {
+        bevy::app::PluginGroupBuilder::start::<Self>()
+            .add(ControlsPanelPlugin)
+            .add(SettingsPanelPlugin)
+            .add(DataPanelPlugin)
+            .add(MetricsPlugin::default())
+            .add(ScaleUiPlugin::default())
+    }
+}
+
 impl Plugin for EguiInterfacePlugin {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<bevy_touchpad::BevyTouchpadPlugin>() {
+            app.add_plugins(bevy_touchpad::BevyTouchpadPlugin::default());
+        }
         app.init_resource::<ActionBlock>()
             .init_resource::<OccupiedScreenSpace>()
             .init_resource::<UiState>()
             // .init_resource::<PreviousUiState>()
-            .add_plugins(( ControlsPanelPlugin,
-                
-                  SettingsPanelPlugin,
-                
-                  // DataPanelPlugin
-              
-              ))
-            .add_systems(OnEnter(SimulationState::Loading), load_fonts)
+            .add_plugins(( ControlsPanelPlugin, SettingsPanelPlugin, DataPanelPlugin,
+                ScaleUiPlugin::default(),
+
+
+                MetricsPlugin::default()            ))
+            // .add_systems(OnEnter(SimulationState::Loading), load_fonts)
+            .add_systems(Startup, load_fonts)
+            // .add_systems(OnEnter(AppState::Loading), load_fonts)
             .add_systems(Startup, configure_visuals)
             .add_systems(Update, action_block)
             .add_systems(
@@ -55,6 +76,9 @@ impl Plugin for EguiInterfacePlugin {
                     // toggle_visibility_of_panels.run_if(input_just_pressed(KeyCode::Escape)),
                 ),
             );
+        // .add_systems(Update,
+        // toggle_visibility_of_side_panels_when_two_finger_swiping);
+
         // .add_systems(
         //     Update,
         //     snapshot_
@@ -65,6 +89,25 @@ impl Plugin for EguiInterfacePlugin {
 fn load_fonts() {}
 
 fn toggle_visibility_of_panels(mut ui_state: ResMut<UiState>) {}
+
+fn toggle_visibility_of_side_panels_when_two_finger_swiping(
+    mut ui_state: ResMut<UiState>,
+    mut evr_two_finger_swipe: EventReader<TwoFingerSwipe>,
+    // mut timeout: Local<Timer>,
+) {
+    for event in evr_two_finger_swipe.read() {
+        match event.direction {
+            bevy_touchpad::TwoFingerSwipeDirection::Up
+            | bevy_touchpad::TwoFingerSwipeDirection::Down => {}
+            bevy_touchpad::TwoFingerSwipeDirection::Left => {
+                ui_state.left_panel_visible = !ui_state.left_panel_visible;
+            }
+            bevy_touchpad::TwoFingerSwipeDirection::Right => {
+                ui_state.right_panel_visible = !ui_state.right_panel_visible;
+            }
+        }
+    }
+}
 
 /// **Bevy** system that hides both the left and right ui panels, if any of them
 /// are visible.
@@ -83,6 +126,10 @@ fn hide_panels(mut ui_state: ResMut<UiState>) {
 
     if ui_state.bottom_panel_visible {
         ui_state.bottom_panel_visible = false;
+    }
+
+    if ui_state.metrics_window_visible {
+        ui_state.metrics_window_visible = false;
     }
 }
 
@@ -144,6 +191,8 @@ pub struct MouseOverPanel {
     pub right_panel: bool,
     pub top_panel: bool,
     pub bottom_panel: bool,
+    pub metrics_window: bool,
+    pub floating_window: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -177,13 +226,36 @@ pub struct UiState {
     pub top_panel_visible: bool,
     /// Whether the bottom panel is open
     pub bottom_panel_visible: bool,
+    /// Wheter the metrics window is open
+    pub metrics_window_visible: bool,
     /// The type of UI scaling to use
     pub scale_type: UiScaleType,
     /// When `scale_type` is `Custom`, the percentage to scale by
-    pub scale_percent: usize,
+    scale_percent: usize,
     // /// Whether the environment SDF is visible
     // pub environment_sdf: bool,
     pub mouse_over: MouseOverPanel,
+}
+
+impl UiState {
+    pub const DEFAULT_SCALE_PERCENTAGE: usize = 100;
+    pub const MAX_SCALE_PERCENTAGE: usize = 200;
+    pub const MIN_SCALE_PERCENTAGE: usize = 50;
+    pub const VALID_SCALE_INTERVAL: RangeInclusive<usize> =
+        Self::MIN_SCALE_PERCENTAGE..=Self::MAX_SCALE_PERCENTAGE;
+
+    pub fn set_scale(&mut self, percentage: usize) {
+        if Self::VALID_SCALE_INTERVAL.contains(&percentage) {
+            // if (Self::MIN_SCALE_PERCENTAGE..=Self::MAX_SCALE_PERCENTAGE).contains(&
+            // percentage) {
+            self.scale_percent = percentage;
+        }
+    }
+
+    #[inline(always)]
+    pub fn scale(&self) -> usize {
+        self.scale_percent
+    }
 }
 
 impl Default for UiState {
@@ -192,9 +264,11 @@ impl Default for UiState {
             left_panel_visible: false,
             right_panel_visible: false,
             top_panel_visible: false,
-            bottom_panel_visible: true,
+            bottom_panel_visible: false,
+            metrics_window_visible: false,
             scale_type: UiScaleType::default(),
-            scale_percent: 100, // start at default factor 1.0 = 100%
+            scale_percent: Self::DEFAULT_SCALE_PERCENTAGE,
+            // scale_percent: 100, // start at default factor 1.0 = 100%
             // environment_sdf: false,
             mouse_over: MouseOverPanel::default(),
         }
@@ -256,6 +330,7 @@ fn action_block(mut action_block: ResMut<ActionBlock>, ui_state: Res<UiState>) {
     // TODO: add top and bottom
     if (ui_state.left_panel_visible && ui_state.mouse_over.left_panel)
         || (ui_state.right_panel_visible && ui_state.mouse_over.right_panel)
+        || (ui_state.mouse_over.floating_window)
     {
         action_block.block();
     } else {

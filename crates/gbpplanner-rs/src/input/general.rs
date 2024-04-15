@@ -4,7 +4,6 @@ use bevy::{
     app::AppExit, prelude::*, render::view::screenshot::ScreenshotManager, tasks::IoTaskPool,
     window::PrimaryWindow,
 };
-
 use bevy_notify::prelude::*;
 use glob::glob;
 use itertools::Itertools;
@@ -13,10 +12,15 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use tap::Tap;
 
-use super::super::theme::ThemeEvent;
+use super::{super::theme::CycleTheme, screenshot::TakeScreenshot};
 use crate::{
     config::Config,
-    planner::{FactorGraph, NodeKind, PausePlayEvent, RobotId, RobotState},
+    factorgraph::{
+        graphviz::{Graph, NodeKind},
+        prelude::FactorGraph,
+    },
+    pause_play::PausePlay,
+    planner::{RobotId, RobotState},
     theme::CatppuccinTheme,
     ui::{ChangingBinding, ExportGraphEvent},
 };
@@ -28,18 +32,16 @@ pub struct GeneralInputPlugin;
 
 impl Plugin for GeneralInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ScreenShotEvent>()
-            .add_event::<QuitApplicationEvent>()
+        app.add_event::<QuitApplicationEvent>()
             .add_event::<ExportGraphFinishedEvent>()
-            .add_plugins((InputManagerPlugin::<GeneralAction>::default(),))
-            .add_systems(PostStartup, (bind_general_input,))
+            .add_plugins(InputManagerPlugin::<GeneralAction>::default())
+            .add_systems(PostStartup, bind_general_input)
             .add_systems(
                 Update,
                 (
                     general_actions_system,
                     export_graph_on_event,
                     screenshot,
-                    handle_screenshot_event,
                     quit_application_system,
                 ),
             );
@@ -58,17 +60,13 @@ pub enum GeneralAction {
 
 impl std::fmt::Display for GeneralAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::ToggleTheme => "Toggle Theme",
-                Self::ExportGraph => "Export Graph",
-                Self::ScreenShot => "Take Screenshot",
-                Self::QuitApplication => "Quit Application",
-                Self::PausePlaySimulation => "Pause/Play Simulation",
-            }
-        )
+        write!(f, "{}", match self {
+            Self::ToggleTheme => "Toggle Theme",
+            Self::ExportGraph => "Export Graph",
+            Self::ScreenShot => "Take Screenshot",
+            Self::QuitApplication => "Quit Application",
+            Self::PausePlaySimulation => "Pause/Play Simulation",
+        })
     }
 }
 
@@ -112,7 +110,6 @@ fn bind_general_input(mut commands: Commands) {
 fn export_factorgraphs_as_graphviz(
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: &Config,
-    // config: Res<Config>,
 ) -> Option<String> {
     if query.is_empty() {
         // There are no factorgraph in the scene/world
@@ -188,13 +185,15 @@ fn export_factorgraphs_as_graphviz(
         let external_connections: HashMap<usize, (RobotId, usize)> = nodes
             .into_iter()
             .filter_map(|node| match node.kind {
-                NodeKind::InterRobotFactor(connection) => Some((
+                NodeKind::InterRobotFactor(external_variable) => Some((
                     node.index,
                     (
-                        connection.id_of_robot_connected_with,
-                        connection
-                            .index_of_connected_variable_in_other_robots_factorgraph
-                            .index(),
+                        external_variable.factorgraph_id,
+                        external_variable.variable_index.index(),
+                        // connection.id_of_robot_connected_with,
+                        // connection
+                        //     .index_of_connected_variable_in_other_robots_factorgraph
+                        //     .index(),
                     ),
                 )),
                 _ => None,
@@ -225,8 +224,8 @@ fn export_factorgraphs_as_graphviz(
     Some(buf)
 }
 
-fn handle_toggle_theme(
-    theme_event_writer: &mut EventWriter<ThemeEvent>,
+fn cycle_theme(
+    theme_event_writer: &mut EventWriter<CycleTheme>,
     catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     info!("toggling application theme");
@@ -238,7 +237,7 @@ fn handle_toggle_theme(
         catppuccin::Flavour::Mocha => catppuccin::Flavour::Latte,
     };
 
-    theme_event_writer.send(ThemeEvent(next_theme));
+    theme_event_writer.send(CycleTheme(next_theme));
 }
 
 fn export_graph_on_event(
@@ -249,7 +248,12 @@ fn export_graph_on_event(
     mut toast_event: EventWriter<ToastEvent>,
 ) {
     if theme_event_reader.read().next().is_some() {
-        if let Err(e) = handle_export_graph(query, config.as_ref(), export_graph_finished_event, toast_event) {
+        if let Err(e) = handle_export_graph(
+            query,
+            config.as_ref(),
+            export_graph_finished_event,
+            toast_event,
+        ) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
     }
@@ -267,10 +271,18 @@ fn handle_export_graph(
     export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
     mut toast_event: EventWriter<ToastEvent>,
 ) -> std::io::Result<()> {
+    if cfg!(target_arch = "wasm32") {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "there is not filesystem access on target_arch wasm32",
+        ));
+    }
 
     let Some(output) = export_factorgraphs_as_graphviz(q, config) else {
         warn!("There are no factorgraphs in the world");
-        toast_event.send(ToastEvent::warning("There are no factorgraphs in the world".to_string()));
+        toast_event.send(ToastEvent::warning(
+            "There are no factorgraphs in the world".to_string(),
+        ));
 
         return Ok(());
     };
@@ -284,7 +296,10 @@ fn handle_export_graph(
         warn!("overwriting ./{:#?}", dot_output_path);
     }
     info!("exporting all factorgraphs to ./{:#?}", dot_output_path);
-    toast_event.send(ToastEvent::info(format!("exporting all factorgraphs to ./{:#?}", dot_output_path)));
+    toast_event.send(ToastEvent::info(format!(
+        "exporting all factorgraphs to ./{:#?}",
+        dot_output_path
+    )));
 
     std::fs::write(&dot_output_path, output.as_bytes())?;
 
@@ -314,11 +329,7 @@ fn handle_export_graph(
             };
 
             if output.status.success() {
-                let msg = format!(
-                    "successfully compiled ./{:?} with dot",
-                    dot_output_path,
-
-                );
+                let msg = format!("successfully compiled ./{:?} with dot", dot_output_path,);
                 info!(
                     "compiled {:?} to {:?} with dot",
                     dot_output_path, png_output_path
@@ -360,7 +371,7 @@ fn quit_application_system(
 }
 
 fn general_actions_system(
-    mut theme_event: EventWriter<ThemeEvent>,
+    mut theme_event: EventWriter<CycleTheme>,
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
     query_graphs: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
@@ -369,7 +380,7 @@ fn general_actions_system(
     // mut app_exit_event: EventWriter<AppExit>,
     mut quit_application_event: EventWriter<QuitApplicationEvent>,
     export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
-    mut pause_play_event: EventWriter<PausePlayEvent>,
+    mut pause_play_event: EventWriter<PausePlay>,
     mut toast_event: EventWriter<ToastEvent>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
@@ -381,11 +392,14 @@ fn general_actions_system(
     };
 
     if action_state.just_pressed(&GeneralAction::ToggleTheme) {
-        handle_toggle_theme(&mut theme_event, catppuccin_theme);
+        cycle_theme(&mut theme_event, catppuccin_theme);
     } else if action_state.just_pressed(&GeneralAction::ExportGraph) {
-        if let Err(e) =
-            handle_export_graph(query_graphs, config.as_ref(), export_graph_finished_event, toast_event)
-        {
+        if let Err(e) = handle_export_graph(
+            query_graphs,
+            config.as_ref(),
+            export_graph_finished_event,
+            toast_event,
+        ) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
     } else if action_state.just_pressed(&GeneralAction::QuitApplication) {
@@ -394,18 +408,14 @@ fn general_actions_system(
         // app_exit_event.send(AppExit);
     } else if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {
         info!("toggling pause/play simulation");
-        pause_play_event.send(PausePlayEvent::Toggle);
+        pause_play_event.send(PausePlay::Toggle);
     }
 }
-
-/// Signal to take a screenshot
-#[derive(Event, Debug, Copy, Clone)]
-pub struct ScreenShotEvent;
 
 fn screenshot(
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
     currently_changing: Res<ChangingBinding>,
-    mut screen_shot_event: EventWriter<ScreenShotEvent>,
+    mut screen_shot_event: EventWriter<TakeScreenshot>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
@@ -417,53 +427,6 @@ fn screenshot(
     };
 
     if action_state.just_pressed(&GeneralAction::ScreenShot) {
-        screen_shot_event.send(ScreenShotEvent);
-    }
-}
-
-fn handle_screenshot_event(
-    main_window: Query<Entity, With<PrimaryWindow>>,
-    mut screenshot_manager: ResMut<ScreenshotManager>,
-    mut screen_shot_event: EventReader<ScreenShotEvent>,
-    mut toast_event: EventWriter<ToastEvent>,
-) {
-    for _ in screen_shot_event.read() {
-        let Ok(window) = main_window.get_single() else {
-            warn!("screenshot action was called without a main window!");
-            return;
-        };
-
-        let existing_screenshots = glob("./screenshot_*.png").expect("valid glob pattern");
-        let latest_screenshot_id = existing_screenshots
-            .filter_map(|result| result.ok())
-            .filter_map(|path| {
-                path.file_name()
-                    .map(|file_name| file_name.to_str().map(|s| s.to_string()))
-                    .flatten()
-            })
-            .filter_map(|basename| {
-                basename["screenshot_".len()..basename.len() - 4]
-                    .parse::<usize>()
-                    .ok()
-            })
-            .max();
-
-        let screenshot_id = latest_screenshot_id.map(|id| id + 1).unwrap_or(0);
-
-        let path = format!("screenshot_{}.png", screenshot_id);
-
-        if let Err(err) = screenshot_manager.save_screenshot_to_disk(window, &path) {
-            let error_msg = format!("failed to save screenshot to disk: {}", err);
-            error!("failed to write screenshot to disk, error: {}", err);
-            toast_event.send(ToastEvent::error(error_msg));
-            continue;
-        };
-
-        info!("saved screenshot to ./{}", path);
-
-        toast_event.send(ToastEvent::success(format!(
-            "saved screenshot to ./{}",
-            path
-        )));
+        screen_shot_event.send(TakeScreenshot::default());
     }
 }

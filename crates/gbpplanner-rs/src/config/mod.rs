@@ -2,11 +2,14 @@ pub mod environment;
 pub mod formation;
 pub mod geometry;
 
+pub mod reader;
+
 use std::num::NonZeroUsize;
 
 use bevy::{ecs::system::Resource, reflect::Reflect};
 pub use environment::{Environment, EnvironmentType, Obstacle, Obstacles};
 pub use formation::{Formation, FormationGroup};
+pub use reader::read_config;
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
 use typed_floats::{PositiveFinite, StrictlyPositiveFinite};

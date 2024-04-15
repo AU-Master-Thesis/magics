@@ -4,13 +4,15 @@ use bevy::prelude::*;
 use strum_macros::EnumIter;
 
 pub mod camera;
-pub mod general;
-pub mod moveable_object;
-pub mod ui;
+mod general;
+mod moveable_object;
+pub(crate) mod screenshot;
+mod ui;
 
 pub use camera::{CameraAction, CameraSensitivity};
-pub use general::{GeneralAction, ScreenShotEvent};
+pub use general::GeneralAction;
 pub use moveable_object::{MoveableObjectAction, MoveableObjectSensitivity};
+use screenshot::ScreenshotPlugin;
 pub use ui::UiAction;
 
 use self::{camera::CameraInputPlugin, general::GeneralInputPlugin, ui::UiInputPlugin};
@@ -96,13 +98,15 @@ impl ToDisplayString for MoveableObjectAction {
 
 impl ToDisplayString for UiAction {
     fn to_display_string(&self) -> String {
-        match self {
-            UiAction::ToggleLeftPanel => "Toggle Left Panel".to_string(),
-            UiAction::ToggleRightPanel => "Toggle Right Panel".to_string(),
-            UiAction::ChangeScaleKind => "Toggle Scale Factor".to_string(),
-            UiAction::ToggleTopPanel => "Toggle Top Panel".to_string(),
-            UiAction::ToggleBottomPanel => "Toggle Bottom Panel".to_string(),
-        }
+        self.to_string()
+        // match self {
+        //     UiAction::ToggleLeftPanel => "Toggle Left Panel".to_string(),
+        //     UiAction::ToggleRightPanel => "Toggle Right Panel".to_string(),
+        //     UiAction::ChangeScaleKind => "Toggle Scale Factor".to_string(),
+        //     UiAction::ToggleTopPanel => "Toggle Top Panel".to_string(),
+        //     UiAction::ToggleBottomPanel => "Toggle Bottom Panel".to_string(),
+        //     UiAction::ToggleMetricsWindow => "",
+        // }
     }
 }
 
@@ -115,6 +119,7 @@ impl Plugin for InputPlugin {
             // MoveableObjectInputPlugin,
             GeneralInputPlugin,
             UiInputPlugin,
+            ScreenshotPlugin::default(),
         ));
     }
 }

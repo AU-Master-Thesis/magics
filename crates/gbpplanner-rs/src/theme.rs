@@ -31,26 +31,13 @@ pub struct CatppuccinTheme {
 
 impl Default for CatppuccinTheme {
     fn default() -> Self {
-        Self {
-            flavour: Flavour::Macchiato,
-        }
+        let flavour = match dark_light::detect() {
+            dark_light::Mode::Dark | dark_light::Mode::Default => Flavour::Macchiato,
+            dark_light::Mode::Light => Flavour::Latte,
+        };
+        Self { flavour }
     }
 }
-
-// macro_rules! impl_colour_method {
-//     ($x:ident) => (
-//         pub const fn $x(self) -> $crate::Colour {
-//             self.colours().$x
-//         }
-//     );
-//     ($x:ident, $($y:ident),+ $(,)?) => (
-//         pub const fn $x(self) -> $crate::Colour {
-//             self.colours().$x
-//         }
-
-//         impl_colour_method!($($y),+);
-//     );
-// }
 
 #[derive(EnumIter, Debug)]
 pub enum DisplayColour {
@@ -75,6 +62,7 @@ macro_rules! impl_colour_getters {
     ($($x:ident),+ $(,)?) => (
         $(
             #[allow(dead_code)]
+            #[inline(always)]
             pub const fn $x(&self) -> Colour {
                 self.flavour.$x()
             }
@@ -101,6 +89,8 @@ impl CatppuccinTheme {
         Color::rgba_u8(r, g, b, (0.5 * 255.0) as u8)
     }
 
+    /// Check if the theme is a "dark" theme
+    #[inline(always)]
     pub fn is_dark(&self) -> bool {
         self.flavour.base().lightness() < 0.5
     }
@@ -108,6 +98,7 @@ impl CatppuccinTheme {
     /// Get iterator over all colours:
     /// `[rosewater, flamingo, pink, mauve, red, maroon, peach, yellow, green,
     /// teal, sky, sapphire, blue, lavender]`
+    #[inline]
     pub fn colours(&self) -> FlavourColours {
         self.flavour.colours()
     }
@@ -307,43 +298,43 @@ impl CatppuccinThemeWidgetsExt for Widgets {
         Self {
             noninteractive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), /* separators, indentation lines */
-                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), /* normal text color */
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())), /* separators, indentation lines */
+                fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.text())), /* normal text color */
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
             inactive: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke: Default::default(), // default = 0 width stroke
-                fg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), /* button text */
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke:    Default::default(), // default = 0 width stroke
+                fg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.subtext1())), /* button text */
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
             hovered: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface2()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), /* e.g. hover over window edge or button */
-                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding: Rounding::same(7.0),
-                expansion: 2.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface2()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.overlay0())), /* e.g. hover over window edge or button */
+                fg_stroke:    Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding:     Rounding::same(7.0),
+                expansion:    2.0,
             },
             active: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                fg_stroke: Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
-                rounding: Rounding::same(7.0),
-                expansion: 2.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface1()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                fg_stroke:    Stroke::new(2.0, Color32::from_catppuccin_colour(flavour.lavender())),
+                rounding:     Rounding::same(7.0),
+                expansion:    2.0,
             },
             open: WidgetVisuals {
                 weak_bg_fill: Color32::from_catppuccin_colour(flavour.surface1()),
-                bg_fill: Color32::from_catppuccin_colour(flavour.surface0()),
-                bg_stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
-                fg_stroke: Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
-                rounding: Rounding::same(5.0),
-                expansion: 0.0,
+                bg_fill:      Color32::from_catppuccin_colour(flavour.surface0()),
+                bg_stroke:    Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.surface1())),
+                fg_stroke:    Stroke::new(1.5, Color32::from_catppuccin_colour(flavour.overlay1())),
+                rounding:     Rounding::same(5.0),
+                expansion:    0.0,
             },
         }
     }
@@ -353,16 +344,16 @@ impl CatppuccinThemeSelectionExt for Selection {
     fn catppuccin_flavour(flavour: Flavour) -> Selection {
         Self {
             bg_fill: Color32::from_catppuccin_colour(flavour.lavender()),
-            stroke: Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
+            stroke:  Stroke::new(1.0, Color32::from_catppuccin_colour(flavour.blue())),
         }
     }
 }
 
 /// Signal that theme should be toggled
 #[derive(Event, Debug, Copy, Clone)]
-pub struct ThemeEvent(pub Flavour);
+pub struct CycleTheme(pub Flavour);
 
-impl Default for ThemeEvent {
+impl Default for CycleTheme {
     fn default() -> Self {
         Self(Flavour::Macchiato)
     }
@@ -370,19 +361,30 @@ impl Default for ThemeEvent {
 
 /// Signal after theme has been toggled
 #[derive(Event, Debug, Copy, Clone)]
-pub struct ThemeChangedEvent;
+pub struct ThemeChanged;
 
 /// Theming plugin
 pub struct ThemePlugin;
 
 impl Plugin for ThemePlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ThemeEvent>()
-            .add_event::<ThemeChangedEvent>()
+        let window_theme = match dark_light::detect() {
+            dark_light::Mode::Dark | dark_light::Mode::Default => WindowTheme::Dark,
+            dark_light::Mode::Light => WindowTheme::Light,
+        };
+
+        info!(
+            "based on OS light/dark theme preference, setting window theme to: {:?}",
+            window_theme
+        );
+
+        app.add_event::<CycleTheme>()
+            .add_event::<ThemeChanged>()
             .init_resource::<CatppuccinTheme>()
             .add_systems(
                 Startup,
-                init_window_theme(WindowTheme::Dark).run_if(theme_is_not_initialised),
+                // init_window_theme(WindowTheme::Dark).run_if(theme_is_not_initialised),
+                init_window_theme(window_theme),
             )
             .add_systems(
                 Update,
@@ -425,13 +427,13 @@ fn init_window_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
 /// other systems that actually change the colours
 fn change_theme(
     mut windows: Query<&mut Window>,
-    mut theme_event_reader: EventReader<ThemeEvent>,
+    mut theme_event_reader: EventReader<CycleTheme>,
     mut theme: ResMut<CatppuccinTheme>,
-    mut theme_toggled_event: EventWriter<ThemeChangedEvent>,
+    mut theme_toggled_event: EventWriter<ThemeChanged>,
     mut contexts: EguiContexts,
 ) {
     let mut window = windows.single_mut();
-    for ThemeEvent(new_flavour) in theme_event_reader.read() {
+    for CycleTheme(new_flavour) in theme_event_reader.read() {
         let new_window_theme = match new_flavour {
             Flavour::Latte | Flavour::Frappe => WindowTheme::Light,
             Flavour::Macchiato | Flavour::Mocha => WindowTheme::Dark,
@@ -442,7 +444,7 @@ fn change_theme(
             .ctx_mut()
             .style_mut(|style| style.visuals = Visuals::catppuccin_flavour(*new_flavour));
         theme.flavour = *new_flavour;
-        theme_toggled_event.send(ThemeChangedEvent);
+        theme_toggled_event.send(ThemeChanged);
     }
 }
 
@@ -451,7 +453,7 @@ fn change_theme(
 fn handle_clear_color(
     mut clear_color: ResMut<ClearColor>,
     catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_changed_event: EventReader<ThemeChangedEvent>,
+    mut theme_changed_event: EventReader<ThemeChanged>,
 ) {
     for _ in theme_changed_event.read() {
         *clear_color = ClearColor(Color::from_catppuccin_colour(
@@ -464,12 +466,12 @@ fn handle_clear_color(
 /// Reads `ThemeChangedEvent` to know when to change the infinite grid theme
 fn handle_infinite_grid(
     theme: Res<CatppuccinTheme>,
-    mut theme_changed_event: EventReader<ThemeChangedEvent>,
-    mut query_infinite_grid: Query<&mut InfiniteGridSettings>,
+    mut theme_changed_event: EventReader<ThemeChanged>,
+    mut infinite_grid_settings: Query<&mut InfiniteGridSettings>,
 ) {
-    let grid_colour = theme.grid_colour();
     for _ in theme_changed_event.read() {
-        if let Ok(mut settings) = query_infinite_grid.get_single_mut() {
+        if let Ok(mut settings) = infinite_grid_settings.get_single_mut() {
+            let grid_colour = theme.grid_colour();
             settings.major_line_color = grid_colour.with_a(0.5);
             settings.minor_line_color = grid_colour.with_a(0.25);
             settings.x_axis_color =
@@ -561,7 +563,7 @@ fn handle_infinite_grid(
 /// Reads [`ThemeChangedEvent`] to know when to change the robot colour
 fn handle_robots(
     theme: Res<CatppuccinTheme>,
-    mut theme_changed_event: EventReader<ThemeChangedEvent>,
+    mut theme_changed_event: EventReader<ThemeChanged>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query_robot: Query<
         (&mut Handle<StandardMaterial>, &ColorAssociation),
@@ -585,7 +587,7 @@ fn handle_robots(
 /// Queries all [`StandardMaterial`] handles with [`Waypoint`] components
 fn handle_waypoints(
     catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_changed_event: EventReader<ThemeChangedEvent>,
+    mut theme_changed_event: EventReader<ThemeChanged>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query_waypoint: Query<&mut Handle<StandardMaterial>, With<planner::WaypointVisualiser>>,
 ) {
@@ -603,11 +605,12 @@ fn handle_waypoints(
 
 /// **Bevy** [`Update`] system to handle the theme change for variables
 /// Reads [`ThemeChangedEvent`] to know when to change the variable colour
-/// Queries all [`StandardMaterial`] handles with [`VariableVisualiser`] and [`RobotTracker`] components
-/// The [`RobotTracker`] component is used to query for the robot's [`ColorAssociation`] to get the correct colour
+/// Queries all [`StandardMaterial`] handles with [`VariableVisualiser`] and
+/// [`RobotTracker`] components The [`RobotTracker`] component is used to query
+/// for the robot's [`ColorAssociation`] to get the correct colour
 fn handle_variables(
     theme: Res<CatppuccinTheme>,
-    mut theme_changed_event: EventReader<ThemeChangedEvent>,
+    mut theme_changed_event: EventReader<ThemeChanged>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query_variable: Query<
         (&mut Handle<StandardMaterial>, &RobotTracker),
@@ -635,7 +638,7 @@ fn handle_variables(
 /// Queries all [`StandardMaterial`] handles with [`MapCell`] components
 fn handle_obstacles(
     catppuccin_theme: Res<CatppuccinTheme>,
-    mut theme_changed_event: EventReader<ThemeChangedEvent>,
+    mut theme_changed_event: EventReader<ThemeChanged>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query_obstacle: Query<&mut Handle<StandardMaterial>, With<environment::ObstacleMarker>>,
 ) {

@@ -9,8 +9,7 @@ use typed_floats::StrictlyPositiveFinite;
 use unit_interval::UnitInterval;
 
 use super::geometry::Shape;
-use crate::planner::robot::Waypoints;
-use crate::{line, polygon};
+use crate::{line, planner::robot::Waypoints, polygon};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -29,8 +28,8 @@ pub enum PlacementStrategy {
 
 // impl Point {
 //     /// Create a new `Point` from a pair of values.
-//     /// Returns an error if either `x` or `y` is not in the interval [0.0, 1.0].
-//     #[inline]
+//     /// Returns an error if either `x` or `y` is not in the interval [0.0,
+// 1.0].     #[inline]
 //     pub fn new(x: f64, y: f64) -> Self {
 //         Self { x, y }
 //     }
@@ -46,9 +45,9 @@ pub enum PlacementStrategy {
 
 // impl RelativePoint {
 //     /// Create a new `RelativePoint` from a pair of values.
-//     /// Returns an error if either `x` or `y` is not in the interval [0.0, 1.0].
-//     pub fn new(x: f64, y: f64) -> Result<Self, unit_interval::UnitIntervalError> {
-//         Ok(Self {
+//     /// Returns an error if either `x` or `y` is not in the interval [0.0,
+// 1.0].     pub fn new(x: f64, y: f64) -> Result<Self,
+// unit_interval::UnitIntervalError> {         Ok(Self {
 //             x: UnitInterval::new(x)?,
 //             y: UnitInterval::new(y)?,
 //         })
@@ -155,19 +154,20 @@ pub enum PlacementStrategy {
 //                 Point::new($x, $y)
 //             ),+
 //         ];
-//         Shape::Polygon(OneOrMore::new(vertices).expect("at least one vertex"))
-//     }}
+//         Shape::Polygon(OneOrMore::new(vertices).expect("at least one
+// vertex"))     }}
 // }
 
-// /// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x: $x2,
-// /// y: $y2}))`
+// /// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x:
+// $x2, /// y: $y2}))`
 // #[macro_export]
 // macro_rules! line {
 //     [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
 //         // Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
-//         // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1 as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(), y: f64::try_from().unwrap() }))
-//         Shape::Line((Point::new($x1, $y1), Point::new($x2, $y2)))
-//     };
+//         // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1
+// as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(),
+// y: f64::try_from().unwrap() }))         Shape::Line((Point::new($x1, $y1),
+// Point::new($x2, $y2)))     };
 // }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -194,14 +194,14 @@ pub struct Formation {
     /// If true then then a new formation instance will be spawned every
     /// [`Self::delay`]. If false, a single formation will be spawned after
     /// [`Self::delay`]
-    pub repeat: bool,
+    pub repeat:    bool,
     /// The delay from the start of the simulation after which the formation
     /// should spawn. If [`Self::repeat`] is true, then `delay` is
     /// interpreted as a timeout between every formation spawn.
     // pub delay:     f32,
     pub delay: Duration,
     /// Number of robots to spawn
-    pub robots: NonZeroUsize,
+    pub robots:    NonZeroUsize,
     /// A list of waypoints.
     /// `NOTE` The first waypoint is assumed to be the spawning point.
     /// < 2 waypoints is an invalid state
@@ -213,9 +213,9 @@ pub struct Formation {
 impl Default for Formation {
     fn default() -> Self {
         Self {
-            repeat: false,
-            delay: Duration::from_secs(5),
-            robots: NonZeroUsize::new(1).expect("1 > 0"),
+            repeat:    false,
+            delay:     Duration::from_secs(5),
+            robots:    NonZeroUsize::new(1).expect("1 > 0"),
             waypoints: vec![
                 Waypoint {
                     placement_strategy: PlacementStrategy::Random,
@@ -391,9 +391,9 @@ impl Default for FormationGroup {
             // formations: vec![Formation::default()],
             formations: vec![
                 Formation {
-                    repeat: true,
-                    delay: Duration::from_secs(4),
-                    robots: 1.try_into().expect("1 > 0"),
+                    repeat:    true,
+                    delay:     Duration::from_secs(4),
+                    robots:    1.try_into().expect("1 > 0"),
                     waypoints: vec![
                         Waypoint {
                             placement_strategy: PlacementStrategy::Equal,
@@ -408,9 +408,9 @@ impl Default for FormationGroup {
                     .expect("there are 2 waypoints"),
                 },
                 Formation {
-                    repeat: true,
-                    delay: Duration::from_secs(4),
-                    robots: 1.try_into().expect("1 > 0"),
+                    repeat:    true,
+                    delay:     Duration::from_secs(4),
+                    robots:    1.try_into().expect("1 > 0"),
                     waypoints: vec![
                         Waypoint {
                             placement_strategy: PlacementStrategy::Equal,

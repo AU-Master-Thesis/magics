@@ -39,6 +39,8 @@ pub enum UiAction {
     ToggleTopPanel,
     #[display(fmt = "Toggle Bottom Panel")]
     ToggleBottomPanel,
+    #[display(fmt = "Toggle Metrics Window")]
+    ToggleMetricsWindow,
     ChangeScaleKind,
 }
 
@@ -50,6 +52,7 @@ impl UiAction {
             Self::ToggleTopPanel => InputKind::PhysicalKey(KeyCode::KeyK),
             Self::ToggleBottomPanel => InputKind::PhysicalKey(KeyCode::KeyJ),
             Self::ChangeScaleKind => InputKind::PhysicalKey(KeyCode::KeyU),
+            Self::ToggleMetricsWindow => InputKind::PhysicalKey(KeyCode::KeyM),
         };
 
         Some(UserInput::Single(input_kind))
@@ -94,6 +97,10 @@ fn handle_ui_actions(
     }
     if action_state.just_pressed(&UiAction::ToggleBottomPanel) {
         ui_state.bottom_panel_visible = !ui_state.bottom_panel_visible;
+    }
+
+    if action_state.just_pressed(&UiAction::ToggleMetricsWindow) {
+        ui_state.metrics_window_visible = !ui_state.metrics_window_visible;
     }
 
     if action_state.just_pressed(&UiAction::ChangeScaleKind) {

@@ -1,7 +1,12 @@
 #![deny(missing_docs)]
 //! Useful function when working with bevy
 
-use bevy::{ecs::prelude::*, hierarchy::DespawnRecursiveExt};
+use bevy::{app::Plugin, ecs::prelude::*, hierarchy::DespawnRecursiveExt};
+
+/// Prelude module bringing entire public api of this module into scope
+pub mod prelude {
+    pub use super::*;
+}
 
 /// Generic system that takes a component as a parameter, and will despawn all
 /// entities with that component
@@ -34,4 +39,45 @@ pub fn despawn_entities_with_component<T: Component>(
     for entity in &to_despawn {
         commands.entity(entity).despawn_recursive();
     }
+}
+
+/// Extension trait for `bevy::app::App`
+pub trait BevyPluginExt {
+    /// Attempt to add a [`Plugin`]
+    /// If the plugin is already added, then do nothing.
+    /// This is an alternative to [`.add_plugins()`] which will panic if a
+    /// plugin has already been added.
+    fn try_add_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self;
+}
+
+impl BevyPluginExt for bevy::app::App {
+    fn try_add_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self {
+        if !self.is_plugin_added::<P>() {
+            self.add_plugins(plugin);
+        }
+        self
+    }
+}
+
+pub mod run_conditions {
+    use bevy::{
+        ecs::system::Res,
+        input::{keyboard::KeyCode, ButtonInput},
+    };
+
+    //     pub fn any_input_just_pressed(
+    //         // inputs: impl IntoIterator<Item = ButtonInput<KeyCode>>,
+    //         // inputs: impl IntoIterator<Item = KeyCode>,
+    //         // inputs: Vec<KeyCode>,
+    //     ) -> impl Fn(Res<ButtonInput<KeyCode>>) -> bool
+    // // where
+    //     //     T: Copy + Eq + Send + Sync + 'static,
+    //     {
+    //         move |keyboard_input: Res<ButtonInput<KeyCode>>|
+    // keyboard_input.any_pressed(inputs)
+
+    //         // move |keyboard_input: Res<ButtonInput<T>>| {
+    //         //     inputs.into_iter().any(|it|
+    // keyboard_input.just_pressed(it))         // }
+    //     }
 }

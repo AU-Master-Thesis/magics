@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use bevy::{log::LogPlugin, prelude::*};
 use bevy_dev_console::prelude::*;
 

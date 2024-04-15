@@ -10,11 +10,11 @@ use crate::{
 /// A sub-category of the [`SceneAssets`] [`Resource`] to hold all meshes
 #[derive(Debug, Default)]
 pub struct Meshes {
-    pub robot: Handle<Mesh>,
+    pub robot:    Handle<Mesh>,
     pub variable: Handle<Mesh>,
-    pub factor: Handle<Mesh>,
+    pub factor:   Handle<Mesh>,
     pub waypoint: Handle<Mesh>,
-    pub plane: Handle<Mesh>,
+    pub plane:    Handle<Mesh>,
 }
 
 // A sub-category of the [`SceneAssets`] [`Resource`] to hold all materials
@@ -91,7 +91,7 @@ fn load_assets(
         obstacle_image_sdf: asset_server.load(format!("imgs/{}_sdf.png", config.environment_image)),
         // Meshes
         meshes: Meshes {
-            robot: meshes.add(
+            robot:    meshes.add(
                 Sphere::new(1.0)
                     .mesh()
                     .ico(4)
@@ -103,14 +103,14 @@ fn load_assets(
                     .ico(4)
                     .expect("4 subdivisions is less than the maximum allowed of 80"),
             ),
-            factor: meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
+            factor:   meshes.add(Cuboid::new(0.5, 0.5, 0.5)),
             waypoint: meshes.add(
                 Sphere::new(0.5)
                     .mesh()
                     .ico(4)
                     .expect("4 subdivisions is less than the maximum allowed of 80"),
             ),
-            plane: meshes.add(Mesh::from(Rectangle::new(
+            plane:    meshes.add(Mesh::from(Rectangle::new(
                 config.simulation.world_size.into(),
                 config.simulation.world_size.into(),
             ))),

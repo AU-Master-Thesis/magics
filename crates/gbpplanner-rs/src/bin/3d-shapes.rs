@@ -1,5 +1,7 @@
+#![allow(clippy::unwrap_used)]
 //! This example demonstrates the built-in 3d shapes in Bevy.
-//! The scene includes a patterned texture and a rotation for visualizing the normals and UVs.
+//! The scene includes a patterned texture and a rotation for visualizing the
+//! normals and UVs.
 
 use std::f32::consts::PI;
 
@@ -19,7 +21,8 @@ fn main() {
         .run();
 }
 
-/// A marker component for our shapes so we can query them separately from the ground plane
+/// A marker component for our shapes so we can query them separately from the
+/// ground plane
 #[derive(Component)]
 struct Shape;
 
@@ -112,8 +115,8 @@ fn uv_debug_texture() -> Image {
 
     Image::new_fill(
         Extent3d {
-            width: TEXTURE_SIZE as u32,
-            height: TEXTURE_SIZE as u32,
+            width: u32::try_from(TEXTURE_SIZE).unwrap(),
+            height: u32::try_from(TEXTURE_SIZE).unwrap(),
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,

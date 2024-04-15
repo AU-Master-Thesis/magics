@@ -87,7 +87,7 @@ pub struct LineSegment;
 #[derive(Debug, Clone)]
 struct Path {
     points: Vec<Vec3>,
-    width: f32,
+    width:  f32,
 }
 
 impl Path {

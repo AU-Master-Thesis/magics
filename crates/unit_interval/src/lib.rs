@@ -46,6 +46,10 @@ impl UnitInterval {
     /// Creates a new `UnitInterval` from a value without checking if it is in
     /// the interval [0.0, 1.0]. # Safety
     /// The value must be in the interval [0.0, 1.0].
+    ///
+    /// # Safety
+    /// You have to manually ensure the invariant that the given value is
+    /// between [0.0, 1.0]
     pub unsafe fn new_unchecked(value: f64) -> UnitInterval {
         UnitInterval(value)
     }
@@ -79,6 +83,7 @@ impl From<UnitInterval> for f64 {
 }
 
 impl From<UnitInterval> for f32 {
+    #[allow(clippy::cast_possible_truncation)]
     fn from(unit_interval: UnitInterval) -> f32 {
         unit_interval.0 as f32
     }
@@ -132,6 +137,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::undocumented_unsafe_blocks)]
     fn test_new_unchecked() {
         assert_eq!(
             unsafe { UnitInterval::new_unchecked(0.0) },
@@ -155,6 +161,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_try_from() {
         assert!(matches!(UnitInterval::try_from(0.0), Ok(UnitInterval(0.0))));
         assert!(matches!(UnitInterval::try_from(0.5), Ok(UnitInterval(0.5))));

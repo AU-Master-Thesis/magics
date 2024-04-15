@@ -10,10 +10,10 @@ use cursor::CursorToGroundPlugin;
 pub use follow_cameras::FollowCameraMe;
 use follow_cameras::FollowCamerasPlugin;
 use map::MapPlugin;
+pub use map_generator::ObstacleMarker;
 
 use self::map_generator::GenMapPlugin;
 pub use self::map_generator::TileCoordinates;
-pub use map_generator::ObstacleMarker;
 
 pub struct EnvironmentPlugin;
 

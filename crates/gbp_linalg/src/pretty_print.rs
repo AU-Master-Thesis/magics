@@ -63,6 +63,7 @@ pub fn num_of_integral_digits(mut f: f64) -> Option<usize> {
     Some(count)
 }
 
+/// Map a floating point number to a ansi color string.
 fn float_color(f: f64) -> &'static str {
     if f.is_nan() {
         MAGENTA_TEXT
@@ -95,7 +96,9 @@ pub fn _pretty_print_matrix<T, M>(
         for i in 0..nrows {
             for j in 0..ncols {
                 let x = matrix.at(i, j);
-                let width = num_of_integral_digits(x.to_f64().unwrap()).unwrap_or(0) + 1;
+                let width = num_of_integral_digits(x.to_f64().expect("x is representable as f64"))
+                    .unwrap_or(0)
+                    + 1;
                 if width > max_width {
                     max_width = width;
                 }
@@ -161,10 +164,11 @@ pub fn _pretty_print_matrix<T, M>(
         print!("{}", BAR);
         for j in 0..ncols {
             let x = matrix.at(i, j);
-            if x.to_f64().unwrap().abs() > 1e6 {
+            let x = x.to_f64().expect("x is representable as f64");
+            if x.abs() > 1e6 {
                 print!(
                     "{}{:cell_width$.precision$e}{}",
-                    float_color(x.to_f64().unwrap()),
+                    float_color(x),
                     x,
                     RESET_TEXT,
                     cell_width = cell_width,
@@ -173,7 +177,7 @@ pub fn _pretty_print_matrix<T, M>(
             } else {
                 print!(
                     "{}{:cell_width$.precision$}{}",
-                    float_color(x.to_f64().unwrap()),
+                    float_color(x),
                     x,
                     RESET_TEXT,
                     cell_width = cell_width,
@@ -190,6 +194,8 @@ pub fn _pretty_print_matrix<T, M>(
     );
 }
 
+/// Internal function to pretty print a vector
+/// Use by the [`pretty_print_vector!`] macro
 pub fn _pretty_print_vector<T, V>(
     vector: &V,
     name: Option<&str>,
@@ -203,7 +209,8 @@ pub fn _pretty_print_vector<T, V>(
         let mut max_width = 0;
         for i in 0..vector.len() {
             let x = vector.at(i);
-            let width = num_of_integral_digits(x.to_f64().unwrap()).unwrap_or(0) + 1;
+            let x = x.to_f64().expect("x is representable as f64");
+            let width = num_of_integral_digits(x).unwrap_or(0) + 1;
             if width > max_width {
                 max_width = width;
             }
@@ -273,10 +280,11 @@ pub fn _pretty_print_vector<T, V>(
 
     for i in 0..vector.len() {
         let x = vector.at(i);
-        if x.to_f64().unwrap().abs() > 1e6 {
+        let x = x.to_f64().expect("x is representable as f64");
+        if x.abs() > 1e6 {
             print!(
                 "{}{:cell_width$.precision$e}{}",
-                float_color(x.to_f64().unwrap()),
+                float_color(x),
                 x,
                 RESET_TEXT,
                 cell_width = cell_width,
@@ -285,7 +293,7 @@ pub fn _pretty_print_vector<T, V>(
         } else {
             print!(
                 "{}{:cell_width$.precision$}{}",
-                float_color(x.to_f64().unwrap()),
+                float_color(x),
                 x,
                 RESET_TEXT,
                 cell_width = cell_width,
@@ -302,6 +310,8 @@ pub fn _pretty_print_vector<T, V>(
     );
 }
 
+/// Extension trait that adds a [`pretty_print`] method to vectors
+#[allow(clippy::len_without_is_empty)]
 pub trait PrettyPrintVector<T: GbpFloat>: Sized {
     /// Returns the length of the vector.
     #[allow(clippy::len_without_is_empty)]
@@ -309,6 +319,7 @@ pub trait PrettyPrintVector<T: GbpFloat>: Sized {
     /// Returns the element at index `i`.
     fn at(&self, i: usize) -> T;
 
+    /// Pretty prints the vector.
     #[inline(always)]
     fn pretty_print(&self) {
         _pretty_print_vector(self, None, None, None);
@@ -326,12 +337,14 @@ impl<T: GbpFloat> PrettyPrintVector<T> for Vector<T> {
         self[i]
     }
 }
+/// Extension trait that adds a [`pretty_print`] method to matrices
 pub trait PrettyPrintMatrix<T: GbpFloat>: Sized {
     /// Returns the shape of the matrix as a tuple `(nrows, ncols)`.
     fn shape(&self) -> (usize, usize);
     /// Returns the element at index `(i, j)`.
     fn at(&self, i: usize, j: usize) -> T;
 
+    /// Pretty prints the matrix.
     #[inline(always)]
     fn pretty_print(&self) {
         _pretty_print_matrix(self, None, None, None);
@@ -350,6 +363,7 @@ impl<T: GbpFloat> PrettyPrintMatrix<T> for Matrix<T> {
     }
 }
 
+/// Pretty prints a vector
 #[macro_export]
 macro_rules! pretty_print_vector {
     ($name:expr) => {
@@ -370,6 +384,7 @@ macro_rules! pretty_print_vector {
     };
 }
 
+/// Pretty prints a matrix
 #[macro_export]
 macro_rules! pretty_print_matrix {
     ($name:expr) => {
