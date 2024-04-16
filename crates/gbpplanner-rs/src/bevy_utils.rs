@@ -49,6 +49,9 @@ pub trait BevyPluginExt {
     /// This is an alternative to [`.add_plugins()`] which will panic if a
     /// plugin has already been added.
     fn try_add_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self;
+
+    /// Check if an `Event` has been added to the world.
+    fn event_exists<E: Event>(&self) -> bool;
 }
 
 impl BevyPluginExt for bevy::app::App {
@@ -57,6 +60,10 @@ impl BevyPluginExt for bevy::app::App {
             self.add_plugins(plugin);
         }
         self
+    }
+
+    fn event_exists<E: Event>(&self) -> bool {
+        self.world.contains_resource::<Events<E>>()
     }
 }
 

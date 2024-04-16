@@ -22,6 +22,12 @@ impl Plugin for SimulationLoaderPlugin {
                 Update,
                 reload_simulation.run_if(input_just_pressed(KeyCode::F5)),
             );
+
+        // if app.world.get_resource::<Events<LoadSimulation>>().is_some() {}
+
+        //     ;.is_some() {
+
+        // }
     }
 }
 

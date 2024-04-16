@@ -58,11 +58,11 @@ image = { version = "0.25.0", default-features = false, features = [
 leafwing-input-manager = "0.13.3"
 # bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
 bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "bevy-v0.13.0" }
-bevy_more_shapes   = { git = "https://github.com/AU-Master-Thesis/bevy_more_shapes", branch = "bevy-v0.13.0" }
-parry3d   = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
+bevy_more_shapes = { git = "https://github.com/AU-Master-Thesis/bevy_more_shapes", branch = "bevy-v0.13.0" }
+parry3d = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
   "bevy",
 ] }
-parry2d   = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
+parry2d = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
   "bevy",
 ] }
 # bevy_mesh_terrain = "0.6.1"
@@ -86,6 +86,8 @@ anyhow.workspace = true
 clap = { version = "4.4.18", features = [
   "derive",
 ] }
+clap_complete = "4.5.2"
+
 # color-eyre = "0.6.2"
 rand            = "0.8.5"
 itertools       = "0.12.1"
@@ -112,16 +114,17 @@ paste            = "1.0.14"
 egui_plot        = "0.26"
 egui_graphs      = "0.19.0"
 serde_yaml       = "0.9.34"
-rrt = "0.7.0"
+rrt              = "0.7.0"
 # parry3d = "0.13.7"
-colored          = "2.1.0"
-directories      = "5.0.1"
-chrono           = "0.4.37"
+colored     = "2.1.0"
+directories = "5.0.1"
+chrono      = "0.4.37"
 
 
 # font-kit = { version = "0.13.0", features = ["freetype"] }
 
 dark-light = "1.1.1"
+bevy_dev   = "0.3.0"
 
 
 # TODO: change to not wasm

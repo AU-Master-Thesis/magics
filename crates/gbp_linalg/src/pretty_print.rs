@@ -135,10 +135,7 @@ pub fn _pretty_print_matrix<T, M>(
     if let Some(name) = name {
         // handle if name is longer than cell_columns
         if name.len() + dims.len() > total_width {
-            println!(
-                "{}{}{}:{}{}{}",
-                CYAN_TEXT, name, RESET_TEXT, MAGENTA_TEXT, dims, RESET_TEXT
-            );
+            println!("{CYAN_TEXT}{name}{RESET_TEXT}:{MAGENTA_TEXT}{dims}{RESET_TEXT}");
             println!(
                 "{}{}{}",
                 UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER

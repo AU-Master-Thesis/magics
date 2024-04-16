@@ -60,10 +60,15 @@ const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
 #[allow(clippy::too_many_lines)]
 fn main() -> anyhow::Result<()> {
-    if cfg!(all(not(target_arch = "wasm32"), debug_assertions)) {
-        // eprintln!("installing better_panic panic hook");
-        better_panic::debug_install();
+    // if cfg!(all(not(target_arch = "wasm32"), debug_assertions)) {
+    if cfg!(not(target_arch = "wasm32")) {
+        if cfg!(debug_assertions) {
+            better_panic::debug_install();
+        } else {
+            better_panic::install();
+        }
     }
+
     let cli = cli::parse_arguments();
 
     if cli.metadata {
@@ -124,12 +129,6 @@ fn main() -> anyhow::Result<()> {
         println!("{}", serde_yaml::to_string(&env)?);
 
         return Ok(());
-    }
-
-    if cli.default && cli.config.is_some() {
-        println!("error: --default and --config <CONFIG_FILE> are mutually exclusive");
-        println!("\nFor more information, try '--help'");
-        std::process::exit(2);
     }
 
     let (config, formation, environment): (Config, FormationGroup, Environment) = if cli.default {
@@ -198,6 +197,10 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
+    let verbosity = cli.verbosity();
+    println!("verbosity level: {:?}", verbosity);
+
+    // bevy app
     let mut app = App::new();
 
     if cfg!(target_arch = "wasm32") {
