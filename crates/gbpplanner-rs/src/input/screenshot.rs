@@ -2,6 +2,8 @@ use bevy::{prelude::*, render::view::screenshot::ScreenshotManager, window::Prim
 use bevy_notify::ToastEvent;
 use image::ImageFormat;
 
+use crate::bevy_utils::run_conditions::event_exists;
+
 #[derive(Debug, Default)]
 pub struct ScreenshotPlugin {
     config: ScreenshotPluginConfig,
@@ -31,7 +33,17 @@ impl Plugin for ScreenshotPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TakeScreenshot>()
             .insert_resource(self.config)
-            .add_systems(Update, handle_screenshot_event);
+            .add_event::<TakeScreenshot>()
+            .add_event::<TakeScreenshotFinished>()
+            .add_systems(
+                Update,
+                (
+                    toast_on_screenshot_finished_event.run_if(
+                        event_exists::<ToastEvent>.and_then(on_event::<TakeScreenshotFinished>()),
+                    ),
+                    handle_screenshot_event.run_if(on_event::<TakeScreenshot>()),
+                ),
+            );
     }
 }
 
@@ -76,15 +88,23 @@ impl Default for ScreenshotSavePostfix {
     }
 }
 
+#[derive(Debug, Clone, Event)]
+pub enum TakeScreenshotFinished {
+    Success(String),
+    Failure(String),
+}
+
 fn handle_screenshot_event(
     primary_window: Query<Entity, With<PrimaryWindow>>,
     mut screenshot_manager: ResMut<ScreenshotManager>,
     mut screen_shot_event: EventReader<TakeScreenshot>,
-    mut toast_event: EventWriter<ToastEvent>,
+    mut screen_shot_finished_event: EventWriter<TakeScreenshotFinished>,
+    // mut toast_event: EventWriter<ToastEvent>,
     config: Res<ScreenshotPluginConfig>,
 ) {
     // TODO: filter out ui panels
     for event in screen_shot_event.read() {
+        info!("Read TakeScreenshot event. Taking screenshot...");
         let Ok(window) = primary_window.get_single() else {
             warn!("screenshot action was called without a main window!");
             return;
@@ -140,17 +160,41 @@ fn handle_screenshot_event(
         if let Err(err) = screenshot_manager.save_screenshot_to_disk(window, &path) {
             let error_msg = format!("failed to save screenshot to disk: {}", err);
             error!("failed to write screenshot to disk, error: {}", err);
-            toast_event.send(ToastEvent::error(error_msg));
+            // toast_event.send(ToastEvent::error(error_msg));
+            screen_shot_finished_event.send(TakeScreenshotFinished::Failure(error_msg));
             continue;
         };
 
         info!("saved screenshot to ./{}", path);
 
         if config.show_notification {
-            toast_event.send(ToastEvent::success(format!(
-                "saved screenshot to ./{}",
-                path
-            )));
+            // toast_event.send(ToastEvent::success(format!(
+            //     "saved screenshot to ./{}",
+            //     path
+            // )));
+            screen_shot_finished_event.send(TakeScreenshotFinished::Success(path));
+        }
+    }
+}
+
+fn toast_on_screenshot_finished_event(
+    mut screen_shot_finished_event: EventReader<TakeScreenshotFinished>,
+    mut toast_event: EventWriter<ToastEvent>,
+) {
+    for event in screen_shot_finished_event.read() {
+        match event {
+            TakeScreenshotFinished::Success(path) => {
+                toast_event.send(ToastEvent::success(format!(
+                    "saved screenshot to ./{}",
+                    path
+                )));
+            }
+            TakeScreenshotFinished::Failure(err) => {
+                toast_event.send(ToastEvent::error(format!(
+                    "failed to save screenshot: {}",
+                    err
+                )));
+            }
         }
     }
 }

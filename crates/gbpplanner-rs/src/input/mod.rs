@@ -4,13 +4,13 @@ use bevy::prelude::*;
 use strum_macros::EnumIter;
 
 pub mod camera;
-mod general;
+pub mod general;
 mod moveable_object;
 pub mod screenshot;
-mod ui;
+pub mod ui;
 
 pub use camera::{CameraAction, CameraSensitivity};
-pub use general::{DrawSettingsEvent, EnvironmentEvent, ExportGraphEvent, GeneralAction};
+pub use general::{DrawSettingsEvent, ExportGraphEvent, GeneralAction};
 pub use moveable_object::{MoveableObjectAction, MoveableObjectSensitivity};
 use screenshot::ScreenshotPlugin;
 pub use ui::UiAction;

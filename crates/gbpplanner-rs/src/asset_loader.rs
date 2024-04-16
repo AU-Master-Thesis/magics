@@ -46,7 +46,7 @@ pub struct ImageAssets {
 #[derive(Resource, Debug, Default)]
 pub struct SceneAssets {
     // #[asset(path = "fonts/JetBrainsMonoNerdFont-Regular.ttf")]
-    // pub main_font: Handle<Font>,
+    pub main_font: Handle<Font>,
     // #[asset(path = "models/roomba.glb#Scene0")]
     pub roomba: Handle<Scene>,
     // #[asset(path = "models/roomba.glb#Scene0")]
@@ -80,7 +80,7 @@ fn load_assets(
 ) {
     *scene_assets = SceneAssets {
         // Load the main font
-        // main_font: asset_server.load("fonts/JetBrainsMonoNerdFont-Regular.ttf"),
+        main_font: asset_server.load("fonts/JetBrainsMonoNerdFont-Regular.ttf"),
         // Robot vacuum by Poly by Google [CC-BY] (https://creativecommons.org/licenses/by/3.0/) via Poly Pizza (https://poly.pizza/m/dQj7UZT-1w0)
         roomba: asset_server.load("models/roomba.glb#Scene0"),
         // Cardboard Boxes by Quaternius (https://poly.pizza/m/bs6ikOeTrR)

@@ -56,6 +56,15 @@ world-size         = 100.0
 random-seed        = 0
 pause-on-spawn     = false
 
+[rrt]
+max-iterations   = 1000
+step-size        = 2.0
+collision-radius = 2.0
+
+[rrt.smoothing]
+max-iterations = 500
+step-size      = 2.0
+
 [graphviz.interrobot.edge]
 style = "dashed"
 len   = 8.0

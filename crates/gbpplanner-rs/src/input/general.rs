@@ -6,8 +6,13 @@ use leafwing_input_manager::prelude::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use super::{super::theme::CycleTheme, screenshot::TakeScreenshot, ChangingBinding};
+use super::{
+    super::theme::CycleTheme,
+    screenshot::{ScreenshotPlugin, TakeScreenshot},
+    ChangingBinding,
+};
 use crate::{
+    bevy_utils::run_conditions::event_exists,
     config::{Config, DrawSetting},
     factorgraph::{
         graphviz::{Graph, NodeKind},
@@ -25,17 +30,27 @@ pub struct GeneralInputPlugin;
 
 impl Plugin for GeneralInputPlugin {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<ScreenshotPlugin>() {
+            app.add_plugins(ScreenshotPlugin::default());
+        }
+
         app.add_event::<EnvironmentEvent>()
             .add_event::<ExportGraphEvent>()
             .add_event::<DrawSettingsEvent>()
             .add_event::<QuitApplication>()
+            .add_event::<ExportGraphFinishedEvent>()
             .add_plugins(InputManagerPlugin::<GeneralAction>::default())
             .add_systems(PostStartup, bind_general_input)
             .add_systems(
                 Update,
                 (
                     general_actions_system,
-                    export_graph_on_event,
+                    pause_play_simulation
+                        .run_if(event_exists::<PausePlay>.and_then(on_event::<PausePlay>())),
+                    export_graph_on_event.run_if(on_event::<ExportGraphEvent>()),
+                    export_graph_finished_system.run_if(
+                        event_exists::<ToastEvent>.and_then(on_event::<ExportGraphFinishedEvent>()),
+                    ),
                     screenshot,
                     quit_application_system,
                 ),
@@ -57,7 +72,9 @@ pub struct ExportGraphEvent;
 /// This event is triggered when a draw setting is toggled
 #[derive(Event, Debug, Clone)]
 pub struct DrawSettingsEvent {
+    /// The draw setting that was toggled
     pub setting: DrawSetting,
+    /// The new value of the draw setting
     pub draw:    bool,
 }
 
@@ -155,9 +172,6 @@ fn bind_general_input(mut commands: Commands) {
     for action in GeneralAction::iter() {
         let input = GeneralAction::default_keyboard_input(action);
         input_map.insert(action, input);
-        // if let Some(input) = GeneralAction::default_keyboard_input(action) {
-        //     input_map.insert(action, input);
-        // }
     }
 
     commands.spawn((
@@ -306,32 +320,36 @@ fn export_graph_on_event(
     mut theme_event_reader: EventReader<ExportGraphEvent>,
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
-    // export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
-    toast_event: EventWriter<ToastEvent>,
+    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    // toast_event: EventWriter<ToastEvent>,
 ) {
     if theme_event_reader.read().next().is_some() {
         if let Err(e) = handle_export_graph(
             query,
             config.as_ref(),
-            // export_graph_finished_event,
-            toast_event,
+            export_graph_finished_event,
+            // toast_event,
         ) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
     }
 }
 
-// #[derive(Event)]
-// pub enum ExportGraphFinishedEvent {
-//     Success(String),
-//     Failure(String),
-// }
+/// **Bevy** [`Event`] for when the export graph is finished
+/// Can either succeed or fail with a message
+#[derive(Event, Debug)]
+pub enum ExportGraphFinishedEvent {
+    /// The export was successful with a message
+    Success(String),
+    /// The export failed with a message
+    Failure(String),
+}
 
 fn handle_export_graph(
     q: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: &Config,
-    // export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
-    mut toast_event: EventWriter<ToastEvent>,
+    mut export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    // mut toast_event: EventWriter<ToastEvent>,
 ) -> std::io::Result<()> {
     if cfg!(target_arch = "wasm32") {
         return Err(std::io::Error::new(
@@ -342,7 +360,10 @@ fn handle_export_graph(
 
     let Some(output) = export_factorgraphs_as_graphviz(q, config) else {
         warn!("There are no factorgraphs in the world");
-        toast_event.send(ToastEvent::warning(
+        // toast_event.send(ToastEvent::warning(
+        //     "There are no factorgraphs in the world".to_string(),
+        // ));
+        export_graph_finished_event.send(ExportGraphFinishedEvent::Failure(
             "There are no factorgraphs in the world".to_string(),
         ));
 
@@ -358,10 +379,13 @@ fn handle_export_graph(
         warn!("overwriting ./{:#?}", dot_output_path);
     }
     info!("exporting all factorgraphs to ./{:#?}", dot_output_path);
-    toast_event.send(ToastEvent::info(format!(
-        "exporting all factorgraphs to ./{:#?}",
-        dot_output_path
-    )));
+    // toast_event.send(ToastEvent::info(format!(
+    //     "exporting all factorgraphs to ./{:#?}",
+    //     dot_output_path
+    // )));
+    export_graph_finished_event.send(ExportGraphFinishedEvent::Success(
+        dot_output_path.to_string_lossy().to_string(),
+    ));
 
     std::fs::write(&dot_output_path, output.as_bytes())?;
 
@@ -419,6 +443,31 @@ fn handle_export_graph(
     Ok(())
 }
 
+/// **Bevy** [`Update`] system, to send a Toast when factorgraph export is
+/// finished
+fn export_graph_finished_system(
+    mut export_graph_finished_reader: EventReader<ExportGraphFinishedEvent>,
+    mut toast_event: EventWriter<ToastEvent>,
+) {
+    for event in export_graph_finished_reader.read() {
+        match event {
+            ExportGraphFinishedEvent::Success(path) => {
+                toast_event.send(ToastEvent::info(format!(
+                    "successfully exported factorgraphs to ./{:#?}",
+                    path
+                )));
+            }
+            ExportGraphFinishedEvent::Failure(path) => {
+                toast_event.send(ToastEvent::error(format!(
+                    "failed to export factorgraphs to ./{:#?}",
+                    path
+                )));
+            }
+        }
+    }
+}
+
+/// **Bevy** [`Event`] for quitting the application
 #[derive(Event, Clone, Copy, Debug, Default)]
 pub struct QuitApplication;
 
@@ -442,9 +491,9 @@ fn general_actions_system(
     catppuccin_theme: Res<CatppuccinTheme>,
     // mut app_exit_event: EventWriter<AppExit>,
     mut quit_application_event: EventWriter<QuitApplication>,
-    // export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
-    mut pause_play_event: EventWriter<PausePlay>,
-    toast_event: EventWriter<ToastEvent>,
+    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    // mut pause_play_event: EventWriter<PausePlay>,
+    // toast_event: EventWriter<ToastEvent>,
 ) {
     if currently_changing.on_cooldown() || currently_changing.is_changing() {
         return;
@@ -460,8 +509,8 @@ fn general_actions_system(
         if let Err(e) = handle_export_graph(
             query_graphs,
             config.as_ref(),
-            // export_graph_finished_event,
-            toast_event,
+            export_graph_finished_event,
+            // toast_event,
         ) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
@@ -469,8 +518,28 @@ fn general_actions_system(
         quit_application_event.send(QuitApplication);
         // info!("quitting application");
         // app_exit_event.send(AppExit);
-    } else if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {
-        info!("toggling pause/play simulation");
+    }
+    // else if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {
+    //     info!("toggling pause/play simulation");
+    //     pause_play_event.send(PausePlay::Toggle);
+    // }
+}
+
+fn pause_play_simulation(
+    query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
+    currently_changing: Res<ChangingBinding>,
+    mut pause_play_event: EventWriter<PausePlay>,
+) {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() {
+        return;
+    }
+
+    let Ok(action_state) = query.get_single() else {
+        warn!("pause_play_simulation was called without an action state!");
+        return;
+    };
+
+    if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {
         pause_play_event.send(PausePlay::Toggle);
     }
 }
@@ -490,6 +559,7 @@ fn screenshot(
     };
 
     if action_state.just_pressed(&GeneralAction::ScreenShot) {
+        info!("Sending TakeScreenshot::default() event");
         screen_shot_event.send(TakeScreenshot::default());
     }
 }
