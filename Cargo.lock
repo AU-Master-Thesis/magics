@@ -3146,6 +3146,7 @@ dependencies = [
  "rrt",
  "serde",
  "serde_yaml",
+ "smol_str",
  "struct_iterable",
  "strum",
  "strum_macros",

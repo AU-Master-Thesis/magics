@@ -4,6 +4,7 @@ mod data;
 mod decoration;
 mod metrics;
 mod scale;
+mod top_panel;
 // mod selected_entity;
 mod settings;
 
@@ -67,6 +68,7 @@ impl Plugin for EguiInterfacePlugin {
             // .add_systems(OnEnter(AppState::Loading), load_fonts)
             .add_systems(Startup, configure_visuals)
             .add_systems(Update, action_block)
+            // .add_systems(Update, render)
             .add_systems(
                 Update,
                 (
@@ -338,4 +340,8 @@ fn action_block(mut action_block: ResMut<ActionBlock>, ui_state: Res<UiState>) {
     } else {
         action_block.unblock();
     }
+}
+
+fn render(mut egui_ctx: EguiContexts) {
+    top_panel::show(egui_ctx.ctx_mut());
 }

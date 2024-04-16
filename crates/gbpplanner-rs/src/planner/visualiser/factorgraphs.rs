@@ -14,7 +14,7 @@ use crate::{
         robot::{RobotDespawned, RobotSpawned},
         RobotState,
     },
-    pretty_print_title,
+    pretty_print_title, simulation_loader,
     theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
@@ -158,6 +158,7 @@ fn create_factorgraph_visualizer(
             );
             commands.spawn((
                 robottracker,
+                simulation_loader::Ephemeral,
                 VariableVisualiser,
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<VariableClickEvent>(),

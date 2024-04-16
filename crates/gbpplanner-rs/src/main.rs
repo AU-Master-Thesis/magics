@@ -131,6 +131,18 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        if let Some(ref working_dir) = cli.working_dir {
+            std::env::set_current_dir(working_dir).expect("the given --working-dir exists");
+            eprintln!("changed working_dir to: {:?}", working_dir);
+        }
+        eprintln!(
+            "current working dir: {:?}",
+            std::env::current_dir().expect("current working dir exists")
+        );
+    }
+
     let (config, formation, environment): (Config, FormationGroup, Environment) = if cli.default {
         (
             Config::default(),
@@ -256,7 +268,7 @@ fn main() -> anyhow::Result<()> {
             EguiInterfacePlugin, // Custom
             PlannerPlugin,
             NotifyPlugin::default(),
-            SimulationLoaderPlugin,
+            SimulationLoaderPlugin::default(),
         ))
         .add_plugins(ToggleFullscreenPlugin::default())
         // .add_plugins(bevy_dev::DevPlugins)

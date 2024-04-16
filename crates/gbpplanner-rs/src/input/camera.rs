@@ -210,7 +210,7 @@ fn camera_actions(
 
         if currently_changing.on_cooldown() || currently_changing.is_changing() || is_action_blocked
         {
-            info!("Camera actions are blocked");
+            // info!("Camera actions are blocked");
             velocity.value = Vec3::ZERO;
             angular_velocity.value = Vec3::ZERO;
             return;

@@ -35,9 +35,10 @@ impl Plugin for RobotSpawnerPlugin {
         .add_systems(Update,
 
             (
+create_formation_group_spawners,
                     spawn_formation,
 advance_time.run_if(not(time_is_paused))        ));
-        app.add_systems(Startup, setup);
+        // app.add_systems(Startup, setup);
         app.add_systems(Update, delete_formation_group_spawners);
 
         // if app.is_plugin_added::<SimulationLoaderPlugin>() {
@@ -105,6 +106,33 @@ fn setup(mut commands: Commands, formation_group: Res<FormationGroup>) {
     }
 }
 
+/// Create an entity with a a `FormationSpawnerCountdown` component for each
+/// formation group.
+fn setup_v2(mut commands: &mut Commands, formation_group: &FormationGroup) {
+    for (i, formation) in formation_group.formations.iter().enumerate() {
+        let mode = if formation.repeat {
+            TimerMode::Repeating
+        } else {
+            TimerMode::Once
+        };
+        let duration = formation.delay.as_secs_f32();
+        let timer = Timer::from_seconds(duration, mode);
+
+        let mut entity = commands.spawn_empty();
+        entity.insert(FormationSpawnerCountdown {
+            timer,
+            formation_group_index: i,
+        });
+
+        info!(
+            "spawned formation-group spawner: {} with mode {:?} spawning every {} seconds",
+            i + 1,
+            mode,
+            duration
+        );
+    }
+}
+
 fn delete_formation_group_spawners(
     mut commands: Commands,
     mut evr_end_simulation: EventReader<EndSimulation>,
@@ -120,10 +148,29 @@ fn delete_formation_group_spawners(
 
 fn create_formation_group_spawners(
     mut commands: Commands,
-
     mut evr_load_simulation: EventReader<LoadSimulation>,
     simulation_manager: Res<SimulationManager>,
+    formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
+    ephemeral_robots: Query<Entity, With<Ephemeral>>,
 ) {
+    for LoadSimulation(id) in evr_load_simulation.read() {
+        if let Some(formation) = simulation_manager.get_formation_group_for(*id) {
+            for entity in &formation_spawners {
+                info!("despawning formation spawner: {:?}", entity);
+                commands.entity(entity).despawn();
+            }
+
+            for entity in &ephemeral_robots {
+                info!("despawning ephemeral robot: {:?}", entity);
+                commands.entity(entity).despawn();
+            }
+
+            setup_v2(&mut commands, formation);
+        } else {
+            warn!("could not find formation group for simulation {:?}", id);
+        }
+    }
+
     //   for event in evr_load_simulation.read() {
     //       let Some(formation_group) =
     // simulation_manager.get_formation_group_for(event.id) else {
@@ -361,6 +408,7 @@ fn spawn_formation(
             entity.insert((
                 robotbundle,
                 pbrbundle,
+                Ephemeral,
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickedOn>(),
                 ColorAssociation { name: random_color },
@@ -377,6 +425,9 @@ fn spawn_formation(
         // info!("spawning formation group {}", event.formation_group_index);
     }
 }
+
+#[derive(Component)]
+struct Ephemeral;
 
 #[derive(Event)]
 struct RobotClickedOn(pub Entity);

@@ -9,6 +9,7 @@ use crate::{
     config::Config,
     factorgraph::prelude::FactorGraph,
     input::DrawSettingsEvent,
+    simulation_loader,
     theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
@@ -178,6 +179,7 @@ fn init_uncertainty(
                         visibility,
                         ..Default::default()
                     },
+                    simulation_loader::Ephemeral,
                 ));
             });
         });

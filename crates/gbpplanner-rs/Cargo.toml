@@ -126,6 +126,8 @@ chrono      = "0.4.37"
 dark-light = "1.1.1"
 bevy_dev   = "0.3.0"
 
+smol_str = "0.2.1"
+
 
 # TODO: change to not wasm
 [target.'cfg(linux)'.dependencies]

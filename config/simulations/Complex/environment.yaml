@@ -1,0 +1,14 @@
+tiles:
+  grid:
+  - '          '
+  - ' ┌─┼─┬─┐┌ '
+  - ' ┼─┘┌┼┬┼┘ '
+  - ' ┴┬─┴┼┘│  '
+  - ' ┌┴┐┌┼─┴┬ '
+  - ' ├─┴┘└──┘ '
+  - '          '
+  settings:
+    tile-size: 25.0
+    path-width: 0.4
+    obstacle-height: 1.0
+obstacles: []
