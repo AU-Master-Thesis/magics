@@ -241,7 +241,7 @@ fn main() -> anyhow::Result<()> {
     app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
         .insert_resource(config)
         .insert_resource(formation)
-        .insert_resource(environment)
+        // .insert_resource(environment)
         .init_state::<AppState>()
         .add_plugins(DefaultPlugins
             .set(window_plugin)

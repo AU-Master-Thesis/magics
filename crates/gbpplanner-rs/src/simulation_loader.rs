@@ -11,7 +11,10 @@ use bevy::{
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use smol_str::SmolStr;
 
-use crate::config::{Config, Environment, FormationGroup};
+use crate::{
+    config::{Config, Environment, FormationGroup},
+    simulation_loader,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum SimulationLoaderPluginError {
@@ -138,6 +141,7 @@ impl Plugin for SimulationLoaderPlugin {
             .add_event::<ReloadSimulation>()
             .add_event::<EndSimulation>()
             .add_event::<SimulationReloaded>()
+            .add_systems(PreStartup, load_initial_simulation)
             .add_systems(Update, echo_state::<SimulationStates>().run_if(state_changed::<SimulationStates>))
             .add_systems(Update, handle_requests.run_if(on_real_timer(Duration::from_millis(500))))
             // .add_systems(OnEnter(SimulationStates::Loading), load_simulation)
@@ -216,12 +220,12 @@ impl SimulationManager {
 
         let requests = VecDeque::from([Request::Load(SimulationId(0))]);
 
-        // let active = Some(0);
+        let active = Some(0);
         Self {
             names,
             simulations,
-            // active,
-            active: None,
+            active,
+            // active: None,
             reload_requested: None,
             requests,
             // requests: VecDeque::new(),
@@ -494,13 +498,40 @@ impl std::fmt::Display for SimulationStates {
 // }
 
 fn load_initial_simulation(
-    simulation_manager: Res<SimulationManager>,
-    mut evw_load_simulation: EventWriter<LoadSimulation>,
+    // simulation_manager: Res<SimulationManager>,
+    // mut evw_load_simulation: EventWriter<LoadSimulation>,
+    world: &mut World,
 ) {
-    if let Some(id) = simulation_manager.active_id() {
-        evw_load_simulation.send(LoadSimulation(id));
-        info!("sent load simulation event with id: {}", id.0);
+    let simulation_manager = world
+        .get_resource::<SimulationManager>()
+        .expect("simulation manager has been inserted");
+
+    // insert initial config, formation and environment resource
+
+    let Some(simulation_id) = simulation_manager.active_id() else {
+        panic!("no initial simulation set to active");
+    };
+
+    // if let Some(config) = simulation_manager.get_config_for(simulation_id) {
+    //     let config = config.to_owned();
+    //     world.insert_resource(config);
+    // }
+
+    if let Some(environment) = simulation_manager.get_environment_for(simulation_id) {
+        let environment = environment.to_owned();
+        world.insert_resource(environment);
     }
+
+    // if let Some(formation) =
+    // simulation_manager.get_formation_for(simulation_id) {
+    //     let formation = formation.to_owned();
+    //     world.insert_resource(formation);
+    // }
+
+    // if let Some(id) = simulation_manager.active_id() {
+    //     evw_load_simulation.send(LoadSimulation(id));
+    //     info!("sent load simulation event with id: {}", id.0);
+    // }
 }
 
 fn load_simulation(
@@ -567,6 +598,7 @@ fn handle_requests(
     mut evw_toast: EventWriter<ToastEvent>,
     mut virtual_time: ResMut<Time<Virtual>>,
     mut config: ResMut<Config>,
+    mut environment: ResMut<Environment>,
     reloadable_entites: Query<Entity, With<Reloadable>>,
 ) {
     let Some(request) = simulation_manager.requests.pop_front() else {
@@ -591,6 +623,9 @@ fn handle_requests(
     }
 
     match request {
+        // Request::Load(id) if simulation_loader.active.is_none() => {
+        //     simulation_manager.active = Some(id.0);
+        // }
         Request::Load(id)
             if simulation_manager.active.is_some_and(|active| {
                 info!("active: {}, id.0 = {}", active, id.0);
@@ -609,6 +644,7 @@ fn handle_requests(
             simulation_manager.active = Some(id.0);
             // load config
             *config = simulation_manager.simulations[id.0].config.clone();
+            *environment = simulation_manager.simulations[id.0].environment.clone();
 
             evw_load_simulation.send(LoadSimulation(id));
             info!("sent load simulation event with id: {}", id.0);

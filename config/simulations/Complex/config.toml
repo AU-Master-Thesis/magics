@@ -1,7 +1,7 @@
 # environment = "junction"
 environment_image = "junction"
-environment       = "./config/environment_complex.yaml"
-formation_group   = "./config/formation.ron"
+environment       = "./config/simulations/Complex/environment.yaml"
+formation_group   = "./config/simulations/Complex/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
@@ -53,7 +53,7 @@ time-scale         = 1.0
 manual-step-factor = 1
 hz                 = 60.0
 world-size         = 100.0
-prng-seed        = 0
+prng-seed          = 0
 pause-on-spawn     = false
 
 [graphviz.interrobot.edge]

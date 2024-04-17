@@ -14,6 +14,7 @@ use crate::{
     bevy_utils::run_conditions::event_exists,
     config::{environment::PlaceableShape, Config, DrawSetting, Environment},
     input::DrawSettingsEvent,
+    simulation_loader::{self, LoadSimulation},
 };
 
 pub struct GenMapPlugin;
@@ -21,7 +22,12 @@ pub struct GenMapPlugin;
 impl Plugin for GenMapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Colliders>()
-            .add_systems(Startup, (build_tile_grid, build_obstacles))
+            // .add_systems(Startup, (build_tile_grid, build_obstacles))
+            .add_systems(
+                Update,
+
+                (clear_colliders, build_tile_grid, build_obstacles).chain().run_if(on_event::<LoadSimulation>()),
+            )
             .add_systems(
                 Update,
                 show_or_hide_generated_map.run_if(event_exists::<DrawSettingsEvent>),
@@ -32,7 +38,7 @@ impl Plugin for GenMapPlugin {
 #[derive(Debug, Component)]
 pub struct ObstacleMarker;
 
-#[derive(Debug, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, Serialize, Deserialize, Component)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileCoordinates {
     row: usize,
@@ -334,7 +340,13 @@ fn build_tile_grid(
     env_config: Res<Environment>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
+    obstacles: Query<Entity, With<ObstacleMarker>>,
 ) {
+    for entity in &obstacles {
+        commands.entity(entity).despawn();
+        info!("despawn obstacle entity: {:?}", entity);
+    }
+
     let tile_grid = &env_config.tiles.grid;
 
     let obstacle_height = env_config.obstacle_height();
@@ -1054,6 +1066,7 @@ fn build_tile_grid(
                         },
                         TileCoordinates::new(x, y),
                         ObstacleMarker,
+                        // simulation_loader::Reloadable,
                     ));
                 })
             }
@@ -1081,4 +1094,10 @@ fn show_or_hide_generated_map(
             }
         }
     }
+}
+
+fn clear_colliders(mut colliders: ResMut<Colliders>) {
+    let n_colliders = colliders.0.len();
+    colliders.0.clear();
+    info!("{} colliders cleared", n_colliders);
 }

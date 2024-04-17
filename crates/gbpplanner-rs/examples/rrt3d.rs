@@ -65,8 +65,8 @@ fn main() -> anyhow::Result<()> {
 
     let mut app = App::new();
     app.insert_resource(config)
-        .insert_resource(formation)
-        .insert_resource(environment)
+        // .insert_resource(formation)
+        // .insert_resource(environment)
         .add_plugins((
             DefaultPlugins,
             // InfiniteGridPlugin,
