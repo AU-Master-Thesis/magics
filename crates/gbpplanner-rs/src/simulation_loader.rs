@@ -130,7 +130,7 @@ impl Plugin for SimulationLoaderPlugin {
             .add_event::<EndSimulation>()
             .add_event::<SimulationReloaded>()
             .add_systems(Update, echo_state::<SimulationStates>().run_if(state_changed::<SimulationStates>))
-            .add_systems(Update, handle_requests.run_if(on_timer(Duration::from_millis(500))))
+            .add_systems(Update, handle_requests.run_if(on_timer(Duration::from_millis(250))))
             // .add_systems(OnEnter(SimulationStates::Loading), load_simulation)
             // .add_systems(OnEnter(SimulationStates::Reloading), reload_simulation)
             .add_systems(

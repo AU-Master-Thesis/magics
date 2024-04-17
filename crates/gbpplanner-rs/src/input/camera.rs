@@ -14,10 +14,7 @@ use super::{
     ChangingBinding,
 };
 use crate::{
-    environment::{
-        self,
-        camera::{CameraResetEvent, CameraSettings},
-    },
+    environment::camera::{CameraSettings, ResetCamera},
     movement::MovementPlugin,
     ui::ActionBlock,
 };
@@ -180,7 +177,7 @@ fn camera_actions(
     // mut query_cameras: Query<&mut Camera>,
     currently_changing: Res<ChangingBinding>,
     action_block: Option<Res<ActionBlock>>,
-    mut camera_reset_event: EventWriter<CameraResetEvent>,
+    mut camera_reset_event: EventWriter<ResetCamera>,
     sensitivity: Res<CameraSensitivity>,
     // mut window: Query<&PrimaryWindow>,
     windows: Query<&Window>,
@@ -221,7 +218,7 @@ fn camera_actions(
         }
 
         if action_state.just_pressed(&CameraAction::Reset) {
-            camera_reset_event.send(CameraResetEvent);
+            camera_reset_event.send(ResetCamera);
         }
 
         let mut tmp_velocity = Vec3::ZERO;
@@ -371,15 +368,28 @@ fn switch_camera(
         cameras.push(camera);
     }
 
-    info!("cameras.len() = {}", cameras.len());
-
-    let next_active_camera = (last_active_camera + 1) % cameras.len();
-    info!(
-        "Switching camera from {} to {}, with a total of {} cameras",
-        last_active_camera,
-        next_active_camera,
-        cameras.len()
-    );
-    cameras[last_active_camera].is_active = false;
-    cameras[next_active_camera].is_active = true;
+    match &mut cameras[..] {
+        [] => {
+            error!("There are no cameras in the world");
+        }
+        [camera] => {
+            if !camera.is_active {
+                warn!("There is only one camera in the world, activating it");
+                camera.is_active = true;
+            } else {
+                warn!("There is only one camera in the world, and it is already active");
+            }
+        }
+        _ => {
+            let next_active_camera = (last_active_camera + 1) % cameras.len();
+            info!(
+                "Switching camera from {} to {}, with a total of {} cameras",
+                last_active_camera,
+                next_active_camera,
+                cameras.len()
+            );
+            cameras[last_active_camera].is_active = false;
+            cameras[next_active_camera].is_active = true;
+        }
+    }
 }

@@ -9,7 +9,7 @@ use gbpplanner_rs::{
     cli,
     config::{read_config, Config, Environment, FormationGroup},
     environment::{
-        camera::{CameraMovementMode, CameraResetEvent},
+        camera::{CameraMovementMode, ResetCamera},
         EnvironmentPlugin, MainCamera, ObstacleMarker,
     },
     input::{camera::CameraInputPlugin, ChangingBinding},
