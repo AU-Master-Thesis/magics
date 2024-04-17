@@ -255,10 +255,10 @@ pub struct SimulationSection {
     /// The side length of the smallest square that contains the entire
     /// simulated environment. Size of the environment in meters.
     /// SI unit: m
-    pub world_size:  StrictlyPositiveFinite<f32>,
+    pub world_size: StrictlyPositiveFinite<f32>,
     /// The seed at which random number generators should be seeded, to ensure
     /// deterministic results across simulation runs.
-    pub random_seed: usize,
+    pub prng_seed:  u64,
 
     /// Whether to pause the simulation time when the first robot is spawned
     pub pause_on_spawn: bool,
@@ -274,7 +274,7 @@ impl Default for SimulationSection {
             hz: 60.0,
             world_size: 100.0.try_into().expect("100.0 > 0.0"),
             // world_size:         StrictlyPositiveFinite::<f32>::new(100.0).expect("100.0 > 0.0"),
-            random_seed: 0,
+            prng_seed: 0,
             pause_on_spawn: false,
         }
     }

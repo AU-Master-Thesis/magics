@@ -19,7 +19,9 @@ use crate::{
     },
     pause_play::PausePlay,
     planner::robot::RobotBundle,
-    simulation_loader::{EndSimulation, LoadSimulation, SimulationLoaderPlugin, SimulationManager},
+    simulation_loader::{
+        EndSimulation, LoadSimulation, ReloadSimulation, SimulationManager, SimulationStates,
+    },
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
 
@@ -28,30 +30,37 @@ pub struct RobotSpawnerPlugin;
 impl Plugin for RobotSpawnerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<RobotFormationSpawned>()
-            // .init_resource::<SelectedRobot>()
             .add_event::<RobotClickedOn>()
             .add_event::<WaypointCreated>()
             .add_event::<WaypointDeleted>()
-        .add_systems(Update,
-
-            (
-create_formation_group_spawners,
+            // .add_systems(
+            //     OnEnter(SimulationStates::Loading),
+            //     create_formation_group_spawners,
+            // )
+            // .add_systems(
+            //     OnEnter(SimulationStates::Ended),
+            //     delete_formation_group_spawners,
+            // )
+            .add_systems(
+                Update,
+                (
+                    create_formation_group_spawners.run_if(on_event::<LoadSimulation>()),
+                    create_formation_group_spawners.run_if(on_event::<ReloadSimulation>()),
+                    delete_formation_group_spawners.run_if(on_event::<EndSimulation>()),
+                ),
+            )
+            .add_systems(
+                Update,
+                (
                     spawn_formation,
-advance_time.run_if(not(time_is_paused))        ));
-        // app.add_systems(Startup, setup);
-        app.add_systems(Update, delete_formation_group_spawners);
-
-        // if app.is_plugin_added::<SimulationLoaderPlugin>() {
-        //     // app.add_systems(Update, create_formation_group_spawners);
-        // } else {
-        //     // .add_systems(Update,
-        //     // create_formation_group_spawners.run_if(on_event::<scene::()))
-        //     app.add_systems(Startup, setup);
-        // }
+                    advance_time.run_if(not(time_is_paused)),
+                ),
+            );
     }
 }
 
 /// run criteria if time is not paused
+#[inline]
 fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
     time.is_paused()
 }
@@ -71,6 +80,9 @@ pub struct WaypointDeleted(pub Entity);
 // TODO: needs to be changed whenever the sim reloads, use resource?
 /// Every [`ObstacleFactor`] has a static reference to the obstacle image.
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
+// TODO: use once_cell, so we can mutate it when sim reloads
+// static OBSTACLE_SDF: Lazy<RwLock<Image>> = Lazy::new(||
+// RwLock::new(Image::new(1, 1)));
 
 /// Component attached to an entity that spawns formations.
 #[derive(Component)]
@@ -108,7 +120,7 @@ fn setup(mut commands: Commands, formation_group: Res<FormationGroup>) {
 
 /// Create an entity with a a `FormationSpawnerCountdown` component for each
 /// formation group.
-fn setup_v2(mut commands: &mut Commands, formation_group: &FormationGroup) {
+fn setup_v2(commands: &mut Commands, formation_group: &FormationGroup) {
     for (i, formation) in formation_group.formations.iter().enumerate() {
         let mode = if formation.repeat {
             TimerMode::Repeating
@@ -135,40 +147,48 @@ fn setup_v2(mut commands: &mut Commands, formation_group: &FormationGroup) {
 
 fn delete_formation_group_spawners(
     mut commands: Commands,
-    mut evr_end_simulation: EventReader<EndSimulation>,
+    // mut evr_end_simulation: EventReader<EndSimulation>,
     formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
 ) {
-    for event in evr_end_simulation.read() {
-        for spawner in &formation_spawners {
-            info!("despawning formation spawner: {:?}", spawner);
-            commands.entity(spawner).despawn();
-        }
+    // for event in evr_end_simulation.read() {
+    for spawner in &formation_spawners {
+        info!("despawning formation spawner: {:?}", spawner);
+        commands.entity(spawner).despawn();
     }
+    // }
 }
 
 fn create_formation_group_spawners(
     mut commands: Commands,
-    mut evr_load_simulation: EventReader<LoadSimulation>,
+    // mut evr_load_simulation: EventReader<LoadSimulation>,
     simulation_manager: Res<SimulationManager>,
     formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
     ephemeral_robots: Query<Entity, With<Ephemeral>>,
 ) {
-    for LoadSimulation(id) in evr_load_simulation.read() {
-        if let Some(formation) = simulation_manager.get_formation_group_for(*id) {
-            for entity in &formation_spawners {
-                info!("despawning formation spawner: {:?}", entity);
-                commands.entity(entity).despawn();
-            }
+    info!("create_formation_group_spawners");
+    // for LoadSimulation(id) in evr_load_simulation.read() {
+    let Some(active_simulation_id) = simulation_manager.active_id() else {
+        panic!("no active simulation");
+    };
 
-            for entity in &ephemeral_robots {
-                info!("despawning ephemeral robot: {:?}", entity);
-                commands.entity(entity).despawn();
-            }
-
-            setup_v2(&mut commands, formation);
-        } else {
-            warn!("could not find formation group for simulation {:?}", id);
+    if let Some(formation) = simulation_manager.get_formation_group_for(active_simulation_id) {
+        for entity in &formation_spawners {
+            info!("despawning formation spawner: {:?}", entity);
+            commands.entity(entity).despawn();
         }
+
+        for entity in &ephemeral_robots {
+            info!("despawning ephemeral robot: {:?}", entity);
+            commands.entity(entity).despawn_recursive();
+        }
+
+        setup_v2(&mut commands, formation);
+    } else {
+        warn!(
+            "could not find formation group for simulation {:?}",
+            active_simulation_id
+        );
+        // }
     }
 
     //   for event in evr_load_simulation.read() {
@@ -244,16 +264,16 @@ fn advance_time(
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn spawn_formation(
     mut commands: Commands,
-    mut spawn_event_reader: EventReader<RobotFormationSpawned>,
-    mut spawn_robot_event: EventWriter<RobotSpawned>,
-    mut create_waypoint_event: EventWriter<WaypointCreated>,
+    mut evr_robot_formation_spawned: EventReader<RobotFormationSpawned>,
+    mut evw_robot_spawned: EventWriter<RobotSpawned>,
+    mut evw_waypoint_created: EventWriter<WaypointCreated>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
+    theme: Res<CatppuccinTheme>,
     image_assets: ResMut<Assets<Image>>,
     formation_group: Res<FormationGroup>,
     variable_timesteps: Res<VariableTimesteps>,
-    theme: Res<CatppuccinTheme>,
 ) {
     // only continue if the image has been loaded
     let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else {
@@ -263,7 +283,7 @@ fn spawn_formation(
 
     let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
 
-    for event in spawn_event_reader.read() {
+    for event in evr_robot_formation_spawned.read() {
         // warn!("new formation spawn event received: {:?}", event);
         let formation = &formation_group.formations[event.formation_group_index];
         let first_wp = formation.waypoints.first();
@@ -333,7 +353,7 @@ fn spawn_formation(
             let initial_translation = Vec3::new(initial_position.x, 0.5, initial_position.y);
             let mut entity = commands.spawn_empty();
             let robot_id = entity.id();
-            create_waypoint_event.send_batch(waypoints.iter().map(|p| WaypointCreated {
+            evw_waypoint_created.send_batch(waypoints.iter().map(|p| WaypointCreated {
                 for_robot: robot_id,
                 position:  *p,
             }));
@@ -420,7 +440,7 @@ fn spawn_formation(
                     .with_attached(true),
             ));
 
-            spawn_robot_event.send(RobotSpawned(robot_id));
+            evw_robot_spawned.send(RobotSpawned(robot_id));
         }
         // info!("spawning formation group {}", event.formation_group_index);
     }

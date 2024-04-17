@@ -317,11 +317,9 @@ fn ui_settings_panel(
                             ui.vertical_centered_justified(|ui| {
                                 ui.menu_button(simulation_manager.active_name().map(ToString::to_string).unwrap_or(format!("N/A")), |ui| {
                                     for (id, sim) in simulation_manager.ids_and_names().collect::<Vec<(SimulationId, SmolStr)>>()  {
-                                    // for sim in ["foo", "bar", "baz"] {
                                         ui.vertical_centered_justified(|ui| {
                                             let name: String = sim.into();
                                             if ui.button(name).clicked() {
-                                                // let id = simulation_manager.id_from_name(sim).expect("Simulation name should be valid");
                                                 simulation_manager.load(id);
                                                 ui.close_menu();
                                             }

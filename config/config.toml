@@ -19,8 +19,8 @@ height-map = 1.0
 robots                 = true
 communication-graph    = false
 predicted-trajectories = true
-waypoints              = false
-uncertainty            = false
+waypoints              = true
+uncertainty            = true
 paths                  = true
 generated-map          = true
 height-map             = false
@@ -53,7 +53,7 @@ time-scale         = 1.0
 manual-step-factor = 1
 hz                 = 60.0
 world-size         = 100.0
-random-seed        = 0
+prng-seed          = 0
 pause-on-spawn     = false
 
 [graphviz.interrobot.edge]

@@ -4,7 +4,6 @@ mod data;
 mod decoration;
 mod metrics;
 mod scale;
-mod top_panel;
 // mod selected_entity;
 mod settings;
 
@@ -342,6 +341,6 @@ fn action_block(mut action_block: ResMut<ActionBlock>, ui_state: Res<UiState>) {
     }
 }
 
-fn render(mut egui_ctx: EguiContexts) {
-    top_panel::show(egui_ctx.ctx_mut());
-}
+// fn render(mut egui_ctx: EguiContexts) {
+//     top_panel::show(egui_ctx.ctx_mut());
+// }

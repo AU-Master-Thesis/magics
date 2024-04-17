@@ -77,7 +77,7 @@ fn create_waypoint_mesh(
         ));
 
         commands.spawn((
-            simulation_loader::Ephemeral,
+            simulation_loader::Reloadable,
             WaypointVisualiser,
             AssociatedWithRobot(event.for_robot),
             PbrBundle {

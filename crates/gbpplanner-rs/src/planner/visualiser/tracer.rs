@@ -13,7 +13,7 @@ use crate::{
         robot::{RobotDespawned, RobotSpawned},
         RobotId, RobotState,
     },
-    simulation_loader::LoadSimulation,
+    simulation_loader::{LoadSimulation, ReloadSimulation},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
@@ -28,6 +28,7 @@ impl Plugin for TracerVisualiserPlugin {
                 track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
                 draw_traces.run_if(draw_paths_enabled),
                 reset.run_if(on_event::<LoadSimulation>()),
+                reset.run_if(on_event::<ReloadSimulation>()),
             ),
         );
     }
@@ -94,7 +95,7 @@ fn track_robots(
     mut traces: ResMut<Traces>,
     theme: Res<CatppuccinTheme>,
 ) {
-    for (robot_id, transform, color_association) in query.iter() {
+    for (robot_id, transform, color_association) in &query {
         let _ = traces
             .0
             .entry(robot_id)

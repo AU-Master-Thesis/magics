@@ -6,8 +6,12 @@ use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSet
 use catppuccin::Flavour;
 
 use crate::{
-    asset_loader::SceneAssets, bevy_utils::run_conditions::event_exists, config,
-    input::DrawSettingsEvent, theme::CatppuccinTheme,
+    asset_loader::SceneAssets,
+    bevy_utils::run_conditions::event_exists,
+    config::{self, Config},
+    input::DrawSettingsEvent,
+    simulation_loader,
+    theme::CatppuccinTheme,
 };
 
 pub struct MapPlugin;
@@ -89,7 +93,7 @@ fn flat_map(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    config: Res<config::Config>,
+    config: Res<Config>,
 ) {
     let material_handle = materials.add(StandardMaterial {
         base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
@@ -97,7 +101,7 @@ fn flat_map(
     });
 
     // Spawn an entity with the mesh and material, and position it in 3D space
-    commands.spawn((FlatMap, PbrBundle {
+    commands.spawn((simulation_loader::Reloadable, FlatMap, PbrBundle {
         mesh: scene_assets.meshes.plane.clone(),
         material: material_handle,
         visibility: if config.visualisation.draw.sdf {
@@ -116,12 +120,13 @@ fn flat_map(
 /// DrawSetting::flat_map` the boolean `DrawSettingEvent.value` will be used to
 /// set the visibility of the [`VariableVisualiser`] entities
 fn show_or_hide_flat_map(
-    mut query: Query<(&FlatMap, &mut Visibility)>,
+    // mut query: Query<(&FlatMap, &mut Visibility)>,
+    mut query: Query<&mut Visibility, With<FlatMap>>,
     mut draw_setting_event: EventReader<DrawSettingsEvent>,
 ) {
     for event in draw_setting_event.read() {
         if matches!(event.setting, config::DrawSetting::Sdf) {
-            for (_, mut visibility) in &mut query {
+            for mut visibility in &mut query {
                 if event.draw {
                     *visibility = Visibility::Visible;
                 } else {
@@ -164,7 +169,7 @@ fn obstacles(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut next_state: ResMut<NextState<HeightMapState>>,
-    config: Res<config::Config>,
+    config: Res<Config>,
 ) {
     let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) else {
         return;
@@ -258,7 +263,7 @@ fn obstacles(
         ..default()
     });
 
-    commands.spawn((HeightMap, PbrBundle {
+    commands.spawn((simulation_loader::Reloadable, HeightMap, PbrBundle {
         mesh: meshes.add(mesh),
         material: material_handle,
         visibility: if config.visualisation.draw.height_map {
@@ -280,12 +285,13 @@ pub struct HeightMap;
 /// DrawSetting::height_map` the boolean `DrawSettingEvent.value` will be used
 /// to set the visibility of the [`HeightMap`] entities
 fn show_or_hide_height_map(
-    mut query: Query<(&HeightMap, &mut Visibility)>,
+    // mut query: Query<(&HeightMap, &mut Visibility)>,
+    mut query: Query<&mut Visibility, With<HeightMap>>,
     mut draw_setting_event: EventReader<DrawSettingsEvent>,
 ) {
     for event in draw_setting_event.read() {
         if matches!(event.setting, config::DrawSetting::HeightMap) {
-            for (_, mut visibility) in &mut query {
+            for mut visibility in &mut query {
                 if event.draw {
                     *visibility = Visibility::Visible;
                 } else {

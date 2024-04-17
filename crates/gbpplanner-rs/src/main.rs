@@ -33,7 +33,7 @@ use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
 use colored::Colorize;
 use config::{environment::EnvironmentType, Environment};
-use gbpplanner_rs::AppState;
+use gbpplanner_rs::{prng::PrngPlugin, AppState};
 
 // use iyes_perf_ui::prelude::*;
 
@@ -254,6 +254,7 @@ fn main() -> anyhow::Result<()> {
 
         // our plugins
         .add_plugins((
+            SimulationLoaderPlugin::default(),
             DefaultPickingPlugins,
             PausePlayPlugin::default(),
             ThemePlugin,       // Custom
@@ -268,7 +269,7 @@ fn main() -> anyhow::Result<()> {
             EguiInterfacePlugin, // Custom
             PlannerPlugin,
             NotifyPlugin::default(),
-            SimulationLoaderPlugin::default(),
+            PrngPlugin,
         ))
         .add_plugins(ToggleFullscreenPlugin::default())
         // .add_plugins(bevy_dev::DevPlugins)

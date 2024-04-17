@@ -1,9 +1,11 @@
-use std::collections::BTreeMap;
+use std::{
+    collections::{BTreeMap, VecDeque},
+    time::Duration,
+};
 
 use bevy::{
-    input::common_conditions::input_just_pressed, prelude::*, reflect::TypePath, utils::HashMap,
+    input::common_conditions::input_just_pressed, prelude::*, time::common_conditions::on_timer,
 };
-use bevy_asset_loader::{asset_collection::AssetCollection, prelude::*};
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use smol_str::SmolStr;
 
@@ -45,6 +47,8 @@ impl SimulationLoaderPlugin {
     //         Ok(Self { simulations_dir })
     //     }
     // }
+
+    // fn
 }
 
 impl Plugin for SimulationLoaderPlugin {
@@ -117,47 +121,34 @@ impl Plugin for SimulationLoaderPlugin {
             panic!("No simulations found in {}", Self::SIMULATIONS_DIR);
         }
 
-        // app
-        //     .init_state::<SimulationAssetStates>()
-        //     .add_loading_state(
-        //         LoadingState::new(SimulationAssetStates::Loading)
-        //         .continue_to_state(SimulationAssetStates::Loaded)
-        //         .load_collection::<SimulationAssets>()
-        //     .register_dynamic_asset_collection::<CustomDynamicAssetCollection>()
-        //         .with_dynamic_assets_file::<CustomDynamicAssetCollection>("custom.
-        // simulation.ron"),
-
-        //     )
-
-        // init_collection::<SimulationAssets>()
-        // .insert_resource(SimulationManager::new(self.simulations_dir.clone()))
-        app.insert_resource(SimulationManager::new(simulations))
+        app
+            .insert_state(SimulationStates::default())
+            .insert_resource(SimulationManager::new(simulations))
             .init_resource::<ActiveSimulation>()
             .add_event::<LoadSimulation>()
+            .add_event::<ReloadSimulation>()
             .add_event::<EndSimulation>()
             .add_event::<SimulationReloaded>()
+            .add_systems(Update, echo_state::<SimulationStates>().run_if(state_changed::<SimulationStates>))
+            .add_systems(Update, handle_requests.run_if(on_timer(Duration::from_millis(500))))
+            // .add_systems(OnEnter(SimulationStates::Loading), load_simulation)
+            // .add_systems(OnEnter(SimulationStates::Reloading), reload_simulation)
             .add_systems(
                 Update,
-                show_toast_when_simulation_reloads.run_if(on_event::<SimulationReloaded>()),
+                // show_toast_when_simulation_reloads.run_if(on_event::<SimulationReloaded>()),
+                show_toast_when_simulation_reloads.run_if(on_event::<ReloadSimulation>()),
             )
-                .add_systems(PostStartup, load_initial_simulation)
+                // .add_systems(PostStartup, load_initial_simulation)
             // .add_systems(OnEnter(SimulationAssetStates::Loaded), load_simulation)
-            .add_systems(PostUpdate, load_simulation)
+            // .add_systems(PostUpdate, load_simulation)
             .add_systems(
                 Update,
+                // enter_state(SimulationStates::Reloading).run_if(input_just_pressed(KeyCode::F5))
                 reload_simulation.run_if(input_just_pressed(KeyCode::F5)),
             );
-
-        // if app.world.get_resource::<Events<LoadSimulation>>().is_some() {}
-
-        //     ;.is_some() {
-
-        // }
+        // .add_systems(Update, load_simulation);
     }
 }
-
-#[derive(Debug, Component)]
-pub struct Ephemeral;
 
 #[derive(Debug)]
 pub struct Simulation {
@@ -195,6 +186,14 @@ pub struct SimulationManager {
     // simulations: Simulations,
     active: Option<usize>,
     reload_requested: Option<()>,
+    requests: VecDeque<Request>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Request {
+    Load(SimulationId),
+    Reload,
+    End,
 }
 
 // impl<'world> SimulationManager<'world> {
@@ -205,6 +204,8 @@ impl SimulationManager {
         let names = simulations.keys().cloned().map(Into::into).collect();
         let simulations = simulations.into_values().collect();
 
+        let requests = VecDeque::from([Request::Load(SimulationId(0))]);
+
         let active = Some(0);
         Self {
             names,
@@ -212,6 +213,8 @@ impl SimulationManager {
             active,
             // active: None,
             reload_requested: None,
+            requests,
+            // requests: VecDeque::new(),
         }
     }
 
@@ -246,10 +249,25 @@ impl SimulationManager {
     }
 
     pub fn reload(&mut self) {
-        if self.reload_requested.is_none() {
-            info!("setting reload requested to Some(())");
-            self.reload_requested = Some(());
+        // let Some(active_simulation_id) = self.active else {
+        //     return;
+        // };
+
+        if self.active.is_some() {
+            self.requests.push_back(Request::Reload);
         }
+
+        // if self.reload_requested.is_none() {
+        //     info!("setting reload requested to Some(())");
+        //     self.reload_requested = Some(());
+        // }
+    }
+
+    pub fn load(&mut self, id: SimulationId) {
+        self.active = Some(id.0);
+        self.requests.push_back(Request::Load(id));
+        // info!("loading simulation with id: {}", id.0);
+        // self.reload_requested = Some(());
     }
 
     #[must_use]
@@ -260,12 +278,6 @@ impl SimulationManager {
     #[must_use]
     pub fn id_from_name(&self, name: &str) -> Option<SimulationId> {
         self.names.iter().position(|n| n == name).map(SimulationId)
-    }
-
-    pub fn load(&mut self, id: SimulationId) {
-        self.active = Some(id.0);
-        info!("loading simulation with id: {}", id.0);
-        self.reload_requested = Some(());
     }
 
     // pub fn get_
@@ -306,7 +318,10 @@ impl FromWorld for ActiveSimulation {
 pub struct LoadSimulation(pub SimulationId);
 
 #[derive(Event)]
-pub struct EndSimulation(SimulationId);
+pub struct ReloadSimulation(pub SimulationId);
+
+#[derive(Event)]
+pub struct EndSimulation(pub SimulationId);
 
 // TODO: send an simulation generation or id with
 #[derive(Event, Default)]
@@ -317,46 +332,51 @@ pub struct SimulationReloaded;
 #[derive(Component)]
 pub struct Reloadable;
 
-// fn reload_scene(world: &mut World, keyboard_input: Res<ButtonInput<KeyCode>>)
-// {
-fn reload_scene(world: &mut World) {
-    // if !keyboard_input.any_pressed([KeyCode::F5]) {
-    //     return;
-    // }
-
-    let mut query = world.query_filtered::<Entity, With<Reloadable>>();
-    let matching_entities = query.iter(world).collect::<Vec<Entity>>();
-    let n_matching_entities = matching_entities.len();
-
-    info!("despawning reloadable entities in scene");
-    for entity in matching_entities {
-        world.despawn(entity);
-    }
-    info!(
-        "reloadable entities in scene despawned: {}",
-        n_matching_entities
-    );
-
-    let new_virtual_clock = Time::<Virtual>::default();
-    // let mut time = world.resource_mut::<Time<Virtual>>();
-
-    world.insert_resource::<Time<Virtual>>(new_virtual_clock);
-
-    world.send_event_default::<SimulationReloaded>();
-    // world.send_event::<ReloadSimulation>()
-
-    // time.pause();
-
-    // let time = time.bypass_change_detection();
-    // *time = new_virtual_clock;
-
-    // let mut time = time.as_deref_mut();
-
-    // *time.as_deref_mut() = new_virtual_clock;
-
-    // time = new_virtual_clock;
+fn reload_simulation(mut simulation_manager: ResMut<SimulationManager>) {
+    simulation_manager.reload();
 }
 
+// fn reload_scene(world: &mut World, keyboard_input: Res<ButtonInput<KeyCode>>)
+// {
+// fn reload_simulation(world: &mut World) {
+//     // if !keyboard_input.any_pressed([KeyCode::F5]) {
+//     //     return;
+//     // }
+//
+//     let mut query = world.query_filtered::<Entity, With<Reloadable>>();
+//     let matching_entities = query.iter(world).collect::<Vec<Entity>>();
+//     let n_matching_entities = matching_entities.len();
+//
+//     info!("despawning reloadable entities in scene");
+//     for entity in matching_entities {
+//         world.despawn(entity);
+//     }
+//     info!(
+//         "reloadable entities in scene despawned: {}",
+//         n_matching_entities
+//     );
+//
+//     let new_virtual_clock = Time::<Virtual>::default();
+//     // let mut time = world.resource_mut::<Time<Virtual>>();
+//
+//     world.insert_resource::<Time<Virtual>>(new_virtual_clock);
+//
+//     world.send_event_default::<SimulationReloaded>();
+//
+//     // world.send_event::<ReloadSimulation>()
+//
+//     // time.pause();
+//
+//     // let time = time.bypass_change_detection();
+//     // *time = new_virtual_clock;
+//
+//     // let mut time = time.as_deref_mut();
+//
+//     // *time.as_deref_mut() = new_virtual_clock;
+//
+//     // time = new_virtual_clock;
+// }
+//
 fn show_toast_when_simulation_reloads(mut evw_toast: EventWriter<ToastEvent>) {
     evw_toast.send(ToastEvent {
         caption: "reloaded simulation".into(),
@@ -369,39 +389,69 @@ fn show_toast_when_simulation_reloads(mut evw_toast: EventWriter<ToastEvent>) {
     });
 }
 
-fn reload_simulation(
-    mut evw_reload_simulation: EventWriter<SimulationReloaded>,
-    mut end_simulation: EventWriter<EndSimulation>,
+fn show_toast_when_simulation_state_changes(
+    mut evw_toast: EventWriter<ToastEvent>,
+    state: Res<State<SimulationStates>>,
 ) {
-    info!("ending simulation");
-    end_simulation.send(EndSimulation(SimulationId(0)));
+    evw_toast.send(ToastEvent {
+        caption: "reloaded simulation".into(),
+        options: ToastOptions {
+            level: ToastLevel::Success,
+            closable: false,
+            show_progress_bar: false,
+            ..Default::default()
+        },
+    });
 }
 
+// fn reload_simulation(
+//     // mut evw_reload_simulation: EventWriter<SimulationReloaded>,
+//     // mut end_simulation: EventWriter<EndSimulation>,
+//     mut simulation_manager: ResMut<SimulationManager>,
+// ) {
+//     simulation_manager.reload();
+//     // info!("ending simulation");
+//     // end_simulation.send(EndSimulation(SimulationId(0)));
+// }
+
 // TODO: use in app
-#[derive(
-    Debug,
-    Default,
-    States,
-    PartialEq,
-    Eq,
-    Hash,
-    Clone,
-    Copy,
-    derive_more::Display,
-    derive_more::IsVariant,
-)]
+#[derive(Debug, Default, States, PartialEq, Eq, Hash, Clone, Copy, derive_more::IsVariant)]
 pub enum SimulationStates {
     #[default]
-    #[display(fmt = "Loading")]
     Loading,
-    #[display(fmt = "Starting")]
     Starting,
-    #[display(fmt = "Running")]
     Running,
-    #[display(fmt = "Paused")]
     Paused,
-    #[display(fmt = "Finished")]
-    Finished,
+    Reloading,
+    Ended,
+    // Finished,
+}
+
+impl SimulationStates {
+    fn transition(&mut self) {
+        use SimulationStates::*;
+        *self = match self {
+            Loading => Starting,
+            Starting => Running,
+            Running => Running,
+            Paused => Paused,
+            Reloading => Loading,
+            Ended => Ended,
+        }
+    }
+}
+
+impl std::fmt::Display for SimulationStates {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Loading => write!(f, "Loading"),
+            Self::Starting => write!(f, "Starting"),
+            Self::Running => write!(f, "Running"),
+            Self::Paused => write!(f, "Paused"),
+            Self::Reloading => write!(f, "Reloading"),
+            Self::Ended => write!(f, "Ended"),
+        }
+    }
 }
 
 // fn load_simulation() {}
@@ -440,10 +490,6 @@ fn load_initial_simulation(
         evw_load_simulation.send(LoadSimulation(id));
         info!("sent load simulation event with id: {}", id.0);
     }
-
-    // if simulation_manager.is_changed() {
-    //     evw_load_simulation.send(LoadSimulation(SimulationId(0)));
-    // }
 }
 
 fn load_simulation(
@@ -451,13 +497,16 @@ fn load_simulation(
     mut evw_load_simulation: EventWriter<LoadSimulation>,
     // mut evw_end_simulation: EventWriter<EndSimulation>,
     mut simulation_manager: ResMut<SimulationManager>,
-
-    ephemeral_entities: Query<Entity, With<Ephemeral>>,
+    mut next_state: ResMut<NextState<SimulationStates>>,
+    ephemeral_entities: Query<Entity, With<Reloadable>>,
 ) {
     if simulation_manager.reload_requested.is_some() {
         for entity in &ephemeral_entities {
             info!("despawning ephemeral entity: {:?}", entity);
-            commands.entity(entity).despawn();
+            // commands.entity(entity).despawn();
+
+            // commands.entity(entity).despawn_descendants();
+            commands.entity(entity).despawn_recursive();
         }
 
         let id = simulation_manager.active.map(SimulationId).unwrap();
@@ -465,5 +514,86 @@ fn load_simulation(
 
         evw_load_simulation.send(LoadSimulation(id));
         simulation_manager.reload_requested = None;
+    }
+}
+
+fn echo_state<S: States>() -> impl Fn(Res<State<S>>) {
+    move |state: Res<State<S>>| {
+        info!("{} state is: {:?}", std::any::type_name::<S>(), state.get());
+    }
+}
+// fn echo_state<S: States>(state: Res<State<S>>) {
+//     info!("state: {:?}", state.get());
+// }
+//
+// fn echo_state(state: ResMut<State<SimulationStates>>) {
+//     info!("state: {:?}", state.get());
+// }
+
+fn enter_state(state: SimulationStates) -> impl FnMut(ResMut<NextState<SimulationStates>>) {
+    move |mut next_state: ResMut<NextState<SimulationStates>>| {
+        next_state.set(state);
+    }
+}
+
+// fn restart_virtual_time
+
+// fn restart_time<T>(world: &mut World) {
+//     if let Some(time) = world.get_resource::<Time<T>>() {
+//         // preserve its pause/unpause state and reset only its time value
+//         // let time = time.bypass_change_detection();
+//         // *time = T::default();
+//     }
+// }
+//
+
+fn handle_requests(
+    mut commands: Commands,
+    mut simulation_manager: ResMut<SimulationManager>,
+    mut evw_load_simulation: EventWriter<LoadSimulation>,
+    mut evw_reload_simulation: EventWriter<ReloadSimulation>,
+    mut evw_end_simulation: EventWriter<EndSimulation>,
+    reloadable_entites: Query<Entity, With<Reloadable>>,
+) {
+    let Some(request) = simulation_manager.requests.pop_front() else {
+        return;
+    };
+
+    info!("handling request: {:?}", request);
+    info!("requests pending: {:?}", simulation_manager.requests.len());
+
+    match request {
+        Request::Load(id) => {
+            for entity in &reloadable_entites {
+                // commands.entity(entity).despawn_recursive();
+                commands.entity(entity).despawn();
+            }
+            simulation_manager.active = Some(id.0);
+            evw_load_simulation.send(LoadSimulation(id));
+            info!("sent load simulation event with id: {}", id.0);
+        }
+        Request::Reload => match simulation_manager.active {
+            Some(index) => {
+                for entity in &reloadable_entites {
+                    // commands.entity(entity).despawn_recursive();
+                    commands.entity(entity).despawn();
+                }
+                evw_reload_simulation.send(ReloadSimulation(SimulationId(index)));
+                info!("sent reload simulation event with id: {}", index);
+            }
+            None => {
+                error!("no active simulation, cannot reload");
+            }
+        },
+        Request::End => match simulation_manager.active {
+            Some(index) => {
+                simulation_manager.active = None;
+                evw_end_simulation.send(EndSimulation(SimulationId(index)));
+                info!("sent end simulation event with id: {}", index);
+            }
+            None => {
+                error!("no active simulation to end");
+            }
+        },
     }
 }
