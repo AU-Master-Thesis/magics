@@ -14,7 +14,7 @@ use crate::{
     bevy_utils::run_conditions::event_exists,
     config::{environment::PlaceableShape, Config, DrawSetting, Environment},
     input::DrawSettingsEvent,
-    simulation_loader::{self, LoadSimulation},
+    simulation_loader::LoadSimulation,
 };
 
 pub struct GenMapPlugin;
@@ -1096,6 +1096,8 @@ fn show_or_hide_generated_map(
     }
 }
 
+/// **Bevy** system that clear all spawned obstacle colliders. Used to clear
+/// existing colliders before a new simulation is loaded.
 fn clear_colliders(mut colliders: ResMut<Colliders>) {
     let n_colliders = colliders.0.len();
     colliders.0.clear();

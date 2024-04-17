@@ -4,14 +4,14 @@ use std::{
 };
 
 use bevy::{
-    input::common_conditions::input_just_pressed,
-    prelude::*,
-    time::common_conditions::{on_real_timer, on_timer},
+    input::common_conditions::input_just_pressed, prelude::*,
+    time::common_conditions::on_real_timer,
 };
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use smol_str::SmolStr;
 
 use crate::{
+    bevy_utils::state::echo_state,
     config::{Config, Environment, FormationGroup},
     simulation_loader,
 };
@@ -198,7 +198,7 @@ pub struct SimulationManager {
     simulations: Vec<Simulation>,
     // simulations: Simulations,
     active: Option<usize>,
-    reload_requested: Option<()>,
+    // reload_requested: Option<()>,
     requests: VecDeque<Request>,
     simulations_loaded: usize,
 }
@@ -226,7 +226,7 @@ impl SimulationManager {
             simulations,
             active,
             // active: None,
-            reload_requested: None,
+            // reload_requested: None,
             requests,
             // requests: VecDeque::new(),
             simulations_loaded: 0,
@@ -534,61 +534,6 @@ fn load_initial_simulation(
     // }
 }
 
-fn load_simulation(
-    mut commands: Commands,
-    mut evw_load_simulation: EventWriter<LoadSimulation>,
-    // mut evw_end_simulation: EventWriter<EndSimulation>,
-    mut simulation_manager: ResMut<SimulationManager>,
-    mut next_state: ResMut<NextState<SimulationStates>>,
-    ephemeral_entities: Query<Entity, With<Reloadable>>,
-) {
-    if simulation_manager.reload_requested.is_some() {
-        for entity in &ephemeral_entities {
-            info!("despawning ephemeral entity: {:?}", entity);
-            // commands.entity(entity).despawn();
-
-            // commands.entity(entity).despawn_descendants();
-            commands.entity(entity).despawn_recursive();
-        }
-
-        let id = simulation_manager.active.map(SimulationId).unwrap();
-        info!("sent load simulation event with id: {}", id.0);
-
-        evw_load_simulation.send(LoadSimulation(id));
-        simulation_manager.reload_requested = None;
-    }
-}
-
-fn echo_state<S: States>() -> impl Fn(Res<State<S>>) {
-    move |state: Res<State<S>>| {
-        info!("{} state is: {:?}", std::any::type_name::<S>(), state.get());
-    }
-}
-// fn echo_state<S: States>(state: Res<State<S>>) {
-//     info!("state: {:?}", state.get());
-// }
-//
-// fn echo_state(state: ResMut<State<SimulationStates>>) {
-//     info!("state: {:?}", state.get());
-// }
-
-fn enter_state(state: SimulationStates) -> impl FnMut(ResMut<NextState<SimulationStates>>) {
-    move |mut next_state: ResMut<NextState<SimulationStates>>| {
-        next_state.set(state);
-    }
-}
-
-// fn restart_virtual_time
-
-// fn restart_time<T>(world: &mut World) {
-//     if let Some(time) = world.get_resource::<Time<T>>() {
-//         // preserve its pause/unpause state and reset only its time value
-//         // let time = time.bypass_change_detection();
-//         // *time = T::default();
-//     }
-// }
-//
-
 fn handle_requests(
     mut commands: Commands,
     mut simulation_manager: ResMut<SimulationManager>,
@@ -612,7 +557,6 @@ fn handle_requests(
         Request::Load(_) | Request::Reload => {
             let is_paused = virtual_time.is_paused();
 
-            // let new_virtual_clock = Time::<Virtual>::default();
             let virtual_time = virtual_time.bypass_change_detection();
             *virtual_time = Time::<Virtual>::default();
             if is_paused {
@@ -627,11 +571,10 @@ fn handle_requests(
         //     simulation_manager.active = Some(id.0);
         // }
         Request::Load(id)
-            if simulation_manager.active.is_some_and(|active| {
-                info!("active: {}, id.0 = {}", active, id.0);
-
-                dbg!(active == id.0)
-            }) =>
+            if simulation_manager
+                .active
+                .is_some_and(|active| active == id.0)
+                && simulation_manager.simulations_loaded > 0 =>
         {
             warn!("simulation already loaded with id: {}", id.0);
             evw_toast.send(ToastEvent::warning("simulation already loaded"));
