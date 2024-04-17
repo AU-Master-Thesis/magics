@@ -122,9 +122,9 @@ impl ToastEvent {
     /// Create an info toast
     /// options is set to `ToastOptions::default()`
     #[must_use]
-    pub fn info(caption: String) -> Self {
+    pub fn info(caption: impl Into<String>) -> Self {
         Self {
-            caption,
+            caption: caption.into(),
             options: ToastOptions {
                 level: ToastLevel::Info,
                 ..Default::default()
@@ -135,9 +135,9 @@ impl ToastEvent {
     /// Create a success toast
     /// options is set to `ToastOptions::default()`
     #[must_use]
-    pub fn success(caption: String) -> Self {
+    pub fn success(caption: impl Into<String>) -> Self {
         Self {
-            caption,
+            caption: caption.into(),
             options: ToastOptions {
                 level: ToastLevel::Success,
                 ..Default::default()
@@ -148,9 +148,9 @@ impl ToastEvent {
     /// Create an error toast
     /// options is set to `ToastOptions::default()`
     #[must_use]
-    pub fn error(caption: String) -> Self {
+    pub fn error(caption: impl Into<String>) -> Self {
         Self {
-            caption,
+            caption: caption.into(),
             options: ToastOptions {
                 level: ToastLevel::Error,
                 ..Default::default()
@@ -161,9 +161,9 @@ impl ToastEvent {
     /// Create a warning toast
     /// options is set to `ToastOptions::default()`
     #[must_use]
-    pub fn warning(caption: String) -> Self {
+    pub fn warning(caption: impl Into<String>) -> Self {
         Self {
-            caption,
+            caption: caption.into(),
             options: ToastOptions {
                 level: ToastLevel::Warning,
                 ..Default::default()
@@ -174,9 +174,9 @@ impl ToastEvent {
     /// Create a custom toast
     /// options is set to `ToastOptions::default()`
     #[must_use]
-    pub fn custom(caption: String, level: ToastLevel) -> Self {
+    pub fn custom(caption: impl Into<String>, level: ToastLevel) -> Self {
         Self {
-            caption,
+            caption: caption.into(),
             options: ToastOptions {
                 level,
                 ..Default::default()

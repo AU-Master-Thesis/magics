@@ -4,7 +4,9 @@ use std::{
 };
 
 use bevy::{
-    input::common_conditions::input_just_pressed, prelude::*, time::common_conditions::on_timer,
+    input::common_conditions::input_just_pressed,
+    prelude::*,
+    time::common_conditions::{on_real_timer, on_timer},
 };
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use smol_str::SmolStr;
@@ -27,9 +29,16 @@ pub enum SimulationLoaderPluginError {
 //     folder: bevy::utils::HashMap<String, UntypedHandle>,
 // }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SimulationLoaderPlugin {
     // pub simulations_dir: std::path::PathBuf,
+    pub show_toasts: bool,
+}
+
+impl Default for SimulationLoaderPlugin {
+    fn default() -> Self {
+        Self { show_toasts: true }
+    }
 }
 
 // #[derive(Debug)]
@@ -130,14 +139,14 @@ impl Plugin for SimulationLoaderPlugin {
             .add_event::<EndSimulation>()
             .add_event::<SimulationReloaded>()
             .add_systems(Update, echo_state::<SimulationStates>().run_if(state_changed::<SimulationStates>))
-            .add_systems(Update, handle_requests.run_if(on_timer(Duration::from_millis(250))))
+            .add_systems(Update, handle_requests.run_if(on_real_timer(Duration::from_millis(500))))
             // .add_systems(OnEnter(SimulationStates::Loading), load_simulation)
             // .add_systems(OnEnter(SimulationStates::Reloading), reload_simulation)
-            .add_systems(
-                Update,
-                // show_toast_when_simulation_reloads.run_if(on_event::<SimulationReloaded>()),
-                show_toast_when_simulation_reloads.run_if(on_event::<ReloadSimulation>()),
-            )
+            // .add_systems(
+            //     Update,
+            //     // show_toast_when_simulation_reloads.run_if(on_event::<SimulationReloaded>()),
+            //     show_toast_when_simulation_reloads.run_if(on_event::<ReloadSimulation>()),
+            // )
                 // .add_systems(PostStartup, load_initial_simulation)
             // .add_systems(OnEnter(SimulationAssetStates::Loaded), load_simulation)
             // .add_systems(PostUpdate, load_simulation)
@@ -187,6 +196,7 @@ pub struct SimulationManager {
     active: Option<usize>,
     reload_requested: Option<()>,
     requests: VecDeque<Request>,
+    simulations_loaded: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -215,6 +225,7 @@ impl SimulationManager {
             reload_requested: None,
             requests,
             // requests: VecDeque::new(),
+            simulations_loaded: 0,
         }
     }
 
@@ -553,6 +564,8 @@ fn handle_requests(
     mut evw_load_simulation: EventWriter<LoadSimulation>,
     mut evw_reload_simulation: EventWriter<ReloadSimulation>,
     mut evw_end_simulation: EventWriter<EndSimulation>,
+    mut evw_toast: EventWriter<ToastEvent>,
+    mut virtual_time: ResMut<Time<Virtual>>,
     reloadable_entites: Query<Entity, With<Reloadable>>,
 ) {
     let Some(request) = simulation_manager.requests.pop_front() else {
@@ -563,6 +576,20 @@ fn handle_requests(
     info!("requests pending: {:?}", simulation_manager.requests.len());
 
     match request {
+        Request::Load(_) | Request::Reload => {
+            let is_paused = virtual_time.is_paused();
+
+            // let new_virtual_clock = Time::<Virtual>::default();
+            let virtual_time = virtual_time.bypass_change_detection();
+            *virtual_time = Time::<Virtual>::default();
+            if is_paused {
+                virtual_time.unpause();
+            }
+        }
+        _ => {}
+    }
+
+    match request {
         Request::Load(id) => {
             for entity in &reloadable_entites {
                 // commands.entity(entity).despawn_recursive();
@@ -571,6 +598,22 @@ fn handle_requests(
             simulation_manager.active = Some(id.0);
             evw_load_simulation.send(LoadSimulation(id));
             info!("sent load simulation event with id: {}", id.0);
+            simulation_manager.simulations_loaded += 1;
+            let simulation_name = &simulation_manager.names[id.0];
+
+            evw_toast.send(ToastEvent {
+                caption: format!("simulation loaded: {}", simulation_name),
+                options: ToastOptions {
+                    level: ToastLevel::Success,
+                    show_progress_bar: false,
+                    duration: Some(Duration::from_secs(1)),
+                    ..Default::default()
+                },
+            });
+            // evw_toast.send(ToastEvent::info(format!(
+            //     "simulation loaded: {}",
+            //     simulation_name
+            // )));
         }
         Request::Reload => match simulation_manager.active {
             Some(index) => {
@@ -580,6 +623,17 @@ fn handle_requests(
                 }
                 evw_reload_simulation.send(ReloadSimulation(SimulationId(index)));
                 info!("sent reload simulation event with id: {}", index);
+                simulation_manager.simulations_loaded += 1;
+                evw_toast.send(ToastEvent {
+                    caption: "simulation reloaded".into(),
+                    options: ToastOptions {
+                        level: ToastLevel::Success,
+                        show_progress_bar: false,
+                        duration: Some(Duration::from_secs(1)),
+                        ..Default::default()
+                    },
+                });
+                // evw_toast.send(ToastEvent::info("reloaded simulation"));
             }
             None => {
                 error!("no active simulation, cannot reload");

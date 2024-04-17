@@ -375,7 +375,8 @@ fn ui_settings_panel(
 
                         custom::grid("manual_controls_settings_grid", 2).show(ui, |ui| {
                             // step forward button
-                            ui.add_enabled_ui(!pause_state.is_paused(), |ui| {
+                            // ui.add_enabled_ui(!pause_state.is_paused(), |ui| {
+                            ui.add_enabled_ui(!time_virtual.is_paused(), |ui| {
                                 custom::fill_x(ui, |ui| {
                                     if ui
                                         .button(RichText::new("󰒭").size(25.0))
@@ -393,7 +394,8 @@ fn ui_settings_panel(
                                 });
                             });
                             // pause/play button
-                            let pause_play_text = if pause_state.is_paused() {
+                            // let pause_play_text = if pause_state.is_paused() {
+                            let pause_play_text = if time_virtual.is_paused() {
                                 ""
                             } else {
                                 ""

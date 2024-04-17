@@ -120,18 +120,10 @@ fn reset_main_camera(
     transform.translation = cam_settings.start_pos;
     transform.look_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
     orbit.origin = Vec3::ZERO;
-
-    // for (mut transform, mut orbit) in &mut main_camera {
-    //     transform.translation = cam_settings.start_pos;
-    //     transform.look_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
-    //
-    //     orbit.origin = Vec3::ZERO;
-    // }
 }
 
 fn activate_main_camera(mut main_camera: Query<&mut Camera, With<MainCamera>>) {
-    // main_camera.single_mut().is_active = true;
     let mut main_camera = main_camera.single_mut();
     main_camera.is_active = true;
-    error!("Activated main camera");
+    info!("Activated main camera");
 }
