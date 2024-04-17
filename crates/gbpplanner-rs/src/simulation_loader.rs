@@ -216,12 +216,12 @@ impl SimulationManager {
 
         let requests = VecDeque::from([Request::Load(SimulationId(0))]);
 
-        let active = Some(0);
+        // let active = Some(0);
         Self {
             names,
             simulations,
-            active,
-            // active: None,
+            // active,
+            active: None,
             reload_requested: None,
             requests,
             // requests: VecDeque::new(),
@@ -275,7 +275,7 @@ impl SimulationManager {
     }
 
     pub fn load(&mut self, id: SimulationId) {
-        self.active = Some(id.0);
+        // self.active = Some(id.0);
         self.requests.push_back(Request::Load(id));
         // info!("loading simulation with id: {}", id.0);
         // self.reload_requested = Some(());
@@ -566,6 +566,7 @@ fn handle_requests(
     mut evw_end_simulation: EventWriter<EndSimulation>,
     mut evw_toast: EventWriter<ToastEvent>,
     mut virtual_time: ResMut<Time<Virtual>>,
+    mut config: ResMut<Config>,
     reloadable_entites: Query<Entity, With<Reloadable>>,
 ) {
     let Some(request) = simulation_manager.requests.pop_front() else {
@@ -590,12 +591,25 @@ fn handle_requests(
     }
 
     match request {
+        Request::Load(id)
+            if simulation_manager.active.is_some_and(|active| {
+                info!("active: {}, id.0 = {}", active, id.0);
+
+                dbg!(active == id.0)
+            }) =>
+        {
+            warn!("simulation already loaded with id: {}", id.0);
+            evw_toast.send(ToastEvent::warning("simulation already loaded"));
+        }
         Request::Load(id) => {
             for entity in &reloadable_entites {
                 // commands.entity(entity).despawn_recursive();
                 commands.entity(entity).despawn();
             }
             simulation_manager.active = Some(id.0);
+            // load config
+            *config = simulation_manager.simulations[id.0].config.clone();
+
             evw_load_simulation.send(LoadSimulation(id));
             info!("sent load simulation event with id: {}", id.0);
             simulation_manager.simulations_loaded += 1;

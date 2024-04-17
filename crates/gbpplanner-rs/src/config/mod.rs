@@ -25,7 +25,7 @@ pub enum ParseError {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Meter(f64);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizEdgeAttributes {
     // TODO: implement a way to validate this field to only match the valid edge styles: https://graphviz.org/docs/attr-types/style/
@@ -34,13 +34,13 @@ pub struct GraphvizEdgeAttributes {
     pub color: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizInterrbotSection {
     pub edge: GraphvizEdgeAttributes,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizSection {
     pub interrobot:      GraphvizInterrbotSection,
@@ -62,7 +62,7 @@ impl Default for GraphvizSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct HeightSection {
     pub objects:    f32,
@@ -78,7 +78,7 @@ impl Default for HeightSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct UncertaintySection {
     pub max_radius: f32,
@@ -94,7 +94,7 @@ impl Default for UncertaintySection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ManualSection {
     pub timesteps_per_step: NonZeroUsize,
@@ -108,7 +108,7 @@ impl Default for ManualSection {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct VisualisationSection {
     pub height: HeightSection,
@@ -225,7 +225,7 @@ impl DrawSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SimulationSection {
     // TODO: read count from input formation structure/array
@@ -280,7 +280,7 @@ impl Default for SimulationSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GbpSection {
     /// Sigma for Unary pose factor on current and horizon states
@@ -310,7 +310,7 @@ impl Default for GbpSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CommunicationSection {
     /// Inter-robot factors created if robots are within this range of each
@@ -331,7 +331,7 @@ impl Default for CommunicationSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct RobotSection {
     /// SI unit: s
@@ -370,7 +370,7 @@ impl Default for RobotSection {
 }
 
 /// Interaction Section
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InteractionSection {
     pub ui_focus_cancels_inputs: bool,
@@ -386,7 +386,7 @@ impl Default for InteractionSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Resource)]
+#[derive(Debug, Clone, Serialize, Deserialize, Resource)]
 pub struct Config {
     /// Path to the **.png** containing the environment sdf
     pub environment_image: String,
