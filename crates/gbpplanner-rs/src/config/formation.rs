@@ -178,9 +178,22 @@ impl Formation {
                         )
                     }
                     InitialPlacementStrategy::Equal => {
-                        unimplemented!()
+                        let d = ls_start.distance(ls_end);
+                        let n_robots: f32 = self.robots.get() as f32;
+                        let robot_diameter = robot_radius.get() * 2.0;
+                        if d < robot_diameter * n_robots {
+                            None
+                        } else {
+                            Some(
+                                (0..self.robots.get())
+                                    .map(|x| x as f32 / n_robots)
+                                    .collect(),
+                            )
+                        }
                     }
                 }?;
+
+                dbg!(&lerp_amounts);
 
                 assert_eq!(lerp_amounts.len(), self.robots.get());
 

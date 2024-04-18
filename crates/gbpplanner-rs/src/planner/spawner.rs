@@ -36,9 +36,14 @@ impl Plugin for RobotSpawnerPlugin {
             .add_systems(
                 Update,
                 (
-                    create_formation_group_spawners.run_if(
-                        on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>()),
-                    ),
+                    (
+                        delete_formation_group_spawners,
+                        create_formation_group_spawners,
+                    )
+                        .chain()
+                        .run_if(
+                            on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>()),
+                        ),
                     // create_formation_group_spawners.run_if(on_event::<ReloadSimulation>()),
                     delete_formation_group_spawners.run_if(on_event::<EndSimulation>()),
                 ),
@@ -195,34 +200,32 @@ fn setup_v2(commands: &mut Commands, formation_group: &FormationGroup) {
 
 fn delete_formation_group_spawners(
     mut commands: Commands,
-    // mut evr_end_simulation: EventReader<EndSimulation>,
-    // formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
     formation_spawners: Query<Entity, With<FormationSpawner>>,
 ) {
-    // for event in evr_end_simulation.read() {
     for spawner in &formation_spawners {
-        info!("despawning formation spawner: {:?}", spawner);
+        error!("despawning formation spawner: {:?}", spawner);
+        error!("asdlsahdasldha");
         commands.entity(spawner).despawn();
     }
-    // }
 }
 
 fn create_formation_group_spawners(
     mut commands: Commands,
     simulation_manager: Res<SimulationManager>,
-    existing_formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
+    // existing_formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
+    // existing_formation_spawners: Query<Entity, With<FormationSpawner>>,
 ) {
     let Some(formation_group) = simulation_manager.active_formation_group() else {
         warn!("No active formation group!");
         return;
     };
 
-    for spawner in &existing_formation_spawners {
-        commands.entity(spawner).despawn();
-        info!("Despawned formation spawner: {:?}", spawner);
-    }
+    // for spawner in &existing_formation_spawners {
+    //     commands.entity(spawner).despawn();
+    //     info!("Despawned formation spawner: {:?}", spawner);
+    // }
 
-    // dbg!(&formation_group);
+    dbg!(&formation_group);
     // std::process::exit(1);
 
     for (i, formation) in formation_group.formations.iter().enumerate() {
@@ -332,7 +335,8 @@ fn spawn_formation(
     mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<Config>,
     theme: Res<CatppuccinTheme>,
-    formation_group: Res<FormationGroup>,
+    // formation_group: Res<FormationGroup>,
+    simulation_manager: Res<SimulationManager>,
     variable_timesteps: Res<VariableTimesteps>,
     scene_assets: Res<SceneAssets>,
     image_assets: ResMut<Assets<Image>>,
@@ -345,6 +349,10 @@ fn spawn_formation(
         };
 
         let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
+
+        let formation_group = simulation_manager
+            .active_formation_group()
+            .expect("there is an active formation group");
 
         let formation = &formation_group.formations[event.formation_group_index];
 
@@ -853,43 +861,44 @@ impl From<ListenerInput<Pointer<Click>>> for RobotClickedOn {
 //     }
 // }
 
-fn randomly_place_nonoverlapping_circles_along_line_segment(
-    from: Vec2,
-    to: Vec2,
-    num_circles: NonZeroUsize,
-    radius: StrictlyPositiveFinite<f32>,
-    max_attempts: NonZeroUsize,
-    rng: &mut impl Rng,
-) -> Option<Vec<f32>> {
-    let num_circles = num_circles.get();
-    let max_attempts = max_attempts.get();
-    let mut lerp_amounts: Vec<f32> = Vec::with_capacity(num_circles);
-    let mut placed: Vec<Vec2> = Vec::with_capacity(num_circles);
-
-    let diameter = radius.get() * 2.0;
-
-    for _ in 0..max_attempts {
-        placed.clear();
-        lerp_amounts.clear();
-
-        for _ in 0..num_circles {
-            let lerp_amount = rng.gen_range(0.0..1.0);
-            let new_position = from.lerp(to, lerp_amount);
-
-            let valid = placed.iter().all(|&p| new_position.distance(p) >= diameter);
-
-            if valid {
-                lerp_amounts.push(lerp_amount);
-                placed.push(new_position);
-                if placed.len() == num_circles {
-                    return Some(lerp_amounts);
-                }
-            }
-        }
-    }
-
-    None
-}
+// fn randomly_place_nonoverlapping_circles_along_line_segment(
+//     from: Vec2,
+//     to: Vec2,
+//     num_circles: NonZeroUsize,
+//     radius: StrictlyPositiveFinite<f32>,
+//     max_attempts: NonZeroUsize,
+//     rng: &mut impl Rng,
+// ) -> Option<Vec<f32>> {
+//     let num_circles = num_circles.get();
+//     let max_attempts = max_attempts.get();
+//     let mut lerp_amounts: Vec<f32> = Vec::with_capacity(num_circles);
+//     let mut placed: Vec<Vec2> = Vec::with_capacity(num_circles);
+//
+//     let diameter = radius.get() * 2.0;
+//
+//     for _ in 0..max_attempts {
+//         placed.clear();
+//         lerp_amounts.clear();
+//
+//         for _ in 0..num_circles {
+//             let lerp_amount = rng.gen_range(0.0..1.0);
+//             let new_position = from.lerp(to, lerp_amount);
+//
+//             let valid = placed.iter().all(|&p| new_position.distance(p) >=
+// diameter);
+//
+//             if valid {
+//                 lerp_amounts.push(lerp_amount);
+//                 placed.push(new_position);
+//                 if placed.len() == num_circles {
+//                     return Some(lerp_amounts);
+//                 }
+//             }
+//         }
+//     }
+//
+//     None
+// }
 
 // fn equal_non_overlapping_circles_along_path(
 //     path: TwoOrMore<Vec2>,

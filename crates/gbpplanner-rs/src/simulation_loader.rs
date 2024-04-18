@@ -281,9 +281,9 @@ impl SimulationManager {
         let names = simulations.keys().cloned().map(Into::into).collect();
         let simulations = simulations.into_values().collect();
 
-        let requests = VecDeque::from([Request::Load(SimulationId(0))]);
+        let requests = VecDeque::from([Request::Load(SimulationId(2))]);
 
-        let active = Some(0);
+        let active = Some(2);
         Self {
             names,
             simulations,
