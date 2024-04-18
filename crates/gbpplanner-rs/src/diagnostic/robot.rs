@@ -1,11 +1,15 @@
 use bevy::{
-    diagnostic::{Diagnostic, DiagnosticPath, Diagnostics, RegisterDiagnostic},
+    diagnostic::{Diagnostic, DiagnosticPath, Diagnostics, DiagnosticsStore, RegisterDiagnostic},
     prelude::*,
     time::common_conditions::on_timer,
 };
 use units::sample_rate::SampleRate;
 
-use crate::{factorgraph::prelude::FactorGraph, planner::RobotState};
+use crate::{
+    factorgraph::prelude::FactorGraph,
+    planner::RobotState,
+    simulation_loader::{LoadSimulation, ReloadSimulation},
+};
 
 // /// Newtype representing a sample rate in seconds.
 // /// The newtype wraps a `std::time::Duration` to ensure the invariant that
@@ -67,6 +71,11 @@ impl Default for RobotDiagnosticsConfig {
     }
 }
 
+// /// Clear the history of this diagnostic.
+// pub fn clear_history(&mut self) {
+//     self.history.clear();
+// }
+
 impl Plugin for RobotDiagnosticsPlugin {
     fn build(&self, app: &mut App) {
         app.register_diagnostic(Diagnostic::new(Self::ROBOT_COUNT))
@@ -125,6 +134,12 @@ impl Plugin for RobotDiagnosticsPlugin {
         } else {
             app.add_systems(PostUpdate, Self::count_messages_sent);
         }
+
+        app.add_systems(
+            Update,
+            Self::flush_diagnostics
+                .run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
+        );
 
         // .add_systems(
         //     Update,
@@ -204,4 +219,29 @@ impl RobotDiagnosticsPlugin {
     //         *messages_sent_in_total as f64
     //     })
     // }
+
+    fn flush_diagnostics(mut store: ResMut<bevy::diagnostic::DiagnosticsStore>) {
+        // pub const EXTERNAL_MESSAGES_SENT_COUNT: DiagnosticPath =
+        //     DiagnosticPath::const_new("external_messages_sent_count");
+        // pub const FACTOR_COUNT: DiagnosticPath =
+        // DiagnosticPath::const_new("factor_count");
+        // pub const MESSAGES_SENT_COUNT: DiagnosticPath =
+        //     DiagnosticPath::const_new("messages_sent_count");
+        // pub const ROBOT_COUNT: DiagnosticPath =
+        // DiagnosticPath::const_new("robot_count"); pub const VARIABLE_COUNT:
+        // DiagnosticPath = DiagnosticPath::const_new("variable_count");
+
+        for path in &[
+            Self::FACTOR_COUNT,
+            Self::ROBOT_COUNT,
+            Self::VARIABLE_COUNT,
+            Self::MESSAGES_SENT_COUNT,
+            Self::EXTERNAL_MESSAGES_SENT_COUNT,
+        ] {
+            if let Some(diagnostic) = store.get_mut(path) {
+                diagnostic.clear_history();
+                info!("clearing history of diagnostic source: {:?}", path);
+            }
+        }
+    }
 }

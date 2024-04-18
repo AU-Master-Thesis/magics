@@ -149,6 +149,7 @@ impl ActionBlock {
     }
 
     #[inline]
+    #[must_use]
     pub const fn is_blocked(&self) -> bool {
         self.0
     }
@@ -168,9 +169,9 @@ pub enum UiScaleType {
     #[display(fmt = "None")]
     None,
     #[display(fmt = "Custom")]
-    #[default]
     Custom,
     #[display(fmt = "Window")]
+    #[default]
     Window,
 }
 

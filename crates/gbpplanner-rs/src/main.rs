@@ -12,9 +12,9 @@ mod input;
 mod moveable_object;
 mod movement;
 pub(crate) mod pause_play;
-mod planner;
 // mod scene;
 
+pub mod planner;
 pub(crate) mod simulation_loader;
 
 pub(crate) mod theme;

@@ -52,7 +52,7 @@ impl UiAction {
             Self::ToggleTopPanel => InputKind::PhysicalKey(KeyCode::KeyK),
             Self::ToggleBottomPanel => InputKind::PhysicalKey(KeyCode::KeyJ),
             Self::ChangeScaleKind => InputKind::PhysicalKey(KeyCode::KeyU),
-            Self::ToggleMetricsWindow => InputKind::PhysicalKey(KeyCode::KeyM),
+            Self::ToggleMetricsWindow => InputKind::PhysicalKey(KeyCode::KeyD), // d for diagnostics
         };
 
         UserInput::Single(input_kind)
@@ -65,8 +65,6 @@ fn bind_ui_input(mut commands: Commands) {
     for action in UiAction::iter() {
         let input = UiAction::default_keyboard_input(action);
         input_map.insert(action, input);
-        // if let Some(input) = UiAction::default_keyboard_input(action) {
-        // }
     }
 
     commands.spawn(InputManagerBundle::with_map(input_map));
