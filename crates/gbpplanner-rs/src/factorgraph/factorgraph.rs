@@ -140,6 +140,7 @@ impl FactorGraph {
 
     /// Adds a variable to the factorgraph
     /// Returns the index of the variable in the factorgraph
+    #[allow(clippy::missing_panics_doc)]
     pub fn add_variable(&mut self, variable: VariableNode) -> VariableIndex {
         let node = Node::new(self.id, NodeKind::Variable(variable));
         let node_index = self.graph.add_node(node);
@@ -155,22 +156,19 @@ impl FactorGraph {
         node_index.into()
     }
 
+    #[allow(clippy::missing_panics_doc)]
+    /// Adds a factor to the factorgraph
+    /// Returns the index of the factor in the factorgraph
     pub fn add_factor(&mut self, factor: FactorNode) -> FactorIndex {
         let is_interrobot = factor.is_inter_robot();
         let node = Node::new(self.id, NodeKind::Factor(factor));
         let node_index = self.graph.add_node(node);
+
         self.graph[node_index]
             .as_factor_mut()
             .expect("just added the factor to the graph in the previous statement")
-            // .tap(|f| {
-            //     info!(
-            //         "adding a '{}' factor with node_index: {:?} to factorgraph: {:?}",
-            //         f.variant(),
-            //         node_index,
-            //         self.id
-            //     );
-            // })
             .set_node_index(node_index);
+
         self.factor_indices.push(node_index);
         if is_interrobot {
             self.interrobot_factor_indices.push(node_index);
@@ -183,8 +181,15 @@ impl FactorGraph {
     ///
     /// **Computes in O(1) time**
     #[inline]
+    #[must_use]
     pub fn len(&self) -> usize {
         self.graph.node_count()
+    }
+
+    /// Returns true if the factorgraph contains no nodes
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// A count over the number of variables and factors in the factorgraph

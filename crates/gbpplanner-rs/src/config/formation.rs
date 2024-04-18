@@ -1,16 +1,13 @@
 //! A module for working with robot formations declaratively.
 use std::{f32::consts::PI, num::NonZeroUsize, path::Path, time::Duration};
 
-use bevy::{
-    ecs::system::Resource,
-    math::{Vec2, Vec4},
-};
+use bevy::{ecs::system::Resource, math::Vec2};
 use min_len_vec::{one_or_more, OneOrMore};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 
-use super::geometry::{Point, RelativePoint, Shape};
+use super::geometry::{Point, Shape};
 use crate::line;
 
 /// Strategy to use for the starting point of a formation
@@ -136,6 +133,9 @@ impl Default for Formation {
 }
 
 impl Formation {
+    /// Return a new `Formation` matching the used in the **gbpplanner** paper
+    /// for the circle formation scenario
+    #[allow(clippy::missing_panics_doc)]
     pub fn circle_from_paper() -> Self {
         let circle = Shape::Circle {
             radius: 100.0.try_into().expect("positive and finite"),
@@ -153,11 +153,18 @@ impl Formation {
         }
     }
 
+    /// Convert a `Formation` description into the waypoints the robot has to
+    /// follow
+    #[allow(
+        clippy::missing_panics_doc,
+        clippy::too_many_lines,
+        clippy::cast_precision_loss
+    )]
     pub fn as_positions(
         &self,
         world_dims: WorldDimensions,
         robot_radius: StrictlyPositiveFinite<f32>,
-        max_placement_attempts: NonZeroUsize,
+        // max_placement_attempts: NonZeroUsize,
         rng: &mut impl Rng,
     ) -> Option<(Vec<Vec2>, Vec<Vec<Vec2>>)> {
         match self.initial_position.shape {
@@ -193,7 +200,7 @@ impl Formation {
                     }
                 }?;
 
-                dbg!(&lerp_amounts);
+                // dbg!(&lerp_amounts);
 
                 assert_eq!(lerp_amounts.len(), self.robots.get());
 
@@ -227,15 +234,13 @@ impl Formation {
                 Some((initial_positions, waypoints_of_each_robot))
             }
             Shape::Circle { radius, center } => {
-                let radius: f32 = dbg!(radius.get());
-                let center = dbg!(world_dims.point_to_world_position(center));
+                let radius: f32 = radius.get();
+                let center = world_dims.point_to_world_position(center);
                 // dbg!(&center);
                 let angles: Vec<f32> = match self.initial_position.placement_strategy {
                     InitialPlacementStrategy::Equal => {
                         let angle = 2.0 * PI / self.robots.get() as f32;
                         let angles = (0..self.robots.get()).map(|i| i as f32 * angle).collect();
-                        dbg!(angle);
-                        dbg!(&angles);
                         Some(angles)
                     }
                     InitialPlacementStrategy::Random { attempts } => {
@@ -247,7 +252,7 @@ impl Formation {
 
                 let initial_positions: Vec<Vec2> = angles
                     .iter()
-                    .map(|angle| dbg!(polar(*angle, radius)))
+                    .map(|angle| polar(*angle, radius))
                     .map(|polar| center + polar)
                     .collect();
 
@@ -297,6 +302,11 @@ pub struct WorldDimensions {
 }
 
 impl WorldDimensions {
+    /// Create a new `WorldDimensions` structure
+    ///
+    /// # Panics
+    ///
+    /// Panics if `width` or `height` is not positive and finite
     #[must_use]
     pub fn new(width: f64, height: f64) -> Self {
         Self {

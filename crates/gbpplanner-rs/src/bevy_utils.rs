@@ -75,7 +75,8 @@ pub mod run_conditions {
     // pub fn on_any_event<E: Event, const N: usize>()
 
     /// Trait for checking if an event exists
-    pub fn event_exists<T: Event>(res_event: Option<Res<Events<T>>>) -> bool {
+    #[inline]
+    pub const fn event_exists<T: Event>(res_event: Option<Res<Events<T>>>) -> bool {
         res_event.is_some()
     }
 

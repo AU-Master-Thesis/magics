@@ -152,15 +152,12 @@ pub fn _pretty_print_matrix<T, M>(
             );
         }
     } else {
-        println!(
-            "{}{}{}",
-            UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
-        );
+        println!("{UPPER_LEFT_CORNER}{horizontal_line}{UPPER_RIGHT_CORNER}");
     }
 
     // print each cell in the matrix
     for i in 0..nrows {
-        print!("{}", BAR);
+        print!("{BAR}");
         for j in 0..ncols {
             let x = matrix.at(i, j);
             let x = x.to_f64().expect("x is representable as f64");

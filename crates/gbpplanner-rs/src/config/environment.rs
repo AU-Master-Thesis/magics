@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use angle::Angle;
 use bevy::ecs::system::Resource;
 use gbp_linalg::Float;
@@ -7,9 +9,7 @@ use typed_floats::StrictlyPositiveFinite;
 use super::geometry::RelativePoint;
 use crate::environment::TileCoordinates;
 
-// use super::geometry::Shape;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, derive_more::IntoIterator)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileGrid(Vec<String>);
 
@@ -18,14 +18,19 @@ impl TileGrid {
         self.0.iter()
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    /// Returns number of rows in the tilegrid
+    #[inline]
     pub fn rows(&self) -> usize {
         self.0.len()
     }
 
+    /// Returns number of columns in the tilegrid
+    #[inline]
     pub fn cols(&self) -> usize {
         self.0[0].chars().count()
     }
@@ -53,17 +58,25 @@ impl TileGrid {
 pub struct Rotation(Angle);
 
 impl Rotation {
-    pub fn new(value: Float) -> Self {
-        Self(Angle::from_degrees(value).expect("Invalid angle"))
+    /// Create a new `Rotation` from a given degree
+    ///
+    /// # Panics
+    ///
+    /// If `degree` is not in [0.0, 360.0]
+    #[must_use]
+    pub fn new(degree: Float) -> Self {
+        Self(Angle::from_degrees(degree).expect("Invalid angle"))
     }
 }
 
 impl Rotation {
+    /// Get the rotation in radians
     #[inline]
-    pub fn as_radians(&self) -> Float {
+    pub const fn as_radians(&self) -> Float {
         self.0.as_radians()
     }
 
+    /// Get the rotation in degrees
     #[inline]
     pub fn as_degrees(&self) -> Float {
         self.0.as_degrees()
@@ -77,7 +90,7 @@ pub struct Cell {
     pub col: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PlaceableShape {
     Circle {
@@ -123,30 +136,47 @@ pub enum PlaceableShape {
 }
 
 impl PlaceableShape {
+    /// Create a new `Self::Circle`
+    ///
+    /// # Panics
+    ///
+    /// If `center` is not a relative point i.e. within interval ([0.0, 1.0],
+    /// [0.0, 1.0])
     #[allow(clippy::unwrap_used)]
-    pub fn circle(radius: Float, center: (Float, Float)) -> Self {
+    pub fn circle(radius: StrictlyPositiveFinite<Float>, center: (Float, Float)) -> Self {
         Self::Circle {
-            radius: StrictlyPositiveFinite::<Float>::new(radius).unwrap(),
+            // radius: StrictlyPositiveFinite::<Float>::new(radius).unwrap(),
+            radius,
             center: RelativePoint::new(center.0, center.1).unwrap(),
         }
     }
 
+    /// Create a new `Self::Triangle`
+    ///
+    /// # Panics
+    ///
+    /// If `translation` is not a relative point i.e. within interval ([0.0,
+    /// 1.0], [0.0, 1.0])
     #[allow(clippy::unwrap_used)]
     pub fn triangle(
-        base_length: Float,
-        height: Float,
+        // base_length: Float,
+        base_length: StrictlyPositiveFinite<Float>,
+        // height: Float,
+        height: StrictlyPositiveFinite<Float>,
         mid_point: Float,
         translation: (Float, Float),
     ) -> Self {
         Self::Triangle {
-            base_length: StrictlyPositiveFinite::<Float>::new(base_length).unwrap(),
-            height: StrictlyPositiveFinite::<Float>::new(height).unwrap(),
+            // base_length: StrictlyPositiveFinite::<Float>::new(base_length).unwrap(),
+            base_length,
+            // height: StrictlyPositiveFinite::<Float>::new(height).unwrap(),
+            height,
             mid_point,
             translation: RelativePoint::new(translation.0, translation.1).unwrap(),
         }
     }
 
-    #[allow(clippy::unwrap_used)]
+    #[allow(clippy::unwrap_used, clippy::missing_panics_doc)]
     pub fn rectangle(width: Float, height: Float, center: (Float, Float)) -> Self {
         Self::Rectangle {
             width:       StrictlyPositiveFinite::<Float>::new(width).unwrap(),
@@ -155,7 +185,7 @@ impl PlaceableShape {
         }
     }
 
-    #[allow(clippy::unwrap_used)]
+    #[allow(clippy::unwrap_used, clippy::missing_panics_doc)]
     pub fn square(side_length: Float, center: (Float, Float)) -> Self {
         Self::RegularPolygon {
             sides:       4,
@@ -164,7 +194,7 @@ impl PlaceableShape {
         }
     }
 
-    #[allow(clippy::unwrap_used)]
+    #[allow(clippy::unwrap_used, clippy::missing_panics_doc)]
     pub fn regular_polygon(sides: usize, side_length: Float, translation: (Float, Float)) -> Self {
         Self::RegularPolygon {
             sides,
@@ -186,6 +216,11 @@ pub struct Obstacle {
 }
 
 impl Obstacle {
+    /// Create a new `Obstacle`
+    ///
+    /// # Panics
+    ///
+    /// If `rotation` is not a normalized angle, i.e. within [0.0, 2pi]
     #[must_use]
     pub fn new((row, col): (usize, usize), shape: PlaceableShape, rotation: Float) -> Self {
         Self {
@@ -202,11 +237,13 @@ impl Obstacle {
 ///   placed
 /// - The [`PlaceableShape`] represents the shape to be placed, and the local
 ///   cell translation
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, derive_more::IntoIterator)]
 #[serde(rename_all = "kebab-case")]
 pub struct Obstacles(Vec<Obstacle>);
 
 impl Obstacles {
+    /// Create a new empty vector of [`Obstacle`]
+    #[must_use]
     pub const fn empty() -> Self {
         Self(Vec::new())
     }
@@ -232,6 +269,8 @@ pub struct Tiles {
 }
 
 impl Tiles {
+    /// Create an empty `Tiles`
+    #[must_use]
     pub fn empty() -> Self {
         Self {
             grid:     TileGrid(vec!["█".to_string()]),
@@ -243,11 +282,15 @@ impl Tiles {
         }
     }
 
+    /// Set the tile size
+    #[must_use]
     pub const fn with_tile_size(mut self, tile_size: f32) -> Self {
         self.settings.tile_size = tile_size;
         self
     }
 
+    /// Set the obstacle height
+    #[must_use]
     pub const fn with_obstacle_height(mut self, obstacle_height: f32) -> Self {
         self.settings.obstacle_height = obstacle_height;
         self
@@ -295,42 +338,35 @@ pub enum ParseError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum EnvironmentError {
+    #[error("Environment matrix representation is empty")]
     EmptyGrid,
+    #[error("Environment matrix representation has rows of different lengths")]
     DifferentLengthRows,
 }
 
-impl std::fmt::Display for EnvironmentError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::EmptyGrid => {
-                write!(f, "Environment matrix representation is empty")
-            }
-            Self::DifferentLengthRows => {
-                write!(
-                    f,
-                    "Environment matrix representation has rows of different lengths"
-                )
-            }
-        }
-    }
-}
-
 impl Environment {
-    /// Attempt to parse an [`Environment`] from a RON file at `path`
-    /// Returns `Err(ParseError)` if:
+    /// Attempt to parse an [`Environment`] from a YAML file at `path`
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if:
     /// 1. `path` does not exist on the filesystem
     /// 2. The contents of `path` are not valid RON
     /// 3. The parsed data does not represent a valid [`Environment`]
-    // pub fn from_file(path: &std::path::Path) -> Result<Self, ParseError> {
-    pub fn from_file<P>(path: P) -> Result<Self, ParseError>
-    where
-        P: AsRef<std::path::Path>,
-    {
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
         std::fs::read_to_string(path)
             .map_err(Into::into)
             .and_then(|contents| Self::parse(contents.as_str()))
     }
 
+    /// Attempt to parse an [`Environment`] from a YAML encoded string
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if:
+    /// 1. `path` does not exist on the filesystem
+    /// 2. The contents of `path` are not valid RON
+    /// 3. The parsed data does not represent a valid [`Environment`]
     pub fn parse(contents: &str) -> Result<Self, ParseError> {
         // ron::from_str::<Environment>(contents)
         //     .map_err(|span| span.code)?
@@ -344,6 +380,10 @@ impl Environment {
     }
 
     /// Ensure that the [`Environment`] is valid
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if:
     /// 1. The matrix representation is not empty
     /// 2. All rows in the matrix representation are the same length
     pub fn validate(self) -> Result<Self, EnvironmentError> {
@@ -441,7 +481,7 @@ impl Environment {
     #[must_use]
     #[rustfmt::skip]
     pub fn test() -> Self {
-        Environment {
+        Self {
             tiles: Tiles {
                 grid: TileGrid(vec![
                     "┌┬┐├".to_string(),
@@ -459,6 +499,8 @@ impl Environment {
         }
     }
 
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn circle() -> Self {
         Self {
             tiles:     Tiles::empty()
@@ -487,12 +529,22 @@ impl Environment {
                 ),
                 Obstacle::new(
                     (0, 0),
-                    PlaceableShape::triangle(0.03, 0.0415, 0.575, (0.5575, 0.5145)),
+                    PlaceableShape::triangle(
+                        0.03.try_into().expect("positive and finite"),
+                        0.0415.try_into().expect("positive and finite"),
+                        0.575,
+                        (0.5575, 0.5145),
+                    ),
                     0.0,
                 ),
                 Obstacle::new(
                     (0, 0),
-                    PlaceableShape::triangle(0.012, 0.025, 1.25, (0.38, 0.432)),
+                    PlaceableShape::triangle(
+                        0.012.try_into().expect("positive and finite"),
+                        0.025.try_into().expect("positive and finite"),
+                        1.25,
+                        (0.38, 0.432),
+                    ),
                     5.225,
                 ),
             ]),
