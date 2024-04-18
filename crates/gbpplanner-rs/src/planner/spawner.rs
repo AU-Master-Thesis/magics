@@ -374,7 +374,7 @@ fn spawn_formation(
             &world_dims,
         );
 
-        dbg!(&initial_position_of_each_robot);
+        // dbg!(&initial_position_of_each_robot);
 
         // The first vector is the waypoints for the first robot, the second vector is
         // the waypoints for the second robot, etc.
@@ -391,7 +391,7 @@ fn spawn_formation(
             waypoints_of_each_robot.push(waypoints);
         }
 
-        dbg!(&waypoints_of_each_robot);
+        // dbg!(&waypoints_of_each_robot);
 
         // [(a, b, c), (d, e, f), (g, h, i)]
         //  -> [(a, d, g), (b, e, h), (c, f, i)]
@@ -410,33 +410,36 @@ fn spawn_formation(
                 position:  *p,
             }));
 
-            let mut waypoints_with_speed = waypoints
-                .iter()
+            // dbg!(&waypoints);
+
+            // let last_waypoint = waypoints.last();
+            // let velocity_at_waypoint = std::iter::once(initial_position)
+            let waypoints = std::iter::once(initial_position)
+                .chain(waypoints.iter())
+                .chain(std::iter::once(
+                    waypoints.last().expect("there is at least one waypoint"),
+                ))
                 .tuple_windows()
-                .map(|(a, b)| {
-                    let direction = *b - *a;
+                .map(|(from, to)| {
+                    let direction = *to - *from;
                     let velocity = direction.normalize_or_zero() * max_speed;
-                    Vec4::new(a.x, a.y, velocity.x, velocity.y)
+                    Vec4::new(from.x, from.y, velocity.x, velocity.y)
                 })
                 .collect::<VecDeque<_>>();
 
-            dbg!(&waypoints_with_speed);
+            // dbg!(&waypoints);
 
-            #[allow(clippy::unwrap_used)]
-            waypoints_with_speed.push_back(Vec4::new(
-                waypoints.last().unwrap().x,
-                waypoints.last().unwrap().y,
-                waypoints_with_speed.back().unwrap().x,
-                waypoints_with_speed.back().unwrap().y,
-            ));
+            let initial_position = initial_position.extend(0.0).xzy();
+            let initial_direction = waypoints
+                .get(1)
+                .map_or_else(|| Vec3::ZERO, |p| Vec3::new(p.x, 0.0, p.y))
+                - initial_position;
+            // - initial_position.extend(0.0).xzy();
+
             // println!("{:?}", waypoints_with_speed);
             let robotbundle = RobotBundle::new(
                 robot_id,
-                waypoints_with_speed,
-                // waypoints
-                //     .iter()
-                //     .map(|p| Vec4::new(p.x, p.y, max_speed, 0.0))
-                //     .collect::<VecDeque<_>>(),
+                waypoints,
                 variable_timesteps.as_slice(),
                 &config,
                 OBSTACLE_IMAGE
@@ -475,17 +478,9 @@ fn spawn_formation(
                 ..Default::default()
             };
 
-            let initial_position = initial_position.extend(0.0).xzy();
-            let initial_direction = waypoints
-                .get(1)
-                .map_or_else(|| Vec3::ZERO, |p| Vec3::new(p.x, 0.0, p.y))
-                - initial_position;
-            // - initial_position.extend(0.0).xzy();
-
             entity.insert((
                 robotbundle,
                 pbrbundle,
-                // Ephemeral,
                 simulation_loader::Reloadable,
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickedOn>(),

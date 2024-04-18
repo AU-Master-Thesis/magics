@@ -6,10 +6,10 @@
         nanos: 0,
       )),
       delay: (
-        secs: 2,
+        secs: 1,
         nanos: 0,
       ),
-      robots: 3,
+      robots: 1,
       r#initial-position: (
         shape: line(((
           x: 0.45,
