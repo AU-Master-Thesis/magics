@@ -27,12 +27,12 @@ impl Plugin for CameraPlugin {
                     // activate_main_camera
                     //     .after(reset_main_camera)
                     //     .run_if(on_event::<ReloadSimulation>()),
-                    (reset_main_camera, activate_main_camera)
-                        .chain()
-                        .run_if(on_event::<ReloadSimulation>()),
-                    (reset_main_camera, activate_main_camera)
-                        .chain()
-                        .run_if(on_event::<LoadSimulation>()),
+                    (reset_main_camera, activate_main_camera).chain().run_if(
+                        on_event::<ReloadSimulation>().or_else(on_event::<LoadSimulation>()),
+                    ),
+                    // (reset_main_camera, activate_main_camera)
+                    //     .chain()
+                    //     .run_if(on_event::<LoadSimulation>()),
                 ),
             );
     }

@@ -1,15 +1,47 @@
-#![warn(missing_docs)]
-//! A module for working with robot formations flexibly.
-use std::{num::NonZeroUsize, time::Duration};
+//! A module for working with robot formations declaratively.
+use std::{num::NonZeroUsize, path::Path, time::Duration};
 
 use bevy::ecs::system::Resource;
-use min_len_vec::TwoOrMore;
+use min_len_vec::{one_or_more, OneOrMore};
 use serde::{Deserialize, Serialize};
 
 use super::geometry::Shape;
 use crate::line;
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Strategy to use for the starting point of a formation
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum InitialPlacementStrategy {
+    /// Place robots with equal distance between them
+    Equal,
+    /// Place robots with a random distance between them, with the
+    /// constraint that surface of area of none of the robots overlap.
+    Random {
+        /// How many attempts to use before returning an error saying it was not
+        /// possible to place the robots Along the shape.
+        /// A high number > 1000, is a good idea, since it is not very intensive
+        /// to run the algorithm determining the random placements.
+        attempts: NonZeroUsize,
+    },
+}
+
+// impl InitialPlacementStrategy {
+//     pub const RANDOM_ATTEMPTS: NonZeroUsize = 1000.try_into().unwrap();
+// }
+
+/// Strategy to use for waypoints after the initial starting position.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProjectionStrategy {
+    /// Simply map the relative position along a line strip from the previous
+    /// waypoint
+    ///
+    /// # Examples
+    Identity,
+    Cross,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PlacementStrategy {
     Equal,
@@ -17,271 +49,82 @@ pub enum PlacementStrategy {
     Map,
 }
 
-// // A regular point in 2D space.
-// #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-// pub struct Point {
-//     pub x: f64,
-//     pub y: f64,
-// }
-
-// impl Point {
-//     /// Create a new `Point` from a pair of values.
-//     /// Returns an error if either `x` or `y` is not in the interval [0.0,
-// 1.0].     #[inline]
-//     pub fn new(x: f64, y: f64) -> Self {
-//         Self { x, y }
-//     }
-// }
-
-// /// A relative point within the boundaries of the map.
-// /// ...
-// #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-// pub struct RelativePoint {
-//     pub x: UnitInterval,
-//     pub y: UnitInterval,
-// }
-
-// impl RelativePoint {
-//     /// Create a new `RelativePoint` from a pair of values.
-//     /// Returns an error if either `x` or `y` is not in the interval [0.0,
-// 1.0].     pub fn new(x: f64, y: f64) -> Result<Self,
-// unit_interval::UnitIntervalError> {         Ok(Self {
-//             x: UnitInterval::new(x)?,
-//             y: UnitInterval::new(y)?,
-//         })
-//     }
-
-//     /// Returns the x and y values as a tuple
-//     #[inline]
-//     pub fn get(&self) -> (f64, f64) {
-//         (self.x.get(), self.y.get())
-//     }
-// }
-
-// impl TryFrom<(f64, f64)> for RelativePoint {
-//     type Error = unit_interval::UnitIntervalError;
-
-//     fn try_from(value: (f64, f64)) -> Result<Self, Self::Error> {
-//         Ok(Self {
-//             x: UnitInterval::new(value.0)?,
-//             y: UnitInterval::new(value.1)?,
-//         })
-//     }
-// }
-
-// // #[derive(Debug, thiserror::Error)]
-// // pub enum PointError {
-// //     #[error("x is out of bounds: {0}")]
-// //     XOutOfBounds(#[from] unit_interval::UnitIntervalError),
-// //     #[error("y is out of bounds: {0}")]
-// //     YOutOfBounds(#[from] unit_interval::UnitIntervalError),
-// //     #[error("both x and y are out of bounds: x: {0}, y: {1}")]
-// //     BothOutOfBounds(f64, f64),
-// // }
-// //
-// // impl From<Point> for bevy::math::Vec2 {
-// //     fn from(value: Point) -> Self {
-// //         Self {
-// //             x: value.x,
-// //             y: value.y,
-// //         }
-// //     }
-// // }
-// //
-// // impl From<&Point> for bevy::math::Vec2 {
-// //     fn from(value: &Point) -> Self {
-// //         Self {
-// //             x: value.x,
-// //             y: value.y,
-// //         }
-// //     }
-// // }
-// //
-// // impl From<(f32, f32)> for Point {
-// //     fn from(value: (f32, f32)) -> Self {
-// //         Self {
-// //             x: value.0,
-// //             y: value.1,
-// //         }
-// //     }
-// // }
-
-// #[derive(Debug, Serialize, Deserialize)]
-// #[serde(rename_all = "kebab-case")]
-// pub enum Shape {
-//     Circle {
-//         radius: StrictlyPositiveFinite<f32>,
-//         center: RelativePoint,
-//     },
-//     Polygon(OneOrMore<Point>),
-//     Line((Point, Point)),
-// }
-
-// impl Shape {
-//     /// Returns `true` if the shape is [`Polygon`].
-//     ///
-//     /// [`Polygon`]: Shape::Polygon
-//     #[must_use]
-//     pub fn is_polygon(&self) -> bool {
-//         matches!(self, Self::Polygon(..))
-//     }
-
-//     /// Returns `true` if the shape is [`Circle`].
-//     ///
-//     /// [`Circle`]: Shape::Circle
-//     #[must_use]
-//     pub fn is_circle(&self) -> bool {
-//         matches!(self, Self::Circle { .. })
-//     }
-
-//     pub fn as_polygon(&self) -> Option<&OneOrMore<Point>> {
-//         if let Self::Polygon(v) = self {
-//             Some(v)
-//         } else {
-//             None
-//         }
-//     }
-// }
-
-// /// Shorthand to construct `Shape::Polygon(vec![Point {x: $x, y: $y}, ... ])`
-// #[macro_export]
-// macro_rules! polygon {
-//     [$(($x:expr, $y:expr)),+ $(,)?] => {{
-//         let vertices = vec![
-//             $(
-//                 Point::new($x, $y)
-//             ),+
-//         ];
-//         Shape::Polygon(OneOrMore::new(vertices).expect("at least one
-// vertex"))     }}
-// }
-
-// /// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x:
-// $x2, /// y: $y2}))`
-// #[macro_export]
-// macro_rules! line {
-//     [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
-//         // Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
-//         // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1
-// as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(),
-// y: f64::try_from().unwrap() }))         Shape::Line((Point::new($x1, $y1),
-// Point::new($x2, $y2)))     };
-// }
-
-#[derive(Debug, Serialize, Deserialize)]
+/// Waypoint a group of robots has to reach, from either the robots initial
+/// position, or a previous waypoint
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Waypoint {
     pub shape: Shape,
-    pub placement_strategy: PlacementStrategy,
+    // pub placement_strategy: PlacementStrategy,
+    pub projection_strategy: ProjectionStrategy,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum FormationError {
-    #[error("FormationGroup has no formations")]
-    NoFormations,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct Formation {
-    /// If true then then a new formation instance will be spawned every
-    /// [`Self::delay`]. If false, a single formation will be spawned after
-    /// [`Self::delay`]
-    pub repeat:    bool,
-    /// The delay from the start of the simulation after which the formation
-    /// should spawn. If [`Self::repeat`] is true, then `delay` is
-    /// interpreted as a timeout between every formation spawn.
-    // pub delay:     f32,
-    pub delay: Duration,
-    /// Number of robots to spawn
-    pub robots:    NonZeroUsize,
-    /// A list of waypoints.
-    /// `NOTE` The first waypoint is assumed to be the spawning point.
-    /// < 2 waypoints is an invalid state
-    // pub waypoints: Vec<Waypoint>,
-    pub waypoints: TwoOrMore<Waypoint>,
-}
-// Polygon(Vec<RelativePoint>),
-
-impl Default for Formation {
-    fn default() -> Self {
+impl Waypoint {
+    /// Crate a new `Waypoint`
+    #[must_use]
+    pub fn new(shape: Shape, projection_strategy: ProjectionStrategy) -> Self {
         Self {
-            repeat:    false,
-            delay:     Duration::from_secs(5),
-            robots:    NonZeroUsize::new(1).expect("1 > 0"),
-            waypoints: vec![
-                Waypoint {
-                    placement_strategy: PlacementStrategy::Random,
-                    shape: line![(0.4, 0.0), (0.6, 0.0)],
-                },
-                Waypoint {
-                    placement_strategy: PlacementStrategy::Map,
-                    shape: line![(0.4, 0.4), (0.6, 0.6)],
-                },
-                Waypoint {
-                    placement_strategy: PlacementStrategy::Map,
-                    shape: line![(0.0, 0.4), (0.0, 0.6)],
-                },
-            ]
-            .try_into()
-            .expect("there are 3 waypoints which is more that the minimum of 2"),
+            shape,
+            projection_strategy,
         }
     }
 }
 
-impl Formation {
-    // /// Attempt to parse a `Formation` from a TOML file at `path`
-    // /// Returns `Err(ParseError)`  if:
-    // /// 1. `path` does not exist on the filesystem.
-    // /// 2. The contents of `path` is not valid TOML.
-    // /// 3. The parsed data does not represent a valid `Formation`.
-    // pub fn from_file(path: &std::path::PathBuf) -> Result<Self, ParseError> {
-    //     let file_contents = std::fs::read_to_string(path)?;
-    //     let formation = Self::parse(file_contents.as_str())?;
-    //     Ok(formation)
-    // }
+/// Initial position of where a group of robots has to spawn
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct InitialPosition {
+    /// The shape in which the robots should spawn
+    pub shape: Shape,
+    /// Strategy for how to place the robots
+    pub placement_strategy: InitialPlacementStrategy,
+}
 
-    // /// Attempt to parse a `Formation` from a TOML encoded string.
-    // /// Returns `Err(ParseError)`  if:
-    // /// 1. `contents` is not valid TOML.
-    // /// 2. The parsed data does not represent a valid `Formation`.
-    // pub fn parse(contents: &str) -> Result<Self, ParseError> {
-    //     let formation: Formation = toml::from_str(contents)?;
-    //     let formation = formation.validate()?;
-    //     Ok(formation)
-    // }
+// #[derive(Debug, thiserror::Error)]
+// pub enum FormationError {
+//     #[error("FormationGroup has no formations")]
+//     NoFormations,
+// }
 
-    // fn valid(&self) -> Result<(), FormationError> {
-    //     Ok(())
-    // }
+/// A description of a formation of robots in the simulation.
+/// It describes how/where the robots are to be spawned, how many will be
+/// spawned, how often and where they should move to.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Formation {
+    /// Optionally spawn this formation again repeatedly with the given
+    /// duration.
+    pub repeat_every: Option<Duration>,
+    // pub repeat_every: bool,
+    /// The delay from the start of the simulation after which the formation
+    /// should spawn.
+    pub delay: Duration,
+    /// Number of robots to spawn
+    pub robots: NonZeroUsize,
+    /// Where to spawn the formation
+    pub initial_position: InitialPosition,
+    /// List of waypoints.
+    pub waypoints: OneOrMore<Waypoint>,
+}
 
-    // / Ensure that the Formation is in a valid state
-    // / Invalid states are:
-    // / 1. self.time <= 0.0
-    // / 2. if self.shape is a circle and the radius is <= 0.0
-    // / 3. if self.shape is a polygon and polygon.is_empty()
-    // pub fn validate(self) -> Result<Self, FormationError> {
-    //     // if self.delay < 0.0 {
-    //     //     Err(FormationError::NegativeTime)
-    //     // if self.waypoints.len() < 2 {
-    //     //     Err(FormationError::LessThanTwoWaypoints)
-    //     // } else {
-    //     // TODO: finish
-    //     // for (index, waypoint) in self.waypoints.iter().enumerate() {
-    //     // match &waypoint.shape {
-    //     //     Shape::Polygon(vertices) if vertices.is_empty() => {
-    //     //         return
-    //     // Err(ShapeError::PolygonWithZeroVertices.into())
-    //     //     }
-    //     //     // Shape::Circle { radius, center: _ } if *radius <= 0.0
-    //     // => {     //     return
-    //     // Err(ShapeError::NegativeRadius.into())     //
-    //     // }     _ => continue,
-    //     // }
-    //     // }
-    //     Ok(self)
-    //     // }
-    // }
+impl Default for Formation {
+    fn default() -> Self {
+        Self {
+            repeat_every: None,
+            delay: Duration::from_secs(5),
+            robots: NonZeroUsize::new(1).expect("1 > 0"),
+            initial_position: InitialPosition {
+                shape: line![(0.4, 0.0), (0.6, 0.0)],
+                placement_strategy: InitialPlacementStrategy::Random {
+                    attempts: 1000.try_into().expect("1000 > 0"),
+                },
+            },
+            waypoints: one_or_more![
+                Waypoint::new(line![(0.4, 0.4), (0.6, 0.6)], ProjectionStrategy::Identity),
+                Waypoint::new(line![(0.0, 0.4), (0.0, 0.6)], ProjectionStrategy::Identity),
+            ],
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -292,130 +135,116 @@ pub enum ParseError {
     // Toml(#[from] toml::de::Error),
     // #[error("Validation error: {0}")]
     // InvalidFormation(#[from] FormationError),
-    #[error("Invalid formation group: {0}")]
-    InvalidFormationGroup(#[from] FormationGroupError),
+    // #[error("Invalid formation group: {0}")]
+    // InvalidFormationGroup(#[from] FormationGroupError),
     #[error("RON error: {0}")]
     Ron(#[from] ron::Error),
 }
 
 /// A `FormationGroup` represent multiple `Formation`s
-#[derive(Debug, Serialize, Deserialize, Resource)]
+#[derive(Debug, Clone, Serialize, Deserialize, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub struct FormationGroup {
-    // TODO: use OneOrMore
-    pub formations: Vec<Formation>,
+    pub formations: OneOrMore<Formation>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum FormationGroupError {
-    NoFormations,
-    InvalidFormations(Vec<(usize, FormationError)>),
-}
+// #[derive(Debug, thiserror::Error)]
+// pub enum FormationGroupError {
+//     NoFormations,
+//     // InvalidFormations(Vec<(usize, FormationError)>),
+// }
 
-impl std::fmt::Display for FormationGroupError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NoFormations => write!(
-                f,
-                "Formation group is empty. A formation group contains at least one formation",
-            ),
-            Self::InvalidFormations(ref inner) => {
-                for (index, error) in inner {
-                    write!(f, "formation[{}] is invalid with error: {}", index, error)?;
-                }
-                Ok(())
-            }
-        }
-    }
-}
+// impl std::fmt::Display for FormationGroupError {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Self::NoFormations => write!(
+//                 f,
+//                 "Formation group is empty. A formation group contains at
+// least one formation",             ),
+//             Self::InvalidFormations(ref inner) => {
+//                 for (index, error) in inner {
+//                     write!(f, "formation[{}] is invalid with error: {}",
+// index, error)?;                 }
+//                 Ok(())
+//             }
+//         }
+//     }
+// }
 
 impl FormationGroup {
-    /// Attempt to parse a `FormationGroup` from a RON file at `path`
-    /// Returns `Err(ParseError)`  if:
+    /// Attempt to parse a `FormationGroup` from a RON file
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if:
     /// 1. `path` does not exist on the filesystem.
     /// 2. The contents of `path` is not valid RON.
     /// 3. The parsed data does not represent a valid `FormationGroup`.
-    pub fn from_file<P>(path: P) -> Result<Self, ParseError>
-    where
-        P: AsRef<std::path::Path>,
-    {
+    pub fn from_ron_file<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
         std::fs::read_to_string(path)
-            .map_err(Into::into)
-            .and_then(|file_contents| Self::parse(file_contents.as_str()))
+            .map(|file_contents| Self::parse_from_ron(file_contents.as_str()))?
+    }
+
+    pub fn from_yaml_file<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
+        std::fs::read_to_string(path)
+            .map(|file_contents| Self::parse_from_yaml(file_contents.as_str()))?
     }
 
     /// Attempt to parse a `FormationGroup` from a RON encoded string.
-    /// Returns `Err(ParseError)`  if:
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err`  if:
     /// 1. `contents` is not valid RON.
     /// 2. The parsed data does not represent a valid `FormationGroup`.
-    pub fn parse(contents: &str) -> Result<Self, ParseError> {
+    pub fn parse_from_ron(contents: &str) -> Result<Self, ParseError> {
         Ok(ron::from_str::<Self>(contents).map_err(|span| span.code)?)
-        // .validate()
-        // .map_err(Into::into)
     }
 
-    // /// Ensure that the `FormationGroup` is in a valid state
-    // /// 1. At least one `Formation` is required
-    // /// 2. Validate each `Formation`
-    // pub fn validate(self) -> Result<Self, FormationGroupError> {
-    //     if self.formations.is_empty() {
-    //         Err(FormationGroupError::NoFormations)
-    //     } else {
-    //         let invalid_formations = self
-    //             .formations
-    //             .iter()
-    //             .enumerate()
-    //             // .filter_map(|(index, formation)|
-    // formation.valid().err().map(|err| (index, err)))
-    // .collect::<Vec<_>>();
-
-    //         if !invalid_formations.is_empty() {
-    //             Err(FormationGroupError::InvalidFormations(invalid_formations))
-    //         } else {
-    //             Ok(self)
-    //         }
-    //     }
-    // }
+    /// Attempt to parse a `FormationGroup` from a YAML encoded string.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err`  if:
+    /// 1. `contents` is not valid YAML.
+    /// 2. The parsed data does not represent a valid `FormationGroup`.
+    pub fn parse_from_yaml(contents: &str) -> Result<Self, ParseError> {
+        unimplemented!()
+        // Ok(ron::from_str::<Self>(contents).map_err(|span| span.code)?)
+    }
 }
 
 impl Default for FormationGroup {
     fn default() -> Self {
         Self {
-            // formations: vec![Formation::default()],
-            formations: vec![
+            formations: one_or_more![
                 Formation {
-                    repeat:    true,
-                    delay:     Duration::from_secs(4),
-                    robots:    1.try_into().expect("1 > 0"),
-                    waypoints: vec![
-                        Waypoint {
-                            placement_strategy: PlacementStrategy::Equal,
-                            shape: line![(0.45, 0.0), (0.55, 0.0)],
-                        },
-                        Waypoint {
-                            placement_strategy: PlacementStrategy::Map,
-                            shape: line![(0.45, 1.25), (0.55, 1.25)],
-                        },
-                    ]
-                    .try_into()
-                    .expect("there are 2 waypoints"),
+                    repeat_every: Some(Duration::from_secs(4)),
+                    delay: Duration::from_secs(2),
+                    robots: 1.try_into().expect("1 > 0"),
+                    initial_position: InitialPosition {
+                        shape: line![(0.45, 0.0), (0.55, 0.0)],
+                        placement_strategy: InitialPlacementStrategy::Equal,
+                    },
+
+                    waypoints: one_or_more![Waypoint::new(
+                        line![(0.45, 1.25), (0.55, 1.25)],
+                        ProjectionStrategy::Identity
+                    ),],
                 },
                 Formation {
-                    repeat:    true,
-                    delay:     Duration::from_secs(4),
-                    robots:    1.try_into().expect("1 > 0"),
-                    waypoints: vec![
-                        Waypoint {
-                            placement_strategy: PlacementStrategy::Equal,
-                            shape: line![(0.0, 0.45), (0.0, 0.55)],
-                        },
-                        Waypoint {
-                            placement_strategy: PlacementStrategy::Map,
-                            shape: line![(1.25, 0.45), (1.25, 0.55)],
-                        },
-                    ]
-                    .try_into()
-                    .expect("there are 2 waypoints"),
+                    repeat_every: Some(Duration::from_secs(4)),
+                    delay: Duration::from_secs(2),
+                    robots: 1.try_into().expect("1 > 0"),
+                    initial_position: InitialPosition {
+                        shape: line![(0.0, 0.45), (0.0, 0.55)],
+                        placement_strategy: InitialPlacementStrategy::Equal,
+                    },
+
+                    waypoints: one_or_more![Waypoint::new(
+                        line![(1.25, 0.45), (1.25, 0.55)],
+                        ProjectionStrategy::Identity,
+                    ),],
                 },
             ],
         }

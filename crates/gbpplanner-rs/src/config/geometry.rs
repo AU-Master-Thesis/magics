@@ -264,7 +264,7 @@ impl TryFrom<(f64, f64)> for RelativePoint {
 //     }
 // }
 
-#[derive(Debug, Serialize, Deserialize, derive_more::IsVariant)]
+#[derive(Debug, Clone, Serialize, Deserialize, derive_more::IsVariant)]
 #[serde(rename_all = "kebab-case")]
 pub enum Shape {
     Circle {

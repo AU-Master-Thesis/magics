@@ -133,6 +133,8 @@ rand_chacha = { version = "0.3.1", features = [
 ] }
 
 typed-builder = "0.18.2"
+atty          = "0.2.14"
+bat           = "0.24.0"
 
 
 # TODO: change to not wasm

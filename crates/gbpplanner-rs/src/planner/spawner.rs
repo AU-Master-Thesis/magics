@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, num::NonZeroUsize, sync::OnceLock};
+use std::{collections::VecDeque, num::NonZeroUsize, sync::OnceLock, time::Duration};
 
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
@@ -17,11 +17,10 @@ use crate::{
         geometry::{Point, RelativePoint, Shape},
         Config, FormationGroup,
     },
+    environment::FollowCameraMe,
     pause_play::PausePlay,
     planner::robot::RobotBundle,
-    simulation_loader::{
-        EndSimulation, LoadSimulation, ReloadSimulation, SimulationManager, SimulationStates,
-    },
+    simulation_loader::{self, EndSimulation, LoadSimulation, ReloadSimulation, SimulationManager},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
 
@@ -32,20 +31,14 @@ impl Plugin for RobotSpawnerPlugin {
         app.add_event::<RobotFormationSpawned>()
             .add_event::<RobotClickedOn>()
             .add_event::<WaypointCreated>()
-            .add_event::<WaypointDeleted>()
-            // .add_systems(
-            //     OnEnter(SimulationStates::Loading),
-            //     create_formation_group_spawners,
-            // )
-            // .add_systems(
-            //     OnEnter(SimulationStates::Ended),
-            //     delete_formation_group_spawners,
-            // )
+            .add_event::<WaypointReached>()
             .add_systems(
                 Update,
                 (
-                    create_formation_group_spawners.run_if(on_event::<LoadSimulation>()),
-                    create_formation_group_spawners.run_if(on_event::<ReloadSimulation>()),
+                    create_formation_group_spawners.run_if(
+                        on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>()),
+                    ),
+                    // create_formation_group_spawners.run_if(on_event::<ReloadSimulation>()),
                     delete_formation_group_spawners.run_if(on_event::<EndSimulation>()),
                 ),
             )
@@ -53,7 +46,7 @@ impl Plugin for RobotSpawnerPlugin {
                 Update,
                 (
                     spawn_formation,
-                    advance_time.run_if(not(time_is_paused)),
+                    advance_time.run_if(not(virtual_time_is_paused)),
                 ),
             );
     }
@@ -61,7 +54,7 @@ impl Plugin for RobotSpawnerPlugin {
 
 /// run criteria if time is not paused
 #[inline]
-fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
+fn virtual_time_is_paused(time: Res<Time<Virtual>>) -> bool {
     time.is_paused()
 }
 
@@ -75,8 +68,10 @@ pub struct WaypointCreated {
 }
 
 #[derive(Event)]
-pub struct WaypointDeleted(pub Entity);
+pub struct WaypointReached(pub Entity);
 
+// TODO: allocate for each obstacle factor, a bit wasteful but should not take
+// up to much memory like 8-10 MB
 // TODO: needs to be changed whenever the sim reloads, use resource?
 /// Every [`ObstacleFactor`] has a static reference to the obstacle image.
 static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
@@ -91,30 +86,82 @@ pub struct FormationSpawnerCountdown {
     pub formation_group_index: usize,
 }
 
+#[derive(Component)]
+pub struct FormationSpawner {
+    pub formation_group_index: usize,
+    initial_delay: Timer,
+    timer: Timer,
+}
+
+impl FormationSpawner {
+    #[must_use]
+    pub fn new(formation_group_index: usize, initial_delay: Duration, timer: Timer) -> Self {
+        Self {
+            formation_group_index,
+            initial_delay: Timer::new(initial_delay, TimerMode::Once),
+            timer,
+        }
+    }
+
+    #[inline]
+    fn is_active(&self) -> bool {
+        self.initial_delay.finished()
+    }
+
+    fn tick(&mut self, delta: Duration) {
+        if self.is_active() {
+            self.timer.tick(delta);
+        } else {
+            self.initial_delay.tick(delta);
+        }
+    }
+
+    #[inline]
+    fn ready_to_spawn(&self) -> bool {
+        self.timer.finished()
+    }
+
+    #[inline]
+    fn on_cooldown(&self) -> bool {
+        !self.ready_to_spawn()
+    }
+}
+
+// #[derive(Component)]
+// pub struct CreateFormationSpawnerAfterDelay {
+//     pub delay: Timer,
+//     pub formation_group_index: usize,
+// }
+
 /// Create an entity with a a `FormationSpawnerCountdown` component for each
 /// formation group.
 fn setup(mut commands: Commands, formation_group: Res<FormationGroup>) {
     for (i, formation) in formation_group.formations.iter().enumerate() {
-        let mode = if formation.repeat {
-            TimerMode::Repeating
-        } else {
-            TimerMode::Once
-        };
-        let duration = formation.delay.as_secs_f32();
-        let timer = Timer::from_seconds(duration, mode);
+        // let timer = formation.repeat_every
 
-        let mut entity = commands.spawn_empty();
-        entity.insert(FormationSpawnerCountdown {
-            timer,
-            formation_group_index: i,
-        });
+        // let mode = if formation.repeat_every {
+        //     TimerMode::Repeating
+        // } else {
+        //     TimerMode::Once
+        // };
+        // let duration = formation.delay.as_secs_f32();
+        // let timer = Timer::from_seconds(duration, mode);
 
-        info!(
-            "spawned formation-group spawner: {} with mode {:?} spawning every {} seconds",
-            i + 1,
-            mode,
-            duration
-        );
+        // commands.spawn(FormationSpawnerCountdown {
+        //     timer,
+        //     formation_group_index: i,
+        // });
+
+        // let mut entity = commands.spawn_empty();
+        // entity.insert(FormationSpawnerCountdown {
+        //     timer,
+        //     formation_group_index: i,
+        // });
+
+        // info!(
+        //     "spawned formation-group spawner: {} with mode {:?} spawning
+        // every {} seconds",     i, mode, duration
+        // );
     }
 }
 
@@ -122,33 +169,34 @@ fn setup(mut commands: Commands, formation_group: Res<FormationGroup>) {
 /// formation group.
 fn setup_v2(commands: &mut Commands, formation_group: &FormationGroup) {
     for (i, formation) in formation_group.formations.iter().enumerate() {
-        let mode = if formation.repeat {
-            TimerMode::Repeating
-        } else {
-            TimerMode::Once
-        };
-        let duration = formation.delay.as_secs_f32();
-        let timer = Timer::from_seconds(duration, mode);
+        // let mode = if formation.repeat_every {
+        //     TimerMode::Repeating
+        // } else {
+        //     TimerMode::Once
+        // };
+        // let duration = formation.delay.as_secs_f32();
+        // let timer = Timer::from_seconds(duration, mode);
 
-        let mut entity = commands.spawn_empty();
-        entity.insert(FormationSpawnerCountdown {
-            timer,
-            formation_group_index: i,
-        });
+        // let mut entity = commands.spawn_empty();
+        // entity.insert(FormationSpawnerCountdown {
+        //     timer,
+        //     formation_group_index: i,
+        // });
 
-        info!(
-            "spawned formation-group spawner: {} with mode {:?} spawning every {} seconds",
-            i + 1,
-            mode,
-            duration
-        );
+        // info!(
+        //     "spawned formation-group spawner: {} with mode {:?} spawning
+        // every {} seconds",     i + 1,
+        //     mode,
+        //     duration
+        // );
     }
 }
 
 fn delete_formation_group_spawners(
     mut commands: Commands,
     // mut evr_end_simulation: EventReader<EndSimulation>,
-    formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
+    // formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
+    formation_spawners: Query<Entity, With<FormationSpawner>>,
 ) {
     // for event in evr_end_simulation.read() {
     for spawner in &formation_spawners {
@@ -160,67 +208,37 @@ fn delete_formation_group_spawners(
 
 fn create_formation_group_spawners(
     mut commands: Commands,
-    // mut evr_load_simulation: EventReader<LoadSimulation>,
     simulation_manager: Res<SimulationManager>,
-    formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
-    ephemeral_robots: Query<Entity, With<Ephemeral>>,
+    existing_formation_spawners: Query<Entity, With<FormationSpawnerCountdown>>,
 ) {
-    info!("create_formation_group_spawners");
-    // for LoadSimulation(id) in evr_load_simulation.read() {
-    let Some(active_simulation_id) = simulation_manager.active_id() else {
-        panic!("no active simulation");
+    let Some(formation_group) = simulation_manager.active_formation_group() else {
+        warn!("No active formation group!");
+        return;
     };
 
-    if let Some(formation) = simulation_manager.get_formation_group_for(active_simulation_id) {
-        for entity in &formation_spawners {
-            info!("despawning formation spawner: {:?}", entity);
-            commands.entity(entity).despawn();
-        }
-
-        for entity in &ephemeral_robots {
-            info!("despawning ephemeral robot: {:?}", entity);
-            commands.entity(entity).despawn_recursive();
-        }
-
-        setup_v2(&mut commands, formation);
-    } else {
-        warn!(
-            "could not find formation group for simulation {:?}",
-            active_simulation_id
-        );
-        // }
+    for spawner in &existing_formation_spawners {
+        commands.entity(spawner).despawn();
+        info!("Despawned formation spawner: {:?}", spawner);
     }
 
-    //   for event in evr_load_simulation.read() {
-    //       let Some(formation_group) =
-    // simulation_manager.get_formation_group_for(event.id) else {
-    //           return;
-    //       };
+    for (i, formation) in formation_group.formations.iter().enumerate() {
+        #[allow(clippy::option_if_let_else)] // find it more readable with a match here
+        let timer = match formation.repeat_every {
+            Some(duration) => Timer::new(duration, TimerMode::Repeating),
+            None => Timer::from_seconds(0.0, TimerMode::Once),
+        };
+        let delay = Timer::new(formation.delay, TimerMode::Once);
 
-    // for (i, formation) in formation_group.formations.iter().enumerate() {
-    //     let mode = if formation.repeat {
-    //         TimerMode::Repeating
-    //     } else {
-    //         TimerMode::Once
-    //     };
-    //     let duration = formation.delay.as_secs_f32();
-    //     let timer = Timer::from_seconds(duration, mode);
-
-    //     let mut entity = commands.spawn_empty();
-    //     entity.insert(FormationSpawnerCountdown {
-    //         timer,
-    //         formation_group_index: i,
-    //     });
-
-    //     info!(
-    //         "spawned formation-group spawner: {} with mode {:?} spawning
-    // every {} seconds",         i + 1,
-    //         mode,
-    //         duration
-    //     );
-    // }
-
-    // }
+        info!(
+            "spawning FormationSpawner[{i}] with delay {:?} and timer {:?}",
+            delay, timer
+        );
+        commands.spawn(FormationSpawner {
+            formation_group_index: i,
+            initial_delay: delay,
+            timer,
+        });
+    }
 }
 
 /// Event that is sent when a formation should be spawned.
@@ -238,27 +256,41 @@ pub struct RobotFormationSpawned {
 /// `Time::delta()`. If the timer has just finished, send a
 /// `FormationSpawnEvent`.
 fn advance_time(
+    // mut query: Query<&mut FormationSpawnerCountdown>,
+    mut spawners: Query<&mut FormationSpawner>,
+    mut evw_robot_formation_spawned: EventWriter<RobotFormationSpawned>,
+    mut evw_pause_play: EventWriter<PausePlay>, // TODO why argument here?
     time: Res<Time>,
-    mut query: Query<&mut FormationSpawnerCountdown>,
-    mut spawn_event_writer: EventWriter<RobotFormationSpawned>,
-    mut pause_play_event: EventWriter<PausePlay>,
     config: Res<Config>,
 ) {
-    for mut countdown in &mut query {
-        countdown.timer.tick(time.delta());
-        if countdown.timer.just_finished() {
-            spawn_event_writer.send(RobotFormationSpawned {
-                formation_group_index: countdown.formation_group_index,
+    for mut spawner in &mut spawners {
+        spawner.tick(time.delta());
+        if spawner.ready_to_spawn() {
+            evw_robot_formation_spawned.send(RobotFormationSpawned {
+                formation_group_index: spawner.formation_group_index,
             });
-            // info!(
-            //     "sending formation spawn event for group: {}",
-            //     countdown.formation_group_index
-            // );
+
             if config.simulation.pause_on_spawn {
-                pause_play_event.send(PausePlay::Pause);
+                evw_pause_play.send(PausePlay::Pause);
             }
         }
     }
+
+    // for mut countdown in &mut query {
+    //     countdown.timer.tick(time.delta());
+    //     if countdown.timer.just_finished() {
+    //         evw_robot_formation_spawned.send(RobotFormationSpawned {
+    //             formation_group_index: countdown.formation_group_index,
+    //         });
+    //         // info!(
+    //         //     "sending formation spawn event for group: {}",
+    //         //     countdown.formation_group_index
+    //         // );
+    //         if config.simulation.pause_on_spawn {
+    //             evw_pause_play.send(PausePlay::Pause);
+    //         }
+    //     }
+    // }
 }
 
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
@@ -269,37 +301,47 @@ fn spawn_formation(
     mut evw_waypoint_created: EventWriter<WaypointCreated>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<Config>,
-    scene_assets: Res<SceneAssets>,
     theme: Res<CatppuccinTheme>,
-    image_assets: ResMut<Assets<Image>>,
     formation_group: Res<FormationGroup>,
     variable_timesteps: Res<VariableTimesteps>,
+    scene_assets: Res<SceneAssets>,
+    image_assets: ResMut<Assets<Image>>,
 ) {
-    // only continue if the image has been loaded
-    let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else {
-        error!("obstacle sdf not loaded yet");
-        return;
-    };
-
-    let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
-
     for event in evr_robot_formation_spawned.read() {
+        // only continue if the image has been loaded
+        let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else {
+            error!("obstacle sdf not loaded yet");
+            return;
+        };
+
+        let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
+
         // warn!("new formation spawn event received: {:?}", event);
         let formation = &formation_group.formations[event.formation_group_index];
-        let first_wp = formation.waypoints.first();
+        // let first_wp = formation.waypoints.first();
 
+        dbg!(&formation);
+
+        // TODO: check this gets reloaded correctly
         let world_dims = WorldDimensions::new(
             config.simulation.world_size.get().into(),
             config.simulation.world_size.get().into(),
         );
 
+        // TODO: use random resource/component for reproducibility
         let mut rng = rand::thread_rng();
 
         let max_placement_attempts = NonZeroUsize::new(1000).expect("1000 is not zero");
-        let Some(lerp_amounts) = (match &first_wp.shape {
+
+        // TODO: supprt equal
+        let lerp_amounts = match &formation.initial_position.shape {
             Shape::Line((start, end)) => {
-                let start = point_to_world_position(start, &world_dims);
-                let end = point_to_world_position(end, &world_dims);
+                let start = world_dims.point_to_world_position(*start);
+                let end = world_dims.point_to_world_position(*end);
+
+                // let start = point_to_world_position(start, &world_dims);
+                // let end = point_to_world_position(end, &world_dims);
+
                 randomly_place_nonoverlapping_circles_along_line_segment(
                     start,
                     end,
@@ -310,7 +352,9 @@ fn spawn_formation(
                 )
             }
             _ => unimplemented!(),
-        }) else {
+        };
+
+        let Some(lerp_amounts) = lerp_amounts else {
             error!(
                 "failed to spawn formation {}, reason: was not able to place robots along line \
                  segment after {} attempts, skipping",
@@ -320,11 +364,17 @@ fn spawn_formation(
             return;
         };
 
+        dbg!(&lerp_amounts);
         debug_assert_eq!(lerp_amounts.len(), formation.robots.get());
 
         // FIXME: order is flipped
-        let initial_position_of_each_robot =
-            map_positions(&first_wp.shape, &lerp_amounts, &world_dims);
+        let initial_position_of_each_robot = map_positions(
+            &formation.initial_position.shape,
+            &lerp_amounts,
+            &world_dims,
+        );
+
+        dbg!(&initial_position_of_each_robot);
 
         // The first vector is the waypoints for the first robot, the second vector is
         // the waypoints for the second robot, etc.
@@ -340,6 +390,8 @@ fn spawn_formation(
             }
             waypoints_of_each_robot.push(waypoints);
         }
+
+        dbg!(&waypoints_of_each_robot);
 
         // [(a, b, c), (d, e, f), (g, h, i)]
         //  -> [(a, d, g), (b, e, h), (c, f, i)]
@@ -367,6 +419,9 @@ fn spawn_formation(
                     Vec4::new(a.x, a.y, velocity.x, velocity.y)
                 })
                 .collect::<VecDeque<_>>();
+
+            dbg!(&waypoints_with_speed);
+
             #[allow(clippy::unwrap_used)]
             waypoints_with_speed.push_back(Vec4::new(
                 waypoints.last().unwrap().x,
@@ -420,19 +475,22 @@ fn spawn_formation(
                 ..Default::default()
             };
 
+            let initial_position = initial_position.extend(0.0).xzy();
             let initial_direction = waypoints
                 .get(1)
                 .map_or_else(|| Vec3::ZERO, |p| Vec3::new(p.x, 0.0, p.y))
-                - initial_position.extend(0.0).xzy();
+                - initial_position;
+            // - initial_position.extend(0.0).xzy();
 
             entity.insert((
                 robotbundle,
                 pbrbundle,
-                Ephemeral,
+                // Ephemeral,
+                simulation_loader::Reloadable,
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickedOn>(),
                 ColorAssociation { name: random_color },
-                crate::environment::FollowCameraMe::new(0.0, 15.0, 0.0)
+                FollowCameraMe::new(0.0, 15.0, 0.0)
                     .with_up_direction(Direction3d::new(initial_direction).expect(
                         "Vector between initial position and first waypoint should be different \
                          from 0, NaN, and infinity.",
@@ -442,12 +500,8 @@ fn spawn_formation(
 
             evw_robot_spawned.send(RobotSpawned(robot_id));
         }
-        // info!("spawning formation group {}", event.formation_group_index);
     }
 }
-
-#[derive(Component)]
-struct Ephemeral;
 
 #[derive(Event)]
 struct RobotClickedOn(pub Entity);
@@ -516,6 +570,14 @@ impl WorldDimensions {
     /// Get the height of the world.
     pub const fn height(&self) -> f64 {
         self.height.get()
+    }
+
+    pub fn point_to_world_position(&self, p: Point) -> Vec2 {
+        #[allow(clippy::cast_possible_truncation)]
+        Vec2::new(
+            ((p.x - 0.5) * self.width()) as f32,
+            ((p.y - 0.5) * self.height()) as f32,
+        )
     }
 }
 
@@ -614,6 +676,44 @@ fn randomly_place_nonoverlapping_circles_along_line_segment(
 
     None
 }
+
+// fn equal_non_overlapping_circles_along_path(
+//     path: TwoOrMore<Vec2>,
+//     circle_radius: StrictlyPositiveFinite<f32>,
+//     num_circles: NonZeroUsize,
+// ) -> Option<Vec<Vec2>> {
+
+//     let num_circles = num_circles.get();
+//     let circle_radius = circle_radius.get();
+//     let diameter = 2.0 * circle_radius;
+
+//     let mut placed: Vec<Vec2> = Vec::with_capacity(num_circles);
+
+//     placed.push(*path.first());
+
+//     for _ in 0..num_circles {
+
+//             // let lerp_amount = rng.gen_range(0.0..1.0);
+//             // let new_position = from.lerp(to, lerp_amount);
+
+//             let last = placed.last().expect("at least 1 point has been
+// placed");
+
+//             let valid = placed.iter().all(|&p| new_position.distance(p) >=
+// diameter);
+
+//             if valid {
+//                 // lerp_amounts.push(lerp_amount);
+//                 placed.push(new_position);
+//                 if placed.len() == num_circles {
+//                     return Some(lerp_amounts);
+//                 }
+//             }
+//     }
+
+//     todo!()
+
+// }
 
 #[cfg(test)]
 mod tests {

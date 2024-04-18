@@ -100,18 +100,52 @@ fn main() -> anyhow::Result<()> {
     }
 
     if let Some(dump) = cli.dump_default {
+        let stdout_is_a_terminal = atty::is(atty::Stream::Stdout);
         match dump {
             DumpDefault::Config => {
                 let default = config::Config::default();
-                println!("{}", toml::to_string_pretty(&default)?);
+                if stdout_is_a_terminal {
+                    let toml = toml::to_string_pretty(&default)?;
+                    bat::PrettyPrinter::new()
+                        .input_from_bytes(toml.as_bytes())
+                        .language("toml")
+                        .print()
+                        .unwrap();
+                } else {
+                    // let stdout = std::io::stdout::lock();
+                    println!("{}", toml::to_string_pretty(&default)?);
+                }
             }
             DumpDefault::Formation => {
                 let default = config::FormationGroup::default();
                 let config = ron::ser::PrettyConfig::new().indentor("  ".to_string());
-                println!("{}", ron::ser::to_string_pretty(&default, config)?);
+                let ron = ron::ser::to_string_pretty(&default, config)?;
+                // println!("{ron}");
+                if stdout_is_a_terminal {
+                    bat::PrettyPrinter::new()
+                        .input_from_bytes(ron.as_bytes())
+                        .language("rust")
+                        .print()
+                        .unwrap();
+                } else {
+                    println!("{ron}");
+                    // println!("{}", ron::ser::to_string_pretty(&default,
+                    // config)?);
+                }
             }
             DumpDefault::Environment => {
-                println!("{}", serde_yaml::to_string(&Environment::default())?);
+                let yaml = serde_yaml::to_string(&Environment::default())?;
+                if stdout_is_a_terminal {
+                    bat::PrettyPrinter::new()
+                        .input_from_bytes(yaml.as_bytes())
+                        .language("yaml")
+                        .print()
+                        .unwrap();
+                } else {
+                    println!("{yaml}");
+                    // println!("{}",
+                    // serde_yaml::to_string(&Environment::default())?);
+                }
             }
         };
 
@@ -126,7 +160,19 @@ fn main() -> anyhow::Result<()> {
             EnvironmentType::Complex => Environment::complex(),
             EnvironmentType::Test => Environment::test(),
         };
-        println!("{}", serde_yaml::to_string(&env)?);
+
+        let yaml = serde_yaml::to_string(&env)?;
+        let stdout_is_a_terminal = atty::is(atty::Stream::Stdout);
+        if stdout_is_a_terminal {
+            bat::PrettyPrinter::new()
+                .input_from_bytes(yaml.as_bytes())
+                .language("yaml")
+                .print()
+                .unwrap();
+        } else {
+            println!("{yaml}");
+            // println!("{}", serde_yaml::to_string(&env)?);
+        }
 
         return Ok(());
     }
@@ -158,7 +204,7 @@ fn main() -> anyhow::Result<()> {
             );
         }
 
-        let formation = FormationGroup::from_file(&config.formation_group)?;
+        let formation = FormationGroup::from_ron_file(&config.formation_group)?;
         println!(
             "successfully read formation config from: {}",
             config.formation_group
@@ -238,11 +284,11 @@ fn main() -> anyhow::Result<()> {
     //     }
     // };
 
+    // TODO: load from sim loader instead
     app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
-        .insert_resource(config)
-        .insert_resource(formation)
+        // .insert_resource(config)
+        // .insert_resource(formation)
         // .insert_resource(environment)
-        .init_state::<AppState>()
         .add_plugins(DefaultPlugins
             .set(window_plugin)
             // .set(log_plugin)
@@ -250,11 +296,12 @@ fn main() -> anyhow::Result<()> {
         // third-party plugins
         .add_plugins(bevy_egui::EguiPlugin)
         // TODO: use
-        .add_plugins(EntropyPlugin::<WyRand>::default())
+        // .add_plugins(EntropyPlugin::<WyRand>::default())
 
         // our plugins
+        .add_plugins(SimulationLoaderPlugin::default())
         .add_plugins((
-            SimulationLoaderPlugin::default(),
+            // SimulationLoaderPlugin::default(),
             DefaultPickingPlugins,
             PausePlayPlugin::default(),
             ThemePlugin,       // Custom
@@ -269,7 +316,7 @@ fn main() -> anyhow::Result<()> {
             EguiInterfacePlugin, // Custom
             PlannerPlugin,
             NotifyPlugin::default(),
-            PrngPlugin,
+            // PrngPlugin,
         ))
         .add_plugins(ToggleFullscreenPlugin::default())
         // .add_plugins(bevy_dev::DevPlugins)
@@ -286,10 +333,6 @@ fn main() -> anyhow::Result<()> {
         // .add_systems(Startup, spawn_perf_ui)
         // .add_systems(Update, make_window_visible)
 
-        // .add_systems(
-        //     Update,
-        //     create_toast.run_if(input_just_pressed(KeyCode::KeyZ)),
-        // )
         .add_systems(PostUpdate, end_simulation.run_if(time_exceeds_max_time));
 
     app.run();

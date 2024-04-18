@@ -43,7 +43,7 @@ fn main() -> anyhow::Result<()> {
             );
         }
 
-        let formation = FormationGroup::from_file(&config.formation_group)?;
+        let formation = FormationGroup::from_ron_file(&config.formation_group)?;
         println!(
             "successfully read formation config from: {}",
             config.formation_group

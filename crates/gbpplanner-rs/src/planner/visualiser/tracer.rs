@@ -27,8 +27,7 @@ impl Plugin for TracerVisualiserPlugin {
                 create_tracer_when_a_robot_is_spawned,
                 track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
                 draw_traces.run_if(draw_paths_enabled),
-                reset.run_if(on_event::<LoadSimulation>()),
-                reset.run_if(on_event::<ReloadSimulation>()),
+                reset.run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
             ),
         );
     }

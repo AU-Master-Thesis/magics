@@ -67,13 +67,12 @@ impl BevyAppExt for bevy::app::App {
 }
 
 pub mod run_conditions {
-    use bevy::{
-        ecs::{
-            event::{Event, Events},
-            system::Res,
-        },
-        input::{keyboard::KeyCode, ButtonInput},
+    use bevy::ecs::{
+        event::{Event, Events},
+        system::Res,
     };
+
+    // pub fn on_any_event<E: Event, const N: usize>()
 
     /// Trait for checking if an event exists
     pub fn event_exists<T: Event>(res_event: Option<Res<Events<T>>>) -> bool {
