@@ -829,7 +829,7 @@ fn build_tile_grid(
                     Some(vec![
                         (
                             // bottom left cube
-                            cube.clone(),
+                            cube,
                             // bottom left cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -839,7 +839,7 @@ fn build_tile_grid(
                         ),
                         (
                             // bottom right cube
-                            cube.clone(),
+                            cube,
                             // bottom right cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -870,7 +870,7 @@ fn build_tile_grid(
                     Some(vec![
                         (
                             // top left cube
-                            cube.clone(),
+                            cube,
                             // top left cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -880,7 +880,7 @@ fn build_tile_grid(
                         ),
                         (
                             // top right cube
-                            cube.clone(),
+                            cube,
                             // top right cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -911,7 +911,7 @@ fn build_tile_grid(
                     Some(vec![
                         (
                             // top right cube
-                            cube.clone(),
+                            cube,
                             // top right cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -921,7 +921,7 @@ fn build_tile_grid(
                         ),
                         (
                             // bottom right cube
-                            cube.clone(),
+                            cube,
                             // bottom right cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -952,7 +952,7 @@ fn build_tile_grid(
                     Some(vec![
                         (
                             // top left cube
-                            cube.clone(),
+                            cube,
                             // top left cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -962,7 +962,7 @@ fn build_tile_grid(
                         ),
                         (
                             // bottom left cube
-                            cube.clone(),
+                            cube,
                             // bottom left cube transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -991,7 +991,7 @@ fn build_tile_grid(
                     Some(vec![
                         (
                             // top left
-                            cube.clone(),
+                            cube,
                             // top left transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -1001,7 +1001,7 @@ fn build_tile_grid(
                         ),
                         (
                             // top right
-                            cube.clone(),
+                            cube,
                             // top right transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
@@ -1011,7 +1011,7 @@ fn build_tile_grid(
                         ),
                         (
                             // bottom left
-                            cube.clone(),
+                            cube,
                             // bottom left transform
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
@@ -1021,7 +1021,7 @@ fn build_tile_grid(
                         ),
                         (
                             // bottom right
-                            cube.clone(),
+                            cube,
                             // bottom right transform
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,

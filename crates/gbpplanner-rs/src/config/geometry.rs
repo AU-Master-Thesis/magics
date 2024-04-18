@@ -186,8 +186,15 @@ impl Point {
     /// Create a new `Point` from a pair of values.
     /// Returns an error if either `x` or `y` is not in the interval [0.0, 1.0].
     #[inline]
+    #[must_use]
     pub const fn new(x: f64, y: f64) -> Self {
         Self { x, y }
+    }
+}
+
+impl From<Point> for bevy::math::Vec2 {
+    fn from(value: Point) -> Self {
+        Self::new(value.x as f32, value.y as f32)
     }
 }
 
@@ -209,6 +216,30 @@ impl RelativePoint {
         })
     }
 
+    /// Create a new `RelativePoint` at (0.0, 0.0)
+    pub fn min() -> Self {
+        Self {
+            x: UnitInterval::new(0.0).expect("0.0 in [0.0, 1.0]"),
+            y: UnitInterval::new(0.0).expect("0.0 in [0.0, 1.0]"),
+        }
+    }
+
+    /// Create a new `RelativePoint` at (1.0, 1.0)
+    pub fn max() -> Self {
+        Self {
+            x: UnitInterval::new(1.0).expect("1.0 in [0.0, 1.0]"),
+            y: UnitInterval::new(1.0).expect("1.0 in [0.0, 1.0]"),
+        }
+    }
+
+    /// Create a new `RelativePoint` at (0.5, 0.5)
+    pub fn center() -> Self {
+        Self {
+            x: UnitInterval::new(0.5).expect("0.5 in [0.0, 1.0]"),
+            y: UnitInterval::new(0.5).expect("0.5 in [0.0, 1.0]"),
+        }
+    }
+
     // /// Returns the x and y values as a tuple
     // #[inline]
     // pub const fn get(&self) -> (f64, f64) {
@@ -224,6 +255,12 @@ impl TryFrom<(f64, f64)> for RelativePoint {
             x: UnitInterval::new(value.0)?,
             y: UnitInterval::new(value.1)?,
         })
+    }
+}
+
+impl From<RelativePoint> for bevy::math::Vec2 {
+    fn from(value: RelativePoint) -> Self {
+        Self::new(value.x.into(), value.y.into())
     }
 }
 
@@ -269,10 +306,10 @@ impl TryFrom<(f64, f64)> for RelativePoint {
 pub enum Shape {
     Circle {
         radius: StrictlyPositiveFinite<f32>,
-        center: RelativePoint,
+        center: Point,
     },
     Polygon(OneOrMore<Point>),
-    Line((Point, Point)),
+    LineSegment((Point, Point)),
 }
 
 impl Shape {
@@ -306,6 +343,6 @@ macro_rules! line {
     [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
         // Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
         // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1 as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(), y: f64::try_from().unwrap() }))
-        Shape::Line(($crate::config::geometry::Point::new($x1, $y1), $crate::config::geometry::Point::new($x2, $y2)))
+        $crate::config::geometry::Shape::LineSegment(($crate::config::geometry::Point::new($x1, $y1), $crate::config::geometry::Point::new($x2, $y2)))
     };
 }

@@ -6,12 +6,12 @@
         nanos: 0,
       )),
       delay: (
-        secs: 1,
+        secs: 2,
         nanos: 0,
       ),
       robots: 1,
       r#initial-position: (
-        shape: line(((
+        shape: r#line-segment(((
           x: 0.45,
           y: 0.0,
         ), (
@@ -22,7 +22,7 @@
       ),
       waypoints: [
         (
-          shape: line(((
+          shape: r#line-segment(((
             x: 0.45,
             y: 1.25,
           ), (
@@ -44,7 +44,7 @@
       ),
       robots: 1,
       r#initial-position: (
-        shape: line(((
+        shape: r#line-segment(((
           x: 0.0,
           y: 0.45,
         ), (
@@ -55,7 +55,7 @@
       ),
       waypoints: [
         (
-          shape: line(((
+          shape: r#line-segment(((
             x: 1.25,
             y: 0.45,
           ), (

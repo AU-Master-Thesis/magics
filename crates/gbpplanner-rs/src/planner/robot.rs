@@ -19,7 +19,6 @@ use crate::factorgraph::{
     id::{FactorId, VariableId},
 };
 use crate::{
-    boolean_bevy_resource,
     config::Config,
     factorgraph::{variable::VariableNode, DOFS},
     pause_play::PausePlay,
@@ -33,12 +32,12 @@ pub struct RobotPlugin;
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<VariableTimesteps>()
-            .init_resource::<ManualMode>()
+            // .init_resource::<ManualMode>()
             .insert_state(ManualModeState::Disabled)
             .add_event::<RobotSpawned>()
             .add_event::<RobotDespawned>()
             .add_event::<RobotReachedWaypoint>()
-            .add_systems(PreUpdate, start_manual_step.run_if(time_is_paused))
+            .add_systems(PreUpdate, start_manual_step.run_if(virtual_time_is_paused))
             .add_systems(
                 FixedUpdate,
                 // Update,
@@ -56,7 +55,7 @@ impl Plugin for RobotPlugin {
                     // finish_manual_step.run_if(in_state(ManualModeState::Enabled)),
                 )
                     .chain()
-                    .run_if(not(time_is_paused)),
+                    .run_if(not(virtual_time_is_paused)),
             );
         // .configure_sets(Update, GbpSet.run_if(time_changed));
     }
@@ -82,7 +81,7 @@ impl Plugin for RobotPlugin {
 
 /// run criteria if time is not paused
 #[inline]
-fn time_is_paused(time: Res<Time<Virtual>>) -> bool {
+fn virtual_time_is_paused(time: Res<Time<Virtual>>) -> bool {
     time.is_paused()
 }
 
@@ -233,10 +232,31 @@ pub struct RobotBundle {
     pub waypoints:   Waypoints,
 }
 
+/// State vector of a robot
+/// [x, y, x', y']
+#[derive(Debug, Clone, Copy, derive_more::Into, derive_more::Add)]
+pub struct StateVector(bevy::math::Vec4);
+
+impl StateVector {
+    pub fn position(&self) -> Vec2 {
+        self.0.xy()
+    }
+
+    pub fn velocity(&self) -> Vec2 {
+        self.0.zw()
+    }
+
+    #[must_use]
+    pub const fn new(state: Vec4) -> Self {
+        Self(state)
+    }
+}
+
 impl RobotBundle {
     #[must_use = "Constructor responsible for creating the robots factorgraph"]
     pub fn new(
         robot_id: RobotId,
+        initial_state: StateVector,
         mut waypoints: VecDeque<Vec4>,
         variable_timesteps: &[u32],
         config: &Config,
@@ -250,17 +270,18 @@ impl RobotBundle {
             return Err(RobotInitError::NoVariableTimesteps);
         }
 
-        let start = waypoints
-            .pop_front()
-            .expect("Waypoints has at least one element");
+        let start: Vec4 = Vec4::from(initial_state);
+        // let start = waypoints
+        //     .pop_front()
+        //     .expect("Waypoints has at least one element");
 
         let goal = waypoints
             .front()
-            .expect("Waypoints has at least two elements");
+            .expect("Waypoints has at least one element");
 
         // Initialise the horizon in the direction of the goal, at a distance T_HORIZON
         // * MAX_SPEED from the start.
-        let start2goal = *goal - start;
+        let start2goal: Vec4 = *goal - start;
 
         let horizon = start
             + f32::min(
@@ -816,7 +837,7 @@ fn update_prior_of_current_state(
     }
 }
 
-boolean_bevy_resource!(ManualMode, default = false);
+// boolean_bevy_resource!(ManualMode, default = false);
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ManualModeState {
@@ -893,5 +914,5 @@ fn finish_manual_step(
     // pause_play_event.send(PausePlayEvent::Pause);
 }
 
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GbpSet;
+// #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+// pub struct GbpSet;

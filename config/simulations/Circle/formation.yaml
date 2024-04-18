@@ -1,0 +1,22 @@
+formations:
+- repeat-every:
+    secs: 25
+    nanos: 0
+  delay:
+    secs: 5
+    nanos: 0
+  robots: 8
+  initial-position:
+    shape: !circle
+      radius: 25.0
+      center:
+        x: 0.5
+        y: 0.5
+    placement-strategy: equal
+  waypoints:
+  - shape: !circle
+      radius: 25.0
+      center:
+        x: 0.5
+        y: 0.5
+    projection-strategy: cross

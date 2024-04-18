@@ -14,12 +14,13 @@ use super::{
 use crate::{
     asset_loader::SceneAssets,
     config::{
+        formation::{Waypoint, WorldDimensions},
         geometry::{Point, RelativePoint, Shape},
         Config, FormationGroup,
     },
     environment::FollowCameraMe,
     pause_play::PausePlay,
-    planner::robot::RobotBundle,
+    planner::robot::{RobotBundle, StateVector},
     simulation_loader::{self, EndSimulation, LoadSimulation, ReloadSimulation, SimulationManager},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
@@ -221,11 +222,21 @@ fn create_formation_group_spawners(
         info!("Despawned formation spawner: {:?}", spawner);
     }
 
+    // dbg!(&formation_group);
+    // std::process::exit(1);
+
     for (i, formation) in formation_group.formations.iter().enumerate() {
         #[allow(clippy::option_if_let_else)] // find it more readable with a match here
         let timer = match formation.repeat_every {
-            Some(duration) => Timer::new(duration, TimerMode::Repeating),
-            None => Timer::from_seconds(0.0, TimerMode::Once),
+            Some(duration) => {
+                let mut timer = dbg!(Timer::new(duration, TimerMode::Repeating));
+                // FIXME: does not work
+                // timer.tick(duration); // tick the timer so it is finished on the first tick,
+                // after                       // the delay has finished
+                // assert!(timer.just_finished());
+                timer
+            }
+            None => Timer::from_seconds(0.1, TimerMode::Once),
         };
         let delay = Timer::new(formation.delay, TimerMode::Once);
 
@@ -239,6 +250,8 @@ fn create_formation_group_spawners(
             timer,
         });
     }
+
+    // std::process::exit(1);
 }
 
 /// Event that is sent when a formation should be spawned.
@@ -266,6 +279,7 @@ fn advance_time(
     for mut spawner in &mut spawners {
         spawner.tick(time.delta());
         if spawner.ready_to_spawn() {
+            info!("ready to spawn!");
             evw_robot_formation_spawned.send(RobotFormationSpawned {
                 formation_group_index: spawner.formation_group_index,
             });
@@ -275,23 +289,39 @@ fn advance_time(
             }
         }
     }
-
-    // for mut countdown in &mut query {
-    //     countdown.timer.tick(time.delta());
-    //     if countdown.timer.just_finished() {
-    //         evw_robot_formation_spawned.send(RobotFormationSpawned {
-    //             formation_group_index: countdown.formation_group_index,
-    //         });
-    //         // info!(
-    //         //     "sending formation spawn event for group: {}",
-    //         //     countdown.formation_group_index
-    //         // );
-    //         if config.simulation.pause_on_spawn {
-    //             evw_pause_play.send(PausePlay::Pause);
-    //         }
-    //     }
-    // }
 }
+
+// TODO: use a trait for this
+
+// const MAX_PLACEMENT_ATTEMPTS: usize = 1000;
+
+// fn line_segment_formation(
+//     start: (Vec2, Vec2),
+//     waypoints: &[Waypoint],
+//     world_dims: &WorldDimensions,
+// ) -> Option<Vec<Vec4>> {
+//     todo!()
+
+//                 let start = world_dims.point_to_world_position(*start);
+//                 let end = world_dims.point_to_world_position(*end);
+
+//                 // let start = point_to_world_position(start, &world_dims);
+//                 // let end = point_to_world_position(end, &world_dims);
+
+//                 randomly_place_nonoverlapping_circles_along_line_segment(
+//                     start,
+//                     end,
+//                     formation.robots,
+//                     config.robot.radius,
+//                     max_placement_attempts,
+//                     &mut rng,
+//                 )
+
+// }
+
+// fn circle_formation(radius: f32, center: Vec2, world_dims: &WorldDimensions)
+// -> Option<Vec<Vec4>> {     todo!()
+// }
 
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn spawn_formation(
@@ -316,9 +346,7 @@ fn spawn_formation(
 
         let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
 
-        // warn!("new formation spawn event received: {:?}", event);
         let formation = &formation_group.formations[event.formation_group_index];
-        // let first_wp = formation.waypoints.first();
 
         dbg!(&formation);
 
@@ -330,31 +358,16 @@ fn spawn_formation(
 
         // TODO: use random resource/component for reproducibility
         let mut rng = rand::thread_rng();
-
         let max_placement_attempts = NonZeroUsize::new(1000).expect("1000 is not zero");
 
-        // TODO: supprt equal
-        let lerp_amounts = match &formation.initial_position.shape {
-            Shape::Line((start, end)) => {
-                let start = world_dims.point_to_world_position(*start);
-                let end = world_dims.point_to_world_position(*end);
-
-                // let start = point_to_world_position(start, &world_dims);
-                // let end = point_to_world_position(end, &world_dims);
-
-                randomly_place_nonoverlapping_circles_along_line_segment(
-                    start,
-                    end,
-                    formation.robots,
-                    config.robot.radius,
-                    max_placement_attempts,
-                    &mut rng,
-                )
-            }
-            _ => unimplemented!(),
-        };
-
-        let Some(lerp_amounts) = lerp_amounts else {
+        let Some((initial_position_for_each_robot, waypoint_positions_for_each_robot)) = formation
+            .as_positions(
+                world_dims,
+                config.robot.radius,
+                max_placement_attempts,
+                &mut rng,
+            )
+        else {
             error!(
                 "failed to spawn formation {}, reason: was not able to place robots along line \
                  segment after {} attempts, skipping",
@@ -364,81 +377,70 @@ fn spawn_formation(
             return;
         };
 
-        dbg!(&lerp_amounts);
-        debug_assert_eq!(lerp_amounts.len(), formation.robots.get());
+        dbg!(&initial_position_for_each_robot);
+        dbg!(&waypoint_positions_for_each_robot);
 
-        // FIXME: order is flipped
-        let initial_position_of_each_robot = map_positions(
-            &formation.initial_position.shape,
-            &lerp_amounts,
-            &world_dims,
-        );
-
-        // dbg!(&initial_position_of_each_robot);
-
-        // The first vector is the waypoints for the first robot, the second vector is
-        // the waypoints for the second robot, etc.
-        let mut waypoints_of_each_robot: Vec<Vec<Vec2>> =
-            Vec::with_capacity(formation.robots.get());
-
-        for i in 0..formation.robots.get() {
-            let mut waypoints = Vec::with_capacity(formation.waypoints.len());
-            // for wp in formation.waypoints.iter().skip(1) {
-            for wp in formation.waypoints.iter() {
-                let positions = map_positions(&wp.shape, &lerp_amounts, &world_dims);
-                waypoints.push(positions[i]);
-            }
-            waypoints_of_each_robot.push(waypoints);
-        }
-
-        // dbg!(&waypoints_of_each_robot);
-
-        // [(a, b, c), (d, e, f), (g, h, i)]
-        //  -> [(a, d, g), (b, e, h), (c, f, i)]
-
-        let max_speed = config.robot.max_speed.get();
-
-        for (initial_position, waypoints) in initial_position_of_each_robot
+        let initial_pose_for_each_robot: Vec<Vec4> = initial_position_for_each_robot
             .iter()
-            .zip(waypoints_of_each_robot.iter())
-        {
-            let initial_translation = Vec3::new(initial_position.x, 0.5, initial_position.y);
+            .zip(
+                waypoint_positions_for_each_robot
+                    .first()
+                    .expect("there is at least one waypoint"),
+            )
+            .map(|(from, to)| {
+                let d = *to - *from;
+                let v = d.normalize_or_zero() * config.robot.max_speed.get();
+                Vec4::new(from.x, from.y, v.x, v.y)
+            })
+            .collect();
+
+        let waypoint_poses_for_each_robot: Vec<Vec<Vec4>> = waypoint_positions_for_each_robot
+            .iter()
+            .chain(waypoint_positions_for_each_robot.last().into_iter())
+            .tuple_windows()
+            .map(|(a, b)| {
+                a.iter()
+                    .zip(b.iter())
+                    .map(|(from, to)| {
+                        let d = *to - *from;
+                        let v = d.normalize_or_zero() * config.robot.max_speed.get();
+                        Vec4::new(from.x, from.y, v.x, v.y)
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+
+        dbg!(&initial_pose_for_each_robot);
+        dbg!(&waypoint_poses_for_each_robot);
+
+        for (i, initial_pose) in initial_pose_for_each_robot.iter().enumerate() {
+            let waypoints: Vec<Vec4> = waypoint_poses_for_each_robot
+                .iter()
+                .map(|wps| wps[i])
+                .collect();
+            // }
+            // for (initial_pose, waypoints) in initial_pose_for_each_robot
+            //     .iter()
+            //     .zip(waypoint_poses_for_each_robot.iter())
+            // {
+            info!(
+                "initial pose: {:?}, waypoints: {:?}",
+                initial_pose, waypoints
+            );
+            let initial_direction = initial_pose.yz().extend(0.0);
+            let initial_translation = Vec3::new(initial_pose.x, 0.5, initial_pose.y);
+
             let mut entity = commands.spawn_empty();
             let robot_id = entity.id();
-            evw_waypoint_created.send_batch(waypoints.iter().map(|p| WaypointCreated {
+            evw_waypoint_created.send_batch(waypoints.iter().map(|pose| WaypointCreated {
                 for_robot: robot_id,
-                position:  *p,
+                position:  pose.xy(),
             }));
 
-            // dbg!(&waypoints);
-
-            // let last_waypoint = waypoints.last();
-            // let velocity_at_waypoint = std::iter::once(initial_position)
-            let waypoints = std::iter::once(initial_position)
-                .chain(waypoints.iter())
-                .chain(std::iter::once(
-                    waypoints.last().expect("there is at least one waypoint"),
-                ))
-                .tuple_windows()
-                .map(|(from, to)| {
-                    let direction = *to - *from;
-                    let velocity = direction.normalize_or_zero() * max_speed;
-                    Vec4::new(from.x, from.y, velocity.x, velocity.y)
-                })
-                .collect::<VecDeque<_>>();
-
-            // dbg!(&waypoints);
-
-            let initial_position = initial_position.extend(0.0).xzy();
-            let initial_direction = waypoints
-                .get(1)
-                .map_or_else(|| Vec3::ZERO, |p| Vec3::new(p.x, 0.0, p.y))
-                - initial_position;
-            // - initial_position.extend(0.0).xzy();
-
-            // println!("{:?}", waypoints_with_speed);
+            let waypoints: VecDeque<_> = waypoints.iter().copied().collect();
             let robotbundle = RobotBundle::new(
                 robot_id,
+                StateVector::new(*initial_pose),
                 waypoints,
                 variable_timesteps.as_slice(),
                 &config,
@@ -450,6 +452,7 @@ fn spawn_formation(
                 "Possible `RobotInitError`s should be avoided due to the formation input being \
                  validated.",
             );
+
             let initial_visibility = if config.visualisation.draw.robots {
                 Visibility::Visible
             } else {
@@ -485,7 +488,7 @@ fn spawn_formation(
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickedOn>(),
                 ColorAssociation { name: random_color },
-                FollowCameraMe::new(0.0, 15.0, 0.0)
+                FollowCameraMe::new(0.0, 30.0, 0.0)
                     .with_up_direction(Direction3d::new(initial_direction).expect(
                         "Vector between initial position and first waypoint should be different \
                          from 0, NaN, and infinity.",
@@ -494,8 +497,224 @@ fn spawn_formation(
             ));
 
             evw_robot_spawned.send(RobotSpawned(robot_id));
+
+            // std::process::exit(1);
         }
     }
+
+    // let initial_positions_for_each_robot =
+    // positions_for_each_robot.first().expect("each robot has an initial
+    // position");
+
+    // let waypoints: Vec<_> = positions_for_each_robot
+    //     .iter()
+    //     .chain(std::iter::once(positions_for_each_robot.last().expect("there
+    // is at least one position")))     .map(|wp_robot| {
+    //         wp_robot.iter()
+
+    //         .tuple_windows()
+    //         .map(|(from, to)| {
+
+    //             let direction = *to - *from;
+    //             let velocity = direction.normalize_or_zero() *
+    // config.robot.max_speed.get();             Vec4::new(from.x, from.y,
+    // velocity.x, velocity.y)         })
+    //         .collect::<VecDeque<_>>();
+    //     }).collect();
+
+    // let waypoints = match formation.initial_position.shape {
+    //     Shape::LineSegment((start, end)) => {
+    //         // let start = world_dims.point_to_world_position(*start);
+    //         // let end = world_dims.point_to_world_position(*end);
+    //         line_segment_formation(
+    //             &formation.initial_position,
+
+    //             (start.into(), end.into()),
+    //             formation.waypoints.as_slice(),
+    //             &world_dims,
+    //         )
+    //     }
+    //     Shape::Circle { radius, center } => {
+    //         circle_formation(radius.into(), center.into(), &world_dims)
+    //     }
+    //     Shape::Polygon(_) => unimplemented!(),
+    // };
+
+    // let Some(waypoints) = waypoints else {
+    //     error!(
+    //         "failed to spawn formation {}, reason: was not able to place
+    // robots along shape \          after {MAX_PLACEMENT_ATTEMPTS}
+    // attempts, skipping",         event.formation_group_index,
+    //     );
+    //     return;
+    // };
+
+    // // TODO: supprt equal
+    // let lerp_amounts = match &formation.initial_position.shape {
+    //     Shape::LineSegment((start, end)) => {
+    //         let start = world_dims.point_to_world_position(*start);
+    //         let end = world_dims.point_to_world_position(*end);
+
+    //         // let start = point_to_world_position(start, &world_dims);
+    //         // let end = point_to_world_position(end, &world_dims);
+
+    //         randomly_place_nonoverlapping_circles_along_line_segment(
+    //             start,
+    //             end,
+    //             formation.robots,
+    //             config.robot.radius,
+    //             max_placement_attempts,
+    //             &mut rng,
+    //         )
+    //     }
+    //     Shape::Circle { radius, center } => {
+    //         todo!()
+    //     }
+    //     _ => unimplemented!(),
+    // };
+
+    // let Some(lerp_amounts) = lerp_amounts else {
+    //     error!(
+    //         "failed to spawn formation {}, reason: was not able to place
+    // robots along line \          segment after {} attempts, skipping",
+    //         event.formation_group_index,
+    //         max_placement_attempts.get()
+    //     );
+    //     return;
+    // };
+
+    // dbg!(&lerp_amounts);
+    // debug_assert_eq!(lerp_amounts.len(), formation.robots.get());
+
+    // // FIXME: order is flipped
+    // let initial_position_of_each_robot = map_positions(
+    //     &formation.initial_position.shape,
+    //     &lerp_amounts,
+    //     &world_dims,
+    // );
+
+    // dbg!(&initial_position_of_each_robot);
+
+    // The first vector is the waypoints for the first robot, the second vector
+    // is the waypoints for the second robot, etc.
+    // let mut waypoints_of_each_robot: Vec<Vec<Vec2>> =
+    //     Vec::with_capacity(formation.robots.get());
+
+    // for i in 0..formation.robots.get() {
+    //     let mut waypoints = Vec::with_capacity(formation.waypoints.len());
+    //     // for wp in formation.waypoints.iter().skip(1) {
+    //     for wp in formation.waypoints.iter() {
+    //         let positions = map_positions(&wp.shape, &lerp_amounts,
+    // &world_dims);         waypoints.push(positions[i]);
+    //     }
+    //     waypoints_of_each_robot.push(waypoints);
+    // }
+
+    // // dbg!(&waypoints_of_each_robot);
+
+    // // [(a, b, c), (d, e, f), (g, h, i)]
+    // //  -> [(a, d, g), (b, e, h), (c, f, i)]
+
+    // let max_speed = config.robot.max_speed.get();
+
+    //     for (initial_position, waypoints) in initial_position_of_each_robot
+    //         .iter()
+    //         .zip(waypoints_of_each_robot.iter())
+    //     {
+    //         let initial_translation = Vec3::new(initial_position.x, 0.5,
+    // initial_position.y);         let mut entity = commands.spawn_empty();
+    //         let robot_id = entity.id();
+    //         evw_waypoint_created.send_batch(waypoints.iter().map(|p|
+    // WaypointCreated {             for_robot: robot_id,
+    //             position:  *p,
+    //         }));
+
+    //         // dbg!(&waypoints);
+
+    //         // let last_waypoint = waypoints.last();
+    //         // let velocity_at_waypoint = std::iter::once(initial_position)
+    //         let waypoints = std::iter::once(initial_position)
+    //             .chain(waypoints.iter())
+    //             .chain(std::iter::once(
+    //                 waypoints.last().expect("there is at least one
+    // waypoint"),             ))
+    //             .tuple_windows()
+    //             .map(|(from, to)| {
+    //                 let direction = *to - *from;
+    //                 let velocity = direction.normalize_or_zero() * max_speed;
+    //                 Vec4::new(from.x, from.y, velocity.x, velocity.y)
+    //             })
+    //             .collect::<VecDeque<_>>();
+
+    //         // dbg!(&waypoints);
+
+    //         let initial_position = initial_position.extend(0.0).xzy();
+    //         let initial_direction = waypoints
+    //             .get(1)
+    //             .map_or_else(|| Vec3::ZERO, |p| Vec3::new(p.x, 0.0, p.y))
+    //             - initial_position;
+
+    //         let robotbundle = RobotBundle::new(
+    //             robot_id,
+    //             waypoints,
+    //             variable_timesteps.as_slice(),
+    //             &config,
+    //             OBSTACLE_IMAGE
+    //                 .get()
+    //                 .expect("obstacle image should be allocated and
+    // initialised"),         )
+    //         .expect(
+    //             "Possible `RobotInitError`s should be avoided due to the
+    // formation input being \              validated.",
+    //         );
+    //         let initial_visibility = if config.visualisation.draw.robots {
+    //             Visibility::Visible
+    //         } else {
+    //             Visibility::Hidden
+    //         };
+
+    //         // TODO: Make this depend on random seed
+    //         // let random_color = theme.into_display_iter().choose(&mut
+    //         // thread_rng()).expect(     "Choosing random colour from an
+    //         // iterator that is hard-coded with values should be \      ok.",
+    //         // );
+    //         let random_color = DisplayColour::iter()
+    //             .choose(&mut thread_rng())
+    //             .expect("there is more than 0 colors");
+
+    //         let material = materials.add(StandardMaterial {
+    //             base_color:
+    // Color::from_catppuccin_colour(theme.get_display_colour(&random_color)),
+    //             ..Default::default()
+    //         });
+
+    //         let pbrbundle = PbrBundle {
+    //             mesh: scene_assets.meshes.robot.clone(),
+    //             material,
+    //             transform: Transform::from_translation(initial_translation),
+    //             visibility: initial_visibility,
+    //             ..Default::default()
+    //         };
+
+    //         entity.insert((
+    //             robotbundle,
+    //             pbrbundle,
+    //             simulation_loader::Reloadable,
+    //             PickableBundle::default(),
+    //             On::<Pointer<Click>>::send_event::<RobotClickedOn>(),
+    //             ColorAssociation { name: random_color },
+    //             FollowCameraMe::new(0.0, 15.0, 0.0)
+    //
+    // .with_up_direction(Direction3d::new(initial_direction).expect(
+    //                     "Vector between initial position and first waypoint
+    // should be different \                      from 0, NaN, and
+    // infinity.",                 ))
+    //                 .with_attached(true),
+    //         ));
+
+    //         evw_robot_spawned.send(RobotSpawned(robot_id));
+    //     }
+    // }
 }
 
 #[derive(Event)]
@@ -537,11 +756,11 @@ impl From<ListenerInput<Pointer<Click>>> for RobotClickedOn {
 //     lerp_amounts
 // }
 
-#[derive(Debug, Clone, Copy)]
-struct WorldDimensions {
-    width:  StrictlyPositiveFinite<f64>,
-    height: StrictlyPositiveFinite<f64>,
-}
+// #[derive(Debug, Clone, Copy)]
+// struct WorldDimensions {
+//     width:  StrictlyPositiveFinite<f64>,
+//     height: StrictlyPositiveFinite<f64>,
+// }
 
 // #[derive(Debug)]
 // enum WordDimensionsError {
@@ -549,74 +768,74 @@ struct WorldDimensions {
 //     ZeroHeight,
 // }
 
-impl WorldDimensions {
-    fn new(width: f64, height: f64) -> Self {
-        Self {
-            width:  width.try_into().expect("width is not zero"),
-            height: height.try_into().expect("height is not zero"),
-        }
-    }
+// impl WorldDimensions {
+//     fn new(width: f64, height: f64) -> Self {
+//         Self {
+//             width:  width.try_into().expect("width is not zero"),
+//             height: height.try_into().expect("height is not zero"),
+//         }
+//     }
 
-    /// Get the width of the world.
-    pub const fn width(&self) -> f64 {
-        self.width.get()
-    }
+//     /// Get the width of the world.
+//     pub const fn width(&self) -> f64 {
+//         self.width.get()
+//     }
 
-    /// Get the height of the world.
-    pub const fn height(&self) -> f64 {
-        self.height.get()
-    }
+//     /// Get the height of the world.
+//     pub const fn height(&self) -> f64 {
+//         self.height.get()
+//     }
 
-    pub fn point_to_world_position(&self, p: Point) -> Vec2 {
-        #[allow(clippy::cast_possible_truncation)]
-        Vec2::new(
-            ((p.x - 0.5) * self.width()) as f32,
-            ((p.y - 0.5) * self.height()) as f32,
-        )
-    }
-}
+//     pub fn point_to_world_position(&self, p: Point) -> Vec2 {
+//         #[allow(clippy::cast_possible_truncation)]
+//         Vec2::new(
+//             ((p.x - 0.5) * self.width()) as f32,
+//             ((p.y - 0.5) * self.height()) as f32,
+//         )
+//     }
+// }
 
-/// Convert a `RelativePoint` to a world position
-/// given the dimensions of the world.
-/// The `RelativePoint` is a point in the range [0, 1] x [0, 1]
-/// where (0, 0) is the bottom-left corner of the world
-/// and (1, 1) is the top-right corner of the world.
-/// ```
-fn relative_point_to_world_position(
-    relative_point: &RelativePoint,
-    world_dims: &WorldDimensions,
-) -> Vec2 {
-    #[allow(clippy::cast_possible_truncation)]
-    Vec2::new(
-        ((relative_point.x.get() - 0.5) * world_dims.width()) as f32,
-        ((relative_point.y.get() - 0.5) * world_dims.height()) as f32,
-    )
-}
+// /// Convert a `RelativePoint` to a world position
+// /// given the dimensions of the world.
+// /// The `RelativePoint` is a point in the range [0, 1] x [0, 1]
+// /// where (0, 0) is the bottom-left corner of the world
+// /// and (1, 1) is the top-right corner of the world.
+// /// ```
+// fn relative_point_to_world_position(
+//     relative_point: &RelativePoint,
+//     world_dims: &WorldDimensions,
+// ) -> Vec2 {
+//     #[allow(clippy::cast_possible_truncation)]
+//     Vec2::new(
+//         ((relative_point.x.get() - 0.5) * world_dims.width()) as f32,
+//         ((relative_point.y.get() - 0.5) * world_dims.height()) as f32,
+//     )
+// }
 
-/// Convert a `Point` to a world position
-/// given the dimensions of the world.
-/// The `Point` is not bound to the range [0, 1] x [0, 1]
-fn point_to_world_position(point: &Point, world_dims: &WorldDimensions) -> Vec2 {
-    #[allow(clippy::cast_possible_truncation)]
-    Vec2::new(
-        ((point.x - 0.5) * world_dims.width()) as f32,
-        ((point.y - 0.5) * world_dims.height()) as f32,
-    )
-}
+// /// Convert a `Point` to a world position
+// /// given the dimensions of the world.
+// /// The `Point` is not bound to the range [0, 1] x [0, 1]
+// fn point_to_world_position(point: &Point, world_dims: &WorldDimensions) ->
+// Vec2 {     #[allow(clippy::cast_possible_truncation)]
+//     Vec2::new(
+//         ((point.x - 0.5) * world_dims.width()) as f32,
+//         ((point.y - 0.5) * world_dims.height()) as f32,
+//     )
+// }
 
-fn map_positions(shape: &Shape, lerp_amounts: &[f32], world_dims: &WorldDimensions) -> Vec<Vec2> {
-    match shape {
-        Shape::Line((start, end)) => {
-            let start = point_to_world_position(start, world_dims);
-            let end = point_to_world_position(end, world_dims);
-            lerp_amounts
-                .iter()
-                .map(|&lerp_amount| start.lerp(end, lerp_amount))
-                .collect()
-        }
-        _ => unimplemented!(),
-    }
-}
+// fn map_positions(shape: &Shape, lerp_amounts: &[f32], world_dims:
+// &WorldDimensions) -> Vec<Vec2> {     match shape {
+//         Shape::LineSegment((start, end)) => {
+//             let start = point_to_world_position(start, world_dims);
+//             let end = point_to_world_position(end, world_dims);
+//             lerp_amounts
+//                 .iter()
+//                 .map(|&lerp_amount| start.lerp(end, lerp_amount))
+//                 .collect()
+//         }
+//         _ => unimplemented!(),
+//     }
+// }
 
 // #[derive(Debug, Clone, Copy)]
 // struct LineSegment {
@@ -710,24 +929,26 @@ fn randomly_place_nonoverlapping_circles_along_line_segment(
 
 // }
 
-#[cfg(test)]
-mod tests {
+// #[cfg(test)]
+// mod tests {
 
-    use super::*;
+//     use super::*;
 
-    #[test]
-    fn test_relative_point_to_world_position() {
-        let world_dims = WorldDimensions::new(100.0, 80.0);
-        let relative_point = RelativePoint::new(0.5, 0.5).expect("x and y are in the range [0, 1]");
-        let world_position = relative_point_to_world_position(&relative_point, &world_dims);
-        assert_eq!(world_position, Vec2::new(0.0, 0.0));
+//     #[test]
+//     fn test_relative_point_to_world_position() {
+//         let world_dims = WorldDimensions::new(100.0, 80.0);
+//         let relative_point = RelativePoint::new(0.5, 0.5).expect("x and y are
+// in the range [0, 1]");         let world_position =
+// relative_point_to_world_position(&relative_point, &world_dims);
+//         assert_eq!(world_position, Vec2::new(0.0, 0.0));
 
-        let bottom_left = RelativePoint::new(0.0, 0.0).expect("x and y are in the range [0, 1]");
-        let world_position = relative_point_to_world_position(&bottom_left, &world_dims);
-        assert_eq!(world_position, Vec2::new(-50.0, -40.0));
+//         let bottom_left = RelativePoint::new(0.0, 0.0).expect("x and y are in
+// the range [0, 1]");         let world_position =
+// relative_point_to_world_position(&bottom_left, &world_dims);
+//         assert_eq!(world_position, Vec2::new(-50.0, -40.0));
 
-        let top_right = RelativePoint::new(1.0, 1.0).expect("x and y are in the range [0, 1]");
-        let world_position = relative_point_to_world_position(&top_right, &world_dims);
-        assert_eq!(world_position, Vec2::new(50.0, 40.0));
-    }
-}
+//         let top_right = RelativePoint::new(1.0, 1.0).expect("x and y are in
+// the range [0, 1]");         let world_position =
+// relative_point_to_world_position(&top_right, &world_dims);         assert_eq!
+// (world_position, Vec2::new(50.0, 40.0));     }
+// }

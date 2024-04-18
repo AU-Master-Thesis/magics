@@ -76,13 +76,21 @@ impl Plugin for SimulationLoaderPlugin {
                 //     );
                 // }
 
-                let formation_path = dir.path().join("formation.ron");
+                let formation_path = dir.path().join("formation.yaml");
 
                 assert!(
                     formation_path.is_file(),
-                    "formation.ron not found in simulation directory: {}",
+                    "formation.yaml not found in simulation directory: {}",
                     dir.path().display()
                 );
+
+                // let formation_path = dir.path().join("formation.ron");
+
+                // assert!(
+                //     formation_path.is_file(),
+                //     "formation.ron not found in simulation directory: {}",
+                //     dir.path().display()
+                // );
 
                 //                                   if !formation_path.is_file() {
                 // panic!(
@@ -106,8 +114,10 @@ impl Plugin for SimulationLoaderPlugin {
                 // }
 
                 let config = Config::from_file(config_path).expect("file contains valid config");
-                let formation = FormationGroup::from_ron_file(formation_path)
-                    .expect("file contains a valid formation group(s)");
+                // let formation = FormationGroup::from_ron_file(formation_path)
+                //     .expect("file contains valid formation group(s)");
+                let formation = FormationGroup::from_yaml_file(formation_path)
+                    .expect("file contains valid formation group(s)");
 
                 let environment = Environment::from_file(environment_path)
                     .expect("file contains valid environment");

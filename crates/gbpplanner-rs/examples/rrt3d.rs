@@ -8,14 +8,10 @@ use gbpplanner_rs::{
     asset_loader::AssetLoaderPlugin,
     cli,
     config::{read_config, Config, Environment, FormationGroup},
-    environment::{
-        camera::{CameraMovementMode, ResetCamera},
-        EnvironmentPlugin, MainCamera, ObstacleMarker,
-    },
+    environment::{EnvironmentPlugin, MainCamera, ObstacleMarker},
     input::{camera::CameraInputPlugin, ChangingBinding},
     movement::{self, LinearMovementBundle, MovementPlugin, OrbitMovementBundle},
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt, ThemePlugin},
-    ui::ActionBlock,
 };
 use parry3d::{
     na::{self, Isometry3, Vector3},

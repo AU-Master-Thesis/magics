@@ -1,11 +1,16 @@
 //! A module for working with robot formations declaratively.
-use std::{num::NonZeroUsize, path::Path, time::Duration};
+use std::{f32::consts::PI, num::NonZeroUsize, path::Path, time::Duration};
 
-use bevy::ecs::system::Resource;
+use bevy::{
+    ecs::system::Resource,
+    math::{Vec2, Vec4},
+};
 use min_len_vec::{one_or_more, OneOrMore};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
+use typed_floats::StrictlyPositiveFinite;
 
-use super::geometry::Shape;
+use super::geometry::{Point, RelativePoint, Shape};
 use crate::line;
 
 /// Strategy to use for the starting point of a formation
@@ -21,6 +26,7 @@ pub enum InitialPlacementStrategy {
         /// possible to place the robots Along the shape.
         /// A high number > 1000, is a good idea, since it is not very intensive
         /// to run the algorithm determining the random placements.
+        /// TODO: use
         attempts: NonZeroUsize,
     },
 }
@@ -62,7 +68,7 @@ pub struct Waypoint {
 impl Waypoint {
     /// Crate a new `Waypoint`
     #[must_use]
-    pub fn new(shape: Shape, projection_strategy: ProjectionStrategy) -> Self {
+    pub const fn new(shape: Shape, projection_strategy: ProjectionStrategy) -> Self {
         Self {
             shape,
             projection_strategy,
@@ -109,22 +115,238 @@ pub struct Formation {
 
 impl Default for Formation {
     fn default() -> Self {
+        Self::circle_from_paper()
+        // Self {
+        //     repeat_every: None,
+        //     delay: Duration::from_secs(5),
+        //     robots: NonZeroUsize::new(1).expect("1 > 0"),
+        //     initial_position: InitialPosition {
+        //         shape: line![(0.4, 0.0), (0.6, 0.0)],
+        //         placement_strategy: InitialPlacementStrategy::Random {
+        //             attempts: 1000.try_into().expect("1000 > 0"),
+        //         },
+        //     },
+        //     waypoints: one_or_more![
+        //         Waypoint::new(line![(0.4, 0.4), (0.6, 0.6)],
+        // ProjectionStrategy::Identity),         Waypoint::new(line!
+        // [(0.0, 0.4), (0.0, 0.6)], ProjectionStrategy::Identity),
+        //     ],
+        // }
+    }
+}
+
+impl Formation {
+    pub fn circle_from_paper() -> Self {
+        let circle = Shape::Circle {
+            radius: 100.0.try_into().expect("positive and finite"),
+            center: Point::new(0.0, 0.0),
+        };
         Self {
             repeat_every: None,
-            delay: Duration::from_secs(5),
-            robots: NonZeroUsize::new(1).expect("1 > 0"),
+            delay: Duration::from_secs(1),
+            robots: 1.try_into().expect("8 > 0"),
             initial_position: InitialPosition {
-                shape: line![(0.4, 0.0), (0.6, 0.0)],
-                placement_strategy: InitialPlacementStrategy::Random {
-                    attempts: 1000.try_into().expect("1000 > 0"),
-                },
+                shape: circle.clone(),
+                placement_strategy: InitialPlacementStrategy::Equal,
             },
-            waypoints: one_or_more![
-                Waypoint::new(line![(0.4, 0.4), (0.6, 0.6)], ProjectionStrategy::Identity),
-                Waypoint::new(line![(0.0, 0.4), (0.0, 0.6)], ProjectionStrategy::Identity),
-            ],
+            waypoints: one_or_more![Waypoint::new(circle, ProjectionStrategy::Cross)],
         }
     }
+
+    pub fn as_positions(
+        &self,
+        world_dims: WorldDimensions,
+        robot_radius: StrictlyPositiveFinite<f32>,
+        max_placement_attempts: NonZeroUsize,
+        rng: &mut impl Rng,
+    ) -> Option<(Vec<Vec2>, Vec<Vec<Vec2>>)> {
+        match self.initial_position.shape {
+            Shape::LineSegment((ls_start, ls_end)) => {
+                let ls_start = world_dims.point_to_world_position(ls_start);
+                let ls_end = world_dims.point_to_world_position(ls_end);
+
+                let lerp_amounts = match &self.initial_position.placement_strategy {
+                    InitialPlacementStrategy::Random { attempts } => {
+                        randomly_place_nonoverlapping_circles_along_line_segment(
+                            ls_start,
+                            ls_end,
+                            self.robots,
+                            robot_radius,
+                            *attempts,
+                            // max_placement_attempts,
+                            rng,
+                        )
+                    }
+                    InitialPlacementStrategy::Equal => {
+                        unimplemented!()
+                    }
+                }?;
+
+                assert_eq!(lerp_amounts.len(), self.robots.get());
+
+                let initial_positions: Vec<_> = lerp_amounts
+                    .iter()
+                    .map(|by| ls_start.lerp(ls_end, *by))
+                    .collect();
+
+                let waypoints_of_each_robot: Vec<Vec<Vec2>> = self
+                    .waypoints
+                    .iter()
+                    .map(|wp| {
+                        let Shape::LineSegment((ls_start, ls_end)) = wp.shape else {
+                            unimplemented!("no time for the other combinations sadly :(");
+                        };
+                        let ls_start = world_dims.point_to_world_position(ls_start);
+                        let ls_end = world_dims.point_to_world_position(ls_end);
+                        let positions: Vec<Vec2> = lerp_amounts
+                            .iter()
+                            .map(|by| ls_start.lerp(ls_end, *by))
+                            .collect();
+                        positions
+                    })
+                    .collect();
+
+                assert!(waypoints_of_each_robot
+                    .iter()
+                    .map(std::vec::Vec::len)
+                    .all(|l| l == initial_positions.len()));
+
+                Some((initial_positions, waypoints_of_each_robot))
+            }
+            Shape::Circle { radius, center } => {
+                let radius: f32 = dbg!(radius.get());
+                let center = dbg!(world_dims.point_to_world_position(center));
+                // dbg!(&center);
+                let angles: Vec<f32> = match self.initial_position.placement_strategy {
+                    InitialPlacementStrategy::Equal => {
+                        let angle = 2.0 * PI / self.robots.get() as f32;
+                        let angles = (0..self.robots.get()).map(|i| i as f32 * angle).collect();
+                        dbg!(angle);
+                        dbg!(&angles);
+                        Some(angles)
+                    }
+                    InitialPlacementStrategy::Random { attempts } => {
+                        todo!()
+                        // randomly_place_nonoverlapping_circles_along_circle_perimeter()
+                    }
+                }?;
+                assert_eq!(angles.len(), self.robots.get());
+
+                let initial_positions: Vec<Vec2> = angles
+                    .iter()
+                    .map(|angle| dbg!(polar(*angle, radius)))
+                    .map(|polar| center + polar)
+                    .collect();
+
+                let waypoints_of_each_robots: Vec<Vec<Vec2>> = self
+                    .waypoints
+                    .iter()
+                    .map(|wp| {
+                        let Shape::Circle { radius, center } = wp.shape else {
+                            unimplemented!("no time for the other combinations sadly :(");
+                        };
+                        match wp.projection_strategy {
+                            ProjectionStrategy::Identity => {
+                                panic!("does not make sense for a circle")
+                            }
+                            ProjectionStrategy::Cross => {
+                                let center = world_dims.point_to_world_position(center);
+                                // have each robots move across the circle to the opposite side
+                                angles
+                                    .iter()
+                                    .map(|angle| angle + std::f32::consts::PI)
+                                    .map(|angle| polar(angle, radius.get()))
+                                    .map(|polar| center + polar)
+                                    .collect()
+                            }
+                        }
+                    })
+                    .collect();
+
+                Some((initial_positions, waypoints_of_each_robots))
+            }
+            Shape::Polygon(_) => todo!(),
+        }
+    }
+}
+
+/// Create a vector from polar coordinates
+#[must_use]
+#[inline]
+fn polar(angle: f32, magnitude: f32) -> Vec2 {
+    Vec2::new(angle.cos() * magnitude, angle.sin() * magnitude)
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct WorldDimensions {
+    width:  StrictlyPositiveFinite<f64>,
+    height: StrictlyPositiveFinite<f64>,
+}
+
+impl WorldDimensions {
+    #[must_use]
+    pub fn new(width: f64, height: f64) -> Self {
+        Self {
+            width:  width.try_into().expect("width is not zero"),
+            height: height.try_into().expect("height is not zero"),
+        }
+    }
+
+    /// Get the width of the world.
+    pub const fn width(&self) -> f64 {
+        self.width.get()
+    }
+
+    /// Get the height of the world.
+    pub const fn height(&self) -> f64 {
+        self.height.get()
+    }
+
+    pub fn point_to_world_position(&self, p: Point) -> Vec2 {
+        #[allow(clippy::cast_possible_truncation)]
+        Vec2::new(
+            ((p.x - 0.5) * self.width()) as f32,
+            ((p.y - 0.5) * self.height()) as f32,
+        )
+    }
+}
+
+fn randomly_place_nonoverlapping_circles_along_line_segment(
+    from: Vec2,
+    to: Vec2,
+    num_circles: NonZeroUsize,
+    radius: StrictlyPositiveFinite<f32>,
+    max_attempts: NonZeroUsize,
+    rng: &mut impl Rng,
+) -> Option<Vec<f32>> {
+    let num_circles = num_circles.get();
+    let max_attempts = max_attempts.get();
+    let mut lerp_amounts: Vec<f32> = Vec::with_capacity(num_circles);
+    let mut placed: Vec<Vec2> = Vec::with_capacity(num_circles);
+
+    let diameter = radius.get() * 2.0;
+
+    for _ in 0..max_attempts {
+        placed.clear();
+        lerp_amounts.clear();
+
+        for _ in 0..num_circles {
+            let lerp_amount = rng.gen_range(0.0..1.0);
+            let new_position = from.lerp(to, lerp_amount);
+
+            let valid = placed.iter().all(|&p| new_position.distance(p) >= diameter);
+
+            if valid {
+                lerp_amounts.push(lerp_amount);
+                placed.push(new_position);
+                if placed.len() == num_circles {
+                    return Some(lerp_amounts);
+                }
+            }
+        }
+    }
+
+    None
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -139,6 +361,9 @@ pub enum ParseError {
     // InvalidFormationGroup(#[from] FormationGroupError),
     #[error("RON error: {0}")]
     Ron(#[from] ron::Error),
+
+    #[error("YAML error: {0}")]
+    Yaml(#[from] serde_yaml::Error),
 }
 
 /// A `FormationGroup` represent multiple `Formation`s
@@ -147,29 +372,6 @@ pub enum ParseError {
 pub struct FormationGroup {
     pub formations: OneOrMore<Formation>,
 }
-
-// #[derive(Debug, thiserror::Error)]
-// pub enum FormationGroupError {
-//     NoFormations,
-//     // InvalidFormations(Vec<(usize, FormationError)>),
-// }
-
-// impl std::fmt::Display for FormationGroupError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             Self::NoFormations => write!(
-//                 f,
-//                 "Formation group is empty. A formation group contains at
-// least one formation",             ),
-//             Self::InvalidFormations(ref inner) => {
-//                 for (index, error) in inner {
-//                     write!(f, "formation[{}] is invalid with error: {}",
-// index, error)?;                 }
-//                 Ok(())
-//             }
-//         }
-//     }
-// }
 
 impl FormationGroup {
     /// Attempt to parse a `FormationGroup` from a RON file
@@ -209,13 +411,18 @@ impl FormationGroup {
     /// 1. `contents` is not valid YAML.
     /// 2. The parsed data does not represent a valid `FormationGroup`.
     pub fn parse_from_yaml(contents: &str) -> Result<Self, ParseError> {
-        unimplemented!()
+        Ok(serde_yaml::from_str(contents)?)
+        // unimplemented!()
         // Ok(ron::from_str::<Self>(contents).map_err(|span| span.code)?)
     }
-}
 
-impl Default for FormationGroup {
-    fn default() -> Self {
+    pub fn circle_from_paper() -> Self {
+        Self {
+            formations: one_or_more![Formation::circle_from_paper()],
+        }
+    }
+
+    pub fn intersection_from_paper() -> Self {
         Self {
             formations: one_or_more![
                 Formation {
@@ -248,6 +455,13 @@ impl Default for FormationGroup {
                 },
             ],
         }
+    }
+}
+
+impl Default for FormationGroup {
+    fn default() -> Self {
+        // Self::intersection_from_paper()
+        Self::circle_from_paper()
     }
 }
 
@@ -326,8 +540,4 @@ mod tests {
             }
         }
     }
-
-    // mod formation_group {
-    //     use super::*;
-    // }
 }

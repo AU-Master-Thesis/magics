@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 use bevy::{prelude::*, window::PrimaryWindow};
 
 use super::camera::MainCamera;

@@ -119,19 +119,34 @@ fn main() -> anyhow::Result<()> {
             DumpDefault::Formation => {
                 let default = config::FormationGroup::default();
                 let config = ron::ser::PrettyConfig::new().indentor("  ".to_string());
-                let ron = ron::ser::to_string_pretty(&default, config)?;
+
+                let yaml = serde_yaml::to_string(&default)?;
                 // println!("{ron}");
                 if stdout_is_a_terminal {
                     bat::PrettyPrinter::new()
-                        .input_from_bytes(ron.as_bytes())
+                        .input_from_bytes(yaml.as_bytes())
                         .language("rust")
                         .print()
                         .unwrap();
                 } else {
-                    println!("{ron}");
+                    println!("{yaml}");
                     // println!("{}", ron::ser::to_string_pretty(&default,
                     // config)?);
                 }
+
+                // let ron = ron::ser::to_string_pretty(&default, config)?;
+                // // println!("{ron}");
+                // if stdout_is_a_terminal {
+                //     bat::PrettyPrinter::new()
+                //         .input_from_bytes(ron.as_bytes())
+                //         .language("rust")
+                //         .print()
+                //         .unwrap();
+                // } else {
+                //     println!("{ron}");
+                //     // println!("{}", ron::ser::to_string_pretty(&default,
+                //     // config)?);
+                // }
             }
             DumpDefault::Environment => {
                 let yaml = serde_yaml::to_string(&Environment::default())?;
@@ -189,34 +204,34 @@ fn main() -> anyhow::Result<()> {
         );
     }
 
-    let (config, formation, environment): (Config, FormationGroup, Environment) = if cli.default {
-        (
-            Config::default(),
-            FormationGroup::default(),
-            Environment::default(),
-        )
-    } else {
-        let config = read_config(cli.config.as_ref())?;
-        if let Some(ref inner) = cli.config {
-            println!(
-                "successfully read config from: {}",
-                inner.as_os_str().to_string_lossy()
-            );
-        }
+    // let (config, formation, environment): (Config, FormationGroup, Environment) =
+    // if cli.default {     (
+    //         Config::default(),
+    //         FormationGroup::default(),
+    //         Environment::default(),
+    //     )
+    // } else {
+    //     let config = read_config(cli.config.as_ref())?;
+    //     if let Some(ref inner) = cli.config {
+    //         println!(
+    //             "successfully read config from: {}",
+    //             inner.as_os_str().to_string_lossy()
+    //         );
+    //     }
 
-        let formation = FormationGroup::from_ron_file(&config.formation_group)?;
-        println!(
-            "successfully read formation config from: {}",
-            config.formation_group
-        );
-        let environment = Environment::from_file(&config.environment)?;
-        println!(
-            "successfully read environment config from: {}",
-            config.environment
-        );
+    //     let formation = FormationGroup::from_ron_file(&config.formation_group)?;
+    //     println!(
+    //         "successfully read formation config from: {}",
+    //         config.formation_group
+    //     );
+    //     let environment = Environment::from_file(&config.environment)?;
+    //     println!(
+    //         "successfully read environment config from: {}",
+    //         config.environment
+    //     );
 
-        (config, formation, environment)
-    };
+    //     (config, formation, environment)
+    // };
 
     let window_mode = if cli.fullscreen {
         WindowMode::BorderlessFullscreen
@@ -285,7 +300,9 @@ fn main() -> anyhow::Result<()> {
     // };
 
     // TODO: load from sim loader instead
-    app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
+    // app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
+    let hz = 60.0;
+    app.insert_resource(Time::<Fixed>::from_hz(hz))
         // .insert_resource(config)
         // .insert_resource(formation)
         // .insert_resource(environment)
