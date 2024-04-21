@@ -1,6 +1,7 @@
 mod communication;
 pub mod communication_radius;
 pub mod factorgraphs;
+mod obstacle;
 mod robot;
 mod tracer;
 mod uncertainty;
@@ -36,6 +37,7 @@ impl Plugin for VisualiserPlugin {
             TracerVisualiserPlugin,
             CommunicationRadiusVisualizerPlugin,
             RobotVisualiserPlugin,
+            obstacle::ObstacleFactorVisualizerPlugin,
         ));
     }
 }

@@ -10,7 +10,7 @@ use gbp_linalg::prelude::*;
 use petgraph::Undirected;
 
 use super::{
-    factor::{interrobot::InterRobotFactor, FactorKind, FactorNode},
+    factor::{interrobot::InterRobotFactor, obstacle::ObstacleFactor, FactorKind, FactorNode},
     id::{FactorId, VariableId},
     message::{FactorToVariableMessage, VariableToFactorMessage},
     node::{FactorGraphNode, Node, NodeKind, RemoveConnectionToError},
@@ -103,6 +103,13 @@ pub struct FactorGraph {
     /// important. Used to speed up iteration over interrobot factors.
     /// When querying for number of external messages sent
     interrobot_factor_indices: Vec<NodeIndex>,
+
+    /// List of indices of the obstacle factors in the graph.
+    /// Order matches the order of variables, such that index `i` in
+    /// `obstacle_factor_indices` corresponds to index `i` in
+    /// `variable_indices`. Used to speed up iteration over obstacle
+    /// factors.
+    obstacle_factor_indices: Vec<NodeIndex>,
 }
 
 impl FactorGraph {
@@ -115,6 +122,7 @@ impl FactorGraph {
             variable_indices: Vec::new(),
             factor_indices: Vec::new(),
             interrobot_factor_indices: Vec::new(),
+            obstacle_factor_indices: Vec::new(),
         }
     }
 
@@ -128,6 +136,7 @@ impl FactorGraph {
             variable_indices: Vec::with_capacity(nodes),
             factor_indices: Vec::with_capacity(edges),
             interrobot_factor_indices: Vec::new(),
+            obstacle_factor_indices: Vec::new(),
         }
     }
 
@@ -161,6 +170,7 @@ impl FactorGraph {
     /// Returns the index of the factor in the factorgraph
     pub fn add_factor(&mut self, factor: FactorNode) -> FactorIndex {
         let is_interrobot = factor.is_inter_robot();
+        let is_obstacle = factor.is_obstacle();
         let node = Node::new(self.id, NodeKind::Factor(factor));
         let node_index = self.graph.add_node(node);
 
@@ -172,6 +182,8 @@ impl FactorGraph {
         self.factor_indices.push(node_index);
         if is_interrobot {
             self.interrobot_factor_indices.push(node_index);
+        } else if is_obstacle {
+            self.obstacle_factor_indices.push(node_index);
         }
 
         node_index.into()
@@ -736,6 +748,59 @@ impl FactorGraph {
     #[must_use]
     pub fn inter_robot_factors(&self) -> InterRobotFactors<'_> {
         InterRobotFactors::new(&self.graph, &self.interrobot_factor_indices)
+    }
+}
+
+pub struct VariableAndTheirObstacleFactors<'a> {
+    graph: &'a Graph,
+    // variable_indices: std::slice::Iter<'a, NodeIndex>,
+    // obstacle_factor_indices: std::slice::Iter<'a, NodeIndex>,
+    pairs: std::iter::Zip<std::slice::Iter<'a, NodeIndex>, std::slice::Iter<'a, NodeIndex>>,
+}
+
+impl<'a> VariableAndTheirObstacleFactors<'a> {
+    pub fn new(
+        graph: &'a Graph,
+        variable_indices: &'a [NodeIndex],
+        obstacle_factor_indices: &'a [NodeIndex],
+    ) -> Self {
+        Self {
+            graph,
+            pairs: variable_indices.iter().zip(obstacle_factor_indices.iter()),
+            // variable_indices: variable_indices.iter(),
+            // obstacle_factor_indices: obstacle_factor_indices.iter()
+        }
+    }
+}
+
+impl<'a> Iterator for VariableAndTheirObstacleFactors<'a> {
+    type Item = (&'a VariableNode, &'a ObstacleFactor);
+
+    // type Item = (NodeIndex, &'a VariableAndObstacleFactor);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (&variable_index, &factor_index) = self.pairs.next()?;
+        let variable = &self.graph[variable_index].as_variable().unwrap();
+        let obstacle_factor = &self.graph[factor_index]
+            .as_factor()
+            .unwrap()
+            .kind
+            .as_obstacle()
+            .unwrap();
+
+        Some((variable, obstacle_factor))
+    }
+}
+
+impl FactorGraph {
+    #[inline]
+    #[must_use]
+    pub fn variable_and_their_obstacle_factors(&self) -> VariableAndTheirObstacleFactors<'_> {
+        VariableAndTheirObstacleFactors::new(
+            &self.graph,
+            &self.variable_indices[1..self.variable_indices.len() - 1],
+            &self.obstacle_factor_indices,
+        )
     }
 }
 

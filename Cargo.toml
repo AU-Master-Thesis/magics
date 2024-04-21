@@ -21,6 +21,7 @@ members = [
   "crates/bevy_fullscreen",
   "crates/bevy_touchpad",
   "crates/with",
+  "crates/seq",
 ]
 
 [workspace.package]
@@ -86,6 +87,7 @@ opt-level   = 1
 debug       = true
 incremental = true
 # codegen-backend = "cranelift" # requires nightly
+# strip = "debuginfo"
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]

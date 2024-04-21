@@ -78,6 +78,8 @@ fn load_assets(
     catppuccin_theme: Res<CatppuccinTheme>,
     config: Res<Config>,
 ) {
+    let obstacle_image_sdf_path = format!("imgs/{}_sdf.png", config.environment_image);
+    info!("loading obstacle sdf image: {}", obstacle_image_sdf_path);
     *scene_assets = SceneAssets {
         // Load the main font
         // main_font: asset_server.load("fonts/JetBrainsMonoNerdFont-Regular.ttf"),

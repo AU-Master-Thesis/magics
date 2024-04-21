@@ -114,6 +114,13 @@ impl VariableNode {
         [self.belief.mean[0], self.belief.mean[1]]
     }
 
+    /// Returns the variables belief about its position
+    #[inline]
+    pub fn estimated_position_vec2(&self) -> bevy::math::Vec2 {
+        bevy::math::Vec2::new(self.belief.mean[0] as f32, self.belief.mean[1] as f32)
+        // [self.belief.mean[0], self.belief.mean[1]]
+    }
+
     /// Returns the variables belief about its velocity
     #[inline]
     pub fn estimated_velocity(&self) -> [Float; 2] {

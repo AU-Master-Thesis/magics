@@ -25,6 +25,7 @@ bevy_fullscreen         = { path = "../bevy_fullscreen" }
 
 bevy_touchpad   = { path = "../bevy_touchpad" }
 repeating_array = { path = "../repeating_array" }
+seq             = { path = "../seq" }
 
 glob = "0.3.1"
 better-panic = "0.3.0"

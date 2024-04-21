@@ -3283,6 +3283,7 @@ dependencies = [
  "ringbuf",
  "ron",
  "rrt",
+ "seq",
  "serde",
  "serde_yaml",
  "smol_str",
@@ -5572,6 +5573,10 @@ name = "semver"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92d43fe69e652f3df9bdc2b85b2854a0825b86e4fb76bc44d945137d053639ca"
+
+[[package]]
+name = "seq"
+version = "1.0.0"
 
 [[package]]
 name = "serde"

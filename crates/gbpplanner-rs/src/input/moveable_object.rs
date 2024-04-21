@@ -42,8 +42,9 @@ impl Default for MoveableObjectSensitivity {
     }
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter, Default)]
 pub enum MoveableObjectAction {
+    #[default]
     Move,
     RotateClockwise,
     RotateCounterClockwise,
@@ -60,12 +61,6 @@ impl std::fmt::Display for MoveableObjectAction {
             Self::Boost => write!(f, "Boost"),
             Self::Toggle => write!(f, "Toggle"),
         }
-    }
-}
-
-impl Default for MoveableObjectAction {
-    fn default() -> Self {
-        Self::Move
     }
 }
 
@@ -108,15 +103,9 @@ fn bind_moveable_object_input(mut commands: Commands, query: Query<Entity, With<
     for action in MoveableObjectAction::iter() {
         let input = MoveableObjectAction::default_keyboard_input(action);
         input_map.insert(action, input);
-        // if let Some(input) = MoveableObjectAction::default_keyboard_input(action) {
-        //     input_map.insert(action, input);
-        // }
+
         let input = MoveableObjectAction::default_gamepad_input(action);
         input_map.insert(action, input);
-        // if let Some(input) =
-        // MoveableObjectAction::default_gamepad_input(action) {
-        //     input_map.insert(action, input);
-        // }
     }
 
     if let Ok(entity) = query.get_single() {

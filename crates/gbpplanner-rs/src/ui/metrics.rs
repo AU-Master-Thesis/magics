@@ -101,6 +101,7 @@ impl MetricsPlugin {
                     ("robots", &RobotDiagnosticsPlugin::ROBOT_COUNT),
                     ("variables", &RobotDiagnosticsPlugin::VARIABLE_COUNT),
                     ("factors", &RobotDiagnosticsPlugin::FACTOR_COUNT),
+                    ("collisions", &RobotDiagnosticsPlugin::ROBOT_COLLISION_COUNT),
                 ] {
                     #[allow(clippy::cast_possible_truncation)]
                     if let Some(value) = diagnostics

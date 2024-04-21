@@ -3,37 +3,35 @@ use bevy::{
     prelude::*,
     time::common_conditions::on_timer,
 };
+// use itertools::Itertools;
+use parry2d::bounding_volume::BoundingVolume;
 use units::sample_rate::SampleRate;
 
 use crate::{
     factorgraph::prelude::FactorGraph,
-    planner::RobotState,
+    planner::{robot::Ball, RobotState},
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };
 
 #[derive(Default)]
 pub struct RobotDiagnosticsPlugin {
-    pub config: RobotDiagnosticsConfig,
+    pub sample_rates: SampleRates,
 }
 
 pub struct SampleRates {
     pub robots: Option<SampleRate>,
+    pub robot_collisions: Option<SampleRate>,
     pub variables_and_factors: Option<SampleRate>,
     pub messages_sent: Option<SampleRate>,
 }
 
-pub struct RobotDiagnosticsConfig {
-    pub sample_rates: SampleRates,
-}
-
-impl Default for RobotDiagnosticsConfig {
+impl Default for SampleRates {
     fn default() -> Self {
         Self {
-            sample_rates: SampleRates {
-                robots: None,
-                variables_and_factors: Some(SampleRate::from_hz(2.try_into().expect("2 > 0"))),
-                messages_sent: Some(SampleRate::from_hz(2.try_into().expect("2 > 0"))),
-            },
+            robots: None,
+            robot_collisions: Some(SampleRate::from_hz(1.try_into().expect("1 > 0"))),
+            variables_and_factors: Some(SampleRate::from_hz(2.try_into().expect("2 > 0"))),
+            messages_sent: Some(SampleRate::from_hz(2.try_into().expect("2 > 0"))),
         }
     }
 }
@@ -60,18 +58,21 @@ impl Plugin for RobotDiagnosticsPlugin {
             .register_diagnostic(Diagnostic::new(Self::VARIABLE_COUNT))
             .register_diagnostic(Diagnostic::new(Self::FACTOR_COUNT))
             .register_diagnostic(Diagnostic::new(Self::EXTERNAL_MESSAGES_SENT_COUNT))
-            .register_diagnostic(Diagnostic::new(Self::MESSAGES_SENT_COUNT));
+            .register_diagnostic(Diagnostic::new(Self::MESSAGES_SENT_COUNT))
+            .register_diagnostic(Diagnostic::new(Self::ROBOT_COLLISION_COUNT));
 
-        add_diagnostic_system!(app, self.config.sample_rates.robots, Self::count_robots);
+        add_diagnostic_system!(app, self.sample_rates.robots, Self::robots);
         add_diagnostic_system!(
             app,
-            self.config.sample_rates.variables_and_factors,
-            Self::count_variables_and_factors
+            self.sample_rates.variables_and_factors,
+            Self::variables_and_factors
         );
+        add_diagnostic_system!(app, self.sample_rates.messages_sent, Self::messages_sent);
+
         add_diagnostic_system!(
             app,
-            self.config.sample_rates.messages_sent,
-            Self::count_messages_sent
+            self.sample_rates.robot_collisions,
+            Self::robot_collisions
         );
 
         app.add_systems(
@@ -83,21 +84,25 @@ impl Plugin for RobotDiagnosticsPlugin {
 }
 
 impl RobotDiagnosticsPlugin {
+    pub const ENVIRONMEN_COLLISION_COUNT: DiagnosticPath =
+        DiagnosticPath::const_new("environment_collision_count");
     pub const EXTERNAL_MESSAGES_SENT_COUNT: DiagnosticPath =
         DiagnosticPath::const_new("external_messages_sent_count");
     pub const FACTOR_COUNT: DiagnosticPath = DiagnosticPath::const_new("factor_count");
     pub const MESSAGES_SENT_COUNT: DiagnosticPath =
         DiagnosticPath::const_new("messages_sent_count");
+    pub const ROBOT_COLLISION_COUNT: DiagnosticPath =
+        DiagnosticPath::const_new("robot_collision_count");
     pub const ROBOT_COUNT: DiagnosticPath = DiagnosticPath::const_new("robot_count");
     pub const VARIABLE_COUNT: DiagnosticPath = DiagnosticPath::const_new("variable_count");
 
     #[allow(clippy::cast_precision_loss)]
-    fn count_robots(mut diagnostics: Diagnostics, robots: Query<(), With<RobotState>>) {
+    fn robots(mut diagnostics: Diagnostics, robots: Query<(), With<RobotState>>) {
         diagnostics.add_measurement(&Self::ROBOT_COUNT, || robots.iter().count() as f64);
     }
 
     #[allow(clippy::cast_precision_loss)]
-    fn count_variables_and_factors(
+    fn variables_and_factors(
         mut diagnostics: Diagnostics,
         factorgraphs: Query<&FactorGraph, With<RobotState>>,
     ) {
@@ -117,7 +122,7 @@ impl RobotDiagnosticsPlugin {
     }
 
     #[allow(clippy::cast_precision_loss)]
-    fn count_messages_sent(
+    fn messages_sent(
         mut diagnostics: Diagnostics,
         mut factorgraphs: Query<&mut FactorGraph, With<RobotState>>,
         mut messages_sent_in_total: Local<usize>,
@@ -133,6 +138,7 @@ impl RobotDiagnosticsPlugin {
         });
     }
 
+    #[allow(clippy::cast_precision_loss)]
     fn count_external_messages_sent(
         mut diagnostics: Diagnostics,
         mut messages_sent_in_total: Local<usize>,
@@ -141,7 +147,37 @@ impl RobotDiagnosticsPlugin {
         diagnostics.add_measurement(&Self::EXTERNAL_MESSAGES_SENT_COUNT, || {
             *messages_sent_in_total += *messages_sent_in_total;
             *messages_sent_in_total as f64
-        })
+        });
+    }
+
+    #[allow(clippy::cast_precision_loss)]
+    fn robot_collisions(
+        mut diagnostics: Diagnostics,
+        robots: Query<(&Transform, &Ball), With<RobotState>>,
+    ) {
+        diagnostics.add_measurement(&Self::ROBOT_COLLISION_COUNT, || {
+            let aabbs = robots
+                .iter()
+                .map(|(tf, ball)| {
+                    let position =
+                        parry2d::na::Isometry2::translation(tf.translation.x, tf.translation.y);
+                    ball.aabb(&position)
+                })
+                .collect::<Vec<_>>();
+
+            if aabbs.len() < 2 {
+                return 0.0;
+            }
+
+            let collisions = seq::upper_triangular_exclude_diagonal(
+                aabbs.len().try_into().expect("more than one robot"),
+            )
+            .expect("more that one robot")
+            .filter(|(r, c)| aabbs[*r].contains(&aabbs[*c]))
+            .count();
+
+            collisions as f64
+        });
     }
 
     /// **Bevy** system to clear the history of every diagnostic source of this
@@ -153,6 +189,8 @@ impl RobotDiagnosticsPlugin {
             Self::VARIABLE_COUNT,
             Self::MESSAGES_SENT_COUNT,
             Self::EXTERNAL_MESSAGES_SENT_COUNT,
+            Self::ROBOT_COLLISION_COUNT,
+            Self::ENVIRONMEN_COLLISION_COUNT,
         ] {
             if let Some(diagnostic) = store.get_mut(path) {
                 diagnostic.clear_history();

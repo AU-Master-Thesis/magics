@@ -177,7 +177,7 @@ pub enum RobotInitError {
 }
 
 /// Component for entities with a radius, used for robots
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Deref, DerefMut)]
 pub struct Radius(pub f32);
 
 /// A waypoint is a position and velocity that the robot should move to and
@@ -214,6 +214,15 @@ impl RobotState {
     }
 }
 
+impl Default for RobotState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug, Component, Deref)]
+pub struct Ball(parry2d::shape::Ball);
+
 #[derive(Bundle, Debug)]
 pub struct RobotBundle {
     /// The factor graph that the robot is part of, and uses to perform GBP
@@ -223,13 +232,14 @@ pub struct RobotBundle {
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
-    pub radius:      Radius,
+    pub radius: Radius,
+    pub ball: Ball,
     /// The current state of the robot
-    pub state:       RobotState,
+    pub state: RobotState,
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A `VecDeque` is used to allow for efficient `pop_front` operations, and
     /// `push_back` operations.
-    pub waypoints:   Waypoints,
+    pub waypoints: Waypoints,
 }
 
 /// State vector of a robot
@@ -253,11 +263,19 @@ impl StateVector {
 }
 
 impl RobotBundle {
+    /// Create a new `RobotBundle`
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if:
+    /// - `waypoints` is empty
+    /// - `variable_timesteps` is empty
     #[must_use = "Constructor responsible for creating the robots factorgraph"]
+    #[allow(clippy::missing_panics_doc)]
     pub fn new(
         robot_id: RobotId,
         initial_state: StateVector,
-        mut waypoints: VecDeque<Vec4>,
+        waypoints: VecDeque<Vec4>,
         variable_timesteps: &[u32],
         config: &Config,
         obstacle_sdf: &'static Image,
@@ -380,6 +398,7 @@ impl RobotBundle {
         Ok(Self {
             factorgraph,
             radius: Radius(config.robot.radius.get()),
+            ball: Ball(parry2d::shape::Ball::new(config.robot.radius.get())),
             state: RobotState::new(),
             waypoints: Waypoints(waypoints),
         })

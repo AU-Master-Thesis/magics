@@ -372,7 +372,7 @@ fn spawn_formation(
             .as_positions(
                 world_dims,
                 config.robot.radius,
-                max_placement_attempts,
+                // max_placement_attempts,
                 &mut rng,
             )
         else {

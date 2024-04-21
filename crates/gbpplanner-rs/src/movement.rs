@@ -94,15 +94,6 @@ pub struct MovementBundle {
     pub angular_movement: AngularMovementBundle,
 }
 
-// impl Default for MovementBundle {
-//     fn default() -> Self {
-//         Self {
-//             linear_movement: LinearMovementBundle::default(),
-//             angular_movement: AngularMovementBundle::default(),
-//         }
-//     }
-// }
-
 #[derive(Bundle, Default)]
 pub struct MovingObjectBundle {
     pub linear_movement: LinearMovementBundle,
@@ -116,16 +107,6 @@ pub struct MovingMeshBundle {
     pub angular_movement: AngularMovementBundle,
     pub model: PbrBundle,
 }
-
-// impl Default for MovingMeshBundle {
-//     fn default() -> Self {
-//         Self {
-//             linear_movement: Default::default(),
-//             angular_movement: Default::default(),
-//             model: Default::default(),
-//         }
-//     }
-// }
 
 #[derive(Bundle)]
 pub struct OrbitMovementBundle {
@@ -264,6 +245,9 @@ fn update_rotation_orbit(
     time: Res<Time<Real>>,
 ) {
     for (orbit, angular_velocity, mut transform) in &mut query {
+        // FIXME: handle case where user presses up/down or left/right at the same time
+        // triggering a unwrap() err, in transform::right()
+        // let axis =
         let yaw = Quat::from_axis_angle(Vec3::Y, angular_velocity.value.x * time.delta_seconds());
         let pitch = Quat::from_axis_angle(
             *transform.right(),

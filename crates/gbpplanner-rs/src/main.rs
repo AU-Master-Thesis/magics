@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 //! The main entry point of the simulation.
 pub(crate) mod asset_loader;
 mod bevy_utils;

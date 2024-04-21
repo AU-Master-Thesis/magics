@@ -1,6 +1,6 @@
 formations:
 - repeat-every:
-    secs: 4
+    secs: 8
     nanos: 0
   delay:
     secs: 2
@@ -20,24 +20,24 @@ formations:
     - x: 0.55
       y: 1.25
     projection-strategy: identity
-- repeat-every:
-    secs: 4
-    nanos: 0
-  delay:
-    secs: 2
-    nanos: 0
-  robots: 1
-  initial-position:
-    shape: !line-segment
-    - x: 0.0
-      y: 0.45
-    - x: 0.0
-      y: 0.55
-    placement-strategy: equal
-  waypoints:
-  - shape: !line-segment
-    - x: 1.25
-      y: 0.45
-    - x: 1.25
-      y: 0.55
-    projection-strategy: identity
+# - repeat-every:
+#     secs: 4
+#     nanos: 0
+#   delay:
+#     secs: 2
+#     nanos: 0
+#   robots: 1
+#   initial-position:
+#     shape: !line-segment
+#     - x: 0.0
+#       y: 0.45
+#     - x: 0.0
+#       y: 0.55
+#     placement-strategy: equal
+#   waypoints:
+#   - shape: !line-segment
+#     - x: 1.25
+#       y: 0.45
+#     - x: 1.25
+#       y: 0.55
+#     projection-strategy: identity

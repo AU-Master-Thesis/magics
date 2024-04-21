@@ -7,7 +7,6 @@ use catppuccin::Flavour;
 
 use crate::{
     asset_loader::SceneAssets,
-    bevy_utils::run_conditions::event_exists,
     config::{self, Config},
     input::DrawSettingsEvent,
     simulation_loader,
@@ -31,8 +30,11 @@ impl Plugin for MapPlugin {
             .add_systems(Update,
                 (
                     obstacles.run_if(environment_png_is_loaded),
-                    show_or_hide_height_map.run_if(event_exists::<DrawSettingsEvent>),
-                    show_or_hide_flat_map.run_if(event_exists::<DrawSettingsEvent>))
+                    // show_or_hide_height_map.run_if(event_exists::<DrawSettingsEvent>),
+                    // show_or_hide_flat_map.run_if(event_exists::<DrawSettingsEvent>))
+                    show_or_hide_height_map,
+                    show_or_hide_flat_map,
+                )
                 );
     }
 }
@@ -91,28 +93,34 @@ pub struct FlatMap;
 /// Makes a simple quad plane to show the map png.
 fn flat_map(
     mut commands: Commands,
-    scene_assets: Res<SceneAssets>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    scene_assets: Res<SceneAssets>,
     config: Res<Config>,
 ) {
-    let material_handle = materials.add(StandardMaterial {
+    let material = materials.add(StandardMaterial {
         base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
         ..default()
     });
 
+    let visibility = if config.visualisation.draw.sdf {
+        Visibility::Visible
+    } else {
+        Visibility::Hidden
+    };
+
     // Spawn an entity with the mesh and material, and position it in 3D space
-    commands.spawn((simulation_loader::Reloadable, FlatMap, PbrBundle {
-        mesh: scene_assets.meshes.plane.clone(),
-        material: material_handle,
-        visibility: if config.visualisation.draw.sdf {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
+    commands.spawn((
+        // simulation_loader::Reloadable,
+        FlatMap,
+        PbrBundle {
+            mesh: scene_assets.meshes.plane.clone(),
+            material,
+            visibility,
+            transform: Transform::from_xyz(0.0, -0.1, 0.0)
+                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+            ..default()
         },
-        transform: Transform::from_xyz(0.0, -0.1, 0.0)
-            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-        ..default()
-    }));
+    ));
 }
 
 /// **Bevy** [`Update`] system
@@ -120,7 +128,6 @@ fn flat_map(
 /// DrawSetting::flat_map` the boolean `DrawSettingEvent.value` will be used to
 /// set the visibility of the [`VariableVisualiser`] entities
 fn show_or_hide_flat_map(
-    // mut query: Query<(&FlatMap, &mut Visibility)>,
     mut query: Query<&mut Visibility, With<FlatMap>>,
     mut draw_setting_event: EventReader<DrawSettingsEvent>,
 ) {
@@ -145,13 +152,19 @@ fn environment_png_is_loaded(
     scene_assets: Res<SceneAssets>,
     image_assets: Res<Assets<Image>>,
 ) -> bool {
-    if image_assets
-        .get(scene_assets.obstacle_image_raw.clone())
+    image_assets
+        .get(scene_assets.obstacle_image_raw.id())
         .is_some()
-    {
-        return matches!(state.get(), HeightMapState::Waiting);
-    }
-    false
+        // && matches!(state.get(), HeightMapState::Generated)
+        && matches!(state.get(), HeightMapState::Waiting)
+
+    // if image_assets
+    //     .get(scene_assets.obstacle_image_raw.clone())
+    //     .is_some()
+    // {
+    //     return matches!(state.get(), HeightMapState::Waiting);
+    // }
+    // false
 }
 
 /// **Bevy** [`Update`] system
@@ -171,7 +184,7 @@ fn obstacles(
     mut next_state: ResMut<NextState<HeightMapState>>,
     config: Res<Config>,
 ) {
-    let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.clone()) else {
+    let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.id()) else {
         return;
     };
 
@@ -275,7 +288,7 @@ fn obstacles(
     }));
 }
 
-/// **Bevy** [`Component`] to represent the heightmap.
+/// **Bevy** marker [`Component`] to represent the heightmap.
 /// Serves as a marker to identify the heightmap entity.
 #[derive(Component)]
 pub struct HeightMap;
@@ -285,7 +298,6 @@ pub struct HeightMap;
 /// DrawSetting::height_map` the boolean `DrawSettingEvent.value` will be used
 /// to set the visibility of the [`HeightMap`] entities
 fn show_or_hide_height_map(
-    // mut query: Query<(&HeightMap, &mut Visibility)>,
     mut query: Query<&mut Visibility, With<HeightMap>>,
     mut draw_setting_event: EventReader<DrawSettingsEvent>,
 ) {

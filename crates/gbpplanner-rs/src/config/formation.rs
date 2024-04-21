@@ -1,9 +1,14 @@
 //! A module for working with robot formations declaratively.
-use std::{f32::consts::PI, num::NonZeroUsize, path::Path, time::Duration};
+use std::{
+    f32::consts::{PI, TAU},
+    num::NonZeroUsize,
+    path::Path,
+    time::Duration,
+};
 
 use bevy::{ecs::system::Resource, math::Vec2};
 use min_len_vec::{one_or_more, OneOrMore};
-use rand::Rng;
+use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 
@@ -234,7 +239,7 @@ impl Formation {
                 Some((initial_positions, waypoints_of_each_robot))
             }
             Shape::Circle { radius, center } => {
-                let radius: f32 = radius.get();
+                let perimeter_radius: f32 = radius.get();
                 let center = world_dims.point_to_world_position(center);
                 // dbg!(&center);
                 let angles: Vec<f32> = match self.initial_position.placement_strategy {
@@ -244,15 +249,24 @@ impl Formation {
                         Some(angles)
                     }
                     InitialPlacementStrategy::Random { attempts } => {
-                        todo!()
-                        // randomly_place_nonoverlapping_circles_along_circle_perimeter()
+                        // TODO: check if it even makes sense to iterate
+                        // if B * n > 2 * math.pi * A:
+                        let mut rng = thread_rng();
+
+                        randomly_place_nonoverlapping_circles_along_circle_perimeter(
+                            self.robots,
+                            robot_radius,
+                            radius,
+                            attempts,
+                            &mut rng,
+                        )
                     }
                 }?;
                 assert_eq!(angles.len(), self.robots.get());
 
                 let initial_positions: Vec<Vec2> = angles
                     .iter()
-                    .map(|angle| polar(*angle, radius))
+                    .map(|angle| polar(*angle, perimeter_radius))
                     .map(|polar| center + polar)
                     .collect();
 
@@ -295,6 +309,19 @@ fn polar(angle: f32, magnitude: f32) -> Vec2 {
     Vec2::new(angle.cos() * magnitude, angle.sin() * magnitude)
 }
 
+trait Vec2Ext {
+    fn from_polar(angle: f32, magnitude: f32) -> Self;
+}
+
+impl Vec2Ext for bevy::math::Vec2 {
+    /// Create a vector from polar coordinates
+    #[must_use]
+    #[inline]
+    fn from_polar(angle: f32, magnitude: f32) -> Self {
+        Self::new(angle.cos() * magnitude, angle.sin() * magnitude)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct WorldDimensions {
     width:  StrictlyPositiveFinite<f64>,
@@ -332,6 +359,39 @@ impl WorldDimensions {
             ((p.y - 0.5) * self.height()) as f32,
         )
     }
+}
+
+fn randomly_place_nonoverlapping_circles_along_circle_perimeter(
+    num_circles: NonZeroUsize,
+    radius: StrictlyPositiveFinite<f32>,
+    perimeter_radius: StrictlyPositiveFinite<f32>,
+    max_attempts: NonZeroUsize,
+    rng: &mut impl Rng,
+) -> Option<Vec<f32>> {
+    let num_circles = num_circles.get();
+    let perimeter_radius = perimeter_radius.get();
+    let mut placed_angles = Vec::with_capacity(num_circles);
+    let mut placed_positions: Vec<Vec2> = Vec::with_capacity(num_circles);
+    // TODO: use rng argument passed
+    // let mut rng = thread_rng();
+
+    for _ in 0..max_attempts.get() {
+        let theta = rng.gen_range(0.0..TAU);
+        let pos = Vec2::from_polar(theta, perimeter_radius);
+        let not_overlapping_with_others = placed_positions
+            .iter()
+            .any(|other| other.distance(pos) <= radius);
+
+        if not_overlapping_with_others {
+            placed_angles.push(theta);
+            placed_positions.push(pos);
+            if placed_angles.len() == num_circles {
+                return Some(placed_angles);
+            }
+        }
+    }
+
+    None
 }
 
 fn randomly_place_nonoverlapping_circles_along_line_segment(
