@@ -8,7 +8,7 @@ use strum_macros::EnumIter;
 
 use super::{
     super::{
-        environment::camera::{CameraMovementMode, MainCamera},
+        environment::camera::{CameraMovement, MainCamera},
         movement::{AngularVelocity, Orbit, Velocity},
     },
     ChangingBinding,
@@ -161,8 +161,8 @@ fn bind_camera_input(mut commands: Commands, main_camera: Query<Entity, With<Mai
     clippy::type_complexity
 )]
 fn camera_actions(
-    state: Res<State<CameraMovementMode>>,
-    mut next_state: ResMut<NextState<CameraMovementMode>>,
+    state: Res<State<CameraMovement>>,
+    mut next_state: ResMut<NextState<CameraMovement>>,
     mut query: Query<
         (
             &ActionState<CameraAction>,
@@ -230,7 +230,7 @@ fn camera_actions(
         if action_state.pressed(&CameraAction::MouseMove) {
             // info!("Mouse move camera");
             match state.get() {
-                CameraMovementMode::Pan => {
+                CameraMovement::Pan => {
                     if let Some(action) = action_state
                         .axis_pair(&CameraAction::MouseMove)
                         .map(|axis| axis.xy())
@@ -245,7 +245,7 @@ fn camera_actions(
                         // * camera_settings.speed;
                     }
                 }
-                CameraMovementMode::Orbit => {
+                CameraMovement::Orbit => {
                     if let Some(action) = action_state
                         .axis_pair(&CameraAction::MouseMove)
                         .map(|axis| axis.xy())
@@ -261,7 +261,7 @@ fn camera_actions(
             }
         } else if action_state.pressed(&CameraAction::Move) {
             match state.get() {
-                CameraMovementMode::Pan => {
+                CameraMovement::Pan => {
                     if let Some(action) = action_state
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize_or_zero())
@@ -278,7 +278,7 @@ fn camera_actions(
                             / 35.0;
                     }
                 }
-                CameraMovementMode::Orbit => {
+                CameraMovement::Orbit => {
                     // action represents the direction to move the camera around it's origin
                     if let Some(action) = action_state
                         .clamped_axis_pair(&CameraAction::Move)
@@ -316,13 +316,13 @@ fn camera_actions(
         // Handling state changes
         if action_state.just_pressed(&CameraAction::ToggleMovementMode) {
             next_state.set(match state.get() {
-                CameraMovementMode::Pan => {
+                CameraMovement::Pan => {
                     info!("Toggling camera mode: Linear -> Orbit");
-                    CameraMovementMode::Orbit
+                    CameraMovement::Orbit
                 }
-                CameraMovementMode::Orbit => {
+                CameraMovement::Orbit => {
                     info!("Toggling camera mode: Orbit -> Linear");
-                    CameraMovementMode::Pan
+                    CameraMovement::Pan
                 }
             });
         }

@@ -1,14 +1,14 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
 use super::camera::MainCamera;
-use crate::asset_loader::SceneAssets;
+use crate::asset_loader::{Materials, Meshes};
 
 pub struct CursorToGroundPlugin;
 
 impl Plugin for CursorToGroundPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CursorCoordinates>()
-            .add_systems(Startup, init_ground_plane)
+            .add_systems(Startup, spawn_invisible_ground_plane)
             .add_systems(Update, cursor_to_ground_plane);
     }
 }
@@ -42,12 +42,15 @@ impl CursorCoordinates {
 #[derive(Component)]
 struct InvisibleGroundPlane;
 
-fn init_ground_plane(mut commands: Commands, scene_assets: Res<SceneAssets>) {
-    // Spawn the invisible ground plane
+fn spawn_invisible_ground_plane(
+    mut commands: Commands,
+    materials: Res<Materials>,
+    meshes: Res<Meshes>,
+) {
     commands.spawn((InvisibleGroundPlane, PbrBundle {
         transform: Transform::default(),
-        mesh: scene_assets.meshes.plane.clone(),
-        material: scene_assets.materials.waypoint.clone(),
+        mesh: meshes.plane.clone(),
+        material: materials.waypoint.clone(),
         visibility: Visibility::Hidden,
         ..default()
     }));

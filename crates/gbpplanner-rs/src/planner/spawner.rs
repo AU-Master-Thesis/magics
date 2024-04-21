@@ -12,7 +12,8 @@ use super::{
     RobotId,
 };
 use crate::{
-    asset_loader::SceneAssets,
+    // asset_loader::SceneAssets,
+    asset_loader::{Meshes, Obstacles},
     config::{
         formation::{Waypoint, WorldDimensions},
         geometry::{Point, RelativePoint, Shape},
@@ -80,7 +81,7 @@ pub struct WaypointReached(pub Entity);
 // up to much memory like 8-10 MB
 // TODO: needs to be changed whenever the sim reloads, use resource?
 /// Every [`ObstacleFactor`] has a static reference to the obstacle image.
-static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
+// static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
 // TODO: use once_cell, so we can mutate it when sim reloads
 // static OBSTACLE_SDF: Lazy<RwLock<Image>> = Lazy::new(||
 // RwLock::new(Image::new(1, 1)));
@@ -338,17 +339,20 @@ fn spawn_formation(
     // formation_group: Res<FormationGroup>,
     simulation_manager: Res<SimulationManager>,
     variable_timesteps: Res<VariableTimesteps>,
-    scene_assets: Res<SceneAssets>,
+    // scene_assets: Res<SceneAssets>,
+    meshes: Res<Meshes>,
+    obstacles: Res<Obstacles>,
+    // obstacle_sdf: Res<ObstacleSdf>,
     image_assets: ResMut<Assets<Image>>,
 ) {
     for event in evr_robot_formation_spawned.read() {
         // only continue if the image has been loaded
-        let Some(image) = image_assets.get(&scene_assets.obstacle_image_sdf) else {
+        let Some(image) = image_assets.get(&obstacles.sdf) else {
             error!("obstacle sdf not loaded yet");
             return;
         };
 
-        let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
+        // let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
 
         let formation_group = simulation_manager
             .active_formation_group()
@@ -356,7 +360,7 @@ fn spawn_formation(
 
         let formation = &formation_group.formations[event.formation_group_index];
 
-        dbg!(&formation);
+        // dbg!(&formation);
 
         // TODO: check this gets reloaded correctly
         let world_dims = WorldDimensions::new(
@@ -385,8 +389,8 @@ fn spawn_formation(
             return;
         };
 
-        dbg!(&initial_position_for_each_robot);
-        dbg!(&waypoint_positions_for_each_robot);
+        // dbg!(&initial_position_for_each_robot);
+        // dbg!(&waypoint_positions_for_each_robot);
 
         let initial_pose_for_each_robot: Vec<Vec4> = initial_position_for_each_robot
             .iter()
@@ -418,8 +422,8 @@ fn spawn_formation(
             })
             .collect();
 
-        dbg!(&initial_pose_for_each_robot);
-        dbg!(&waypoint_poses_for_each_robot);
+        // dbg!(&initial_pose_for_each_robot);
+        // dbg!(&waypoint_poses_for_each_robot);
 
         for (i, initial_pose) in initial_pose_for_each_robot.iter().enumerate() {
             let waypoints: Vec<Vec4> = waypoint_poses_for_each_robot
@@ -452,9 +456,12 @@ fn spawn_formation(
                 waypoints,
                 variable_timesteps.as_slice(),
                 &config,
-                OBSTACLE_IMAGE
-                    .get()
-                    .expect("obstacle image should be allocated and initialised"),
+                image,
+                // scene_assets.obstacle_image_sdf.clone_weak(),
+                // obstacle_sdf,
+                // OBSTACLE_IMAGE
+                //     .get()
+                //     .expect("obstacle image should be allocated and initialised"),
             )
             .expect(
                 "Possible `RobotInitError`s should be avoided due to the formation input being \
@@ -482,7 +489,7 @@ fn spawn_formation(
             });
 
             let pbrbundle = PbrBundle {
-                mesh: scene_assets.meshes.robot.clone(),
+                mesh: meshes.robot.clone(),
                 material,
                 transform: Transform::from_translation(initial_translation),
                 visibility: initial_visibility,
@@ -505,8 +512,6 @@ fn spawn_formation(
             ));
 
             evw_robot_spawned.send(RobotSpawned(robot_id));
-
-            // std::process::exit(1);
         }
     }
 

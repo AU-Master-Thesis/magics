@@ -4,7 +4,8 @@ use bevy::prelude::*;
 // use gbp_linalg::pretty_print_matrix;
 use super::{RobotTracker, Z_FIGHTING_OFFSET};
 use crate::{
-    asset_loader::SceneAssets,
+    // asset_loader::SceneAssets,
+    asset_loader::Materials,
     bevy_utils::run_conditions::event_exists,
     config::Config,
     factorgraph::prelude::FactorGraph,
@@ -69,9 +70,10 @@ pub struct HasUncertaintyVisualiser;
 fn init_uncertainty(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut standard_material_assets: ResMut<Assets<StandardMaterial>>,
     query: Query<(Entity, &FactorGraph, &ColorAssociation), Without<HasUncertaintyVisualiser>>,
-    scene_assets: Res<SceneAssets>,
+    // scene_assets: Res<SceneAssets>,
+    materials: Res<Materials>,
     config: Res<Config>,
     theme: Res<CatppuccinTheme>,
 ) {
@@ -156,7 +158,7 @@ fn init_uncertainty(
 
                 let material = if attenable {
                     // scene_assets.materials.uncertainty.clone()
-                    materials.add(StandardMaterial {
+                    standard_material_assets.add(StandardMaterial {
                         base_color: Color::from_catppuccin_colour_with_alpha(
                             theme.get_display_colour(&color_association.name),
                             0.2,
@@ -164,7 +166,7 @@ fn init_uncertainty(
                         ..Default::default()
                     })
                 } else {
-                    scene_assets.materials.uncertainty_unattenable.clone()
+                    materials.uncertainty_unattenable.clone()
                 };
                 let visibility = if config.visualisation.draw.uncertainty {
                     Visibility::Visible
@@ -210,10 +212,11 @@ fn update_uncertainty(
         With<UncertaintyVisualiser>,
     >,
     factorgraph_query: Query<(Entity, &FactorGraph, &ColorAssociation)>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+    mut standard_material_assets: ResMut<Assets<StandardMaterial>>,
     config: Res<Config>,
-    scene_assets: Res<SceneAssets>,
+    materials: Res<Materials>,
+    // scene_assets: Res<SceneAssets>,
     theme: Res<CatppuccinTheme>,
 ) {
     // Update the `RobotTracker` components
@@ -256,7 +259,7 @@ fn update_uncertainty(
                 // dbg!((half_width, half_height));
 
                 // error!("creating new ellipse");
-                let new_mesh = meshes.add(Ellipse::new(half_width, half_height));
+                let new_mesh = mesh_assets.add(Ellipse::new(half_width, half_height));
 
                 // info!("{:?}: Updating uncertainty at {:?}, with covariance {:?}", entity,
                 // transform, covariance);
@@ -273,7 +276,7 @@ fn update_uncertainty(
                 *mesh = new_mesh;
                 *material = if attenable {
                     // scene_assets.materials.uncertainty.clone()
-                    materials.add(StandardMaterial {
+                    standard_material_assets.add(StandardMaterial {
                         base_color: Color::from_catppuccin_colour_with_alpha(
                             theme.get_display_colour(&color_association.name),
                             0.2,
@@ -281,7 +284,7 @@ fn update_uncertainty(
                         ..Default::default()
                     })
                 } else {
-                    scene_assets.materials.uncertainty_unattenable.clone()
+                    materials.uncertainty_unattenable.clone()
                 };
             }
         }

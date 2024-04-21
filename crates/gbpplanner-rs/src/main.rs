@@ -348,7 +348,7 @@ fn main() -> anyhow::Result<()> {
         // .add_systems(Startup, spawn_perf_ui)
         // .add_systems(Update, make_window_visible)
 
-        .add_systems(PostUpdate, end_simulation.run_if(time_exceeds_max_time));
+        .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));
 
     app.run();
 
@@ -363,7 +363,7 @@ fn main() -> anyhow::Result<()> {
 /// max-time = 100.0
 /// ```
 #[inline]
-fn time_exceeds_max_time(time: Res<Time>, config: Res<Config>) -> bool {
+fn virtual_time_exceeds_max_time(time: Res<Time<Virtual>>, config: Res<Config>) -> bool {
     time.elapsed_seconds() > config.simulation.max_time.get()
 }
 

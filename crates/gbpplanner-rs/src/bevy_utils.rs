@@ -72,6 +72,19 @@ pub mod run_conditions {
         system::Res,
     };
 
+    pub mod time {
+        use bevy::{
+            ecs::system::Res,
+            time::{Time, Virtual},
+        };
+
+        /// run criteria if time is not paused
+        #[inline]
+        pub fn virtual_time_is_paused(time: Res<Time<Virtual>>) -> bool {
+            time.is_paused()
+        }
+    }
+
     // pub fn on_any_event<E: Event, const N: usize>()
 
     /// Trait for checking if an event exists

@@ -13,10 +13,13 @@ use ndarray::{array, concatenate, s, Axis};
 //     variable::Variable,
 //     NodeIndex,
 // };
-use crate::factorgraph::{
-    factor::{ExternalVariableId, FactorNode},
-    factorgraph::{FactorGraph, NodeIndex, VariableIndex},
-    id::{FactorId, VariableId},
+use crate::{
+    bevy_utils::run_conditions::time::virtual_time_is_paused,
+    factorgraph::{
+        factor::{ExternalVariableId, FactorNode},
+        factorgraph::{FactorGraph, NodeIndex, VariableIndex},
+        id::{FactorId, VariableId},
+    },
 };
 use crate::{
     config::Config,
@@ -57,32 +60,7 @@ impl Plugin for RobotPlugin {
                     .chain()
                     .run_if(not(virtual_time_is_paused)),
             );
-        // .configure_sets(Update, GbpSet.run_if(time_changed));
     }
-}
-
-// fn time_changed(time: Res<Time<Fixed>>) -> bool {
-//     // error!("time changed: {}", time.delta_seconds());
-//     time.delta_seconds() > 0.
-//     // time.is_changed()
-// }
-
-// fn time_is_not_paused_and_manual_mode_is_disabled(
-//     time: Res<Time<Virtual>>,
-//     mode: Res<ManualMode>,
-// ) -> bool {
-//     !time.is_paused() && ManualMode::disabled(mode)
-// }
-
-// fn manual_mode(mode: Res<ManualMode>) -> bool {
-//     mode.0
-// }
-//
-
-/// run criteria if time is not paused
-#[inline]
-fn virtual_time_is_paused(time: Res<Time<Virtual>>) -> bool {
-    time.is_paused()
 }
 
 /// Event emitted when a robot is spawned
@@ -154,15 +132,18 @@ impl std::ops::Index<usize> for VariableTimesteps {
 
 impl FromWorld for VariableTimesteps {
     fn from_world(world: &mut World) -> Self {
-        let config = world.resource::<Config>();
+        // let config = world.resource::<Config>();
 
-        let lookahead_horizon = config.robot.planning_horizon / config.simulation.t0;
+        // let lookahead_horizon = config.robot.planning_horizon / config.simulation.t0;
+        let lookahead_horizon = 5.0 / 0.25;
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         Self {
             timesteps: get_variable_timesteps(
-                lookahead_horizon.get() as u32,
-                config.gbp.lookahead_multiple as u32,
+                // lookahead_horizon.get() as u32,
+                lookahead_horizon as u32,
+                // config.gbp.lookahead_multiple as u32,
+                3 as u32,
             ),
         }
     }
@@ -278,7 +259,9 @@ impl RobotBundle {
         waypoints: VecDeque<Vec4>,
         variable_timesteps: &[u32],
         config: &Config,
-        obstacle_sdf: &'static Image,
+        // obstacle_sdf: &'static Image,
+        obstacle_sdf: &Image,
+        // obstacle_sdf: Handle<Image>,
     ) -> Result<Self, RobotInitError> {
         if waypoints.is_empty() {
             return Err(RobotInitError::NoWaypoints);
@@ -383,7 +366,8 @@ impl RobotBundle {
             let obstacle_factor = FactorNode::new_obstacle_factor(
                 Float::from(config.gbp.sigma_factor_obstacle),
                 array![0.0],
-                obstacle_sdf,
+                obstacle_sdf.clone(),
+                // obstacle_sdf.clone_value(),
                 Float::from(config.simulation.world_size.get()),
             );
 

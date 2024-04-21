@@ -9,7 +9,8 @@ use super::{Factor, FactorState};
 #[derive(Clone)]
 pub struct ObstacleFactor {
     /// The signed distance field of the environment
-    obstacle_sdf:     &'static Image,
+    // obstacle_sdf:     &'static Image,
+    obstacle_sdf: Image,
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy
     /// of here since `ObstacleFactor` needs this information to calculate
     /// `.jacobian_delta()` and `.measurement()`
@@ -55,7 +56,7 @@ impl ObstacleFactor {
 
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
-    pub fn new(obstacle_sdf: &'static Image, world_size: Float) -> Self {
+    pub fn new(obstacle_sdf: Image, world_size: Float) -> Self {
         Self {
             obstacle_sdf,
             world_size,

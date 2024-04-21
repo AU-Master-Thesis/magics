@@ -6,10 +6,10 @@ use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSet
 use catppuccin::Flavour;
 
 use crate::{
-    asset_loader::SceneAssets,
+    asset_loader::{Meshes, Obstacles},
     config::{self, Config},
     input::DrawSettingsEvent,
-    simulation_loader,
+    simulation_loader::{self, LoadSimulation, Sdf},
     theme::CatppuccinTheme,
 };
 
@@ -26,23 +26,27 @@ impl Plugin for MapPlugin {
             // .add_state::<HeightMapState>()
             .init_state::<HeightMapState>()
             .add_plugins(InfiniteGridPlugin)
-            .add_systems(Startup, (infinite_grid, lighting, flat_map))
+            .add_systems(Startup, (
+                spawn_infinite_grid,
+                spawn_directional_light,
+                spawn_sdf_map_representation
+            ))
             .add_systems(Update,
                 (
-                    obstacles.run_if(environment_png_is_loaded),
-                    // show_or_hide_height_map.run_if(event_exists::<DrawSettingsEvent>),
-                    // show_or_hide_flat_map.run_if(event_exists::<DrawSettingsEvent>))
+                    // obstacles.run_if(environment_png_is_loaded),
+                    obstacles.run_if(resource_changed::<Obstacles>),
+                    // obstacles.run_if(on_event::<LoadSimulation>()),
                     show_or_hide_height_map,
                     show_or_hide_flat_map,
                 )
-                );
+            );
     }
 }
 
 /// **Bevy** [`Startup`] system to spawn the an infinite grid
 /// Using the [`InfiniteGridPlugin`] from the `bevy_infinite_grid` crate
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-fn infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinTheme>) {
+fn spawn_infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinTheme>) {
     let grid_colour = catppuccin_theme.grid_colour();
 
     commands.spawn(InfiniteGridBundle {
@@ -66,7 +70,7 @@ fn infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinTheme>)
 
 /// **Bevy** [`Startup`] system
 /// Spawns a directional light.
-fn lighting(mut commands: Commands) {
+fn spawn_directional_light(mut commands: Commands) {
     commands.spawn(DirectionalLightBundle {
         transform: Transform::from_translation(Vec3::X * 5.0 + Vec3::Z * 8.0)
             .looking_at(Vec3::ZERO, Vec3::Z),
@@ -91,14 +95,18 @@ pub struct FlatMap;
 
 /// **Bevy** [`Startup`] system
 /// Makes a simple quad plane to show the map png.
-fn flat_map(
+fn spawn_sdf_map_representation(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    scene_assets: Res<SceneAssets>,
+    // scene_assets: Res<SceneAssets>,
+    obstacles: Res<Obstacles>,
+    meshes: Res<Meshes>,
+    // mesh_assets: Res<Assets<Mesh>>,
     config: Res<Config>,
 ) {
     let material = materials.add(StandardMaterial {
-        base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
+        base_color_texture: Some(obstacles.raw.clone()),
+        // base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
         ..default()
     });
 
@@ -108,12 +116,14 @@ fn flat_map(
         Visibility::Hidden
     };
 
+    // let mesh = mesh_assets.
+
     // Spawn an entity with the mesh and material, and position it in 3D space
     commands.spawn((
         // simulation_loader::Reloadable,
         FlatMap,
         PbrBundle {
-            mesh: scene_assets.meshes.plane.clone(),
+            mesh: meshes.plane.clone(),
             material,
             visibility,
             transform: Transform::from_xyz(0.0, -0.1, 0.0)
@@ -149,11 +159,12 @@ fn show_or_hide_flat_map(
 /// used as a run criteria for the [`obstacles`] system.
 fn environment_png_is_loaded(
     state: Res<State<HeightMapState>>,
-    scene_assets: Res<SceneAssets>,
+    // scene_assets: Res<SceneAssets>,
+    obstacles: Res<Obstacles>,
     image_assets: Res<Assets<Image>>,
 ) -> bool {
     image_assets
-        .get(scene_assets.obstacle_image_raw.id())
+        .get(obstacles.raw.id())
         .is_some()
         // && matches!(state.get(), HeightMapState::Generated)
         && matches!(state.get(), HeightMapState::Waiting)
@@ -177,18 +188,36 @@ fn environment_png_is_loaded(
 )]
 fn obstacles(
     mut commands: Commands,
-    scene_assets: Res<SceneAssets>,
+    obstacles: Res<Obstacles>,
+    sdf: Res<Sdf>,
     image_assets: Res<Assets<Image>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut next_state: ResMut<NextState<HeightMapState>>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+    mut standard_material_assets: ResMut<Assets<StandardMaterial>>,
+    mut next_heightmap_state: ResMut<NextState<HeightMapState>>,
     config: Res<Config>,
+    asset_server: Res<AssetServer>,
 ) {
-    let Some(image) = image_assets.get(scene_assets.obstacle_image_raw.id()) else {
+    let Some(load_state) = asset_server.get_load_state(obstacles.raw.id()) else {
+        warn!("obstacle image not loaded yet");
         return;
     };
 
-    next_state.set(HeightMapState::Generated);
+    match load_state {
+        bevy::asset::LoadState::Loaded => {
+            // next_heightmap_state.set(HeightMapState::Generated);
+        }
+        _ => {
+            warn!("obstacle image not loaded yet");
+            return;
+        }
+    }
+
+    let Some(image) = image_assets.get(obstacles.raw.id()) else {
+        warn!("obstacle image not available yet");
+        return;
+    };
+
+    next_heightmap_state.set(HeightMapState::Generated);
 
     let width = image.texture_descriptor.size.width as usize;
     let height = image.texture_descriptor.size.height as usize;
@@ -270,22 +299,26 @@ fn obstacles(
     mesh.duplicate_vertices();
     mesh.compute_flat_normals();
 
-    let material_handle = materials.add(StandardMaterial {
-        base_color_texture: Some(scene_assets.obstacle_image_raw.clone()),
+    let material_handle = standard_material_assets.add(StandardMaterial {
+        base_color_texture: Some(obstacles.raw.clone()),
         // base_color: Color::rgb(0.5, 0.5, 0.85),
         ..default()
     });
 
+    let visibility = if config.visualisation.draw.height_map {
+        Visibility::Visible
+    } else {
+        Visibility::Hidden
+    };
+
     commands.spawn((simulation_loader::Reloadable, HeightMap, PbrBundle {
-        mesh: meshes.add(mesh),
+        mesh: mesh_assets.add(mesh),
         material: material_handle,
-        visibility: if config.visualisation.draw.height_map {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        },
+        visibility,
         ..default()
     }));
+
+    error!("spawned heightmap");
 }
 
 /// **Bevy** marker [`Component`] to represent the heightmap.

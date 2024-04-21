@@ -10,7 +10,8 @@ use parry2d::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    asset_loader::SceneAssets,
+    // asset_loader::SceneAssets,
+    asset_loader::Materials,
     bevy_utils::run_conditions::event_exists,
     config::{environment::PlaceableShape, Config, DrawSetting, Environment},
     input::DrawSettingsEvent,
@@ -112,7 +113,8 @@ fn build_obstacles(
     mut meshes: ResMut<Assets<Mesh>>,
     env_config: Res<Environment>,
     config: Res<Config>,
-    scene_assets: Res<SceneAssets>,
+    // scene_assets: Res<SceneAssets>,
+    materials: Res<Materials>,
 ) {
     let tile_grid = &env_config.tiles.grid;
     let tile_size = env_config.tile_size();
@@ -295,7 +297,7 @@ fn build_obstacles(
             commands.spawn((
                 PbrBundle {
                     mesh,
-                    material: scene_assets.materials.obstacle.clone(),
+                    material: materials.obstacle.clone(),
                     transform,
                     visibility: if config.visualisation.draw.generated_map {
                         Visibility::Visible
@@ -339,7 +341,8 @@ fn build_tile_grid(
     mut colliders: ResMut<Colliders>,
     env_config: Res<Environment>,
     config: Res<Config>,
-    scene_assets: Res<SceneAssets>,
+    // scene_assets: Res<SceneAssets>,
+    materials: Res<Materials>,
     obstacles: Query<Entity, With<ObstacleMarker>>,
 ) {
     for entity in &obstacles {
@@ -1056,7 +1059,7 @@ fn build_tile_grid(
                         PbrBundle {
                             mesh: meshes.add(*cuboid),
                             transform: *transform,
-                            material: scene_assets.materials.obstacle.clone(),
+                            material: materials.obstacle.clone(),
                             visibility: if config.visualisation.draw.generated_map {
                                 Visibility::Visible
                             } else {

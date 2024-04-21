@@ -2,7 +2,8 @@
 use bevy::prelude::*;
 
 use crate::{
-    asset_loader::SceneAssets,
+    // asset_loader::SceneAssets,
+    asset_loader::{Materials, Meshes},
     bevy_utils::run_conditions::event_exists,
     config::{Config, DrawSetting},
     input::DrawSettingsEvent,
@@ -68,7 +69,9 @@ struct AssociatedWithRobot(pub RobotId);
 fn create_waypoint_visualizer(
     mut commands: Commands,
     config: Res<Config>,
-    scene_assets: Res<SceneAssets>,
+    // scene_assets: Res<SceneAssets>,
+    meshes: Res<Meshes>,
+    materials: Res<Materials>,
     mut evr_waypoint_created: EventReader<WaypointCreated>,
 ) {
     for event in evr_waypoint_created.read() {
@@ -83,8 +86,8 @@ fn create_waypoint_visualizer(
             WaypointVisualiser,
             AssociatedWithRobot(event.for_robot),
             PbrBundle {
-                mesh: scene_assets.meshes.waypoint.clone(),
-                material: scene_assets.materials.waypoint.clone(),
+                mesh: meshes.waypoint.clone(),
+                material: materials.waypoint.clone(),
                 transform,
                 visibility: if config.visualisation.draw.waypoints {
                     Visibility::Visible

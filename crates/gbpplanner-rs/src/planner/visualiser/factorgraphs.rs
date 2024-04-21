@@ -5,7 +5,8 @@ use itertools::Itertools;
 
 use super::RobotTracker;
 use crate::{
-    asset_loader::SceneAssets,
+    // asset_loader::SceneAssets,
+    asset_loader::Meshes,
     bevy_utils::run_conditions::event_exists,
     config::{Config, DrawSetting},
     factorgraph::prelude::FactorGraph,
@@ -143,7 +144,8 @@ fn create_factorgraph_visualizer(
     mut matierals: ResMut<Assets<StandardMaterial>>,
     query: Query<(Entity, &FactorGraph, &ColorAssociation), With<RobotState>>,
     config: Res<Config>,
-    scene_assets: Res<SceneAssets>,
+    // scene_assets: Res<SceneAssets>,
+    meshes: Res<Meshes>,
     theme: Res<CatppuccinTheme>,
 ) {
     for RobotSpawned(robot_id) in spawn_robot_event.read() {
@@ -177,7 +179,7 @@ fn create_factorgraph_visualizer(
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<VariableClickEvent>(),
                 PbrBundle {
-                    mesh: scene_assets.meshes.variable.clone(),
+                    mesh: meshes.variable.clone(),
                     // material: scene_assets.materials.variable.clone(),
                     material: matierals.add(StandardMaterial {
                         base_color: Color::from_catppuccin_colour(

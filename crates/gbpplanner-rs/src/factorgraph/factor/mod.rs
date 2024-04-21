@@ -144,7 +144,7 @@ impl FactorNode {
     pub fn new_obstacle_factor(
         strength: Float,
         measurement: Vector<Float>,
-        obstacle_sdf: &'static Image,
+        obstacle_sdf: Image,
         world_size: Float,
     ) -> Self {
         let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS);

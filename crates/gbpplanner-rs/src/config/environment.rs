@@ -14,6 +14,10 @@ use crate::environment::TileCoordinates;
 pub struct TileGrid(Vec<String>);
 
 impl TileGrid {
+    pub fn new(tiles: Vec<impl Into<String>>) -> Self {
+        Self(tiles.into_iter().map(Into::into).collect())
+    }
+
     pub fn iter(&self) -> std::slice::Iter<String> {
         self.0.iter()
     }

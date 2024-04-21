@@ -1,5 +1,5 @@
 # environment = "junction"
-environment_image = "junction"
+environment_image = "junction_twoway"
 environment       = "./config/simulations/Intersection/environment.yaml"
 formation_group   = "./config/simulations/Intersection/formation.ron"
 
