@@ -22,7 +22,11 @@ pub(crate) mod utils;
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
-use bevy::{asset::AssetMetaCheck, prelude::*, window::WindowMode};
+use bevy::{
+    asset::AssetMetaCheck,
+    prelude::*,
+    window::{WindowMode, WindowResolution},
+};
 use bevy_fullscreen::ToggleFullscreenPlugin;
 // use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
@@ -262,8 +266,10 @@ fn main() -> anyhow::Result<()> {
                 mode: window_mode,
                 window_theme: None,
                 visible: true,
+                resolution: WindowResolution::default().with_scale_factor_override(1.0),
                 ..Default::default()
             }),
+
             ..Default::default()
         }
     };

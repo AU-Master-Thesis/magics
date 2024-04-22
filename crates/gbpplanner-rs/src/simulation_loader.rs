@@ -342,24 +342,19 @@ impl SimulationManager {
         let names = simulations.keys().cloned().map(Into::into).collect();
         let simulations = simulations.into_values().collect();
 
-        let requests = VecDeque::from([Request::Load(SimulationId(2))]);
+        let initial_index = 0;
+        let requests = VecDeque::from([Request::Load(SimulationId(initial_index))]);
 
-        let active = Some(2);
+        let active = Some(initial_index);
         Self {
             names,
             simulations,
             active,
             // active: None,
-            // reload_requested: None,
             requests,
-            // requests: VecDeque::new(),
             simulations_loaded: 0,
         }
     }
-
-    // pub fn active(&self) -> Option<SimulationId> {
-    //     self.active
-    // }
 
     pub fn active(&self) -> Option<&Simulation> {
         let active = self.active?;

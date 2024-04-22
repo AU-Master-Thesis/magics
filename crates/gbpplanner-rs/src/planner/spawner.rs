@@ -226,14 +226,14 @@ fn create_formation_group_spawners(
     //     info!("Despawned formation spawner: {:?}", spawner);
     // }
 
-    dbg!(&formation_group);
+    // dbg!(&formation_group);
     // std::process::exit(1);
 
     for (i, formation) in formation_group.formations.iter().enumerate() {
         #[allow(clippy::option_if_let_else)] // find it more readable with a match here
         let timer = match formation.repeat_every {
             Some(duration) => {
-                let mut timer = dbg!(Timer::new(duration, TimerMode::Repeating));
+                let mut timer = Timer::new(duration, TimerMode::Repeating);
                 // FIXME: does not work
                 // timer.tick(duration); // tick the timer so it is finished on the first tick,
                 // after                       // the delay has finished
