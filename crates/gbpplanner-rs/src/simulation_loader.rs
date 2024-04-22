@@ -214,8 +214,6 @@ impl Plugin for SimulationLoaderPlugin {
             SIMULATIONS_DIR
         );
 
-        // let names = simulations.keys().cloned().map(Into::into).collect();
-        // let simulations: Vec<Simulation> = simulations.into_values().collect();
         let initial_simulation = simulations.first_key_value().map(|(_, v)| v).unwrap();
 
         let config = initial_simulation.config.clone();
@@ -225,8 +223,7 @@ impl Plugin for SimulationLoaderPlugin {
         let raw = initial_simulation.raw.clone();
 
         app
-            // .init_resource::<SimulationManager>()
-            .add_systems(Startup, load_initial_simulation)
+            // .add_systems(Startup, load_initial_simulation)
             .insert_resource(config)
             .insert_resource(formation_group)
             .insert_resource(environment)
@@ -236,28 +233,12 @@ impl Plugin for SimulationLoaderPlugin {
             .add_event::<LoadSimulation>()
             .add_event::<EndSimulation>()
             .insert_resource(SimulationManager::new(simulations))
-            // .init_resource::<SimulationManager>()
-            // .init_resource::<ActiveSimulation>()
-            // .add_event::<SimulationReloaded>()
-            // .add_systems(PreStartup, load_initial_simulation)
-            // .add_systems(Update, echo_state::<SimulationStates>().run_if(state_changed::<SimulationStates>))
             .add_systems(Update, handle_requests.run_if(on_real_timer(Duration::from_millis(500))))
-            // .add_systems(OnEnter(SimulationStates::Loading), load_simulation)
-            // .add_systems(OnEnter(SimulationStates::Reloading), reload_simulation)
-            // .add_systems(
-            //     Update,
-            //     // show_toast_when_simulation_reloads.run_if(on_event::<SimulationReloaded>()),
-            //     show_toast_when_simulation_reloads.run_if(on_event::<ReloadSimulation>()),
-            // )
-                // .add_systems(PostStartup, load_initial_simulation)
-            // .add_systems(OnEnter(SimulationAssetStates::Loaded), load_simulation)
-            // .add_systems(PostUpdate, load_simulation)
             .add_systems(
                 Update,
                 // enter_state(SimulationStates::Reloading).run_if(input_just_pressed(KeyCode::F5))
                 reload_simulation.run_if(input_just_pressed(KeyCode::F5)),
             );
-        // .add_systems(Update, load_simulation);
     }
 }
 
@@ -270,31 +251,7 @@ pub struct Simulation {
     // pub sdf: Handle<Image>,
     pub sdf: Sdf,
     pub raw: Raw,
-    // pub sdf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>>,
-    // pub
 }
-
-// impl Simulation {
-//     #[must_use]
-//     pub fn new(
-//         name: String,
-//         config: Config,
-//         environment: Environment,
-//         formation_group: FormationGroup,
-//         sdf: Image,
-//     ) -> Self {
-//         Self {
-//             name,
-//             config,
-//             environment,
-//             formation_group,
-//             sdf,
-//             // sdf: Handle::default(),
-//         }
-//     }
-// }
-
-// impl Time<Scene> {}
 
 #[derive(Debug, Resource)]
 pub struct SimulationManager {
@@ -768,6 +725,8 @@ fn handle_requests(
     mut virtual_time: ResMut<Time<Virtual>>,
     mut config: ResMut<Config>,
     mut environment: ResMut<Environment>,
+    mut sdf: ResMut<Sdf>,
+    mut raw: ResMut<Raw>,
     reloadable_entites: Query<Entity, With<Reloadable>>,
 ) {
     let Some(request) = simulation_manager.requests.pop_front() else {
@@ -813,6 +772,8 @@ fn handle_requests(
             // load config
             *config = simulation_manager.simulations[id.0].config.clone();
             *environment = simulation_manager.simulations[id.0].environment.clone();
+            *sdf = simulation_manager.simulations[id.0].sdf.clone();
+            *raw = simulation_manager.simulations[id.0].raw.clone();
 
             evw_load_simulation.send(LoadSimulation(id));
             info!("sent load simulation event with id: {}", id.0);

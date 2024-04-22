@@ -19,7 +19,7 @@ pub struct ObstacleFactor {
     last_measurement: LastMeasurement,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct LastMeasurement {
     pub pos:   bevy::math::Vec2,
     // x:     Float,
@@ -137,7 +137,7 @@ impl Factor for ObstacleFactor {
         let hsv_value = 1.0 - Float::from(red) / 255.0;
 
         self.last_measurement.pos.x = x[0] as f32;
-        self.last_measurement.pos.x = x[1] as f32;
+        self.last_measurement.pos.y = x[1] as f32;
         // self.last_measurement.pos.x = pixel_x as f32;
         // self.last_measurement.pos.y = pixel_y as f32;
         self.last_measurement.value = hsv_value;

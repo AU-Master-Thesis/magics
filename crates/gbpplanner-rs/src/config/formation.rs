@@ -223,10 +223,23 @@ impl Formation {
                         };
                         let ls_start = world_dims.point_to_world_position(ls_start);
                         let ls_end = world_dims.point_to_world_position(ls_end);
-                        let positions: Vec<Vec2> = lerp_amounts
-                            .iter()
-                            .map(|by| ls_start.lerp(ls_end, *by))
-                            .collect();
+                        let positions: Vec<Vec2> = match wp.projection_strategy {
+                            ProjectionStrategy::Identity => lerp_amounts
+                                .iter()
+                                .map(|by| ls_start.lerp(ls_end, *by))
+                                .collect(),
+                            ProjectionStrategy::Cross => lerp_amounts
+                                .iter()
+                                .rev()
+                                .map(|by| ls_start.lerp(ls_end, *by))
+                                .collect(),
+                        };
+                        // }
+                        //
+                        // let positions: Vec<Vec2> = lerp_amounts
+                        //     .iter()
+                        //     .map(|by| ls_start.lerp(ls_end, *by))
+                        //     .collect();
                         positions
                     })
                     .collect();

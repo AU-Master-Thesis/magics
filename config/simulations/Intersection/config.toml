@@ -26,6 +26,7 @@ generated-map          = true
 height-map             = false
 sdf                    = false
 communication-radius   = false
+obstacle-factors       = true
 
 [gbp]
 sigma-pose-fixed        = 0.000000000000001

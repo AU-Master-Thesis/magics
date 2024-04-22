@@ -1083,10 +1083,10 @@ fn build_tile_grid(
 ///   visibility is changed according to the `DrawSettingsEvent.draw` boolean
 ///   field
 fn show_or_hide_generated_map(
-    mut draw_settings_event: EventReader<DrawSettingsEvent>,
+    mut evr_draw_settings: EventReader<DrawSettingsEvent>,
     mut query: Query<&mut Visibility, With<ObstacleMarker>>,
 ) {
-    for event in draw_settings_event.read() {
+    for event in evr_draw_settings.read() {
         if matches!(event.setting, DrawSetting::GeneratedMap) {
             for mut visibility in &mut query {
                 *visibility = if event.draw {

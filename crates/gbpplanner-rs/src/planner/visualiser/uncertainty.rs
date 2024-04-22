@@ -297,10 +297,10 @@ fn update_uncertainty(
 /// to set the visibility of the [`UncertaintyVisualiser`] entities
 fn show_or_hide_uncertainty(
     mut query: Query<(&UncertaintyVisualiser, &mut Visibility)>,
-    mut draw_setting_event: EventReader<DrawSettingsEvent>,
+    mut evr_draw_settings: EventReader<DrawSettingsEvent>,
     mut enabled: ResMut<UncertaintyVisualizerEnabled>,
 ) {
-    for event in draw_setting_event.read() {
+    for event in evr_draw_settings.read() {
         // debug!("received event to toggle draw visibility of gaussian uncertainty");
         if matches!(event.setting, crate::config::DrawSetting::Uncertainty) {
             let new_visibility_state = if event.draw {

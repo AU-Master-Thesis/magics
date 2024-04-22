@@ -84,10 +84,10 @@ incremental      = true
 # Enable a small amount of optimization in debug mode
 [profile.dev]
 opt-level   = 1
-debug       = true
+debug       = false
 incremental = true
 # codegen-backend = "cranelift" # requires nightly
-# strip = "debuginfo"
+strip = "debuginfo"
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]

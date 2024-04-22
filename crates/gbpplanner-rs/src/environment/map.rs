@@ -139,9 +139,9 @@ fn spawn_sdf_map_representation(
 /// set the visibility of the [`VariableVisualiser`] entities
 fn show_or_hide_flat_map(
     mut query: Query<&mut Visibility, With<FlatMap>>,
-    mut draw_setting_event: EventReader<DrawSettingsEvent>,
+    mut evr_draw_settings: EventReader<DrawSettingsEvent>,
 ) {
-    for event in draw_setting_event.read() {
+    for event in evr_draw_settings.read() {
         if matches!(event.setting, config::DrawSetting::Sdf) {
             for mut visibility in &mut query {
                 if event.draw {
@@ -332,9 +332,9 @@ pub struct HeightMap;
 /// to set the visibility of the [`HeightMap`] entities
 fn show_or_hide_height_map(
     mut query: Query<&mut Visibility, With<HeightMap>>,
-    mut draw_setting_event: EventReader<DrawSettingsEvent>,
+    mut evr_draw_settings: EventReader<DrawSettingsEvent>,
 ) {
-    for event in draw_setting_event.read() {
+    for event in evr_draw_settings.read() {
         if matches!(event.setting, config::DrawSetting::HeightMap) {
             for mut visibility in &mut query {
                 if event.draw {
