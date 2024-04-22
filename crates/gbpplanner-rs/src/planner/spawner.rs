@@ -125,7 +125,8 @@ impl FormationSpawner {
 
     #[inline]
     fn ready_to_spawn(&self) -> bool {
-        self.timer.finished()
+        // self.timer.finished()
+        self.timer.just_finished()
     }
 
     #[inline]
@@ -221,14 +222,6 @@ fn create_formation_group_spawners(
         return;
     };
 
-    // for spawner in &existing_formation_spawners {
-    //     commands.entity(spawner).despawn();
-    //     info!("Despawned formation spawner: {:?}", spawner);
-    // }
-
-    // dbg!(&formation_group);
-    // std::process::exit(1);
-
     for (i, formation) in formation_group.formations.iter().enumerate() {
         #[allow(clippy::option_if_let_else)] // find it more readable with a match here
         let timer = match formation.repeat_every {
@@ -254,8 +247,6 @@ fn create_formation_group_spawners(
             timer,
         });
     }
-
-    // std::process::exit(1);
 }
 
 /// Event that is sent when a formation should be spawned.

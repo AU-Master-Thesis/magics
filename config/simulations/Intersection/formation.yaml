@@ -1,9 +1,9 @@
 formations:
 - repeat-every:
-    secs: 8
+    secs: 3
     nanos: 0
   delay:
-    secs: 2
+    secs: 5
     nanos: 0
   robots: 1
   initial-position:
@@ -25,7 +25,7 @@ formations:
     secs: 8
     nanos: 0
   delay:
-    secs: 2
+    secs: 1
     nanos: 0
   robots: 3
   initial-position:
