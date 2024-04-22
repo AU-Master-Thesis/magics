@@ -29,8 +29,11 @@ impl Plugin for MapPlugin {
             .add_systems(Startup, (
                 spawn_infinite_grid,
                 spawn_directional_light,
-                spawn_sdf_map_representation
             ))
+            // .add_systems(
+            //     Update,
+            //     spawn_sdf_map_representation.run_if(resource_changed::<Sdf>),
+            // )
             .add_systems(Update,
                 (
                     // obstacles.run_if(environment_png_is_loaded),
@@ -100,6 +103,7 @@ fn spawn_sdf_map_representation(
     mut materials: ResMut<Assets<StandardMaterial>>,
     // scene_assets: Res<SceneAssets>,
     obstacles: Res<Obstacles>,
+    sdf: Res<Sdf>,
     meshes: Res<Meshes>,
     // mesh_assets: Res<Assets<Mesh>>,
     config: Res<Config>,

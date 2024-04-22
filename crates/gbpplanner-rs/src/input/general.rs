@@ -155,9 +155,6 @@ fn bind_general_input(mut commands: Commands) {
     for action in GeneralAction::iter() {
         let input = GeneralAction::default_keyboard_input(action);
         input_map.insert(action, input);
-        // if let Some(input) = GeneralAction::default_keyboard_input(action) {
-        //     input_map.insert(action, input);
-        // }
     }
 
     commands.spawn((
@@ -457,19 +454,16 @@ fn general_actions_system(
     if action_state.just_pressed(&GeneralAction::CycleTheme) {
         cycle_theme(&mut theme_event, catppuccin_theme);
     } else if action_state.just_pressed(&GeneralAction::ExportGraph) {
-        if let Err(e) = handle_export_graph(
-            query_graphs,
-            config.as_ref(),
-            // export_graph_finished_event,
-            toast_event,
-        ) {
+        if let Err(e) = handle_export_graph(query_graphs, config.as_ref(), toast_event) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
-    } else if action_state.just_pressed(&GeneralAction::QuitApplication) {
+    }
+
+    if action_state.just_pressed(&GeneralAction::QuitApplication) {
         quit_application_event.send(QuitApplication);
-        // info!("quitting application");
-        // app_exit_event.send(AppExit);
-    } else if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {
+    }
+
+    if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {
         info!("toggling pause/play simulation");
         pause_play_event.send(PausePlay::Toggle);
     }

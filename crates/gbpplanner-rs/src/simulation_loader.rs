@@ -237,8 +237,6 @@ impl Plugin for SimulationLoaderPlugin {
             .add_systems(Update, handle_requests.run_if(on_real_timer(Duration::from_millis(500))))
             .add_systems(
                 Update,
-                // enter_state(SimulationStates::Reloading).run_if(input_just_pressed(KeyCode::F5))
-
                 (
                     reload_simulation.run_if(input_just_pressed(KeyCode::F5)),
                     load_next_simulation.run_if(input_just_pressed(KeyCode::F6)),

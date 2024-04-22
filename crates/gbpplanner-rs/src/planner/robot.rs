@@ -865,24 +865,23 @@ impl ManualModeState {
 }
 
 fn start_manual_step(
-    // mut mode: ResMut<ManualMode>,
-    state: Res<State<ManualModeState>>,
-    mut next_state: ResMut<NextState<ManualModeState>>,
-    mut keyboard_input_events: EventReader<KeyboardInput>,
-    mut pause_play_event: EventWriter<PausePlay>,
     config: Res<Config>,
+    manual_mode_state: Res<State<ManualModeState>>,
+    mut next_manual_mode_state: ResMut<NextState<ManualModeState>>,
+    mut evr_keyboard_input: EventReader<KeyboardInput>,
+    mut evw_pause_play: EventWriter<PausePlay>,
 ) {
-    for event in keyboard_input_events.read() {
+    for event in evr_keyboard_input.read() {
         let (KeyCode::KeyM, ButtonState::Pressed) = (event.key_code, event.state) else {
             continue;
         };
 
-        match state.get() {
+        match manual_mode_state.get() {
             ManualModeState::Disabled => {
-                next_state.set(ManualModeState::Enabled {
+                next_manual_mode_state.set(ManualModeState::Enabled {
                     iterations_remaining: config.manual.timesteps_per_step.into(),
                 });
-                pause_play_event.send(PausePlay::Play);
+                evw_pause_play.send(PausePlay::Play);
             }
             ManualModeState::Enabled { .. } => {
                 warn!("manual step already in progress");
@@ -915,10 +914,4 @@ fn finish_manual_step(
             error!("manual step not in progress");
         }
     };
-
-    // mode.disable();
-    // pause_play_event.send(PausePlayEvent::Pause);
 }
-
-// #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-// pub struct GbpSet;

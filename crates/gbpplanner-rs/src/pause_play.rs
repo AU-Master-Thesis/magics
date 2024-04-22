@@ -34,25 +34,23 @@ pub enum PausePlay {
 
 /// System that reacts to events for pausing and resuming the simulation.
 fn pause_play_virtual_time(
-    state: ResMut<State<PausedState>>,
-    mut next_state: ResMut<NextState<PausedState>>,
-    mut pause_play_event: EventReader<PausePlay>,
-    mut time: ResMut<Time<Virtual>>,
+    paused_state: ResMut<State<PausedState>>,
+    mut next_paused_state: ResMut<NextState<PausedState>>,
+    mut evr_pause_play: EventReader<PausePlay>,
+    mut virtual_time: ResMut<Time<Virtual>>,
 ) {
-    for pause_play_event in pause_play_event.read() {
-        debug!("received event: {:?}", pause_play_event);
-        match (pause_play_event, state.get()) {
+    for pause_play_event in evr_pause_play.read() {
+        match (pause_play_event, paused_state.get()) {
             (PausePlay::Pause, PausedState::Paused) | (PausePlay::Play, PausedState::Running) => {
                 warn!("ignoring duplicate event: {:?}", pause_play_event);
-                continue;
             }
             (PausePlay::Pause | PausePlay::Toggle, PausedState::Running) => {
-                next_state.set(PausedState::Paused);
-                time.pause();
+                next_paused_state.set(PausedState::Paused);
+                virtual_time.pause();
             }
             (PausePlay::Play | PausePlay::Toggle, PausedState::Paused) => {
-                next_state.set(PausedState::Running);
-                time.unpause();
+                next_paused_state.set(PausedState::Running);
+                virtual_time.unpause();
             }
         };
     }
