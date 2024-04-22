@@ -40,7 +40,7 @@ impl FromWorld for Meshes {
                     .ico(4)
                     .expect("4 subdivisions is less than the maximum allowed of 80"),
             ),
-            plane:    meshes.add(Mesh::from(Rectangle::new(10.0f32, 10.0f32))),
+            plane:    meshes.add(Mesh::from(Rectangle::new(100.0f32, 100.0f32))),
         }
     }
 }

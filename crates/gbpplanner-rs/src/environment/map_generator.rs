@@ -5,12 +5,9 @@ use parry2d::{
     na::{self, Isometry2, Vector2},
     shape,
 };
-// use bevy_more_shapes::Cylinder;
-// use bevy_math::RegularPolygon;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    // asset_loader::SceneAssets,
     asset_loader::Materials,
     bevy_utils::run_conditions::event_exists,
     config::{environment::PlaceableShape, Config, DrawSetting, Environment},
@@ -26,7 +23,6 @@ impl Plugin for GenMapPlugin {
             // .add_systems(Startup, (build_tile_grid, build_obstacles))
             .add_systems(
                 Update,
-
                 (clear_colliders, build_tile_grid, build_obstacles).chain().run_if(on_event::<LoadSimulation>()),
             )
             .add_systems(
@@ -67,13 +63,13 @@ impl Colliders {
         self.0.push((position, shape));
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &(Isometry2<f32>, Arc<dyn shape::Shape>)> {
-        self.0.iter()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
+    // pub fn iter(&self) -> impl Iterator<Item = &(Isometry2<f32>, Arc<dyn
+    // shape::Shape>)> {     self.0.iter()
+    // }
+    //
+    // pub fn is_empty(&self) -> bool {
+    //     self.0.is_empty()
+    // }
 }
 
 /// **Bevy** [`Startup`] _system_.
@@ -341,7 +337,6 @@ fn build_tile_grid(
     mut colliders: ResMut<Colliders>,
     env_config: Res<Environment>,
     config: Res<Config>,
-    // scene_assets: Res<SceneAssets>,
     materials: Res<Materials>,
     obstacles: Query<Entity, With<ObstacleMarker>>,
 ) {
@@ -1069,7 +1064,6 @@ fn build_tile_grid(
                         },
                         TileCoordinates::new(x, y),
                         ObstacleMarker,
-                        // simulation_loader::Reloadable,
                     ));
                 })
             }

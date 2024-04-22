@@ -186,11 +186,11 @@ pub struct DrawSection {
     pub waypoints: bool,
     pub uncertainty: bool,
     pub paths: bool,
+    pub communication_radius: bool,
+    pub obstacle_factors: bool,
     pub generated_map: bool,
     pub height_map: bool,
     pub sdf: bool,
-    pub communication_radius: bool,
-    pub obstacle_factors: bool,
 }
 
 impl Default for DrawSection {

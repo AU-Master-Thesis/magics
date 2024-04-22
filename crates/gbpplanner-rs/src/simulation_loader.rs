@@ -10,6 +10,7 @@ use bevy::{
     time::common_conditions::on_real_timer,
 };
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
+use image::GenericImageView;
 use smol_str::SmolStr;
 
 use crate::config::{Config, Environment, FormationGroup};
@@ -186,6 +187,12 @@ impl Plugin for SimulationLoaderPlugin {
                     .join(format!("{}.sdf.png", config.environment_image));
                 info!("sdf_path: {sdf_path:?}");
                 let sdf_image_buffer = image::io::Reader::open(sdf_path).unwrap().decode().unwrap();
+                println!(
+                    "sdf_image_buffer: {:?} channels: {:?}",
+                    sdf_image_buffer.dimensions(),
+                    sdf_image_buffer.color()
+                );
+
                 let raw_path = PathBuf::new()
                     .join("crates/gbpplanner-rs/assets/imgs/obstacles")
                     .join(format!("{}.png", config.environment_image));

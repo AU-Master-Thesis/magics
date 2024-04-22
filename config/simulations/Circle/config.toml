@@ -1,5 +1,5 @@
 # environment = "junction"
-environment_image = "junction_twoway"
+environment_image = "circle_cluttered"
 environment       = "./config/simulations/Circle/environment.yaml"
 formation_group   = "./config/simulations/Circle/formation.ron"
 

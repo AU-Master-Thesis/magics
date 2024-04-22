@@ -40,11 +40,11 @@ fn visualize_obstacle_factors(mut gizmos: Gizmos, factorgraphs: Query<&FactorGra
                 let g = 1.0 - r;
                 let color = Color::rgb(r, g, 0.0);
 
+                let height = 0.5f32;
+                let scale: f32 = 1.1;
                 // [x, y]
                 // [x, y, 0]
                 // [x, 0, y]
-                let height = 0.5f32;
-                let scale: f32 = 1.1;
                 let start = estimated_position.extend(height).xzy();
                 let end = scale * last_measurement.pos.extend(height).xzy();
                 gizmos.line(start, end, color)
