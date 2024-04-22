@@ -20,6 +20,7 @@ use crate::{
         factorgraph::{FactorGraph, NodeIndex, VariableIndex},
         id::{FactorId, VariableId},
     },
+    simulation_loader::SdfImage,
 };
 use crate::{
     config::Config,
@@ -260,7 +261,8 @@ impl RobotBundle {
         variable_timesteps: &[u32],
         config: &Config,
         // obstacle_sdf: &'static Image,
-        obstacle_sdf: &Image,
+        // obstacle_sdf: &Image,
+        sdf: &SdfImage,
         // obstacle_sdf: Handle<Image>,
     ) -> Result<Self, RobotInitError> {
         if waypoints.is_empty() {
@@ -366,7 +368,8 @@ impl RobotBundle {
             let obstacle_factor = FactorNode::new_obstacle_factor(
                 Float::from(config.gbp.sigma_factor_obstacle),
                 array![0.0],
-                obstacle_sdf.clone(),
+                // obstacle_sdf.clone(),
+                sdf.clone(),
                 // obstacle_sdf.clone_value(),
                 Float::from(config.simulation.world_size.get()),
             );

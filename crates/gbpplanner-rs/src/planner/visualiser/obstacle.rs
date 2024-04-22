@@ -33,41 +33,20 @@ fn visualize_obstacle_factors(mut gizmos: Gizmos, factorgraphs: Query<&FactorGra
             .for_each(|(variable, obstacle_factor)| {
                 let estimated_position = variable.estimated_position_vec2();
                 let last_measurement = obstacle_factor.last_measurement();
-                // println!("last_measurement = {:?}", last_measurement);
                 let mut v: f32 = last_measurement.value as f32 * 1e2;
-                v = v.max(0.0).min(1.0);
+                v = v.max(0.0).min(1.0); // clamp to [0, 1]
 
                 let r = 1.0 * v;
                 let g = 1.0 - r;
-                // let g = (1.0 * (1.0 - last_measurement.value)) as f32;
-                // let r = (1.0 * last_measurement.value) as f32;
                 let color = Color::rgb(r, g, 0.0);
-
-                // auto v = last_measurement.value * 1e2;
-                //
-                // const auto clamp = [](float v, float min, float max) {
-                //   if (v < min)
-                //     return min;
-                //   if (v > max)
-                //     return max;
-                //   return v;
-                // };
-                // v = clamp(v, 0.0, 1.0);
-                //
-                // auto r = 255 * v;
-                // auto g = 255 - r;
-                // auto color = Color{r, g, 0, 255};
-                // // auto color = RED;
-                //
-                // auto scale = 1.1;
 
                 // [x, y]
                 // [x, y, 0]
                 // [x, 0, y]
+                let height = 0.5f32;
                 let scale: f32 = 1.1;
-                let start = estimated_position.extend(0.0).xzy();
-                let end = scale * last_measurement.pos.extend(0.0).xzy();
-                // println!("start = {:?}, end = {:?}", start, end);
+                let start = estimated_position.extend(height).xzy();
+                let end = scale * last_measurement.pos.extend(height).xzy();
                 gizmos.line(start, end, color)
             })
     }

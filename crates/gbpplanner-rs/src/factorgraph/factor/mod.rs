@@ -10,7 +10,7 @@ use super::{
     factorgraph::NodeIndex, id::VariableId, message::MessagesToVariables, node::FactorGraphNode,
     prelude::Message, MessageCount, DOFS,
 };
-use crate::factorgraph::node::RemoveConnectionToError;
+use crate::{factorgraph::node::RemoveConnectionToError, simulation_loader::SdfImage};
 
 pub(in crate::factorgraph) mod dynamic;
 pub(in crate::factorgraph) mod interrobot;
@@ -144,10 +144,12 @@ impl FactorNode {
     pub fn new_obstacle_factor(
         strength: Float,
         measurement: Vector<Float>,
-        obstacle_sdf: Image,
+        // obstacle_sdf: Image,
+        obstacle_sdf: SdfImage,
         world_size: Float,
     ) -> Self {
         let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS);
+        // let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
         Self::new(state, kind)

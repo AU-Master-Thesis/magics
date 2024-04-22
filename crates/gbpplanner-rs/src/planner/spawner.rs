@@ -22,7 +22,9 @@ use crate::{
     environment::FollowCameraMe,
     pause_play::PausePlay,
     planner::robot::{RobotBundle, StateVector},
-    simulation_loader::{self, EndSimulation, LoadSimulation, ReloadSimulation, SimulationManager},
+    simulation_loader::{
+        self, EndSimulation, LoadSimulation, ReloadSimulation, Sdf, SimulationManager,
+    },
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
 
@@ -225,14 +227,7 @@ fn create_formation_group_spawners(
     for (i, formation) in formation_group.formations.iter().enumerate() {
         #[allow(clippy::option_if_let_else)] // find it more readable with a match here
         let timer = match formation.repeat_every {
-            Some(duration) => {
-                let mut timer = Timer::new(duration, TimerMode::Repeating);
-                // FIXME: does not work
-                // timer.tick(duration); // tick the timer so it is finished on the first tick,
-                // after                       // the delay has finished
-                // assert!(timer.just_finished());
-                timer
-            }
+            Some(duration) => Timer::new(duration, TimerMode::Repeating),
             None => Timer::from_seconds(0.1, TimerMode::Once),
         };
         let delay = Timer::new(formation.delay, TimerMode::Once);
@@ -286,38 +281,6 @@ fn advance_time(
     }
 }
 
-// TODO: use a trait for this
-
-// const MAX_PLACEMENT_ATTEMPTS: usize = 1000;
-
-// fn line_segment_formation(
-//     start: (Vec2, Vec2),
-//     waypoints: &[Waypoint],
-//     world_dims: &WorldDimensions,
-// ) -> Option<Vec<Vec4>> {
-//     todo!()
-
-//                 let start = world_dims.point_to_world_position(*start);
-//                 let end = world_dims.point_to_world_position(*end);
-
-//                 // let start = point_to_world_position(start, &world_dims);
-//                 // let end = point_to_world_position(end, &world_dims);
-
-//                 randomly_place_nonoverlapping_circles_along_line_segment(
-//                     start,
-//                     end,
-//                     formation.robots,
-//                     config.robot.radius,
-//                     max_placement_attempts,
-//                     &mut rng,
-//                 )
-
-// }
-
-// fn circle_formation(radius: f32, center: Vec2, world_dims: &WorldDimensions)
-// -> Option<Vec<Vec4>> {     todo!()
-// }
-
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn spawn_formation(
     mut commands: Commands,
@@ -332,16 +295,17 @@ fn spawn_formation(
     variable_timesteps: Res<VariableTimesteps>,
     // scene_assets: Res<SceneAssets>,
     meshes: Res<Meshes>,
-    obstacles: Res<Obstacles>,
+    // obstacles: Res<Obstacles>,
+    sdf: Res<Sdf>,
     // obstacle_sdf: Res<ObstacleSdf>,
     image_assets: ResMut<Assets<Image>>,
 ) {
     for event in evr_robot_formation_spawned.read() {
         // only continue if the image has been loaded
-        let Some(image) = image_assets.get(&obstacles.sdf) else {
-            error!("obstacle sdf not loaded yet");
-            return;
-        };
+        // let Some(image) = image_assets.get(&obstacles.sdf) else {
+        //     error!("obstacle sdf not loaded yet");
+        //     return;
+        // };
 
         // let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
 
@@ -447,7 +411,8 @@ fn spawn_formation(
                 waypoints,
                 variable_timesteps.as_slice(),
                 &config,
-                image,
+                &sdf.0,
+                // image,
                 // scene_assets.obstacle_image_sdf.clone_weak(),
                 // obstacle_sdf,
                 // OBSTACLE_IMAGE

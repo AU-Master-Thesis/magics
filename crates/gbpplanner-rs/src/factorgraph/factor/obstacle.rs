@@ -2,15 +2,18 @@
 
 use bevy::{log::warn, math::Vec2, render::texture::Image};
 use gbp_linalg::prelude::*;
+use image::GenericImageView;
 use ndarray::array;
 
 use super::{Factor, FactorState};
+use crate::simulation_loader::SdfImage;
 
 #[derive(Clone)]
 pub struct ObstacleFactor {
     /// The signed distance field of the environment
     // obstacle_sdf:     &'static Image,
-    obstacle_sdf: Image,
+    // obstacle_sdf: Image,
+    obstacle_sdf: SdfImage,
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy
     /// of here since `ObstacleFactor` needs this information to calculate
     /// `.jacobian_delta()` and `.measurement()`
@@ -22,8 +25,6 @@ pub struct ObstacleFactor {
 #[derive(Debug, Clone)]
 pub struct LastMeasurement {
     pub pos:   bevy::math::Vec2,
-    // x:     Float,
-    // y:     Float,
     pub value: Float,
 }
 
@@ -56,7 +57,7 @@ impl ObstacleFactor {
 
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
-    pub fn new(obstacle_sdf: Image, world_size: Float) -> Self {
+    pub fn new(obstacle_sdf: SdfImage, world_size: Float) -> Self {
         Self {
             obstacle_sdf,
             world_size,
@@ -85,28 +86,14 @@ impl Factor for ObstacleFactor {
     }
 
     fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
-        // pretty_print_vector!(x);
-        // debug_assert!(x.len() >= 2, "x.len() = {}", x.len());
         // White areas are obstacles, so h(0) should return a 1 for these regions.
         let scale = Float::from(self.obstacle_sdf.width()) / self.world_size;
         // let offset = (self.world_size / 2.0) as usize;
         let offset = self.world_size / 2.0;
         if (x[0] + offset) * scale > Float::from(self.obstacle_sdf.width()) {
-            // warn!(
-            //     "x[0] + offset = {}, scale = {}, width = {}",
-            //     (x[0] + offset) * scale,
-            //     scale,
-            //     self.obstacle_sdf.width()
-            // );
             return array![0.0];
         }
         if (x[1] + offset) * scale > Float::from(self.obstacle_sdf.height()) {
-            // warn!(
-            //     "x[1] + offset = {}, scale = {}, height = {}",
-            //     (x[1] + offset) * scale,
-            //     scale,
-            //     self.obstacle_sdf.height()
-            // );
             return array![0.0];
         }
         // dbg!(offset);
@@ -121,20 +108,30 @@ impl Factor for ObstacleFactor {
         // is in RGBA format, and we simply use th R channel to determine value,
         // as the image is grayscale
         // TODO: assert that the image's data is laid out in row-major order
-        let linear_index = ((self.obstacle_sdf.width() * pixel_y + pixel_x) * 4) as usize;
-        if linear_index >= self.obstacle_sdf.data.len() {
-            warn!(
-                "linear_index = {}, obstacle_sdf.data.len() = {}",
-                linear_index,
-                self.obstacle_sdf.data.len()
-            );
+        // let linear_index = ((self.obstacle_sdf.width() * pixel_y + pixel_x) * 4) as
+        // usize; if linear_index >= self.obstacle_sdf.width() as usize {
+        //     // if linear_index >= self.obstacle_sdf.data.len() {
+        //     warn!(
+        //         "linear_index = {}, obstacle_sdf.width() = {}",
+        //         linear_index,
+        //         self.obstacle_sdf.width()
+        //     );
+        //     return array![0.0];
+        // }
+        //
+        let Some(pixel) = self.obstacle_sdf.get_pixel_checked(pixel_x, pixel_y) else {
+            // measurement point outside of image
             return array![0.0];
-        }
-        let red = self.obstacle_sdf.data[linear_index];
+        };
+
+        let red_channel = pixel[0];
+        let hsv_value = 1.0 - Float::from(red_channel) / 255.0;
+
+        // let red = self.obstacle_sdf.data[linear_index];
         // NOTE: do 1.0 - red to invert the value, as the obstacle sdf is white where
         // there are obstacles in gbpplanner, they do not do the inversion here,
         // but instead invert the entire image, when they load it from disk.
-        let hsv_value = 1.0 - Float::from(red) / 255.0;
+        // let hsv_value = 1.0 - Float::from(red) / 255.0;
 
         self.last_measurement.pos.x = x[0] as f32;
         self.last_measurement.pos.y = x[1] as f32;

@@ -5,7 +5,8 @@ use std::{
 };
 
 use bevy::{
-    input::common_conditions::input_just_pressed, prelude::*,
+    input::{common_conditions::input_just_pressed, keyboard::KeyboardInput},
+    prelude::*,
     time::common_conditions::on_real_timer,
 };
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
@@ -237,7 +238,12 @@ impl Plugin for SimulationLoaderPlugin {
             .add_systems(
                 Update,
                 // enter_state(SimulationStates::Reloading).run_if(input_just_pressed(KeyCode::F5))
-                reload_simulation.run_if(input_just_pressed(KeyCode::F5)),
+
+                (
+                    reload_simulation.run_if(input_just_pressed(KeyCode::F5)),
+                    load_next_simulation.run_if(input_just_pressed(KeyCode::F6)),
+                    load_previous_simulation.run_if(input_just_pressed(KeyCode::F4)),
+                )
             );
     }
 }
@@ -402,6 +408,28 @@ impl SimulationManager {
         self.requests.push_back(Request::Load(id));
         // info!("loading simulation with id: {}", id.0);
         // self.reload_requested = Some(());
+    }
+
+    pub fn load_next(&mut self) {
+        let next = self
+            .active
+            .map(|id| (id + 1) % self.simulations.len())
+            .unwrap_or(0);
+        self.load(SimulationId(next));
+    }
+
+    pub fn load_previous(&mut self) {
+        let next = self
+            .active
+            .map(|id| {
+                if id == 0 {
+                    self.simulations.len() - 1
+                } else {
+                    id - 1
+                }
+            })
+            .unwrap_or(0);
+        self.load(SimulationId(next));
     }
 
     #[must_use]
@@ -824,4 +852,14 @@ fn handle_requests(
             }
         },
     }
+}
+
+#[inline]
+fn load_previous_simulation(mut simulation_manager: ResMut<SimulationManager>) {
+    simulation_manager.load_previous();
+}
+
+#[inline]
+fn load_next_simulation(mut simulation_manager: ResMut<SimulationManager>) {
+    simulation_manager.load_next();
 }
