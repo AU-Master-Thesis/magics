@@ -1,4 +1,5 @@
 //! A module for working with robot formations declaratively.
+
 use std::{
     f32::consts::{PI, TAU},
     num::NonZeroUsize,
@@ -32,10 +33,6 @@ pub enum InitialPlacementStrategy {
         attempts: NonZeroUsize,
     },
 }
-
-// impl InitialPlacementStrategy {
-//     pub const RANDOM_ATTEMPTS: NonZeroUsize = 1000.try_into().unwrap();
-// }
 
 /// Strategy to use for waypoints after the initial starting position.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -88,11 +85,54 @@ pub struct InitialPosition {
     pub placement_strategy: InitialPlacementStrategy,
 }
 
-// #[derive(Debug, thiserror::Error)]
-// pub enum FormationError {
-//     #[error("FormationGroup has no formations")]
-//     NoFormations,
-// }
+/// Enum representing the number of times a formation should repeat.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum RepeatTimes {
+    #[default]
+    Infinite,
+    Finite(usize),
+}
+
+impl RepeatTimes {
+    pub const ONCE: Self = Self::Finite(1);
+
+    /// Construct a new `RepeatTimes::Finite` variant
+    pub fn finite(times: NonZeroUsize) -> Self {
+        Self::Finite(times.into())
+    }
+
+    /// Returns true if there are one or more times left repeating
+    pub const fn exhausted(&self) -> bool {
+        match self {
+            Self::Infinite => false,
+            Self::Finite(remaining) => *remaining == 0,
+        }
+    }
+
+    /// Decrement the number of repeats left in self.
+    /// If `Self::Infinite`, do nothing
+    /// If `Self::Finite(remaining)` decrement remaining if > 0
+    pub fn decrement(&mut self) {
+        match self {
+            Self::Finite(ref mut remaining) if *remaining > 0 => *remaining -= 1,
+            _ => {}
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct Repeat {
+    pub every: Duration,
+    pub times: RepeatTimes,
+}
+
+impl Repeat {
+    /// Construct a new `Repeat` struct
+    pub const fn new(every: Duration, times: RepeatTimes) -> Self {
+        Self { every, times }
+    }
+}
 
 /// A description of a formation of robots in the simulation.
 /// It describes how/where the robots are to be spawned, how many will be
@@ -102,7 +142,7 @@ pub struct InitialPosition {
 pub struct Formation {
     /// Optionally spawn this formation again repeatedly with the given
     /// duration.
-    pub repeat_every: Option<Duration>,
+    pub repeat: Option<Repeat>,
     // pub repeat_every: bool,
     /// The delay from the start of the simulation after which the formation
     /// should spawn.
@@ -143,13 +183,14 @@ impl Formation {
     #[allow(clippy::missing_panics_doc)]
     pub fn circle_from_paper() -> Self {
         let circle = Shape::Circle {
-            radius: 100.0.try_into().expect("positive and finite"),
-            center: Point::new(0.0, 0.0),
+            radius: 25.0.try_into().expect("positive and finite"),
+            center: Point::new(0.5, 0.5),
         };
         Self {
-            repeat_every: None,
+            // repeat: None,
+            repeat: Some(Repeat::new(Duration::from_secs(10), RepeatTimes::Finite(1))),
             delay: Duration::from_secs(1),
-            robots: 1.try_into().expect("8 > 0"),
+            robots: 3.try_into().expect("3 > 0"),
             initial_position: InitialPosition {
                 shape: circle.clone(),
                 placement_strategy: InitialPlacementStrategy::Equal,
@@ -169,7 +210,6 @@ impl Formation {
         &self,
         world_dims: WorldDimensions,
         robot_radius: StrictlyPositiveFinite<f32>,
-        // max_placement_attempts: NonZeroUsize,
         rng: &mut impl Rng,
     ) -> Option<(Vec<Vec2>, Vec<Vec<Vec2>>)> {
         match self.initial_position.shape {
@@ -483,6 +523,7 @@ impl FormationGroup {
             .map(|file_contents| Self::parse_from_ron(file_contents.as_str()))?
     }
 
+    #[allow(clippy::missing_errors_doc)]
     pub fn from_yaml_file<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
         std::fs::read_to_string(path)
             .map(|file_contents| Self::parse_from_yaml(file_contents.as_str()))?
@@ -518,11 +559,16 @@ impl FormationGroup {
         }
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn intersection_from_paper() -> Self {
         Self {
             formations: one_or_more![
                 Formation {
-                    repeat_every: Some(Duration::from_secs(4)),
+                    // repeat: Some(Duration::from_secs(4)),
+                    repeat: Some(Repeat {
+                        every: Duration::from_secs(4),
+                        times: RepeatTimes::Finite(2),
+                    }),
                     delay: Duration::from_secs(2),
                     robots: 1.try_into().expect("1 > 0"),
                     initial_position: InitialPosition {
@@ -536,7 +582,11 @@ impl FormationGroup {
                     ),],
                 },
                 Formation {
-                    repeat_every: Some(Duration::from_secs(4)),
+                    // repeat: Some(Duration::from_secs(4)),
+                    repeat: Some(Repeat {
+                        every: Duration::from_secs(4),
+                        times: RepeatTimes::Finite(2),
+                    }),
                     delay: Duration::from_secs(2),
                     robots: 1.try_into().expect("1 > 0"),
                     initial_position: InitialPosition {

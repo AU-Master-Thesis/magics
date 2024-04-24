@@ -1,11 +1,13 @@
 formations:
-- repeat-every:
-    secs: 25
-    nanos: 0
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 1
   delay:
-    secs: 5
+    secs: 1
     nanos: 0
-  robots: 8
+  robots: 3
   initial-position:
     shape: !circle
       radius: 25.0
@@ -20,3 +22,4 @@ formations:
         x: 0.5
         y: 0.5
     projection-strategy: cross
+

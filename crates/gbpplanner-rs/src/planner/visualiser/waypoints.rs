@@ -9,7 +9,7 @@ use crate::{
     input::DrawSettingsEvent,
     planner::{
         robot::RobotReachedWaypoint,
-        spawner::{WaypointCreated, WaypointReached},
+        spawner::{RobotWaypointReached, WaypointCreated},
         RobotId,
     },
     simulation_loader,
@@ -34,7 +34,7 @@ impl Plugin for WaypointVisualiserPlugin {
 
 fn listen_for_robot_reached_waypoint_event(
     mut evr_robot_reached_waypoint: EventReader<RobotReachedWaypoint>,
-    mut evw_waypoint_reached: EventWriter<WaypointReached>,
+    mut evw_waypoint_reached: EventWriter<RobotWaypointReached>,
     waypoint_visualizers: Query<(Entity, &AssociatedWithRobot), With<WaypointVisualiser>>,
 ) {
     for event in evr_robot_reached_waypoint.read() {
@@ -44,7 +44,7 @@ fn listen_for_robot_reached_waypoint_event(
             .find(|(_, AssociatedWithRobot(robot_id))| *robot_id == event.robot_id)
             .map(|(entity, _)| entity)
         {
-            evw_waypoint_reached.send(WaypointReached(waypoint_id));
+            evw_waypoint_reached.send(RobotWaypointReached(waypoint_id));
         };
     }
 }
@@ -53,9 +53,9 @@ fn listen_for_robot_reached_waypoint_event(
 /// whenever the waypoint has been reached.
 fn delete_mesh_of_reached_waypoints(
     mut commands: Commands,
-    mut evr_delete_waypoint: EventReader<WaypointReached>,
+    mut evr_delete_waypoint: EventReader<RobotWaypointReached>,
 ) {
-    for WaypointReached(vis) in evr_delete_waypoint.read() {
+    for RobotWaypointReached(vis) in evr_delete_waypoint.read() {
         commands.entity(*vis).despawn();
     }
 }
