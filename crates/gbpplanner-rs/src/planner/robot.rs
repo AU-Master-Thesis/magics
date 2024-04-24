@@ -96,8 +96,7 @@ fn despawn_robots(
             entitycommand.despawn();
         } else {
             error!(
-                "A DespawnRobotEvent event was emitted with entity id: {:?} but the entity does \
-                 not exist!",
+                "A DespawnRobotEvent event was emitted with entity id: {:?} but the entity does not exist!",
                 robot_id
             );
         }
@@ -146,7 +145,7 @@ impl FromWorld for VariableTimesteps {
                 // lookahead_horizon.get() as u32,
                 lookahead_horizon as u32,
                 // config.gbp.lookahead_multiple as u32,
-                3 as u32,
+                3,
             ),
         }
     }
@@ -307,9 +306,7 @@ impl RobotBundle {
         //     .pop_front()
         //     .expect("Waypoints has at least one element");
 
-        let goal = waypoints
-            .front()
-            .expect("Waypoints has at least one element");
+        let goal = waypoints.front().expect("Waypoints has at least one element");
 
         // Initialise the horizon in the direction of the goal, at a distance T_HORIZON
         // * MAX_SPEED from the start.
@@ -334,8 +331,7 @@ impl RobotBundle {
             // Set initial mean and covariance of variable interpolated between start and
             // horizon
             #[allow(clippy::cast_precision_loss)]
-            let mean = start
-                + (horizon - start) * (variable_timestep as f32 / last_variable_timestep as f32);
+            let mean = start + (horizon - start) * (variable_timestep as f32 / last_variable_timestep as f32);
 
             let sigma = if i == 0 || i == n_variables - 1 {
                 // Start and Horizon state variables should be 'fixed' during optimisation at a
@@ -367,8 +363,7 @@ impl RobotBundle {
         for i in 0..variable_timesteps.len() - 1 {
             // T0 is the timestep between the current state and the first planned state.
             #[allow(clippy::cast_precision_loss)]
-            let delta_t = config.simulation.t0.get()
-                * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
+            let delta_t = config.simulation.t0.get() * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
 
             let measurement = Vector::<Float>::zeros(config.robot.dofs.get());
 
@@ -385,10 +380,8 @@ impl RobotBundle {
                 VariableId::new(factorgraph.id(), variable_node_indices[i + 1]),
                 factor_id,
             );
-            let _ = factorgraph.add_internal_edge(
-                VariableId::new(factorgraph.id(), variable_node_indices[i]),
-                factor_id,
-            );
+            let _ =
+                factorgraph.add_internal_edge(VariableId::new(factorgraph.id(), variable_node_indices[i]), factor_id);
         }
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
@@ -405,10 +398,8 @@ impl RobotBundle {
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
             let factor_id = FactorId::new(factorgraph.id(), factor_node_index);
-            let _ = factorgraph.add_internal_edge(
-                VariableId::new(factorgraph.id(), variable_node_indices[i]),
-                factor_id,
-            );
+            let _ =
+                factorgraph.add_internal_edge(VariableId::new(factorgraph.id(), variable_node_indices[i]), factor_id);
         }
 
         Ok(Self {
@@ -508,13 +499,10 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
         //     }
         // }
 
-        let Some((_, mut factorgraph2, _)) = query
-            .iter_mut()
-            .find(|(robot_id, _, _)| *robot_id == robot2)
-        else {
+        let Some((_, mut factorgraph2, _)) = query.iter_mut().find(|(robot_id, _, _)| *robot_id == robot2) else {
             error!(
-                "attempt to delete interrobot factors between robots: {:?} and {:?} failed, \
-                 reason: {:?} does not exist!",
+                "attempt to delete interrobot factors between robots: {:?} and {:?} failed, reason: {:?} does not \
+                 exist!",
                 robot1, robot2, robot2
             );
             continue;
@@ -574,10 +562,8 @@ fn create_interrobot_factors(
                 let eps = 0.2 * config.robot.radius.get();
                 let safety_radius = 2.0f32.mul_add(config.robot.radius.get(), eps);
                 // TODO: should it be i - 1 or i?
-                let external_variable_id = ExternalVariableId::new(
-                    *other_robot_id,
-                    VariableIndex(other_variable_indices[i - 1]),
-                );
+                let external_variable_id =
+                    ExternalVariableId::new(*other_robot_id, VariableIndex(other_variable_indices[i - 1]));
                 // let connection =
                 //     InterRobotFactorConnection::new(*other_robot_id, other_variable_indices[i
                 // - 1]);
@@ -603,9 +589,7 @@ fn create_interrobot_factors(
                 external_edges_to_add.push((robot_id, factor_index, *other_robot_id, i));
             }
 
-            robotstate
-                .ids_of_robots_connected_with
-                .insert(*other_robot_id);
+            robotstate.ids_of_robots_connected_with.insert(*other_robot_id);
         }
     }
 
@@ -640,10 +624,7 @@ fn create_interrobot_factors(
         if let Some(factor) = factorgraph.get_factor_mut(factor_index) {
             factor.receive_message_from(variable_id, variable_message.clone());
         } else {
-            error!(
-                "factorgraph {:?} has no factor with index {:?}",
-                robot_id, factor_index
-            );
+            error!("factorgraph {:?} has no factor with index {:?}", robot_id, factor_index);
         }
     }
 }
@@ -655,15 +636,11 @@ fn create_interrobot_factors(
 /// Called `Simulator::setCommsFailure` in **gbpplanner**
 fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
     for mut state in &mut query {
-        state.interrobot_comms_active =
-            config.robot.communication.failure_rate < rand::random::<f32>();
+        state.interrobot_comms_active = config.robot.communication.failure_rate < rand::random::<f32>();
     }
 }
 
-fn iterate_gbp(
-    mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
-    config: Res<Config>,
-) {
+fn iterate_gbp(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {
     for _ in 0..config.gbp.iterations_per_timestep {
         // pretty_print_title!(format!("GBP iteration: {}", i + 1));
         // ╭────────────────────────────────────────────────────────────────────────────────────────
@@ -680,8 +657,7 @@ fn iterate_gbp(
                 .find(|(id, _)| *id == message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving variable should exist in the world");
 
-            if let Some(variable) = external_factorgraph.get_variable_mut(message.to.variable_index)
-            {
+            if let Some(variable) = external_factorgraph.get_variable_mut(message.to.variable_index) {
                 variable.receive_message_from(message.from, message.message.clone());
             } else {
                 error!(
@@ -724,68 +700,62 @@ fn update_prior_of_horizon_state(
     mut evw_robot_despawned: EventWriter<RobotDespawned>,
     mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
 ) {
-    let delta_t = time.delta_seconds();
+    let delta_t = Float::from(time.delta_seconds());
+    // let robot_radius = Float::from(config.robot.radius.get());
+    let robot_radius = config.robot.radius.get();
+    let max_speed = Float::from(config.robot.max_speed.get());
 
     let mut all_messages_to_external_factors = Vec::new();
     let mut robots_to_despawn = Vec::new();
 
     for (robot_id, mut factorgraph, mut waypoints) in &mut query {
-        let Some(current_waypoint) = waypoints
-            .front()
-            .map(|wp| array![Float::from(wp.x), Float::from(wp.y)])
-        else {
+        // let Some(current_waypoint) = waypoints.front().map(|wp|
+        // array![Float::from(wp.x), Float::from(wp.y)]) else {
+        let Some(current_waypoint) = waypoints.front() else {
+            // no more waypoints for the robot to move to
             robots_to_despawn.push(robot_id);
             continue;
         };
 
-        // TODO: simplify this
-        let (variable_index, new_mean, horizon2goal_dist) = {
-            let (variable_index, horizon_variable) = factorgraph
-                .last_variable()
-                .expect("factorgraph has a horizon variable");
+        // 1. update the mean of the horizon variable
+        // 2. find the variable configured to use for the waypoint intersection check
+        let reached_waypoint = {
+            let variable = match waypoints.intersects_when {
+                WaypointReachedWhenIntersects::Current => factorgraph.first_variable().map(|(_, v)| v).expect(""),
+                WaypointReachedWhenIntersects::Horizon => factorgraph.last_variable().map(|(_, v)| v).expect(""),
+                WaypointReachedWhenIntersects::Variable(ix) => {
+                    factorgraph.nth_variable(ix.into()).map(|(_, v)| v).expect("")
+                }
+            };
 
-            debug_assert_eq!(horizon_variable.belief.mean.len(), 4);
-
-            // let estimated_position = horizon_variable.estimated_position_vec2();
-
-            let estimated_position = horizon_variable.belief.mean.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
-
-            let horizon2goal_dir = current_waypoint - estimated_position;
-
-            let horizon2goal_dist = horizon2goal_dir.euclidean_norm();
-
-            // Slow down if close to goal
-            let new_velocity =
-                Float::min(Float::from(config.robot.max_speed.get()), horizon2goal_dist)
-                    * horizon2goal_dir.normalized();
-            let new_position =
-                estimated_position.into_owned() + (&new_velocity * Float::from(delta_t));
-
-            // Update horizon state with new position and velocity
-            let new_mean = concatenate![Axis(0), new_position, new_velocity];
-
-            debug_assert_eq!(new_mean.len(), 4);
-
-            (variable_index, new_mean, horizon2goal_dist)
+            let estimated_pos = variable.estimated_position_vec2();
+            // TODO: use square distance comparison to avoid sqrt
+            // let dist2waypoint = estimated_pos.distance_squared()
+            let dist2waypoint = estimated_pos.distance(current_waypoint.xy());
+            dist2waypoint < robot_radius
         };
 
-        let (_, horizon_variable) = factorgraph
+        let (variable_index, horizon_variable) = factorgraph
             .last_variable_mut()
             .expect("factorgraph has a horizon variable");
+        let estimated_position = horizon_variable.belief.mean.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
+        let current_waypoint = array![Float::from(current_waypoint.x), Float::from(current_waypoint.y)];
+        let horizon2waypoint = current_waypoint - estimated_position;
+        let horizon2goal_dist = horizon2waypoint.euclidean_norm();
+
+        let new_velocity = Float::min(max_speed, horizon2goal_dist) * horizon2waypoint.normalized();
+        let new_position = estimated_position.into_owned() + (&new_velocity * delta_t);
+
+        // Update horizon state with new position and velocity
+        let new_mean = concatenate![Axis(0), new_position, new_velocity];
+        // debug_assert_eq!(new_mean.len(), 4);
 
         horizon_variable.belief.mean.clone_from(&new_mean);
 
-        let messages_to_external_factors =
-            factorgraph.change_prior_of_variable(variable_index, new_mean);
-
+        let messages_to_external_factors = factorgraph.change_prior_of_variable(variable_index, new_mean);
         all_messages_to_external_factors.extend(messages_to_external_factors);
 
-        // NOTE: this is weird, we think
-        let horizon_has_reached_waypoint =
-            horizon2goal_dist < Float::from(config.robot.radius.get());
-
-        // TODO: integrate new waypoint reached condition
-        if horizon_has_reached_waypoint && !waypoints.is_empty() {
+        if reached_waypoint && !waypoints.is_empty() {
             waypoints.pop_front();
             evw_robot_reached_waypoint.send(RobotReachedWaypoint {
                 robot_id,
@@ -828,20 +798,12 @@ fn update_prior_of_current_state(
             .nth_variable(1)
             .expect("factorgraph should have a next variable");
         let mean_of_current_variable = current_variable.belief.mean.clone();
-        let change_in_position =
-            Float::from(scale) * (&next_variable.belief.mean - &mean_of_current_variable);
+        let change_in_position = Float::from(scale) * (&next_variable.belief.mean - &mean_of_current_variable);
 
-        factorgraph.change_prior_of_variable(
-            current_variable_index,
-            &mean_of_current_variable + &change_in_position,
-        );
+        factorgraph.change_prior_of_variable(current_variable_index, &mean_of_current_variable + &change_in_position);
 
         #[allow(clippy::cast_possible_truncation)]
-        let increment = Vec3::new(
-            change_in_position[0] as f32,
-            0.0,
-            change_in_position[1] as f32,
-        );
+        let increment = Vec3::new(change_in_position[0] as f32, 0.0, change_in_position[1] as f32);
 
         // dbg!((&increment, scale));
         // pretty_print_subtitle!("CURRENT STATE UPDATE");
@@ -906,15 +868,11 @@ fn finish_manual_step(
     mut pause_play_event: EventWriter<PausePlay>,
 ) {
     match state.get() {
-        ManualModeState::Enabled {
-            iterations_remaining,
-        } if (0..=1).contains(iterations_remaining) => {
+        ManualModeState::Enabled { iterations_remaining } if (0..=1).contains(iterations_remaining) => {
             next_state.set(ManualModeState::Disabled);
             pause_play_event.send(PausePlay::Pause);
         }
-        ManualModeState::Enabled {
-            iterations_remaining,
-        } => {
+        ManualModeState::Enabled { iterations_remaining } => {
             next_state.set(ManualModeState::Enabled {
                 iterations_remaining: iterations_remaining - 1,
             });
