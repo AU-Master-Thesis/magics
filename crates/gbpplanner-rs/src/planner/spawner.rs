@@ -21,7 +21,7 @@ use crate::{
     },
     environment::FollowCameraMe,
     pause_play::PausePlay,
-    planner::robot::{RobotBundle, StateVector},
+    planner::robot::{RobotBundle, StateVector, Waypoints},
     simulation_loader::{
         self, EndSimulation, LoadSimulation, ReloadSimulation, Sdf, SimulationManager,
     },
@@ -538,7 +538,13 @@ fn spawn_formation(
                 position:  pose.xy(),
             }));
 
-            let waypoints: VecDeque<_> = waypoints.iter().copied().collect();
+            let waypoints: Waypoints = Waypoints {
+                waypoints:       waypoints.iter().copied().collect(),
+                intersects_when: formation.waypoint_reached_when_intersects,
+            };
+
+            // let waypoints: VecDeque<_> = waypoints.iter().copied().collect();
+
             let robotbundle = RobotBundle::new(
                 robot_id,
                 StateVector::new(*initial_pose),

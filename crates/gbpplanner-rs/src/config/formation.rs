@@ -135,7 +135,7 @@ impl Repeat {
 }
 
 /// How to evaluate if a robot has reached a waypoint
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum WaypointReachedWhenIntersects {
     /// When the current variable i.e. the robots current position intersects

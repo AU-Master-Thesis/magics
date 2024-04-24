@@ -15,6 +15,7 @@ use ndarray::{array, concatenate, s, Axis};
 // };
 use crate::{
     bevy_utils::run_conditions::time::virtual_time_is_paused,
+    config::formation::WaypointReachedWhenIntersects,
     factorgraph::{
         factor::{ExternalVariableId, FactorNode},
         factorgraph::{FactorGraph, NodeIndex, VariableIndex},
@@ -132,6 +133,7 @@ impl std::ops::Index<usize> for VariableTimesteps {
 }
 
 impl FromWorld for VariableTimesteps {
+    // TODO: refactor
     fn from_world(world: &mut World) -> Self {
         // let config = world.resource::<Config>();
 
@@ -166,7 +168,33 @@ pub struct Radius(pub f32);
 /// achieve.
 #[allow(clippy::similar_names)]
 #[derive(Component, Debug)]
-pub struct Waypoints(pub VecDeque<Vec4>);
+// pub struct Waypoints(pub VecDeque<Vec4>);
+pub struct Waypoints {
+    pub waypoints:       VecDeque<Vec4>,
+    pub intersects_when: WaypointReachedWhenIntersects,
+}
+
+impl Waypoints {
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.waypoints.is_empty()
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.waypoints.len()
+    }
+
+    #[inline]
+    pub fn front(&self) -> Option<&Vec4> {
+        self.waypoints.front()
+    }
+
+    #[inline]
+    pub fn pop_front(&mut self) -> Option<Vec4> {
+        self.waypoints.pop_front()
+    }
+}
 
 /// A robot's state, consisting of other robots within communication range,
 /// and other robots that are connected via inter-robot factors.
@@ -257,7 +285,8 @@ impl RobotBundle {
     pub fn new(
         robot_id: RobotId,
         initial_state: StateVector,
-        waypoints: VecDeque<Vec4>,
+        // waypoints: VecDeque<Vec4>,
+        waypoints: Waypoints,
         variable_timesteps: &[u32],
         config: &Config,
         // obstacle_sdf: &'static Image,
@@ -387,7 +416,8 @@ impl RobotBundle {
             radius: Radius(config.robot.radius.get()),
             ball: Ball(parry2d::shape::Ball::new(config.robot.radius.get())),
             state: RobotState::new(),
-            waypoints: Waypoints(waypoints),
+            waypoints,
+            // waypoints: Waypoints(waypoints),
         })
     }
 }
@@ -688,26 +718,23 @@ fn iterate_gbp(
 
 /// Called `Robot::updateHorizon` in **gbpplanner**
 fn update_prior_of_horizon_state(
-    mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints), With<RobotState>>,
     config: Res<Config>,
     time: Res<Time>,
-    mut despawn_robot_event: EventWriter<RobotDespawned>,
-    mut robot_reached_waypoint_event: EventWriter<RobotReachedWaypoint>,
+    mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints), With<RobotState>>,
+    mut evw_robot_despawned: EventWriter<RobotDespawned>,
+    mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
 ) {
     let delta_t = time.delta_seconds();
 
     let mut all_messages_to_external_factors = Vec::new();
-    let mut ids_of_robots_to_despawn = Vec::new();
+    let mut robots_to_despawn = Vec::new();
 
     for (robot_id, mut factorgraph, mut waypoints) in &mut query {
         let Some(current_waypoint) = waypoints
-            .0
             .front()
             .map(|wp| array![Float::from(wp.x), Float::from(wp.y)])
         else {
-            // info!("robot {:?}, has reached its final waypoint", robot_id);
-            ids_of_robots_to_despawn.push(robot_id);
-
+            robots_to_despawn.push(robot_id);
             continue;
         };
 
@@ -719,36 +746,23 @@ fn update_prior_of_horizon_state(
 
             debug_assert_eq!(horizon_variable.belief.mean.len(), 4);
 
+            // let estimated_position = horizon_variable.estimated_position_vec2();
+
             let estimated_position = horizon_variable.belief.mean.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
-                                                                                  // dbg!(&estimated_position);
 
             let horizon2goal_dir = current_waypoint - estimated_position;
 
             let horizon2goal_dist = horizon2goal_dir.euclidean_norm();
-            // let horizon2goal_dist = dbg!(horizon2goal_dir.euclidean_norm());
 
             // Slow down if close to goal
             let new_velocity =
                 Float::min(Float::from(config.robot.max_speed.get()), horizon2goal_dist)
                     * horizon2goal_dir.normalized();
-
-            // dbg!(&new_velocity);
             let new_position =
                 estimated_position.into_owned() + (&new_velocity * Float::from(delta_t));
 
-            // pretty_print_subtitle!("HORIZON STATE UPDATE");
-            // println!("horizon2goal_dir = {:?}", horizon2goal_dir);
-            // pretty_print_vector!(&new_velocity);
-            // pretty_print_vector!(&new_position);
-
-            // dbg!(&new_position);
-
-            // Update horizon state with new pos and vel
-            // horizon->mu_ << new_pos, new_vel;
-            // horizon->change_variable_prior(horizon->mu_);
+            // Update horizon state with new position and velocity
             let new_mean = concatenate![Axis(0), new_position, new_velocity];
-
-            // dbg!(&new_mean);
 
             debug_assert_eq!(new_mean.len(), 4);
 
@@ -770,13 +784,10 @@ fn update_prior_of_horizon_state(
         let horizon_has_reached_waypoint =
             horizon2goal_dist < Float::from(config.robot.radius.get());
 
-        // println!("waypoints.0.len() = {:?}", waypoints.0.len());
-
-        if horizon_has_reached_waypoint && !waypoints.0.is_empty() {
-            // info!("robot {:?}, has reached its waypoint", robot_id);
-
-            waypoints.0.pop_front();
-            robot_reached_waypoint_event.send(RobotReachedWaypoint {
+        // TODO: integrate new waypoint reached condition
+        if horizon_has_reached_waypoint && !waypoints.is_empty() {
+            waypoints.pop_front();
+            evw_robot_reached_waypoint.send(RobotReachedWaypoint {
                 robot_id,
                 waypoint_index: 0,
             });
@@ -785,6 +796,7 @@ fn update_prior_of_horizon_state(
 
     // Send messages to external factors
     for message in all_messages_to_external_factors {
+        // TODO: use query.get()
         let (_, mut external_factorgraph, _) = query
             .iter_mut()
             .find(|(id, _, _)| *id == message.to.factorgraph_id)
@@ -793,13 +805,10 @@ fn update_prior_of_horizon_state(
         if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
             factor.receive_message_from(message.from, message.message.clone());
         }
-        // external_factorgraph
-        //     .factor_mut(message.to.factor_index)
-        //     .receive_message_from(message.from, message.message.clone());
     }
 
-    if !ids_of_robots_to_despawn.is_empty() {
-        despawn_robot_event.send_batch(ids_of_robots_to_despawn.into_iter().map(RobotDespawned));
+    if !robots_to_despawn.is_empty() {
+        evw_robot_despawned.send_batch(robots_to_despawn.into_iter().map(RobotDespawned));
     }
 }
 
