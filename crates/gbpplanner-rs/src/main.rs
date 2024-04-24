@@ -76,21 +76,9 @@ fn main() -> anyhow::Result<()> {
     if cli.metadata {
         let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
 
-        eprintln!(
-            "{}:   {}",
-            "target arch".green().bold(),
-            std::env::consts::ARCH
-        );
-        eprintln!(
-            "{}:     {}",
-            "target os".green().bold(),
-            std::env::consts::OS
-        );
-        eprintln!(
-            "{}: {}",
-            "target family".green().bold(),
-            std::env::consts::FAMILY
-        );
+        eprintln!("{}:   {}", "target arch".green().bold(), std::env::consts::ARCH);
+        eprintln!("{}:     {}", "target os".green().bold(), std::env::consts::OS);
+        eprintln!("{}: {}", "target family".green().bold(), std::env::consts::FAMILY);
 
         eprintln!("{}:          {}", "name".green().bold(), NAME);
         eprintln!("{}:", "authors".green().bold());

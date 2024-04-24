@@ -42,11 +42,7 @@ impl CursorCoordinates {
 #[derive(Component)]
 struct InvisibleGroundPlane;
 
-fn spawn_invisible_ground_plane(
-    mut commands: Commands,
-    materials: Res<Materials>,
-    meshes: Res<Meshes>,
-) {
+fn spawn_invisible_ground_plane(mut commands: Commands, materials: Res<Materials>, meshes: Res<Meshes>) {
     commands.spawn((InvisibleGroundPlane, PbrBundle {
         transform: Transform::default(),
         mesh: meshes.plane.clone(),

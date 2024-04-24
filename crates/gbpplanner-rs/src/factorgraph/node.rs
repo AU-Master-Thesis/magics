@@ -7,10 +7,7 @@ pub struct RemoveConnectionToError;
 impl std::error::Error for RemoveConnectionToError {}
 
 pub(in crate::factorgraph) trait FactorGraphNode {
-    fn remove_connection_to(
-        &mut self,
-        factorgraph_id: FactorGraphId,
-    ) -> Result<(), RemoveConnectionToError>;
+    fn remove_connection_to(&mut self, factorgraph_id: FactorGraphId) -> Result<(), RemoveConnectionToError>;
 
     fn messages_sent(&self) -> usize;
     fn messages_received(&self) -> usize;
@@ -34,10 +31,7 @@ pub struct Node {
 impl Node {
     /// Construct a new node
     pub const fn new(factorgraph_id: FactorGraphId, kind: NodeKind) -> Self {
-        Self {
-            factorgraph_id,
-            kind,
-        }
+        Self { factorgraph_id, kind }
     }
 
     /// Returns `true` if the node is [`Factor`].
@@ -100,10 +94,7 @@ impl Node {
 }
 
 impl FactorGraphNode for Node {
-    fn remove_connection_to(
-        &mut self,
-        factorgraph_id: FactorGraphId,
-    ) -> Result<(), RemoveConnectionToError> {
+    fn remove_connection_to(&mut self, factorgraph_id: FactorGraphId) -> Result<(), RemoveConnectionToError> {
         match self.kind {
             NodeKind::Factor(ref mut factor) => factor.remove_connection_to(factorgraph_id),
             NodeKind::Variable(ref mut variable) => variable.remove_connection_to(factorgraph_id),

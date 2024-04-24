@@ -79,8 +79,7 @@ fn spawn_infinite_grid(mut commands: Commands, catppuccin_theme: Res<CatppuccinT
 /// Spawns a directional light.
 fn spawn_directional_light(mut commands: Commands) {
     commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_translation(Vec3::X * 5.0 + Vec3::Z * 8.0)
-            .looking_at(Vec3::ZERO, Vec3::Z),
+        transform: Transform::from_translation(Vec3::X * 5.0 + Vec3::Z * 8.0).looking_at(Vec3::ZERO, Vec3::Z),
         ..default()
     });
 }

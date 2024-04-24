@@ -406,12 +406,7 @@ impl Environment {
     }
 
     #[must_use]
-    pub fn new(
-        matrix_representation: Vec<String>,
-        path_width: f32,
-        obstacle_height: f32,
-        tile_size: f32,
-    ) -> Self {
+    pub fn new(matrix_representation: Vec<String>, path_width: f32, obstacle_height: f32, tile_size: f32) -> Self {
         Self {
             tiles:     Tiles {
                 grid:     TileGrid(matrix_representation),
@@ -507,9 +502,7 @@ impl Environment {
     #[allow(clippy::missing_panics_doc)]
     pub fn circle() -> Self {
         Self {
-            tiles:     Tiles::empty()
-                .with_tile_size(100.0)
-                .with_obstacle_height(1.0),
+            tiles:     Tiles::empty().with_tile_size(100.0).with_obstacle_height(1.0),
             obstacles: Obstacles(vec![
                 Obstacle::new(
                     (0, 0),
@@ -521,16 +514,8 @@ impl Environment {
                     PlaceableShape::regular_polygon(4, 0.035, (0.44125, 0.57125)),
                     0.0,
                 ),
-                Obstacle::new(
-                    (0, 0),
-                    PlaceableShape::regular_polygon(4, 0.0225, (0.4835, 0.428)),
-                    0.0,
-                ),
-                Obstacle::new(
-                    (0, 0),
-                    PlaceableShape::rectangle(0.0875, 0.035, (0.589, 0.3965)),
-                    0.0,
-                ),
+                Obstacle::new((0, 0), PlaceableShape::regular_polygon(4, 0.0225, (0.4835, 0.428)), 0.0),
+                Obstacle::new((0, 0), PlaceableShape::rectangle(0.0875, 0.035, (0.589, 0.3965)), 0.0),
                 Obstacle::new(
                     (0, 0),
                     PlaceableShape::triangle(

@@ -29,30 +29,17 @@ fn main() -> anyhow::Result<()> {
     let cli = cli::parse_arguments();
 
     let (config, formation, environment): (Config, FormationGroup, Environment) = if cli.default {
-        (
-            Config::default(),
-            FormationGroup::default(),
-            Environment::default(),
-        )
+        (Config::default(), FormationGroup::default(), Environment::default())
     } else {
         let config = read_config(cli.config.as_ref())?;
         if let Some(ref inner) = cli.config {
-            println!(
-                "successfully read config from: {}",
-                inner.as_os_str().to_string_lossy()
-            );
+            println!("successfully read config from: {}", inner.as_os_str().to_string_lossy());
         }
 
         let formation = FormationGroup::from_ron_file(&config.formation_group)?;
-        println!(
-            "successfully read formation config from: {}",
-            config.formation_group
-        );
+        println!("successfully read formation config from: {}", config.formation_group);
         let environment = Environment::from_file(&config.environment)?;
-        println!(
-            "successfully read environment config from: {}",
-            config.environment
-        );
+        println!("successfully read environment config from: {}", config.environment);
 
         (config, formation, environment)
     };
@@ -132,12 +119,7 @@ fn rrt_path(
     .inspect_err(|e| {
         error!("Error: {:?}", e);
     }) {
-        rrt::smooth_path(
-            &mut res,
-            |x: &[f64]| collision_solver.is_feasible(x),
-            1.0,
-            1000,
-        );
+        rrt::smooth_path(&mut res, |x: &[f64]| collision_solver.is_feasible(x), 1.0, 1000);
         path.clear();
         res.iter().for_each(|x| {
             path.push(Vec3::new(x[0] as f32, 0.0, x[1] as f32));
@@ -190,11 +172,7 @@ fn draw_gizmos(mut gizmos: Gizmos, path: Res<Path>, theme: Res<CatppuccinTheme>)
         return;
     }
     for i in 0..path.len() - 1 {
-        gizmos.line(
-            path[i],
-            path[i + 1],
-            Color::from_catppuccin_colour(theme.teal()),
-        );
+        gizmos.line(path[i], path[i + 1], Color::from_catppuccin_colour(theme.teal()));
     }
 }
 

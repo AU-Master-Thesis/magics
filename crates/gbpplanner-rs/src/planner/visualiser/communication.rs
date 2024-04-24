@@ -58,18 +58,12 @@ fn draw_communication_graph_v2(
 
     for (robot_id, robot_state, transform) in robots_query.iter() {
         if !robot_state.interrobot_comms_active {
-            debug!(
-                "interrobot_comms_active is false, for robot: {:?}",
-                robot_id
-            );
+            debug!("interrobot_comms_active is false, for robot: {:?}", robot_id);
             continue;
         }
 
         for connected_with_id in &robot_state.ids_of_robots_connected_with {
-            if let Some((_, _, other_transform)) = robots_query
-                .iter()
-                .find(|(id, _, _)| id == connected_with_id)
-            {
+            if let Some((_, _, other_transform)) = robots_query.iter().find(|(id, _, _)| id == connected_with_id) {
                 let edge = (robot_id, *connected_with_id);
                 if edges.contains(&edge) {
                     continue;
@@ -77,10 +71,7 @@ fn draw_communication_graph_v2(
 
                 edges.0.push(edge);
 
-                debug!(
-                    "drawing line between {:?} and {:?}",
-                    robot_id, connected_with_id
-                );
+                debug!("drawing line between {:?} and {:?}", robot_id, connected_with_id);
                 gizmos.line(transform.translation, other_transform.translation, color);
             }
         }

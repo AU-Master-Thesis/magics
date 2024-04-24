@@ -43,10 +43,7 @@ impl InterRobotFactor {
     pub const NEIGHBORS: usize = 2;
 
     #[must_use]
-    pub fn new(
-        robot_radius: StrictlyPositiveFinite<Float>,
-        external_variable: ExternalVariableId,
-    ) -> Self {
+    pub fn new(robot_radius: StrictlyPositiveFinite<Float>, external_variable: ExternalVariableId) -> Self {
         let robot_radius = robot_radius.get();
         let epsilon = 0.2 * robot_radius;
 
@@ -180,9 +177,7 @@ impl Factor for InterRobotFactor {
             .linearisation_point
             .slice(s![..offset])
             .sub(&state.linearisation_point.slice(s![DOFS..DOFS + offset]));
-        let squared_norm = difference_between_estimated_positions
-            .mapv(|x| x.powi(2))
-            .sum();
+        let squared_norm = difference_between_estimated_positions.mapv(|x| x.powi(2)).sum();
 
         let skip = squared_norm >= self.safety_distance.powi(2);
         // let skip = squared_norm >= Float::powi(self.safety_distance, 2);

@@ -40,11 +40,7 @@ impl Default for SampleRates {
 macro_rules! add_diagnostic_system {
     ($app:ident, $samplerate_cfg:expr, $method:path) => {
         if let Some(duration) = $samplerate_cfg.map(SampleRate::as_duration) {
-            info!(
-                "sampling diagnostic {} every {:?}",
-                stringify!($method),
-                duration
-            );
+            info!("sampling diagnostic {} every {:?}", stringify!($method), duration);
             $app.add_systems(PostUpdate, $method.run_if(on_timer(duration)));
         } else {
             $app.add_systems(PostUpdate, $method);
@@ -69,30 +65,21 @@ impl Plugin for RobotDiagnosticsPlugin {
         );
         add_diagnostic_system!(app, self.sample_rates.messages_sent, Self::messages_sent);
 
-        add_diagnostic_system!(
-            app,
-            self.sample_rates.robot_collisions,
-            Self::robot_collisions
-        );
+        add_diagnostic_system!(app, self.sample_rates.robot_collisions, Self::robot_collisions);
 
         app.add_systems(
             Update,
-            Self::flush_diagnostics
-                .run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
+            Self::flush_diagnostics.run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
         );
     }
 }
 
 impl RobotDiagnosticsPlugin {
-    pub const ENVIRONMEN_COLLISION_COUNT: DiagnosticPath =
-        DiagnosticPath::const_new("environment_collision_count");
-    pub const EXTERNAL_MESSAGES_SENT_COUNT: DiagnosticPath =
-        DiagnosticPath::const_new("external_messages_sent_count");
+    pub const ENVIRONMEN_COLLISION_COUNT: DiagnosticPath = DiagnosticPath::const_new("environment_collision_count");
+    pub const EXTERNAL_MESSAGES_SENT_COUNT: DiagnosticPath = DiagnosticPath::const_new("external_messages_sent_count");
     pub const FACTOR_COUNT: DiagnosticPath = DiagnosticPath::const_new("factor_count");
-    pub const MESSAGES_SENT_COUNT: DiagnosticPath =
-        DiagnosticPath::const_new("messages_sent_count");
-    pub const ROBOT_COLLISION_COUNT: DiagnosticPath =
-        DiagnosticPath::const_new("robot_collision_count");
+    pub const MESSAGES_SENT_COUNT: DiagnosticPath = DiagnosticPath::const_new("messages_sent_count");
+    pub const ROBOT_COLLISION_COUNT: DiagnosticPath = DiagnosticPath::const_new("robot_collision_count");
     pub const ROBOT_COUNT: DiagnosticPath = DiagnosticPath::const_new("robot_count");
     pub const VARIABLE_COUNT: DiagnosticPath = DiagnosticPath::const_new("variable_count");
 
@@ -102,10 +89,7 @@ impl RobotDiagnosticsPlugin {
     }
 
     #[allow(clippy::cast_precision_loss)]
-    fn variables_and_factors(
-        mut diagnostics: Diagnostics,
-        factorgraphs: Query<&FactorGraph, With<RobotState>>,
-    ) {
+    fn variables_and_factors(mut diagnostics: Diagnostics, factorgraphs: Query<&FactorGraph, With<RobotState>>) {
         diagnostics.add_measurement(&Self::VARIABLE_COUNT, || {
             factorgraphs
                 .iter()
@@ -151,16 +135,12 @@ impl RobotDiagnosticsPlugin {
     }
 
     #[allow(clippy::cast_precision_loss)]
-    fn robot_collisions(
-        mut diagnostics: Diagnostics,
-        robots: Query<(&Transform, &Ball), With<RobotState>>,
-    ) {
+    fn robot_collisions(mut diagnostics: Diagnostics, robots: Query<(&Transform, &Ball), With<RobotState>>) {
         diagnostics.add_measurement(&Self::ROBOT_COLLISION_COUNT, || {
             let aabbs = robots
                 .iter()
                 .map(|(tf, ball)| {
-                    let position =
-                        parry2d::na::Isometry2::translation(tf.translation.x, tf.translation.y);
+                    let position = parry2d::na::Isometry2::translation(tf.translation.x, tf.translation.y);
                     ball.aabb(&position)
                 })
                 .collect::<Vec<_>>();
@@ -169,12 +149,11 @@ impl RobotDiagnosticsPlugin {
                 return 0.0;
             }
 
-            let collisions = seq::upper_triangular_exclude_diagonal(
-                aabbs.len().try_into().expect("more than one robot"),
-            )
-            .expect("more that one robot")
-            .filter(|(r, c)| aabbs[*r].contains(&aabbs[*c]))
-            .count();
+            let collisions =
+                seq::upper_triangular_exclude_diagonal(aabbs.len().try_into().expect("more than one robot"))
+                    .expect("more that one robot")
+                    .filter(|(r, c)| aabbs[*r].contains(&aabbs[*c]))
+                    .count();
 
             collisions as f64
         });

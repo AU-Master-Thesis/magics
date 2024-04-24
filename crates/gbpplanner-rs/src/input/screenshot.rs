@@ -92,20 +92,14 @@ fn handle_screenshot_event(
 
         let basename_postfix = match event.postfix {
             ScreenshotSavePostfix::Number => {
-                let existing_screenshots =
-                    glob::glob("./screenshot_*.png").expect("valid glob pattern");
+                let existing_screenshots = glob::glob("./screenshot_*.png").expect("valid glob pattern");
                 let latest_screenshot_id = existing_screenshots
                     .filter_map(std::result::Result::ok)
                     .filter_map(|path| {
-                        path.file_name().and_then(|file_name| {
-                            file_name.to_str().map(std::string::ToString::to_string)
-                        })
+                        path.file_name()
+                            .and_then(|file_name| file_name.to_str().map(std::string::ToString::to_string))
                     })
-                    .filter_map(|basename| {
-                        basename["screenshot_".len()..basename.len() - 4]
-                            .parse::<usize>()
-                            .ok()
-                    })
+                    .filter_map(|basename| basename["screenshot_".len()..basename.len() - 4].parse::<usize>().ok())
                     .max();
 
                 // TODO: handle wasm32 constraints
@@ -147,10 +141,7 @@ fn handle_screenshot_event(
         info!("saved screenshot to ./{}", path);
 
         if config.show_notification {
-            toast_event.send(ToastEvent::success(format!(
-                "saved screenshot to ./{}",
-                path
-            )));
+            toast_event.send(ToastEvent::success(format!("saved screenshot to ./{}", path)));
         }
     }
 }

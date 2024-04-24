@@ -283,9 +283,6 @@ mod tests {
             Angle::try_from(-1.0),
             Err(AngleError::OutOfRangeRadians(-1.0))
         ));
-        assert!(matches!(
-            Angle::try_from(7.0),
-            Err(AngleError::OutOfRangeRadians(7.0))
-        ));
+        assert!(matches!(Angle::try_from(7.0), Err(AngleError::OutOfRangeRadians(7.0))));
     }
 }

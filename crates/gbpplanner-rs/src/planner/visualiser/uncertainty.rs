@@ -22,18 +22,17 @@ pub struct UncertaintyVisualiserPlugin;
 
 impl Plugin for UncertaintyVisualiserPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<UncertaintyVisualizerEnabled>()
-            .add_systems(
-                Update,
-                (
-                    init_uncertainty,
-                    show_or_hide_uncertainty.run_if(event_exists::<DrawSettingsEvent>),
-                    // show_or_hide_uncertainty.run_if(event_exists::<DrawSetting<Uncertainty>>),
-                    update_uncertainty.run_if(uncertainty_visualizer_enabled),
-                    // remove_all_uncertainty_visualisers.run_if(on_event::<ReloadSimulation>()),
-                    // remove_all_uncertainty_visualisers.run_if(on_event::<EndSimulation>()),
-                ),
-            );
+        app.init_resource::<UncertaintyVisualizerEnabled>().add_systems(
+            Update,
+            (
+                init_uncertainty,
+                show_or_hide_uncertainty.run_if(event_exists::<DrawSettingsEvent>),
+                // show_or_hide_uncertainty.run_if(event_exists::<DrawSetting<Uncertainty>>),
+                update_uncertainty.run_if(uncertainty_visualizer_enabled),
+                // remove_all_uncertainty_visualisers.run_if(on_event::<ReloadSimulation>()),
+                // remove_all_uncertainty_visualisers.run_if(on_event::<EndSimulation>()),
+            ),
+        );
     }
 }
 
@@ -77,117 +76,115 @@ fn init_uncertainty(
     config: Res<Config>,
     theme: Res<CatppuccinTheme>,
 ) {
-    query
-        .iter()
-        .for_each(|(entity, factorgraph, color_association)| {
-            // Mark the robot with `HasUncertaintyVisualiser` to exclude next time
-            commands.entity(entity).insert(HasUncertaintyVisualiser);
+    query.iter().for_each(|(entity, factorgraph, color_association)| {
+        // Mark the robot with `HasUncertaintyVisualiser` to exclude next time
+        commands.entity(entity).insert(HasUncertaintyVisualiser);
 
-            factorgraph.variables().for_each(|(index, v)| {
-                // let mean = v.belief.mean();
-                #[allow(clippy::cast_possible_truncation)]
-                let [x, y] = v.estimated_position();
-                #[allow(clippy::cast_possible_truncation)]
-                let transform = Vec3::new(
-                    x as f32,
-                    2.0f32.mul_add(-Z_FIGHTING_OFFSET, config.visualisation.height.objects), /* just under
-                                                                                    * the
-                                                                                    * lines (z-fighting
-                                                                                    * prevention) */
-                    y as f32,
-                );
+        factorgraph.variables().for_each(|(index, v)| {
+            // let mean = v.belief.mean();
+            #[allow(clippy::cast_possible_truncation)]
+            let [x, y] = v.estimated_position();
+            #[allow(clippy::cast_possible_truncation)]
+            let transform = Vec3::new(
+                x as f32,
+                2.0f32.mul_add(-Z_FIGHTING_OFFSET, config.visualisation.height.objects), /* just under
+                                                                                          * the
+                                                                                          * lines (z-fighting
+                                                                                          * prevention) */
+                y as f32,
+            );
 
-                // if the covariance is too large, we won't be able to visualise it
-                // however, with this check, we can visualise it in a different colour
-                // such that the user knows that the uncertainty is too large, and
-                // that the size/shape of the visualisation is not accurate
-                let mut attenable = true;
+            // if the covariance is too large, we won't be able to visualise it
+            // however, with this check, we can visualise it in a different colour
+            // such that the user knows that the uncertainty is too large, and
+            // that the size/shape of the visualisation is not accurate
+            let mut attenable = true;
 
-                // covariance matrix
-                // [[a, b, _, _],
-                //  [b, c, _, _],
-                //  [_, _, _, _],
-                //  [_, _, _, _]]
-                let covariance = &v.belief.covariance_matrix;
+            // covariance matrix
+            // [[a, b, _, _],
+            //  [b, c, _, _],
+            //  [_, _, _, _],
+            //  [_, _, _, _]]
+            let covariance = &v.belief.covariance_matrix;
 
-                // half major axis λ₁ and half minor axis λ₂
-                // λ₁ = (a + c) / 2 + √((a - c)² / 4 + b²)
-                // λ₂ = (a + c) / 2 - √((a - c)² / 4 + b²)
-                let a = covariance[(0, 0)];
-                let b = covariance[(0, 1)];
-                let c = covariance[(1, 1)];
+            // half major axis λ₁ and half minor axis λ₂
+            // λ₁ = (a + c) / 2 + √((a - c)² / 4 + b²)
+            // λ₂ = (a + c) / 2 - √((a - c)² / 4 + b²)
+            let a = covariance[(0, 0)];
+            let b = covariance[(0, 1)];
+            let c = covariance[(1, 1)];
 
-                let (half_major_axis, half_minor_axis) = {
-                    let first_term = (a + c) / 2.0;
-                    let second_term = f64::sqrt(b.mul_add(b, (a - c).powi(2) / 4.0));
+            let (half_major_axis, half_minor_axis) = {
+                let first_term = (a + c) / 2.0;
+                let second_term = f64::sqrt(b.mul_add(b, (a - c).powi(2) / 4.0));
 
-                    (first_term + second_term, first_term - second_term)
-                };
+                (first_term + second_term, first_term - second_term)
+            };
 
-                // angle of the major axis with the x-axis
-                // θ = arctan²(λ₁ - a, b)
-                let angle = f64::atan2(half_major_axis - a, b) as f32;
+            // angle of the major axis with the x-axis
+            // θ = arctan²(λ₁ - a, b)
+            let angle = f64::atan2(half_major_axis - a, b) as f32;
 
-                let mesh = meshes.add(Ellipse::new(
-                    // pick `x` from the covariance diagonal, but cap it at 10.0
-                    if half_major_axis > 20.0 {
-                        attenable = false;
-                        config.visualisation.uncertainty.max_radius
-                    } else {
-                        a as f32
-                        // covariance.diag()[0] as f32
-                    },
-                    // pick `y` from the covariance diagonal, but cap it at 10.0
-                    if half_minor_axis > 20.0 {
-                        attenable = false;
-                        config.visualisation.uncertainty.max_radius
-                    } else {
-                        c as f32
-                        // covariance.diag()[1] as f32
-                    },
-                ));
-
-                let mut transform = Transform::from_translation(transform)
-                    .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
-                transform.rotate_y(angle);
-
-                // error!(
-                //     "{:?}: Initialising uncertainty at {:?}, with covariance {:?}",
-                //     entity, transform, covariance
-                // );
-
-                let material = if attenable {
-                    // scene_assets.materials.uncertainty.clone()
-                    standard_material_assets.add(StandardMaterial {
-                        base_color: Color::from_catppuccin_colour_with_alpha(
-                            theme.get_display_colour(&color_association.name),
-                            0.2,
-                        ),
-                        ..Default::default()
-                    })
+            let mesh = meshes.add(Ellipse::new(
+                // pick `x` from the covariance diagonal, but cap it at 10.0
+                if half_major_axis > 20.0 {
+                    attenable = false;
+                    config.visualisation.uncertainty.max_radius
                 } else {
-                    materials.uncertainty_unattenable.clone()
-                };
-                let visibility = if config.visualisation.draw.uncertainty {
-                    Visibility::Visible
+                    a as f32
+                    // covariance.diag()[0] as f32
+                },
+                // pick `y` from the covariance diagonal, but cap it at 10.0
+                if half_minor_axis > 20.0 {
+                    attenable = false;
+                    config.visualisation.uncertainty.max_radius
                 } else {
-                    Visibility::Hidden
-                };
-                // Spawn a `UncertaintyVisualiser` component with a corresponding 2D circle
-                commands.spawn((
-                    RobotTracker::new(entity).with_variable_index(index.into()),
-                    UncertaintyVisualiser,
-                    PbrBundle {
-                        mesh,
-                        material,
-                        transform,
-                        visibility,
-                        ..Default::default()
-                    },
-                    simulation_loader::Reloadable,
-                ));
-            });
+                    c as f32
+                    // covariance.diag()[1] as f32
+                },
+            ));
+
+            let mut transform = Transform::from_translation(transform)
+                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
+            transform.rotate_y(angle);
+
+            // error!(
+            //     "{:?}: Initialising uncertainty at {:?}, with covariance {:?}",
+            //     entity, transform, covariance
+            // );
+
+            let material = if attenable {
+                // scene_assets.materials.uncertainty.clone()
+                standard_material_assets.add(StandardMaterial {
+                    base_color: Color::from_catppuccin_colour_with_alpha(
+                        theme.get_display_colour(&color_association.name),
+                        0.2,
+                    ),
+                    ..Default::default()
+                })
+            } else {
+                materials.uncertainty_unattenable.clone()
+            };
+            let visibility = if config.visualisation.draw.uncertainty {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            };
+            // Spawn a `UncertaintyVisualiser` component with a corresponding 2D circle
+            commands.spawn((
+                RobotTracker::new(entity).with_variable_index(index.into()),
+                UncertaintyVisualiser,
+                PbrBundle {
+                    mesh,
+                    material,
+                    transform,
+                    visibility,
+                    ..Default::default()
+                },
+                simulation_loader::Reloadable,
+            ));
         });
+    });
 }
 
 /// A **Bevy** [`Update`] system
@@ -267,7 +264,9 @@ fn update_uncertainty(
                 // else update the transform
                 *transform = Transform::from_translation(Vec3::new(
                     mean[0] as f32,
-                    2.0f32.mul_add(-Z_FIGHTING_OFFSET, config.visualisation.height.objects), // just under the lines (z-fighting prevention)
+                    2.0f32.mul_add(-Z_FIGHTING_OFFSET, config.visualisation.height.objects), /* just under the lines
+                                                                                              * (z-fighting
+                                                                                              * prevention) */
                     mean[1] as f32,
                 ))
                 .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
@@ -316,10 +315,7 @@ fn show_or_hide_uncertainty(
     }
 }
 
-fn remove_all_uncertainty_visualisers(
-    mut commands: Commands,
-    query: Query<Entity, With<UncertaintyVisualiser>>,
-) {
+fn remove_all_uncertainty_visualisers(mut commands: Commands, query: Query<Entity, With<UncertaintyVisualiser>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }

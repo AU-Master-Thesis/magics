@@ -63,10 +63,7 @@ fn remove_rendered_factorgraph_when_robot_despawns(
     }
 }
 
-fn remove_rendered_factorgraphs(
-    mut commands: Commands,
-    query: Query<Entity, With<VariableVisualiser>>,
-) {
+fn remove_rendered_factorgraphs(mut commands: Commands, query: Query<Entity, With<VariableVisualiser>>) {
     for entity in &query {
         info!("despawning factorgraph visualiser: {:?}", entity);
         commands.entity(entity).despawn();
@@ -149,12 +146,8 @@ fn create_factorgraph_visualizer(
     theme: Res<CatppuccinTheme>,
 ) {
     for RobotSpawned(robot_id) in spawn_robot_event.read() {
-        let Some((_, factorgraph, color_association)) =
-            query.iter().find(|(entity, _, _)| entity == robot_id)
-        else {
-            error!(
-                "should not happen, a factorgraph should be attached to the newly spawned robot"
-            );
+        let Some((_, factorgraph, color_association)) = query.iter().find(|(entity, _, _)| entity == robot_id) else {
+            error!("should not happen, a factorgraph should be attached to the newly spawned robot");
             continue;
         };
 
@@ -182,9 +175,7 @@ fn create_factorgraph_visualizer(
                     mesh: meshes.variable.clone(),
                     // material: scene_assets.materials.variable.clone(),
                     material: matierals.add(StandardMaterial {
-                        base_color: Color::from_catppuccin_colour(
-                            theme.get_display_colour(&color_association.name),
-                        ),
+                        base_color: Color::from_catppuccin_colour(theme.get_display_colour(&color_association.name)),
                         ..Default::default()
                     }),
                     transform: Transform::from_translation(transform),
@@ -238,8 +229,7 @@ fn update_factorgraphs(
 
                 // else update the transform
                 let [x, y] = v.estimated_position();
-                transform.translation =
-                    Vec3::new(x as f32, config.visualisation.height.objects, y as f32);
+                transform.translation = Vec3::new(x as f32, config.visualisation.height.objects, y as f32);
             }
         }
     }

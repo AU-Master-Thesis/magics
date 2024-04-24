@@ -38,13 +38,9 @@ impl std::cmp::PartialOrd for FactorId {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         if self.factorgraph_id < other.factorgraph_id {
             Some(std::cmp::Ordering::Less)
-        } else if self.factorgraph_id == other.factorgraph_id
-            && self.factor_index.0 < other.factor_index.0
-        {
+        } else if self.factorgraph_id == other.factorgraph_id && self.factor_index.0 < other.factor_index.0 {
             Some(std::cmp::Ordering::Less)
-        } else if self.factorgraph_id == other.factorgraph_id
-            && self.factor_index == other.factor_index
-        {
+        } else if self.factorgraph_id == other.factorgraph_id && self.factor_index == other.factor_index {
             Some(std::cmp::Ordering::Equal)
         } else {
             Some(std::cmp::Ordering::Greater)
@@ -96,13 +92,9 @@ impl std::cmp::PartialOrd for VariableId {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         if self.factorgraph_id < other.factorgraph_id {
             Some(std::cmp::Ordering::Less)
-        } else if self.factorgraph_id == other.factorgraph_id
-            && self.variable_index.0 < other.variable_index.0
-        {
+        } else if self.factorgraph_id == other.factorgraph_id && self.variable_index.0 < other.variable_index.0 {
             Some(std::cmp::Ordering::Less)
-        } else if self.factorgraph_id == other.factorgraph_id
-            && self.variable_index == other.variable_index
-        {
+        } else if self.factorgraph_id == other.factorgraph_id && self.variable_index == other.variable_index {
             Some(std::cmp::Ordering::Equal)
         } else {
             Some(std::cmp::Ordering::Greater)

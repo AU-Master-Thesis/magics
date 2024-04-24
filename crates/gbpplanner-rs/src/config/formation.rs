@@ -234,11 +234,7 @@ impl Formation {
 
     /// Convert a `Formation` description into the waypoints the robot has to
     /// follow
-    #[allow(
-        clippy::missing_panics_doc,
-        clippy::too_many_lines,
-        clippy::cast_precision_loss
-    )]
+    #[allow(clippy::missing_panics_doc, clippy::too_many_lines, clippy::cast_precision_loss)]
     pub fn as_positions(
         &self,
         world_dims: WorldDimensions,
@@ -269,11 +265,7 @@ impl Formation {
                         if d < robot_diameter * n_robots {
                             None
                         } else {
-                            Some(
-                                (0..self.robots.get())
-                                    .map(|x| x as f32 / n_robots)
-                                    .collect(),
-                            )
+                            Some((0..self.robots.get()).map(|x| x as f32 / n_robots).collect())
                         }
                     }
                 }?;
@@ -282,10 +274,7 @@ impl Formation {
 
                 assert_eq!(lerp_amounts.len(), self.robots.get());
 
-                let initial_positions: Vec<_> = lerp_amounts
-                    .iter()
-                    .map(|by| ls_start.lerp(ls_end, *by))
-                    .collect();
+                let initial_positions: Vec<_> = lerp_amounts.iter().map(|by| ls_start.lerp(ls_end, *by)).collect();
 
                 let waypoints_of_each_robot: Vec<Vec<Vec2>> = self
                     .waypoints
@@ -297,15 +286,12 @@ impl Formation {
                         let ls_start = world_dims.point_to_world_position(ls_start);
                         let ls_end = world_dims.point_to_world_position(ls_end);
                         let positions: Vec<Vec2> = match wp.projection_strategy {
-                            ProjectionStrategy::Identity => lerp_amounts
-                                .iter()
-                                .map(|by| ls_start.lerp(ls_end, *by))
-                                .collect(),
-                            ProjectionStrategy::Cross => lerp_amounts
-                                .iter()
-                                .rev()
-                                .map(|by| ls_start.lerp(ls_end, *by))
-                                .collect(),
+                            ProjectionStrategy::Identity => {
+                                lerp_amounts.iter().map(|by| ls_start.lerp(ls_end, *by)).collect()
+                            }
+                            ProjectionStrategy::Cross => {
+                                lerp_amounts.iter().rev().map(|by| ls_start.lerp(ls_end, *by)).collect()
+                            }
                         };
                         // }
                         //
@@ -464,9 +450,7 @@ fn randomly_place_nonoverlapping_circles_along_circle_perimeter(
     for _ in 0..max_attempts.get() {
         let theta = rng.gen_range(0.0..TAU);
         let pos = Vec2::from_polar(theta, perimeter_radius);
-        let not_overlapping_with_others = placed_positions
-            .iter()
-            .any(|other| other.distance(pos) <= radius);
+        let not_overlapping_with_others = placed_positions.iter().any(|other| other.distance(pos) <= radius);
 
         if not_overlapping_with_others {
             placed_angles.push(theta);
@@ -552,14 +536,12 @@ impl FormationGroup {
     /// 2. The contents of `path` is not valid RON.
     /// 3. The parsed data does not represent a valid `FormationGroup`.
     pub fn from_ron_file<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
-        std::fs::read_to_string(path)
-            .map(|file_contents| Self::parse_from_ron(file_contents.as_str()))?
+        std::fs::read_to_string(path).map(|file_contents| Self::parse_from_ron(file_contents.as_str()))?
     }
 
     #[allow(clippy::missing_errors_doc)]
     pub fn from_yaml_file<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
-        std::fs::read_to_string(path)
-            .map(|file_contents| Self::parse_from_yaml(file_contents.as_str()))?
+        std::fs::read_to_string(path).map(|file_contents| Self::parse_from_yaml(file_contents.as_str()))?
     }
 
     /// Attempt to parse a `FormationGroup` from a RON encoded string.
@@ -588,10 +570,7 @@ impl FormationGroup {
 
     /// Returns how many robots all formations in the group together will spawn
     pub fn robots_to_spawn(&self) -> usize {
-        self.formations
-            .iter()
-            .map(Formation::robots_to_spawn)
-            .sum::<usize>()
+        self.formations.iter().map(Formation::robots_to_spawn).sum::<usize>()
     }
 
     pub fn circle_from_paper() -> Self {

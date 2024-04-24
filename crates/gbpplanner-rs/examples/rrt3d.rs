@@ -31,30 +31,17 @@ fn main() -> anyhow::Result<()> {
     let cli = cli::parse_arguments();
 
     let (config, formation, environment): (Config, FormationGroup, Environment) = if cli.default {
-        (
-            Config::default(),
-            FormationGroup::default(),
-            Environment::default(),
-        )
+        (Config::default(), FormationGroup::default(), Environment::default())
     } else {
         let config = read_config(cli.config.as_ref())?;
         if let Some(ref inner) = cli.config {
-            println!(
-                "successfully read config from: {}",
-                inner.as_os_str().to_string_lossy()
-            );
+            println!("successfully read config from: {}", inner.as_os_str().to_string_lossy());
         }
 
         let formation = FormationGroup::from_ron_file(&config.formation_group)?;
-        println!(
-            "successfully read formation config from: {}",
-            config.formation_group
-        );
+        println!("successfully read formation config from: {}", config.formation_group);
         let environment = Environment::from_file(&config.environment)?;
-        println!(
-            "successfully read environment config from: {}",
-            config.environment
-        );
+        println!("successfully read environment config from: {}", config.environment);
 
         (config, formation, environment)
     };
@@ -233,8 +220,7 @@ fn spawn_camera(mut commands: Commands) {
 /// Spawns a directional light.
 fn lighting(mut commands: Commands) {
     commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_translation(Vec3::X * 5.0 + Vec3::Z * 8.0)
-            .looking_at(Vec3::ZERO, Vec3::Z),
+        transform: Transform::from_translation(Vec3::X * 5.0 + Vec3::Z * 8.0).looking_at(Vec3::ZERO, Vec3::Z),
         ..default()
     });
 }

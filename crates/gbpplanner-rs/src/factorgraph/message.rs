@@ -54,18 +54,14 @@ impl Message {
     /// or `None` if the message is empty.
     #[inline]
     pub fn precision_matrix(&self) -> Option<&Matrix<Float>> {
-        self.payload
-            .as_ref()
-            .map(|payload| &payload.precision_matrix)
+        self.payload.as_ref().map(|payload| &payload.precision_matrix)
     }
 
     /// Returns a reference to the information vector
     /// or `None` if the message is empty.
     #[inline]
     pub fn information_vector(&self) -> Option<&Vector<Float>> {
-        self.payload
-            .as_ref()
-            .map(|payload| &payload.information_factor)
+        self.payload.as_ref().map(|payload| &payload.information_factor)
     }
 
     /// Returns `true` if the message is [`Empty`].

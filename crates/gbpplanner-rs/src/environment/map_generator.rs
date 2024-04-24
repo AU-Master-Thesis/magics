@@ -213,9 +213,8 @@ fn build_obstacles(
                         .expect("Failed to create triangle mesh"),
                 );
 
-                let rotation = Quat::from_rotation_y(
-                    std::f32::consts::FRAC_PI_2 + obstacle.rotation.as_radians() as f32,
-                );
+                let rotation =
+                    Quat::from_rotation_y(std::f32::consts::FRAC_PI_2 + obstacle.rotation.as_radians() as f32);
                 let transform = Transform::from_translation(center).with_rotation(rotation);
 
                 Some((mesh, transform))
@@ -250,9 +249,8 @@ fn build_obstacles(
                     std::f32::consts::FRAC_PI_4
                 );
 
-                let rotation = Quat::from_rotation_y(
-                    std::f32::consts::FRAC_PI_4 + obstacle.rotation.as_radians() as f32,
-                );
+                let rotation =
+                    Quat::from_rotation_y(std::f32::consts::FRAC_PI_4 + obstacle.rotation.as_radians() as f32);
                 let transform = Transform::from_translation(center).with_rotation(rotation);
 
                 Some((mesh, transform))
@@ -389,21 +387,13 @@ fn build_tile_grid(
                             // left side
                             cuboid,
                             // left side transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z - pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z - pos_offset)),
                         ),
                         (
                             // right side
                             cuboid,
                             // right side transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z + pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z + pos_offset)),
                         ),
                     ])
                 }
@@ -422,22 +412,14 @@ fn build_tile_grid(
                             // mesh_handle.clone(),
                             cuboid,
                             // left side transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x - pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x - pos_offset, obstacle_y, offset_z)),
                         ),
                         (
                             // right side
                             // mesh_handle.clone(),
                             cuboid,
                             // right side transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x + pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x + pos_offset, obstacle_y, offset_z)),
                         ),
                     ])
                 }
@@ -453,8 +435,7 @@ fn build_tile_grid(
                     // let mesh_handle = meshes.add(cuboid);
 
                     // Plug at the right
-                    let cuboid_plug =
-                        Cuboid::new(base_dim, obstacle_height, path_width * tile_size);
+                    let cuboid_plug = Cuboid::new(base_dim, obstacle_height, path_width * tile_size);
                     // let parry_cuboid_plug: parry2d::shape::Cuboid = cuboid_plug.into();
 
                     Some(vec![
@@ -462,31 +443,19 @@ fn build_tile_grid(
                             // top
                             cuboid,
                             // top transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z - pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z - pos_offset)),
                         ),
                         (
                             // bottom
                             cuboid,
                             // bottom transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z + pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z + pos_offset)),
                         ),
                         (
                             // right plug
                             cuboid_plug,
                             // right plug transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x + pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x + pos_offset, obstacle_y, offset_z)),
                         ),
                     ])
                 }
@@ -502,8 +471,7 @@ fn build_tile_grid(
                     // let mesh_handle = meshes.add(cuboid);
 
                     // Plug at the left
-                    let cuboid_plug =
-                        Cuboid::new(base_dim, obstacle_height, path_width * tile_size);
+                    let cuboid_plug = Cuboid::new(base_dim, obstacle_height, path_width * tile_size);
                     // let parry_cuboid_plug: parry2d::shape::Cuboid = cuboid_plug.into();
 
                     Some(vec![
@@ -511,31 +479,19 @@ fn build_tile_grid(
                             // top
                             cuboid,
                             // top transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z - pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z - pos_offset)),
                         ),
                         (
                             // bottom
                             cuboid,
                             // bottom transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z + pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z + pos_offset)),
                         ),
                         (
                             // left plug
                             cuboid_plug,
                             // left plug transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x - pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x - pos_offset, obstacle_y, offset_z)),
                         ),
                     ])
                 }
@@ -551,8 +507,7 @@ fn build_tile_grid(
                     // let mesh_handle = meshes.add(cuboid);
 
                     // Plug at the top
-                    let cuboid_plug =
-                        Cuboid::new(path_width * tile_size, obstacle_height, base_dim);
+                    let cuboid_plug = Cuboid::new(path_width * tile_size, obstacle_height, base_dim);
                     // let parry_cuboid_plug: parry2d::shape::Cuboid = cuboid_plug.into();
 
                     Some(vec![
@@ -560,31 +515,19 @@ fn build_tile_grid(
                             // left
                             cuboid,
                             // left transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x - pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x - pos_offset, obstacle_y, offset_z)),
                         ),
                         (
                             // right
                             cuboid,
                             // right transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x + pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x + pos_offset, obstacle_y, offset_z)),
                         ),
                         (
                             // top plug
                             cuboid_plug,
                             // top plug transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z - pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z - pos_offset)),
                         ),
                     ])
                 }
@@ -600,8 +543,7 @@ fn build_tile_grid(
                     // let mesh_handle = meshes.add(cuboid);
 
                     // Plug at the bottom
-                    let cuboid_plug =
-                        Cuboid::new(path_width * tile_size, obstacle_height, base_dim);
+                    let cuboid_plug = Cuboid::new(path_width * tile_size, obstacle_height, base_dim);
                     // let parry_cuboid_plug: parry2d::shape::Cuboid = cuboid_plug.into();
 
                     Some(vec![
@@ -609,31 +551,19 @@ fn build_tile_grid(
                             // left
                             cuboid,
                             // left transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x - pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x - pos_offset, obstacle_y, offset_z)),
                         ),
                         (
                             // right
                             cuboid,
                             // right transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x + pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x + pos_offset, obstacle_y, offset_z)),
                         ),
                         (
                             // bottom plug
                             cuboid_plug,
                             // bottom plug transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z + pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z + pos_offset)),
                         ),
                     ])
                 }
@@ -664,21 +594,13 @@ fn build_tile_grid(
                             // left side
                             cuboid_left,
                             // left side transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x - pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x - pos_offset, obstacle_y, offset_z)),
                         ),
                         (
                             // top
                             cuboid_top,
                             // top transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z - pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z - pos_offset)),
                         ),
                     ])
                 }
@@ -708,21 +630,13 @@ fn build_tile_grid(
                             // right side
                             cuboid_right,
                             // right side transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x + pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x + pos_offset, obstacle_y, offset_z)),
                         ),
                         (
                             // top
                             cuboid_top,
                             // top transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z - pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z - pos_offset)),
                         ),
                     ])
                 }
@@ -753,21 +667,13 @@ fn build_tile_grid(
                             // left side
                             cuboid_left,
                             // left side transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x - pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x - pos_offset, obstacle_y, offset_z)),
                         ),
                         (
                             // bottom
                             cuboid_bottom,
                             // bottom transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z + pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z + pos_offset)),
                         ),
                     ])
                 }
@@ -798,21 +704,13 @@ fn build_tile_grid(
                             // right side
                             cuboid_right,
                             // right side transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x + pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x + pos_offset, obstacle_y, offset_z)),
                         ),
                         (
                             // bottom
                             cuboid_bottom,
                             // bottom transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z + pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z + pos_offset)),
                         ),
                     ])
                 }
@@ -849,11 +747,7 @@ fn build_tile_grid(
                             // top center cuboid
                             top,
                             // top center cuboid transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z - pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z - pos_offset)),
                         ),
                     ])
                 }
@@ -890,11 +784,7 @@ fn build_tile_grid(
                             // bottom center cuboid
                             bottom,
                             // bottom center cuboid transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x,
-                                obstacle_y,
-                                offset_z + pos_offset,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x, obstacle_y, offset_z + pos_offset)),
                         ),
                     ])
                 }
@@ -931,11 +821,7 @@ fn build_tile_grid(
                             // left center cuboid
                             left,
                             // left center cuboid transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x - pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x - pos_offset, obstacle_y, offset_z)),
                         ),
                     ])
                 }
@@ -972,11 +858,7 @@ fn build_tile_grid(
                             // right center cuboid
                             right,
                             // right center cuboid transform
-                            Transform::from_translation(Vec3::new(
-                                offset_x + pos_offset,
-                                obstacle_y,
-                                offset_z,
-                            )),
+                            Transform::from_translation(Vec3::new(offset_x + pos_offset, obstacle_y, offset_z)),
                         ),
                     ])
                 }

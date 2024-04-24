@@ -164,10 +164,7 @@ mod tests {
         assert_relative_eq!(Percentage::new(0.0).unwrap().as_fraction(), 0.0f64);
         assert_relative_eq!(Percentage::new(100.0).unwrap().as_fraction(), 1.0f64);
         assert_relative_eq!(Percentage::new(50.0).unwrap().as_fraction(), 0.5f64);
-        assert_relative_eq!(
-            unsafe { Percentage::new_unchecked(0.0) }.as_fraction(),
-            0.0f64
-        );
+        assert_relative_eq!(unsafe { Percentage::new_unchecked(0.0) }.as_fraction(), 0.0f64);
     }
 
     #[test]

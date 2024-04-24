@@ -234,15 +234,9 @@ mod tests {
             Err(MinLenVecError::NotEnoughElements(3))
         ));
 
-        assert!(matches!(
-            MinLenVec::<_, 3>::new(vec![1, 2, 3]),
-            Ok(MinLenVec(_))
-        ));
+        assert!(matches!(MinLenVec::<_, 3>::new(vec![1, 2, 3]), Ok(MinLenVec(_))));
 
-        assert!(matches!(
-            MinLenVec::<_, 1>::new(vec![1.0]),
-            Ok(MinLenVec(_))
-        ));
+        assert!(matches!(MinLenVec::<_, 1>::new(vec![1.0]), Ok(MinLenVec(_))));
         assert!(matches!(
             MinLenVec::<i32, 1>::new(vec![]),
             Err(MinLenVecError::NotEnoughElements(1))

@@ -22,11 +22,7 @@ pub struct PID {
 
 impl Default for PID {
     fn default() -> Self {
-        Self {
-            p: 1.0,
-            i: 0.0,
-            d: 0.0,
-        }
+        Self { p: 1.0, i: 0.0, d: 0.0 }
     }
 }
 
@@ -130,8 +126,7 @@ impl FollowCameraBundle {
         // attached: bool,
         params: FollowCameraMe,
     ) -> Self {
-        let target_transform =
-            target.map_or_else(|| Transform::from_translation(Vec3::ZERO), |t| *t);
+        let target_transform = target.map_or_else(|| Transform::from_translation(Vec3::ZERO), |t| *t);
         // let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
         let offset = params
             .offset
@@ -185,9 +180,7 @@ fn add_follow_cameras(
     children: Query<&Children>,
 ) {
     for (entity, transform, follow_camera_flag) in &entities_to_attach_a_follow_cam_to {
-        let camera_already_attached = children
-            .iter_descendants(entity)
-            .any(|e| cameras.get(e).is_ok());
+        let camera_already_attached = children.iter_descendants(entity).any(|e| cameras.get(e).is_ok());
 
         if camera_already_attached {
             // an entity can only have one follower camera attached to it

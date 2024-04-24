@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use bevy::{
     diagnostic::{
-        DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
-        LogDiagnosticsPlugin, SystemInformationDiagnosticsPlugin,
+        DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin,
+        SystemInformationDiagnosticsPlugin,
     },
     prelude::*,
 };
@@ -87,8 +87,8 @@ impl MetricsPlugin {
             .title_bar(true)
             .vscroll(true)
             .show(egui_ctx.ctx_mut(), |ui| {
-                ui_state.mouse_over.floating_window = ui.rect_contains_pointer(ui.max_rect())
-                    && config.interaction.ui_focus_cancels_inputs;
+                ui_state.mouse_over.floating_window =
+                    ui.rect_contains_pointer(ui.max_rect()) && config.interaction.ui_focus_cancels_inputs;
 
                 // TODO: add diagnostic source for number of collisions
                 for (name, diagnostic_path) in [
@@ -104,17 +104,12 @@ impl MetricsPlugin {
                     ("collisions", &RobotDiagnosticsPlugin::ROBOT_COLLISION_COUNT),
                 ] {
                     #[allow(clippy::cast_possible_truncation)]
-                    if let Some(value) = diagnostics
-                        .get_measurement(diagnostic_path)
-                        .map(|d| d.value as i64)
-                    {
+                    if let Some(value) = diagnostics.get_measurement(diagnostic_path).map(|d| d.value as i64) {
                         ui.label(format!("{}: {}", name, value));
                     }
                 }
 
-                if let Some(messages_sent) =
-                    diagnostics.get(&RobotDiagnosticsPlugin::MESSAGES_SENT_COUNT)
-                {
+                if let Some(messages_sent) = diagnostics.get(&RobotDiagnosticsPlugin::MESSAGES_SENT_COUNT) {
                     #[allow(clippy::cast_precision_loss)]
                     let points: PlotPoints = messages_sent.values()
                         // .iter()
@@ -154,9 +149,7 @@ impl MetricsPlugin {
         //     .map(|ref inner| inner.response.rect.width())
         //     .unwrap_or(0.0);
 
-        *current_pos = window
-            .map(|ref inner| inner.response.rect.min)
-            .unwrap_or_default();
+        *current_pos = window.map(|ref inner| inner.response.rect.min).unwrap_or_default();
 
         // let messages_sent_window = egui::Window::new("Metrics")
         //     .collapsible(true)
