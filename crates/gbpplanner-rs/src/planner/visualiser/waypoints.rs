@@ -7,11 +7,7 @@ use crate::{
     bevy_utils::run_conditions::event_exists,
     config::{Config, DrawSetting},
     input::DrawSettingsEvent,
-    planner::{
-        robot::RobotReachedWaypoint,
-        spawner::{RobotWaypointReached, WaypointCreated},
-        RobotId,
-    },
+    planner::{robot::RobotReachedWaypoint, spawner::WaypointCreated, RobotId},
     simulation_loader,
 };
 
@@ -25,7 +21,7 @@ impl Plugin for WaypointVisualiserPlugin {
             (
                 listen_for_robot_reached_waypoint_event,
                 create_waypoint_visualizer,
-                delete_mesh_of_reached_waypoints,
+                // delete_mesh_of_reached_waypoints,
                 show_or_hide_waypoint_visualizers.run_if(event_exists::<DrawSettingsEvent>),
             ),
         );
@@ -33,8 +29,9 @@ impl Plugin for WaypointVisualiserPlugin {
 }
 
 fn listen_for_robot_reached_waypoint_event(
+    mut commands: Commands,
     mut evr_robot_reached_waypoint: EventReader<RobotReachedWaypoint>,
-    mut evw_waypoint_reached: EventWriter<RobotWaypointReached>,
+    // mut evw_waypoint_reached: EventWriter<RobotReachedWaypoint>,
     waypoint_visualizers: Query<(Entity, &AssociatedWithRobot), With<WaypointVisualiser>>,
 ) {
     for event in evr_robot_reached_waypoint.read() {
@@ -44,21 +41,22 @@ fn listen_for_robot_reached_waypoint_event(
             .find(|(_, AssociatedWithRobot(robot_id))| *robot_id == event.robot_id)
             .map(|(entity, _)| entity)
         {
-            evw_waypoint_reached.send(RobotWaypointReached(waypoint_id));
+            commands.entity(waypoint_id).despawn();
+            // evw_waypoint_reached.send(RobotReachedWaypoint(waypoint_id));
         };
     }
 }
 
-/// **Bevy** system to delete the mesh of the allocated waypoint visualizer
-/// whenever the waypoint has been reached.
-fn delete_mesh_of_reached_waypoints(
-    mut commands: Commands,
-    mut evr_delete_waypoint: EventReader<RobotWaypointReached>,
-) {
-    for RobotWaypointReached(vis) in evr_delete_waypoint.read() {
-        commands.entity(*vis).despawn();
-    }
-}
+// /// **Bevy** system to delete the mesh of the allocated waypoint visualizer
+// /// whenever the waypoint has been reached.
+// fn delete_mesh_of_reached_waypoints(
+//     mut commands: Commands,
+//     mut evr_delete_waypoint: EventReader<RobotReachedWaypoint>,
+// ) {
+//     for RobotReachedWaypoint(vis) in evr_delete_waypoint.read() {
+//         commands.entity(*vis).despawn();
+//     }
+// }
 
 /// **Bevy** Component to store an association to a robot.
 /// Used to make it easier to retrieve the entity id, of the robot

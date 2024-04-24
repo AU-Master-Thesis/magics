@@ -134,6 +134,28 @@ impl Repeat {
     }
 }
 
+/// How to evaluate if a robot has reached a waypoint
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum WaypointReachedWhenIntersects {
+    /// When the current variable i.e. the robots current position intersects
+    /// the waypoint
+    Current,
+    /// When the horizon state aka. the last variable intersects the waypoint
+    /// This is the default, as this is what the gbpplanner paper does
+    #[default]
+    Horizon,
+    /// When the nth variable from the current variable intersects the waypoint
+    ///
+    /// # Invariant
+    /// Variable(n) -> n in [1, Horizon)
+    ///
+    /// # Panics
+    ///
+    /// A `panic!()` is issued if the invariant is not satisfied
+    Variable(NonZeroUsize),
+}
+
 /// A description of a formation of robots in the simulation.
 /// It describes how/where the robots are to be spawned, how many will be
 /// spawned, how often and where they should move to.
@@ -153,6 +175,7 @@ pub struct Formation {
     pub initial_position: InitialPosition,
     /// List of waypoints.
     pub waypoints: OneOrMore<Waypoint>,
+    pub waypoint_reached_when_intersects: WaypointReachedWhenIntersects,
 }
 
 impl Default for Formation {
@@ -179,6 +202,7 @@ impl Default for Formation {
 
 impl Formation {
     pub fn robots_to_spawn(&self) -> usize {
+        // FIXME(kpbaks): handle of 1 by in repeat count
         self.robots.get()
             * (0 + self.repeat.map_or(0, |repeat| match repeat.times {
                 RepeatTimes::Infinite => unreachable!("ehh ..."),
@@ -204,6 +228,7 @@ impl Formation {
                 placement_strategy: InitialPlacementStrategy::Equal,
             },
             waypoints: one_or_more![Waypoint::new(circle, ProjectionStrategy::Cross)],
+            waypoint_reached_when_intersects: WaypointReachedWhenIntersects::Horizon,
         }
     }
 
@@ -596,6 +621,8 @@ impl FormationGroup {
                         line![(0.45, 1.25), (0.55, 1.25)],
                         ProjectionStrategy::Identity
                     ),],
+
+                    waypoint_reached_when_intersects: WaypointReachedWhenIntersects::Horizon,
                 },
                 Formation {
                     // repeat: Some(Duration::from_secs(4)),
@@ -614,6 +641,7 @@ impl FormationGroup {
                         line![(1.25, 0.45), (1.25, 0.55)],
                         ProjectionStrategy::Identity,
                     ),],
+                    waypoint_reached_when_intersects: WaypointReachedWhenIntersects::Horizon,
                 },
             ],
         }

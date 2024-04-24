@@ -35,7 +35,7 @@ impl Plugin for RobotSpawnerPlugin {
         app.add_event::<RobotFormationSpawned>()
             .add_event::<RobotClickedOn>()
             .add_event::<WaypointCreated>()
-            .add_event::<RobotWaypointReached>()
+            // .add_event::<RobotReachedWaypoint>()
             .add_event::<AllFormationsFinished>()
             .add_systems(
                 Update,
@@ -118,8 +118,8 @@ pub struct WaypointCreated {
     pub position:  Vec2,
 }
 
-#[derive(Event)]
-pub struct RobotWaypointReached(pub Entity);
+// #[derive(Event)]
+// pub struct RobotReachedWaypoint(pub Entity);
 
 // TODO: allocate for each obstacle factor, a bit wasteful but should not take
 // up to much memory like 8-10 MB
