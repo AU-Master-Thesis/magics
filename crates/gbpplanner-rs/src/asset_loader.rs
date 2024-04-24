@@ -1,11 +1,7 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/asset_loader.rs
 use bevy::prelude::*;
-use bevy_asset_loader::prelude::*;
 
-use crate::{
-    config::Config,
-    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
-};
+use crate::theme::{CatppuccinTheme, ColorFromCatppuccinColourExt};
 
 /// A sub-category of the [`SceneAssets`] [`Resource`] to hold all meshes
 #[derive(Debug, Resource)]
@@ -86,7 +82,9 @@ pub struct Materials {
 impl FromWorld for Materials {
     fn from_world(world: &mut World) -> Self {
         let (waypoint, uncertainty_unattenable, obstacle) = {
-            let catppuccin_theme = world.get_resource::<CatppuccinTheme>().unwrap();
+            let catppuccin_theme = world
+                .get_resource::<CatppuccinTheme>()
+                .expect("CatppuccinTheme exists in the world");
             (
                 Color::from_catppuccin_colour_with_alpha(catppuccin_theme.maroon(), 0.5),
                 Color::from_catppuccin_colour_with_alpha(catppuccin_theme.maroon(), 0.2),

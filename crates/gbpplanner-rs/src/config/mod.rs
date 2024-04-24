@@ -233,10 +233,6 @@ impl DrawSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SimulationSection {
-    // TODO: read count from input formation structure/array
-    // pub num_robots: usize,
-    // / SI unit: s
-    // pub timestep: f32,
     /// Time between current state and next state of planned path
     /// SI unit: s
     pub t0: PositiveFinite<f32>,
@@ -267,6 +263,12 @@ pub struct SimulationSection {
 
     /// Whether to pause the simulation time when the first robot is spawned
     pub pause_on_spawn: bool,
+
+    /// Whether to despawn a robot when it reaches its final waypoint and
+    /// "completes" its route.
+    /// Exists for the circle formation environment, where it looks slick if
+    /// they all stay at at the end along the perimeter.
+    pub despawn_robot_when_final_waypoint_reached: bool,
 }
 
 impl Default for SimulationSection {
@@ -281,6 +283,7 @@ impl Default for SimulationSection {
             // world_size:         StrictlyPositiveFinite::<f32>::new(100.0).expect("100.0 > 0.0"),
             prng_seed: 0,
             pause_on_spawn: false,
+            despawn_robot_when_final_waypoint_reached: true,
         }
     }
 }

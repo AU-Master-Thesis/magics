@@ -178,7 +178,7 @@ where
         println!("{}{}", " ".repeat(right_padding), BAR);
     }
     // print the bottom border
-    println!("{}{}{}", LOWER_LEFT_CORNER, horizontal_line, LOWER_RIGHT_CORNER);
+    println!("{LOWER_LEFT_CORNER}{horizontal_line}{LOWER_RIGHT_CORNER}");
 }
 
 /// Internal function to pretty print a vector

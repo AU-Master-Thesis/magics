@@ -193,6 +193,7 @@ impl Point {
 }
 
 impl From<Point> for bevy::math::Vec2 {
+    #[allow(clippy::cast_possible_truncation)]
     fn from(value: Point) -> Self {
         Self::new(value.x as f32, value.y as f32)
     }
@@ -209,6 +210,10 @@ pub struct RelativePoint {
 impl RelativePoint {
     /// Create a new `RelativePoint` from a pair of values.
     /// Returns an error if either `x` or `y` is not in the interval [0.0, 1.0].
+    ///
+    /// # Errors
+    ///
+    /// Will return 'Err' if x or y not in [0.0, 1.0]
     pub fn new(x: f64, y: f64) -> Result<Self, unit_interval::UnitIntervalError> {
         Ok(Self {
             x: UnitInterval::new(x)?,
@@ -217,6 +222,7 @@ impl RelativePoint {
     }
 
     /// Create a new `RelativePoint` at (0.0, 0.0)
+    #[allow(clippy::missing_panics_doc)] // invariant always satisfied
     pub fn min() -> Self {
         Self {
             x: UnitInterval::new(0.0).expect("0.0 in [0.0, 1.0]"),
@@ -225,6 +231,7 @@ impl RelativePoint {
     }
 
     /// Create a new `RelativePoint` at (1.0, 1.0)
+    #[allow(clippy::missing_panics_doc)] // invariant always satisfied
     pub fn max() -> Self {
         Self {
             x: UnitInterval::new(1.0).expect("1.0 in [0.0, 1.0]"),
@@ -233,6 +240,7 @@ impl RelativePoint {
     }
 
     /// Create a new `RelativePoint` at (0.5, 0.5)
+    #[allow(clippy::missing_panics_doc)] // invariant always satisfied
     pub fn center() -> Self {
         Self {
             x: UnitInterval::new(0.5).expect("0.5 in [0.0, 1.0]"),

@@ -2,6 +2,7 @@ use std::path::Path;
 
 use angle::Angle;
 use bevy::ecs::system::Resource;
+use derive_more::IntoIterator;
 use gbp_linalg::Float;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
@@ -9,7 +10,8 @@ use typed_floats::StrictlyPositiveFinite;
 use super::geometry::RelativePoint;
 use crate::environment::TileCoordinates;
 
-#[derive(Debug, Clone, Serialize, Deserialize, derive_more::IntoIterator)]
+#[derive(Debug, Clone, Serialize, Deserialize, IntoIterator)]
+#[into_iterator(owned, ref)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileGrid(Vec<String>);
 
@@ -241,8 +243,9 @@ impl Obstacle {
 ///   placed
 /// - The [`PlaceableShape`] represents the shape to be placed, and the local
 ///   cell translation
-#[derive(Debug, Clone, Serialize, Deserialize, derive_more::IntoIterator)]
+#[derive(Debug, Clone, Serialize, Deserialize, IntoIterator)]
 #[serde(rename_all = "kebab-case")]
+#[into_iterator(owned, ref)]
 pub struct Obstacles(Vec<Obstacle>);
 
 impl Obstacles {

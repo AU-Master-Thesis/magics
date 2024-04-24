@@ -4,6 +4,7 @@ use bevy::{
     input::{keyboard::KeyboardInput, ButtonState},
     prelude::*,
 };
+use derive_more::Index;
 use gbp_linalg::prelude::*;
 use ndarray::{array, concatenate, s, Axis};
 
@@ -37,10 +38,10 @@ pub struct RobotPlugin;
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<VariableTimesteps>()
-            // .init_resource::<ManualMode>()
             .insert_state(ManualModeState::Disabled)
             .add_event::<RobotSpawned>()
             .add_event::<RobotDespawned>()
+            .add_event::<RobotFinishedPath>()
             .add_event::<RobotReachedWaypoint>()
             .add_systems(PreUpdate, start_manual_step.run_if(virtual_time_is_paused))
             .add_systems(
@@ -73,6 +74,10 @@ pub struct RobotSpawned(pub RobotId);
 #[derive(Debug, Event)]
 pub struct RobotDespawned(pub RobotId);
 
+/// Event emitted when a robot reached its final waypoint and finished its path
+#[derive(Debug, Event)]
+pub struct RobotFinishedPath(pub RobotId);
+
 /// Event emitted when a robot reaches a waypoint
 #[derive(Event)]
 pub struct RobotReachedWaypoint {
@@ -104,8 +109,9 @@ fn despawn_robots(
 }
 
 /// Resource that stores the horizon timesteps sequence
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Index)]
 pub struct VariableTimesteps {
+    #[index]
     timesteps: Vec<u32>,
 }
 
@@ -123,13 +129,13 @@ impl VariableTimesteps {
     }
 }
 
-impl std::ops::Index<usize> for VariableTimesteps {
-    type Output = u32;
+// impl std::ops::Index<usize> for VariableTimesteps {
+//     type Output = u32;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.timesteps[index]
-    }
-}
+//     fn index(&self, index: usize) -> &Self::Output {
+//         &self.timesteps[index]
+//     }
+// }
 
 impl FromWorld for VariableTimesteps {
     // TODO: refactor
@@ -249,6 +255,13 @@ pub struct RobotBundle {
     /// A `VecDeque` is used to allow for efficient `pop_front` operations, and
     /// `push_back` operations.
     pub waypoints: Waypoints,
+
+    /// Boolean component used to keep track of whether the robot has finished
+    /// its path by reaching its final waypoint. This flag exists to ensure
+    /// that the robot is not detected as having finished more than once.
+    /// TODO: should probably be modelled as an enum instead, too easier support
+    /// additional states in the future
+    finished_path: FinishedPath,
 }
 
 /// State vector of a robot
@@ -408,7 +421,7 @@ impl RobotBundle {
             ball: Ball(parry2d::shape::Ball::new(config.robot.radius.get())),
             state: RobotState::new(),
             waypoints,
-            // waypoints: Waypoints(waypoints),
+            finished_path: FinishedPath::default(),
         })
     }
 }
@@ -692,27 +705,33 @@ fn iterate_gbp(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, c
     }
 }
 
+#[derive(Component, Debug, Default)]
+pub struct FinishedPath(pub bool);
+
 /// Called `Robot::updateHorizon` in **gbpplanner**
 fn update_prior_of_horizon_state(
     config: Res<Config>,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints), With<RobotState>>,
+    mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints, &mut FinishedPath), With<RobotState>>,
     mut evw_robot_despawned: EventWriter<RobotDespawned>,
+    mut evw_robot_finalized_path: EventWriter<RobotFinishedPath>,
     mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
 ) {
     let delta_t = Float::from(time.delta_seconds());
-    // let robot_radius = Float::from(config.robot.radius.get());
     let robot_radius = config.robot.radius.get();
     let max_speed = Float::from(config.robot.max_speed.get());
 
     let mut all_messages_to_external_factors = Vec::new();
     let mut robots_to_despawn = Vec::new();
 
-    for (robot_id, mut factorgraph, mut waypoints) in &mut query {
-        // let Some(current_waypoint) = waypoints.front().map(|wp|
-        // array![Float::from(wp.x), Float::from(wp.y)]) else {
+    for (robot_id, mut factorgraph, mut waypoints, mut finished_path) in &mut query {
+        if finished_path.0 {
+            continue;
+        }
+
         let Some(current_waypoint) = waypoints.front() else {
             // no more waypoints for the robot to move to
+            finished_path.0 = true;
             robots_to_despawn.push(robot_id);
             continue;
         };
@@ -767,9 +786,9 @@ fn update_prior_of_horizon_state(
     // Send messages to external factors
     for message in all_messages_to_external_factors {
         // TODO: use query.get()
-        let (_, mut external_factorgraph, _) = query
+        let (_, mut external_factorgraph, _, _) = query
             .iter_mut()
-            .find(|(id, _, _)| *id == message.to.factorgraph_id)
+            .find(|(id, _, _, _)| *id == message.to.factorgraph_id)
             .expect("the factorgraph_id of the receiving factor should exist in the world");
 
         if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
@@ -778,7 +797,10 @@ fn update_prior_of_horizon_state(
     }
 
     if !robots_to_despawn.is_empty() {
-        evw_robot_despawned.send_batch(robots_to_despawn.into_iter().map(RobotDespawned));
+        evw_robot_finalized_path.send_batch(robots_to_despawn.iter().copied().map(RobotFinishedPath));
+        if config.simulation.despawn_robot_when_final_waypoint_reached {
+            evw_robot_despawned.send_batch(robots_to_despawn.into_iter().map(RobotDespawned));
+        }
     }
 }
 

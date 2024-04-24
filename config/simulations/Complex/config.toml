@@ -48,14 +48,15 @@ radius       = 20.0
 failure-rate = 0.2
 
 [simulation]
-t0                 = 0.25
-max-time           = 10000.0
-time-scale         = 1.0
-manual-step-factor = 1
-hz                 = 60.0
-world-size         = 100.0
-prng-seed          = 0
-pause-on-spawn     = false
+t0                                        = 0.25
+max-time                                  = 10000.0
+time-scale                                = 1.0
+manual-step-factor                        = 1
+hz                                        = 60.0
+world-size                                = 100.0
+prng-seed                                 = 0
+pause-on-spawn                            = false
+despawn-robot-when-final-waypoint-reached = false
 
 [graphviz.interrobot.edge]
 style = "dashed"

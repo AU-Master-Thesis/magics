@@ -8,7 +8,7 @@ use rand::{seq::IteratorRandom, thread_rng, Rng};
 use strum::IntoEnumIterator;
 
 use super::{
-    robot::{RobotDespawned, RobotSpawned, VariableTimesteps},
+    robot::{RobotDespawned, RobotFinishedPath, RobotSpawned, VariableTimesteps},
     RobotId,
 };
 use crate::{
@@ -72,11 +72,12 @@ pub struct AllFormationsFinished;
 
 fn track_score(
     mut scoreboard: ResMut<Scoreboard>,
-    mut evr_robot_despawned: EventReader<RobotDespawned>,
+    // mut evr_robot_despawned: EventReader<RobotDespawned>,
+    mut evr_robot_finished_path: EventReader<RobotFinishedPath>,
     spawners: Query<&FormationSpawner>,
     mut evw_formations_finished: EventWriter<AllFormationsFinished>,
 ) {
-    for RobotDespawned(_) in evr_robot_despawned.read() {
+    for RobotFinishedPath(_) in evr_robot_finished_path.read() {
         if scoreboard.robots_left > 0 {
             scoreboard.robots_left -= 1;
         }
