@@ -162,67 +162,111 @@ impl RepeatingTimer {
 
         finished
     }
+
+    #[inline]
+    pub fn duration(&self) -> Duration {
+        self.timer.duration()
+    }
 }
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct FormationSpawner {
     pub formation_group_index: usize,
     initial_delay: Timer,
     timer: RepeatingTimer,
     spawned: usize,
+    state: FormationSpawnerState,
 }
 
-// enum FormationSpawnerState {
-//     Inactive,
-//     Active,
-//     OnCooldown,
-//     Finished,
-// }
+#[derive(Debug, Clone, Copy, Default)]
+enum FormationSpawnerState {
+    #[default]
+    Inactive,
+    Active {
+        on_cooldown: bool,
+    },
+    // OnCooldown,
+    Finished,
+}
 
 impl FormationSpawner {
     #[must_use]
     pub fn new(
         formation_group_index: usize,
         initial_delay: Duration,
-        timer: RepeatingTimer,
+        mut timer: RepeatingTimer,
     ) -> Self {
+        // timer.tick(timer.duration());
+
         Self {
             formation_group_index,
             initial_delay: Timer::new(initial_delay, TimerMode::Once),
             timer,
             spawned: 0,
+            state: FormationSpawnerState::Inactive,
         }
     }
 
     #[inline]
-    fn is_active(&self) -> bool {
-        self.initial_delay.finished()
+    const fn is_active(&self) -> bool {
+        // self.initial_delay.finished()
+        matches!(self.state, FormationSpawnerState::Active { .. })
     }
 
     /// Return `true` if there is no more to spawn
     /// TODO: use this to test if the simulation is "finished"
     /// Simulation is finished when all spawners are finished
     #[inline]
-    pub fn exhausted(&self) -> bool {
-        self.timer.exhausted()
+    pub const fn exhausted(&self) -> bool {
+        // self.timer.exhausted()
+        matches!(self.state, FormationSpawnerState::Finished)
     }
 
     fn tick(&mut self, delta: Duration) {
-        if self.is_active() {
-            self.timer.tick(delta);
-        } else {
-            self.initial_delay.tick(delta);
+        use FormationSpawnerState::{Active, Finished, Inactive};
+        match self.state {
+            Inactive => {
+                self.initial_delay.tick(delta);
+                if self.initial_delay.just_finished() {
+                    self.state = Active { on_cooldown: false };
+                }
+            }
+            Active { on_cooldown: true } => {
+                self.timer.tick(delta);
+                if self.timer.just_finished() {
+                    self.state = Active { on_cooldown: false }
+                }
+            }
+            Active { on_cooldown: false } | Finished => {}
         }
+
+        // if !matches!(self.state, FormationSpawnerState::Active { on_cooldown:
+        // true }) if self.is_active() {
+        //     self.timer.tick(delta);
+        // } else {
+        //     self.initial_delay.tick(delta);
+        // }
     }
 
-    pub fn spawned(&self) -> usize {
-        // self.spawned
-        todo!()
+    #[inline]
+    pub const fn spawned(&self) -> usize {
+        self.spawned
+    }
+
+    fn spawn(&mut self) {
+        if matches!(self.state, FormationSpawnerState::Active {
+            on_cooldown: false,
+        }) {
+            self.state = FormationSpawnerState::Active { on_cooldown: true };
+        };
     }
 
     #[inline]
     fn ready_to_spawn(&mut self) -> bool {
-        self.timer.just_finished()
+        matches!(self.state, FormationSpawnerState::Active {
+            on_cooldown: false,
+        })
+        // self.timer.just_finished()
     }
 
     // #[inline]
@@ -269,7 +313,11 @@ fn create_formation_group_spawners(
             formation.delay, repeating_timer
         );
 
-        commands.spawn(FormationSpawner::new(i, formation.delay, repeating_timer));
+        commands.spawn(dbg!(FormationSpawner::new(
+            i,
+            formation.delay,
+            repeating_timer
+        )));
 
         // commands.spawn(FormationSpawner {
         //     formation_group_index: i,
@@ -304,6 +352,7 @@ fn advance_time(
         spawner.tick(time.delta());
 
         if spawner.ready_to_spawn() {
+            spawner.spawn();
             info!(
                 "FormationSpawner[{}] ready to spawn!",
                 spawner.formation_group_index

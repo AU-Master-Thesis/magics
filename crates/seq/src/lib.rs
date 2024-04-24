@@ -72,7 +72,7 @@ impl std::iter::ExactSizeIterator for UpperTriangular {
 }
 
 /// Construct a new [`UpperTriangular`] iterator
-pub fn upper_triangular(n: NonZeroUsize) -> UpperTriangular {
+pub const fn upper_triangular(n: NonZeroUsize) -> UpperTriangular {
     let n = n.get();
     UpperTriangular { n, row: 0, col: 0 }
 }
