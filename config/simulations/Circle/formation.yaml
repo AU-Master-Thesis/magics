@@ -3,11 +3,11 @@ formations:
     every:
       secs: 10
       nanos: 0
-    times: !finite 1
+    times: !finite 2
   delay:
     secs: 1
     nanos: 0
-  robots: 3
+  robots: 4
   initial-position:
     shape: !circle
       radius: 25.0

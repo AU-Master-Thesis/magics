@@ -2,12 +2,13 @@ use std::{collections::VecDeque, num::NonZeroUsize, time::Duration};
 
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
+use bevy_notify::ToastEvent;
 use itertools::Itertools;
 use rand::{seq::IteratorRandom, thread_rng, Rng};
 use strum::IntoEnumIterator;
 
 use super::{
-    robot::{RobotSpawned, VariableTimesteps},
+    robot::{RobotDespawned, RobotSpawned, VariableTimesteps},
     RobotId,
 };
 use crate::{
@@ -35,6 +36,7 @@ impl Plugin for RobotSpawnerPlugin {
             .add_event::<RobotClickedOn>()
             .add_event::<WaypointCreated>()
             .add_event::<RobotWaypointReached>()
+            .add_event::<AllFormationsFinished>()
             .add_systems(
                 Update,
                 (
@@ -56,8 +58,49 @@ impl Plugin for RobotSpawnerPlugin {
                     spawn_formation,
                     advance_time.run_if(not(virtual_time_is_paused)),
                 ),
+            )
+            .add_systems(
+                Update,
+                (
+                    track_score.run_if(resource_exists::<Scoreboard>),
+                    notify_on_all_formations_finished.run_if(on_event::<AllFormationsFinished>()),
+                ),
             );
     }
+}
+
+#[derive(Event)]
+pub struct AllFormationsFinished;
+
+fn track_score(
+    mut scoreboard: ResMut<Scoreboard>,
+    mut evr_robot_despawned: EventReader<RobotDespawned>,
+    spawners: Query<&FormationSpawner>,
+    mut evw_formations_finished: EventWriter<AllFormationsFinished>,
+) {
+    for RobotDespawned(_) in evr_robot_despawned.read() {
+        if scoreboard.robots_left > 0 {
+            scoreboard.robots_left -= 1;
+        }
+    }
+
+    if scoreboard.robots_left == 0
+        && !scoreboard.game_over
+        && spawners.iter().all(FormationSpawner::exhausted)
+    {
+        evw_formations_finished.send(AllFormationsFinished);
+        scoreboard.game_over = true;
+    }
+}
+
+fn notify_on_all_formations_finished(
+    mut evw_toast: EventWriter<ToastEvent>,
+    time: Res<Time<Virtual>>,
+) {
+    evw_toast.send(ToastEvent::info(format!(
+        "all formations finished after {} seconds",
+        time.elapsed_seconds()
+    )));
 }
 
 /// run criteria if time is not paused
@@ -139,7 +182,7 @@ impl RepeatingTimer {
     }
 
     #[inline]
-    pub fn exhausted(&self) -> bool {
+    pub const fn exhausted(&self) -> bool {
         self.repeat.exhausted()
     }
 
@@ -234,20 +277,18 @@ impl FormationSpawner {
             Active { on_cooldown: true } => {
                 self.timer.tick(delta);
                 if self.timer.just_finished() {
-                    self.state = Active { on_cooldown: false }
+                    if self.timer.exhausted() {
+                        self.state = Finished;
+                    } else {
+                        self.state = Active { on_cooldown: false }
+                    }
                 }
             }
             Active { on_cooldown: false } | Finished => {}
         }
-
-        // if !matches!(self.state, FormationSpawnerState::Active { on_cooldown:
-        // true }) if self.is_active() {
-        //     self.timer.tick(delta);
-        // } else {
-        //     self.initial_delay.tick(delta);
-        // }
     }
 
+    /// Returns the number of robots spawned so far
     #[inline]
     pub const fn spawned(&self) -> usize {
         self.spawned
@@ -258,6 +299,7 @@ impl FormationSpawner {
             on_cooldown: false,
         }) {
             self.state = FormationSpawnerState::Active { on_cooldown: true };
+            self.spawned += 1;
         };
     }
 
@@ -266,13 +308,14 @@ impl FormationSpawner {
         matches!(self.state, FormationSpawnerState::Active {
             on_cooldown: false,
         })
-        // self.timer.just_finished()
     }
 
-    // #[inline]
-    // fn on_cooldown(&mut self) -> bool {
-    //     !self.ready_to_spawn()
-    // }
+    #[inline]
+    fn on_cooldown(&mut self) -> bool {
+        matches!(self.state, FormationSpawnerState::Active {
+            on_cooldown: true,
+        })
+    }
 }
 
 fn delete_formation_group_spawners(
@@ -285,6 +328,12 @@ fn delete_formation_group_spawners(
     }
 }
 
+#[derive(Resource)]
+pub struct Scoreboard {
+    pub robots_left: usize,
+    pub game_over:   bool,
+}
+
 fn create_formation_group_spawners(
     mut commands: Commands,
     simulation_manager: Res<SimulationManager>,
@@ -293,6 +342,10 @@ fn create_formation_group_spawners(
         warn!("No active formation group!");
         return;
     };
+
+    // let mut robots_to_spawn = 0;
+    let robots_to_spawn = formation_group.robots_to_spawn();
+    dbg!(robots_to_spawn);
 
     for (i, formation) in formation_group.formations.iter().enumerate() {
         #[allow(clippy::option_if_let_else)] // find it more readable with a match here
@@ -313,18 +366,12 @@ fn create_formation_group_spawners(
             formation.delay, repeating_timer
         );
 
-        commands.spawn(dbg!(FormationSpawner::new(
-            i,
-            formation.delay,
-            repeating_timer
-        )));
-
-        // commands.spawn(FormationSpawner {
-        //     formation_group_index: i,
-        //     initial_delay: delay,
-        //     timer,
-        // });
+        commands.spawn(FormationSpawner::new(i, formation.delay, repeating_timer));
     }
+    commands.insert_resource(Scoreboard {
+        robots_left: robots_to_spawn,
+        game_over:   false,
+    });
 }
 
 /// Event that is sent when a formation should be spawned.

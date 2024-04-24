@@ -147,7 +147,7 @@ pub struct Formation {
     /// The delay from the start of the simulation after which the formation
     /// should spawn.
     pub delay: Duration,
-    /// Number of robots to spawn
+    /// Number of robots to spawn every iteration
     pub robots: NonZeroUsize,
     /// Where to spawn the formation
     pub initial_position: InitialPosition,
@@ -178,6 +178,14 @@ impl Default for Formation {
 }
 
 impl Formation {
+    pub fn robots_to_spawn(&self) -> usize {
+        self.robots.get()
+            * (0 + self.repeat.map_or(0, |repeat| match repeat.times {
+                RepeatTimes::Infinite => unreachable!("ehh ..."),
+                RepeatTimes::Finite(times) => times,
+            }))
+    }
+
     /// Return a new `Formation` matching the used in the **gbpplanner** paper
     /// for the circle formation scenario
     #[allow(clippy::missing_panics_doc)]
@@ -551,6 +559,14 @@ impl FormationGroup {
         Ok(serde_yaml::from_str(contents)?)
         // unimplemented!()
         // Ok(ron::from_str::<Self>(contents).map_err(|span| span.code)?)
+    }
+
+    /// Returns how many robots all formations in the group together will spawn
+    pub fn robots_to_spawn(&self) -> usize {
+        self.formations
+            .iter()
+            .map(Formation::robots_to_spawn)
+            .sum::<usize>()
     }
 
     pub fn circle_from_paper() -> Self {
