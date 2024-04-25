@@ -1,0 +1,71 @@
+# environment = "junction"
+environment_image = "circle_cluttered"
+environment       = "./config/simulations/Circle/environment.yaml"
+formation_group   = "./config/simulations/Circle/formation.ron"
+
+[interaction]
+ui-focus-cancels-inputs = true
+default-cam-distance    = 250.0
+
+[visualisation.uncertainty]
+max-radius = 2.5
+scale      = 300.0
+
+[visualisation.height]
+objects    = 0.5
+height-map = 1.0
+
+[visualisation.draw]
+robots                 = true
+communication-graph    = false
+predicted-trajectories = true
+waypoints              = true
+uncertainty            = true
+paths                  = true
+generated-map          = true
+height-map             = false
+sdf                    = false
+communication-radius   = false
+obstacle-factors       = false
+
+[gbp]
+sigma-pose-fixed        = 0.000000000000001
+sigma-factor-dynamics   = 0.1
+sigma-factor-interrobot = 0.01
+sigma-factor-obstacle   = 0.01
+iterations-per-timestep = 10
+lookahead-multiple      = 3
+
+[robot]
+planning-horizon  = 5.0
+max-speed         = 4.0
+dofs              = 4
+symmetric-factors = true
+radius            = 1.0
+
+[robot.communication]
+radius       = 20.0
+failure-rate = 0.2
+
+[simulation]
+t0                                        = 0.25
+max-time                                  = 10000.0
+time-scale                                = 1.0
+manual-step-factor                        = 1
+hz                                        = 60.0
+world-size                                = 100.0
+prng-seed                                 = 0
+pause-on-spawn                            = false
+start-paused                              = false
+despawn-robot-when-final-waypoint-reached = false
+
+[graphviz.interrobot.edge]
+style = "dashed"
+len   = 8.0
+color = "red"
+
+[graphviz]
+export-location = "./assets/export/"
+
+[manual]
+timesteps-per-step = 1
