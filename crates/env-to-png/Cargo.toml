@@ -8,7 +8,9 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
-gbpplanner-rs = { git = "https://github.com/AU-Master-Thesis/gbp-rs", branch = "main" }
+anyhow.workspace = true
+gbpplanner-rs = { path = "../gbpplanner-rs" }
+image = "0.25.1"
 
 [lints]
 workspace = true
