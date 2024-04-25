@@ -1,0 +1,8 @@
+tiles:
+  grid:
+  - █
+  settings:
+    tile-size: 100.0
+    path-width: 0.0
+    obstacle-height: 1.0
+obstacles:
