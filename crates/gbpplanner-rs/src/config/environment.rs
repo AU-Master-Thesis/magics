@@ -31,13 +31,13 @@ impl TileGrid {
 
     /// Returns number of rows in the tilegrid
     #[inline]
-    pub fn rows(&self) -> usize {
+    pub fn nrows(&self) -> usize {
         self.0.len()
     }
 
     /// Returns number of columns in the tilegrid
     #[inline]
-    pub fn cols(&self) -> usize {
+    pub fn ncols(&self) -> usize {
         self.0[0].chars().count()
     }
 
@@ -401,7 +401,7 @@ impl Environment {
             .tiles
             .grid
             .iter()
-            .any(|row| row.chars().count() != self.tiles.grid.cols())
+            .any(|row| row.chars().count() != self.tiles.grid.ncols())
         {
             Err(EnvironmentError::DifferentLengthRows)
         } else {

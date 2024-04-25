@@ -209,6 +209,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "angle"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "ansi_colours"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1042,6 +1050,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_fullscreen"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_gilrs"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1306,6 +1322,16 @@ dependencies = [
 [[package]]
 name = "bevy_notify"
 version = "1.1.0"
+dependencies = [
+ "bevy",
+ "bevy_egui 0.26.0",
+ "egui-notify",
+]
+
+[[package]]
+name = "bevy_notify"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
 dependencies = [
  "bevy",
  "bevy_egui 0.26.0",
@@ -1682,6 +1708,14 @@ dependencies = [
 [[package]]
 name = "bevy_touchpad"
 version = "1.1.0"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
+name = "bevy_touchpad"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
 dependencies = [
  "bevy",
 ]
@@ -2918,6 +2952,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "env-to-png"
+version = "1.1.0"
+dependencies = [
+ "gbpplanner-rs 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+]
+
+[[package]]
 name = "epaint"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3207,10 +3248,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "gbp_linalg"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
+dependencies = [
+ "embed-resource 1.8.0",
+ "ndarray",
+]
+
+[[package]]
 name = "gbp_multivariate_normal"
 version = "1.1.0"
 dependencies = [
- "gbp_linalg",
+ "gbp_linalg 1.1.0",
  "ndarray",
  "ndarray-inverse",
  "pretty_assertions",
@@ -3218,10 +3268,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "gbp_multivariate_normal"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
+dependencies = [
+ "gbp_linalg 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "ndarray",
+ "ndarray-inverse",
+ "thiserror",
+]
+
+[[package]]
 name = "gbpplanner-rs"
 version = "1.1.0"
 dependencies = [
- "angle",
+ "angle 1.1.0",
  "anyhow",
  "approx",
  "atty",
@@ -3235,14 +3296,14 @@ dependencies = [
  "bevy_egui 0.26.0",
  "bevy_eventlistener",
  "bevy_file_dialog",
- "bevy_fullscreen",
+ "bevy_fullscreen 1.1.0",
  "bevy_infinite_grid",
  "bevy_mod_picking",
  "bevy_more_shapes",
- "bevy_notify",
+ "bevy_notify 1.1.0",
  "bevy_prng",
  "bevy_rand",
- "bevy_touchpad",
+ "bevy_touchpad 1.1.0",
  "catppuccin",
  "chrono",
  "clap",
@@ -3258,15 +3319,15 @@ dependencies = [
  "egui_tiles",
  "embed-resource 2.4.2",
  "fastrand",
- "gbp_linalg",
- "gbp_multivariate_normal",
+ "gbp_linalg 1.1.0",
+ "gbp_multivariate_normal 1.1.0",
  "glob",
  "heck 0.5.0",
  "image 0.25.1",
  "itertools",
  "iyes_perf_ui",
  "leafwing-input-manager",
- "min_len_vec",
+ "min_len_vec 1.1.0",
  "ndarray",
  "ndarray-inverse",
  "num-traits",
@@ -3275,16 +3336,16 @@ dependencies = [
  "parry2d",
  "parry3d",
  "paste",
- "percentage",
+ "percentage 1.1.0",
  "petgraph",
  "pretty_assertions",
  "rand",
  "rand_chacha",
- "repeating_array",
+ "repeating_array 1.1.0",
  "ringbuf",
  "ron",
  "rrt",
- "seq",
+ "seq 1.1.0",
  "serde",
  "serde_yaml",
  "smol_str",
@@ -3297,8 +3358,91 @@ dependencies = [
  "toml 0.8.12",
  "typed-builder",
  "typed_floats",
- "unit_interval",
- "units",
+ "unit_interval 1.1.0",
+ "units 1.1.0",
+]
+
+[[package]]
+name = "gbpplanner-rs"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
+dependencies = [
+ "angle 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "anyhow",
+ "atty",
+ "bat",
+ "better-panic",
+ "bevy",
+ "bevy-inspector-egui",
+ "bevy_asset_loader",
+ "bevy_dev",
+ "bevy_dev_console",
+ "bevy_egui 0.26.0",
+ "bevy_eventlistener",
+ "bevy_file_dialog",
+ "bevy_fullscreen 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "bevy_infinite_grid",
+ "bevy_mod_picking",
+ "bevy_more_shapes",
+ "bevy_notify 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "bevy_prng",
+ "bevy_rand",
+ "bevy_touchpad 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "catppuccin",
+ "chrono",
+ "clap",
+ "clap_complete",
+ "colored",
+ "dark-light",
+ "derive_more",
+ "directories",
+ "egui_dock",
+ "egui_extras",
+ "egui_graphs",
+ "egui_plot",
+ "egui_tiles",
+ "embed-resource 2.4.2",
+ "fastrand",
+ "gbp_linalg 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "gbp_multivariate_normal 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "glob",
+ "heck 0.5.0",
+ "image 0.25.1",
+ "itertools",
+ "iyes_perf_ui",
+ "leafwing-input-manager",
+ "min_len_vec 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "ndarray",
+ "ndarray-inverse",
+ "num-traits",
+ "once_cell",
+ "open",
+ "parry2d",
+ "parry3d",
+ "paste",
+ "percentage 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "petgraph",
+ "rand",
+ "rand_chacha",
+ "repeating_array 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "ringbuf",
+ "ron",
+ "rrt",
+ "seq 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "serde",
+ "serde_yaml",
+ "smol_str",
+ "struct_iterable",
+ "strum",
+ "strum_macros",
+ "tap",
+ "termsize",
+ "thiserror",
+ "toml 0.8.12",
+ "typed-builder",
+ "typed_floats",
+ "unit_interval 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
+ "units 1.1.0 (git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main)",
 ]
 
 [[package]]
@@ -4264,6 +4408,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "min_len_vec"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4876,6 +5028,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "percentage"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "petgraph"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5279,6 +5439,11 @@ name = "repeating_array"
 version = "1.1.0"
 
 [[package]]
+name = "repeating_array"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
+
+[[package]]
 name = "resvg"
 version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5578,6 +5743,11 @@ checksum = "92d43fe69e652f3df9bdc2b85b2854a0825b86e4fb76bc44d945137d053639ca"
 [[package]]
 name = "seq"
 version = "1.1.0"
+
+[[package]]
+name = "seq"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
 
 [[package]]
 name = "serde"
@@ -6457,8 +6627,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "unit_interval"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "units"
 version = "1.1.0"
+
+[[package]]
+name = "units"
+version = "1.1.0"
+source = "git+https://github.com/AU-Master-Thesis/gbp-rs?branch=main#4ba1735244a2fb2f6fc572e63aa1dbf806372d69"
 
 [[package]]
 name = "unsafe-libyaml"

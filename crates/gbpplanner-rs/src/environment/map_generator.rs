@@ -124,8 +124,8 @@ fn build_obstacles(
     let tile_size = env_config.tile_size();
     let obstacle_height = env_config.obstacle_height();
 
-    let grid_offset_x = tile_grid.cols() as f32 / 2.0 - 0.5;
-    let grid_offset_z = tile_grid.rows() as f32 / 2.0 - 0.5;
+    let grid_offset_x = tile_grid.ncols() as f32 / 2.0 - 0.5;
+    let grid_offset_z = tile_grid.nrows() as f32 / 2.0 - 0.5;
 
     info!("Spawning obstacles");
     info!("{:?}", env_config.obstacles);
@@ -363,8 +363,8 @@ fn build_tile_grid(
 
     // offset caused by the size of the grid
     // - this centers the map
-    let grid_offset_x = tile_grid.cols() as f32 / 2.0 - 0.5;
-    let grid_offset_z = tile_grid.rows() as f32 / 2.0 - 0.5;
+    let grid_offset_x = tile_grid.ncols() as f32 / 2.0 - 0.5;
+    let grid_offset_z = tile_grid.nrows() as f32 / 2.0 - 0.5;
 
     let pos_offset = path_width.mul_add(tile_size, base_dim) / 2.0;
 

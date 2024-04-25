@@ -18,7 +18,7 @@ members = [
   "crates/repeating_array",
   "crates/bevy_fullscreen",
   "crates/bevy_touchpad",
-  "crates/seq",
+  "crates/seq", "crates/env-to-png",
 ]
 
 [workspace.package]

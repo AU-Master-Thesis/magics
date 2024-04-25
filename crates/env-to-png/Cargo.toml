@@ -1,0 +1,14 @@
+[package]
+name = "env-to-png"
+edition = "2021"
+version.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+gbpplanner-rs = { git = "https://github.com/AU-Master-Thesis/gbp-rs", branch = "main" }
+
+[lints]
+workspace = true
