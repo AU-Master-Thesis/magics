@@ -68,6 +68,11 @@ pub struct Cli {
     #[arg(long, group = "configuration")]
     pub default: bool,
 
+    /// Specify an initial working directory
+    #[cfg(not(target_arch = "wasm32"))]
+    #[arg(short, long)]
+    pub working_dir: Option<std::path::PathBuf>,
+
     /// Increases logging verbosity each use for up to 3 times
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,

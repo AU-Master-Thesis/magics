@@ -9,7 +9,7 @@ use gbpplanner_rs::{
     cli,
     config::{read_config, Config, Environment, FormationGroup},
     environment::{
-        camera::{CameraMovementMode, CameraResetEvent},
+        camera::{CameraMovementMode, ResetCamera},
         EnvironmentPlugin, MainCamera, ObstacleMarker,
     },
     input::{camera::CameraInputPlugin, ChangingBinding},
@@ -65,8 +65,8 @@ fn main() -> anyhow::Result<()> {
 
     let mut app = App::new();
     app.insert_resource(config)
-        .insert_resource(formation)
-        .insert_resource(environment)
+        // .insert_resource(formation)
+        // .insert_resource(environment)
         .add_plugins((
             DefaultPlugins,
             // InfiniteGridPlugin,

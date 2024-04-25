@@ -127,6 +127,14 @@ dark-light = "1.1.1"
 bevy_dev   = "0.3.0"
 once_cell = "1.19.0"
 
+smol_str = "0.2.1"
+fastrand = "2.0.2"
+rand_chacha = { version = "0.3.1", features = [
+  "simd",
+] }
+
+typed-builder = "0.18.2"
+
 
 # TODO: change to not wasm
 [target.'cfg(linux)'.dependencies]

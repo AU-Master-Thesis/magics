@@ -13,6 +13,7 @@ use crate::{
         robot::{RobotDespawned, RobotSpawned},
         RobotId, RobotState,
     },
+    simulation_loader::{LoadSimulation, ReloadSimulation},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
@@ -23,10 +24,11 @@ impl Plugin for TracerVisualiserPlugin {
         app.init_resource::<Traces>().add_systems(
             Update,
             (
-                track_initial_robot_positions,
+                create_tracer_when_a_robot_is_spawned,
                 track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
                 draw_traces.run_if(draw_paths_enabled),
-                // remove_trace_of_despawned_robot,
+                reset.run_if(on_event::<LoadSimulation>()),
+                reset.run_if(on_event::<ReloadSimulation>()),
             ),
         );
     }
@@ -61,7 +63,7 @@ fn remove_trace_of_despawned_robot(
     }
 }
 
-fn track_initial_robot_positions(
+fn create_tracer_when_a_robot_is_spawned(
     query: Query<(RobotId, &Transform, &ColorAssociation), With<RobotState>>,
     mut traces: ResMut<Traces>,
     mut spawn_robot_event: EventReader<RobotSpawned>,
@@ -93,9 +95,7 @@ fn track_robots(
     mut traces: ResMut<Traces>,
     theme: Res<CatppuccinTheme>,
 ) {
-    debug!("sampling robot positions");
-
-    for (robot_id, transform, color_association) in query.iter() {
+    for (robot_id, transform, color_association) in &query {
         let _ = traces
             .0
             .entry(robot_id)
@@ -107,15 +107,6 @@ fn track_robots(
             })
             .ring_buffer
             .push_overwrite(transform.translation);
-        // .or_insert_with(StaticRb::default)
-        // .or_insert_with(|| HeapRb::new(MAX_TRACE_LENGTH))
-        // .push_overwrite(transform.translation);
-        // .or_insert_with(Vec::new)
-        // .push(transform.translation);
-
-        // if let Some(trace) = traces.0.get_mut(&robot_id) {
-        //     let _ = trace.ring_buffer.push_overwrite(transform.translation);
-        // }
     }
 }
 
@@ -126,28 +117,16 @@ fn draw_paths_enabled(config: Res<Config>) -> bool {
 
 /// **Bevy** [`Update`] system
 /// To draw the robot traces; using the [`Traces`] resource
-fn draw_traces(
-    mut gizmos: Gizmos,
-    traces: Res<Traces>,
-    // catppuccin_theme: Res<CatppuccinTheme>
-) {
-    // if !config.visualisation.draw.paths {
-    //     // error!("draw_traces: visualisation.draw.paths is false");
-    //     return;
-    // }
-
-    // TODO: avoid allocating a new iterator every frame
-    // let colours = catppuccin_theme.into_display_iter().cycle();
-    // let colours = catppuccin_theme.colours().into_iter().collect::<Vec<_>>();
-
+fn draw_traces(mut gizmos: Gizmos, traces: Res<Traces>) {
     for trace in traces.0.values() {
         // use a window of length 2 to iterate over the trace, and draw a line between
         // each pair of points
-        // for window in trace.windows(2) {
         for (start, end) in trace.ring_buffer.iter().tuple_windows() {
-            // let start = window[0];
-            // let end = window[1];
             gizmos.line(*start, *end, trace.color);
         }
     }
+}
+
+fn reset(mut traces: ResMut<Traces>) {
+    traces.0.clear();
 }

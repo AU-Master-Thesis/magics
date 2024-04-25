@@ -1,7 +1,7 @@
 # environment = "junction"
 environment_image = "junction"
-environment       = "./config/environment.yaml"
-formation_group   = "./config/formation.ron"
+environment       = "./config/simulations/Circle/environment.yaml"
+formation_group   = "./config/simulations/Circle/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
@@ -19,8 +19,8 @@ height-map = 1.0
 robots                 = true
 communication-graph    = false
 predicted-trajectories = true
-waypoints              = true
-uncertainty            = true
+waypoints              = false
+uncertainty            = false
 paths                  = true
 generated-map          = true
 height-map             = false
@@ -55,15 +55,6 @@ hz                 = 60.0
 world-size         = 100.0
 prng-seed          = 0
 pause-on-spawn     = false
-
-[rrt]
-max-iterations   = 1000000
-step-size        = 0.5
-collision-radius = 0.1
-
-[rrt.smoothing]
-max-iterations = 500
-step-size      = 0.5
 
 [graphviz.interrobot.edge]
 style = "dashed"

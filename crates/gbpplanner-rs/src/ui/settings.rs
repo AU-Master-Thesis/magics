@@ -8,6 +8,7 @@ use bevy_egui::{
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
 use catppuccin::Colour;
 use repeating_array::RepeatingArray;
+use smol_str::SmolStr;
 use struct_iterable::Iterable;
 use strum::IntoEnumIterator;
 
@@ -17,6 +18,7 @@ use crate::{
     environment::cursor::CursorCoordinates,
     input::{screenshot::TakeScreenshot, ChangingBinding, DrawSettingsEvent, ExportGraphEvent},
     pause_play::{PausePlay, PausedState},
+    simulation_loader::{SimulationId, SimulationManager},
     theme::{CatppuccinTheme, CycleTheme, FromCatppuccinColourExt},
 };
 
@@ -77,20 +79,25 @@ fn ui_settings_exclusive(world: &mut World) {
                                 world.resource_scope(|world, time: Mut<Time<Virtual>>| {
                                     world.resource_scope(|world, time_fixed: Mut<Time<Fixed>>| {
                                         world.resource_scope(
-                                            |world, config_store: Mut<GizmoConfigStore>| {
-                                                ui_settings_panel(
-                                                    egui_context.get_mut(),
-                                                    ui_state,
-                                                    config,
-                                                    occupied_screen_space,
-                                                    cursor_coordinates,
-                                                    catppuccin_theme,
-                                                    world,
-                                                    currently_changing,
-                                                    pause_play,
-                                                    time,
-                                                    time_fixed,
-                                                    config_store,
+                                            |world, simulation_manager: Mut<SimulationManager>| {
+                                                world.resource_scope(
+                                                    |world, config_store: Mut<GizmoConfigStore>| {
+                                                        ui_settings_panel(
+                                                            egui_context.get_mut(),
+                                                            ui_state,
+                                                            config,
+                                                            occupied_screen_space,
+                                                            cursor_coordinates,
+                                                            catppuccin_theme,
+                                                            world,
+                                                            currently_changing,
+                                                            pause_play,
+                                                            time,
+                                                            time_fixed,
+                                                            config_store,
+                                                            simulation_manager,
+                                                        );
+                                                    },
                                                 );
                                             },
                                         );
@@ -123,6 +130,7 @@ fn ui_settings_panel(
     mut time_virtual: Mut<Time<Virtual>>,
     mut time_fixed: Mut<Time<Fixed>>,
     mut config_store: Mut<GizmoConfigStore>,
+    mut simulation_manager: Mut<SimulationManager>,
 ) {
     let mut title_colors = TitleColors::new([
         catppuccin_theme.green(),
@@ -134,33 +142,11 @@ fn ui_settings_panel(
 
     let panel_resizable = false;
 
-    let top_panel = egui::TopBottomPanel::top("Top Panel")
-        .default_height(100.0)
-        .resizable(panel_resizable)
-        .show_animated(ctx, ui_state.top_panel_visible, |ui| {
-            ui.strong("top panel");
-            // #[derive(PartialEq, Eq)]
-            // enum Enum {
-            //     First,
-            //     Second,
-            //     Third,
-            // }
-            // let mut selected = "foo".to_string();
-            // egui::ComboBox::from_label("Select one!")
-            //     .selected_text(format!("{:?}", selected))
-            //     .show_ui(ui, |ui| {
-            //         ui.selectable_value(&mut selected, Enum::First, "First");
-            //         ui.selectable_value(&mut selected, Enum::Second,
-            // "Second");         ui.selectable_value(&mut selected,
-            // Enum::Third, "Third");     });
-        });
-
-    occupied_screen_space.top = top_panel.map_or(0.0, |ref inner| inner.response.rect.width());
-
     let right_panel = egui::SidePanel::right("Settings Panel")
         .default_width(200.0)
         .resizable(panel_resizable)
-        .show_animated(ctx, ui_state.right_panel_visible, |ui| {
+        // .show(ctx, |ui| {
+            .show_animated(ctx, ui_state.right_panel_visible, |ui| {
             ui_state.mouse_over.right_panel = ui.rect_contains_pointer(ui.max_rect())
                 && config.interaction.ui_focus_cancels_inputs;
 
@@ -318,7 +304,38 @@ fn ui_settings_panel(
                         )),
                     );
                     custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
+                        ui.label("Active Simulation");
+                        custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
+
+                            ui.centered_and_justified(|ui| {
+                                if ui.button("󰑓").on_hover_text("Reload the active simulation").clicked() {
+                                    simulation_manager.reload();
+                                }
+                            });
+
+                            // Combo box of available simulations
+                            ui.vertical_centered_justified(|ui| {
+                                ui.menu_button(simulation_manager.active_name().map(ToString::to_string).unwrap_or(format!("N/A")), |ui| {
+                                    for (id, sim) in simulation_manager.ids_and_names().collect::<Vec<(SimulationId, SmolStr)>>()  {
+                                        ui.vertical_centered_justified(|ui| {
+                                            let name: String = sim.into();
+                                            if ui.button(name).clicked() {
+                                                simulation_manager.load(id);
+                                                ui.close_menu();
+                                            }
+                                        });
+                                    }
+                                });
+                            });
+                            ui.end_row();
+                        });
+
+                        ui.end_row();
+
+
+
                         ui.label("Simulation Time");
+
                         // let progress =
                         //     time_fixed.elapsed_seconds() / config.simulation.max_time.get();
                         // let progressbar =
@@ -358,7 +375,8 @@ fn ui_settings_panel(
 
                         custom::grid("manual_controls_settings_grid", 2).show(ui, |ui| {
                             // step forward button
-                            ui.add_enabled_ui(!pause_state.is_paused(), |ui| {
+                            // ui.add_enabled_ui(!pause_state.is_paused(), |ui| {
+                            ui.add_enabled_ui(!time_virtual.is_paused(), |ui| {
                                 custom::fill_x(ui, |ui| {
                                     if ui
                                         .button(RichText::new("󰒭").size(25.0))
@@ -376,7 +394,8 @@ fn ui_settings_panel(
                                 });
                             });
                             // pause/play button
-                            let pause_play_text = if pause_state.is_paused() {
+                            // let pause_play_text = if pause_state.is_paused() {
+                            let pause_play_text = if time_virtual.is_paused() {
                                 ""
                             } else {
                                 ""
@@ -512,5 +531,6 @@ fn ui_settings_panel(
                 });
         });
 
-    occupied_screen_space.right = right_panel.map_or(0.0, |ref inner| inner.response.rect.width());
+    // occupied_screen_space.right = right_panel.map_or(0.0, |ref inner|
+    // inner.response.rect.width());
 }

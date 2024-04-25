@@ -16,8 +16,6 @@ members = [
   "crates/bevy_notify",
   "crates/units",
   "crates/repeating_array",
-  "crates/units",
-  "crates/units",
   "crates/bevy_fullscreen",
   "crates/bevy_touchpad",
 ]
@@ -44,7 +42,7 @@ serde = { version = "1.0.197", features = [
 
 [workspace.lints.rust]
 # unsafe_code = "forbid"
-missing_debug_implementations = "warn"
+missing_debug_implementations = "allow"
 missing_docs                  = "allow"
 
 

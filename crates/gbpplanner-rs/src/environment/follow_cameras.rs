@@ -38,7 +38,18 @@ pub struct FollowCameraMe {
     pub attached:     bool,
 }
 
+impl From<Vec3> for FollowCameraMe {
+    fn from(v: Vec3) -> Self {
+        Self {
+            offset:       Some(v),
+            up_direction: None,
+            attached:     false,
+        }
+    }
+}
+
 impl FollowCameraMe {
+    #[must_use]
     pub const fn new(x: f32, y: f32, z: f32) -> Self {
         Self {
             offset:       Some(Vec3::new(x, y, z)),
@@ -47,13 +58,13 @@ impl FollowCameraMe {
         }
     }
 
-    pub const fn from_vec3(offset: Vec3) -> Self {
-        Self {
-            offset:       Some(offset),
-            up_direction: None,
-            attached:     false,
-        }
-    }
+    // pub const fn from_vec3(offset: Vec3) -> Self {
+    //     Self {
+    //         offset:       Some(offset),
+    //         up_direction: None,
+    //         attached:     false,
+    //     }
+    // }
 
     pub const fn with_up_direction(mut self, up_direction: Direction3d) -> Self {
         self.up_direction = Some(up_direction);
@@ -95,19 +106,19 @@ impl FollowCameraSettings {
 // **Bevy** marker [`Component`] for follow cameras that are attached as
 // children to other entities
 #[derive(Component, PartialEq, Eq)]
-pub enum CamType {
+pub enum CameraType {
     Attached,
     Free,
 }
 
-/// Bundle for a `FollowCamera` entity
+/// Bundle for a [`FollowCamera`] entity
 #[derive(Bundle)]
 pub struct FollowCameraBundle {
-    pub settings: FollowCameraSettings,
-    pub movement: OrbitMovementBundle,
-    pub velocity: Velocity,
-    pub camera:   Camera3dBundle,
-    pub cam_type: CamType,
+    pub settings:    FollowCameraSettings,
+    pub movement:    OrbitMovementBundle,
+    pub velocity:    Velocity,
+    pub camera:      Camera3dBundle,
+    pub camera_type: CameraType,
 }
 
 impl FollowCameraBundle {
@@ -128,14 +139,14 @@ impl FollowCameraBundle {
 
         let up_direction = params.up_direction.map_or(Direction3d::Y, |u| u);
 
-        let (cam_type, transform) = if params.attached {
+        let (camera_type, transform) = if params.attached {
             (
-                CamType::Attached,
+                CameraType::Attached,
                 Transform::from_translation(offset).looking_at(Vec3::ZERO, up_direction.into()),
             )
         } else {
             (
-                CamType::Free,
+                CameraType::Free,
                 Transform::from_translation(target_transform.translation + offset)
                     .looking_at(target_transform.translation, up_direction.into()),
             )
@@ -160,7 +171,7 @@ impl FollowCameraBundle {
                 },
                 ..Default::default()
             },
-            cam_type,
+            camera_type,
         }
     }
 }
@@ -169,28 +180,29 @@ impl FollowCameraBundle {
 /// followed with a `FollowCameraMe` component
 fn add_follow_cameras(
     mut commands: Commands,
-    query: Query<(Entity, &Transform, &FollowCameraMe)>,
-    query_cameras: Query<Entity, With<Camera3d>>,
-    query_children: Query<&Children>,
-    // mut robot_spawned_events: EventReader<RobotSpawnedEvent>,
+    entities_to_attach_a_follow_cam_to: Query<(Entity, &Transform, &FollowCameraMe)>,
+    cameras: Query<Entity, With<Camera3d>>,
+    children: Query<&Children>,
 ) {
-    for (entity, transform, follow_camera_flag) in query.iter() {
-        if query_children
+    for (entity, transform, follow_camera_flag) in &entities_to_attach_a_follow_cam_to {
+        let camera_already_attached = children
             .iter_descendants(entity)
-            .any(|e| query_cameras.get(e).is_ok())
-        {
+            .any(|e| cameras.get(e).is_ok());
+
+        if camera_already_attached {
+            // an entity can only have one follower camera attached to it
             continue;
         }
 
-        let cam_entity = commands
+        let follower_camera = commands
             .spawn((
                 FollowCameraBundle::new(entity, Some(transform), *follow_camera_flag),
                 Local,
             ))
             .id();
 
-        // child the camera to the entity
-        commands.entity(entity).push_children(&[cam_entity]);
+        // Make the camera a child of the entity
+        commands.entity(entity).push_children(&[follower_camera]);
     }
 }
 
@@ -199,11 +211,11 @@ fn add_follow_cameras(
 /// with `FollowCameraSettings` to move cameras correctly
 #[allow(clippy::type_complexity)]
 fn move_cameras(
-    mut query_cameras: Query<(&mut Transform, &FollowCameraSettings, &CamType), With<Camera>>,
+    mut query_cameras: Query<(&mut Transform, &FollowCameraSettings, &CameraType), With<Camera>>,
     query_targets: Query<(Entity, &Transform), (With<FollowCameraMe>, Without<Camera>)>,
 ) {
     for (mut camera_transform, follow_settings, cam_type) in &mut query_cameras {
-        if matches!(cam_type, CamType::Attached) {
+        if matches!(cam_type, CameraType::Attached) {
             continue;
         }
         for (target_entity, target_transform) in query_targets.iter() {

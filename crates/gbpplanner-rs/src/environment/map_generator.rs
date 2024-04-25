@@ -14,18 +14,24 @@ use crate::{
     bevy_utils::run_conditions::event_exists,
     config::{environment::PlaceableShape, Config, DrawSetting, Environment},
     input::DrawSettingsEvent,
+    simulation_loader::LoadSimulation,
 };
 
-static COLLIDERS: once_cell::sync::Lazy<std::sync::RwLock<Colliders>> =
-    once_cell::sync::Lazy::new(std::sync::RwLock::default);
+// static COLLIDERS: once_cell::sync::Lazy<std::sync::RwLock<Colliders>> =
+//     once_cell::sync::Lazy::new(std::sync::RwLock::default);
 
 pub struct GenMapPlugin;
 
 impl Plugin for GenMapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Colliders>()
-            .add_systems(Startup, (build_tile_grid, build_obstacles))
-            .add_systems(PostStartup, create_static_colliders)
+            // .add_systems(Startup, (build_tile_grid, build_obstacles))
+            // .add_systems(PostStartup, create_static_colliders)
+            .add_systems(
+                Update,
+
+                (clear_colliders, build_tile_grid, build_obstacles).chain().run_if(on_event::<LoadSimulation>()),
+            )
             .add_systems(
                 Update,
                 show_or_hide_generated_map.run_if(event_exists::<DrawSettingsEvent>),
@@ -36,7 +42,7 @@ impl Plugin for GenMapPlugin {
 #[derive(Debug, Component)]
 pub struct ObstacleMarker;
 
-#[derive(Debug, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, Serialize, Deserialize, Component)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileCoordinates {
     row: usize,
@@ -73,9 +79,9 @@ impl Colliders {
     }
 }
 
-fn create_static_colliders(colliders: Res<Colliders>) {
-    COLLIDERS.write().expect("Not poisoned pls").0 = colliders.0.clone();
-}
+// fn create_static_colliders(colliders: Res<Colliders>) {
+//     COLLIDERS.write().expect("Not poisoned pls").0 = colliders.0.clone();
+// }
 
 /// **Bevy** [`Startup`] _system_.
 /// Takes the [`Environment`] configuration and generates all specified
@@ -342,7 +348,13 @@ fn build_tile_grid(
     env_config: Res<Environment>,
     config: Res<Config>,
     scene_assets: Res<SceneAssets>,
+    obstacles: Query<Entity, With<ObstacleMarker>>,
 ) {
+    for entity in &obstacles {
+        commands.entity(entity).despawn();
+        info!("despawn obstacle entity: {:?}", entity);
+    }
+
     let tile_grid = &env_config.tiles.grid;
 
     let obstacle_height = env_config.obstacle_height();
@@ -1062,6 +1074,7 @@ fn build_tile_grid(
                         },
                         TileCoordinates::new(x, y),
                         ObstacleMarker,
+                        // simulation_loader::Reloadable,
                     ));
                 })
             }
@@ -1089,4 +1102,12 @@ fn show_or_hide_generated_map(
             }
         }
     }
+}
+
+/// **Bevy** system that clear all spawned obstacle colliders. Used to clear
+/// existing colliders before a new simulation is loaded.
+fn clear_colliders(mut colliders: ResMut<Colliders>) {
+    let n_colliders = colliders.0.len();
+    colliders.0.clear();
+    info!("{} colliders cleared", n_colliders);
 }

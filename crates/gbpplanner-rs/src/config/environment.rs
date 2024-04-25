@@ -9,7 +9,7 @@ use crate::environment::TileCoordinates;
 
 // use super::geometry::Shape;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileGrid(Vec<String>);
 
@@ -52,7 +52,7 @@ impl TileGrid {
 //     }
 // }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Rotation(Angle);
 
@@ -81,7 +81,7 @@ pub struct Cell {
     pub col: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PlaceableShape {
     Circle {
@@ -178,7 +178,7 @@ impl PlaceableShape {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Obstacle {
     /// The shape to be placed as an obstacle
@@ -206,7 +206,7 @@ impl Obstacle {
 ///   placed
 /// - The [`PlaceableShape`] represents the shape to be placed, and the local
 ///   cell translation
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Obstacles(Vec<Obstacle>);
 
@@ -220,7 +220,7 @@ impl Obstacles {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileSettings {
     pub tile_size:       f32,
@@ -228,7 +228,7 @@ pub struct TileSettings {
     pub obstacle_height: f32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Tiles {
     pub grid:     TileGrid,
@@ -271,7 +271,7 @@ pub enum EnvironmentType {
 
 /// **Bevy** [`Resource`]
 /// The environment configuration for the simulation
-#[derive(Debug, Serialize, Deserialize, Resource)]
+#[derive(Debug, Clone, Serialize, Deserialize, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub struct Environment {
     pub tiles:     Tiles,

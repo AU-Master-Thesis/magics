@@ -13,6 +13,7 @@ use gbpplanner_rs::{
     config::{read_config, Config, Environment, FormationGroup, RrtSection},
     environment::{map_generator::Colliders, EnvironmentPlugin},
     input::{camera::CameraInputPlugin, general::GeneralInputPlugin, ChangingBinding},
+    simulation_loader,
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt, ThemePlugin},
 };
 use parry2d::{

@@ -20,6 +20,7 @@ pub(crate) mod utils;
 
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
+// pub mod prng;
 
 // TODO: use in app
 /// Set of distinct states the application can be in.

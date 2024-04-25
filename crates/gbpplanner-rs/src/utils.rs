@@ -69,7 +69,7 @@ pub fn get_variable_timesteps(lookahead_horizon: u32, lookahead_multiple: u32) -
         // timesteps.push(ts);
     }
 
-    println!("TIMESTEPS {:?}", timesteps);
+    // println!("TIMESTEPS {:?}", timesteps);
 
     timesteps
 }

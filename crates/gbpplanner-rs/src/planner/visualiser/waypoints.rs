@@ -13,6 +13,7 @@ use crate::{
         spawner::{WaypointCreated, WaypointDeleted},
         RobotId,
     },
+    simulation_loader,
 };
 
 pub struct WaypointVisualiserPlugin;
@@ -76,6 +77,7 @@ fn create_waypoint_mesh(
         ));
 
         commands.spawn((
+            simulation_loader::Reloadable,
             WaypointVisualiser,
             AssociatedWithRobot(event.for_robot),
             PbrBundle {

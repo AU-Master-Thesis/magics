@@ -1,7 +1,11 @@
 use bevy::prelude::*;
 
 // use leafwing_input_manager::prelude::*;
-use crate::{asset_loader::SceneAssets, environment, movement::MovingObjectBundle};
+use crate::{
+    asset_loader::SceneAssets,
+    environment::{self, FollowCameraMe},
+    movement::MovingObjectBundle,
+};
 
 const SCALE: f32 = 0.2;
 const START_TRANSLATION: Vec3 = Vec3::new(0., 0., 0.);
@@ -50,7 +54,8 @@ fn spawn(
     let mut transform = Transform::from_translation(START_TRANSLATION);
     transform.scale = Vec3::splat(SCALE);
     let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
-    let follow_camera_flag = environment::follow_cameras::FollowCameraMe::from_vec3(offset);
+    // let follow_camera_flag =
+    // environment::follow_cameras::FollowCameraMe::from_vec3(offset);
     commands.spawn((
         MovingObjectBundle {
             model: SceneBundle {
@@ -65,7 +70,8 @@ fn spawn(
         // environment::follow_cameras::FollowCameraMe {
         //     offset: Some(offset),
         // },
-        follow_camera_flag,
+        // follow_camera_flag,
+        FollowCameraMe::from(offset),
         crate::movement::Local,
     ));
 

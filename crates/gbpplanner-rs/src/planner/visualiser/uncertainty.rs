@@ -9,6 +9,7 @@ use crate::{
     config::Config,
     factorgraph::prelude::FactorGraph,
     input::DrawSettingsEvent,
+    simulation_loader::{self, EndSimulation, ReloadSimulation},
     theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
@@ -26,7 +27,10 @@ impl Plugin for UncertaintyVisualiserPlugin {
                 (
                     init_uncertainty,
                     show_or_hide_uncertainty.run_if(event_exists::<DrawSettingsEvent>),
+                    // show_or_hide_uncertainty.run_if(event_exists::<DrawSetting<Uncertainty>>),
                     update_uncertainty.run_if(uncertainty_visualizer_enabled),
+                    // remove_all_uncertainty_visualisers.run_if(on_event::<ReloadSimulation>()),
+                    // remove_all_uncertainty_visualisers.run_if(on_event::<EndSimulation>()),
                 ),
             );
     }
@@ -178,6 +182,7 @@ fn init_uncertainty(
                         visibility,
                         ..Default::default()
                     },
+                    simulation_loader::Reloadable,
                 ));
             });
         });
@@ -305,5 +310,14 @@ fn show_or_hide_uncertainty(
                 *visibility = new_visibility_state;
             }
         }
+    }
+}
+
+fn remove_all_uncertainty_visualisers(
+    mut commands: Commands,
+    query: Query<Entity, With<UncertaintyVisualiser>>,
+) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
     }
 }

@@ -14,6 +14,7 @@ impl Plugin for PausePlayPlugin {
     }
 }
 
+// TODO: remove this state, a Time<Virtual> already keeps track of it itself
 /// State keeping track of whether the simulation is paused or not.
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash, derive_more::IsVariant)]
 pub enum PausedState {

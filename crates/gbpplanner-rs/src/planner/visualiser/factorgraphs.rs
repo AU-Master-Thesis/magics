@@ -15,6 +15,7 @@ use crate::{
         RobotState,
     },
     pretty_print_title,
+    simulation_loader::{self, EndSimulation},
     theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
@@ -27,11 +28,11 @@ impl Plugin for FactorGraphVisualiserPlugin {
             .add_systems(
             Update,
             (
-                // init_factorgraphs,
                 update_factorgraphs,
                 show_or_hide_factorgraphs.run_if(event_exists::<DrawSettingsEvent>),
                 draw_lines_between_variables.run_if(draw_predicted_trajectories_is_enabled),
                 remove_rendered_factorgraph_when_robot_despawns,
+                remove_rendered_factorgraphs.run_if(on_event::<EndSimulation>()),
                 on_variable_clicked
             ),
         )
@@ -58,6 +59,19 @@ fn remove_rendered_factorgraph_when_robot_despawns(
                 }
             }
         }
+    }
+}
+
+fn remove_rendered_factorgraphs(
+    mut commands: Commands,
+    query: Query<Entity, With<VariableVisualiser>>,
+) {
+    for entity in &query {
+        info!("despawning factorgraph visualiser: {:?}", entity);
+        commands.entity(entity).despawn();
+        // if let Some(mut entitycommands) = commands.get_entity(entity) {
+        //     entitycommands.despawn();
+        // }
     }
 }
 
@@ -158,6 +172,7 @@ fn create_factorgraph_visualizer(
             );
             commands.spawn((
                 robottracker,
+                simulation_loader::Reloadable,
                 VariableVisualiser,
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<VariableClickEvent>(),

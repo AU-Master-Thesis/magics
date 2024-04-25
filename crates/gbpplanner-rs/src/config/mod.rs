@@ -25,7 +25,7 @@ pub enum ParseError {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Meter(f64);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizEdgeAttributes {
     // TODO: implement a way to validate this field to only match the valid edge styles: https://graphviz.org/docs/attr-types/style/
@@ -34,13 +34,13 @@ pub struct GraphvizEdgeAttributes {
     pub color: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizInterrbotSection {
     pub edge: GraphvizEdgeAttributes,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizSection {
     pub interrobot:      GraphvizInterrbotSection,
@@ -62,7 +62,7 @@ impl Default for GraphvizSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct HeightSection {
     pub objects:    f32,
@@ -78,7 +78,7 @@ impl Default for HeightSection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct UncertaintySection {
     pub max_radius: f32,
@@ -94,7 +94,7 @@ impl Default for UncertaintySection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ManualSection {
     pub timesteps_per_step: NonZeroUsize,
@@ -108,7 +108,7 @@ impl Default for ManualSection {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct VisualisationSection {
     pub height: HeightSection,
@@ -229,7 +229,7 @@ impl DrawSection {
 /// Contains parameters for the simulation such as the fixed timestep frequency,
 /// max time to run the simulation, world size, and random seed to get
 /// reproducible results.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SimulationSection {
     // TODO: read count from input formation structure/array
@@ -259,10 +259,10 @@ pub struct SimulationSection {
     /// The side length of the smallest square that contains the entire
     /// simulated environment. Size of the environment in meters.
     /// SI unit: m
-    pub world_size:  StrictlyPositiveFinite<f32>,
+    pub world_size: StrictlyPositiveFinite<f32>,
     /// The seed at which random number generators should be seeded, to ensure
     /// deterministic results across simulation runs.
-    pub random_seed: usize,
+    pub prng_seed:  u64,
 
     /// Whether to pause the simulation time when the first robot is spawned
     pub pause_on_spawn: bool,
@@ -278,7 +278,7 @@ impl Default for SimulationSection {
             hz: 60.0,
             world_size: 100.0.try_into().expect("100.0 > 0.0"),
             // world_size:         StrictlyPositiveFinite::<f32>::new(100.0).expect("100.0 > 0.0"),
-            random_seed: 0,
+            prng_seed: 0,
             pause_on_spawn: false,
         }
     }
@@ -287,7 +287,7 @@ impl Default for SimulationSection {
 /// **GBP Section**
 /// Contains parameters for the GBP algorithm. These paraneters are used for
 /// initialisation of factores and prediction horizon steps.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GbpSection {
     /// Sigma for Unary pose factor on current and horizon states
@@ -322,7 +322,7 @@ impl Default for GbpSection {
 /// - `radius`: Inter-robot factors created if robots are within this range of
 ///   each other
 /// - `failure_rate`: Probability for failing to send/receive a message
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct CommunicationSection {
     /// Inter-robot factors created if robots are within this range of each
@@ -345,7 +345,7 @@ impl Default for CommunicationSection {
 
 /// **Robot Section**
 /// Contains parameters for the robot
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct RobotSection {
     /// SI unit: s
@@ -385,7 +385,7 @@ impl Default for RobotSection {
 }
 
 /// Interaction Section
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct InteractionSection {
     /// If true, when a UI element is focused, some inputs are cancelled
@@ -408,7 +408,7 @@ impl Default for InteractionSection {
 
 /// **RRT Section**
 /// Contains parameters for the RRT algorithm
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct RrtSection {
     /// Maximum number of iterations to run the RRT algorithm
@@ -434,7 +434,7 @@ impl Default for RrtSection {
 
 /// **Smoothing Section**
 /// Contains parameters for smoothing the path generated by the RRT algorithm
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SmoothingSection {
     /// Number of iterations to smooth the path
@@ -455,7 +455,7 @@ impl Default for SmoothingSection {
 }
 
 /// Collection of all the sections in the config file
-#[derive(Debug, Serialize, Deserialize, Resource)]
+#[derive(Debug, Clone, Serialize, Deserialize, Resource)]
 pub struct Config {
     /// Path to the **.png** containing the environment sdf
     pub environment_image: String,
