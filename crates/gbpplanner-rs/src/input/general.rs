@@ -45,12 +45,10 @@ impl Plugin for GeneralInputPlugin {
                 Update,
                 (
                     general_actions_system,
-                    pause_play_simulation
-                        .run_if(event_exists::<PausePlay>.and_then(on_event::<PausePlay>())),
+                    pause_play_simulation.run_if(event_exists::<PausePlay>),
                     export_graph_on_event.run_if(on_event::<ExportGraphEvent>()),
-                    export_graph_finished_system.run_if(
-                        event_exists::<ToastEvent>.and_then(on_event::<ExportGraphFinishedEvent>()),
-                    ),
+                    export_graph_finished_system
+                        .run_if(event_exists::<ToastEvent>.and_then(on_event::<ExportGraphFinishedEvent>())),
                     screenshot,
                     quit_application_system,
                 ),
@@ -156,7 +154,6 @@ impl GeneralAction {
             Self::ExportGraph => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG)),
             Self::ScreenShot => UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyS)),
             Self::QuitApplication => UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyQ)),
-
             Self::PausePlaySimulation => UserInput::Single(InputKind::PhysicalKey(KeyCode::Space)),
         }
     }

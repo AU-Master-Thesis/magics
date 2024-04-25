@@ -318,6 +318,7 @@ fn main() -> anyhow::Result<()> {
             AssetLoaderPlugin, // Custom
             EnvironmentPlugin, // Custom
             MovementPlugin,    // Custom
+            // PausePlayPlugin,   // Custom
             InputPlugin,       // Custom
             // // MoveableObjectPlugin, // Custom
             // // CameraPlugin,        // Custom

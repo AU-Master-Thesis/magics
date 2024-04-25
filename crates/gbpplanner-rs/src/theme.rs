@@ -467,20 +467,21 @@ fn change_theme(
     mut theme_toggled_event: EventWriter<ThemeChanged>,
     // mut contexts: EguiContexts,
 ) {
-    let mut window = windows.single_mut();
-    for CycleTheme(new_flavour) in theme_event_reader.read() {
-        let new_window_theme = match new_flavour {
-            Flavour::Latte | Flavour::Frappe => WindowTheme::Light,
-            Flavour::Macchiato | Flavour::Mocha => WindowTheme::Dark,
-        };
-        info!("switching theme {:?} -> {:?}", theme.flavour, new_flavour);
-        window.window_theme = Some(new_window_theme);
-        // contexts
-        //     .ctx_mut()
-        //     .style_mut(|style| style.visuals =
-        // Visuals::catppuccin_flavour(*new_flavour));
-        theme.flavour = *new_flavour;
-        theme_toggled_event.send(ThemeChanged);
+    if let Ok(mut window) = windows.get_single_mut() {
+        for CycleTheme(new_flavour) in theme_event_reader.read() {
+            let new_window_theme = match new_flavour {
+                Flavour::Latte | Flavour::Frappe => WindowTheme::Light,
+                Flavour::Macchiato | Flavour::Mocha => WindowTheme::Dark,
+            };
+            info!("switching theme {:?} -> {:?}", theme.flavour, new_flavour);
+            window.window_theme = Some(new_window_theme);
+            // contexts
+            //     .ctx_mut()
+            //     .style_mut(|style| style.visuals =
+            // Visuals::catppuccin_flavour(*new_flavour));
+            theme.flavour = *new_flavour;
+            theme_toggled_event.send(ThemeChanged);
+        }
     }
 }
 
