@@ -5,7 +5,7 @@ formation_group   = "./config/simulations/Circle/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance    = 250.0
+default-cam-distance    = 100.0
 
 [visualisation.uncertainty]
 max-radius = 2.5
@@ -19,8 +19,8 @@ height-map = 1.0
 robots                 = true
 communication-graph    = false
 predicted-trajectories = true
-waypoints              = true
-uncertainty            = true
+waypoints              = false
+uncertainty            = false
 paths                  = true
 generated-map          = true
 height-map             = false

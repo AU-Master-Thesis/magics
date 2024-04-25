@@ -76,6 +76,17 @@ pub struct CameraSettings {
 
 const DEFAULT_CAMERA_DISTANCE: f32 = 250.0;
 
+impl CameraSettings {
+    /// Returns the default camera settings
+    pub fn reset_distance(&mut self, distance: Option<f32>) {
+        if let Some(distance) = distance {
+            self.start_pos = Vec3::new(0.0, distance, 0.0);
+        } else {
+            self.start_pos = Vec3::new(0.0, DEFAULT_CAMERA_DISTANCE, 0.0);
+        }
+    }
+}
+
 impl Default for CameraSettings {
     fn default() -> Self {
         Self {
@@ -123,9 +134,11 @@ fn spawn_main_camera(mut commands: Commands) {
 fn reset_main_camera(
     mut main_camera: Query<(&mut Transform, &mut Orbit), With<MainCamera>>,
     mut next_camera_movement: ResMut<NextState<CameraMovement>>,
-    cam_settings: Res<CameraSettings>,
+    mut cam_settings: ResMut<CameraSettings>,
+    config: Res<Config>,
 ) {
     next_camera_movement.set(CameraMovement::Pan);
+    cam_settings.reset_distance(Some(config.interaction.default_cam_distance));
 
     let (mut transform, mut orbit) = main_camera.single_mut();
 
