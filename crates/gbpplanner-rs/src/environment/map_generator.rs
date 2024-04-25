@@ -67,13 +67,13 @@ impl Colliders {
         self.0.push((position, shape));
     }
 
-    // pub fn iter(&self) -> impl Iterator<Item = &(Isometry2<f32>, Arc<dyn
-    // shape::Shape>)> {     self.0.iter()
-    // }
-    //
-    // pub fn is_empty(&self) -> bool {
-    //     self.0.is_empty()
-    // }
+    pub fn iter(&self) -> impl Iterator<Item = &(Isometry2<f32>, Arc<dyn shape::Shape>)> {
+        self.0.iter()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 // fn create_static_colliders(colliders: Res<Colliders>) {

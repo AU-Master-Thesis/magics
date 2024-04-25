@@ -7,13 +7,14 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task},
 };
 use bevy_infinite_grid::InfiniteGridSettings;
+use bevy_notify::NotifyPlugin;
 use gbpplanner_rs::{
-    asset_loader::{AssetLoaderPlugin, SceneAssets},
+    asset_loader::{AssetLoaderPlugin, Fonts},
     cli,
     config::{read_config, Config, Environment, FormationGroup, RrtSection},
     environment::{map_generator::Colliders, EnvironmentPlugin},
     input::{camera::CameraInputPlugin, general::GeneralInputPlugin, ChangingBinding},
-    simulation_loader,
+    simulation_loader::{self, InitialSimulation, SimulationLoaderPlugin},
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt, ThemePlugin},
 };
 use parry2d::{
@@ -24,10 +25,10 @@ use parry2d::{
 // use parry3d::shape;
 use rand::distributions::{Distribution, Uniform};
 
-// const START: Vec2 = Vec2::new(-100.0 + 12.5, 62.5 - 2.0);
-// const END: Vec2 = Vec2::new(100.0, -62.5 + 12.5);
-const START: Vec2 = Vec2::new(0.0, 75.0 - 5.0);
-const END: Vec2 = Vec2::new(0.0, -75.0 + 5.0);
+const START: Vec2 = Vec2::new(-100.0 + 12.5, 62.5 - 2.0);
+const END: Vec2 = Vec2::new(100.0, -62.5 + 12.5);
+// const START: Vec2 = Vec2::new(0.0, 75.0 - 5.0);
+// const END: Vec2 = Vec2::new(0.0, -75.0 + 5.0);
 
 fn main() -> anyhow::Result<()> {
     better_panic::debug_install();
@@ -61,11 +62,16 @@ fn main() -> anyhow::Result<()> {
         .init_state::<PathFindingState>()
         .add_plugins((
             DefaultPlugins,
+            ThemePlugin,
+            SimulationLoaderPlugin {
+                show_toasts: false,
+                initial_simulation: InitialSimulation::Name("Complex".to_string()),
+            },
+            NotifyPlugin::default(),
             AssetLoaderPlugin,
             CameraInputPlugin,
             GeneralInputPlugin,
             EnvironmentPlugin,
-            ThemePlugin,
         ))
         .add_systems(Startup, (spawn_waypoints, init_path_info_text))
         .add_systems(PostStartup, change_infinite_grid_settings)
@@ -88,16 +94,18 @@ fn main() -> anyhow::Result<()> {
 /// **Bevy** [`Update`] system to trigger the RRT pathfinding
 /// - Triggers on P
 fn trigger_rrt_event(
+    mut path: ResMut<Path>,
     keyboard_input: ResMut<ButtonInput<KeyCode>>,
     mut event_writer: EventWriter<TriggerRrtEvent>,
     mut next_state_path_found: ResMut<NextState<PathFindingState>>,
+    colliders: Res<Colliders>,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyP) {
         next_state_path_found.set(PathFindingState::NotFound);
         event_writer.send(TriggerRrtEvent);
     }
 
-    let collision_solver = CollisionProblem::new(Arc::new(colliders));
+    let collision_solver = CollisionProblem::new(Arc::new(&colliders));
 
     let start = [START.x as f64, START.y as f64];
     let end = [END.x as f64, END.y as f64];
@@ -225,12 +233,12 @@ fn spawn_rrt_path_finding_task(
     rrt_params: RrtSection,
     target: Entity, // task_pool: Res<AsyncComputeTaskPool>,
 ) {
-    let collision_solver = CollisionProblem::new(Arc::new(colliders))
-        .with_collision_radius(rrt_params.collision_radius.get());
+    let collision_solver =
+        CollisionProblem::new(Arc::new(colliders)).with_collision_radius(rrt_params.collision_radius.get());
 
     let thread_pool = AsyncComputeTaskPool::get();
     let task = thread_pool.spawn(async move {
-        let mut path = rrt::dual_rrt_connect(
+        let path = rrt::dual_rrt_connect(
             &[start.x as f64, start.y as f64],
             &[end.x as f64, end.y as f64],
             |x: &[f64]| collision_solver.is_feasible(x),
@@ -393,13 +401,8 @@ impl<'world> CollisionProblem<'world> {
         // given."); });
 
         for (isometry, collider) in self.colliders.iter() {
-            intersecting = intersection_test(
-                &ball_pos,
-                &self.collision_checker,
-                &isometry,
-                collider.as_ref(),
-            )
-            .expect("Correct shapes should have been given.");
+            intersecting = intersection_test(&ball_pos, &self.collision_checker, &isometry, collider.as_ref())
+                .expect("Correct shapes should have been given.");
             if intersecting {
                 // info!("intersecting with collider: {}", i);
                 break;
@@ -419,10 +422,7 @@ impl<'world> CollisionProblem<'world> {
     }
 }
 
-fn change_infinite_grid_settings(
-    mut query: Query<&mut InfiniteGridSettings>,
-    theme: Res<CatppuccinTheme>,
-) {
+fn change_infinite_grid_settings(mut query: Query<&mut InfiniteGridSettings>, theme: Res<CatppuccinTheme>) {
     let mut infinite_grid_settings = query.get_single_mut().unwrap();
 
     let colour = theme.grid_colour();
@@ -439,26 +439,21 @@ pub struct PathLengthText;
 #[derive(Component, Debug)]
 pub struct WaypointAmountText;
 
-fn init_path_info_text(
-    mut commands: Commands,
-    theme: Res<CatppuccinTheme>,
-    scene_assets: Res<SceneAssets>,
-) {
+fn init_path_info_text(mut commands: Commands, theme: Res<CatppuccinTheme>, scene_assets: Res<Fonts>) {
     let text_style = TextStyle {
-        font:      scene_assets.main_font.clone(),
+        font:      scene_assets.main.clone(),
         font_size: 20.0,
         color:     Color::from_catppuccin_colour(theme.mauve()),
     };
 
-    let keybind_text =
-        TextBundle::from_sections([TextSection::new("Press P: Trigger RRT", text_style.clone())])
-            .with_style(Style {
-                position_type: PositionType::Absolute,
-                bottom: Val::Px(60.0),
-                left: Val::Px(20.0),
-                ..default()
-            })
-            .with_background_color(Color::from_catppuccin_colour_with_alpha(theme.base(), 0.75));
+    let keybind_text = TextBundle::from_sections([TextSection::new("Press P: Trigger RRT", text_style.clone())])
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(60.0),
+            left: Val::Px(20.0),
+            ..default()
+        })
+        .with_background_color(Color::from_catppuccin_colour_with_alpha(theme.base(), 0.75));
 
     let path_length_text = TextBundle::from_sections([
         TextSection::new("Path Length: ", text_style.clone()),
@@ -495,10 +490,7 @@ fn update_path_lenght_text(mut query: Query<(&mut Text, &PathLengthText)>, path:
     }
 }
 
-fn update_waypoint_amount_text(
-    mut query: Query<(&mut Text, &WaypointAmountText)>,
-    path: Res<Path>,
-) {
+fn update_waypoint_amount_text(mut query: Query<(&mut Text, &WaypointAmountText)>, path: Res<Path>) {
     for (mut text, _) in query.iter_mut() {
         text.sections[1].value = path.len().to_string();
     }

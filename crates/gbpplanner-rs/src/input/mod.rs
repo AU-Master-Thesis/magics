@@ -120,9 +120,13 @@ impl Plugin for InputPlugin {
                 // MoveableObjectInputPlugin,
                 GeneralInputPlugin,
                 UiInputPlugin,
-                ScreenshotPlugin::default(),
             ))
             .add_systems(Update, binding_cooldown_system);
+
+        // Only add ScreenShotPlugin if it is not already added
+        if !app.is_plugin_added::<ScreenshotPlugin>() {
+            app.add_plugins(ScreenshotPlugin::default());
+        }
     }
 }
 

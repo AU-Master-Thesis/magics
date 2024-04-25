@@ -1,5 +1,6 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/asset_loader.rs
 use bevy::prelude::*;
+use bevy_asset_loader::prelude::*;
 
 use crate::theme::{CatppuccinTheme, ColorFromCatppuccinColourExt};
 
@@ -139,6 +140,23 @@ pub struct Obstacles {
     // pub sdf: Image,
 }
 
+#[derive(AssetCollection, Resource, Debug)]
+pub struct Fonts {
+    #[asset(path = "fonts/JetBrainsMonoNerdFont-Regular.ttf")]
+    pub main: Handle<Font>,
+}
+
+// impl FromWorld for Fonts {
+//     fn from_world(world: &mut World) -> Self {
+//         let mut fonts = world
+//             .get_resource_mut::<Assets<Font>>()
+//             .expect("Fonts resource exists in the world");
+//         Self {
+//             main: fonts.add(Font::default()),
+//         }
+//     }
+// }
+
 // /// **Bevy** [`Resource`] to hold all assets in a common place
 // /// Good practice to load assets once, and then reference them by their
 // /// [`Handle`]s
@@ -160,12 +178,13 @@ pub struct AssetLoaderPlugin;
 
 impl Plugin for AssetLoaderPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Meshes>();
-        app.init_resource::<Materials>();
+        app.init_resource::<Meshes>()
+            .init_resource::<Materials>()
+            .init_resource::<Obstacles>()
+            .init_collection::<Fonts>();
         // app.init_resource::<ImageAssets>();
         // app.init_resource::<ObstacleSdf>();
         // app.init_resource::<ObstacleRaw>();
-        app.init_resource::<Obstacles>();
 
         // app.init_resource::<SceneAssets>();
         // .add_systems(Update,
