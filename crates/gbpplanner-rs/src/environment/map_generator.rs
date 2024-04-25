@@ -16,12 +16,16 @@ use crate::{
     input::DrawSettingsEvent,
 };
 
+static COLLIDERS: once_cell::sync::Lazy<std::sync::RwLock<Colliders>> =
+    once_cell::sync::Lazy::new(std::sync::RwLock::default);
+
 pub struct GenMapPlugin;
 
 impl Plugin for GenMapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Colliders>()
             .add_systems(Startup, (build_tile_grid, build_obstacles))
+            .add_systems(PostStartup, create_static_colliders)
             .add_systems(
                 Update,
                 show_or_hide_generated_map.run_if(event_exists::<DrawSettingsEvent>),
@@ -67,6 +71,10 @@ impl Colliders {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+}
+
+fn create_static_colliders(colliders: Res<Colliders>) {
+    COLLIDERS.write().expect("Not poisoned pls").0 = colliders.0.clone();
 }
 
 /// **Bevy** [`Startup`] _system_.

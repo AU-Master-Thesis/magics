@@ -2,13 +2,16 @@
 //! and generate the necessary environment and colliders for rrt to work
 use std::sync::Arc;
 
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    tasks::{AsyncComputeTaskPool, Task},
+};
 use bevy_infinite_grid::InfiniteGridSettings;
 use gbpplanner_rs::{
     asset_loader::{AssetLoaderPlugin, SceneAssets},
     cli,
-    config::{read_config, Config, Environment, FormationGroup},
-    environment::{map_generator::Colliders, EnvironmentPlugin, ObstacleMarker},
+    config::{read_config, Config, Environment, FormationGroup, RrtSection},
+    environment::{map_generator::Colliders, EnvironmentPlugin},
     input::{camera::CameraInputPlugin, general::GeneralInputPlugin, ChangingBinding},
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt, ThemePlugin},
 };
@@ -20,8 +23,10 @@ use parry2d::{
 // use parry3d::shape;
 use rand::distributions::{Distribution, Uniform};
 
-const START: Vec2 = Vec2::new(-100.0 + 12.5, 62.5 - 2.0);
-const END: Vec2 = Vec2::new(100.0 - 2.0, -62.5 + 12.5);
+// const START: Vec2 = Vec2::new(-100.0 + 12.5, 62.5 - 2.0);
+// const END: Vec2 = Vec2::new(100.0, -62.5 + 12.5);
+const START: Vec2 = Vec2::new(0.0, 75.0 - 5.0);
+const END: Vec2 = Vec2::new(0.0, -75.0 + 5.0);
 
 fn main() -> anyhow::Result<()> {
     better_panic::debug_install();
@@ -175,16 +180,75 @@ fn spawn_waypoints(
     commands.spawn(PbrBundle {
         mesh: sphere.clone(),
         material: materials.add(theme.blue_material()),
-        transform: Transform::from_translation(Vec3::new(START.x, 0.0, START.y)),
+        transform: Transform::from_translation(Vec3::new(START.x, 0.5, START.y)),
         ..Default::default()
     });
 
     commands.spawn(PbrBundle {
         mesh: sphere,
         material: materials.add(theme.green_material()),
-        transform: Transform::from_translation(Vec3::new(END.x, 0.0, END.y)),
+        transform: Transform::from_translation(Vec3::new(END.x, 0.5, END.y)),
         ..Default::default()
     });
+}
+
+/// Possible RRT pathfinding errors
+#[derive(Debug)]
+pub enum PathfindingError {
+    ReachedMaxIterations,
+}
+
+/// **Bevy** [`Component`] for storing the pathfinding task
+#[derive(Component, Debug)]
+pub struct PathfindingTask(Task<Result<Path, PathfindingError>>);
+
+/// Standalone function to spawn an RRT pathfinding task in an async thread
+/// - Used to run path-finding tasks that may take longer than a single frame to
+///   complete
+fn spawn_rrt_path_finding_task(
+    commands: &mut Commands,
+    start: Vec2,
+    end: Vec2,
+    colliders: &'static Colliders,
+    rrt_params: RrtSection,
+    target: Entity, // task_pool: Res<AsyncComputeTaskPool>,
+) {
+    let collision_solver = CollisionProblem::new(Arc::new(colliders))
+        .with_collision_radius(rrt_params.collision_radius.get());
+
+    let thread_pool = AsyncComputeTaskPool::get();
+    let task = thread_pool.spawn(async move {
+        let mut path = rrt::dual_rrt_connect(
+            &[start.x as f64, start.y as f64],
+            &[end.x as f64, end.y as f64],
+            |x: &[f64]| collision_solver.is_feasible(x),
+            || collision_solver.random_sample(),
+            rrt_params.step_size.get() as f64,
+            rrt_params.max_iterations.get(),
+        );
+
+        if let Ok(mut res) = path {
+            // optimise and smooth the found path
+            rrt::smooth_path(
+                &mut res,
+                |x: &[f64]| collision_solver.is_feasible(x),
+                rrt_params.smoothing.step_size.get() as f64,
+                rrt_params.smoothing.max_iterations.get(),
+            );
+
+            // convert the path to Vec3 and update the path resource
+            let mut path = Path::default();
+            res.iter().for_each(|x| {
+                path.push(Vec3::new(x[0] as f32, 0.0, x[1] as f32));
+            });
+
+            Ok(path)
+        } else {
+            Err(PathfindingError::ReachedMaxIterations)
+        }
+    });
+
+    commands.entity(target).insert(PathfindingTask(task));
 }
 
 /// **Bevy** [`Update`] system to find an RRT path through the environment
@@ -196,12 +260,15 @@ fn rrt_path(
     colliders: Res<Colliders>,
     config: Res<Config>,
 ) {
+    // let colliders = Arc::new(colliders.into_inner().to_owned());
     let colliders = colliders.into_inner();
+
     if colliders.is_empty() || matches!(state_path_found.get(), PathFindingState::Found) {
         return;
     }
 
     let collision_solver = CollisionProblem::new(Arc::new(colliders))
+    // let collision_solver = CollisionProblem::new(colliders)
         .with_collision_radius(config.rrt.collision_radius.get());
 
     let start = [START.x as f64, START.y as f64];
@@ -254,7 +321,7 @@ fn draw_gizmos(mut gizmos: Gizmos, path: Res<Path>, theme: Res<CatppuccinTheme>)
 
 /// **Bevy** marker [`Component`] for marking waypoints
 /// Used to despawn previous waypoints when a new path is found
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct WaypointMarker;
 
 /// **Bevy** [`Update`] system for drawing waypoints along [`Path`]s
@@ -317,7 +384,7 @@ impl<'world> CollisionProblem<'world> {
         // collider.as_ref())         .expect("Correct shapes should have been
         // given."); });
 
-        for (i, (isometry, collider)) in self.colliders.iter().enumerate() {
+        for (isometry, collider) in self.colliders.iter() {
             intersecting = intersection_test(
                 &ball_pos,
                 &self.collision_checker,
@@ -356,10 +423,12 @@ fn change_infinite_grid_settings(
     infinite_grid_settings.z_axis_color = colour;
 }
 
-#[derive(Component)]
+/// **Bevy** [`Component`] for marking the [`Text`] entity for the path length
+#[derive(Component, Debug)]
 pub struct PathLengthText;
 
-#[derive(Component)]
+/// **Bevy** [`Component`] for marking the [`Text`] entity for the path length
+#[derive(Component, Debug)]
 pub struct WaypointAmountText;
 
 fn init_path_info_text(

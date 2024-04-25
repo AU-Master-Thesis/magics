@@ -124,6 +124,7 @@ fn main() -> anyhow::Result<()> {
             EnvironmentType::Circle => Environment::circle(),
             EnvironmentType::Intermediate => Environment::intermediate(),
             EnvironmentType::Complex => Environment::complex(),
+            EnvironmentType::Maze => Environment::maze(),
             EnvironmentType::Test => Environment::test(),
         };
         println!("{}", serde_yaml::to_string(&env)?);

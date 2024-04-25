@@ -14,6 +14,10 @@ use crate::environment::TileCoordinates;
 pub struct TileGrid(Vec<String>);
 
 impl TileGrid {
+    pub fn new(matrix_representation: Vec<impl Into<String>>) -> Self {
+        Self(matrix_representation.into_iter().map(Into::into).collect())
+    }
+
     pub fn iter(&self) -> std::slice::Iter<String> {
         self.0.iter()
     }
@@ -234,7 +238,7 @@ pub struct Tiles {
 impl Tiles {
     pub fn empty() -> Self {
         Self {
-            grid:     TileGrid(vec!["█".to_string()]),
+            grid:     TileGrid::new(vec!["█"]),
             settings: TileSettings {
                 tile_size:       0.0,
                 path_width:      0.0,
@@ -261,6 +265,7 @@ pub enum EnvironmentType {
     Intermediate,
     Complex,
     Circle,
+    Maze,
     Test,
 }
 
@@ -385,7 +390,7 @@ impl Environment {
     pub fn intersection() -> Self {
         Self {
             tiles:     Tiles {
-                grid:     TileGrid(vec!["┼".to_string()]),
+                grid:     TileGrid::new(vec!["┼"]),
                 settings: TileSettings {
                     tile_size:       100.0,
                     path_width:      0.1325,
@@ -401,10 +406,10 @@ impl Environment {
     pub fn intermediate() -> Self {
         Self {
             tiles: Tiles {
-                grid: TileGrid(vec![
-                    "┌┬┐ ".to_string(),
-                    "┘└┼┬".to_string(),
-                    "  └┘".to_string()
+                grid: TileGrid::new(vec![
+                    "┌┬┐ ",
+                    "┘└┼┬",
+                    "  └┘",
                 ]),
                 settings: TileSettings {
                     tile_size: 50.0,
@@ -421,12 +426,12 @@ impl Environment {
     pub fn complex() -> Self {
         Self {
             tiles: Tiles {
-                grid: TileGrid(vec![
-                    "┌─┼─┬─┐┌".to_string(),
-                    "┼─┘┌┼┬┼┘".to_string(),
-                    "┴┬─┴┼┘│ ".to_string(),
-                    "┌┴┐┌┼─┴┬".to_string(),
-                    "├─┴┘└──┘".to_string(),
+                grid: TileGrid::new(vec![
+                    "┌─┼─┬─┐┌",
+                    "┼─┘┌┼┬┼┘",
+                    "┴┬─┴┼┘│ ",
+                    "┌┴┐┌┼─┴┬",
+                    "├─┴┘└──┘",
                 ]),
                 settings: TileSettings {
                     tile_size: 25.0,
@@ -440,14 +445,48 @@ impl Environment {
 
     #[must_use]
     #[rustfmt::skip]
+    pub fn maze() -> Self {
+        Self {
+            tiles: Tiles {
+                grid: TileGrid::new(vec![
+                    "               ",
+                    " ╶─┬─┐┌─────┬┐ ",
+                    " ┌─┤┌┤│╷╶──┬┘│ ",
+                    " │╷│╵├┤├─┬┬┴┬┤ ",
+                    " └┤├─┘││╷╵├─┘│ ",
+                    " ╷│╵╷╶┤│├┐└╴┌┘ ",
+                    " │├─┴╴│╵│└──┤╷ ",
+                    " └┤┌─┐└┬┘┌─┐└┘ ",
+                    " ┌┴┤╷├╴│┌┤╷└─┐ ",
+                    " │┌┤├┘┌┘││└──┤ ",
+                    " ╵│╵├┬┘┌┘└──┐╵ ",
+                    " ┌┘╶┘├─┴─┐╷╷└┐ ",
+                    " └─┬─┴──┐├┘├─┘ ",
+                    " ┌┐│╷┌─╴││╶┘╶┐ ",
+                    " │└┼┘├──┘├──┬┤ ",
+                    " ╵╶┴─┘╶──┴──┴┘ ",
+                    "               ",
+                ]),
+                settings: TileSettings {
+                    tile_size: 10.0,
+                    path_width: 0.75,
+                    obstacle_height: 1.0,
+                },
+            },
+            obstacles: Obstacles::empty(),
+        }
+    }
+
+    #[must_use]
+    #[rustfmt::skip]
     pub fn test() -> Self {
         Environment {
             tiles: Tiles {
-                grid: TileGrid(vec![
-                    "┌┬┐├".to_string(),
-                    "└┴┘┤".to_string(),
-                    "│─ ┼".to_string(),
-                    "╴╵╶╷".to_string(),
+                grid: TileGrid::new(vec![
+                    "┌┬┐├",
+                    "└┴┘┤",
+                    "│─ ┼",
+                    "╴╵╶╷",
                 ]),
                 settings: TileSettings {
                     tile_size: 50.0,

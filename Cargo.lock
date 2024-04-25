@@ -3132,6 +3132,7 @@ dependencies = [
  "ndarray",
  "ndarray-inverse",
  "num-traits",
+ "once_cell",
  "open",
  "parry2d",
  "parry3d",
