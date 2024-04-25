@@ -11,6 +11,14 @@ use serde::{Deserialize, Deserializer, Serialize};
 #[derive(Debug)]
 pub struct MinLenVec<T, const N: usize>(Vec<T>);
 
+impl<T: std::clone::Clone, const N: usize> std::clone::Clone for MinLenVec<T, N> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+        // self.0.clone()
+        // todo!()
+    }
+}
+
 /// Error type for `MinLenVec`.
 #[derive(Debug, PartialEq, Eq)]
 pub enum MinLenVecError {
@@ -196,6 +204,22 @@ pub type OneOrMore<T> = MinLenVec<T, 1>;
 /// A type alias for a `MinLenVec` with a minimum length of 2.
 pub type TwoOrMore<T> = MinLenVec<T, 2>;
 
+/// Creates a `OneOrMore`<T> containing the arguments.
+#[macro_export]
+macro_rules! one_or_more {
+    ($first:expr $(, $rest:expr)* $(,)?) => {
+        OneOrMore::new(vec![$first $(, $rest)*]).expect("a vector of length 1 or more provided")
+    };
+}
+
+/// Creates a `TwoOrMore`<T> containing the arguments.
+#[macro_export]
+macro_rules! two_or_more {
+    ($first:expr, $second:expr $(, $rest:expr)* $(,)?) => {
+        TwoOrMore::new(vec![$first, $second $(, $rest)*]).expect("a vector of length 2 or more provided")
+    };
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -210,15 +234,9 @@ mod tests {
             Err(MinLenVecError::NotEnoughElements(3))
         ));
 
-        assert!(matches!(
-            MinLenVec::<_, 3>::new(vec![1, 2, 3]),
-            Ok(MinLenVec(_))
-        ));
+        assert!(matches!(MinLenVec::<_, 3>::new(vec![1, 2, 3]), Ok(MinLenVec(_))));
 
-        assert!(matches!(
-            MinLenVec::<_, 1>::new(vec![1.0]),
-            Ok(MinLenVec(_))
-        ));
+        assert!(matches!(MinLenVec::<_, 1>::new(vec![1.0]), Ok(MinLenVec(_))));
         assert!(matches!(
             MinLenVec::<i32, 1>::new(vec![]),
             Err(MinLenVecError::NotEnoughElements(1))
@@ -283,5 +301,23 @@ mod tests {
     fn test_last() {
         let v = MinLenVec::<_, 4>::new(vec![1, 2, 3, 4]).unwrap();
         assert_eq!(v.last(), &4);
+    }
+
+    #[test]
+    fn test_one_or_more_macro() {
+        let v = one_or_more!["one"];
+        assert_eq!(v.into_inner(), vec!["one"]);
+
+        let v = one_or_more![1, 2, 3];
+        assert_eq!(v.into_inner(), vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_two_or_more_macro() {
+        let v = two_or_more!["one", "two"];
+        assert_eq!(v.into_inner(), vec!["one", "two"]);
+
+        let v = two_or_more![1, 2, 3];
+        assert_eq!(v.into_inner(), vec![1, 2, 3]);
     }
 }

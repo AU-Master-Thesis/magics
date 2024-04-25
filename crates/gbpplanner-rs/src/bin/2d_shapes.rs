@@ -7,19 +7,12 @@ use bevy::{
 };
 
 fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .add_systems(Startup, setup)
-        .run();
+    App::new().add_plugins(DefaultPlugins).add_systems(Startup, setup).run();
 }
 
 const X_EXTENT: f32 = 600.;
 
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
     commands.spawn(Camera2dBundle::default());
 
     let shapes = [

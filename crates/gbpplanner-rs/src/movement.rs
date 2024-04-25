@@ -94,15 +94,6 @@ pub struct MovementBundle {
     pub angular_movement: AngularMovementBundle,
 }
 
-// impl Default for MovementBundle {
-//     fn default() -> Self {
-//         Self {
-//             linear_movement: LinearMovementBundle::default(),
-//             angular_movement: AngularMovementBundle::default(),
-//         }
-//     }
-// }
-
 #[derive(Bundle, Default)]
 pub struct MovingObjectBundle {
     pub linear_movement: LinearMovementBundle,
@@ -116,16 +107,6 @@ pub struct MovingMeshBundle {
     pub angular_movement: AngularMovementBundle,
     pub model: PbrBundle,
 }
-
-// impl Default for MovingMeshBundle {
-//     fn default() -> Self {
-//         Self {
-//             linear_movement: Default::default(),
-//             angular_movement: Default::default(),
-//             model: Default::default(),
-//         }
-//     }
-// }
 
 #[derive(Bundle)]
 pub struct OrbitMovementBundle {
@@ -216,38 +197,29 @@ fn update_position_local_orbit(
             transform.forward()
         };
 
-        let z_direction =
-            Vec3::new(source_z_direction.x, 0.0, source_z_direction.z).normalize_or_zero();
+        let z_direction = Vec3::new(source_z_direction.x, 0.0, source_z_direction.z).normalize_or_zero();
 
         // info!("velocity.value.y {:?}", velocity.value.y);
 
-        let from_local_translation = (transform.left() * velocity.value.x
-            + z_direction * velocity.value.z)
-            * time.delta_seconds();
+        let from_local_translation =
+            (transform.left() * velocity.value.x + z_direction * velocity.value.z) * time.delta_seconds();
 
         // info!("from_local_translation.y {:?}", from_local_translation.y);
 
         let zoom_direction = transform.forward();
 
-        transform.translation +=
-            from_local_translation + zoom_direction * velocity.value.y * time.delta_seconds();
+        transform.translation += from_local_translation + zoom_direction * velocity.value.y * time.delta_seconds();
         orbit.origin += from_local_translation;
     }
 }
 
-fn update_angular_velocity(
-    mut query: Query<(&AngularAcceleration, &mut AngularVelocity)>,
-    time: Res<Time<Real>>,
-) {
+fn update_angular_velocity(mut query: Query<(&AngularAcceleration, &mut AngularVelocity)>, time: Res<Time<Real>>) {
     for (angular_acceleration, mut angular_velocity) in &mut query {
         angular_velocity.value += angular_acceleration.value * time.delta_seconds();
     }
 }
 
-fn update_rotation(
-    mut query: Query<(&AngularVelocity, &mut Transform), Without<Orbit>>,
-    time: Res<Time<Real>>,
-) {
+fn update_rotation(mut query: Query<(&AngularVelocity, &mut Transform), Without<Orbit>>, time: Res<Time<Real>>) {
     for (angular_velocity, mut transform) in &mut query {
         let q = Quat::from_euler(
             EulerRot::XYZ,
@@ -259,16 +231,13 @@ fn update_rotation(
     }
 }
 
-fn update_rotation_orbit(
-    mut query: Query<(&Orbit, &AngularVelocity, &mut Transform)>,
-    time: Res<Time<Real>>,
-) {
+fn update_rotation_orbit(mut query: Query<(&Orbit, &AngularVelocity, &mut Transform)>, time: Res<Time<Real>>) {
     for (orbit, angular_velocity, mut transform) in &mut query {
+        // FIXME: handle case where user presses up/down or left/right at the same time
+        // triggering a unwrap() err, in transform::right()
+        // let axis =
         let yaw = Quat::from_axis_angle(Vec3::Y, angular_velocity.value.x * time.delta_seconds());
-        let pitch = Quat::from_axis_angle(
-            *transform.right(),
-            -angular_velocity.value.y * time.delta_seconds(),
-        );
+        let pitch = Quat::from_axis_angle(*transform.right(), -angular_velocity.value.y * time.delta_seconds());
 
         transform.rotate_around(orbit.origin, yaw * pitch);
         // transform.look_at(orbit.origin, Vec3::Z);

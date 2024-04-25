@@ -15,9 +15,11 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ResetCamera>()
-            .init_state::<CameraMovementMode>()
+            .init_state::<CameraMovement>()
             .init_resource::<CameraSettings>()
             .add_systems(Startup, spawn_main_camera)
+            // .add_systems(Update, spawn_main_cmaer)
+            // .add_systems(Update)
             .add_systems(
                 Update,
                 (
@@ -27,12 +29,12 @@ impl Plugin for CameraPlugin {
                     // activate_main_camera
                     //     .after(reset_main_camera)
                     //     .run_if(on_event::<ReloadSimulation>()),
-                    (reset_main_camera, activate_main_camera)
-                        .chain()
-                        .run_if(on_event::<ReloadSimulation>()),
-                    (reset_main_camera, activate_main_camera)
-                        .chain()
-                        .run_if(on_event::<LoadSimulation>()),
+                    (reset_main_camera, activate_main_camera).chain().run_if(
+                        on_event::<ReloadSimulation>().or_else(on_event::<LoadSimulation>()),
+                    ),
+                    // (reset_main_camera, activate_main_camera)
+                    //     .chain()
+                    //     .run_if(on_event::<LoadSimulation>()),
                 ),
             );
     }
@@ -46,18 +48,18 @@ impl Plugin for CameraPlugin {
 // 0.0),     });
 // }
 
-impl FromWorld for CameraSettings {
-    fn from_world(world: &mut World) -> Self {
-        let config = world
-            .get_resource::<Config>()
-            .expect("Config resource is available in the ecs world");
-        CameraSettings {
-            speed: config.interaction.default_cam_distance / 10.0,
-            angular_speed: 2.0,
-            start_pos: Vec3::new(0.0, config.interaction.default_cam_distance, 0.0),
-        }
-    }
-}
+// impl FromWorld for CameraSettings {
+//     fn from_world(world: &mut World) -> Self {
+//         let config = world
+//             .get_resource::<Config>()
+//             .expect("Config resource is available in the ecs world");
+//         CameraSettings {
+//             speed: config.interaction.default_cam_distance / 10.0,
+//             angular_speed: 2.0,
+//             start_pos: Vec3::new(0.0,
+// config.interaction.default_cam_distance, 0.0),         }
+//     }
+// }
 
 /// **Bevy** [`Resource`] for the main camera's settings
 /// Is initialised partially from the [`Config`] resource, otherwise with some
@@ -72,6 +74,18 @@ pub struct CameraSettings {
     pub start_pos: Vec3,
 }
 
+const DEFAULT_CAMERA_DISTANCE: f32 = 250.0;
+
+impl Default for CameraSettings {
+    fn default() -> Self {
+        Self {
+            speed: DEFAULT_CAMERA_DISTANCE / 10.0,
+            angular_speed: 2.0,
+            start_pos: Vec3::new(0.0, DEFAULT_CAMERA_DISTANCE, 0.0),
+        }
+    }
+}
+
 /// **Bevy** [`Event`] to reset the main camera's position and rotation
 #[derive(Debug, Event)]
 pub struct ResetCamera;
@@ -83,22 +97,20 @@ pub struct MainCamera;
 /// **Bevy** [`State`] representing the main camera's movement mode
 /// Enables the camera to `Pan` and `Orbit`
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum CameraMovementMode {
+pub enum CameraMovement {
     #[default]
     Pan,
     Orbit,
 }
 
 /// **Bevy** [`Startup`] system to spawn the main camera
-fn spawn_main_camera(mut commands: Commands, config: Res<Config>) {
-    let transform = Transform::from_xyz(0.0, config.interaction.default_cam_distance, 0.0)
-        .looking_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
+// fn spawn_main_camera(mut commands: Commands, config: Res<Config>) {
+fn spawn_main_camera(mut commands: Commands) {
+    let default_cam_distance = 250.0;
+    let transform = Transform::from_xyz(0.0, default_cam_distance, 0.0).looking_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
 
     commands.spawn((
-        Camera3dBundle {
-            transform,
-            ..default()
-        },
+        Camera3dBundle { transform, ..default() },
         LinearMovementBundle::default(),
         OrbitMovementBundle::default(),
         Local,
@@ -110,10 +122,10 @@ fn spawn_main_camera(mut commands: Commands, config: Res<Config>) {
 /// To reset the main camera's position and rotation
 fn reset_main_camera(
     mut main_camera: Query<(&mut Transform, &mut Orbit), With<MainCamera>>,
-    mut next_movement_mode: ResMut<NextState<CameraMovementMode>>,
+    mut next_camera_movement: ResMut<NextState<CameraMovement>>,
     cam_settings: Res<CameraSettings>,
 ) {
-    next_movement_mode.set(CameraMovementMode::Pan);
+    next_camera_movement.set(CameraMovement::Pan);
 
     let (mut transform, mut orbit) = main_camera.single_mut();
 

@@ -156,7 +156,7 @@ impl<'de> Deserialize<'de> for Angle {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::assertions_on_result_states, clippy::unwrap_used)]
 mod tests {
     use approx::assert_abs_diff_eq;
 
@@ -164,36 +164,36 @@ mod tests {
 
     #[test]
     fn test_new() {
-        Angle::new(-1.0).unwrap_err();
-        Angle::new(0.0).unwrap();
-        Angle::new(2.0 * std::f64::consts::PI).unwrap();
-        Angle::new(std::f64::consts::TAU + 1.0).unwrap_err();
+        assert!(Angle::new(-1.0).is_err());
+        assert!(Angle::new(0.0).is_ok());
+        assert!(Angle::new(2.0 * std::f64::consts::PI).is_ok());
+        assert!(Angle::new(std::f64::consts::TAU + 1.0).is_err());
     }
 
     #[test]
     fn test_from_degrees() {
-        Angle::from_degrees(-1.0).unwrap_err();
-        Angle::from_degrees(0.0).unwrap();
-        Angle::from_degrees(360.0).unwrap();
-        Angle::from_degrees(361.0).unwrap_err();
+        assert!(Angle::from_degrees(-1.0).is_err());
+        assert!(Angle::from_degrees(0.0).is_ok());
+        assert!(Angle::from_degrees(360.0).is_ok());
+        assert!(Angle::from_degrees(361.0).is_err());
     }
 
     #[test]
     fn test_as_radians() {
-        let angle = Angle::from_degrees(180.0).unwrap();
+        let angle = Angle::from_degrees(180.0).expect("0.0 <= 180.0 <= 360.0");
         assert_abs_diff_eq!(angle.as_radians(), std::f64::consts::PI, epsilon = 1e-6);
     }
 
     #[test]
     fn test_as_degrees() {
-        let angle = Angle::new(std::f64::consts::PI).unwrap();
+        let angle = Angle::new(std::f64::consts::PI).expect("0.0 <= pi <= pi");
         assert_abs_diff_eq!(angle.as_degrees(), 180.0, epsilon = 1e-6);
     }
 
     #[test]
     fn test_add() {
-        let angle1 = Angle::from_degrees(180.0).unwrap();
-        let angle2 = Angle::from_degrees(180.0).unwrap();
+        let angle1 = Angle::from_degrees(180.0).expect("0.0 <= 180.0 <= 360.0");
+        let angle2 = Angle::from_degrees(180.0).expect("0.0 <= 180.0 <= 360.0");
         let sum = angle1.add(angle2);
         assert_abs_diff_eq!(sum.as_degrees(), 0.0, epsilon = 1e-6);
     }
@@ -283,9 +283,6 @@ mod tests {
             Angle::try_from(-1.0),
             Err(AngleError::OutOfRangeRadians(-1.0))
         ));
-        assert!(matches!(
-            Angle::try_from(7.0),
-            Err(AngleError::OutOfRangeRadians(7.0))
-        ));
+        assert!(matches!(Angle::try_from(7.0), Err(AngleError::OutOfRangeRadians(7.0))));
     }
 }

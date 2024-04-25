@@ -114,6 +114,13 @@ impl VariableNode {
         [self.belief.mean[0], self.belief.mean[1]]
     }
 
+    /// Returns the variables belief about its position
+    #[inline]
+    pub fn estimated_position_vec2(&self) -> bevy::math::Vec2 {
+        bevy::math::Vec2::new(self.belief.mean[0] as f32, self.belief.mean[1] as f32)
+        // [self.belief.mean[0], self.belief.mean[1]]
+    }
+
     /// Returns the variables belief about its velocity
     #[inline]
     pub fn estimated_velocity(&self) -> [Float; 2] {
@@ -121,11 +128,7 @@ impl VariableNode {
     }
 
     #[must_use]
-    pub fn new(
-        prior_mean: Vector<Float>,
-        mut prior_precision_matrix: Matrix<Float>,
-        dofs: usize,
-    ) -> Self {
+    pub fn new(prior_mean: Vector<Float>, mut prior_precision_matrix: Matrix<Float>, dofs: usize) -> Self {
         if !prior_precision_matrix.iter().all(|x| x.is_finite()) {
             prior_precision_matrix.fill(0.0);
         }
@@ -216,19 +219,15 @@ impl VariableNode {
         self.belief
             .information_vector
             .clone_from(&self.prior.information_vector);
-        self.belief
-            .precision_matrix
-            .clone_from(&self.prior.precision_matrix);
+        self.belief.precision_matrix.clone_from(&self.prior.precision_matrix);
 
         // Go through received messages and update belief
         for message in self.inbox.values() {
             let Some(payload) = message.payload() else {
                 continue;
             };
-            self.belief.information_vector =
-                &self.belief.information_vector + &payload.information_factor;
-            self.belief.precision_matrix =
-                &self.belief.precision_matrix + &payload.precision_matrix;
+            self.belief.information_vector = &self.belief.information_vector + &payload.information_factor;
+            self.belief.precision_matrix = &self.belief.precision_matrix + &payload.precision_matrix;
         }
 
         // Update belief
@@ -240,10 +239,7 @@ impl VariableNode {
                 self.belief.covariance_matrix = sigma;
                 self.belief.valid = self.belief.covariance_matrix.iter().all(|x| x.is_finite());
                 if self.belief.valid {
-                    self.belief.mean = self
-                        .belief
-                        .covariance_matrix
-                        .dot(&self.belief.information_vector);
+                    self.belief.mean = self.belief.covariance_matrix.dot(&self.belief.information_vector);
                 } else {
                     println!(
                         "{}:{},Variable covariance is not finite",
@@ -265,14 +261,8 @@ impl VariableNode {
                     || self.prepare_message(),
                     |message_from_factor| {
                         Message::new(
-                            InformationVec(
-                                &self.belief.information_vector
-                                    - &message_from_factor.information_factor,
-                            ),
-                            PrecisionMatrix(
-                                &self.belief.precision_matrix
-                                    - &message_from_factor.precision_matrix,
-                            ),
+                            InformationVec(&self.belief.information_vector - &message_from_factor.information_factor),
+                            PrecisionMatrix(&self.belief.precision_matrix - &message_from_factor.precision_matrix),
                             Mean(&self.belief.mean - &message_from_factor.mean),
                         )
                     },

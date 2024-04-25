@@ -118,6 +118,7 @@
               # lapack
               gcc
               gfortran
+              zlib
             ]
             ++ bevy-deps
             ++ rust-deps;

@@ -1,30 +1,29 @@
 use std::{
     collections::{BTreeMap, VecDeque},
+    path::PathBuf,
     time::Duration,
 };
 
 use bevy::{
-    input::common_conditions::input_just_pressed, prelude::*,
+    input::{common_conditions::input_just_pressed, keyboard::KeyboardInput},
+    prelude::*,
     time::common_conditions::on_real_timer,
 };
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
+use image::GenericImageView;
 use smol_str::SmolStr;
 
-use crate::{
-    bevy_utils::state::echo_state,
-    config::{Config, Environment, FormationGroup},
-    simulation_loader,
-};
+use crate::config::{Config, Environment, FormationGroup};
 
-#[derive(Debug, thiserror::Error)]
-pub enum SimulationLoaderPluginError {
-    // #[error("The given simulations directory does not exist")]
-    // SimulationsDirectoryNotExists(#[from] std::io::Error),
-    #[error("No simulations found in {0}")]
-    NoSimulationsFound(std::path::PathBuf),
-    #[error("IO error: {0}")]
-    IO(#[from] std::io::Error),
-}
+// #[derive(Debug, thiserror::Error)]
+// pub enum SimulationLoaderPluginError {
+//     // #[error("The given simulations directory does not exist")]
+//     // SimulationsDirectoryNotExists(#[from] std::io::Error),
+//     #[error("No simulations found in {0}")]
+//     NoSimulationsFound(std::path::PathBuf),
+//     #[error("IO error: {0}")]
+//     IO(#[from] std::io::Error),
+// }
 
 // #[derive(AssetCollection, Resource)]
 // struct SimulationAssets {
@@ -44,152 +43,220 @@ impl Default for SimulationLoaderPlugin {
     }
 }
 
+pub type SdfImage = image::ImageBuffer<image::Rgb<u8>, Vec<u8>>;
+pub type RawImage = image::ImageBuffer<image::Rgb<u8>, Vec<u8>>;
+
+#[derive(Debug, Clone, Resource, Deref, DerefMut)]
+pub struct Sdf(pub SdfImage);
+
+#[derive(Debug, Clone, Resource, Deref, DerefMut)]
+pub struct Raw(pub RawImage);
+
 // #[derive(Debug)]
 // pub struct Simulations(HashMap<String, Simulation>);
+// #[derive(Resource)]
+// struct Simulations(BTreeMap<String, Simulation>);
 type Simulations = BTreeMap<String, Simulation>;
 
-impl SimulationLoaderPlugin {
-    pub const SIMULATIONS_DIR: &'static str = "./config/simulations";
-    // pub fn new(simulations_dir: std::path::PathBuf) -> Result<Self,
-    // SimulationLoaderPluginError> {     if !simulations_dir.is_dir() {
-    //         Err(From::from(std::io::Error::other(
-    //             std::io::ErrorKind::NotFound,
-    //         )))
-    //     } else {
-    //         Ok(Self { simulations_dir })
-    //     }
-    // }
+const SIMULATIONS_DIR: &'static str = "./config/simulations";
 
-    // fn
-}
+impl SimulationLoaderPlugin {}
 
 impl Plugin for SimulationLoaderPlugin {
     fn build(&self, app: &mut App) {
-        // let simulations: LoadableSimulations =
-        // std::fs::read_dir(Self::SIMULATIONS_DIR)
-        let simulations: BTreeMap<_, _> = std::fs::read_dir(Self::SIMULATIONS_DIR)
-            .expect("failed to read simulation directory")
+        // let simulations: BTreeMap<_, _> = std::fs::read_dir(SIMULATIONS_DIR)
+        //     .expect("failed to read simulation directory")
+        //     .map(|dir| {
+        //         let dir = dir.expect("failed to read simulation directory");
+        //
+        //         let config_path = dir.path().join("config.toml");
+        //
+        //         assert!(
+        //             config_path.is_file(),
+        //             "config.toml not found in simulation directory: {}",
+        //             dir.path().display()
+        //         );
+        //
+        //         //                                     if !config_path.is_file() {
+        //         //     panic!(
+        //         //         "config.toml not found in simulation directory: {}",
+        //         //         dir.path().display()
+        //         //     );
+        //         // }
+        //
+        //         let formation_path = dir.path().join("formation.yaml");
+        //
+        //         assert!(
+        //             formation_path.is_file(),
+        //             "formation.yaml not found in simulation directory: {}",
+        //             dir.path().display()
+        //         );
+        //
+        //         // let formation_path = dir.path().join("formation.ron");
+        //
+        //         // assert!(
+        //         //     formation_path.is_file(),
+        //         //     "formation.ron not found in simulation directory: {}",
+        //         //     dir.path().display()
+        //         // );
+        //
+        //         //                                   if !formation_path.is_file() {
+        //         // panic!(
+        //         //     "formation.ron not found in simulation directory: {}",
+        //         //     dir.path().display()
+        //         // );
+        //         // }
+        //         let environment_path = dir.path().join("environment.yaml");
+        //
+        //         assert!(
+        //             environment_path.is_file(),
+        //             "environment.yaml not found in simulation directory: {}",
+        //             dir.path().display()
+        //         );
+        //
+        //         // if !environment_path.is_file() {
+        //         //     panic!(
+        //         //         "environment.yaml not found in simulation directory: {}",
+        //         //         dir.path().display()
+        //         //     );
+        //         // }
+        //
+        //         let config = Config::from_file(config_path).expect("file contains
+        // valid config");         // let formation =
+        // FormationGroup::from_ron_file(formation_path)         //
+        // .expect("file contains valid formation group(s)");         let
+        // formation = FormationGroup::from_yaml_file(formation_path)
+        //             .expect("file contains valid formation group(s)");
+        //
+        //         let environment = Environment::from_file(environment_path)
+        //             .expect("file contains valid environment");
+        //
+        //         // dbg!(&config_path);
+        //         // dbg!(&formation_path);
+        //         // dbg!(&environment_path);
+        //
+        //         // check config.toml
+        //         // check environment.yaml
+        //         // check formation.ron
+        //         // dbg!(&dir);
+        //         //
+        //         let name = dir
+        //             .file_name()
+        //             .into_string()
+        //             .expect("failed to parse simulation name");
+        //         let simulation = Simulation {
+        //             name: name.clone(),
+        //             config,
+        //             environment,
+        //             formation_group: formation,
+        //         };
+        //
+        //         (name, simulation)
+        //     })
+        //     .collect();
+        //
+        // assert!(
+        //     !simulations.is_empty(),
+        //     "No simulations found in {}",
+        //     SIMULATIONS_DIR
+        // );
+        //
+        // let (_, initial_simulation) = simulations
+        //     .first_key_value()
+        //     .expect("simulations map not empty");
+        // let config: Config = initial_simulation.config.clone();
+        // let formation_group: FormationGroup =
+        // initial_simulation.formation_group.clone(); let environment:
+        // Environment = initial_simulation.environment.clone();
+
+        let reader = std::fs::read_dir(SIMULATIONS_DIR).expect("failed to read simulation directory");
+
+        let simulations: BTreeMap<_, _> = reader
             .map(|dir| {
-                let dir = dir.expect("failed to read simulation directory");
-
+                let dir = dir.unwrap();
                 let config_path = dir.path().join("config.toml");
-                if !config_path.is_file() {
-                    panic!(
-                        "config.toml not found in simulation directory: {}",
-                        dir.path().display()
-                    );
-                }
-
-                let formation_path = dir.path().join("formation.ron");
-
-                if !formation_path.is_file() {
-                    panic!(
-                        "formation.ron not found in simulation directory: {}",
-                        dir.path().display()
-                    );
-                }
+                let config = Config::from_file(config_path).unwrap();
                 let environment_path = dir.path().join("environment.yaml");
+                let environment = Environment::from_file(environment_path).unwrap();
+                let formation_path = dir.path().join("formation.yaml");
+                let formation = FormationGroup::from_yaml_file(formation_path).unwrap();
 
-                if !environment_path.is_file() {
-                    panic!(
-                        "environment.yaml not found in simulation directory: {}",
-                        dir.path().display()
-                    );
-                }
+                let sdf_path = PathBuf::new()
+                    .join("crates/gbpplanner-rs/assets/imgs/obstacles")
+                    .join(format!("{}.sdf.png", config.environment_image));
+                info!("sdf_path: {sdf_path:?}");
+                let sdf_image_buffer = image::io::Reader::open(sdf_path).unwrap().decode().unwrap();
+                // println!(
+                //     "sdf_image_buffer: {:?} channels: {:?}",
+                //     sdf_image_buffer.dimensions(),
+                //     sdf_image_buffer.color()
+                // );
 
-                let config =
-                    Config::from_file(config_path.clone()).expect("file contains valid config");
-                let formation = FormationGroup::from_file(formation_path.clone())
-                    .expect("file contains a valid formation group(s)");
+                let raw_path = PathBuf::new()
+                    .join("crates/gbpplanner-rs/assets/imgs/obstacles")
+                    .join(format!("{}.png", config.environment_image));
+                let raw_image_buffer = image::io::Reader::open(raw_path).unwrap().decode().unwrap();
 
-                let environment = Environment::from_file(environment_path.clone())
-                    .expect("file contains valid environment");
+                let name = dir.file_name().into_string().expect("failed to parse simulation name");
 
-                // dbg!(&config_path);
-                // dbg!(&formation_path);
-                // dbg!(&environment_path);
-
-                // check config.toml
-                // check environment.yaml
-                // check formation.ron
-                // dbg!(&dir);
-                //
-                let name = dir
-                    .file_name()
-                    .into_string()
-                    .expect("failed to parse simulation name");
                 let simulation = Simulation {
                     name: name.clone(),
                     config,
                     environment,
                     formation_group: formation,
+                    sdf: Sdf(sdf_image_buffer.into()),
+                    raw: Raw(raw_image_buffer.into()),
                 };
 
                 (name, simulation)
             })
             .collect();
 
-        if simulations.is_empty() {
-            panic!("No simulations found in {}", Self::SIMULATIONS_DIR);
-        }
+        assert!(!simulations.is_empty(), "No simulations found in {}", SIMULATIONS_DIR);
+
+        let initial_simulation = simulations.first_key_value().map(|(_, v)| v).unwrap();
+
+        let config = initial_simulation.config.clone();
+        let formation_group = initial_simulation.formation_group.clone();
+        let environment = initial_simulation.environment.clone();
+        let sdf = initial_simulation.sdf.clone();
+        let raw = initial_simulation.raw.clone();
 
         app
-            .insert_state(SimulationStates::default())
-            .insert_resource(SimulationManager::new(simulations))
-            .init_resource::<ActiveSimulation>()
-            .add_event::<LoadSimulation>()
+            // .add_systems(Startup, load_initial_simulation)
+            .insert_resource(config)
+            .insert_resource(formation_group)
+            .insert_resource(environment)
+            .insert_resource(sdf)
+            .insert_resource(raw)
             .add_event::<ReloadSimulation>()
+            .add_event::<LoadSimulation>()
             .add_event::<EndSimulation>()
-            .add_event::<SimulationReloaded>()
-            .add_systems(PreStartup, load_initial_simulation)
-            .add_systems(Update, echo_state::<SimulationStates>().run_if(state_changed::<SimulationStates>))
+            .insert_resource(SimulationManager::new(simulations))
             .add_systems(Update, handle_requests.run_if(on_real_timer(Duration::from_millis(500))))
-            // .add_systems(OnEnter(SimulationStates::Loading), load_simulation)
-            // .add_systems(OnEnter(SimulationStates::Reloading), reload_simulation)
-            // .add_systems(
-            //     Update,
-            //     // show_toast_when_simulation_reloads.run_if(on_event::<SimulationReloaded>()),
-            //     show_toast_when_simulation_reloads.run_if(on_event::<ReloadSimulation>()),
-            // )
-                // .add_systems(PostStartup, load_initial_simulation)
-            // .add_systems(OnEnter(SimulationAssetStates::Loaded), load_simulation)
-            // .add_systems(PostUpdate, load_simulation)
             .add_systems(
                 Update,
-                // enter_state(SimulationStates::Reloading).run_if(input_just_pressed(KeyCode::F5))
-                reload_simulation.run_if(input_just_pressed(KeyCode::F5)),
+                (
+                    reload_simulation.run_if(input_just_pressed(KeyCode::F5)),
+                    load_next_simulation.run_if(input_just_pressed(KeyCode::F6)),
+                    load_previous_simulation.run_if(input_just_pressed(KeyCode::F4)),
+                )
             );
-        // .add_systems(Update, load_simulation);
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Simulation {
     pub name: String,
     pub config: Config,
     pub environment: Environment,
     pub formation_group: FormationGroup,
+    // pub sdf: Handle<Image>,
+    pub sdf: Sdf,
+    pub raw: Raw,
 }
 
-impl Simulation {
-    pub const fn new(
-        name: String,
-        config: Config,
-        environment: Environment,
-        formation_group: FormationGroup,
-    ) -> Self {
-        Self {
-            name,
-            config,
-            environment,
-            formation_group,
-        }
-    }
-}
-
-// impl Time<Scene> {}
-
-#[derive(Debug, Resource, Default)]
+#[derive(Debug, Resource)]
 pub struct SimulationManager {
     // _phantom_data: PhantomData<()>,
     // simulations_dir: std::path::PathBuf,
@@ -203,39 +270,94 @@ pub struct SimulationManager {
     simulations_loaded: usize,
 }
 
+// impl FromWorld for SimulationManager {
+//     fn from_world(world: &mut World) -> Self {
+//         let asset_server = world.resource::<AssetServer>();
+//
+//         let reader =
+//             std::fs::read_dir(SIMULATIONS_DIR).expect("failed to read
+// simulation directory");
+//
+//         let simulations: BTreeMap<_, _> = reader
+//             .map(|dir| {
+//                 let dir = dir.unwrap();
+//                 let config_path = dir.path().join("config.toml");
+//                 let config = Config::from_file(config_path).unwrap();
+//                 let environment_path = dir.path().join("environment.yaml");
+//                 let environment =
+// Environment::from_file(environment_path).unwrap();                 let
+// formation_path = dir.path().join("formation.yaml");                 let
+// formation = FormationGroup::from_yaml_file(formation_path).unwrap();
+//
+//                 let sdf_path = PathBuf::new()
+//                     .join("imgs/obstacles")
+//                     .join(format!("{}.sdf.png", config.environment_image));
+//                 info!("sdf_path: {sdf_path:?}");
+//                 let sdf = asset_server.load(sdf_path);
+//
+//                 let name = dir
+//                     .file_name()
+//                     .into_string()
+//                     .expect("failed to parse simulation name");
+//
+//                 let simulation = Simulation {
+//                     name: name.clone(),
+//                     config,
+//                     environment,
+//                     formation_group: formation,
+//                     sdf,
+//                 };
+//
+//                 (name, simulation)
+//             })
+//             .collect();
+//
+//         assert!(
+//             !simulations.is_empty(),
+//             "No simulations found in {}",
+//             SIMULATIONS_DIR
+//         );
+//
+//         let names = simulations.keys().cloned().map(Into::into).collect();
+//         let simulations = simulations.into_values().collect();
+//
+//         Self {
+//             names,
+//             simulations,
+//             active: None,
+//             requests: VecDeque::new(),
+//             simulations_loaded: 0,
+//         }
+//     }
+// }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Request {
+    LoadInitial,
     Load(SimulationId),
     Reload,
     End,
 }
 
-// impl<'world> SimulationManager<'world> {
-// impl<'a> SimulationManager<'a> {
 impl SimulationManager {
     #[must_use]
     fn new(simulations: Simulations) -> Self {
         let names = simulations.keys().cloned().map(Into::into).collect();
         let simulations = simulations.into_values().collect();
 
-        let requests = VecDeque::from([Request::Load(SimulationId(0))]);
+        let initial_index = 0;
+        let requests = VecDeque::from([Request::Load(SimulationId(initial_index))]);
 
-        let active = Some(0);
+        let active = Some(initial_index);
         Self {
             names,
             simulations,
             active,
             // active: None,
-            // reload_requested: None,
             requests,
-            // requests: VecDeque::new(),
             simulations_loaded: 0,
         }
     }
-
-    // pub fn active(&self) -> Option<SimulationId> {
-    //     self.active
-    // }
 
     pub fn active(&self) -> Option<&Simulation> {
         let active = self.active?;
@@ -285,6 +407,19 @@ impl SimulationManager {
         // self.reload_requested = Some(());
     }
 
+    pub fn load_next(&mut self) {
+        let next = self.active.map(|id| (id + 1) % self.simulations.len()).unwrap_or(0);
+        self.load(SimulationId(next));
+    }
+
+    pub fn load_previous(&mut self) {
+        let next = self
+            .active
+            .map(|id| if id == 0 { self.simulations.len() - 1 } else { id - 1 })
+            .unwrap_or(0);
+        self.load(SimulationId(next));
+    }
+
     #[must_use]
     pub fn ids(&self) -> impl Iterator<Item = SimulationId> + '_ {
         (0..self.simulations.len()).map(SimulationId)
@@ -314,20 +449,35 @@ impl SimulationManager {
     pub fn get_formation_group_for(&self, id: SimulationId) -> Option<&FormationGroup> {
         self.simulations.get(id.0).map(|s| &s.formation_group)
     }
+
+    pub fn active_formation_group(&self) -> Option<&FormationGroup> {
+        let index = self.active?;
+        self.simulations.get(index).map(|s| &s.formation_group)
+    }
+
+    pub fn active_config(&self) -> Option<&Config> {
+        let index = self.active?;
+        self.simulations.get(index).map(|s| &s.config)
+    }
+
+    pub fn active_environment(&self) -> Option<&Environment> {
+        let index = self.active?;
+        self.simulations.get(index).map(|s| &s.environment)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SimulationId(usize);
 
-#[derive(Resource)]
-pub struct ActiveSimulation(Option<SimulationId>);
-
-impl FromWorld for ActiveSimulation {
-    fn from_world(_world: &mut World) -> Self {
-        Self(None)
-        // todo!()
-    }
-}
+// #[derive(Resource)]
+// pub struct ActiveSimulation(Option<SimulationId>);
+//
+// impl FromWorld for ActiveSimulation {
+//     fn from_world(_world: &mut World) -> Self {
+//         Self(None)
+//         // todo!()
+//     }
+// }
 
 #[derive(Event)]
 pub struct LoadSimulation(pub SimulationId);
@@ -392,32 +542,32 @@ fn reload_simulation(mut simulation_manager: ResMut<SimulationManager>) {
 //     // time = new_virtual_clock;
 // }
 //
-fn show_toast_when_simulation_reloads(mut evw_toast: EventWriter<ToastEvent>) {
-    evw_toast.send(ToastEvent {
-        caption: "reloaded simulation".into(),
-        options: ToastOptions {
-            level: ToastLevel::Success,
-            closable: false,
-            show_progress_bar: false,
-            ..Default::default()
-        },
-    });
-}
-
-fn show_toast_when_simulation_state_changes(
-    mut evw_toast: EventWriter<ToastEvent>,
-    state: Res<State<SimulationStates>>,
-) {
-    evw_toast.send(ToastEvent {
-        caption: "reloaded simulation".into(),
-        options: ToastOptions {
-            level: ToastLevel::Success,
-            closable: false,
-            show_progress_bar: false,
-            ..Default::default()
-        },
-    });
-}
+// fn show_toast_when_simulation_reloads(mut evw_toast: EventWriter<ToastEvent>)
+// {     evw_toast.send(ToastEvent {
+//         caption: "reloaded simulation".into(),
+//         options: ToastOptions {
+//             level: ToastLevel::Success,
+//             closable: false,
+//             show_progress_bar: false,
+//             ..Default::default()
+//         },
+//     });
+// }
+//
+// fn show_toast_when_simulation_state_changes(
+//     mut evw_toast: EventWriter<ToastEvent>,
+//     state: Res<State<SimulationStates>>,
+// ) {
+//     evw_toast.send(ToastEvent {
+//         caption: "reloaded simulation".into(),
+//         options: ToastOptions {
+//             level: ToastLevel::Success,
+//             closable: false,
+//             show_progress_bar: false,
+//             ..Default::default()
+//         },
+//     });
+// }
 
 // fn reload_simulation(
 //     // mut evw_reload_simulation: EventWriter<SimulationReloaded>,
@@ -502,25 +652,58 @@ fn load_initial_simulation(
     // mut evw_load_simulation: EventWriter<LoadSimulation>,
     world: &mut World,
 ) {
-    let simulation_manager = world
-        .get_resource::<SimulationManager>()
-        .expect("simulation manager has been inserted");
+    let (simulation_id, config, environment, formation_group) = {
+        let simulation_manager = world
+            .get_resource_mut::<SimulationManager>()
+            .expect("SimulationManager has been inserted");
 
-    // insert initial config, formation and environment resource
+        let simulation_index = simulation_manager.active.unwrap_or(0);
+        let simulation_id = SimulationId(simulation_index);
 
-    let Some(simulation_id) = simulation_manager.active_id() else {
-        panic!("no initial simulation set to active");
+        let Some(config) = simulation_manager.get_config_for(simulation_id) else {
+            panic!("no config found for simulation id: {}", simulation_id.0);
+        };
+
+        let Some(environment) = simulation_manager.get_environment_for(simulation_id) else {
+            panic!("no environment found for simulation id: {}", simulation_id.0);
+        };
+
+        let Some(formation_group) = simulation_manager.get_formation_group_for(simulation_id) else {
+            panic!("no formation group found for simulation id: {}", simulation_id.0);
+        };
+
+        (
+            simulation_id,
+            config.clone(),
+            environment.clone(),
+            formation_group.clone(),
+        )
     };
+
+    world.insert_resource(environment.clone());
+    world.insert_resource(formation_group.clone());
+    world.insert_resource(config.clone());
+
+    let mut simulation_manager = world
+        .get_resource_mut::<SimulationManager>()
+        .expect("SimulationManager has been inserted");
+    // simulation_manager.active = Some(0);
+    simulation_manager.requests.push_back(Request::Load(simulation_id));
+
+    // let Some(simulation_id) = simulation_manager.active_id() else {
+    //     panic!("no initial simulation set to active");
+    // };
 
     // if let Some(config) = simulation_manager.get_config_for(simulation_id) {
     //     let config = config.to_owned();
     //     world.insert_resource(config);
     // }
 
-    if let Some(environment) = simulation_manager.get_environment_for(simulation_id) {
-        let environment = environment.to_owned();
-        world.insert_resource(environment);
-    }
+    // if let Some(environment) =
+    // simulation_manager.get_environment_for(simulation_id) {
+    //     let environment = environment.to_owned();
+    //     world.insert_resource(environment);
+    // }
 
     // if let Some(formation) =
     // simulation_manager.get_formation_for(simulation_id) {
@@ -544,6 +727,8 @@ fn handle_requests(
     mut virtual_time: ResMut<Time<Virtual>>,
     mut config: ResMut<Config>,
     mut environment: ResMut<Environment>,
+    mut sdf: ResMut<Sdf>,
+    mut raw: ResMut<Raw>,
     reloadable_entites: Query<Entity, With<Reloadable>>,
 ) {
     let Some(request) = simulation_manager.requests.pop_front() else {
@@ -567,13 +752,12 @@ fn handle_requests(
     }
 
     match request {
+        Request::LoadInitial => todo!(),
         // Request::Load(id) if simulation_loader.active.is_none() => {
         //     simulation_manager.active = Some(id.0);
         // }
         Request::Load(id)
-            if simulation_manager
-                .active
-                .is_some_and(|active| active == id.0)
+            if simulation_manager.active.is_some_and(|active| active == id.0)
                 && simulation_manager.simulations_loaded > 0 =>
         {
             warn!("simulation already loaded with id: {}", id.0);
@@ -588,6 +772,8 @@ fn handle_requests(
             // load config
             *config = simulation_manager.simulations[id.0].config.clone();
             *environment = simulation_manager.simulations[id.0].environment.clone();
+            *sdf = simulation_manager.simulations[id.0].sdf.clone();
+            *raw = simulation_manager.simulations[id.0].raw.clone();
 
             evw_load_simulation.send(LoadSimulation(id));
             info!("sent load simulation event with id: {}", id.0);
@@ -643,4 +829,14 @@ fn handle_requests(
             }
         },
     }
+}
+
+#[inline]
+fn load_previous_simulation(mut simulation_manager: ResMut<SimulationManager>) {
+    simulation_manager.load_previous();
+}
+
+#[inline]
+fn load_next_simulation(mut simulation_manager: ResMut<SimulationManager>) {
+    simulation_manager.load_next();
 }

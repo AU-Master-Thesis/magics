@@ -32,10 +32,7 @@ pub mod prelude {
 ///     )
 ///     .run();
 /// ```
-pub fn despawn_entities_with_component<T: Component>(
-    to_despawn: Query<Entity, With<T>>,
-    mut commands: Commands,
-) {
+pub fn despawn_entities_with_component<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
     for entity in &to_despawn {
         commands.entity(entity).despawn_recursive();
     }
@@ -67,16 +64,29 @@ impl BevyAppExt for bevy::app::App {
 }
 
 pub mod run_conditions {
-    use bevy::{
-        ecs::{
-            event::{Event, Events},
-            system::Res,
-        },
-        input::{keyboard::KeyCode, ButtonInput},
+    use bevy::ecs::{
+        event::{Event, Events},
+        system::Res,
     };
 
+    pub mod time {
+        use bevy::{
+            ecs::system::Res,
+            time::{Time, Virtual},
+        };
+
+        /// run criteria if time is not paused
+        #[inline]
+        pub fn virtual_time_is_paused(time: Res<Time<Virtual>>) -> bool {
+            time.is_paused()
+        }
+    }
+
+    // pub fn on_any_event<E: Event, const N: usize>()
+
     /// Trait for checking if an event exists
-    pub fn event_exists<T: Event>(res_event: Option<Res<Events<T>>>) -> bool {
+    #[inline]
+    pub const fn event_exists<T: Event>(res_event: Option<Res<Events<T>>>) -> bool {
         res_event.is_some()
     }
 

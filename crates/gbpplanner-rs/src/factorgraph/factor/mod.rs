@@ -7,10 +7,10 @@ use typed_floats::StrictlyPositiveFinite;
 
 use self::{dynamic::DynamicFactor, interrobot::InterRobotFactor, obstacle::ObstacleFactor};
 use super::{
-    factorgraph::NodeIndex, id::VariableId, message::MessagesToVariables, node::FactorGraphNode,
-    prelude::Message, MessageCount, DOFS,
+    factorgraph::NodeIndex, id::VariableId, message::MessagesToVariables, node::FactorGraphNode, prelude::Message,
+    MessageCount, DOFS,
 };
-use crate::factorgraph::node::RemoveConnectionToError;
+use crate::{factorgraph::node::RemoveConnectionToError, simulation_loader::SdfImage};
 
 pub(in crate::factorgraph) mod dynamic;
 pub(in crate::factorgraph) mod interrobot;
@@ -144,10 +144,12 @@ impl FactorNode {
     pub fn new_obstacle_factor(
         strength: Float,
         measurement: Vector<Float>,
-        obstacle_sdf: &'static Image,
+        // obstacle_sdf: Image,
+        obstacle_sdf: SdfImage,
         world_size: Float,
     ) -> Self {
         let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS);
+        // let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
         Self::new(state, kind)
@@ -194,10 +196,7 @@ impl FactorNode {
 
     #[must_use]
     pub fn update(&mut self) -> MessagesToVariables {
-        debug_assert_eq!(
-            self.state.linearisation_point.len(),
-            DOFS * self.inbox.len()
-        );
+        debug_assert_eq!(self.state.linearisation_point.len(), DOFS * self.inbox.len());
 
         let zero_mean = Vector::<Float>::zeros(DOFS);
 
@@ -223,10 +222,7 @@ impl FactorNode {
         let _ = self.measure(&self.state.linearisation_point.clone());
         let jacobian = self.jacobian(&self.state.linearisation_point.clone());
 
-        let potential_precision_matrix = jacobian
-            .t()
-            .dot(&self.state.measurement_precision)
-            .dot(&jacobian);
+        let potential_precision_matrix = jacobian.t().dot(&self.state.measurement_precision).dot(&jacobian);
         let potential_information_vec = jacobian
             .t()
             .dot(&self.state.measurement_precision)
@@ -249,9 +245,7 @@ impl FactorNode {
                     continue;
                 }
 
-                let message_eta = other_message
-                    .information_vector()
-                    .expect("it better be there");
+                let message_eta = other_message.information_vector().expect("it better be there");
 
                 // let message_precision =
                 // other_message.precision_matrix().unwrap_or(&zero_precision);
@@ -266,8 +260,7 @@ impl FactorNode {
                     .add_assign(message_precision);
             }
 
-            let message =
-                marginalise_factor_distance(information_vec, precision_matrix, marginalisation_idx);
+            let message = marginalise_factor_distance(information_vec, precision_matrix, marginalisation_idx);
             // .expect("marginalise_factor_distance should not fail");
             messages.insert(*variable_id, message);
             marginalisation_idx += DOFS;
@@ -436,8 +429,7 @@ impl FactorState {
         // Initialise precision of the measurement function
         // this->meas_model_lambda_ = Eigen::MatrixXd::Identity(z_.rows(), z_.rows()) /
         // pow(sigma,2.);
-        let measurement_precision =
-            Matrix::<Float>::eye(initial_measurement.len()) / Float::powi(strength, 2);
+        let measurement_precision = Matrix::<Float>::eye(initial_measurement.len()) / Float::powi(strength, 2);
 
         Self {
             initial_measurement,

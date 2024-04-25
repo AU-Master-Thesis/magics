@@ -1,21 +1,17 @@
-#![deny(missing_docs)]
-
-//! ...
+//! **Bevy** Plugin to visualize robot waypoints
 use bevy::prelude::*;
 
 use crate::{
-    asset_loader::SceneAssets,
+    // asset_loader::SceneAssets,
+    asset_loader::{Materials, Meshes},
     bevy_utils::run_conditions::event_exists,
     config::{Config, DrawSetting},
     input::DrawSettingsEvent,
-    planner::{
-        robot::RobotReachedWaypoint,
-        spawner::{WaypointCreated, WaypointDeleted},
-        RobotId,
-    },
+    planner::{robot::RobotReachedWaypoint, spawner::WaypointCreated, RobotId},
     simulation_loader,
 };
 
+/// **Bevy** Plugin to visualize robot waypoints
 pub struct WaypointVisualiserPlugin;
 
 impl Plugin for WaypointVisualiserPlugin {
@@ -24,52 +20,59 @@ impl Plugin for WaypointVisualiserPlugin {
             Update,
             (
                 listen_for_robot_reached_waypoint_event,
-                create_waypoint_mesh,
-                delete_waypoint_mesh,
-                show_or_hide_waypoints_meshes.run_if(event_exists::<DrawSettingsEvent>),
+                create_waypoint_visualizer,
+                // delete_mesh_of_reached_waypoints,
+                show_or_hide_waypoint_visualizers.run_if(event_exists::<DrawSettingsEvent>),
             ),
         );
     }
 }
 
 fn listen_for_robot_reached_waypoint_event(
-    mut robot_reached_waypoint_event: EventReader<RobotReachedWaypoint>,
-    mut delete_waypoint_event: EventWriter<WaypointDeleted>,
-    query_waypoints: Query<(Entity, &AssociatedWithRobot), With<WaypointVisualiser>>,
+    mut commands: Commands,
+    mut evr_robot_reached_waypoint: EventReader<RobotReachedWaypoint>,
+    // mut evw_waypoint_reached: EventWriter<RobotReachedWaypoint>,
+    waypoint_visualizers: Query<(Entity, &AssociatedWithRobot), With<WaypointVisualiser>>,
 ) {
-    for event in robot_reached_waypoint_event.read() {
-        // Find the
-        if let Some(waypoint_id) = query_waypoints
+    for event in evr_robot_reached_waypoint.read() {
+        // Find the entity id of the waypoint visualizer that has just been reached
+        if let Some(waypoint_id) = waypoint_visualizers
             .iter()
             .find(|(_, AssociatedWithRobot(robot_id))| *robot_id == event.robot_id)
             .map(|(entity, _)| entity)
         {
-            // info!("sending delete waypoint event: {:?}", waypoint_id);
-            delete_waypoint_event.send(WaypointDeleted(waypoint_id));
+            commands.entity(waypoint_id).despawn();
+            // evw_waypoint_reached.send(RobotReachedWaypoint(waypoint_id));
         };
     }
 }
 
-fn delete_waypoint_mesh(
-    mut commands: Commands,
-    mut delete_waypoint_event: EventReader<WaypointDeleted>,
-) {
-    for event in delete_waypoint_event.read() {
-        commands.entity(event.0).despawn();
-        // info!("deleted waypoint {:?}", event.0);
-    }
-}
+// /// **Bevy** system to delete the mesh of the allocated waypoint visualizer
+// /// whenever the waypoint has been reached.
+// fn delete_mesh_of_reached_waypoints(
+//     mut commands: Commands,
+//     mut evr_delete_waypoint: EventReader<RobotReachedWaypoint>,
+// ) {
+//     for RobotReachedWaypoint(vis) in evr_delete_waypoint.read() {
+//         commands.entity(*vis).despawn();
+//     }
+// }
 
+/// **Bevy** Component to store an association to a robot.
+/// Used to make it easier to retrieve the entity id, of the robot
+/// a visualizer is associated with.
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct AssociatedWithRobot(pub RobotId);
 
-fn create_waypoint_mesh(
+fn create_waypoint_visualizer(
     mut commands: Commands,
     config: Res<Config>,
-    scene_assets: Res<SceneAssets>,
-    mut create_waypoint_event: EventReader<WaypointCreated>,
+    // scene_assets: Res<SceneAssets>,
+    meshes: Res<Meshes>,
+    materials: Res<Materials>,
+    mut evr_waypoint_created: EventReader<WaypointCreated>,
 ) {
-    for event in create_waypoint_event.read() {
+    for event in evr_waypoint_created.read() {
         let transform = Transform::from_translation(Vec3::new(
             event.position.x,
             config.visualisation.height.objects,
@@ -81,8 +84,8 @@ fn create_waypoint_mesh(
             WaypointVisualiser,
             AssociatedWithRobot(event.for_robot),
             PbrBundle {
-                mesh: scene_assets.meshes.waypoint.clone(),
-                material: scene_assets.materials.waypoint.clone(),
+                mesh: meshes.waypoint.clone(),
+                material: materials.waypoint.clone(),
                 transform,
                 visibility: if config.visualisation.draw.waypoints {
                     Visibility::Visible
@@ -92,28 +95,24 @@ fn create_waypoint_mesh(
                 ..default()
             },
         ));
-        // info!(
-        //     "created waypoint at {:?} for robot {:?}",
-        //     event.position, event.for_robot
-        // );
     }
 }
 
-/// A **Bevy** [`Component`] to mark an entity as a visualised _waypoint_
+/// **Bevy** [`Component`] to mark an entity as a visualised _waypoint_
 #[derive(Component)]
 pub struct WaypointVisualiser;
 
-/// A **Bevy** [`Update`] system
+/// **Bevy** [`Update`] system
 /// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting ==
 /// DrawSetting::Waypoints` the boolean `DrawSettingEvent.value` will be used to
 /// set the visibility of the [`WaypointVisualiser`] entities
-fn show_or_hide_waypoints_meshes(
-    mut query: Query<(&WaypointVisualiser, &mut Visibility)>,
-    mut draw_settings_event: EventReader<DrawSettingsEvent>,
+fn show_or_hide_waypoint_visualizers(
+    mut visualizers: Query<&mut Visibility, With<WaypointVisualiser>>,
+    mut evr_draw_settings: EventReader<DrawSettingsEvent>,
 ) {
-    for event in draw_settings_event.read() {
+    for event in evr_draw_settings.read() {
         if matches!(event.setting, DrawSetting::Waypoints) {
-            for (_, mut visibility) in &mut query {
+            for mut visibility in &mut visualizers {
                 if event.draw {
                     *visibility = Visibility::Visible;
                 } else {

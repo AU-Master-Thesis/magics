@@ -50,10 +50,7 @@ fn spawn_formation(query: Query<(Entity, &FormationSpawnerCountdown)>) {
 impl Countdown {
     #[must_use]
     pub fn new(duration: Duration) -> Self {
-        Self(Timer::from_seconds(
-            duration.as_secs_f32(),
-            TimerMode::Repeating,
-        ))
+        Self(Timer::from_seconds(duration.as_secs_f32(), TimerMode::Repeating))
     }
 }
 

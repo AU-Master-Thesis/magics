@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 // use leafwing_input_manager::prelude::*;
 use crate::{
-    asset_loader::SceneAssets,
+    // asset_loader::SceneAssets,
     environment::{self, FollowCameraMe},
     movement::MovingObjectBundle,
 };
@@ -18,12 +18,11 @@ pub struct MoveableObjectPlugin;
 
 impl Plugin for MoveableObjectPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_state::<MoveableObjectMovementState>()
-            .init_state::<MoveableObjectVisibilityState>()
-            // .add_state::<MoveableObjectMovementState>()
-            // .add_state::<MoveableObjectVisibilityState>()
-            .add_systems(Startup, spawn);
+        app.init_state::<MoveableObjectMovementState>()
+            .init_state::<MoveableObjectVisibilityState>();
+        // .add_state::<MoveableObjectMovementState>()
+        // .add_state::<MoveableObjectVisibilityState>()
+        // .add_systems(Startup, spawn);
     }
 }
 
@@ -46,38 +45,32 @@ pub enum MoveableObjectVisibilityState {
     Hidden,
 }
 
-fn spawn(
-    mut commands: Commands,
-    scene_assets: Res<SceneAssets>,
-    // mut event_writer: EventWriter<RobotSpawnedEvent>,
-) {
-    let mut transform = Transform::from_translation(START_TRANSLATION);
-    transform.scale = Vec3::splat(SCALE);
-    let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
-    // let follow_camera_flag =
-    // environment::follow_cameras::FollowCameraMe::from_vec3(offset);
-    commands.spawn((
-        MovingObjectBundle {
-            model: SceneBundle {
-                // scene: scene_assets.roomba.clone(),
-                scene: scene_assets.roomba.clone(),
-                transform,
-                ..default()
-            },
-            ..default()
-        },
-        MoveableObject,
-        // environment::follow_cameras::FollowCameraMe {
-        //     offset: Some(offset),
-        // },
-        // follow_camera_flag,
-        FollowCameraMe::from(offset),
-        crate::movement::Local,
-    ));
-
-    // event_writer.send(RobotSpawnedEvent {
-    //     entity,
-    //     transform,
-    //     follow_camera_flag,
-    // });
-}
+// fn spawn(
+//     mut commands: Commands,
+//     scene_assets: Res<SceneAssets>,
+//     // mut event_writer: EventWriter<RobotSpawnedEvent>,
+// ) {
+//     let mut transform = Transform::from_translation(START_TRANSLATION);
+//     transform.scale = Vec3::splat(SCALE);
+//     let offset = Vec3::new(0.0, 5.0, -10.0).normalize() * 10.0;
+//     // let follow_camera_flag =
+//     // environment::follow_cameras::FollowCameraMe::from_vec3(offset);
+//     commands.spawn((
+//         MovingObjectBundle {
+//             model: SceneBundle {
+//                 // scene: scene_assets.roomba.clone(),
+//                 scene: scene_assets.roomba.clone(),
+//                 transform,
+//                 ..default()
+//             },
+//             ..default()
+//         },
+//         MoveableObject,
+//         // environment::follow_cameras::FollowCameraMe {
+//         //     offset: Some(offset),
+//         // },
+//         // follow_camera_flag,
+//         FollowCameraMe::from(offset),
+//         crate::movement::Local,
+//     ));
+// }

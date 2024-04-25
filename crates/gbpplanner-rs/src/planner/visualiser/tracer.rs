@@ -27,8 +27,7 @@ impl Plugin for TracerVisualiserPlugin {
                 create_tracer_when_a_robot_is_spawned,
                 track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
                 draw_traces.run_if(draw_paths_enabled),
-                reset.run_if(on_event::<LoadSimulation>()),
-                reset.run_if(on_event::<ReloadSimulation>()),
+                reset.run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
             ),
         );
     }
@@ -47,18 +46,12 @@ pub struct Trace {
 pub struct Traces(pub BTreeMap<RobotId, Trace>);
 
 #[allow(dead_code)]
-fn remove_trace_of_despawned_robot(
-    mut traces: ResMut<Traces>,
-    mut despawn_robot_event: EventReader<RobotDespawned>,
-) {
+fn remove_trace_of_despawned_robot(mut traces: ResMut<Traces>, mut despawn_robot_event: EventReader<RobotDespawned>) {
     for RobotDespawned(robot_id) in despawn_robot_event.read() {
         if traces.0.remove(robot_id).is_some() {
             info!("removed trace of robot: {:?}", robot_id);
         } else {
-            error!(
-                "attempted to remove trace of untracked robot: {:?}",
-                robot_id
-            );
+            error!("attempted to remove trace of untracked robot: {:?}", robot_id);
         }
     }
 }
@@ -77,9 +70,7 @@ fn create_tracer_when_a_robot_is_spawned(
 
             if other_robot_id == *robot_id {
                 let _ = traces.0.entry(*robot_id).or_insert(Trace {
-                    color: Color::from_catppuccin_colour(
-                        theme.get_display_colour(&color_association.name),
-                    ),
+                    color: Color::from_catppuccin_colour(theme.get_display_colour(&color_association.name)),
                     ring_buffer,
                 });
             }
@@ -100,9 +91,7 @@ fn track_robots(
             .0
             .entry(robot_id)
             .or_insert(Trace {
-                color:       Color::from_catppuccin_colour(
-                    theme.get_display_colour(&color_association.name),
-                ),
+                color:       Color::from_catppuccin_colour(theme.get_display_colour(&color_association.name)),
                 ring_buffer: StaticRb::default(),
             })
             .ring_buffer

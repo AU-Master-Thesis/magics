@@ -1,6 +1,7 @@
 mod communication;
 pub mod communication_radius;
 pub mod factorgraphs;
+mod obstacle;
 mod robot;
 mod tracer;
 mod uncertainty;
@@ -14,11 +15,9 @@ use bevy::{
 };
 
 use self::{
-    communication::CommunicationGraphVisualiserPlugin,
-    communication_radius::CommunicationRadiusVisualizerPlugin,
-    factorgraphs::FactorGraphVisualiserPlugin, robot::RobotVisualiserPlugin,
-    tracer::TracerVisualiserPlugin, uncertainty::UncertaintyVisualiserPlugin,
-    waypoints::WaypointVisualiserPlugin,
+    communication::CommunicationGraphVisualiserPlugin, communication_radius::CommunicationRadiusVisualizerPlugin,
+    factorgraphs::FactorGraphVisualiserPlugin, robot::RobotVisualiserPlugin, tracer::TracerVisualiserPlugin,
+    uncertainty::UncertaintyVisualiserPlugin, waypoints::WaypointVisualiserPlugin,
 };
 use super::RobotId;
 
@@ -36,6 +35,7 @@ impl Plugin for VisualiserPlugin {
             TracerVisualiserPlugin,
             CommunicationRadiusVisualizerPlugin,
             RobotVisualiserPlugin,
+            obstacle::ObstacleFactorVisualizerPlugin,
         ));
     }
 }

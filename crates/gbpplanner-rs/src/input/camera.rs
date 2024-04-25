@@ -8,7 +8,7 @@ use strum_macros::EnumIter;
 
 use super::{
     super::{
-        environment::camera::{CameraMovementMode, MainCamera},
+        environment::camera::{CameraMovement, MainCamera},
         movement::{AngularVelocity, Orbit, Velocity},
     },
     ChangingBinding,
@@ -25,10 +25,7 @@ pub struct CameraInputPlugin;
 impl Plugin for CameraInputPlugin {
     fn build(&self, app: &mut App) {
         if !app.is_plugin_added::<MovementPlugin>() {
-            info!(
-                "Automatically adding `MovementPlugin` to the app, as it is needed to handle \
-                 camera movement"
-            );
+            info!("Automatically adding `MovementPlugin` to the app, as it is needed to handle camera movement");
             app.add_plugins(MovementPlugin);
         }
 
@@ -50,9 +47,7 @@ pub struct CameraSensitivity {
 
 impl Default for CameraSensitivity {
     fn default() -> Self {
-        Self {
-            move_sensitivity: 1.0,
-        }
+        Self { move_sensitivity: 1.0 }
     }
 }
 
@@ -89,12 +84,8 @@ impl CameraAction {
                 InputKind::Mouse(MouseButton::Left),
                 InputKind::DualAxis(DualAxis::mouse_motion()),
             ])),
-            Self::ZoomIn => Some(UserInput::Single(InputKind::MouseWheel(
-                MouseWheelDirection::Down,
-            ))),
-            Self::ZoomOut => Some(UserInput::Single(InputKind::MouseWheel(
-                MouseWheelDirection::Up,
-            ))),
+            Self::ZoomIn => Some(UserInput::Single(InputKind::MouseWheel(MouseWheelDirection::Down))),
+            Self::ZoomOut => Some(UserInput::Single(InputKind::MouseWheel(MouseWheelDirection::Up))),
             _ => None,
         }
     }
@@ -102,9 +93,7 @@ impl CameraAction {
     const fn default_keyboard_input(action: Self) -> Option<UserInput> {
         match action {
             Self::Move => Some(UserInput::VirtualDPad(VirtualDPad::arrow_keys())),
-            Self::ToggleMovementMode => {
-                Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyC)))
-            }
+            Self::ToggleMovementMode => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyC))),
             Self::Switch => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::Tab))),
             Self::Reset => Some(UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyR))),
             _ => None,
@@ -113,21 +102,11 @@ impl CameraAction {
 
     const fn default_gamepad_input(action: Self) -> Option<UserInput> {
         match action {
-            Self::Move => Some(UserInput::Single(InputKind::DualAxis(
-                DualAxis::right_stick(),
-            ))),
-            Self::ToggleMovementMode => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::North,
-            ))),
-            Self::ZoomIn => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::DPadDown,
-            ))),
-            Self::ZoomOut => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::DPadUp,
-            ))),
-            Self::Switch => Some(UserInput::Single(InputKind::GamepadButton(
-                GamepadButtonType::East,
-            ))),
+            Self::Move => Some(UserInput::Single(InputKind::DualAxis(DualAxis::right_stick()))),
+            Self::ToggleMovementMode => Some(UserInput::Single(InputKind::GamepadButton(GamepadButtonType::North))),
+            Self::ZoomIn => Some(UserInput::Single(InputKind::GamepadButton(GamepadButtonType::DPadDown))),
+            Self::ZoomOut => Some(UserInput::Single(InputKind::GamepadButton(GamepadButtonType::DPadUp))),
+            Self::Switch => Some(UserInput::Single(InputKind::GamepadButton(GamepadButtonType::East))),
             _ => None,
         }
     }
@@ -149,20 +128,14 @@ fn bind_camera_input(mut commands: Commands, main_camera: Query<Entity, With<Mai
     }
 
     if let Ok(entity) = main_camera.get_single() {
-        commands
-            .entity(entity)
-            .insert(InputManagerBundle::with_map(input_map));
+        commands.entity(entity).insert(InputManagerBundle::with_map(input_map));
     }
 }
 
-#[allow(
-    clippy::too_many_arguments,
-    clippy::too_many_lines,
-    clippy::type_complexity
-)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines, clippy::type_complexity)]
 fn camera_actions(
-    state: Res<State<CameraMovementMode>>,
-    mut next_state: ResMut<NextState<CameraMovementMode>>,
+    state: Res<State<CameraMovement>>,
+    mut next_state: ResMut<NextState<CameraMovement>>,
     mut query: Query<
         (
             &ActionState<CameraAction>,
@@ -199,14 +172,10 @@ fn camera_actions(
     //     return;
     // }
 
-    if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
-        query.get_single_mut()
-    {
-        let is_action_blocked =
-            action_block.is_some() && action_block.as_ref().unwrap().is_blocked();
+    if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) = query.get_single_mut() {
+        let is_action_blocked = action_block.is_some() && action_block.as_ref().unwrap().is_blocked();
 
-        if currently_changing.on_cooldown() || currently_changing.is_changing() || is_action_blocked
-        {
+        if currently_changing.on_cooldown() || currently_changing.is_changing() || is_action_blocked {
             // info!("Camera actions are blocked");
             velocity.value = Vec3::ZERO;
             angular_velocity.value = Vec3::ZERO;
@@ -230,26 +199,18 @@ fn camera_actions(
         if action_state.pressed(&CameraAction::MouseMove) {
             // info!("Mouse move camera");
             match state.get() {
-                CameraMovementMode::Pan => {
-                    if let Some(action) = action_state
-                        .axis_pair(&CameraAction::MouseMove)
-                        .map(|axis| axis.xy())
-                    {
-                        tmp_velocity.x =
-                            action.x * camera_distance * sensitivity.move_sensitivity / 10.0;
+                CameraMovement::Pan => {
+                    if let Some(action) = action_state.axis_pair(&CameraAction::MouseMove).map(|axis| axis.xy()) {
+                        tmp_velocity.x = action.x * camera_distance * sensitivity.move_sensitivity / 10.0;
                         // * camera_settings.speed;
                         // * windows_height_scaling
-                        tmp_velocity.z =
-                            action.y * camera_distance * sensitivity.move_sensitivity / 10.0;
+                        tmp_velocity.z = action.y * camera_distance * sensitivity.move_sensitivity / 10.0;
                         // * windows_height_scaling
                         // * camera_settings.speed;
                     }
                 }
-                CameraMovementMode::Orbit => {
-                    if let Some(action) = action_state
-                        .axis_pair(&CameraAction::MouseMove)
-                        .map(|axis| axis.xy())
-                    {
+                CameraMovement::Orbit => {
+                    if let Some(action) = action_state.axis_pair(&CameraAction::MouseMove).map(|axis| axis.xy()) {
                         tmp_angular_velocity.x = -action.x * sensitivity.move_sensitivity / 10.0;
                         // * camera_settings.angular_speed;
                         // * windows_height_scaling
@@ -261,24 +222,18 @@ fn camera_actions(
             }
         } else if action_state.pressed(&CameraAction::Move) {
             match state.get() {
-                CameraMovementMode::Pan => {
+                CameraMovement::Pan => {
                     if let Some(action) = action_state
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize_or_zero())
                     {
-                        tmp_velocity.x = -action.x
-                            * camera_settings.speed
-                            * camera_distance
-                            * sensitivity.move_sensitivity
-                            / 35.0;
-                        tmp_velocity.z = action.y
-                            * camera_settings.speed
-                            * camera_distance
-                            * sensitivity.move_sensitivity
-                            / 35.0;
+                        tmp_velocity.x =
+                            -action.x * camera_settings.speed * camera_distance * sensitivity.move_sensitivity / 35.0;
+                        tmp_velocity.z =
+                            action.y * camera_settings.speed * camera_distance * sensitivity.move_sensitivity / 35.0;
                     }
                 }
-                CameraMovementMode::Orbit => {
+                CameraMovement::Orbit => {
                     // action represents the direction to move the camera around it's origin
                     if let Some(action) = action_state
                         .clamped_axis_pair(&CameraAction::Move)
@@ -316,13 +271,13 @@ fn camera_actions(
         // Handling state changes
         if action_state.just_pressed(&CameraAction::ToggleMovementMode) {
             next_state.set(match state.get() {
-                CameraMovementMode::Pan => {
+                CameraMovement::Pan => {
                     info!("Toggling camera mode: Linear -> Orbit");
-                    CameraMovementMode::Orbit
+                    CameraMovement::Orbit
                 }
-                CameraMovementMode::Orbit => {
+                CameraMovement::Orbit => {
                     info!("Toggling camera mode: Orbit -> Linear");
-                    CameraMovementMode::Pan
+                    CameraMovement::Pan
                 }
             });
         }

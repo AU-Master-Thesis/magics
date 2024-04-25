@@ -19,8 +19,8 @@ pub use decoration::ToDisplayString;
 use strum_macros::EnumIter;
 
 use self::{
-    controls::ControlsPanelPlugin, data::DataPanelPlugin, metrics::MetricsPlugin,
-    scale::ScaleUiPlugin, settings::SettingsPanelPlugin,
+    controls::ControlsPanelPlugin, data::DataPanelPlugin, metrics::MetricsPlugin, scale::ScaleUiPlugin,
+    settings::SettingsPanelPlugin,
 };
 use crate::{theme::CatppuccinThemeVisualsExt, AppState};
 
@@ -149,6 +149,7 @@ impl ActionBlock {
     }
 
     #[inline]
+    #[must_use]
     pub const fn is_blocked(&self) -> bool {
         self.0
     }
@@ -168,9 +169,9 @@ pub enum UiScaleType {
     #[display(fmt = "None")]
     None,
     #[display(fmt = "Custom")]
-    #[default]
     Custom,
     #[display(fmt = "Window")]
+    #[default]
     Window,
 }
 
@@ -242,8 +243,7 @@ impl UiState {
     pub const DEFAULT_SCALE_PERCENTAGE: usize = 100;
     pub const MAX_SCALE_PERCENTAGE: usize = 200;
     pub const MIN_SCALE_PERCENTAGE: usize = 50;
-    pub const VALID_SCALE_INTERVAL: RangeInclusive<usize> =
-        Self::MIN_SCALE_PERCENTAGE..=Self::MAX_SCALE_PERCENTAGE;
+    pub const VALID_SCALE_INTERVAL: RangeInclusive<usize> = Self::MIN_SCALE_PERCENTAGE..=Self::MAX_SCALE_PERCENTAGE;
 
     pub fn set_scale(&mut self, percentage: usize) {
         if Self::VALID_SCALE_INTERVAL.contains(&percentage) {
@@ -300,9 +300,7 @@ fn configure_visuals(
     // the font instead of a relative path
     fonts.font_data.insert(
         "JetBrainsMonoNerdFont-Regular".to_owned(),
-        egui::FontData::from_static(include_bytes!(
-            "../../assets/fonts/JetBrainsMonoNerdFont-Regular.ttf"
-        )),
+        egui::FontData::from_static(include_bytes!("../../assets/fonts/JetBrainsMonoNerdFont-Regular.ttf")),
     );
 
     // fonts.font_data.insert(

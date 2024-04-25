@@ -27,8 +27,7 @@ impl std::fmt::Display for Error {
             }
             Self::Instantaneous => write!(
                 f,
-                "An instantaneous SampleRate is not allowed. I.e. a Duration of 0.0 seconds is \
-                 invalid"
+                "An instantaneous SampleRate is not allowed. I.e. a Duration of 0.0 seconds is invalid"
             ),
         }
     }

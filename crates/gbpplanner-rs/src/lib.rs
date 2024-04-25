@@ -41,7 +41,7 @@ pub enum AppState {
     /// loaded into memory
     #[default]
     #[display(fmt = "Loading")]
-    Loading,
+    LoadingSimulationData,
     // #[display(fmt = "Starting")]
     // Starting,
     /// A simulation is running in the application

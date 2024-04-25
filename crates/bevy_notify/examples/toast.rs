@@ -10,10 +10,7 @@ fn main() {
             anchor: Anchor::BottomCenter,
             ..Default::default()
         })
-        .add_systems(
-            Update,
-            create_toast.run_if(input_just_pressed(KeyCode::Space)),
-        )
+        .add_systems(Update, create_toast.run_if(input_just_pressed(KeyCode::Space)))
         .run();
 }
 

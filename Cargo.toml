@@ -18,6 +18,7 @@ members = [
   "crates/repeating_array",
   "crates/bevy_fullscreen",
   "crates/bevy_touchpad",
+  "crates/seq",
 ]
 
 [workspace.package]
@@ -54,11 +55,12 @@ tests_outside_test_module        = "warn"
 assertions_on_result_states      = "warn"
 pedantic                         = "warn"
 nursery                          = "warn"
-unwrap_used                      = "warn"
+unwrap_used                      = "deny"
 inline_always                    = "allow"
 default_constructed_unit_structs = "allow" # nice for adding plugins, that may later have config values
 needless_pass_by_value           = "allow" # bevy uses a lot of pass by value wrapper types like `Query`, `Res` etc.
 module_name_repetitions          = "allow"
+must_use_candidate               = "allow"
 
 # expect_used = "deny"
 dbg_macro = "warn"
@@ -79,9 +81,10 @@ incremental      = true
 # Enable a small amount of optimization in debug mode
 [profile.dev]
 opt-level   = 1
-debug       = true
+debug       = false
 incremental = true
 # codegen-backend = "cranelift" # requires nightly
+strip = "debuginfo"
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]

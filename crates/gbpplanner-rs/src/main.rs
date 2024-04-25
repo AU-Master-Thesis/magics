@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 //! The main entry point of the simulation.
 pub(crate) mod asset_loader;
 mod bevy_utils;
@@ -12,9 +10,9 @@ mod input;
 mod moveable_object;
 mod movement;
 pub(crate) mod pause_play;
-mod planner;
 // mod scene;
 
+pub mod planner;
 pub(crate) mod simulation_loader;
 
 pub(crate) mod theme;
@@ -24,7 +22,11 @@ pub(crate) mod utils;
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
-use bevy::{asset::AssetMetaCheck, prelude::*, window::WindowMode};
+use bevy::{
+    asset::AssetMetaCheck,
+    prelude::*,
+    window::{WindowMode, WindowResolution},
+};
 use bevy_fullscreen::ToggleFullscreenPlugin;
 // use bevy_dev_console::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
@@ -74,21 +76,9 @@ fn main() -> anyhow::Result<()> {
     if cli.metadata {
         let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
 
-        eprintln!(
-            "{}:   {}",
-            "target arch".green().bold(),
-            std::env::consts::ARCH
-        );
-        eprintln!(
-            "{}:     {}",
-            "target os".green().bold(),
-            std::env::consts::OS
-        );
-        eprintln!(
-            "{}: {}",
-            "target family".green().bold(),
-            std::env::consts::FAMILY
-        );
+        eprintln!("{}:   {}", "target arch".green().bold(), std::env::consts::ARCH);
+        eprintln!("{}:     {}", "target os".green().bold(), std::env::consts::OS);
+        eprintln!("{}: {}", "target family".green().bold(), std::env::consts::FAMILY);
 
         eprintln!("{}:          {}", "name".green().bold(), NAME);
         eprintln!("{}:", "authors".green().bold());
@@ -100,18 +90,67 @@ fn main() -> anyhow::Result<()> {
     }
 
     if let Some(dump) = cli.dump_default {
+        let stdout_is_a_terminal = atty::is(atty::Stream::Stdout);
         match dump {
             DumpDefault::Config => {
                 let default = config::Config::default();
-                println!("{}", toml::to_string_pretty(&default)?);
+                if stdout_is_a_terminal {
+                    let toml = toml::to_string_pretty(&default)?;
+                    bat::PrettyPrinter::new()
+                        .input_from_bytes(toml.as_bytes())
+                        .language("toml")
+                        .print()
+                        .unwrap();
+                } else {
+                    // let stdout = std::io::stdout::lock();
+                    println!("{}", toml::to_string_pretty(&default)?);
+                }
             }
             DumpDefault::Formation => {
                 let default = config::FormationGroup::default();
                 let config = ron::ser::PrettyConfig::new().indentor("  ".to_string());
-                println!("{}", ron::ser::to_string_pretty(&default, config)?);
+
+                let yaml = serde_yaml::to_string(&default)?;
+                // println!("{ron}");
+                if stdout_is_a_terminal {
+                    bat::PrettyPrinter::new()
+                        .input_from_bytes(yaml.as_bytes())
+                        .language("rust")
+                        .print()
+                        .unwrap();
+                } else {
+                    println!("{yaml}");
+                    // println!("{}", ron::ser::to_string_pretty(&default,
+                    // config)?);
+                }
+
+                // let ron = ron::ser::to_string_pretty(&default, config)?;
+                // // println!("{ron}");
+                // if stdout_is_a_terminal {
+                //     bat::PrettyPrinter::new()
+                //         .input_from_bytes(ron.as_bytes())
+                //         .language("rust")
+                //         .print()
+                //         .unwrap();
+                // } else {
+                //     println!("{ron}");
+                //     // println!("{}", ron::ser::to_string_pretty(&default,
+                //     // config)?);
+                // }
             }
             DumpDefault::Environment => {
-                println!("{}", serde_yaml::to_string(&Environment::default())?);
+                let yaml = serde_yaml::to_string(&Environment::default())?;
+                if stdout_is_a_terminal {
+                    bat::PrettyPrinter::new()
+                        .input_from_bytes(yaml.as_bytes())
+                        .language("yaml")
+                        .print()
+                        .unwrap();
+                } else {
+                    println!("{yaml}");
+                    // println!("{}",
+                    // serde_yaml::to_string(&Environment::default())?);
+                }
             }
         };
 
@@ -127,7 +166,19 @@ fn main() -> anyhow::Result<()> {
             EnvironmentType::Maze => Environment::maze(),
             EnvironmentType::Test => Environment::test(),
         };
-        println!("{}", serde_yaml::to_string(&env)?);
+
+        let yaml = serde_yaml::to_string(&env)?;
+        let stdout_is_a_terminal = atty::is(atty::Stream::Stdout);
+        if stdout_is_a_terminal {
+            bat::PrettyPrinter::new()
+                .input_from_bytes(yaml.as_bytes())
+                .language("yaml")
+                .print()
+                .unwrap();
+        } else {
+            println!("{yaml}");
+            // println!("{}", serde_yaml::to_string(&env)?);
+        }
 
         return Ok(());
     }
@@ -144,34 +195,34 @@ fn main() -> anyhow::Result<()> {
         );
     }
 
-    let (config, formation, environment): (Config, FormationGroup, Environment) = if cli.default {
-        (
-            Config::default(),
-            FormationGroup::default(),
-            Environment::default(),
-        )
-    } else {
-        let config = read_config(cli.config.as_ref())?;
-        if let Some(ref inner) = cli.config {
-            println!(
-                "successfully read config from: {}",
-                inner.as_os_str().to_string_lossy()
-            );
-        }
+    // let (config, formation, environment): (Config, FormationGroup, Environment) =
+    // if cli.default {     (
+    //         Config::default(),
+    //         FormationGroup::default(),
+    //         Environment::default(),
+    //     )
+    // } else {
+    //     let config = read_config(cli.config.as_ref())?;
+    //     if let Some(ref inner) = cli.config {
+    //         println!(
+    //             "successfully read config from: {}",
+    //             inner.as_os_str().to_string_lossy()
+    //         );
+    //     }
 
-        let formation = FormationGroup::from_file(&config.formation_group)?;
-        println!(
-            "successfully read formation config from: {}",
-            config.formation_group
-        );
-        let environment = Environment::from_file(&config.environment)?;
-        println!(
-            "successfully read environment config from: {}",
-            config.environment
-        );
+    //     let formation = FormationGroup::from_ron_file(&config.formation_group)?;
+    //     println!(
+    //         "successfully read formation config from: {}",
+    //         config.formation_group
+    //     );
+    //     let environment = Environment::from_file(&config.environment)?;
+    //     println!(
+    //         "successfully read environment config from: {}",
+    //         config.environment
+    //     );
 
-        (config, formation, environment)
-    };
+    //     (config, formation, environment)
+    // };
 
     let window_mode = if cli.fullscreen {
         WindowMode::BorderlessFullscreen
@@ -204,8 +255,10 @@ fn main() -> anyhow::Result<()> {
                 mode: window_mode,
                 window_theme: None,
                 visible: true,
+                resolution: WindowResolution::default().with_scale_factor_override(1.0),
                 ..Default::default()
             }),
+
             ..Default::default()
         }
     };
@@ -239,11 +292,13 @@ fn main() -> anyhow::Result<()> {
     //     }
     // };
 
-    app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
-        .insert_resource(config)
-        .insert_resource(formation)
+    // TODO: load from sim loader instead
+    // app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
+    let hz = 60.0;
+    app.insert_resource(Time::<Fixed>::from_hz(hz))
+        // .insert_resource(config)
+        // .insert_resource(formation)
         // .insert_resource(environment)
-        .init_state::<AppState>()
         .add_plugins(DefaultPlugins
             .set(window_plugin)
             // .set(log_plugin)
@@ -251,11 +306,12 @@ fn main() -> anyhow::Result<()> {
         // third-party plugins
         .add_plugins(bevy_egui::EguiPlugin)
         // TODO: use
-        .add_plugins(EntropyPlugin::<WyRand>::default())
+        // .add_plugins(EntropyPlugin::<WyRand>::default())
 
         // our plugins
+        .add_plugins(SimulationLoaderPlugin::default())
         .add_plugins((
-            SimulationLoaderPlugin::default(),
+            // SimulationLoaderPlugin::default(),
             DefaultPickingPlugins,
             PausePlayPlugin::default(),
             ThemePlugin,       // Custom
@@ -287,11 +343,7 @@ fn main() -> anyhow::Result<()> {
         // .add_systems(Startup, spawn_perf_ui)
         // .add_systems(Update, make_window_visible)
 
-        // .add_systems(
-        //     Update,
-        //     create_toast.run_if(input_just_pressed(KeyCode::KeyZ)),
-        // )
-        .add_systems(PostUpdate, end_simulation.run_if(time_exceeds_max_time));
+        .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));
 
     app.run();
 
@@ -306,7 +358,7 @@ fn main() -> anyhow::Result<()> {
 /// max-time = 100.0
 /// ```
 #[inline]
-fn time_exceeds_max_time(time: Res<Time>, config: Res<Config>) -> bool {
+fn virtual_time_exceeds_max_time(time: Res<Time<Virtual>>, config: Res<Config>) -> bool {
     time.elapsed_seconds() > config.simulation.max_time.get()
 }
 

@@ -1,146 +1,70 @@
 (
   formations: [
     (
-      repeat: true,
+      r#repeat-every: Some((
+        secs: 4,
+        nanos: 0,
+      )),
       delay: (
-        secs: 5,
-        nanos: 0
+        secs: 2,
+        nanos: 0,
       ),
       robots: 1,
+      r#initial-position: (
+        shape: r#line-segment(((
+          x: 0.45,
+          y: 0.0,
+        ), (
+          x: 0.55,
+          y: 0.0,
+        ))),
+        r#placement-strategy: equal,
+      ),
       waypoints: [
         (
-          shape: line(((
-            x: 0.45,
-            y: 0.0,
-          ), (
-            x: 0.55,
-            y: 0.0,
-          ))),
-          r#placement-strategy: equal,
-        ),
-        (
-          shape: line(((
+          shape: r#line-segment(((
             x: 0.45,
             y: 1.25,
           ), (
             x: 0.55,
             y: 1.25,
           ))),
-          r#placement-strategy: map,
+          r#projection-strategy: identity,
         ),
       ],
     ),
     (
-      repeat: true,
+      r#repeat-every: Some((
+        secs: 4,
+        nanos: 0,
+      )),
       delay: (
-        secs: 5,
-        nanos: 0
+        secs: 2,
+        nanos: 0,
       ),
       robots: 1,
+      r#initial-position: (
+        shape: r#line-segment(((
+          x: 0.0,
+          y: 0.45,
+        ), (
+          x: 0.0,
+          y: 0.55,
+        ))),
+        r#placement-strategy: equal,
+      ),
       waypoints: [
         (
-          shape: line(((
-            x: 0.0,
-            y: 0.45,
-          ), (
-            x: 0.0,
-            y: 0.55,
-          ))),
-          r#placement-strategy: equal,
-        ),
-        (
-          shape: line(((
+          shape: r#line-segment(((
             x: 1.25,
             y: 0.45,
           ), (
             x: 1.25,
             y: 0.55,
           ))),
-          r#placement-strategy: map,
+          r#projection-strategy: identity,
         ),
       ],
     ),
-    // (
-    //   repeat: true,
-    //   delay: (
-    //     secs: 2,
-    //     nanos: 0
-    //   ),
-    //   robots: 1,
-    //   waypoints: [
-    //     (
-    //       shape: line(((
-    //         x: 0.45,
-    //         y: 0.0,
-    //       ), (
-    //         x: 0.55,
-    //         y: 0.0,
-    //       ))),
-    //       r#placement-strategy: equal,
-    //     ),
-    //     (
-    //       shape: line(((
-    //         x: 0.45,
-    //         y: 0.55,
-    //       ), (
-    //         x: 0.55,
-    //         y: 0.45,
-    //       ))),
-    //       r#placement-strategy: map,
-    //     ),
-    //     (
-    //       shape: line(((
-    //         x: 1.0,
-    //         y: 0.55,
-    //       ), (
-    //         x: 1.0,
-    //         y: 0.45,
-    //       ))),
-    //       r#placement-strategy: map,
-    //     ),
-    //   ],
-    // ),
-     // (
-     //   repeat: true,
-     //   delay: (
-     //     secs: 5,
-     //     nanos: 0
-     //   ),
-     //   robots: 2,
-     //   waypoints: [
-     //     (
-     //       shape: line(((
-     //         x: 0.45,
-     //         y: 1,
-     //       ), (
-     //         x: 0.55,
-     //         y: 1,
-     //       ))),
-     //       r#placement-strategy: equal,
-     //     ),
-     //     (
-     //       shape: line(((
-     //         x: 0.45,
-     //         y: 0.45,
-     //       ), (
-     //         x: 0.55,
-     //         y: 0.55,
-     //       ))),
-     //       r#placement-strategy: map,
-     //     ),
-
-     //     (
-     //       shape: line(((
-     //         x: 0.0,
-     //         y: 0.45,
-     //       ), (
-     //         x: 0.0,
-     //         y: 0.55,
-     //       ))),
-     //       r#placement-strategy: map,
-     //     ),
-     //   ],
-     // ),
-
   ],
 )

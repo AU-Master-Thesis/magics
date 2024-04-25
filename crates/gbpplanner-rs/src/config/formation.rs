@@ -1,15 +1,52 @@
-#![warn(missing_docs)]
-//! A module for working with robot formations flexibly.
-use std::{num::NonZeroUsize, time::Duration};
+//! A module for working with robot formations declaratively.
 
-use bevy::ecs::system::Resource;
-use min_len_vec::TwoOrMore;
+use std::{
+    f32::consts::{PI, TAU},
+    num::NonZeroUsize,
+    path::Path,
+    time::Duration,
+};
+
+use bevy::{ecs::system::Resource, math::Vec2};
+use min_len_vec::{one_or_more, OneOrMore};
+use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
+use typed_floats::StrictlyPositiveFinite;
 
-use super::geometry::Shape;
+use super::geometry::{Point, Shape};
 use crate::line;
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Strategy to use for the starting point of a formation
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum InitialPlacementStrategy {
+    /// Place robots with equal distance between them
+    Equal,
+    /// Place robots with a random distance between them, with the
+    /// constraint that surface of area of none of the robots overlap.
+    Random {
+        /// How many attempts to use before returning an error saying it was not
+        /// possible to place the robots Along the shape.
+        /// A high number > 1000, is a good idea, since it is not very intensive
+        /// to run the algorithm determining the random placements.
+        /// TODO: use
+        attempts: NonZeroUsize,
+    },
+}
+
+/// Strategy to use for waypoints after the initial starting position.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProjectionStrategy {
+    /// Simply map the relative position along a line strip from the previous
+    /// waypoint
+    ///
+    /// # Examples
+    Identity,
+    Cross,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PlacementStrategy {
     Equal,
@@ -17,271 +54,452 @@ pub enum PlacementStrategy {
     Map,
 }
 
-// // A regular point in 2D space.
-// #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-// pub struct Point {
-//     pub x: f64,
-//     pub y: f64,
-// }
-
-// impl Point {
-//     /// Create a new `Point` from a pair of values.
-//     /// Returns an error if either `x` or `y` is not in the interval [0.0,
-// 1.0].     #[inline]
-//     pub fn new(x: f64, y: f64) -> Self {
-//         Self { x, y }
-//     }
-// }
-
-// /// A relative point within the boundaries of the map.
-// /// ...
-// #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-// pub struct RelativePoint {
-//     pub x: UnitInterval,
-//     pub y: UnitInterval,
-// }
-
-// impl RelativePoint {
-//     /// Create a new `RelativePoint` from a pair of values.
-//     /// Returns an error if either `x` or `y` is not in the interval [0.0,
-// 1.0].     pub fn new(x: f64, y: f64) -> Result<Self,
-// unit_interval::UnitIntervalError> {         Ok(Self {
-//             x: UnitInterval::new(x)?,
-//             y: UnitInterval::new(y)?,
-//         })
-//     }
-
-//     /// Returns the x and y values as a tuple
-//     #[inline]
-//     pub fn get(&self) -> (f64, f64) {
-//         (self.x.get(), self.y.get())
-//     }
-// }
-
-// impl TryFrom<(f64, f64)> for RelativePoint {
-//     type Error = unit_interval::UnitIntervalError;
-
-//     fn try_from(value: (f64, f64)) -> Result<Self, Self::Error> {
-//         Ok(Self {
-//             x: UnitInterval::new(value.0)?,
-//             y: UnitInterval::new(value.1)?,
-//         })
-//     }
-// }
-
-// // #[derive(Debug, thiserror::Error)]
-// // pub enum PointError {
-// //     #[error("x is out of bounds: {0}")]
-// //     XOutOfBounds(#[from] unit_interval::UnitIntervalError),
-// //     #[error("y is out of bounds: {0}")]
-// //     YOutOfBounds(#[from] unit_interval::UnitIntervalError),
-// //     #[error("both x and y are out of bounds: x: {0}, y: {1}")]
-// //     BothOutOfBounds(f64, f64),
-// // }
-// //
-// // impl From<Point> for bevy::math::Vec2 {
-// //     fn from(value: Point) -> Self {
-// //         Self {
-// //             x: value.x,
-// //             y: value.y,
-// //         }
-// //     }
-// // }
-// //
-// // impl From<&Point> for bevy::math::Vec2 {
-// //     fn from(value: &Point) -> Self {
-// //         Self {
-// //             x: value.x,
-// //             y: value.y,
-// //         }
-// //     }
-// // }
-// //
-// // impl From<(f32, f32)> for Point {
-// //     fn from(value: (f32, f32)) -> Self {
-// //         Self {
-// //             x: value.0,
-// //             y: value.1,
-// //         }
-// //     }
-// // }
-
-// #[derive(Debug, Serialize, Deserialize)]
-// #[serde(rename_all = "kebab-case")]
-// pub enum Shape {
-//     Circle {
-//         radius: StrictlyPositiveFinite<f32>,
-//         center: RelativePoint,
-//     },
-//     Polygon(OneOrMore<Point>),
-//     Line((Point, Point)),
-// }
-
-// impl Shape {
-//     /// Returns `true` if the shape is [`Polygon`].
-//     ///
-//     /// [`Polygon`]: Shape::Polygon
-//     #[must_use]
-//     pub fn is_polygon(&self) -> bool {
-//         matches!(self, Self::Polygon(..))
-//     }
-
-//     /// Returns `true` if the shape is [`Circle`].
-//     ///
-//     /// [`Circle`]: Shape::Circle
-//     #[must_use]
-//     pub fn is_circle(&self) -> bool {
-//         matches!(self, Self::Circle { .. })
-//     }
-
-//     pub fn as_polygon(&self) -> Option<&OneOrMore<Point>> {
-//         if let Self::Polygon(v) = self {
-//             Some(v)
-//         } else {
-//             None
-//         }
-//     }
-// }
-
-// /// Shorthand to construct `Shape::Polygon(vec![Point {x: $x, y: $y}, ... ])`
-// #[macro_export]
-// macro_rules! polygon {
-//     [$(($x:expr, $y:expr)),+ $(,)?] => {{
-//         let vertices = vec![
-//             $(
-//                 Point::new($x, $y)
-//             ),+
-//         ];
-//         Shape::Polygon(OneOrMore::new(vertices).expect("at least one
-// vertex"))     }}
-// }
-
-// /// Shorthand to construct `Shape::Line((Point {x: $x1, y: $y1}, Point {x:
-// $x2, /// y: $y2}))`
-// #[macro_export]
-// macro_rules! line {
-//     [($x1:expr, $y1:expr), ($x2:expr, $y2:expr)] => {
-//         // Shape::Line((Point { x: $x1, y: $y1 }, Point { x: $x2, y: $y2 }))
-//         // Shape::Line((Point { x: ($x1 as f64).try_from().unwrap(), y: ($y1
-// as f64).try_from().unwrap() }, Point { x: ($x2 as f64).try_from().unwrap(),
-// y: f64::try_from().unwrap() }))         Shape::Line((Point::new($x1, $y1),
-// Point::new($x2, $y2)))     };
-// }
-
-#[derive(Debug, Serialize, Deserialize)]
+/// Waypoint a group of robots has to reach, from either the robots initial
+/// position, or a previous waypoint
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Waypoint {
     pub shape: Shape,
-    pub placement_strategy: PlacementStrategy,
+    // pub placement_strategy: PlacementStrategy,
+    pub projection_strategy: ProjectionStrategy,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum FormationError {
-    #[error("FormationGroup has no formations")]
-    NoFormations,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct Formation {
-    /// If true then then a new formation instance will be spawned every
-    /// [`Self::delay`]. If false, a single formation will be spawned after
-    /// [`Self::delay`]
-    pub repeat:    bool,
-    /// The delay from the start of the simulation after which the formation
-    /// should spawn. If [`Self::repeat`] is true, then `delay` is
-    /// interpreted as a timeout between every formation spawn.
-    // pub delay:     f32,
-    pub delay: Duration,
-    /// Number of robots to spawn
-    pub robots:    NonZeroUsize,
-    /// A list of waypoints.
-    /// `NOTE` The first waypoint is assumed to be the spawning point.
-    /// < 2 waypoints is an invalid state
-    // pub waypoints: Vec<Waypoint>,
-    pub waypoints: TwoOrMore<Waypoint>,
-}
-// Polygon(Vec<RelativePoint>),
-
-impl Default for Formation {
-    fn default() -> Self {
+impl Waypoint {
+    /// Crate a new `Waypoint`
+    #[must_use]
+    pub const fn new(shape: Shape, projection_strategy: ProjectionStrategy) -> Self {
         Self {
-            repeat:    false,
-            delay:     Duration::from_secs(5),
-            robots:    NonZeroUsize::new(1).expect("1 > 0"),
-            waypoints: vec![
-                Waypoint {
-                    placement_strategy: PlacementStrategy::Random,
-                    shape: line![(0.4, 0.0), (0.6, 0.0)],
-                },
-                Waypoint {
-                    placement_strategy: PlacementStrategy::Map,
-                    shape: line![(0.4, 0.4), (0.6, 0.6)],
-                },
-                Waypoint {
-                    placement_strategy: PlacementStrategy::Map,
-                    shape: line![(0.0, 0.4), (0.0, 0.6)],
-                },
-            ]
-            .try_into()
-            .expect("there are 3 waypoints which is more that the minimum of 2"),
+            shape,
+            projection_strategy,
         }
     }
 }
 
+/// Initial position of where a group of robots has to spawn
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct InitialPosition {
+    /// The shape in which the robots should spawn
+    pub shape: Shape,
+    /// Strategy for how to place the robots
+    pub placement_strategy: InitialPlacementStrategy,
+}
+
+/// Enum representing the number of times a formation should repeat.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum RepeatTimes {
+    #[default]
+    Infinite,
+    Finite(usize),
+}
+
+impl RepeatTimes {
+    pub const ONCE: Self = Self::Finite(1);
+
+    /// Construct a new `RepeatTimes::Finite` variant
+    pub fn finite(times: NonZeroUsize) -> Self {
+        Self::Finite(times.into())
+    }
+
+    /// Returns true if there are one or more times left repeating
+    pub const fn exhausted(&self) -> bool {
+        match self {
+            Self::Infinite => false,
+            Self::Finite(remaining) => *remaining == 0,
+        }
+    }
+
+    /// Decrement the number of repeats left in self.
+    /// If `Self::Infinite`, do nothing
+    /// If `Self::Finite(remaining)` decrement remaining if > 0
+    pub fn decrement(&mut self) {
+        match self {
+            Self::Finite(ref mut remaining) if *remaining > 0 => *remaining -= 1,
+            _ => {}
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct Repeat {
+    pub every: Duration,
+    pub times: RepeatTimes,
+}
+
+impl Repeat {
+    /// Construct a new `Repeat` struct
+    pub const fn new(every: Duration, times: RepeatTimes) -> Self {
+        Self { every, times }
+    }
+}
+
+/// How to evaluate if a robot has reached a waypoint
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum WaypointReachedWhenIntersects {
+    /// When the current variable i.e. the robots current position intersects
+    /// the waypoint
+    Current,
+    /// When the horizon state aka. the last variable intersects the waypoint
+    /// This is the default, as this is what the gbpplanner paper does
+    #[default]
+    Horizon,
+    /// When the nth variable from the current variable intersects the waypoint
+    ///
+    /// # Invariant
+    /// Variable(n) -> n in [1, Horizon)
+    ///
+    /// # Panics
+    ///
+    /// A `panic!()` is issued if the invariant is not satisfied
+    Variable(NonZeroUsize),
+}
+
+/// A description of a formation of robots in the simulation.
+/// It describes how/where the robots are to be spawned, how many will be
+/// spawned, how often and where they should move to.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Formation {
+    /// Optionally spawn this formation again repeatedly with the given
+    /// duration.
+    pub repeat: Option<Repeat>,
+    // pub repeat_every: bool,
+    /// The delay from the start of the simulation after which the formation
+    /// should spawn.
+    pub delay: Duration,
+    /// Number of robots to spawn every iteration
+    pub robots: NonZeroUsize,
+    /// Where to spawn the formation
+    pub initial_position: InitialPosition,
+    /// List of waypoints.
+    pub waypoints: OneOrMore<Waypoint>,
+    pub waypoint_reached_when_intersects: WaypointReachedWhenIntersects,
+}
+
+impl Default for Formation {
+    fn default() -> Self {
+        Self::circle_from_paper()
+        // Self {
+        //     repeat_every: None,
+        //     delay: Duration::from_secs(5),
+        //     robots: NonZeroUsize::new(1).expect("1 > 0"),
+        //     initial_position: InitialPosition {
+        //         shape: line![(0.4, 0.0), (0.6, 0.0)],
+        //         placement_strategy: InitialPlacementStrategy::Random {
+        //             attempts: 1000.try_into().expect("1000 > 0"),
+        //         },
+        //     },
+        //     waypoints: one_or_more![
+        //         Waypoint::new(line![(0.4, 0.4), (0.6, 0.6)],
+        // ProjectionStrategy::Identity),         Waypoint::new(line!
+        // [(0.0, 0.4), (0.0, 0.6)], ProjectionStrategy::Identity),
+        //     ],
+        // }
+    }
+}
+
 impl Formation {
-    // /// Attempt to parse a `Formation` from a TOML file at `path`
-    // /// Returns `Err(ParseError)`  if:
-    // /// 1. `path` does not exist on the filesystem.
-    // /// 2. The contents of `path` is not valid TOML.
-    // /// 3. The parsed data does not represent a valid `Formation`.
-    // pub fn from_file(path: &std::path::PathBuf) -> Result<Self, ParseError> {
-    //     let file_contents = std::fs::read_to_string(path)?;
-    //     let formation = Self::parse(file_contents.as_str())?;
-    //     Ok(formation)
-    // }
+    pub fn robots_to_spawn(&self) -> usize {
+        // FIXME(kpbaks): handle of 1 by in repeat count
+        self.robots.get()
+            * (0 + self.repeat.map_or(0, |repeat| match repeat.times {
+                RepeatTimes::Infinite => unreachable!("ehh ..."),
+                RepeatTimes::Finite(times) => times,
+            }))
+    }
 
-    // /// Attempt to parse a `Formation` from a TOML encoded string.
-    // /// Returns `Err(ParseError)`  if:
-    // /// 1. `contents` is not valid TOML.
-    // /// 2. The parsed data does not represent a valid `Formation`.
-    // pub fn parse(contents: &str) -> Result<Self, ParseError> {
-    //     let formation: Formation = toml::from_str(contents)?;
-    //     let formation = formation.validate()?;
-    //     Ok(formation)
-    // }
+    /// Return a new `Formation` matching the used in the **gbpplanner** paper
+    /// for the circle formation scenario
+    #[allow(clippy::missing_panics_doc)]
+    pub fn circle_from_paper() -> Self {
+        let circle = Shape::Circle {
+            radius: 25.0.try_into().expect("positive and finite"),
+            center: Point::new(0.5, 0.5),
+        };
+        Self {
+            // repeat: None,
+            repeat: Some(Repeat::new(Duration::from_secs(10), RepeatTimes::Finite(1))),
+            delay: Duration::from_secs(1),
+            robots: 3.try_into().expect("3 > 0"),
+            initial_position: InitialPosition {
+                shape: circle.clone(),
+                placement_strategy: InitialPlacementStrategy::Equal,
+            },
+            waypoints: one_or_more![Waypoint::new(circle, ProjectionStrategy::Cross)],
+            waypoint_reached_when_intersects: WaypointReachedWhenIntersects::Horizon,
+        }
+    }
 
-    // fn valid(&self) -> Result<(), FormationError> {
-    //     Ok(())
-    // }
+    /// Convert a `Formation` description into the waypoints the robot has to
+    /// follow
+    #[allow(clippy::missing_panics_doc, clippy::too_many_lines, clippy::cast_precision_loss)]
+    pub fn as_positions(
+        &self,
+        world_dims: WorldDimensions,
+        robot_radius: StrictlyPositiveFinite<f32>,
+        rng: &mut impl Rng,
+    ) -> Option<(Vec<Vec2>, Vec<Vec<Vec2>>)> {
+        match self.initial_position.shape {
+            Shape::LineSegment((ls_start, ls_end)) => {
+                let ls_start = world_dims.point_to_world_position(ls_start);
+                let ls_end = world_dims.point_to_world_position(ls_end);
 
-    // / Ensure that the Formation is in a valid state
-    // / Invalid states are:
-    // / 1. self.time <= 0.0
-    // / 2. if self.shape is a circle and the radius is <= 0.0
-    // / 3. if self.shape is a polygon and polygon.is_empty()
-    // pub fn validate(self) -> Result<Self, FormationError> {
-    //     // if self.delay < 0.0 {
-    //     //     Err(FormationError::NegativeTime)
-    //     // if self.waypoints.len() < 2 {
-    //     //     Err(FormationError::LessThanTwoWaypoints)
-    //     // } else {
-    //     // TODO: finish
-    //     // for (index, waypoint) in self.waypoints.iter().enumerate() {
-    //     // match &waypoint.shape {
-    //     //     Shape::Polygon(vertices) if vertices.is_empty() => {
-    //     //         return
-    //     // Err(ShapeError::PolygonWithZeroVertices.into())
-    //     //     }
-    //     //     // Shape::Circle { radius, center: _ } if *radius <= 0.0
-    //     // => {     //     return
-    //     // Err(ShapeError::NegativeRadius.into())     //
-    //     // }     _ => continue,
-    //     // }
-    //     // }
-    //     Ok(self)
-    //     // }
-    // }
+                let lerp_amounts = match &self.initial_position.placement_strategy {
+                    InitialPlacementStrategy::Random { attempts } => {
+                        randomly_place_nonoverlapping_circles_along_line_segment(
+                            ls_start,
+                            ls_end,
+                            self.robots,
+                            robot_radius,
+                            *attempts,
+                            // max_placement_attempts,
+                            rng,
+                        )
+                    }
+                    InitialPlacementStrategy::Equal => {
+                        let d = ls_start.distance(ls_end);
+                        let n_robots: f32 = self.robots.get() as f32;
+                        let robot_diameter = robot_radius.get() * 2.0;
+                        if d < robot_diameter * n_robots {
+                            None
+                        } else {
+                            Some((0..self.robots.get()).map(|x| x as f32 / n_robots).collect())
+                        }
+                    }
+                }?;
+
+                // dbg!(&lerp_amounts);
+
+                assert_eq!(lerp_amounts.len(), self.robots.get());
+
+                let initial_positions: Vec<_> = lerp_amounts.iter().map(|by| ls_start.lerp(ls_end, *by)).collect();
+
+                let waypoints_of_each_robot: Vec<Vec<Vec2>> = self
+                    .waypoints
+                    .iter()
+                    .map(|wp| {
+                        let Shape::LineSegment((ls_start, ls_end)) = wp.shape else {
+                            unimplemented!("no time for the other combinations sadly :(");
+                        };
+                        let ls_start = world_dims.point_to_world_position(ls_start);
+                        let ls_end = world_dims.point_to_world_position(ls_end);
+                        let positions: Vec<Vec2> = match wp.projection_strategy {
+                            ProjectionStrategy::Identity => {
+                                lerp_amounts.iter().map(|by| ls_start.lerp(ls_end, *by)).collect()
+                            }
+                            ProjectionStrategy::Cross => {
+                                lerp_amounts.iter().rev().map(|by| ls_start.lerp(ls_end, *by)).collect()
+                            }
+                        };
+                        // }
+                        //
+                        // let positions: Vec<Vec2> = lerp_amounts
+                        //     .iter()
+                        //     .map(|by| ls_start.lerp(ls_end, *by))
+                        //     .collect();
+                        positions
+                    })
+                    .collect();
+
+                assert!(waypoints_of_each_robot
+                    .iter()
+                    .map(std::vec::Vec::len)
+                    .all(|l| l == initial_positions.len()));
+
+                Some((initial_positions, waypoints_of_each_robot))
+            }
+            Shape::Circle { radius, center } => {
+                let perimeter_radius: f32 = radius.get();
+                let center = world_dims.point_to_world_position(center);
+                // dbg!(&center);
+                let angles: Vec<f32> = match self.initial_position.placement_strategy {
+                    InitialPlacementStrategy::Equal => {
+                        let angle = 2.0 * PI / self.robots.get() as f32;
+                        let angles = (0..self.robots.get()).map(|i| i as f32 * angle).collect();
+                        Some(angles)
+                    }
+                    InitialPlacementStrategy::Random { attempts } => {
+                        // TODO: check if it even makes sense to iterate
+                        // if B * n > 2 * math.pi * A:
+                        let mut rng = thread_rng();
+
+                        randomly_place_nonoverlapping_circles_along_circle_perimeter(
+                            self.robots,
+                            robot_radius,
+                            radius,
+                            attempts,
+                            &mut rng,
+                        )
+                    }
+                }?;
+                assert_eq!(angles.len(), self.robots.get());
+
+                let initial_positions: Vec<Vec2> = angles
+                    .iter()
+                    .map(|angle| polar(*angle, perimeter_radius))
+                    .map(|polar| center + polar)
+                    .collect();
+
+                let waypoints_of_each_robots: Vec<Vec<Vec2>> = self
+                    .waypoints
+                    .iter()
+                    .map(|wp| {
+                        let Shape::Circle { radius, center } = wp.shape else {
+                            unimplemented!("no time for the other combinations sadly :(");
+                        };
+                        match wp.projection_strategy {
+                            ProjectionStrategy::Identity => {
+                                panic!("does not make sense for a circle")
+                            }
+                            ProjectionStrategy::Cross => {
+                                let center = world_dims.point_to_world_position(center);
+                                // have each robots move across the circle to the opposite side
+                                angles
+                                    .iter()
+                                    .map(|angle| angle + std::f32::consts::PI)
+                                    .map(|angle| polar(angle, radius.get()))
+                                    .map(|polar| center + polar)
+                                    .collect()
+                            }
+                        }
+                    })
+                    .collect();
+
+                Some((initial_positions, waypoints_of_each_robots))
+            }
+            Shape::Polygon(_) => todo!(),
+        }
+    }
+}
+
+/// Create a vector from polar coordinates
+#[must_use]
+#[inline]
+fn polar(angle: f32, magnitude: f32) -> Vec2 {
+    Vec2::new(angle.cos() * magnitude, angle.sin() * magnitude)
+}
+
+trait Vec2Ext {
+    fn from_polar(angle: f32, magnitude: f32) -> Self;
+}
+
+impl Vec2Ext for bevy::math::Vec2 {
+    /// Create a vector from polar coordinates
+    #[must_use]
+    #[inline]
+    fn from_polar(angle: f32, magnitude: f32) -> Self {
+        Self::new(angle.cos() * magnitude, angle.sin() * magnitude)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct WorldDimensions {
+    width:  StrictlyPositiveFinite<f64>,
+    height: StrictlyPositiveFinite<f64>,
+}
+
+impl WorldDimensions {
+    /// Create a new `WorldDimensions` structure
+    ///
+    /// # Panics
+    ///
+    /// Panics if `width` or `height` is not positive and finite
+    #[must_use]
+    pub fn new(width: f64, height: f64) -> Self {
+        Self {
+            width:  width.try_into().expect("width is not zero"),
+            height: height.try_into().expect("height is not zero"),
+        }
+    }
+
+    /// Get the width of the world.
+    pub const fn width(&self) -> f64 {
+        self.width.get()
+    }
+
+    /// Get the height of the world.
+    pub const fn height(&self) -> f64 {
+        self.height.get()
+    }
+
+    pub fn point_to_world_position(&self, p: Point) -> Vec2 {
+        #[allow(clippy::cast_possible_truncation)]
+        Vec2::new(
+            ((p.x - 0.5) * self.width()) as f32,
+            ((p.y - 0.5) * self.height()) as f32,
+        )
+    }
+}
+
+fn randomly_place_nonoverlapping_circles_along_circle_perimeter(
+    num_circles: NonZeroUsize,
+    radius: StrictlyPositiveFinite<f32>,
+    perimeter_radius: StrictlyPositiveFinite<f32>,
+    max_attempts: NonZeroUsize,
+    rng: &mut impl Rng,
+) -> Option<Vec<f32>> {
+    let num_circles = num_circles.get();
+    let perimeter_radius = perimeter_radius.get();
+    let mut placed_angles = Vec::with_capacity(num_circles);
+    let mut placed_positions: Vec<Vec2> = Vec::with_capacity(num_circles);
+    // TODO: use rng argument passed
+    // let mut rng = thread_rng();
+
+    for _ in 0..max_attempts.get() {
+        let theta = rng.gen_range(0.0..TAU);
+        let pos = Vec2::from_polar(theta, perimeter_radius);
+        let not_overlapping_with_others = placed_positions.iter().any(|other| other.distance(pos) <= radius);
+
+        if not_overlapping_with_others {
+            placed_angles.push(theta);
+            placed_positions.push(pos);
+            if placed_angles.len() == num_circles {
+                return Some(placed_angles);
+            }
+        }
+    }
+
+    None
+}
+
+fn randomly_place_nonoverlapping_circles_along_line_segment(
+    from: Vec2,
+    to: Vec2,
+    num_circles: NonZeroUsize,
+    radius: StrictlyPositiveFinite<f32>,
+    max_attempts: NonZeroUsize,
+    rng: &mut impl Rng,
+) -> Option<Vec<f32>> {
+    let num_circles = num_circles.get();
+    let max_attempts = max_attempts.get();
+    let mut lerp_amounts: Vec<f32> = Vec::with_capacity(num_circles);
+    let mut placed: Vec<Vec2> = Vec::with_capacity(num_circles);
+
+    let diameter = radius.get() * 2.0;
+
+    for _ in 0..max_attempts {
+        placed.clear();
+        lerp_amounts.clear();
+
+        for _ in 0..num_circles {
+            let lerp_amount = rng.gen_range(0.0..1.0);
+            let new_position = from.lerp(to, lerp_amount);
+
+            let valid = placed.iter().all(|&p| new_position.distance(p) >= diameter);
+
+            if valid {
+                lerp_amounts.push(lerp_amount);
+                placed.push(new_position);
+                if placed.len() == num_circles {
+                    return Some(lerp_amounts);
+                }
+            }
+        }
+    }
+
+    None
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -292,133 +510,127 @@ pub enum ParseError {
     // Toml(#[from] toml::de::Error),
     // #[error("Validation error: {0}")]
     // InvalidFormation(#[from] FormationError),
-    #[error("Invalid formation group: {0}")]
-    InvalidFormationGroup(#[from] FormationGroupError),
+    // #[error("Invalid formation group: {0}")]
+    // InvalidFormationGroup(#[from] FormationGroupError),
     #[error("RON error: {0}")]
     Ron(#[from] ron::Error),
+
+    #[error("YAML error: {0}")]
+    Yaml(#[from] serde_yaml::Error),
 }
 
 /// A `FormationGroup` represent multiple `Formation`s
-#[derive(Debug, Serialize, Deserialize, Resource)]
+#[derive(Debug, Clone, Serialize, Deserialize, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub struct FormationGroup {
-    // TODO: use OneOrMore
-    pub formations: Vec<Formation>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum FormationGroupError {
-    NoFormations,
-    InvalidFormations(Vec<(usize, FormationError)>),
-}
-
-impl std::fmt::Display for FormationGroupError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NoFormations => write!(
-                f,
-                "Formation group is empty. A formation group contains at least one formation",
-            ),
-            Self::InvalidFormations(ref inner) => {
-                for (index, error) in inner {
-                    write!(f, "formation[{}] is invalid with error: {}", index, error)?;
-                }
-                Ok(())
-            }
-        }
-    }
+    pub formations: OneOrMore<Formation>,
 }
 
 impl FormationGroup {
-    /// Attempt to parse a `FormationGroup` from a RON file at `path`
-    /// Returns `Err(ParseError)`  if:
+    /// Attempt to parse a `FormationGroup` from a RON file
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if:
     /// 1. `path` does not exist on the filesystem.
     /// 2. The contents of `path` is not valid RON.
     /// 3. The parsed data does not represent a valid `FormationGroup`.
-    pub fn from_file<P>(path: P) -> Result<Self, ParseError>
-    where
-        P: AsRef<std::path::Path>,
-    {
-        std::fs::read_to_string(path)
-            .map_err(Into::into)
-            .and_then(|file_contents| Self::parse(file_contents.as_str()))
+    pub fn from_ron_file<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
+        std::fs::read_to_string(path).map(|file_contents| Self::parse_from_ron(file_contents.as_str()))?
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub fn from_yaml_file<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
+        std::fs::read_to_string(path).map(|file_contents| Self::parse_from_yaml(file_contents.as_str()))?
     }
 
     /// Attempt to parse a `FormationGroup` from a RON encoded string.
-    /// Returns `Err(ParseError)`  if:
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err`  if:
     /// 1. `contents` is not valid RON.
     /// 2. The parsed data does not represent a valid `FormationGroup`.
-    pub fn parse(contents: &str) -> Result<Self, ParseError> {
+    pub fn parse_from_ron(contents: &str) -> Result<Self, ParseError> {
         Ok(ron::from_str::<Self>(contents).map_err(|span| span.code)?)
-        // .validate()
-        // .map_err(Into::into)
     }
 
-    // /// Ensure that the `FormationGroup` is in a valid state
-    // /// 1. At least one `Formation` is required
-    // /// 2. Validate each `Formation`
-    // pub fn validate(self) -> Result<Self, FormationGroupError> {
-    //     if self.formations.is_empty() {
-    //         Err(FormationGroupError::NoFormations)
-    //     } else {
-    //         let invalid_formations = self
-    //             .formations
-    //             .iter()
-    //             .enumerate()
-    //             // .filter_map(|(index, formation)|
-    // formation.valid().err().map(|err| (index, err)))
-    // .collect::<Vec<_>>();
+    /// Attempt to parse a `FormationGroup` from a YAML encoded string.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err`  if:
+    /// 1. `contents` is not valid YAML.
+    /// 2. The parsed data does not represent a valid `FormationGroup`.
+    pub fn parse_from_yaml(contents: &str) -> Result<Self, ParseError> {
+        Ok(serde_yaml::from_str(contents)?)
+        // unimplemented!()
+        // Ok(ron::from_str::<Self>(contents).map_err(|span| span.code)?)
+    }
 
-    //         if !invalid_formations.is_empty() {
-    //             Err(FormationGroupError::InvalidFormations(invalid_formations))
-    //         } else {
-    //             Ok(self)
-    //         }
-    //     }
-    // }
+    /// Returns how many robots all formations in the group together will spawn
+    pub fn robots_to_spawn(&self) -> usize {
+        self.formations.iter().map(Formation::robots_to_spawn).sum::<usize>()
+    }
+
+    pub fn circle_from_paper() -> Self {
+        Self {
+            formations: one_or_more![Formation::circle_from_paper()],
+        }
+    }
+
+    #[allow(clippy::missing_panics_doc)]
+    pub fn intersection_from_paper() -> Self {
+        Self {
+            formations: one_or_more![
+                Formation {
+                    // repeat: Some(Duration::from_secs(4)),
+                    repeat: Some(Repeat {
+                        every: Duration::from_secs(4),
+                        times: RepeatTimes::Finite(2),
+                    }),
+                    delay: Duration::from_secs(2),
+                    robots: 1.try_into().expect("1 > 0"),
+                    initial_position: InitialPosition {
+                        shape: line![(0.45, 0.0), (0.55, 0.0)],
+                        placement_strategy: InitialPlacementStrategy::Equal,
+                    },
+
+                    waypoints: one_or_more![Waypoint::new(
+                        line![(0.45, 1.25), (0.55, 1.25)],
+                        ProjectionStrategy::Identity
+                    ),],
+
+                    waypoint_reached_when_intersects: WaypointReachedWhenIntersects::Horizon,
+                },
+                Formation {
+                    // repeat: Some(Duration::from_secs(4)),
+                    repeat: Some(Repeat {
+                        every: Duration::from_secs(4),
+                        times: RepeatTimes::Finite(2),
+                    }),
+                    delay: Duration::from_secs(2),
+                    robots: 1.try_into().expect("1 > 0"),
+                    initial_position: InitialPosition {
+                        shape: line![(0.0, 0.45), (0.0, 0.55)],
+                        placement_strategy: InitialPlacementStrategy::Equal,
+                    },
+
+                    waypoints: one_or_more![Waypoint::new(
+                        line![(1.25, 0.45), (1.25, 0.55)],
+                        ProjectionStrategy::Identity,
+                    ),],
+                    waypoint_reached_when_intersects: WaypointReachedWhenIntersects::Horizon,
+                },
+            ],
+        }
+    }
 }
 
 impl Default for FormationGroup {
     fn default() -> Self {
-        Self {
-            // formations: vec![Formation::default()],
-            formations: vec![
-                Formation {
-                    repeat:    true,
-                    delay:     Duration::from_secs(4),
-                    robots:    1.try_into().expect("1 > 0"),
-                    waypoints: vec![
-                        Waypoint {
-                            placement_strategy: PlacementStrategy::Equal,
-                            shape: line![(0.45, 0.0), (0.55, 0.0)],
-                        },
-                        Waypoint {
-                            placement_strategy: PlacementStrategy::Map,
-                            shape: line![(0.45, 1.25), (0.55, 1.25)],
-                        },
-                    ]
-                    .try_into()
-                    .expect("there are 2 waypoints"),
-                },
-                Formation {
-                    repeat:    true,
-                    delay:     Duration::from_secs(4),
-                    robots:    1.try_into().expect("1 > 0"),
-                    waypoints: vec![
-                        Waypoint {
-                            placement_strategy: PlacementStrategy::Equal,
-                            shape: line![(0.0, 0.45), (0.0, 0.55)],
-                        },
-                        Waypoint {
-                            placement_strategy: PlacementStrategy::Map,
-                            shape: line![(1.25, 0.45), (1.25, 0.55)],
-                        },
-                    ]
-                    .try_into()
-                    .expect("there are 2 waypoints"),
-                },
-            ],
-        }
+        // Self::intersection_from_paper()
+        Self::circle_from_paper()
     }
 }
 
@@ -497,8 +709,4 @@ mod tests {
             }
         }
     }
-
-    // mod formation_group {
-    //     use super::*;
-    // }
 }

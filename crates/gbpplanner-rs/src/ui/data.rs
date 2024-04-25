@@ -84,19 +84,13 @@ fn render_data_panel(
             //     .show(ui, |plot_ui| plot_ui.line(line));
 
             // egui::CentralPanel::default().show(ctx, |ui| {
-            ui.add(&mut GraphView::<
-                _,
-                _,
-                _,
-                _,
-                DefaultNodeShape,
-                DefaultEdgeShape,
-            >::new(&mut graph.0));
+            ui.add(&mut GraphView::<_, _, _, _, DefaultNodeShape, DefaultEdgeShape>::new(
+                &mut graph.0,
+            ));
             // });
         });
 
-    occupied_screen_space.bottom =
-        bottom_panel.map_or(0.0, |ref inner| inner.response.rect.width());
+    occupied_screen_space.bottom = bottom_panel.map_or(0.0, |ref inner| inner.response.rect.width());
 }
 
 #[derive(Component)]

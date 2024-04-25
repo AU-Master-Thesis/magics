@@ -1,0 +1,27 @@
+formations:
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 1
+  delay:
+    secs: 1
+    nanos: 0
+  robots: 5
+  initial-position:
+    shape: !circle
+      radius: 25.0
+      center:
+        x: 0.5
+        y: 0.5
+    placement-strategy: equal
+  waypoints:
+  - shape: !circle
+      radius: 25.0
+      center:
+        x: 0.5
+        y: 0.5
+    projection-strategy: cross
+  # waypoint-reached-when-intersects: horizon
+  waypoint-reached-when-intersects: current
+  # waypoint-reached-when-intersects: !variable 5

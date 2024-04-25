@@ -154,12 +154,8 @@ impl GeneralAction {
         match action {
             Self::CycleTheme => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT)),
             Self::ExportGraph => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG)),
-            Self::ScreenShot => {
-                UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyS))
-            }
-            Self::QuitApplication => {
-                UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyQ))
-            }
+            Self::ScreenShot => UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyS)),
+            Self::QuitApplication => UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyQ)),
 
             Self::PausePlaySimulation => UserInput::Single(InputKind::PhysicalKey(KeyCode::Space)),
         }
@@ -251,10 +247,7 @@ fn export_factorgraphs_as_graphviz(
         append_line_to_output("");
         // Add all internal edges
         for edge in &edges {
-            let line = format!(
-                r#""{:?}_{:?}" -- "{:?}_{:?}""#,
-                robot_id, edge.from, robot_id, edge.to
-            );
+            let line = format!(r#""{:?}_{:?}" -- "{:?}_{:?}""#, robot_id, edge.from, robot_id, edge.to);
             append_line_to_output(&line);
         }
 
@@ -300,10 +293,7 @@ fn export_factorgraphs_as_graphviz(
     Some(buf)
 }
 
-fn cycle_theme(
-    theme_event_writer: &mut EventWriter<CycleTheme>,
-    catppuccin_theme: Res<CatppuccinTheme>,
-) {
+fn cycle_theme(theme_event_writer: &mut EventWriter<CycleTheme>, catppuccin_theme: Res<CatppuccinTheme>) {
     info!("toggling application theme");
 
     let next_theme = match catppuccin_theme.flavour {
@@ -372,10 +362,7 @@ fn handle_export_graph(
 
     let dot_output_path = std::path::PathBuf::from("factorgraphs.dot");
     if dot_output_path.exists() {
-        warn!(
-            "output destination: ./{:#?} already exists!",
-            dot_output_path
-        );
+        warn!("output destination: ./{:#?} already exists!", dot_output_path);
         warn!("overwriting ./{:#?}", dot_output_path);
     }
     info!("exporting all factorgraphs to ./{:#?}", dot_output_path);
@@ -416,10 +403,7 @@ fn handle_export_graph(
 
             if output.status.success() {
                 // let msg = format!("successfully compiled ./{:?} with dot", dot_output_path,);
-                info!(
-                    "compiled {:?} to {:?} with dot",
-                    dot_output_path, png_output_path
-                );
+                info!("compiled {:?} to {:?} with dot", dot_output_path, png_output_path);
                 // export_graph_finished_event.
                 // send(ExportGraphFinishedEvent::Success(
                 //     png_output_path.to_string_lossy().to_string(),
@@ -514,7 +498,9 @@ fn general_actions_system(
         ) {
             error!("failed to export factorgraphs with error: {:?}", e);
         }
-    } else if action_state.just_pressed(&GeneralAction::QuitApplication) {
+    }
+
+    if action_state.just_pressed(&GeneralAction::QuitApplication) {
         quit_application_event.send(QuitApplication);
         // info!("quitting application");
         // app_exit_event.send(AppExit);

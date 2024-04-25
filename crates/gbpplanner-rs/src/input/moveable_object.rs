@@ -42,8 +42,9 @@ impl Default for MoveableObjectSensitivity {
     }
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter)]
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter, Default)]
 pub enum MoveableObjectAction {
+    #[default]
     Move,
     RotateClockwise,
     RotateCounterClockwise,
@@ -63,20 +64,12 @@ impl std::fmt::Display for MoveableObjectAction {
     }
 }
 
-impl Default for MoveableObjectAction {
-    fn default() -> Self {
-        Self::Move
-    }
-}
-
 impl MoveableObjectAction {
     const fn default_keyboard_input(action: Self) -> UserInput {
         match action {
             Self::Move => UserInput::VirtualDPad(VirtualDPad::wasd()),
             Self::RotateClockwise => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyE)),
-            Self::RotateCounterClockwise => {
-                UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyQ))
-            }
+            Self::RotateCounterClockwise => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyQ)),
             Self::Boost => UserInput::Single(InputKind::PhysicalKey(KeyCode::ShiftLeft)),
             Self::Toggle => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyF)),
         }
@@ -85,15 +78,9 @@ impl MoveableObjectAction {
     const fn default_gamepad_input(action: Self) -> UserInput {
         match action {
             Self::Move => UserInput::Single(InputKind::DualAxis(DualAxis::left_stick())),
-            Self::RotateClockwise => {
-                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::RightTrigger))
-            }
-            Self::RotateCounterClockwise => {
-                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::LeftTrigger))
-            }
-            Self::Boost => {
-                UserInput::Single(InputKind::GamepadButton(GamepadButtonType::LeftTrigger2))
-            }
+            Self::RotateClockwise => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::RightTrigger)),
+            Self::RotateCounterClockwise => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::LeftTrigger)),
+            Self::Boost => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::LeftTrigger2)),
             Self::Toggle => UserInput::Single(InputKind::GamepadButton(GamepadButtonType::South)),
         }
     }
@@ -108,35 +95,20 @@ fn bind_moveable_object_input(mut commands: Commands, query: Query<Entity, With<
     for action in MoveableObjectAction::iter() {
         let input = MoveableObjectAction::default_keyboard_input(action);
         input_map.insert(action, input);
-        // if let Some(input) = MoveableObjectAction::default_keyboard_input(action) {
-        //     input_map.insert(action, input);
-        // }
+
         let input = MoveableObjectAction::default_gamepad_input(action);
         input_map.insert(action, input);
-        // if let Some(input) =
-        // MoveableObjectAction::default_gamepad_input(action) {
-        //     input_map.insert(action, input);
-        // }
     }
 
     if let Ok(entity) = query.get_single() {
-        commands
-            .entity(entity)
-            .insert(InputManagerBundle::with_map(input_map));
+        commands.entity(entity).insert(InputManagerBundle::with_map(input_map));
     }
 }
 
 fn movement_actions(
     mut next_state: ResMut<NextState<MoveableObjectMovementState>>,
     state: Res<State<MoveableObjectMovementState>>,
-    mut query: Query<
-        (
-            &ActionState<MoveableObjectAction>,
-            &mut AngularVelocity,
-            &mut Velocity,
-        ),
-        With<MoveableObject>,
-    >,
+    mut query: Query<(&ActionState<MoveableObjectAction>, &mut AngularVelocity, &mut Velocity), With<MoveableObject>>,
     currently_changing: Res<ChangingBinding>,
     action_block: Res<ActionBlock>,
     sensitivity: Res<MoveableObjectSensitivity>,
@@ -145,10 +117,7 @@ fn movement_actions(
         return;
     };
 
-    if currently_changing.on_cooldown()
-        || currently_changing.is_changing()
-        || action_block.is_blocked()
-    {
+    if currently_changing.on_cooldown() || currently_changing.is_changing() || action_block.is_blocked() {
         velocity.value = Vec3::ZERO;
         angular_velocity.value = Vec3::ZERO;
         return;
@@ -166,8 +135,7 @@ fn movement_actions(
             .clamped_axis_pair(&MoveableObjectAction::Move)
             .map(|axis| axis.xy().normalize_or_zero())
         {
-            velocity.value =
-                Vec3::new(-action.x, 0.0, action.y) * scale * sensitivity.move_sensitivity;
+            velocity.value = Vec3::new(-action.x, 0.0, action.y) * scale * sensitivity.move_sensitivity;
         }
     } else {
         velocity.value = Vec3::ZERO;

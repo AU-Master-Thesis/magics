@@ -5,10 +5,7 @@ use bevy::input::{
 };
 use heck::ToTitleCase;
 use leafwing_input_manager::{
-    axislike::{
-        AxisType, DualAxis, MouseMotionAxisType, MouseWheelAxisType, SingleAxis, VirtualAxis,
-        VirtualDPad,
-    },
+    axislike::{AxisType, DualAxis, MouseMotionAxisType, MouseWheelAxisType, SingleAxis, VirtualAxis, VirtualDPad},
     buttonlike::{MouseMotionDirection, MouseWheelDirection},
     user_input::{InputKind, Modifier, UserInput},
 };
@@ -206,19 +203,19 @@ impl ToDisplayString for GamepadButtonType {
             Self::West => "󰸵".to_string(),  // Square/X
             Self::C => "C".to_string(),
             Self::Z => "Z".to_string(),
-            Self::LeftTrigger => "L1".to_string(), // Left bumper
-            Self::RightTrigger => "R1".to_string(), // Right bumper
-            Self::LeftTrigger2 => "L2".to_string(), // Left Trigger
+            Self::LeftTrigger => "L1".to_string(),   // Left bumper
+            Self::RightTrigger => "R1".to_string(),  // Right bumper
+            Self::LeftTrigger2 => "L2".to_string(),  // Left Trigger
             Self::RightTrigger2 => "R2".to_string(), // Right Trigger
             Self::Select => "Select".to_string(),
             Self::Start => "Start".to_string(),
             Self::Mode => "Mode".to_string(),
-            Self::LeftThumb => "L3 ↓".to_string(), // Left Stick Press Down Ⓛ
+            Self::LeftThumb => "L3 ↓".to_string(),  // Left Stick Press Down Ⓛ
             Self::RightThumb => "R3 ↓".to_string(), // Right Stick Press Down Ⓡ
-            Self::DPadUp => "󰹁".to_string(),       // DPad Up
-            Self::DPadDown => "󰸽".to_string(),     // DPad Down
-            Self::DPadLeft => "󰸾".to_string(),     // DPad Left
-            Self::DPadRight => "󰹀".to_string(),    // DPad Right
+            Self::DPadUp => "󰹁".to_string(),        // DPad Up
+            Self::DPadDown => "󰸽".to_string(),      // DPad Down
+            Self::DPadLeft => "󰸾".to_string(),      // DPad Left
+            Self::DPadRight => "󰹀".to_string(),     // DPad Right
             Self::Other(x) => format!("Gamepad {x}"),
             // _ => "Unknown".to_string(),
         }
@@ -229,9 +226,7 @@ impl ToDisplayString for SingleAxis {
     fn to_display_string(&self) -> String {
         match self.axis_type {
             AxisType::Gamepad(gamepad_axis) => gamepad_axis.to_display_string(),
-            AxisType::MouseWheel(mouse_wheel_direction) => {
-                mouse_wheel_direction.to_display_string()
-            }
+            AxisType::MouseWheel(mouse_wheel_direction) => mouse_wheel_direction.to_display_string(),
             AxisType::MouseMotion(mouse_motion) => mouse_motion.to_display_string(),
         }
     }
@@ -240,12 +235,12 @@ impl ToDisplayString for SingleAxis {
 impl ToDisplayString for GamepadAxisType {
     fn to_display_string(&self) -> String {
         match self {
-            Self::LeftStickX => "L3 󰹳".to_string(), // Left Stick Axis X Ⓛ
-            Self::LeftStickY => "L3 󰹹".to_string(), // Left Stick Axis Y Ⓛ
-            Self::LeftZ => "L3 ↓".to_string(),      // Left Stick Axis Z (Press down) Ⓛ
+            Self::LeftStickX => "L3 󰹳".to_string(),  // Left Stick Axis X Ⓛ
+            Self::LeftStickY => "L3 󰹹".to_string(),  // Left Stick Axis Y Ⓛ
+            Self::LeftZ => "L3 ↓".to_string(),       // Left Stick Axis Z (Press down) Ⓛ
             Self::RightStickX => "R3 󰹳".to_string(), // Right Stick Axis X Ⓡ
             Self::RightStickY => "R3 󰹹".to_string(), // Right Stick Axis Y Ⓡ
-            Self::RightZ => "R3 ↓".to_string(),     // Right Stick Axis Z (Press down) Ⓡ
+            Self::RightZ => "R3 ↓".to_string(),      // Right Stick Axis Z (Press down) Ⓡ
             Self::Other(x) => format!("Gamepad {x}"),
             // _ => "Unknown".to_string(),
         }

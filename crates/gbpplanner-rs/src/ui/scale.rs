@@ -26,10 +26,7 @@ impl Plugin for ScaleUiPlugin {
         if cfg!(not(target_arch = "wasm32")) {
             app.add_systems(
                 Update,
-                (
-                    Self::scale_ui_when_ctrl_scroll,
-                    Self::scale_ui_on_ctrl_plus_minus_equal,
-                ),
+                (Self::scale_ui_when_ctrl_scroll, Self::scale_ui_on_ctrl_plus_minus_equal),
             );
         }
     }

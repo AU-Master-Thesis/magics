@@ -19,8 +19,7 @@ impl std::fmt::Display for UnitIntervalError {
         match self {
             Self::OutOfBounds(value) => write!(
                 f,
-                "value {value} is out of bounds, a UnitInterval represents the closed interval \
-                 [0.0, 1.0]",
+                "value {value} is out of bounds, a UnitInterval represents the closed interval [0.0, 1.0]",
             ),
         }
     }
@@ -146,18 +145,9 @@ mod tests {
     #[test]
     #[allow(clippy::undocumented_unsafe_blocks)]
     fn test_new_unchecked() {
-        assert_eq!(
-            unsafe { UnitInterval::new_unchecked(0.0) },
-            UnitInterval(0.0)
-        );
-        assert_eq!(
-            unsafe { UnitInterval::new_unchecked(0.5) },
-            UnitInterval(0.5)
-        );
-        assert_eq!(
-            unsafe { UnitInterval::new_unchecked(1.0) },
-            UnitInterval(1.0)
-        );
+        assert_eq!(unsafe { UnitInterval::new_unchecked(0.0) }, UnitInterval(0.0));
+        assert_eq!(unsafe { UnitInterval::new_unchecked(0.5) }, UnitInterval(0.5));
+        assert_eq!(unsafe { UnitInterval::new_unchecked(1.0) }, UnitInterval(1.0));
     }
 
     #[test]
