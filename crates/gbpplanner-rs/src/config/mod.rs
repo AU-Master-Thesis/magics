@@ -157,24 +157,6 @@ impl std::str::FromStr for DrawSetting {
     }
 }
 
-// TODO: impl FromStr for DrawSetting
-// impl DrawSetting {
-//     pub fn from_str(s: &str) -> Option<Self> {
-//         match s {
-//             "communication_graph" => Some(Self::CommunicationGraph),
-//             "predicted_trajectories" => Some(Self::PredictedTrajectories),
-//             "waypoints" => Some(Self::Waypoints),
-//             "uncertainty" => Some(Self::Uncertainty),
-//             "paths" => Some(Self::Paths),
-//             "height_map" => Some(Self::HeightMap),
-//             "flat_map" => Some(Self::FlatMap),
-//             "communication_radius" => Some(Self::CommunicationRadius),
-//             "robots" => Some(Self::Robots),
-//             _ => None,
-//         }
-//     }
-// }
-
 // TODO: store in a bitset
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Serialize, Deserialize, Iterable, Reflect, Clone)]
@@ -292,9 +274,32 @@ impl Default for SimulationSection {
     }
 }
 
+/// Configuration for how many iterations to run different parts of the GBP
+/// algorithm per timestep
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GbpIterationsPerTimestepSection {
+    /// Internal iteration i.e. Variables, and factors excluding interrobot
+    /// factors
+    pub internal: usize,
+    /// External iteration i.e. message passing between interrobot factors and
+    /// connected external factors
+    pub external: usize,
+}
+
+impl Default for GbpIterationsPerTimestepSection {
+    fn default() -> Self {
+        let n = 10;
+        Self {
+            internal: n,
+            external: n,
+        }
+    }
+}
+
 /// **GBP Section**
 /// Contains parameters for the GBP algorithm. These paraneters are used for
-/// initialisation of factores and prediction horizon steps.
+/// initialisation of factors and prediction horizon steps.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GbpSection {
@@ -306,10 +311,11 @@ pub struct GbpSection {
     pub sigma_factor_interrobot: f32,
     /// Sigma for Static obstacle factors
     pub sigma_factor_obstacle: f32,
-    /// Number of iterations of GBP per timestep
-    pub iterations_per_timestep: usize,
     /// Parameter affecting how planned path is spaced out in time
     pub lookahead_multiple: usize,
+    /// Number of iterations of GBP per timestep
+    // pub iterations_per_timestep: usize,
+    pub iterations_per_timestep: GbpIterationsPerTimestepSection,
 }
 
 impl Default for GbpSection {
@@ -319,8 +325,9 @@ impl Default for GbpSection {
             sigma_factor_dynamics: 0.1,
             sigma_factor_interrobot: 0.01,
             sigma_factor_obstacle: 0.01,
-            iterations_per_timestep: 10,
             lookahead_multiple: 3,
+            // iterations_per_timestep: 10,
+            iterations_per_timestep: Default::default(),
         }
     }
 }

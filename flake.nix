@@ -23,7 +23,11 @@
     inputs.flake-utils.lib.eachDefaultSystem (system: let
       overlays = [(import rust-overlay)];
       pkgs = import inputs.nixpkgs {inherit system overlays;};
-      rust-extensions = ["rust-src" "rust-analyzer"];
+      rust-extensions = [
+        "rust-src"
+        "rust-analyzer"
+        "llvm-tools-preview" # used with `cargo-pgo`
+      ];
       rust-targets = ["wasm32-unknown-unknown"];
       # wgsl-analyzer-pkgs = import inputs.wgsl_analyzer {inherit system;};
       bevy-deps = with pkgs; [
@@ -53,6 +57,7 @@
         cargo-udeps
         cargo-watch
         cargo-wizard
+        cargo-pgo
         # cargo-tree
 
         #   # cargo-profiler
@@ -90,11 +95,11 @@
               (
                 rust-bin.selectLatestNightlyWith (toolchain:
                   toolchain.default.override {
-                    extensions = [
-                      "rust-src"
-                      "rust-analyzer"
-                      "rustc-codegen-cranelift-preview"
-                    ];
+                    extensions =
+                      rust-extensions
+                      ++ [
+                        "rustc-codegen-cranelift-preview"
+                      ];
                     targets = ["wasm32-unknown-unknown"];
                   })
               )

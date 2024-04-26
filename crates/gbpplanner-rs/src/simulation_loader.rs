@@ -81,7 +81,7 @@ impl Plugin for SimulationLoaderPlugin {
             .map(|dir| {
                 let dir = dir.unwrap();
                 let config_path = dir.path().join("config.toml");
-                let config = Config::from_file(config_path).unwrap();
+                let config = Config::from_file(dbg!(config_path)).unwrap();
                 let environment_path = dir.path().join("environment.yaml");
                 let environment = Environment::from_file(environment_path).unwrap();
                 let formation_path = dir.path().join("formation.yaml");
