@@ -26,11 +26,14 @@ pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 // TODO: make generic over f32 | f64
 // TODO: hide the state parameter from the public API, by having the `Factor`
 // struct expose similar methods that dispatch to the `FactorState` struct.
+
+/// Common interface for all factors
 pub trait Factor {
     // const NEIGHBORS: usize;
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
 
+    /// The delta for the jacobian calculation
     fn jacobian_delta(&self) -> Float;
 
     /// Returns the number of neighbours this factor expects
@@ -46,6 +49,7 @@ pub trait Factor {
     /// Whether the factor is linear or non-linear
     fn linear(&self) -> bool;
 
+    /// The jacobian of the factor
     #[must_use]
     #[inline]
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
@@ -58,6 +62,9 @@ pub trait Factor {
     #[must_use]
     fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
 
+    /// The first order jacobian
+    /// This is a default impl as factor variants should compute the first order
+    /// jacobian the same way
     fn first_order_jacobian(&mut self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
         let h0 = self.measure(state, &x); // value at linearization point
         let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
@@ -75,6 +82,7 @@ pub trait Factor {
     }
 }
 
+/// Factor node in the factorgraph
 #[derive(Debug)]
 pub struct FactorNode {
     /// Unique identifier that associates the variable with the factorgraph it
@@ -123,6 +131,7 @@ impl FactorNode {
         self.node_index = Some(node_index);
     }
 
+    /// Create a new dynamic factor
     pub fn new_dynamic_factor(strength: Float, measurement: Vector<Float>, delta_t: Float) -> Self {
         let mut state = FactorState::new(measurement, strength, DynamicFactor::NEIGHBORS);
         let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
@@ -130,6 +139,7 @@ impl FactorNode {
         Self::new(state, kind)
     }
 
+    /// Create a new interrobot factor
     pub fn new_interrobot_factor(
         strength: Float,
         measurement: Vector<Float>,
@@ -147,6 +157,7 @@ impl FactorNode {
     //     unimplemented!("the pose factor is stored in the variable")
     // }
 
+    /// Create a new obstacle factor
     pub fn new_obstacle_factor(
         strength: Float,
         measurement: Vector<Float>,
@@ -161,10 +172,10 @@ impl FactorNode {
         Self::new(state, kind)
     }
 
-    #[inline(always)]
-    pub fn variant(&self) -> &'static str {
-        self.kind.name()
-    }
+    // #[inline(always)]
+    // pub fn variant(&self) -> &'static str {
+    //     self.kind.name()
+    // }
 
     #[inline(always)]
     fn jacobian(&mut self, x: &Vector<Float>) -> Matrix<Float> {
@@ -182,6 +193,7 @@ impl FactorNode {
         self.kind.skip(&self.state)
     }
 
+    /// Add a message to this factors inbox
     pub fn receive_message_from(&mut self, from: VariableId, message: Message) {
         let _ = self.inbox.insert(from, message);
         self.message_count.received += 1;
@@ -200,6 +212,7 @@ impl FactorNode {
         &self.state.initial_measurement - &self.state.cached_measurement
     }
 
+    /// Update the factor using the gbp message passing algorithm
     #[must_use]
     pub fn update(&mut self) -> MessagesToVariables {
         debug_assert_eq!(self.state.linearisation_point.len(), DOFS * self.inbox.len());
@@ -301,11 +314,16 @@ impl FactorNode {
     // }
 }
 
+/// Static dispatch enum for the various factors in the factorgraph
+/// Used instead of dynamic dispatch
 #[derive(Debug, derive_more::IsVariant)]
 pub enum FactorKind {
     // Pose(PoseFactor),
+    /// InterRobotFactor
     InterRobot(InterRobotFactor),
+    /// DynamicFactor
     Dynamic(DynamicFactor),
+    /// ObstacleFactor
     Obstacle(ObstacleFactor),
 }
 
@@ -336,15 +354,6 @@ impl FactorKind {
             None
         }
     }
-
-    // /// Returns `Some(&PoseFactor)` if self is [`Pose`], otherwise `None`.
-    // pub const fn as_pose(&self) -> Option<&PoseFactor> {
-    //     if let Self::Pose(v) = self {
-    //         Some(v)
-    //     } else {
-    //         None
-    //     }
-    // }
 }
 
 impl Factor for FactorKind {
@@ -412,6 +421,9 @@ impl Factor for FactorKind {
     }
 }
 
+/// The state of the factor
+/// Struct encapsulating all the internal state of a factor, than every variant
+/// shares
 #[derive(Debug, Clone)]
 pub struct FactorState {
     /// called `z_` in **gbpplanner**
