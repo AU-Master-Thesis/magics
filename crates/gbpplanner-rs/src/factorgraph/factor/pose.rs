@@ -7,10 +7,29 @@ use super::{Factor, FactorState};
 #[derive(Debug)]
 pub struct PoseFactor;
 
+impl PoseFactor {
+    pub const NEIGHBORS: usize = 1;
+}
+
 impl Factor for PoseFactor {
     #[inline(always)]
     fn name(&self) -> &'static str {
         "PoseFactor"
+    }
+
+    #[inline(always)]
+    fn jacobian_delta(&self) -> Float {
+        1e-8
+    }
+
+    #[inline(always)]
+    fn skip(&mut self, _state: &FactorState) -> bool {
+        false
+    }
+
+    #[inline(always)]
+    fn linear(&self) -> bool {
+        false
     }
 
     /// Default jacobian is the first order taylor series jacobian
@@ -26,17 +45,7 @@ impl Factor for PoseFactor {
     }
 
     #[inline(always)]
-    fn skip(&mut self, _state: &FactorState) -> bool {
-        false
-    }
-
-    #[inline(always)]
-    fn jacobian_delta(&self) -> Float {
-        1e-8
-    }
-
-    #[inline(always)]
-    fn linear(&self) -> bool {
-        false
+    fn neighbours(&self) -> usize {
+        Self::NEIGHBORS
     }
 }

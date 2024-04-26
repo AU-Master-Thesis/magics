@@ -80,4 +80,9 @@ impl Factor for DynamicFactor {
     fn linear(&self) -> bool {
         true
     }
+
+    #[inline(always)]
+    fn neighbours(&self) -> usize {
+        Self::NEIGHBORS
+    }
 }

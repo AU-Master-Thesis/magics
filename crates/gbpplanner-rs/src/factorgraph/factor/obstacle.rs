@@ -1,8 +1,7 @@
 //! Obstacle factor
 
-use bevy::{log::warn, math::Vec2, render::texture::Image};
+use bevy::math::Vec2;
 use gbp_linalg::prelude::*;
-use image::GenericImageView;
 use ndarray::array;
 
 use super::{Factor, FactorState};
@@ -32,8 +31,6 @@ impl Default for LastMeasurement {
     fn default() -> Self {
         Self {
             pos:   Vec2::ZERO,
-            // x:     0.0,
-            // y:     0.0,
             value: 0.0,
         }
     }
@@ -163,5 +160,10 @@ impl Factor for ObstacleFactor {
     #[inline(always)]
     fn linear(&self) -> bool {
         false
+    }
+
+    #[inline(always)]
+    fn neighbours(&self) -> usize {
+        Self::NEIGHBORS
     }
 }

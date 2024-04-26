@@ -1,6 +1,5 @@
 use std::ops::AddAssign;
 
-use bevy::render::texture::Image;
 use gbp_linalg::prelude::*;
 use ndarray::{array, s};
 use typed_floats::StrictlyPositiveFinite;
@@ -17,6 +16,7 @@ pub(in crate::factorgraph) mod interrobot;
 mod marginalise_factor_distance;
 pub(in crate::factorgraph) mod obstacle;
 pub(in crate::factorgraph) mod pose;
+pub(in crate::factorgraph) mod velocity;
 
 use marginalise_factor_distance::marginalise_factor_distance;
 
@@ -27,10 +27,16 @@ pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 // TODO: hide the state parameter from the public API, by having the `Factor`
 // struct expose similar methods that dispatch to the `FactorState` struct.
 pub trait Factor {
+    // const NEIGHBORS: usize;
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
 
     fn jacobian_delta(&self) -> Float;
+
+    /// Returns the number of neighbours this factor expects
+    /// NOTE: defined as an instance method, so that `FactorKind` can dispatch
+    /// on itself to get the right value
+    fn neighbours(&self) -> usize;
 
     /// Whether to skip this factor in the update step
     /// In gbpplanner, this is only used for the interrobot factor.
@@ -366,6 +372,15 @@ impl Factor for FactorKind {
             Self::Dynamic(f) => f.measure(state, x),
             Self::InterRobot(f) => f.measure(state, x),
             Self::Obstacle(f) => f.measure(state, x),
+        }
+    }
+
+    fn neighbours(&self) -> usize {
+        match self {
+            // Self::Pose(f) => f.neighbours(),
+            Self::Dynamic(f) => f.neighbours(),
+            Self::InterRobot(f) => f.neighbours(),
+            Self::Obstacle(f) => f.neighbours(),
         }
     }
 
