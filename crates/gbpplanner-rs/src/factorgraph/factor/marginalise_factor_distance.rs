@@ -200,7 +200,7 @@ mod tests {
 
         let payload = marginalised_msg.take().unwrap();
 
-        assert_eq!(payload.information_factor, information_vector);
+        assert_eq!(payload.information_vector, information_vector);
         assert_eq!(payload.precision_matrix, precision_matrix);
     }
 

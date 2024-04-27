@@ -69,7 +69,7 @@ impl Factor for DynamicFactor {
     }
 
     #[inline(always)]
-    fn skip(&mut self, _state: &FactorState) -> bool {
+    fn skip(&self, _state: &FactorState) -> bool {
         false
     }
 

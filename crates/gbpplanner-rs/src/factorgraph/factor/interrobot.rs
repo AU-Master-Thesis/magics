@@ -1,6 +1,6 @@
 use std::{borrow::Cow, ops::Sub};
 
-use bevy::log::info;
+use bevy::log::{error, info};
 use gbp_linalg::prelude::*;
 use ndarray::s;
 use typed_floats::StrictlyPositiveFinite;
@@ -11,9 +11,13 @@ use crate::factorgraph::{
     DOFS,
 };
 
+/// Identifier for a external variable, i.e. a variable in another factorgraph
+/// than the one this interrobot factor belongs to
 #[derive(Debug, Clone, Copy)]
 pub struct ExternalVariableId {
+    /// The factorgraph id
     pub factorgraph_id: FactorGraphId,
+    /// The variable index
     pub variable_index: VariableIndex,
 }
 
@@ -69,6 +73,10 @@ impl Factor for InterRobotFactor {
 
     fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
         let mut jacobian = Matrix::<Float>::zeros((state.initial_measurement.len(), DOFS * 2));
+        // if jacobian.ncols() > 8 {
+        //     error!("InterRobotFactor jacobian is large {:?}", jacobian.dim());
+        // }
+
         let x_diff = {
             let offset = DOFS / 2;
             let mut x_diff = x.slice(s![..offset]).sub(&x.slice(s![DOFS..DOFS + offset]));
@@ -166,7 +174,7 @@ impl Factor for InterRobotFactor {
         1e-2
     }
 
-    fn skip(&mut self, state: &FactorState) -> bool {
+    fn skip(&self, state: &FactorState) -> bool {
         // this->skip_flag = ( (X_(seqN(0,n_dofs_/2)) - X_(seqN(n_dofs_,
         // n_dofs_/2))).squaredNorm() >= safety_distance_*safety_distance_ );
         let offset = DOFS / 2;
@@ -182,17 +190,18 @@ impl Factor for InterRobotFactor {
 
         let skip = squared_norm >= self.safety_distance.powi(2);
         // let skip = squared_norm >= Float::powi(self.safety_distance, 2);
-        if self.skip != skip {
-            // warn!(
-            //     "skip = {}, squared_norm = {} safety_distance^2 = {}",
-            //     skip,
-            //     squared_norm,
-            //     Float::powi(self.safety_distance, 2)
-            // );
-        }
-        self.skip = skip;
+        // if self.skip != skip {
+        // warn!(
+        //     "skip = {}, squared_norm = {} safety_distance^2 = {}",
+        //     skip,
+        //     squared_norm,
+        //     Float::powi(self.safety_distance, 2)
+        // );
+        // }
+        // self.skip = skip;
         // self.skip = squared_norm >= Float::powi(self.safety_distance, 2);
-        self.skip
+        // self.skip
+        skip
     }
 
     #[inline(always)]

@@ -226,7 +226,7 @@ impl VariableNode {
             let Some(payload) = message.payload() else {
                 continue;
             };
-            self.belief.information_vector = &self.belief.information_vector + &payload.information_factor;
+            self.belief.information_vector = &self.belief.information_vector + &payload.information_vector;
             self.belief.precision_matrix = &self.belief.precision_matrix + &payload.precision_matrix;
         }
 
@@ -261,7 +261,7 @@ impl VariableNode {
                     || self.prepare_message(),
                     |message_from_factor| {
                         Message::new(
-                            InformationVec(&self.belief.information_vector - &message_from_factor.information_factor),
+                            InformationVec(&self.belief.information_vector - &message_from_factor.information_vector),
                             PrecisionMatrix(&self.belief.precision_matrix - &message_from_factor.precision_matrix),
                             Mean(&self.belief.mean - &message_from_factor.mean),
                         )

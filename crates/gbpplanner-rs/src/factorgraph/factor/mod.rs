@@ -44,7 +44,7 @@ pub trait Factor {
     /// Whether to skip this factor in the update step
     /// In gbpplanner, this is only used for the interrobot factor.
     /// The other factors are always included in the update step.
-    fn skip(&mut self, state: &FactorState) -> bool;
+    fn skip(&self, state: &FactorState) -> bool;
 
     /// Whether the factor is linear or non-linear
     fn linear(&self) -> bool;
@@ -324,6 +324,7 @@ impl FactorNode {
 
 /// Static dispatch enum for the various factors in the factorgraph
 /// Used instead of dynamic dispatch
+#[allow(missing_docs)]
 #[derive(Debug, derive_more::IsVariant)]
 pub enum FactorKind {
     // Pose(PoseFactor),
@@ -401,7 +402,7 @@ impl Factor for FactorKind {
         }
     }
 
-    fn skip(&mut self, state: &FactorState) -> bool {
+    fn skip(&self, state: &FactorState) -> bool {
         match self {
             // Self::Pose(f) => f.skip(state),
             Self::Dynamic(f) => f.skip(state),

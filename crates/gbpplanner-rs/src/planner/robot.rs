@@ -35,6 +35,9 @@ pub type RobotId = Entity;
 
 pub struct RobotPlugin;
 
+#[derive(Debug, SystemSet, PartialEq, Eq, Hash, Clone, Copy)]
+struct GbpSystemSet;
+
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<VariableTimesteps>()
@@ -52,6 +55,8 @@ impl Plugin for RobotPlugin {
                     delete_interrobot_factors,
                     create_interrobot_factors,
                     update_failed_comms,
+                    // iterate_gbp_internal,
+                    // iterate_gbp_external,
                     iterate_gbp,
                     update_prior_of_horizon_state,
                     update_prior_of_current_state,
@@ -723,7 +728,8 @@ fn update_prior_of_horizon_state(
     mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
 ) {
     let delta_t = Float::from(time.delta_seconds());
-    let robot_radius = config.robot.radius.get();
+    // let robot_radius = config.robot.radius.get();
+    let robot_radius_squared = config.robot.radius.get().powi(2);
     let max_speed = Float::from(config.robot.max_speed.get());
 
     let mut all_messages_to_external_factors = Vec::new();
@@ -745,18 +751,17 @@ fn update_prior_of_horizon_state(
         // 2. find the variable configured to use for the waypoint intersection check
         let reached_waypoint = {
             let variable = match waypoints.intersects_when {
-                WaypointReachedWhenIntersects::Current => factorgraph.first_variable().map(|(_, v)| v).expect(""),
-                WaypointReachedWhenIntersects::Horizon => factorgraph.last_variable().map(|(_, v)| v).expect(""),
-                WaypointReachedWhenIntersects::Variable(ix) => {
-                    factorgraph.nth_variable(ix.into()).map(|(_, v)| v).expect("")
-                }
-            };
+                WaypointReachedWhenIntersects::Current => factorgraph.first_variable(),
+                WaypointReachedWhenIntersects::Horizon => factorgraph.last_variable(),
+                WaypointReachedWhenIntersects::Variable(ix) => factorgraph.nth_variable(ix.into()),
+            }
+            .map(|(_, v)| v)
+            .expect("variable exists");
 
             let estimated_pos = variable.estimated_position_vec2();
-            // TODO: use square distance comparison to avoid sqrt
-            // let dist2waypoint = estimated_pos.distance_squared()
-            let dist2waypoint = estimated_pos.distance(current_waypoint.xy());
-            dist2waypoint < robot_radius
+            // Use square distance comparison to avoid sqrt computation
+            let dist2waypoint = estimated_pos.distance_squared(current_waypoint.xy());
+            dist2waypoint < robot_radius_squared
         };
 
         let (variable_index, horizon_variable) = factorgraph
@@ -788,15 +793,40 @@ fn update_prior_of_horizon_state(
         }
     }
 
+    // if all_messages_to_external_factors.len() >= 3 {
+    //     error!(
+    //         "all_messages_to_external_factors.len() = {} >= 3",
+    //         all_messages_to_external_factors.len()
+    //     );
+
+    //     error!(
+    //         "payload size of first message is, {}",
+    //         all_messages_to_external_factors
+    //             .first()
+    //             .expect("whatever")
+    //             .message
+    //             .size_of_payload()
+    //     );
+    // }
+
     // Send messages to external factors
     for message in all_messages_to_external_factors {
-        // TODO: use query.get()
         let (_, mut external_factorgraph, _, _) = query
-            .iter_mut()
-            .find(|(id, _, _, _)| *id == message.to.factorgraph_id)
-            .expect("the factorgraph_id of the receiving factor should exist in the world");
+            .get_mut(message.to.factorgraph_id)
+            .expect("the factorgraph of the receiving factor exists in the world");
+        // let (_, mut fo, _, _) = query
+        //     .get_mut(message.to.factorgraph_id)
+        //     .expect("the factorgraph of the receiving factor exists in the world");
+
+        // // TODO: use query.get()
+        // let (_, mut external_factorgraph, _, _) = query
+        //     .iter_mut()
+        //     .find(|(id, _, _, _)| *id == message.to.factorgraph_id)
+        //     .expect("the factorgraph_id of the receiving factor should exist in the
+        // world");
 
         if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
+            // PERF: avoid the clone here
             factor.receive_message_from(message.from, message.message.clone());
         }
     }

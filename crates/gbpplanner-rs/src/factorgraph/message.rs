@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! Message module.
 //!
 //! Contains the message struct that variables and factors send between each
@@ -13,11 +12,13 @@ use super::{
     DOFS,
 };
 
+// PERF: it seems the payload size is always the same no matter how many
+// external messages there are to be sent
 /// Payload of a message
 #[derive(Debug, Clone)]
 pub struct Payload {
     /// Information vector of a multivariate gaussian
-    pub information_factor: Vector<Float>,
+    pub information_vector: Vector<Float>,
     /// Precision matrix of a multivariate gaussian
     pub precision_matrix: Matrix<Float>,
     /// Mean vector of a multivariate gaussian
@@ -37,6 +38,7 @@ pub struct PrecisionMatrix(pub Matrix<Float>);
 /// the information vector and mean vector argument.
 pub struct Mean(pub Vector<Float>);
 
+/// Container for the message exchanged between nodes in the factorgraph
 #[derive(Debug, Clone)]
 pub struct Message {
     payload: Option<Payload>,
@@ -61,7 +63,7 @@ impl Message {
     /// or `None` if the message is empty.
     #[inline]
     pub fn information_vector(&self) -> Option<&Vector<Float>> {
-        self.payload.as_ref().map(|payload| &payload.information_factor)
+        self.payload.as_ref().map(|payload| &payload.information_vector)
     }
 
     /// Returns `true` if the message is [`Empty`].
@@ -84,12 +86,21 @@ impl Message {
         self.payload.as_ref()
     }
 
+    /// Return the size in bytes of the payload
+    pub fn size_of_payload(&self) -> usize {
+        self.payload.as_ref().map_or(0, |p| {
+            // p.information_vector.len()
+            (p.information_vector.len() + (p.precision_matrix.nrows() * p.precision_matrix.ncols()) + p.mean.len())
+                * std::mem::size_of::<Float>()
+        })
+    }
+
     /// Create an empty message
     #[must_use]
     pub fn empty() -> Self {
         Self {
             payload: Some(Payload {
-                information_factor: Vector::<Float>::zeros(DOFS),
+                information_vector: Vector::<Float>::zeros(DOFS),
                 precision_matrix: Matrix::<Float>::zeros((DOFS, DOFS)),
                 mean: Vector::<Float>::zeros(DOFS),
             }),
@@ -113,7 +124,7 @@ impl Message {
 
         Self {
             payload: Some(Payload {
-                information_factor: eta.0,
+                information_vector: eta.0,
                 precision_matrix: lam.0,
                 mean: mu.0,
             }),
@@ -145,6 +156,8 @@ pub struct FactorToVariableMessage {
 
 // pub type MessagesFromVariables = BTreeMap<FactorId, Message>;
 // pub type MessagesFromFactors = BTreeMap<VariableId, Message>;
+
+// PERF(kpbaks): use a indexmap or slotmap to improve performance
 
 /// Type alias for a map of messages from factors connected to a variable
 /// A (`BTreeMap`)[`std::collections::BTreeMap`] is used, instead of a
