@@ -1,5 +1,11 @@
 //! Obstacle factor
 
+use std::{
+    borrow::Cow,
+    cell::{Cell, RefCell},
+    sync::{Arc, Mutex},
+};
+
 use bevy::math::Vec2;
 use gbp_linalg::prelude::*;
 use ndarray::array;
@@ -16,12 +22,13 @@ pub struct ObstacleFactor {
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy
     /// of here since `ObstacleFactor` needs this information to calculate
     /// `.jacobian_delta()` and `.measurement()`
-    world_size:       Float,
+    world_size:   Float,
     // last_measurement: Option<LastMeasurement>,
-    last_measurement: LastMeasurement,
+    // last_measurement: Arc<Cell<LastMeasurement>>,
+    // last_measurement: Arc<Mutex<LastMeasurement>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct LastMeasurement {
     pub pos:   bevy::math::Vec2,
     pub value: Float,
@@ -58,15 +65,21 @@ impl ObstacleFactor {
         Self {
             obstacle_sdf,
             world_size,
-            last_measurement: Default::default(),
+            // last_measurement: Default::default(),
         }
     }
 
-    /// Returns the last measurement
-    #[inline(always)]
-    pub fn last_measurement(&self) -> &LastMeasurement {
-        &self.last_measurement
-    }
+    // / Returns the last measurement
+    // #[inline(always)]
+    // pub fn last_measurement(&self) -> Option<LastMeasurement> {
+    //     self.last_measurement.try_lock().ok().as_deref().copied()
+    //
+    //     // self.last_measurement.try_borrow().ok().as_deref().copied()
+    // }
+
+    // pub fn last_measurement(&self) -> LastMeasurement {
+    //     self.last_measurement.get()
+    // }
 }
 
 impl Factor for ObstacleFactor {
@@ -76,13 +89,13 @@ impl Factor for ObstacleFactor {
     }
 
     #[inline]
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
+    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
         // Same as PoseFactor
         // TODO: change to not clone x
-        self.first_order_jacobian(state, x.clone())
+        Cow::Owned(self.first_order_jacobian(state, x.clone()))
     }
 
-    fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         // White areas are obstacles, so h(0) should return a 1 for these regions.
         let scale = Float::from(self.obstacle_sdf.width()) / self.world_size;
         // let offset = (self.world_size / 2.0) as usize;
@@ -130,11 +143,23 @@ impl Factor for ObstacleFactor {
         // but instead invert the entire image, when they load it from disk.
         // let hsv_value = 1.0 - Float::from(red) / 255.0;
 
-        self.last_measurement.pos.x = x[0] as f32;
-        self.last_measurement.pos.y = x[1] as f32;
-        // self.last_measurement.pos.x = pixel_x as f32;
-        // self.last_measurement.pos.y = pixel_y as f32;
-        self.last_measurement.value = hsv_value;
+        // let mut last_measurement = self.last_measurement.try_borrow_mut().unwrap();
+        // self.last_measurement.set(LastMeasurement {
+        //     pos:   Vec2::new(x[0] as f32, x[1] as f32),
+        //     value: hsv_value,
+        // });
+
+        // if let Ok(mut last_measurement) = self.last_measurement.try_borrow_mut() {
+        //     last_measurement.pos.x = x[0] as f32;
+        //     last_measurement.pos.y = x[1] as f32;
+        //     last_measurement.value = hsv_value;
+        // }
+
+        // self.last_measurement.pos.x = x[0] as f32;
+        // self.last_measurement.pos.y = x[1] as f32;
+        // // self.last_measurement.pos.x = pixel_x as f32;
+        // // self.last_measurement.pos.y = pixel_y as f32;
+        // self.last_measurement.value = hsv_value;
 
         // let hsv_value = pixel as Float / 255.0;
         // if hsv_value <= 0.5 {

@@ -1,5 +1,7 @@
 //! Dynamic factor in the factorgraph
 
+use std::borrow::Cow;
+
 use gbp_linalg::prelude::*;
 use ndarray::{concatenate, Axis};
 
@@ -57,12 +59,12 @@ impl Factor for DynamicFactor {
     }
 
     #[inline]
-    fn jacobian(&mut self, _state: &FactorState, _x: &Vector<Float>) -> Matrix<Float> {
-        self.cached_jacobian.clone()
+    fn jacobian(&self, _state: &FactorState, _x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+        Cow::Borrowed(&self.cached_jacobian)
     }
 
     #[inline(always)]
-    fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         self.cached_jacobian.dot(x)
     }
 

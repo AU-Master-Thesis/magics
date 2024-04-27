@@ -1,4 +1,4 @@
-use std::ops::AddAssign;
+use std::{borrow::Cow, ops::AddAssign};
 
 use gbp_linalg::prelude::*;
 use ndarray::{array, s};
@@ -52,20 +52,22 @@ pub trait Factor {
     /// The jacobian of the factor
     #[must_use]
     #[inline]
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
-        self.first_order_jacobian(state, x.clone())
+    // fn jacobian<'a>(&mut self, state: &'a FactorState, x: &Vector<Float>) ->
+    // Cow<'a, Matrix<Float>> {
+    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+        Cow::Owned(self.first_order_jacobian(state, x.clone()))
     }
 
     /// Measurement function
     /// **Note**: This method takes a mutable reference to self, because the
     /// interrobot factor
     #[must_use]
-    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
+    fn measure(&self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
 
     /// The first order jacobian
     /// This is a default impl as factor variants should compute the first order
     /// jacobian the same way
-    fn first_order_jacobian(&mut self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
+    fn first_order_jacobian(&self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
         let h0 = self.measure(state, &x); // value at linearization point
         let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
 
@@ -178,7 +180,7 @@ impl FactorNode {
     // }
 
     #[inline(always)]
-    fn jacobian(&mut self, x: &Vector<Float>) -> Matrix<Float> {
+    fn jacobian(&self, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
         self.kind.jacobian(&self.state, x)
     }
 
@@ -221,6 +223,7 @@ impl FactorNode {
 
         for (i, (_, message)) in self.inbox.iter().enumerate() {
             let mean = message.mean().unwrap_or(&zero_mean);
+            // let mean = message.mean().unwrap_or_else(|| V);
             self.state
                 .linearisation_point
                 .slice_mut(s![i * DOFS..(i + 1) * DOFS])
@@ -241,7 +244,12 @@ impl FactorNode {
         let _ = self.measure(&self.state.linearisation_point.clone());
         let jacobian = self.jacobian(&self.state.linearisation_point.clone());
 
-        let potential_precision_matrix = jacobian.t().dot(&self.state.measurement_precision).dot(&jacobian);
+        let potential_precision_matrix = jacobian
+            .t()
+            .dot(&self.state.measurement_precision)
+            .dot(jacobian.as_ref());
+        // let potential_precision_matrix =
+        // jacobian.t().dot(&self.state.measurement_precision).dot(&jacobian);
         let potential_information_vec = jacobian
             .t()
             .dot(&self.state.measurement_precision)
@@ -366,7 +374,7 @@ impl Factor for FactorKind {
         }
     }
 
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
+    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
         match self {
             // Self::Pose(f) => f.jacobian(state, x),
             Self::Dynamic(f) => f.jacobian(state, x),
@@ -375,7 +383,7 @@ impl Factor for FactorKind {
         }
     }
 
-    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         match self {
             // Self::Pose(f) => f.measure(state, x),
             Self::Dynamic(f) => f.measure(state, x),

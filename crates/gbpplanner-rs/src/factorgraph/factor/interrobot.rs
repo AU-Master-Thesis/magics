@@ -1,4 +1,4 @@
-use std::ops::Sub;
+use std::{borrow::Cow, ops::Sub};
 
 use bevy::log::info;
 use gbp_linalg::prelude::*;
@@ -67,7 +67,7 @@ impl Factor for InterRobotFactor {
         "InterRobotFactor"
     }
 
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
+    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
         let mut jacobian = Matrix::<Float>::zeros((state.initial_measurement.len(), DOFS * 2));
         let x_diff = {
             let offset = DOFS / 2;
@@ -102,10 +102,10 @@ impl Factor for InterRobotFactor {
                 .slice_mut(s![0, DOFS..DOFS + (DOFS / 2)])
                 .assign(&(1.0 / self.safety_distance / radius * &x_diff));
         }
-        jacobian
+        Cow::Owned(jacobian)
     }
 
-    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         let mut h = Vector::<Float>::zeros(state.initial_measurement.len());
         let x_diff = {
             let offset = DOFS / 2;
@@ -140,7 +140,8 @@ impl Factor for InterRobotFactor {
                     radius
                 );
             }
-            self.skip = false;
+            // self.skip = false;
+
             // gbpplanner: h(0) = 1.f*(1 - r/safety_distance_);
             // NOTE: in Eigen, indexing a matrix with a single index corresponds to indexing
             // the matrix as a flattened array in column-major order.
@@ -154,7 +155,7 @@ impl Factor for InterRobotFactor {
                 // to true",     radius
                 // );
             }
-            self.skip = true;
+            // self.skip = true;
         }
 
         h

@@ -1,5 +1,7 @@
 //! Pose factor
 
+use std::borrow::Cow;
+
 use gbp_linalg::prelude::*;
 
 use super::{Factor, FactorState};
@@ -34,13 +36,13 @@ impl Factor for PoseFactor {
 
     /// Default jacobian is the first order taylor series jacobian
     #[inline]
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
-        self.first_order_jacobian(state, x.clone())
+    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+        Cow::Owned(self.first_order_jacobian(state, x.clone()))
     }
 
     /// Default measurement function is the identity function
     #[inline(always)]
-    fn measure(&mut self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         x.clone()
     }
 
