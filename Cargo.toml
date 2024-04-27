@@ -18,7 +18,8 @@ members = [
   "crates/repeating_array",
   "crates/bevy_fullscreen",
   "crates/bevy_touchpad",
-  "crates/seq", "crates/as_variant",
+  "crates/seq",
+  "crates/as_variant",
 ]
 
 [workspace.package]
@@ -78,8 +79,10 @@ lto              = "fat"
 opt-level        = 3
 panic            = "abort"
 rpath            = false
-strip            = true
-incremental      = true
+# strip            = true
+# strip = "debuginfo"
+strip       = "symbols"
+incremental = true
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
