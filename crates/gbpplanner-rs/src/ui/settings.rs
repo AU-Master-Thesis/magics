@@ -241,6 +241,56 @@ fn ui_settings_panel(
                         ui.end_row();
                     });
 
+
+                    // custom::subheading(ui, "GBP",
+                    //     Some(Color32::from_catppuccin_colour(
+                    //         title_colors.next_or_first(),
+                    //     )),
+                    // );
+
+                    custom::subheading(ui, "Communication",
+                        Some(Color32::from_catppuccin_colour(
+                            title_colors.next_or_first(),
+                        )),
+                    );
+
+                    // TODO: alter internal and external iteration count
+
+                    custom::grid("communication_grid", 2).show(ui,|ui| {
+                        ui.label("Radius");
+                        // slider for communication radius in (0.0, 50.]
+                        ui.spacing_mut().slider_width =
+                            ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                        let mut comms_radius = config.robot.communication.radius.get();
+                        let slider_response = ui.add(
+                            egui::Slider::new(&mut comms_radius, 0.1..=50.0)
+                                .suffix("m")
+                                .fixed_decimals(1)
+                                .trailing_fill(true)
+                                .show_value(true),
+                        );
+                        if slider_response.changed() {
+                            config.robot.communication.radius = comms_radius.try_into().unwrap();
+                        }
+                        ui.end_row();
+                        // Slider for communication failure rate (probability) in [0.0, 1.0]
+                        ui.label("Failure");
+                        ui.spacing_mut().slider_width = ui.available_width()  - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                        let mut failure_rate = config.robot.communication.failure_rate;
+                        let slider_response = ui.add(
+                            egui::Slider::new(&mut failure_rate, 0.0..=1.0)
+                                .suffix("%")
+                                .trailing_fill(true)
+                                .show_value(true),
+
+                        );
+                        if slider_response.changed() {
+                            config.robot.communication.failure_rate = failure_rate;
+                        }
+                        ui.end_row();
+                    });
+
+
                     custom::subheading(
                         ui,
                         "Draw",
@@ -334,17 +384,10 @@ fn ui_settings_panel(
 
                         ui.label("Simulation Time");
 
-                        // let progress =
-                        //     time_fixed.elapsed_seconds() / config.simulation.max_time.get();
-                        // let progressbar =
-                        //     egui::widgets::ProgressBar::new(progress).fill(Color32::RED);
-                        // ui.add(progressbar);
-
                         custom::rect_label(
                             ui,
                             format!(
                                 "{:.2} / {:.2}",
-                                // time_fixed.elapsed_seconds(),
                                 time_virtual.elapsed_seconds(),
                                 config.simulation.max_time.get()
                             ),
@@ -359,7 +402,8 @@ fn ui_settings_panel(
                             ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                         let slider_response = ui.add(
                             egui::Slider::new(&mut config.simulation.time_scale.get(), 0.1..=5.0)
-                                .text("x")
+                                .suffix("x")
+                                .trailing_fill(true)
                                 .show_value(true),
                         );
                         if slider_response.drag_released() || slider_response.lost_focus() {
@@ -408,6 +452,8 @@ fn ui_settings_panel(
                                 }
                             });
 
+                            // TODO: add control for timesteps per manual step
+
                             // ui.end_row();
                         });
                         // ui.end_row();
@@ -420,8 +466,6 @@ fn ui_settings_panel(
                             title_colors.next_or_first(),
                         )),
                     );
-
-                    // let png_output_path = PathBuf::from("./factorgraphs").with_extension("png");
 
                     custom::grid("export_grid", 3).show(ui, |ui| {
                         // GRAPHVIZ EXPORT TOGGLE
@@ -457,8 +501,6 @@ fn ui_settings_panel(
                     });
 
                     ui.add_space(10.0);
-                    // ui.add(egui::Image::new(egui::include_image!("../../../factorgraphs.png")));
-                    // ui.add_space(10.0);
 
                     // INSPECTOR
                     custom::subheading(
@@ -529,6 +571,5 @@ fn ui_settings_panel(
                 });
         });
 
-    // occupied_screen_space.right = right_panel.map_or(0.0, |ref inner|
-    // inner.response.rect.width());
+    occupied_screen_space.right = right_panel.map_or(0.0, |ref inner| inner.response.rect.width());
 }
