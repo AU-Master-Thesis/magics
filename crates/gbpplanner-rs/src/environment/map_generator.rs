@@ -932,7 +932,8 @@ fn build_tile_grid(
                 }
                 _ => None,
             } {
-                obstacle_information.iter().for_each(|(cuboid, transform)| {
+                // obstacle_information.iter().for_each(|(cuboid, transform)| {
+                for (cuboid, transform) in obstacle_information.iter() {
                     colliders.push(
                         Isometry2::new(
                             Vector2::new(transform.translation.x, transform.translation.z),
@@ -955,7 +956,7 @@ fn build_tile_grid(
                         TileCoordinates::new(x, y),
                         ObstacleMarker,
                     ));
-                })
+                }
             }
         }
     }

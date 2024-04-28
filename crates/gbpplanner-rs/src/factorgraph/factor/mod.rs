@@ -328,11 +328,11 @@ impl FactorNode {
 #[derive(Debug, derive_more::IsVariant)]
 pub enum FactorKind {
     // Pose(PoseFactor),
-    /// InterRobotFactor
+    /// `InterRobotFactor`
     InterRobot(InterRobotFactor),
-    /// DynamicFactor
+    /// `DynamicFactor`
     Dynamic(DynamicFactor),
-    /// ObstacleFactor
+    /// `ObstacleFactor`
     Obstacle(ObstacleFactor),
 }
 

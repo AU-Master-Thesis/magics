@@ -58,15 +58,6 @@ impl From<FactorIndex> for usize {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::From, derive_more::Deref)]
 pub struct VariableIndex(pub NodeIndex);
 
-// impl std::ops::Deref for VariableIndex {
-//     type Target = NodeIndex;
-//
-//     #[inline(always)]
-//     fn deref(&self) -> &Self::Target {
-//         &self.0
-//     }
-// }
-
 impl From<VariableIndex> for usize {
     fn from(index: VariableIndex) -> Self {
         index.0.index()
@@ -174,8 +165,6 @@ impl FactorGraph {
     /// Adds a factor to the factorgraph
     /// Returns the index of the factor in the factorgraph
     pub fn add_factor(&mut self, factor: FactorNode) -> FactorIndex {
-        // let is_interrobot = factor.is_inter_robot();
-        // let is_obstacle = factor.is_obstacle();
         let node = Node::new(self.id, NodeKind::Factor(factor));
         let node_index = self.graph.add_node(node);
 
@@ -184,23 +173,12 @@ impl FactorGraph {
             .expect("just added the factor to the graph in the previous statement");
         factor.set_node_index(node_index);
 
-        // self.graph[node_index]
-        //     .as_factor_mut()
-        //     .expect("just added the factor to the graph in the previous statement")
-        //     .set_node_index(node_index);
-
         self.factor_indices.push(node_index);
         match factor.kind {
             FactorKind::InterRobot(_) => self.interrobot_factor_indices.push(node_index),
             FactorKind::Dynamic(_) => self.dynamic_factor_indices.push(node_index),
             FactorKind::Obstacle(_) => self.obstacle_factor_indices.push(node_index),
         }
-
-        // if is_interrobot {
-        //     self.interrobot_factor_indices.push(node_index);
-        // } else if is_obstacle {
-        //     self.obstacle_factor_indices.push(node_index);
-        // }
 
         node_index.into()
     }
@@ -271,13 +249,6 @@ impl FactorGraph {
         };
         // TODO: explain why we send an empty message
         variable.receive_message_from(factor_id, Message::empty());
-
-        //     Message::new(
-        //         InformationVec(variable.belief.information_vector.clone()),
-        //         PrecisionMatrix(variable.belief.precision_matrix.clone()),
-        //         Mean(variable.belief.mean.clone()),
-        //     )
-        // };
 
         let node = &mut self.graph[factor_id.factor_index.0];
         match node.kind {
@@ -523,6 +494,27 @@ impl FactorGraph {
         }
     }
 
+    pub fn internal_variable_iteration(&mut self) {
+        for &ix in &self.variable_indices {
+            let node = &mut self.graph[ix];
+            let variable = node
+                .as_variable_mut()
+                .expect("self.variable_indices should only contain indices that point to Variables in the graph");
+            let variable_index = VariableIndex(ix);
+            let variable_id = VariableId::new(self.id, variable_index);
+            // TODO: do internal only
+            let factor_messages = variable.update_belief_and_create_factor_responses();
+
+            for (factor_id, message) in factor_messages {
+                let factor = self.graph[factor_id.factor_index.0]
+                    .as_factor_mut()
+                    .expect("a factor only has variables as neighbours");
+
+                factor.receive_message_from(variable_id, message);
+            }
+        }
+    }
+
     /// Variable Iteration in Gaussian Belief Propagation (GBP).
     /// For each variable in the factorgraph:
     /// 1. Use received messages from connected factors to update the variable
@@ -539,6 +531,7 @@ impl FactorGraph {
     /// This method panics if a variable has not received any messages from its
     /// connected factors. As this indicates that the factorgraph is not
     /// correctly constructed.
+    #[must_use]
     pub fn variable_iteration(&mut self) -> Vec<VariableToFactorMessage> {
         let mut messages_to_external_factors: Vec<VariableToFactorMessage> = Vec::new();
 
@@ -600,27 +593,35 @@ impl FactorGraph {
         messages_to_external_factors
     }
 
+    #[must_use]
+    pub fn internal_factor_iteration(&mut self) {
+        todo!()
+    }
+
+    #[must_use]
+    pub fn external_factor_iteration(&mut self) -> Vec<FactorToVariableMessage> {
+        todo!()
+    }
+
+    #[must_use]
+    pub fn external_variable_iteration(&mut self) -> Vec<VariableToFactorMessage> {
+        todo!()
+    }
+
     /// Aggregate and marginalise over all adjacent variables, and send.
     /// Aggregation: product of all incoming messages
+    #[must_use]
     pub fn factor_iteration(&mut self) -> Vec<FactorToVariableMessage> {
         let mut messages_to_external_variables: Vec<FactorToVariableMessage> = Vec::new();
 
-        #[allow(clippy::needless_collect)]
-        for node_index in self.graph.node_indices().collect::<Vec<_>>() {
-            let node = &mut self.graph[node_index];
-            let Some(factor) = node.as_factor_mut() else {
-                continue;
-            };
+        for ix in &self.factor_indices {
+            let node = &mut self.graph[*ix];
+            let factor = node
+                .as_factor_mut()
+                .expect("self.factor_indices should only contain indices that point to Factors in the graph");
 
             let variable_messages = factor.update();
-            assert!(
-                !variable_messages.is_empty(),
-                "The factorgraph {:?} with factor {:?} did not receive any messages from its connected variables",
-                self.id,
-                node_index
-            );
-
-            let factor_id = FactorId::new(self.id, FactorIndex(node_index));
+            let factor_id = FactorId::new(self.id, FactorIndex(*ix));
 
             for (variable_id, message) in variable_messages {
                 let in_internal_graph = variable_id.factorgraph_id == self.id;

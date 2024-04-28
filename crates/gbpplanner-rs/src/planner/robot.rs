@@ -1,4 +1,7 @@
-use std::collections::{BTreeSet, HashMap, VecDeque};
+use std::{
+    collections::{BTreeSet, HashMap, VecDeque},
+    sync::{Arc, Mutex},
+};
 
 use bevy::{
     input::{keyboard::KeyboardInput, ButtonState},
@@ -21,6 +24,7 @@ use crate::{
         factor::{ExternalVariableId, FactorNode},
         factorgraph::{FactorGraph, NodeIndex, VariableIndex},
         id::{FactorId, VariableId},
+        message::{FactorToVariableMessage, VariableToFactorMessage},
     },
     simulation_loader::SdfImage,
 };
@@ -659,9 +663,91 @@ fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
     }
 }
 
-fn iterate_gbp_internal(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {}
+fn iterate_gbp_internal(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {
+    query.par_iter_mut().for_each(|(entity, mut factorgraph)| {
+        for _ in 0..config.gbp.iterations_per_timestep.internal {
+            factorgraph.internal_factor_iteration();
+            factorgraph.internal_variable_iteration();
+        }
+    });
+}
 
-fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {}
+fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph, &RobotState)>, config: Res<Config>) {
+    for _ in 0..config.gbp.iterations_per_timestep.external {
+        // PERF: use Local<> to reuse arrays
+
+        let mut messages_to_external_variables: Arc<Mutex<Vec<FactorToVariableMessage>>> = Arc::default();
+        let mut messages_to_external_factors: Arc<Mutex<Vec<VariableToFactorMessage>>> = Arc::default();
+
+        query.par_iter_mut().for_each(|(entity, mut factorgraph, state)| {
+            if !state.interrobot_comms_active {
+                return;
+            }
+
+            let variable_messages = factorgraph.external_factor_iteration();
+            if !variable_messages.is_empty() {
+                let mut guard = messages_to_external_variables.lock().unwrap();
+                guard.extend(variable_messages.into_iter());
+            }
+
+            let factor_messages = factorgraph.external_variable_iteration();
+            if !factor_messages.is_empty() {
+                let mut guard = messages_to_external_factors.lock().unwrap();
+                guard.extend(factor_messages.into_iter());
+            }
+        });
+
+        // Send messages to external variables
+        let messages = messages_to_external_variables.lock().unwrap();
+        // for message in messages_to_external_variables.lock().unwrap().iter() {
+        for message in messages.iter() {
+            let (_, mut factorgraph, _) = query
+                .get_mut(message.to.factorgraph_id)
+                .expect("the factorgraph of the receiving variable should exist in the world");
+
+            if let Some(variable) = factorgraph.get_variable_mut(message.to.variable_index) {
+                variable.receive_message_from(message.from, message.message.clone());
+            } else {
+                error!(
+                    "variablegraph {:?} has no variable with index {:?}",
+                    message.to.factorgraph_id, message.to.variable_index
+                );
+            }
+        }
+
+        // Send messages to external factors
+        let messages = messages_to_external_factors.lock().unwrap();
+        // for message in messages_to_external_factors.lock().unwrap().iter() {
+        for message in messages.iter() {
+            let (_, mut factorgraph, _) = query
+                .get_mut(message.to.factorgraph_id)
+                .expect("the factorgraph of the receiving variable should exist in the world");
+
+            if let Some(factor) = factorgraph.get_factor_mut(message.to.factor_index) {
+                factor.receive_message_from(message.from, message.message.clone());
+            }
+
+            // if let Some(factor) = query
+            //     .get_mut(message.to.factorgraph_id)
+            //     .ok()
+            //     .map(|(_, fg, _)| fg)
+            //     .and_then(|mut fg|
+            // fg.get_factor_mut(message.to.factor_index)) {
+            //     factor.receive_message_from(message.from,
+            // message.message.clone()); }
+
+            // let (_, mut factorgraph) = query
+            //     .get_mut(message.to.factorgraph_id)
+            //     .expect("the factorgraph of the receiving variable should
+            // exist in the world");
+
+            // if let Some(factor) =
+            // factorgraph.get_factor_mut(message.to.factor_index) {
+            //     factor.receive_message_from(message.from,
+            // message.message.clone()); }
+        }
+    }
+}
 
 fn iterate_gbp(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {
     for _ in 0..config.gbp.iterations_per_timestep.internal {
@@ -814,9 +900,6 @@ fn update_prior_of_horizon_state(
         let (_, mut external_factorgraph, _, _) = query
             .get_mut(message.to.factorgraph_id)
             .expect("the factorgraph of the receiving factor exists in the world");
-        // let (_, mut fo, _, _) = query
-        //     .get_mut(message.to.factorgraph_id)
-        //     .expect("the factorgraph of the receiving factor exists in the world");
 
         // // TODO: use query.get()
         // let (_, mut external_factorgraph, _, _) = query

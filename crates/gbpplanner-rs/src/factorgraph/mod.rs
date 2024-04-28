@@ -25,7 +25,7 @@ pub mod prelude {
     pub use super::{factorgraph::FactorGraph, message::Message, DOFS};
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, derive_more::Add)]
 pub struct MessageCount {
     pub sent:     usize,
     pub received: usize,
@@ -38,13 +38,13 @@ impl MessageCount {
     }
 }
 
-impl std::ops::Add for MessageCount {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self {
-            sent:     self.sent + rhs.sent,
-            received: self.received + rhs.received,
-        }
-    }
-}
+// impl std::ops::Add for MessageCount {
+//     type Output = Self;
+//
+//     fn add(self, rhs: Self) -> Self::Output {
+//         Self {
+//             sent:     self.sent + rhs.sent,
+//             received: self.received + rhs.received,
+//         }
+//     }
+// }

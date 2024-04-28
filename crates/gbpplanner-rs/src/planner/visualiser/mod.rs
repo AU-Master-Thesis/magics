@@ -51,6 +51,7 @@ pub struct RobotTracker {
 
 impl RobotTracker {
     // REFACTOR: take all 3 arguments here
+    #[must_use]
     pub const fn new(robot_id: RobotId) -> Self {
         Self {
             robot_id,

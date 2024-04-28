@@ -142,7 +142,8 @@ pub struct ChangingBinding {
 }
 
 impl ChangingBinding {
-    pub fn new(action: InputAction, binding: usize) -> Self {
+    #[must_use]
+    pub const fn new(action: InputAction, binding: usize) -> Self {
         Self {
             action,
             binding,
@@ -151,7 +152,7 @@ impl ChangingBinding {
     }
 
     #[inline]
-    pub fn is_changing(&self) -> bool {
+    pub const fn is_changing(&self) -> bool {
         !matches!(self.action, InputAction::Undefined)
     }
 
@@ -161,7 +162,7 @@ impl ChangingBinding {
     }
 
     #[inline]
-    pub fn with_cooldown(mut self, cooldown: f32) -> Self {
+    pub const fn with_cooldown(mut self, cooldown: f32) -> Self {
         self.cooldown = cooldown;
         self
     }

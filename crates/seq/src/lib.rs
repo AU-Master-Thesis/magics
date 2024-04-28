@@ -38,6 +38,7 @@ pub struct UpperTriangular {
     col: usize,
 }
 
+#[allow(clippy::len_without_is_empty)]
 impl UpperTriangular {
     /// Return the number of elements of the upper triangular matrix
     #[inline]

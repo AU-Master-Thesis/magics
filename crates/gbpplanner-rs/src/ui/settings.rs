@@ -312,6 +312,8 @@ fn ui_settings_panel(
                             // Combo box of available simulations
                             ui.vertical_centered_justified(|ui| {
                                 ui.menu_button(simulation_manager.active_name().map(ToString::to_string).unwrap_or(format!("N/A")), |ui| {
+                                    #[allow(clippy::needless_collect)] // clippy is wrong about
+                                    // this one
                                     for (id, sim) in simulation_manager.ids_and_names().collect::<Vec<(SimulationId, SmolStr)>>()  {
                                         ui.vertical_centered_justified(|ui| {
                                             let name: String = sim.into();

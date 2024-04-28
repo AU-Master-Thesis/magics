@@ -309,15 +309,10 @@ fn obstacles(
         return;
     };
 
-    match load_state {
-        bevy::asset::LoadState::Loaded => {
-            // next_heightmap_state.set(HeightMapState::Generated);
-        }
-        _ => {
-            warn!("obstacle image not loaded yet");
-            return;
-        }
-    }
+    let bevy::asset::LoadState::Loaded = load_state else {
+        warn!("obstacle image not loaded yet");
+        return;
+    };
 
     let Some(image) = image_assets.get(obstacles.raw.id()) else {
         warn!("obstacle image not available yet");
