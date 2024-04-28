@@ -217,7 +217,7 @@ fn ui_settings_panel(
                                 &mut ui_state.scale_percent,
                                 UiState::VALID_SCALE_INTERVAL,
                             )
-                            .text("%")
+                            .suffix("%")
                             .show_value(true),
                         );
                         // Only trigger ui scale update when the slider is released or lost focus
@@ -242,11 +242,55 @@ fn ui_settings_panel(
                     });
 
 
-                    // custom::subheading(ui, "GBP",
-                    //     Some(Color32::from_catppuccin_colour(
-                    //         title_colors.next_or_first(),
-                    //     )),
-                    // );
+                    {
+                        custom::subheading(ui, "GBP",
+                            Some(Color32::from_catppuccin_colour(
+                                title_colors.next_or_first(),
+                            )),
+                        );
+
+                        ui.label("Iterations Per Timestep");
+                        ui.separator();
+                        // ui.add_space(2.5);
+
+                        custom::grid("gbp_grid", 2).show(ui, |ui| {
+                            ui.label("Internal");
+                            let mut text = config.gbp.iterations_per_timestep.internal.to_string();
+
+                            let te_output = egui::TextEdit::singleline(&mut text)
+                                .char_limit(3)
+                                .interactive(time_virtual.is_paused())
+                                .show(ui);
+
+                            // if te_output.response.lost_focus() && te_output.response.changed() {
+                            if  te_output.response.changed() {
+                                if let Ok(x) = text.parse::<usize>() {
+                                    config.gbp.iterations_per_timestep.internal = x;
+                                } else {
+                                    error!("failed to parse {} as usize", text);
+                                }
+                            }
+                            ui.end_row();
+
+                            ui.label("External");
+                            let mut text = config.gbp.iterations_per_timestep.external.to_string();
+                            let te_output = egui::TextEdit::singleline(&mut text)
+                                .char_limit(3)
+                                .interactive(time_virtual.is_paused())
+                                // .cursor_at_end(true)
+                                .show(ui);
+
+                            if  te_output.response.changed() {
+                                if let Ok(x) = text.parse::<usize>() {
+                                    config.gbp.iterations_per_timestep.external = x;
+                                } else {
+                                    error!("failed to parse {} as usize", text);
+                                }
+                            }
+
+                            ui.end_row();
+                        });
+                    }
 
                     custom::subheading(ui, "Communication",
                         Some(Color32::from_catppuccin_colour(
@@ -254,7 +298,6 @@ fn ui_settings_panel(
                         )),
                     );
 
-                    // TODO: alter internal and external iteration count
 
                     custom::grid("communication_grid", 2).show(ui,|ui| {
                         ui.label("Radius");
@@ -267,7 +310,6 @@ fn ui_settings_panel(
                                 .suffix("m")
                                 .fixed_decimals(1)
                                 .trailing_fill(true)
-                                .show_value(true),
                         );
                         if slider_response.changed() {
                             config.robot.communication.radius = comms_radius.try_into().unwrap();
@@ -280,9 +322,8 @@ fn ui_settings_panel(
                         let slider_response = ui.add(
                             egui::Slider::new(&mut failure_rate, 0.0..=1.0)
                                 .suffix("%")
+                                .fixed_decimals(2)
                                 .trailing_fill(true)
-                                .show_value(true),
-
                         );
                         if slider_response.changed() {
                             config.robot.communication.failure_rate = failure_rate;
