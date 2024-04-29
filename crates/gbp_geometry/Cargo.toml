@@ -1,0 +1,19 @@
+[package]
+name = "gbp_geometry"
+edition = "2021"
+version.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+typed_floats.workspace = true
+bevy.workspace = true
+derive_more.workspace = true
+min_len_vec = { path = "../min_len_vec" }
+unit_interval = { path = "../unit_interval" }
+
+[lints]
+workspace = true

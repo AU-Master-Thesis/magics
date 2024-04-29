@@ -1,5 +1,5 @@
 [package]
-name = "env-to-png"
+name = "env_to_png"
 edition = "2021"
 version.workspace = true
 repository.workspace = true
@@ -9,7 +9,7 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-gbpplanner-rs = { path = "../gbpplanner-rs" }
+gbp_environment = { path = "../gbp_environment" }
 image = "0.25.1"
 
 [lints]

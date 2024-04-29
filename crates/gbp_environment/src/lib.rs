@@ -1,14 +1,26 @@
 use std::path::Path;
 
 use angle::Angle;
-use bevy::ecs::system::Resource;
+use bevy::ecs::{component::Component, system::Resource};
 use derive_more::IntoIterator;
+use gbp_geometry::RelativePoint;
 use gbp_linalg::Float;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 
-use super::geometry::RelativePoint;
-use crate::environment::TileCoordinates;
+#[derive(Debug, Clone, Serialize, Deserialize, Component)]
+#[serde(rename_all = "kebab-case")]
+pub struct TileCoordinates {
+    pub row: usize,
+    pub col: usize,
+}
+
+impl TileCoordinates {
+    #[must_use]
+    pub const fn new(row: usize, col: usize) -> Self {
+        Self { row, col }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, IntoIterator)]
 #[into_iterator(owned, ref)]
@@ -117,18 +129,18 @@ pub enum PlaceableShape {
         base_length: StrictlyPositiveFinite<Float>,
         /// The height of the triangle
         /// Intersects the base perpendicularly at the mid-point
-        height: StrictlyPositiveFinite<Float>,
+        height:      StrictlyPositiveFinite<Float>,
         /// The mid-point of the base of the triangle
         /// This is a value in the range [0, 1]
         /// Defines where the height of the triangle intersects the base
         /// perpendicularly
-        mid_point: Float,
+        mid_point:   Float,
         /// Where to place the center of the triangle
         translation: RelativePoint,
     },
     RegularPolygon {
         /// The number of sides of the polygon
-        sides: usize,
+        sides:       usize,
         /// Side length of the polygon
         side_length: StrictlyPositiveFinite<Float>,
         /// Where to place the center of the polygon
@@ -137,10 +149,10 @@ pub enum PlaceableShape {
     Rectangle {
         /// The width of the rectangle
         /// This is a value in the range [0, 1]
-        width: StrictlyPositiveFinite<Float>,
+        width:       StrictlyPositiveFinite<Float>,
         /// The height of the rectangle
         /// This is a value in the range [0, 1]
-        height: StrictlyPositiveFinite<Float>,
+        height:      StrictlyPositiveFinite<Float>,
         /// The center of the rectangle
         translation: RelativePoint,
     },
@@ -190,8 +202,8 @@ impl PlaceableShape {
     #[allow(clippy::unwrap_used, clippy::missing_panics_doc)]
     pub fn rectangle(width: Float, height: Float, center: (Float, Float)) -> Self {
         Self::Rectangle {
-            width: StrictlyPositiveFinite::<Float>::new(width).unwrap(),
-            height: StrictlyPositiveFinite::<Float>::new(height).unwrap(),
+            width:       StrictlyPositiveFinite::<Float>::new(width).unwrap(),
+            height:      StrictlyPositiveFinite::<Float>::new(height).unwrap(),
             translation: RelativePoint::new(center.0, center.1).unwrap(),
         }
     }
@@ -199,7 +211,7 @@ impl PlaceableShape {
     #[allow(clippy::unwrap_used, clippy::missing_panics_doc)]
     pub fn square(side_length: Float, center: (Float, Float)) -> Self {
         Self::RegularPolygon {
-            sides: 4,
+            sides:       4,
             side_length: StrictlyPositiveFinite::<Float>::new(side_length).unwrap(),
             translation: RelativePoint::new(center.0, center.1).unwrap(),
         }
@@ -268,15 +280,15 @@ impl Obstacles {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileSettings {
-    pub tile_size: f32,
-    pub path_width: f32,
+    pub tile_size:       f32,
+    pub path_width:      f32,
     pub obstacle_height: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Tiles {
-    pub grid: TileGrid,
+    pub grid:     TileGrid,
     pub settings: TileSettings,
 }
 
@@ -285,10 +297,10 @@ impl Tiles {
     #[must_use]
     pub fn empty() -> Self {
         Self {
-            grid: TileGrid::new(vec!["█"]),
+            grid:     TileGrid::new(vec!["█"]),
             settings: TileSettings {
-                tile_size: 0.0,
-                path_width: 0.0,
+                tile_size:       0.0,
+                path_width:      0.0,
                 obstacle_height: 0.0,
             },
         }
@@ -325,7 +337,7 @@ pub enum EnvironmentType {
 #[derive(Debug, Clone, Serialize, Deserialize, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub struct Environment {
-    pub tiles: Tiles,
+    pub tiles:     Tiles,
     pub obstacles: Obstacles,
 }
 
@@ -415,10 +427,15 @@ impl Environment {
     }
 
     #[must_use]
-    pub fn new(matrix_representation: Vec<String>, path_width: f32, obstacle_height: f32, tile_size: f32) -> Self {
+    pub fn new(
+        matrix_representation: Vec<String>,
+        path_width: f32,
+        obstacle_height: f32,
+        tile_size: f32,
+    ) -> Self {
         Self {
-            tiles: Tiles {
-                grid: TileGrid(matrix_representation),
+            tiles:     Tiles {
+                grid:     TileGrid(matrix_representation),
                 settings: TileSettings {
                     tile_size,
                     path_width,
@@ -432,11 +449,11 @@ impl Environment {
     #[must_use]
     pub fn intersection() -> Self {
         Self {
-            tiles: Tiles {
-                grid: TileGrid::new(vec!["┼"]),
+            tiles:     Tiles {
+                grid:     TileGrid::new(vec!["┼"]),
                 settings: TileSettings {
-                    tile_size: 100.0,
-                    path_width: 0.1325,
+                    tile_size:       100.0,
+                    path_width:      0.1325,
                     obstacle_height: 1.0,
                 },
             },
@@ -545,7 +562,9 @@ impl Environment {
     #[allow(clippy::missing_panics_doc)]
     pub fn circle() -> Self {
         Self {
-            tiles: Tiles::empty().with_tile_size(100.0).with_obstacle_height(1.0),
+            tiles:     Tiles::empty()
+                .with_tile_size(100.0)
+                .with_obstacle_height(1.0),
             obstacles: Obstacles(vec![
                 Obstacle::new(
                     (0, 0),
@@ -557,8 +576,16 @@ impl Environment {
                     PlaceableShape::regular_polygon(4, 0.035, (0.44125, 0.57125)),
                     0.0,
                 ),
-                Obstacle::new((0, 0), PlaceableShape::regular_polygon(4, 0.0225, (0.4835, 0.428)), 0.0),
-                Obstacle::new((0, 0), PlaceableShape::rectangle(0.0875, 0.035, (0.589, 0.3965)), 0.0),
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::regular_polygon(4, 0.0225, (0.4835, 0.428)),
+                    0.0,
+                ),
+                Obstacle::new(
+                    (0, 0),
+                    PlaceableShape::rectangle(0.0875, 0.035, (0.589, 0.3965)),
+                    0.0,
+                ),
                 Obstacle::new(
                     (0, 0),
                     PlaceableShape::triangle(

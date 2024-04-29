@@ -1,6 +1,7 @@
 use std::num::NonZeroU32;
 
-use gbpplanner_rs::config::Environment;
+// use gbpplanner_rs::config::Environment;
+use gbp_environment::Environment;
 use image::RgbImage;
 
 /// Custom resolution type, as pixels per tile.

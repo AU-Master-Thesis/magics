@@ -29,10 +29,7 @@ seq             = { path = "../seq" }
 
 glob = "0.3.1"
 better-panic = "0.3.0"
-bevy = { version = "0.13.0", default-features = true, features = [
-  # "wayland",
-  # "dynamic_linking",
-] }
+bevy.workspace = true
 
 bevy-inspector-egui = "0.23.2"
 bevy_egui           = "0.26.0"
@@ -60,6 +57,8 @@ leafwing-input-manager = "0.13.3"
 # bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
 bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "bevy-v0.13.0" }
 bevy_more_shapes = { git = "https://github.com/AU-Master-Thesis/bevy_more_shapes", branch = "bevy-v0.13.0" }
+env_to_png = { path = "../env_to_png" }
+gbp_environment = { path = "../gbp_environment" }
 parry3d = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
   "bevy",
 ] }
@@ -78,15 +77,13 @@ heck            = "0.5.0"
 struct_iterable = "0.1.1"
 catppuccin      = "1.4.0"
 
-toml = "0.8.8"
+toml.workspace = true
 serde = { version = "1.0.196", features = [
   "derive",
 ] }
 thiserror.workspace = true
 anyhow.workspace = true
-clap = { version = "4.4.18", features = [
-  "derive",
-] }
+clap.workspace = true
 clap_complete = "4.5.2"
 
 # color-eyre = "0.6.2"
@@ -96,25 +93,23 @@ petgraph        = "0.6.4"
 ndarray         = "0.15.6"
 ndarray-inverse = "0.1.9"
 num-traits      = "0.2.18"
-ron             = "0.8.1"
+ron.workspace   = true
 strum           = "0.26.1"
 strum_macros    = "0.26.1"
 
 
 tap = "1.0.1"
 
-typed_floats = { version = "1.0.0", features = [
-  "serde",
-] }
+typed_floats.workspace = true
 
 ringbuf          = "0.3.3"
 bevy_dev_console = { git = "https://github.com/doonv/bevy_dev_console.git", version = "0.1.0" }
 termsize         = "0.1.6"
-derive_more      = "0.99.17"
+derive_more.workspace = true
 paste            = "1.0.14"
 egui_plot        = "0.26"
 egui_graphs      = "0.19.0"
-serde_yaml       = "0.9.34"
+serde_yaml.workspace = true
 rrt              = "0.7.0"
 # parry3d = "0.13.7"
 colored     = "2.1.0"

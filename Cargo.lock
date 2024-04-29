@@ -3064,11 +3064,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "env-to-png"
+name = "env_to_png"
 version = "1.1.0"
 dependencies = [
  "anyhow",
- "gbpplanner-rs",
+ "gbp_environment",
  "image 0.25.1",
 ]
 
@@ -3390,6 +3390,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "gbp_environment"
+version = "1.1.0"
+dependencies = [
+ "angle",
+ "bevy",
+ "clap",
+ "derive_more",
+ "gbp_geometry",
+ "gbp_linalg",
+ "ron",
+ "serde",
+ "serde_yaml",
+ "thiserror",
+ "toml 0.8.12",
+ "typed_floats",
+]
+
+[[package]]
+name = "gbp_geometry"
+version = "1.1.0"
+dependencies = [
+ "bevy",
+ "derive_more",
+ "min_len_vec",
+ "serde",
+ "typed_floats",
+ "unit_interval",
+]
+
+[[package]]
 name = "gbp_linalg"
 version = "1.1.0"
 dependencies = [
@@ -3452,7 +3482,9 @@ dependencies = [
  "egui_plot",
  "egui_tiles",
  "embed-resource 2.4.2",
+ "env_to_png",
  "fastrand",
+ "gbp_environment",
  "gbp_linalg",
  "gbp_multivariate_normal",
  "glob",
