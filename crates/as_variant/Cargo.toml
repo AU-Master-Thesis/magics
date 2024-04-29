@@ -1,0 +1,28 @@
+[package]
+name                   = "as_variant"
+edition                = "2021"
+version.workspace      = true
+repository.workspace   = true
+authors.workspace      = true
+rust-version.workspace = true
+license.workspace      = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn         = "2.0"
+quote       = "1.0"
+proc-macro2 = "1.0"
+# paste = "1.0.14"
+convert_case = "0.6.0"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+trybuild = "1.0.91"
+
+[[test]]
+name = "tests"
+path = "tests/tests.rs"
