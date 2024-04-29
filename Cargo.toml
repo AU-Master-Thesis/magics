@@ -81,6 +81,9 @@ dbg_macro = "warn"
 todo      = "warn"
 
 
+[profile.release-optimized]
+inherits = "release"
+
 [profile.release]
 codegen-units    = 1
 debug            = false

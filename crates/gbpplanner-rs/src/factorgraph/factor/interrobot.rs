@@ -198,4 +198,9 @@ impl Factor for InterRobotFactor {
     fn linear(&self) -> bool {
         false
     }
+
+    #[inline(always)]
+    fn neighbours(&self) -> usize {
+        Self::NEIGHBORS
+    }
 }

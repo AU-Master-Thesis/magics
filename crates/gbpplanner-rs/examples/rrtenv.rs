@@ -8,6 +8,7 @@ use bevy::{
 };
 use bevy_infinite_grid::InfiniteGridSettings;
 use bevy_notify::NotifyPlugin;
+use derive_more::Index;
 use gbp_environment::Environment;
 use gbpplanner_rs::{
     asset_loader::{AssetLoaderPlugin, Fonts},
@@ -94,7 +95,7 @@ fn main() -> anyhow::Result<()> {
             (
                 trigger_rrt_event,
                 rrt_path,
-                update_path_lenght_text.run_if(on_event::<PathFoundEvent>()),
+                update_path_length_text.run_if(on_event::<PathFoundEvent>()),
                 update_waypoint_amount_text.run_if(on_event::<PathFoundEvent>()),
                 draw_gizmos,
                 draw_waypoints.run_if(on_event::<PathFoundEvent>()),
@@ -109,7 +110,7 @@ fn main() -> anyhow::Result<()> {
 /// - Triggers on P
 fn trigger_rrt_event(
     mut path: ResMut<Path>,
-    keyboard_input: ResMut<ButtonInput<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut event_writer: EventWriter<TriggerRrtEvent>,
     mut next_state_path_found: ResMut<NextState<PathFindingState>>,
     colliders: Res<Colliders>,
@@ -170,23 +171,59 @@ pub enum PathFindingState {
     Found,
 }
 
+macro_rules! delegate_to_inner {
+    (& $method:ident -> $ret:ty) => {
+        #[inline]
+        fn $method(&self) -> $ret {
+            self.0.$method()
+        }
+    };
+    (& $method:ident) => {
+        #[inline]
+        fn $method(&self) {
+            self.0.$method();
+        }
+    };
+
+    (&mut $method:ident) => {
+        #[inline]
+        fn $method(&mut self) {
+            self.0.$method();
+        }
+    };
+    (&mut $method:ident -> $ret:ty) => {
+        #[inline]
+        fn $method(&mut self) -> $ret {
+            self.0.$method();
+        }
+    };
+
+    (&mut $method:ident, $($arg:ident : $t:ty),*) => {
+        #[inline]
+        fn $method(&mut self, $($arg: $t),*) {
+            self.0.$method($($arg),*);
+        }
+    };
+
+    // (mut $method:ident, $($arg:ident : $t:ty),* -> $ret:ty) => {
+    //     #[inline]
+    //     fn $method(&mut self, $($arg: $t),*) -> $ret {
+    //         self.0.$method($($arg),*)
+    //     }
+    // };
+}
+
 /// **Bevy** [`Resource`] for storing a path
 /// Simply a wrapper for a list of [`Vec3`] points
-#[derive(Debug, Resource, Default)]
+#[derive(Debug, Resource, Default, Index)]
 pub struct Path(Vec<Vec3>);
 
 impl Path {
-    fn len(&self) -> usize {
-        self.0.len()
-    }
+    delegate_to_inner!(& len -> usize);
 
-    fn clear(&mut self) {
-        self.0.clear();
-    }
+    delegate_to_inner!(&mut clear);
 
-    fn push(&mut self, point: Vec3) {
-        self.0.push(point);
-    }
+    delegate_to_inner!(&mut push, point: Vec3);
 
     fn euclidean_length(&self) -> f32 {
         let mut length = 0.0;
@@ -194,15 +231,6 @@ impl Path {
             length += (self[i] - self[i + 1]).length();
         }
         length
-    }
-}
-
-// make Path indexable like a Vec
-impl std::ops::Index<usize> for Path {
-    type Output = Vec3;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.0[index]
     }
 }
 
@@ -369,11 +397,11 @@ fn draw_waypoints(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    previous_waypoints: Query<(Entity, &WaypointMarker)>,
+    previous_waypoints: Query<Entity, With<WaypointMarker>>,
     path: Res<Path>,
     theme: Res<CatppuccinTheme>,
 ) {
-    for (entity, _) in previous_waypoints.iter() {
+    for entity in &previous_waypoints {
         commands.entity(entity).despawn();
     }
 
@@ -470,13 +498,9 @@ pub struct PathLengthText;
 #[derive(Component, Debug)]
 pub struct WaypointAmountText;
 
-fn init_path_info_text(
-    mut commands: Commands,
-    theme: Res<CatppuccinTheme>,
-    scene_assets: Res<Fonts>,
-) {
+fn init_path_info_text(mut commands: Commands, theme: Res<CatppuccinTheme>, fonts: Res<Fonts>) {
     let text_style = TextStyle {
-        font:      scene_assets.main.clone(),
+        font:      fonts.main.clone(),
         font_size: 20.0,
         color:     Color::from_catppuccin_colour(theme.mauve()),
     };
@@ -520,17 +544,13 @@ fn init_path_info_text(
     commands.spawn((waypoint_amount_text, WaypointAmountText));
 }
 
-fn update_path_lenght_text(mut query: Query<(&mut Text, &PathLengthText)>, path: Res<Path>) {
-    for (mut text, _) in query.iter_mut() {
-        text.sections[1].value = format!("{:.2}", path.euclidean_length());
-    }
+fn update_path_length_text(mut query: Query<&mut Text, With<PathLengthText>>, path: Res<Path>) {
+    query.single_mut().sections[1].value = format!("{:.2}", path.euclidean_length());
 }
 
 fn update_waypoint_amount_text(
-    mut query: Query<(&mut Text, &WaypointAmountText)>,
+    mut query: Query<&mut Text, With<WaypointAmountText>>,
     path: Res<Path>,
 ) {
-    for (mut text, _) in query.iter_mut() {
-        text.sections[1].value = path.len().to_string();
-    }
+    query.single_mut().sections[1].value = path.len().to_string();
 }

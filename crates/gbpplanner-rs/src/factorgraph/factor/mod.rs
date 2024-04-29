@@ -1,14 +1,13 @@
 use std::ops::AddAssign;
 
-use bevy::render::texture::Image;
 use gbp_linalg::prelude::*;
 use ndarray::{array, s};
 use typed_floats::StrictlyPositiveFinite;
 
 use self::{dynamic::DynamicFactor, interrobot::InterRobotFactor, obstacle::ObstacleFactor};
 use super::{
-    factorgraph::NodeIndex, id::VariableId, message::MessagesToVariables, node::FactorGraphNode, prelude::Message,
-    MessageCount, DOFS,
+    factorgraph::NodeIndex, id::VariableId, message::MessagesToVariables, node::FactorGraphNode,
+    prelude::Message, MessageCount, DOFS,
 };
 use crate::{factorgraph::node::RemoveConnectionToError, simulation_loader::SdfImage};
 
@@ -17,6 +16,7 @@ pub(in crate::factorgraph) mod interrobot;
 mod marginalise_factor_distance;
 pub(in crate::factorgraph) mod obstacle;
 pub(in crate::factorgraph) mod pose;
+// pub(in crate::factorgraph) mod velocity;
 
 use marginalise_factor_distance::marginalise_factor_distance;
 
@@ -26,11 +26,20 @@ pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 // TODO: make generic over f32 | f64
 // TODO: hide the state parameter from the public API, by having the `Factor`
 // struct expose similar methods that dispatch to the `FactorState` struct.
+
+/// Common interface for all factors
 pub trait Factor {
+    // const NEIGHBORS: usize;
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
 
+    /// The delta for the jacobian calculation
     fn jacobian_delta(&self) -> Float;
+
+    /// Returns the number of neighbours this factor expects
+    /// NOTE: defined as an instance method, so that `FactorKind` can dispatch
+    /// on itself to get the right value
+    fn neighbours(&self) -> usize;
 
     /// Whether to skip this factor in the update step
     /// In gbpplanner, this is only used for the interrobot factor.
@@ -40,6 +49,7 @@ pub trait Factor {
     /// Whether the factor is linear or non-linear
     fn linear(&self) -> bool;
 
+    /// The jacobian of the factor
     #[must_use]
     #[inline]
     fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
@@ -52,6 +62,9 @@ pub trait Factor {
     #[must_use]
     fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
 
+    /// The first order jacobian
+    /// This is a default impl as factor variants should compute the first order
+    /// jacobian the same way
     fn first_order_jacobian(&mut self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
         let h0 = self.measure(state, &x); // value at linearization point
         let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
@@ -69,6 +82,7 @@ pub trait Factor {
     }
 }
 
+/// Factor node in the factorgraph
 #[derive(Debug)]
 pub struct FactorNode {
     /// Unique identifier that associates the variable with the factorgraph it
@@ -117,6 +131,7 @@ impl FactorNode {
         self.node_index = Some(node_index);
     }
 
+    /// Create a new dynamic factor
     pub fn new_dynamic_factor(strength: Float, measurement: Vector<Float>, delta_t: Float) -> Self {
         let mut state = FactorState::new(measurement, strength, DynamicFactor::NEIGHBORS);
         let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
@@ -124,6 +139,7 @@ impl FactorNode {
         Self::new(state, kind)
     }
 
+    /// Create a new interrobot factor
     pub fn new_interrobot_factor(
         strength: Float,
         measurement: Vector<Float>,
@@ -141,6 +157,7 @@ impl FactorNode {
     //     unimplemented!("the pose factor is stored in the variable")
     // }
 
+    /// Create a new obstacle factor
     pub fn new_obstacle_factor(
         strength: Float,
         measurement: Vector<Float>,
@@ -155,10 +172,10 @@ impl FactorNode {
         Self::new(state, kind)
     }
 
-    #[inline(always)]
-    pub fn variant(&self) -> &'static str {
-        self.kind.name()
-    }
+    // #[inline(always)]
+    // pub fn variant(&self) -> &'static str {
+    //     self.kind.name()
+    // }
 
     #[inline(always)]
     fn jacobian(&mut self, x: &Vector<Float>) -> Matrix<Float> {
@@ -176,6 +193,7 @@ impl FactorNode {
         self.kind.skip(&self.state)
     }
 
+    /// Add a message to this factors inbox
     pub fn receive_message_from(&mut self, from: VariableId, message: Message) {
         let _ = self.inbox.insert(from, message);
         self.message_count.received += 1;
@@ -194,9 +212,13 @@ impl FactorNode {
         &self.state.initial_measurement - &self.state.cached_measurement
     }
 
+    /// Update the factor using the gbp message passing algorithm
     #[must_use]
     pub fn update(&mut self) -> MessagesToVariables {
-        debug_assert_eq!(self.state.linearisation_point.len(), DOFS * self.inbox.len());
+        debug_assert_eq!(
+            self.state.linearisation_point.len(),
+            DOFS * self.inbox.len()
+        );
 
         let zero_mean = Vector::<Float>::zeros(DOFS);
 
@@ -222,7 +244,10 @@ impl FactorNode {
         let _ = self.measure(&self.state.linearisation_point.clone());
         let jacobian = self.jacobian(&self.state.linearisation_point.clone());
 
-        let potential_precision_matrix = jacobian.t().dot(&self.state.measurement_precision).dot(&jacobian);
+        let potential_precision_matrix = jacobian
+            .t()
+            .dot(&self.state.measurement_precision)
+            .dot(&jacobian);
         let potential_information_vec = jacobian
             .t()
             .dot(&self.state.measurement_precision)
@@ -245,7 +270,9 @@ impl FactorNode {
                     continue;
                 }
 
-                let message_eta = other_message.information_vector().expect("it better be there");
+                let message_eta = other_message
+                    .information_vector()
+                    .expect("it better be there");
 
                 // let message_precision =
                 // other_message.precision_matrix().unwrap_or(&zero_precision);
@@ -260,7 +287,8 @@ impl FactorNode {
                     .add_assign(message_precision);
             }
 
-            let message = marginalise_factor_distance(information_vec, precision_matrix, marginalisation_idx);
+            let message =
+                marginalise_factor_distance(information_vec, precision_matrix, marginalisation_idx);
             // .expect("marginalise_factor_distance should not fail");
             messages.insert(*variable_id, message);
             marginalisation_idx += DOFS;
@@ -295,11 +323,16 @@ impl FactorNode {
     // }
 }
 
+/// Static dispatch enum for the various factors in the factorgraph
+/// Used instead of dynamic dispatch
 #[derive(Debug, derive_more::IsVariant)]
 pub enum FactorKind {
     // Pose(PoseFactor),
+    /// InterRobotFactor
     InterRobot(InterRobotFactor),
+    /// DynamicFactor
     Dynamic(DynamicFactor),
+    /// ObstacleFactor
     Obstacle(ObstacleFactor),
 }
 
@@ -330,15 +363,6 @@ impl FactorKind {
             None
         }
     }
-
-    // /// Returns `Some(&PoseFactor)` if self is [`Pose`], otherwise `None`.
-    // pub const fn as_pose(&self) -> Option<&PoseFactor> {
-    //     if let Self::Pose(v) = self {
-    //         Some(v)
-    //     } else {
-    //         None
-    //     }
-    // }
 }
 
 impl Factor for FactorKind {
@@ -366,6 +390,15 @@ impl Factor for FactorKind {
             Self::Dynamic(f) => f.measure(state, x),
             Self::InterRobot(f) => f.measure(state, x),
             Self::Obstacle(f) => f.measure(state, x),
+        }
+    }
+
+    fn neighbours(&self) -> usize {
+        match self {
+            // Self::Pose(f) => f.neighbours(),
+            Self::Dynamic(f) => f.neighbours(),
+            Self::InterRobot(f) => f.neighbours(),
+            Self::Obstacle(f) => f.neighbours(),
         }
     }
 
@@ -397,6 +430,9 @@ impl Factor for FactorKind {
     }
 }
 
+/// The state of the factor
+/// Struct encapsulating all the internal state of a factor, than every variant
+/// shares
 #[derive(Debug, Clone)]
 pub struct FactorState {
     /// called `z_` in **gbpplanner**
@@ -429,7 +465,8 @@ impl FactorState {
         // Initialise precision of the measurement function
         // this->meas_model_lambda_ = Eigen::MatrixXd::Identity(z_.rows(), z_.rows()) /
         // pow(sigma,2.);
-        let measurement_precision = Matrix::<Float>::eye(initial_measurement.len()) / Float::powi(strength, 2);
+        let measurement_precision =
+            Matrix::<Float>::eye(initial_measurement.len()) / Float::powi(strength, 2);
 
         Self {
             initial_measurement,

@@ -146,6 +146,7 @@ impl FromWorld for VariableTimesteps {
         let lookahead_horizon = 5.0 / 0.25;
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        // FIXME(kpbaks): read settings from config
         Self {
             timesteps: get_variable_timesteps(
                 // lookahead_horizon.get() as u32,
@@ -653,8 +654,12 @@ fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
     }
 }
 
+fn iterate_gbp_internal(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {}
+
+fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {}
+
 fn iterate_gbp(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {
-    for _ in 0..config.gbp.iterations_per_timestep {
+    for _ in 0..config.gbp.iterations_per_timestep.internal {
         // pretty_print_title!(format!("GBP iteration: {}", i + 1));
         // ╭────────────────────────────────────────────────────────────────────────────────────────
         // │ Factor iteration
