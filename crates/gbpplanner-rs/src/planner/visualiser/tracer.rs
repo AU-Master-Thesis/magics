@@ -14,7 +14,7 @@ use crate::{
         RobotId, RobotState,
     },
     simulation_loader::{LoadSimulation, ReloadSimulation},
-    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
 
 pub struct TracerVisualiserPlugin;
@@ -26,7 +26,7 @@ impl Plugin for TracerVisualiserPlugin {
             (
                 create_tracer_when_a_robot_is_spawned,
                 track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
-                draw_traces.run_if(draw_paths_enabled),
+                draw_traces.run_if(enabled),
                 reset.run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
             ),
         );
@@ -34,15 +34,14 @@ impl Plugin for TracerVisualiserPlugin {
 }
 
 pub struct Trace {
-    color:       Color,
+    // color:       Color,
+    color:       DisplayColour,
     ring_buffer: StaticRb<Vec3, MAX_TRACE_LENGTH>,
 }
 
 /// **Bevy** [`Resource`] to store all robot traces
 // Uses a ring buffer to store the traces, to ensure a maximum fixed size.
 #[derive(Default, Resource)]
-// pub struct Traces(pub BTreeMap<RobotId, Vec<Vec3>>);
-// pub struct Traces(pub BTreeMap<RobotId, HeapRb<Vec3>>);
 pub struct Traces(pub BTreeMap<RobotId, Trace>);
 
 #[allow(dead_code)]
@@ -70,7 +69,7 @@ fn create_tracer_when_a_robot_is_spawned(
 
             if other_robot_id == *robot_id {
                 let _ = traces.0.entry(*robot_id).or_insert(Trace {
-                    color: Color::from_catppuccin_colour(theme.get_display_colour(&color_association.name)),
+                    color: color_association.name,
                     ring_buffer,
                 });
             }
@@ -84,14 +83,14 @@ fn create_tracer_when_a_robot_is_spawned(
 fn track_robots(
     query: Query<(RobotId, &Transform, &ColorAssociation), (With<RobotState>, Changed<Transform>)>,
     mut traces: ResMut<Traces>,
-    theme: Res<CatppuccinTheme>,
+    // theme: Res<CatppuccinTheme>,
 ) {
     for (robot_id, transform, color_association) in &query {
         let _ = traces
             .0
             .entry(robot_id)
             .or_insert(Trace {
-                color:       Color::from_catppuccin_colour(theme.get_display_colour(&color_association.name)),
+                color:       color_association.name,
                 ring_buffer: StaticRb::default(),
             })
             .ring_buffer
@@ -100,22 +99,24 @@ fn track_robots(
 }
 
 #[inline]
-fn draw_paths_enabled(config: Res<Config>) -> bool {
+fn enabled(config: Res<Config>) -> bool {
     config.visualisation.draw.paths
 }
 
 /// **Bevy** [`Update`] system
 /// To draw the robot traces; using the [`Traces`] resource
-fn draw_traces(mut gizmos: Gizmos, traces: Res<Traces>) {
+fn draw_traces(mut gizmos: Gizmos, traces: Res<Traces>, theme: Res<CatppuccinTheme>) {
     for trace in traces.0.values() {
         // use a window of length 2 to iterate over the trace, and draw a line between
         // each pair of points
         for (start, end) in trace.ring_buffer.iter().tuple_windows() {
-            gizmos.line(*start, *end, trace.color);
+            let color = Color::from_catppuccin_colour(theme.get_display_colour(&trace.color));
+            gizmos.line(*start, *end, color);
         }
     }
 }
 
+#[inline]
 fn reset(mut traces: ResMut<Traces>) {
     traces.0.clear();
 }

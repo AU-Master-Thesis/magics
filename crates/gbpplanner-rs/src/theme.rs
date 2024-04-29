@@ -1,4 +1,7 @@
-use bevy::{prelude::*, window::WindowTheme};
+use bevy::{
+    prelude::*,
+    window::{PrimaryWindow, WindowTheme},
+};
 use bevy_egui::{
     egui::{
         epaint::Shadow,
@@ -13,13 +16,11 @@ use strum_macros::EnumIter;
 
 use crate::{
     environment,
-    // factorgraph::{Factor, Line, Variable},
     planner::{self, RobotTracker},
 };
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone, Copy)]
 pub struct ColorAssociation {
-    // pub color: Color,
     pub name: DisplayColour,
 }
 
@@ -29,17 +30,46 @@ pub struct CatppuccinTheme {
     pub flavour: Flavour,
 }
 
-impl Default for CatppuccinTheme {
-    fn default() -> Self {
-        let flavour = match dark_light::detect() {
-            dark_light::Mode::Dark | dark_light::Mode::Default => Flavour::Macchiato,
-            dark_light::Mode::Light => Flavour::Latte,
+impl CatppuccinTheme {
+    /// Returns the `WindowTheme` appropriate for the given colorscheme flavour
+    pub const fn window_theme(&self) -> bevy::window::WindowTheme {
+        use Flavour::{Frappe, Latte, Macchiato, Mocha};
+        match self.flavour {
+            Latte => bevy::window::WindowTheme::Light,
+            Frappe | Macchiato | Mocha => bevy::window::WindowTheme::Dark,
+        }
+    }
+}
+
+// impl Default for CatppuccinTheme {
+//     fn default() -> Self {
+//         let flavour = match dark_light::detect() {
+//             dark_light::Mode::Dark | dark_light::Mode::Default =>
+// Flavour::Macchiato,             dark_light::Mode::Light => Flavour::Latte,
+//         };
+//         Self { flavour }
+//     }
+// }
+
+impl FromWorld for CatppuccinTheme {
+    fn from_world(world: &mut World) -> Self {
+        let mut q = world.query::<(&Window, &PrimaryWindow)>();
+        let (primary_window, _) = q.single(world);
+        let window_theme = primary_window.window_theme.unwrap_or(WindowTheme::Dark);
+
+        let flavour = match window_theme {
+            WindowTheme::Light => Flavour::Latte,
+            WindowTheme::Dark => Flavour::Macchiato,
         };
+
+        eprintln!("initial Catppuccin flavour {:?}", flavour);
+        world.send_event(ThemeChanged);
+
         Self { flavour }
     }
 }
 
-#[derive(EnumIter, Debug)]
+#[derive(EnumIter, Debug, Clone, Copy)]
 pub enum DisplayColour {
     Rosewater,
     Flamingo,
@@ -399,23 +429,23 @@ pub struct ThemePlugin;
 
 impl Plugin for ThemePlugin {
     fn build(&self, app: &mut App) {
-        let window_theme = match dark_light::detect() {
-            dark_light::Mode::Dark | dark_light::Mode::Default => WindowTheme::Dark,
-            dark_light::Mode::Light => WindowTheme::Light,
-        };
+        // let window_theme = match dark_light::detect() {
+        //     dark_light::Mode::Dark | dark_light::Mode::Default => WindowTheme::Dark,
+        //     dark_light::Mode::Light => WindowTheme::Light,
+        // };
 
-        info!(
-            "based on OS light/dark theme preference, setting window theme to: {:?}",
-            window_theme
-        );
+        // info!(
+        //     "based on OS light/dark theme preference, setting window theme to: {:?}",
+        //     window_theme
+        // );
 
         app.add_event::<CycleTheme>()
             .add_event::<ThemeChanged>()
             .init_resource::<CatppuccinTheme>()
             .add_systems(
                 Startup,
-                // init_window_theme(WindowTheme::Dark).run_if(theme_is_not_initialised),
-                init_window_theme(window_theme),
+                init_window_theme(WindowTheme::Dark).run_if(not(window_theme_is_initialised)),
+                // init_window_theme(window_theme),
             )
             .add_systems(
                 Update,
@@ -430,7 +460,7 @@ impl Plugin for ThemePlugin {
                     handle_waypoints,
                     // handle_variable_visualisers,
                     handle_obstacles,
-                ),
+                ), // .run_if(resource_changed::<CatppuccinTheme>),
             );
 
         if app.is_plugin_added::<EguiPlugin>() {
@@ -440,9 +470,10 @@ impl Plugin for ThemePlugin {
 }
 
 /// **Bevy** run criteria, checking if the window theme has been set
-fn theme_is_not_initialised(windows: Query<&Window>) -> bool {
-    let window = windows.single();
-    window.window_theme.is_none()
+fn window_theme_is_initialised(windows: Query<&Window, With<PrimaryWindow>>) -> bool {
+    windows.single().window_theme.is_some()
+    // let window = windows.single();
+    // window.window_theme.is_none()
 }
 
 /// **Bevy** `Startup` system to set the window theme
@@ -461,14 +492,14 @@ fn init_window_theme(theme: WindowTheme) -> impl FnMut(Query<&mut Window>) {
 /// Emits a `ThemeChangedEvent` after the theme has been changed, to be used by
 /// other systems that actually change the colours
 fn change_theme(
-    mut windows: Query<&mut Window>,
+    mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
     mut theme_event_reader: EventReader<CycleTheme>,
     mut theme: ResMut<CatppuccinTheme>,
     mut theme_toggled_event: EventWriter<ThemeChanged>,
     // mut contexts: EguiContexts,
 ) {
-    if let Ok(mut window) = windows.get_single_mut() {
-        for CycleTheme(new_flavour) in theme_event_reader.read() {
+    for CycleTheme(new_flavour) in theme_event_reader.read() {
+        if let Ok(mut window) = primary_window.get_single_mut() {
             let new_window_theme = match new_flavour {
                 Flavour::Latte | Flavour::Frappe => WindowTheme::Light,
                 Flavour::Macchiato | Flavour::Mocha => WindowTheme::Dark,
@@ -491,6 +522,7 @@ fn handle_egui(
     mut theme_changed_event: EventReader<ThemeChanged>,
 ) {
     for _ in theme_changed_event.read() {
+        eprintln!("changing equi style to {:?}", theme.flavour);
         egui_contexts
             .ctx_mut()
             .style_mut(|style| style.visuals = Visuals::catppuccin_flavour(theme.flavour));
@@ -684,8 +716,3 @@ fn handle_obstacles(
         }
     }
 }
-
-// /// **Bevy** [`Resource`] for Catppuccin theme assets
-// /// Contains base-materials for all the colours in the Catppuccin theme
-// #[derive(Debug, Default, Resource)]
-// pub struct CatppuccinThemeAssets {}
