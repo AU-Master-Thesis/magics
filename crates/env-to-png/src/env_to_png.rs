@@ -44,7 +44,10 @@ impl Percentage {
     /// Illegal to give negative values.
     pub fn new(value: f32) -> Self {
         assert!(value >= 0.0);
-        Self(value % 1.0)
+        assert!(value <= 1.0);
+        Self(value)
+        // Self((value - f32::EPSILON) % 1.0)
+        // Self(value % 1.0)
     }
 }
 
@@ -125,28 +128,43 @@ pub fn env_to_image(
             // println!("({}, {}): Pixelcoords", x, y);
             let tile_coords = image_to_tile_coords(pixel_coords.clone(), resolution);
             // println!("({}, {}): Tilecoords", tile_coords.x, tile_coords.y);
-            let tile_unit_coords = image_to_tile_units(pixel_coords.clone(), resolution, tile_size);
+            let tile_dimensions = image_to_tile_units(pixel_coords.clone(), resolution, tile_size);
             // println!(
             // "({}, {}): Tileunits",
             // tile_unit_coords.x, tile_unit_coords.y
             // );
-            let percentage_coords = tile_units_to_percentage(tile_unit_coords, tile_size);
-            // println!(
-            // "({}, {}): Percentage",
-            // percentage_coords.x.0, percentage_coords.y.0
-            // );
+            let percentage_coords = tile_units_to_percentage(tile_dimensions, tile_size);
+            if (x == 199 || y == 199) && (tile_coords.x == 1 && tile_coords.y == 1) {
+                println!("({}, {}): Pixelcoords", x, y);
+                println!(
+                    "({}, {}): tile dimensions",
+                    tile_dimensions.x, tile_dimensions.y
+                );
+                println!(
+                    "({}, {}): Percentage",
+                    percentage_coords.x.0, percentage_coords.y.0
+                );
+            }
 
-            if is_tile_obstacle(
-                env.tiles.grid.get_tile(tile_coords.y, tile_coords.x),
-                Percentage::new(env.path_width()),
-                percentage_coords,
-                expansion,
-            ) {
-                // println!("({}, {}): Obstacle", x, y);
-                image.put_pixel(x, y, image::Rgb([0, 0, 0]));
+            if let Some(tile) = env.tiles.grid.get_tile(tile_coords.y, tile_coords.x) {
+                if is_tile_obstacle(
+                    tile,
+                    Percentage::new(env.path_width()),
+                    percentage_coords,
+                    expansion,
+                ) {
+                    // println!("({}, {}): Obstacle", x, y);
+                    image.put_pixel(x, y, image::Rgb([0, 0, 0]));
+                } else {
+                    // println!("({}, {}): No obstacle", x, y);
+                    let boundary_pixels: [u32; 4] = std::array::from_fn(|i| (i as u32 + 1) + 100);
+                    if boundary_pixels.contains(&x) || boundary_pixels.contains(&y) {
+                        println!("({}, {}): Not obstacle", x, y);
+                    }
+                    image.put_pixel(x, y, image::Rgb([255, 255, 255]));
+                }
             } else {
-                // println!("({}, {}): No obstacle", x, y);
-                image.put_pixel(x, y, image::Rgb([255, 255, 255]));
+                Err(anyhow::anyhow!("Tile not found"))?;
             }
         }
     }
@@ -163,10 +181,10 @@ fn image_to_tile_units(
     resolution: PixelsPerTile,
     tile_size: f32,
 ) -> TileDimensions {
-    let (x, y) = (pixel_coords.x, pixel_coords.y);
+    let (x, y) = (pixel_coords.x as f32 + 0.5, pixel_coords.y as f32 + 0.5);
     TileDimensions {
-        x: (x as f32 / resolution.get() as f32 * tile_size),
-        y: (y as f32 / resolution.get() as f32 * tile_size),
+        x: (x / resolution.get() as f32 * tile_size),
+        y: (y / resolution.get() as f32 * tile_size),
     }
 }
 
@@ -192,10 +210,17 @@ fn tile_to_image_coords(
 /// into the tile.
 fn tile_units_to_percentage(tile_dimensions: TileDimensions, tile_size: f32) -> PercentageCords {
     let (x, y) = (tile_dimensions.x, tile_dimensions.y);
+
     PercentageCords {
-        x: Percentage::new(x / tile_size),
-        y: Percentage::new(y / tile_size),
+        x: Percentage::new(offset_modulus(x, tile_size)),
+        y: Percentage::new(offset_modulus(y, tile_size)),
     }
+}
+
+/// Offset modulus
+/// https://www.desmos.com/calculator/mm8gyvgjje
+fn offset_modulus(value: f32, modulus: f32) -> f32 {
+    -(f32::ceil(value / modulus) * modulus - value) / modulus + 1.0
 }
 
 /// Convert from pixel coordinates to tile coordinates
@@ -203,11 +228,19 @@ fn tile_units_to_percentage(tile_dimensions: TileDimensions, tile_size: f32) -> 
 /// then pixel (134, 240) is (floor(134 / resolution), floor(240 / resolution))
 /// = (1, 2) tile coords.
 fn image_to_tile_coords(pixel_coords: PixelCoords, resolution: PixelsPerTile) -> TileCoords {
-    let (x, y) = (pixel_coords.x as f64, pixel_coords.y as f64);
-    TileCoords {
-        x: (x / resolution.get() as f64) as TileIndex,
-        y: (y / resolution.get() as f64) as TileIndex,
-    }
+    let (x, y) = (pixel_coords.x as f32, pixel_coords.y as f32);
+
+    let tile_coords = TileCoords {
+        x: f32::floor(x / resolution.get() as f32) as TileIndex,
+        y: f32::floor(y / resolution.get() as f32) as TileIndex,
+    };
+
+    // if x == 99.0 || y == 99.0 {
+    //     println!("({}, {}): Pixelcoords", x, y);
+    //     println!("({}, {}): Tilecoords", tile_coords.x, tile_coords.y);
+    // }
+
+    tile_coords
 }
 
 /// Given tile coordinates, and coordinate in tile percentage, return whether
