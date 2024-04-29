@@ -310,9 +310,10 @@ fn ui_settings_panel(
                                 .suffix("m")
                                 .fixed_decimals(1)
                                 .trailing_fill(true)
+
                         );
                         if slider_response.changed() {
-                            config.robot.communication.radius = comms_radius.try_into().unwrap();
+                            config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 50.0]");
                         }
                         ui.end_row();
                         // Slider for communication failure rate (probability) in [0.0, 1.0]
@@ -434,6 +435,12 @@ fn ui_settings_panel(
                             ),
                             None,
                         );
+                        ui.end_row();
+
+                        ui.label("Δt");
+                        let dt = time_fixed.delta_seconds();
+                        let hz = 1.0 / dt;
+                        custom::rect_label(ui, format!("{:.4} s = {:.4} Hz", dt, hz), None);
                         ui.end_row();
 
                         // slider for simulation time between 0 and 100
