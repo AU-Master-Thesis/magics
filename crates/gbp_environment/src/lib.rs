@@ -122,7 +122,7 @@ impl Circle {
         // self.radius = StrictlyPositiveFinite::<Float>::new(self.radius.get() *
         // expansion).unwrap();
         Self {
-            radius: StrictlyPositiveFinite::<Float>::new(self.radius.get() * expansion).unwrap(),
+            radius: StrictlyPositiveFinite::<Float>::new(self.radius.get() + expansion).unwrap(),
         }
     }
 
@@ -166,9 +166,9 @@ impl Triangle {
         // StrictlyPositiveFinite::<Float>::new(self.height.get() * expansion).unwrap();
 
         Self {
-            base_length: StrictlyPositiveFinite::<Float>::new(self.base_length.get() * expansion)
+            base_length: StrictlyPositiveFinite::<Float>::new(self.base_length.get() + expansion)
                 .unwrap(),
-            height:      StrictlyPositiveFinite::<Float>::new(self.height.get() * expansion)
+            height:      StrictlyPositiveFinite::<Float>::new(self.height.get() + expansion)
                 .unwrap(),
             mid_point:   self.mid_point,
         }
@@ -257,7 +257,7 @@ impl RegularPolygon {
 
         RegularPolygon::new(
             self.sides,
-            StrictlyPositiveFinite::<Float>::new(self.side_length.get() * expansion).unwrap(),
+            StrictlyPositiveFinite::<Float>::new(self.side_length.get() + expansion).unwrap(),
         )
     }
 
@@ -319,8 +319,8 @@ impl Rectangle {
         // StrictlyPositiveFinite::<Float>::new(self.height.get() * expansion).unwrap();
 
         Rectangle::new(
-            StrictlyPositiveFinite::<Float>::new(self.width.get() * expansion).unwrap(),
-            StrictlyPositiveFinite::<Float>::new(self.height.get() * expansion).unwrap(),
+            StrictlyPositiveFinite::<Float>::new(self.width.get() + expansion).unwrap(),
+            StrictlyPositiveFinite::<Float>::new(self.height.get() + expansion).unwrap(),
         )
     }
 
@@ -413,12 +413,12 @@ impl PlaceableShape {
 
     /// Expand the shape by a given factor `expansion`
     pub fn expanded(&self, expansion: Float) -> Self {
-        let factor = expansion + 1.0;
+        // let factor = expansion + 1.0;
         match self {
-            Self::Circle(circle) => Self::Circle(circle.expanded(factor)),
-            Self::Triangle(triangle) => Self::Triangle(triangle.expanded(factor)),
-            Self::RegularPolygon(polygon) => Self::RegularPolygon(polygon.expanded(factor)),
-            Self::Rectangle(rectangle) => Self::Rectangle(rectangle.expanded(factor)),
+            Self::Circle(circle) => Self::Circle(circle.expanded(expansion)),
+            Self::Triangle(triangle) => Self::Triangle(triangle.expanded(expansion)),
+            Self::RegularPolygon(polygon) => Self::RegularPolygon(polygon.expanded(expansion)),
+            Self::Rectangle(rectangle) => Self::Rectangle(rectangle.expanded(expansion)),
         }
     }
 

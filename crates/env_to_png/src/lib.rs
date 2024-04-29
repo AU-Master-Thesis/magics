@@ -90,6 +90,17 @@ impl PercentageCoords {
         self.0.y.invert();
         self
     }
+
+    pub fn vertical_invert(&mut self) -> &Self {
+        self.0.x.invert();
+        self
+    }
+
+    pub fn invert(&mut self) -> &Self {
+        self.0.x.invert();
+        self.0.y.invert();
+        self
+    }
 }
 
 // impl > and < and <= and >= and == and != for Percentage
@@ -185,6 +196,13 @@ pub fn env_to_image(
                     // Not obstacle", x, y); }
                     image.put_pixel(x, y, image::Rgb([255, 255, 255]));
                 }
+
+                // red if y is half way
+                if pixel_coords.x == 99 {
+                    image.put_pixel(x, y, image::Rgb([255, 0, 0]));
+                } else if pixel_coords.y == 99 {
+                    image.put_pixel(x, y, image::Rgb([0, 255, 0]));
+                }
             } else {
                 Err(anyhow::anyhow!("Tile not found"))?;
             }
@@ -279,7 +297,8 @@ fn is_placeable_obstacle(
     percentage: PercentageCoords,
     expansion: Percentage,
 ) -> bool {
-    let inverted_percentage = *percentage.clone().horizontal_invert();
+    // let inverted_percentage = *percentage.clone().invert();
+    let inverted_percentage = percentage.clone();
     for obstacle in env.obstacles.iter() {
         // println!("Obstacle: {}", i);
         // let obstale_tile_coords = &obstacle.tile_coordinates;
@@ -299,9 +318,11 @@ fn is_placeable_obstacle(
         // percentage.x.0 -= obstacle.translation.x.get() as f32;
         let translated = Vec2::from(inverted_percentage) - Vec2::from(obstacle.translation);
         // rotate the translated coordinated by the obstacle rotation
-        let rotated = glam::Quat::from_rotation_z(obstacle.rotation.as_radians() as f32)
-            .mul_vec3(translated.extend(0.0))
-            .xy();
+        let rotated = glam::Quat::from_rotation_z(
+            obstacle.rotation.as_radians() as f32 + std::f32::consts::FRAC_PI_2,
+        )
+        .mul_vec3(translated.extend(0.0))
+        .xy();
         // Invert y to account for image y coordinates going top-down
         // let inverted = rotated.y
         // rotated.y = 1.0 - rotated.y;
