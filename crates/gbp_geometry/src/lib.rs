@@ -29,34 +29,35 @@ impl From<Point> for bevy::math::Vec2 {
 
 /// A relative point within the boundaries of the map.
 /// ...
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, derive_more::Sub, derive_more::Add)]
+// #[derive(Debug, Serialize, Deserialize, Clone, Copy, derive_more::Sub, derive_more::Add)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct RelativePoint {
     pub x: UnitInterval,
     pub y: UnitInterval,
 }
 
-// // impl sub and add for `RelativePoint`
-// impl std::ops::Add<RelativePoint> for RelativePoint {
-//     type Output = Self;
+// impl sub and add for `RelativePoint`
+impl std::ops::Add<RelativePoint> for RelativePoint {
+    type Output = Self;
 
-//     fn add(self, rhs: Self) -> Self::Output {
-//         Self {
-//             x: UnitInterval::new(self.x.get() + rhs.x.get()).unwrap(),
-//             y: UnitInterval::new(self.y.get() + rhs.y.get()).unwrap(),
-//         }
-//     }
-// }
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: UnitInterval::new(self.x.get() + rhs.x.get()).unwrap(),
+            y: UnitInterval::new(self.y.get() + rhs.y.get()).unwrap(),
+        }
+    }
+}
 
-// impl std::ops::Sub<RelativePoint> for RelativePoint {
-//     type Output = Self;
+impl std::ops::Sub<RelativePoint> for RelativePoint {
+    type Output = Self;
 
-//     fn sub(self, rhs: Self) -> Self::Output {
-//         Self {
-//             x: UnitInterval::new(self.x.get() - rhs.x.get()).unwrap(),
-//             y: UnitInterval::new(self.y.get() - rhs.y.get()).unwrap(),
-//         }
-//     }
-// }
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: UnitInterval::new(self.x.get() - rhs.x.get()).unwrap(),
+            y: UnitInterval::new(self.y.get() - rhs.y.get()).unwrap(),
+        }
+    }
+}
 
 impl RelativePoint {
     /// Create a new `RelativePoint` from a pair of values.

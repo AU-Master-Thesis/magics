@@ -264,7 +264,8 @@ impl RegularPolygon {
     /// Get the points of the polygon
     /// Calculate all the points of the polygon
     pub fn point_at(&self, i: usize) -> (Float, Float) {
-        let angle = 2.0 * std::f64::consts::PI / self.sides as Float * i as Float;
+        let angle = 2.0 * std::f64::consts::PI / self.sides as Float * i as Float
+            + std::f64::consts::FRAC_PI_4;
 
         let x = angle.cos() * self.side_length.get();
         let y = angle.sin() * self.side_length.get();
@@ -328,11 +329,10 @@ impl Rectangle {
     pub fn inside(&self, point: Vec2) -> bool {
         let (x, y) = (point.x as f64, point.y as f64);
 
-        if x >= 0.5 - self.width.get() / 2.0
-            && x <= 0.5 + self.width.get() / 2.0
-            && y >= 0.5 - self.height.get() / 2.0
-            && y <= 0.5 + self.height.get() / 2.0
-        {
+        let half_width = self.width.get() / 2.0;
+        let half_height = self.height.get() / 2.0;
+
+        if x >= -half_width && x <= half_width && y >= -half_height && y <= half_height {
             return true;
         }
 

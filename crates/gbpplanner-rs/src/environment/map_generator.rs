@@ -137,13 +137,15 @@ fn build_obstacles(
 
         let pos_offset = tile_size / 2.0;
 
+        let translation = obstacle.translation;
+
         // Construct the correct shape
         match obstacle.shape {
-            PlaceableShape::Circle(Circle { radius, center }) => {
+            PlaceableShape::Circle(Circle { radius }) => {
                 let center = Vec3::new(
-                    (center.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
+                    (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
-                    (center.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
+                    (translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
                 );
 
                 info!("Spawning circle: r = {}, at {:?}", radius, center);
@@ -163,7 +165,6 @@ fn build_obstacles(
                 base_length,
                 height,
                 mid_point,
-                translation,
             }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
@@ -218,11 +219,7 @@ fn build_obstacles(
 
                 Some((mesh, transform))
             }
-            PlaceableShape::RegularPolygon(RegularPolygon {
-                sides,
-                side_length,
-                translation,
-            }) => {
+            PlaceableShape::RegularPolygon(RegularPolygon { sides, side_length }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
@@ -255,11 +252,7 @@ fn build_obstacles(
 
                 Some((mesh, transform))
             }
-            PlaceableShape::Rectangle(Rectangle {
-                width,
-                height,
-                translation,
-            }) => {
+            PlaceableShape::Rectangle(Rectangle { width, height }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
