@@ -2,6 +2,8 @@ use std::num::NonZeroU32;
 
 // use gbpplanner_rs::config::Environment;
 use gbp_environment::Environment;
+use gbp_geometry::RelativePoint;
+use glam::{Vec2, Vec3Swizzles};
 use image::RgbImage;
 
 /// Custom resolution type, as pixels per tile.
@@ -135,17 +137,17 @@ pub fn env_to_image(
             // tile_unit_coords.x, tile_unit_coords.y
             // );
             let percentage_coords = tile_units_to_percentage(tile_dimensions, tile_size);
-            if (x == 199 || y == 199) && (tile_coords.x == 1 && tile_coords.y == 1) {
-                println!("({}, {}): Pixelcoords", x, y);
-                println!(
-                    "({}, {}): tile dimensions",
-                    tile_dimensions.x, tile_dimensions.y
-                );
-                println!(
-                    "({}, {}): Percentage",
-                    percentage_coords.x.0, percentage_coords.y.0
-                );
-            }
+            // if (x == 199 || y == 199) && (tile_coords.x == 1 && tile_coords.y == 1) {
+            //     println!("({}, {}): Pixelcoords", x, y);
+            //     println!(
+            //         "({}, {}): tile dimensions",
+            //         tile_dimensions.x, tile_dimensions.y
+            //     );
+            //     println!(
+            //         "({}, {}): Percentage",
+            //         percentage_coords.x.0, percentage_coords.y.0
+            //     );
+            // }
 
             if let Some(tile) = env.tiles.grid.get_tile(tile_coords.y, tile_coords.x) {
                 if is_tile_obstacle(
@@ -153,15 +155,16 @@ pub fn env_to_image(
                     Percentage::new(env.path_width()),
                     percentage_coords,
                     expansion,
-                ) {
+                ) || is_placeable_obstacle(&env, tile_coords, percentage_coords, expansion)
+                {
                     // println!("({}, {}): Obstacle", x, y);
                     image.put_pixel(x, y, image::Rgb([0, 0, 0]));
                 } else {
                     // println!("({}, {}): No obstacle", x, y);
-                    let boundary_pixels: [u32; 4] = std::array::from_fn(|i| (i as u32 + 1) + 100);
-                    if boundary_pixels.contains(&x) || boundary_pixels.contains(&y) {
-                        println!("({}, {}): Not obstacle", x, y);
-                    }
+                    // let boundary_pixels: [u32; 4] = std::array::from_fn(|i| (i as u32 + 1) +
+                    // 100); if boundary_pixels.contains(&x) ||
+                    // boundary_pixels.contains(&y) {     println!("({}, {}):
+                    // Not obstacle", x, y); }
                     image.put_pixel(x, y, image::Rgb([255, 255, 255]));
                 }
             } else {
@@ -186,22 +189,6 @@ fn image_to_tile_units(
     TileDimensions {
         x: (x / resolution.get() as f32 * tile_size),
         y: (y / resolution.get() as f32 * tile_size),
-    }
-}
-
-/// Convert from tile dimensions to image index
-/// That is; if PixelsPerTile is 100, and the env.tile_size() is 10,
-/// then tile (2.3, 5.6) is (2.3 / 10 * 100, 5.6 / 10 * 100) = (23, 56) pixels
-/// in the image.
-fn tile_to_image_coords(
-    tile_coords: TileCoords,
-    resolution: PixelsPerTile,
-    tile_size: f32,
-) -> PixelCoords {
-    let (x, y) = (tile_coords.x, tile_coords.y);
-    PixelCoords {
-        x: (x as f32 / tile_size * resolution.get() as f32) as PixelIndex,
-        y: (y as f32 / tile_size * resolution.get() as f32) as PixelIndex,
     }
 }
 
@@ -244,14 +231,31 @@ fn image_to_tile_coords(pixel_coords: PixelCoords, resolution: PixelsPerTile) ->
     tile_coords
 }
 
+// impl conversion from `Coords<Percentage>` to `gbp_geometry::RelativePoint`
+impl TryFrom<PercentageCords> for RelativePoint {
+    type Error = unit_interval::UnitIntervalError;
+
+    fn try_from(percentage_coords: PercentageCords) -> Result<Self, Self::Error> {
+        RelativePoint::new(percentage_coords.x.0 as f64, percentage_coords.y.0 as f64)
+    }
+}
+
+impl From<PercentageCords> for Vec2 {
+    fn from(percentage_coords: PercentageCords) -> Self {
+        Vec2::new(percentage_coords.x.0 as f32, percentage_coords.y.0 as f32)
+    }
+}
+
 /// Given tile coordinates, and coordinate in tile percentage, return whether
 /// the coordinate is whithin a placeable obstacle placed in that tile.
 fn is_placeable_obstacle(
     env: &Environment,
     tile_coords: TileCoords,
+    percentage: PercentageCords,
     expansion: Percentage,
 ) -> bool {
-    for obstacle in env.obstacles.iter() {
+    for (i, obstacle) in env.obstacles.iter().enumerate() {
+        // println!("Obstacle: {}", i);
         // let obstale_tile_coords = &obstacle.tile_coordinates;
         let obstacle_tile_coords = TileCoords {
             x: obstacle.tile_coordinates.col.clone(),
@@ -259,10 +263,27 @@ fn is_placeable_obstacle(
         };
 
         if tile_coords != obstacle_tile_coords {
-            return false;
+            continue;
         }
 
-        return true;
+        // TODO: Expand the obstacle by the expansion percentage first
+        let expanded_shape = obstacle.shape.expanded(expansion.0 as f64);
+
+        // translate percentage to obstacle coordinates
+        // percentage.x.0 -= obstacle.translation.x.get() as f32;
+        let translated = Vec2::from(percentage) - Vec2::from(obstacle.translation);
+        // rotate the translated coordinated by the obstacle rotation
+        let rotated = glam::Quat::from_rotation_z(obstacle.rotation.as_radians() as f32)
+            .mul_vec3(translated.extend(0.0))
+            .xy();
+
+        let inside_placeable_shape = expanded_shape.inside(rotated);
+        // if inside_placeable_shape {
+        //     println!("({:.2}, {:.2}) is inside", percentage.x.0, percentage.y.0);
+        // }
+        if inside_placeable_shape {
+            return true;
+        }
     }
 
     false
