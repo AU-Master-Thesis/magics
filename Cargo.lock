@@ -3069,7 +3069,10 @@ version = "1.1.0"
 dependencies = [
  "anyhow",
  "gbp_environment",
+ "gbp_geometry",
+ "glam",
  "image 0.25.1",
+ "unit_interval",
 ]
 
 [[package]]

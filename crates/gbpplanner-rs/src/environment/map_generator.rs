@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use bevy::prelude::*;
-use gbp_environment::{Environment, PlaceableShape, TileCoordinates};
+use gbp_environment::{
+    Circle, Environment, PlaceableShape, Rectangle, RegularPolygon, TileCoordinates, Triangle,
+};
 use parry2d::{
     na::{self, Isometry2, Vector2},
     shape,
@@ -137,7 +139,7 @@ fn build_obstacles(
 
         // Construct the correct shape
         match obstacle.shape {
-            PlaceableShape::Circle { radius, center } => {
+            PlaceableShape::Circle(Circle { radius, center }) => {
                 let center = Vec3::new(
                     (center.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
@@ -157,12 +159,12 @@ fn build_obstacles(
 
                 Some((mesh, transform))
             }
-            PlaceableShape::Triangle {
+            PlaceableShape::Triangle(Triangle {
                 base_length,
                 height,
                 mid_point,
                 translation,
-            } => {
+            }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     // obstacle_height / 2.0,
@@ -216,11 +218,11 @@ fn build_obstacles(
 
                 Some((mesh, transform))
             }
-            PlaceableShape::RegularPolygon {
+            PlaceableShape::RegularPolygon(RegularPolygon {
                 sides,
                 side_length,
                 translation,
-            } => {
+            }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
@@ -253,11 +255,11 @@ fn build_obstacles(
 
                 Some((mesh, transform))
             }
-            PlaceableShape::Rectangle {
+            PlaceableShape::Rectangle(Rectangle {
                 width,
                 height,
                 translation,
-            } => {
+            }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,

@@ -7,6 +7,25 @@ use serde::{Deserialize, Deserializer, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UnitInterval(f64);
 
+// impl sub and add for `UnitInterval`
+impl std::ops::Add<UnitInterval> for UnitInterval {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        assert!(self.0 + rhs.0 <= 1.0);
+        Self::new(self.0 + rhs.0).unwrap()
+    }
+}
+
+impl std::ops::Sub<UnitInterval> for UnitInterval {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        assert!(self.0 - rhs.0 >= 0.0);
+        Self::new(self.0 - rhs.0).unwrap()
+    }
+}
+
 /// An error that can occur when creating a `UnitInterval`.
 #[derive(Debug)]
 pub enum UnitIntervalError {
@@ -19,7 +38,8 @@ impl std::fmt::Display for UnitIntervalError {
         match self {
             Self::OutOfBounds(value) => write!(
                 f,
-                "value {value} is out of bounds, a UnitInterval represents the closed interval [0.0, 1.0]",
+                "value {value} is out of bounds, a UnitInterval represents the closed interval \
+                 [0.0, 1.0]",
             ),
         }
     }
@@ -145,9 +165,18 @@ mod tests {
     #[test]
     #[allow(clippy::undocumented_unsafe_blocks)]
     fn test_new_unchecked() {
-        assert_eq!(unsafe { UnitInterval::new_unchecked(0.0) }, UnitInterval(0.0));
-        assert_eq!(unsafe { UnitInterval::new_unchecked(0.5) }, UnitInterval(0.5));
-        assert_eq!(unsafe { UnitInterval::new_unchecked(1.0) }, UnitInterval(1.0));
+        assert_eq!(
+            unsafe { UnitInterval::new_unchecked(0.0) },
+            UnitInterval(0.0)
+        );
+        assert_eq!(
+            unsafe { UnitInterval::new_unchecked(0.5) },
+            UnitInterval(0.5)
+        );
+        assert_eq!(
+            unsafe { UnitInterval::new_unchecked(1.0) },
+            UnitInterval(1.0)
+        );
     }
 
     #[test]
