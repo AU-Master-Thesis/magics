@@ -42,8 +42,8 @@ pub struct ObstacleMarker;
 #[derive(Debug, Clone, Serialize, Deserialize, Component)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileCoordinates {
-    row: usize,
-    col: usize,
+    pub row: usize,
+    pub col: usize,
 }
 
 impl TileCoordinates {
