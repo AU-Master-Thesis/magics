@@ -17,8 +17,10 @@ pub(in crate::factorgraph) trait FactorGraphNode {
 
 #[derive(Debug, derive_more::IsVariant)]
 pub enum NodeKind {
+    /// The node is a factor
     Factor(FactorNode),
     // TODO: wrap in Box<>
+    /// The node is a variable
     Variable(VariableNode),
 }
 
@@ -41,6 +43,26 @@ impl Node {
     #[inline]
     pub fn is_factor(&self) -> bool {
         self.kind.is_factor()
+    }
+
+    /// Returns a reference to the inner factor node
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not a factor
+    #[inline]
+    pub fn factor(&self) -> &FactorNode {
+        self.as_factor().expect("The node should be a Factor")
+    }
+
+    /// Returns a mutable reference to the inner factor node
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not a factor
+    #[inline]
+    pub fn factor_mut(&mut self) -> &mut FactorNode {
+        self.as_factor_mut().expect("The node should be a Factor")
     }
 
     /// Returns `Some(&Factor)` if the node]s variant is [`Factor`], otherwise
@@ -90,6 +112,26 @@ impl Node {
         } else {
             None
         }
+    }
+
+    /// Returns a reference to the inner variable node
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not a variable
+    #[inline]
+    pub fn variable(&self) -> &VariableNode {
+        self.as_variable().expect("The node should be a Variable")
+    }
+
+    /// Returns a mutable reference to the inner variable node
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not a variable
+    #[inline]
+    pub fn variable_mut(&mut self) -> &mut VariableNode {
+        self.as_variable_mut().expect("The node should be a Variable")
     }
 }
 

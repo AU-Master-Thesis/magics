@@ -61,7 +61,7 @@ impl ObstacleFactor {
 
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
-    pub fn new(obstacle_sdf: SdfImage, world_size: Float) -> Self {
+    pub const fn new(obstacle_sdf: SdfImage, world_size: Float) -> Self {
         Self {
             obstacle_sdf,
             world_size,

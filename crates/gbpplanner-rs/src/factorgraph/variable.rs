@@ -10,6 +10,7 @@ use super::{
     MessageCount,
 };
 
+/// Variable prior distribution
 #[derive(Debug, Clone)]
 pub struct VariablePrior {
     information_vector: Vector<Float>,
@@ -37,10 +38,14 @@ impl VariablePrior {
 /// Vec4
 #[derive(Debug, Clone)]
 pub struct VariableBelief {
+    /// Information vector
     pub information_vector: Vector<Float>,
+    /// Precision matrix, square matrix
     pub precision_matrix: Matrix<Float>,
+    /// Mean
     pub mean: Vector<Float>,
 
+    /// Covariance matrix, square matrix
     pub covariance_matrix: Matrix<Float>,
     /// Flag to indicate if the variable's covariance is finite, i.e. it does
     /// not contain NaNs or Infs In gbpplanner it is used to control if a
@@ -79,7 +84,9 @@ impl From<VariableBelief> for Message {
 /// A variable in the factor graph.
 #[derive(Debug)]
 pub struct VariableNode {
+    /// Prior distribution
     pub prior:  VariablePrior,
+    /// Variables belief about its position and velocity
     pub belief: VariableBelief,
 
     // / Flag to indicate if the variable's covariance is finite, i.e. it does
@@ -127,6 +134,7 @@ impl VariableNode {
         [self.belief.mean[2], self.belief.mean[3]]
     }
 
+    /// Construct a new variable
     #[must_use]
     pub fn new(prior_mean: Vector<Float>, mut prior_precision_matrix: Matrix<Float>, dofs: usize) -> Self {
         if !prior_precision_matrix.iter().all(|x| x.is_finite()) {
@@ -150,11 +158,17 @@ impl VariableNode {
         }
     }
 
+    /// Sets the node index
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node index has already been set
     pub fn set_node_index(&mut self, index: NodeIndex) {
         assert!(self.node_index.is_none(), "The node index is already set");
         self.node_index = Some(index);
     }
 
+    /// Receives a message from a factor
     pub fn receive_message_from(&mut self, from: FactorId, message: Message) {
         debug!("variable ? received message from {:?}", from);
         if message.is_empty() {
@@ -194,6 +208,8 @@ impl VariableNode {
         messages
     }
 
+    // PERF: try return Arc<Message> instead of clone
+    /// Construct a new message from the variables current belief
     pub fn prepare_message(&self) -> Message {
         Message::new(
             InformationVec(self.belief.information_vector.clone()),
@@ -214,11 +230,10 @@ impl VariableNode {
     pub fn update_belief_and_create_factor_responses(&mut self) -> MessagesToFactors {
         // Collect messages from all other factors, begin by "collecting message from
         // pose factor prior"
-        // self.belief.information_vector = self.prior.information_vector.clone();
-        // self.belief.precision_matrix = self.prior.precision_matrix.clone();
         self.belief
             .information_vector
             .clone_from(&self.prior.information_vector);
+
         self.belief.precision_matrix.clone_from(&self.prior.precision_matrix);
 
         // Go through received messages and update belief
@@ -233,10 +248,10 @@ impl VariableNode {
         // Update belief
         // NOTE: This might not be correct, but it seems the `.inv()` method doesn't
         // catch and all-zero matrix
-        let lam_not_zero = self.belief.precision_matrix.iter().any(|x| *x - 1e-6 > 0.0);
-        if lam_not_zero {
-            if let Some(sigma) = self.belief.precision_matrix.inv() {
-                self.belief.covariance_matrix = sigma;
+        let precision_not_zero = self.belief.precision_matrix.iter().any(|x| *x - 1e-6 > 0.0);
+        if precision_not_zero {
+            if let Some(covariance) = self.belief.precision_matrix.inv() {
+                self.belief.covariance_matrix = covariance;
                 self.belief.valid = self.belief.covariance_matrix.iter().all(|x| x.is_finite());
                 if self.belief.valid {
                     self.belief.mean = self.belief.covariance_matrix.dot(&self.belief.information_vector);
