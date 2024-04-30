@@ -47,7 +47,8 @@ pub enum MessageOrigin {
 /// Container for the message exchanged between nodes in the factorgraph
 #[derive(Debug, Clone)]
 pub struct Message {
-    payload: Option<Payload>,
+    // payload: Option<Payload>,
+    payload: Option<Box<Payload>>,
     // pub origin: MessageOrigin,
 }
 
@@ -82,15 +83,17 @@ impl Message {
     /// Take the inner `MultivariateNormal` from the message.
     /// Leaving the message in an empty state.
     #[inline]
-    pub fn take(&mut self) -> Option<Payload> {
+    pub fn take(&mut self) -> Option<Box<Payload>> {
         self.payload.take()
     }
 
     /// Access the payload of the message.
     /// Returns `None` if the message is empty.
     #[inline]
-    pub const fn payload(&self) -> Option<&Payload> {
-        self.payload.as_ref()
+    pub fn payload(&self) -> Option<&Payload> {
+        self.payload.as_deref()
+
+        // self.payload.as_ref().as_deref()
     }
 
     /// Return the size in bytes of the payload
@@ -106,14 +109,15 @@ impl Message {
     // PERF(kpbaks): set to None instead
     #[must_use]
     pub fn empty(/*origin: MessageOrigin*/) -> Self {
-        Self {
-            payload: Some(Payload {
-                information_vector: Vector::<Float>::zeros(DOFS),
-                precision_matrix: Matrix::<Float>::zeros((DOFS, DOFS)),
-                mean: Vector::<Float>::zeros(DOFS),
-            }),
-            // origin,
-        }
+        Self { payload: None }
+        // Self {
+        //     payload: Some(Payload {
+        //         information_vector: Vector::<Float>::zeros(DOFS),
+        //         precision_matrix: Matrix::<Float>::zeros((DOFS, DOFS)),
+        //         mean: Vector::<Float>::zeros(DOFS),
+        //     }),
+        //     // origin,
+        // }
     }
 
     /// Create a new message
@@ -136,11 +140,11 @@ impl Message {
         debug_assert_eq!(mean.0.len(), DOFS);
 
         Self {
-            payload: Some(Payload {
+            payload: Some(Box::new(Payload {
                 information_vector: information_vector.0,
                 precision_matrix: precision_matrix.0,
                 mean: mean.0,
-            }),
+            })),
             // origin,
         }
     }

@@ -1,5 +1,6 @@
 use super::{factor::FactorNode, factorgraph::FactorGraphId, variable::VariableNode};
 
+/// Error type returned by `FactorGraphNode::remove_connection_to`
 #[derive(Debug, derive_more::Display)]
 #[display(fmt = "no connection to the given factorgraph")]
 pub struct RemoveConnectionToError;
@@ -15,6 +16,7 @@ pub(in crate::factorgraph) trait FactorGraphNode {
     fn reset_message_count(&mut self);
 }
 
+/// Different variants a factorgraph node can be
 #[derive(Debug, derive_more::IsVariant)]
 pub enum NodeKind {
     /// The node is a factor
@@ -24,16 +26,19 @@ pub enum NodeKind {
     Variable(VariableNode),
 }
 
+/// The node stored in the factorgraph
 #[derive(Debug)]
 pub struct Node {
-    factorgraph_id: FactorGraphId,
-    pub kind:       NodeKind,
+    // factorgraph_id: FactorGraphId,
+    /// The kind of this node, either Variable or some Factor
+    pub kind: NodeKind,
 }
 
 impl Node {
     /// Construct a new node
     pub const fn new(factorgraph_id: FactorGraphId, kind: NodeKind) -> Self {
-        Self { factorgraph_id, kind }
+        Self { kind }
+        // Self { factorgraph_id, kind }
     }
 
     /// Returns `true` if the node is [`Factor`].

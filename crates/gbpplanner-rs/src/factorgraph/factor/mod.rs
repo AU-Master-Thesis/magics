@@ -1,5 +1,6 @@
 use std::{borrow::Cow, ops::AddAssign};
 
+use bevy::log::error;
 use gbp_linalg::prelude::*;
 use ndarray::{array, s};
 use typed_floats::StrictlyPositiveFinite;
@@ -279,6 +280,11 @@ impl FactorNode {
             for (j, (other_variable_id, other_message)) in self.inbox.iter().enumerate() {
                 if other_variable_id == variable_id {
                     // Do not aggregate data from the variable we're sending to
+                    continue;
+                }
+
+                if other_message.is_empty() {
+                    // error!("skipping empty message");
                     continue;
                 }
 
