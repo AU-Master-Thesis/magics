@@ -38,10 +38,17 @@ pub struct PrecisionMatrix(pub Matrix<Float>);
 /// the information vector and mean vector argument.
 pub struct Mean(pub Vector<Float>);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MessageOrigin {
+    Internal,
+    External,
+}
+
 /// Container for the message exchanged between nodes in the factorgraph
 #[derive(Debug, Clone)]
 pub struct Message {
     payload: Option<Payload>,
+    // pub origin: MessageOrigin,
 }
 
 impl Message {
@@ -97,13 +104,14 @@ impl Message {
 
     /// Create an empty message
     #[must_use]
-    pub fn empty() -> Self {
+    pub fn empty(/*origin: MessageOrigin*/) -> Self {
         Self {
             payload: Some(Payload {
                 information_vector: Vector::<Float>::zeros(DOFS),
                 precision_matrix: Matrix::<Float>::zeros((DOFS, DOFS)),
                 mean: Vector::<Float>::zeros(DOFS),
             }),
+            // origin,
         }
     }
 
@@ -116,7 +124,7 @@ impl Message {
     /// - if `lam.0.ncols() != DOFS`
     /// - if `mu.0.len() != DOFS`
     #[must_use]
-    pub fn new(eta: InformationVec, lam: PrecisionMatrix, mu: Mean) -> Self {
+    pub fn new(eta: InformationVec, lam: PrecisionMatrix, mu: Mean /* , origin: MessageOrigin */) -> Self {
         debug_assert_eq!(eta.0.len(), DOFS);
         debug_assert_eq!(lam.0.nrows(), DOFS);
         debug_assert_eq!(lam.0.ncols(), DOFS);
@@ -128,9 +136,12 @@ impl Message {
                 precision_matrix: lam.0,
                 mean: mu.0,
             }),
+            // origin,
         }
     }
 }
+
+// TODO: add some kind of `stale: bool` or `used: bool` field
 
 /// A message from a factor to a variable
 #[derive(Debug)]

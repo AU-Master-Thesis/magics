@@ -328,13 +328,6 @@ impl SimulationManager {
         self.names.iter().position(|n| n == name).map(SimulationId)
     }
 
-    // pub fn get_
-
-    // #[must_use]
-    // pub fn new(simulations_dir: std::path::PathBuf) -> Self {
-    //     Self { simulations_dir }
-    // }
-
     pub fn get_config_for(&self, id: SimulationId) -> Option<&Config> {
         self.simulations.get(id.0).map(|s| &s.config)
         // todo!()
@@ -366,16 +359,6 @@ impl SimulationManager {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SimulationId(usize);
-
-// #[derive(Resource)]
-// pub struct ActiveSimulation(Option<SimulationId>);
-//
-// impl FromWorld for ActiveSimulation {
-//     fn from_world(_world: &mut World) -> Self {
-//         Self(None)
-//         // todo!()
-//     }
-// }
 
 #[derive(Event)]
 pub struct LoadSimulation(pub SimulationId);
@@ -623,7 +606,8 @@ fn handle_requests(
     mut evw_reload_simulation: EventWriter<ReloadSimulation>,
     mut evw_end_simulation: EventWriter<EndSimulation>,
     mut evw_toast: EventWriter<ToastEvent>,
-    mut virtual_time: ResMut<Time<Virtual>>,
+    mut time_virtual: ResMut<Time<Virtual>>,
+    mut time_real: ResMut<Time<Real>>,
     mut config: ResMut<Config>,
     mut environment: ResMut<Environment>,
     mut sdf: ResMut<Sdf>,
@@ -639,9 +623,9 @@ fn handle_requests(
 
     match request {
         Request::Load(_) | Request::Reload => {
-            let is_paused = virtual_time.is_paused();
+            let is_paused = time_virtual.is_paused();
 
-            let virtual_time = virtual_time.bypass_change_detection();
+            let virtual_time = time_virtual.bypass_change_detection();
             *virtual_time = Time::<Virtual>::default();
             if is_paused {
                 virtual_time.unpause();

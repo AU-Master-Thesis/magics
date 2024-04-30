@@ -933,7 +933,7 @@ fn build_tile_grid(
                 _ => None,
             } {
                 // obstacle_information.iter().for_each(|(cuboid, transform)| {
-                for (cuboid, transform) in obstacle_information.iter() {
+                for (cuboid, transform) in &obstacle_information {
                     colliders.push(
                         Isometry2::new(
                             Vector2::new(transform.translation.x, transform.translation.z),

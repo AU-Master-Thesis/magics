@@ -184,9 +184,11 @@ impl FactorNode {
         self.kind.jacobian(&self.state, x)
     }
 
-    fn measure(&mut self, x: &Vector<Float>) -> Vector<Float> {
-        self.state.cached_measurement = self.kind.measure(&self.state, x);
-        self.state.cached_measurement.clone()
+    #[inline]
+    fn measure(&self, x: &Vector<Float>) -> Vector<Float> {
+        self.kind.measure(&self.state, x)
+        // self.state.cached_measurement = self.kind.measure(&self.state, x);
+        // self.state.cached_measurement.clone()
     }
 
     /// Check if the factor should be skipped in the update step
@@ -219,15 +221,27 @@ impl FactorNode {
     pub fn update(&mut self) -> MessagesToVariables {
         debug_assert_eq!(self.state.linearisation_point.len(), DOFS * self.inbox.len());
 
-        let zero_mean = Vector::<Float>::zeros(DOFS);
+        // // let chunks = self.state.linearisation_point.exact_chunks_mut(DOFS);
+        // for chunk in
+        // self.state.linearisation_point.exact_chunks_mut(DOFS).into_iter() {
+        //     // chunk.into_slice_memory_order()
+        //     if let Some(data) = chunk.as_slice_memory_order_mut() {
+        //         data.assign_elem(0.0);
+        //     } else {
+        //         panic!("should not happen, is 1d");
+        //     }
+        // }
 
         for (i, (_, message)) in self.inbox.iter().enumerate() {
-            let mean = message.mean().unwrap_or(&zero_mean);
-            // let mean = message.mean().unwrap_or_else(|| V);
-            self.state
-                .linearisation_point
-                .slice_mut(s![i * DOFS..(i + 1) * DOFS])
-                .assign(mean);
+            let mut slice = self.state.linearisation_point.slice_mut(s![i * DOFS..(i + 1) * DOFS]);
+
+            if let Some(mean) = message.mean() {
+                slice.assign(mean);
+            } else {
+                for x in slice {
+                    *x = 0.0;
+                }
+            }
         }
 
         if self.skip() {
@@ -240,27 +254,23 @@ impl FactorNode {
             return messages;
         }
 
-        // let meas = self.measure(&self.state.linearisation_point.clone());
-        let _ = self.measure(&self.state.linearisation_point.clone());
-        let jacobian = self.jacobian(&self.state.linearisation_point.clone());
+        let measurement = self.measure(&self.state.linearisation_point);
+        let jacobian = self.jacobian(&self.state.linearisation_point);
 
         let potential_precision_matrix = jacobian
             .t()
             .dot(&self.state.measurement_precision)
             .dot(jacobian.as_ref());
-        // let potential_precision_matrix =
-        // jacobian.t().dot(&self.state.measurement_precision).dot(&jacobian);
+        let residual = &self.state.initial_measurement - measurement;
         let potential_information_vec = jacobian
             .t()
             .dot(&self.state.measurement_precision)
-            .dot(&(jacobian.dot(&self.state.linearisation_point) + self.residual()));
+            .dot(&(jacobian.dot(&self.state.linearisation_point) + residual));
 
         self.state.initialized = true;
 
         let mut marginalisation_idx = 0;
         let mut messages = MessagesToVariables::new();
-
-        let zero_precision = Matrix::<Float>::zeros((DOFS, DOFS));
 
         for variable_id in self.inbox.keys() {
             let mut information_vec = potential_information_vec.clone();
@@ -274,21 +284,18 @@ impl FactorNode {
 
                 let message_eta = other_message.information_vector().expect("it better be there");
 
-                // let message_precision =
-                // other_message.precision_matrix().unwrap_or(&zero_precision);
-                let message_precision = other_message.precision_matrix().unwrap_or(&zero_precision);
-                // .unwrap_or_else(|| &Matrix::<Float>::zeros((DOFS, DOFS)));
-
                 information_vec
                     .slice_mut(s![j * DOFS..(j + 1) * DOFS])
                     .add_assign(message_eta);
-                precision_matrix
-                    .slice_mut(s![j * DOFS..(j + 1) * DOFS, j * DOFS..(j + 1) * DOFS])
-                    .add_assign(message_precision);
+
+                if let Some(message_precision) = other_message.precision_matrix() {
+                    precision_matrix
+                        .slice_mut(s![j * DOFS..(j + 1) * DOFS, j * DOFS..(j + 1) * DOFS])
+                        .add_assign(message_precision);
+                }
             }
 
             let message = marginalise_factor_distance(information_vec, precision_matrix, marginalisation_idx);
-            // .expect("marginalise_factor_distance should not fail");
             messages.insert(*variable_id, message);
             marginalisation_idx += DOFS;
         }

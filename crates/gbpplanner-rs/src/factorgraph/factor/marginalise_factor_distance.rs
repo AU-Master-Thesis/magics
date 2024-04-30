@@ -55,11 +55,8 @@ fn extract_submatrices_from_precision_matrix<T: GbpFloat>(
 pub fn marginalise_factor_distance(
     information_vector: Vector<Float>,
     precision_matrix: Matrix<Float>,
-    marginalisation_idx: usize,
+    marg_idx: usize,
 ) -> Message {
-    // let ndofs = variable_dofs;
-    let marg_idx = marginalisation_idx;
-
     debug_assert_eq!(information_vector.len(), precision_matrix.nrows());
     debug_assert_eq!(precision_matrix.nrows(), precision_matrix.ncols());
 
@@ -80,14 +77,14 @@ pub fn marginalise_factor_distance(
     }
 
     let eta_a = information_vector.slice(s![seq_n(marg_idx, DOFS)]);
-    assert_eq!(eta_a.len(), DOFS);
+    debug_assert_eq!(eta_a.len(), DOFS);
 
     let eta_b = if marg_idx == 0 {
         information_vector.slice(s![DOFS..])
     } else {
         information_vector.slice(s![..marg_idx])
     };
-    assert_eq!(eta_b.len(), information_vector.len() - DOFS);
+    debug_assert_eq!(eta_b.len(), information_vector.len() - DOFS);
 
     let (lam_aa, lam_ab, lam_ba, lam_bb) = extract_submatrices_from_precision_matrix(&precision_matrix, marg_idx);
 

@@ -36,8 +36,8 @@ sigma-factor-obstacle   = 0.01
 lookahead-multiple      = 3
 # iterations-per-timestep = 10
 [gbp.iterations-per-timestep]
-internal = 10
-external = 10
+internal = 4
+external = 4
 
 [robot]
 planning-horizon  = 5.0
@@ -47,7 +47,7 @@ symmetric-factors = true
 radius            = 1.0
 
 [robot.communication]
-radius       = 20.0
+radius       = 10.0
 failure-rate = 0.2
 
 [simulation]

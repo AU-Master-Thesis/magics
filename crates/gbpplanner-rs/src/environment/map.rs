@@ -13,7 +13,7 @@ use crate::{
     asset_loader::{Meshes, Obstacles},
     config::{self, Config},
     input::DrawSettingsEvent,
-    simulation_loader::{self, LoadSimulation, Sdf},
+    simulation_loader::{self, Sdf},
     theme::CatppuccinTheme,
 };
 
@@ -293,6 +293,7 @@ fn environment_png_is_loaded(
     clippy::cast_sign_loss,
     clippy::cast_possible_truncation
 )]
+#[allow(clippy::too_many_arguments)]
 fn obstacles(
     mut commands: Commands,
     obstacles: Res<Obstacles>,

@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use bevy::{
     ecs::{component::Component, entity::Entity},
-    log::{debug, info},
+    log::{debug, error, info},
 };
 // use gbp_linalg::Float;
 use gbp_linalg::prelude::*;
@@ -416,6 +416,7 @@ impl FactorGraph {
     /// Change the prior of the variable with the given index
     /// Returns the messages to send to any external factors connected to it, if
     /// any
+    #[must_use]
     pub fn change_prior_of_variable(
         &mut self,
         variable_index: VariableIndex,
@@ -612,6 +613,14 @@ impl FactorGraph {
             let factor_messages = variable.update_belief_and_create_factor_responses();
 
             for (factor_id, message) in factor_messages {
+                let in_internal_graph = factor_id.factorgraph_id == self.id;
+                if !in_internal_graph {
+                    continue;
+                }
+                // error!(
+                //     "factorgraph id: {:?}, factor.factorgraph_id: {:?}",
+                //     self.id, factor_id.factorgraph_id
+                // );
                 let factor = self.graph[factor_id.factor_index.0]
                     .as_factor_mut()
                     .expect("a factor only has variables as neighbours");
@@ -621,7 +630,6 @@ impl FactorGraph {
         }
     }
 
-    #[must_use]
     pub fn internal_factor_iteration(&mut self) {
         // TODO: create InternalFactors<'a> iterator
         // for ix in self
@@ -680,6 +688,9 @@ impl FactorGraph {
             // }
             // for ix in &self.interrobot_factor_indices {
             let ix = self.interrobot_factor_indices[i];
+            if !self.graph.contains_node(ix) {
+                continue;
+            }
             let node = &mut self.graph[ix];
             let factor = node.factor_mut();
 
@@ -711,7 +722,8 @@ impl FactorGraph {
     // TODO(kpbaks): does this method even make sense?
     #[must_use]
     pub fn external_variable_iteration(&mut self) -> Vec<VariableToFactorMessage> {
-        todo!()
+        vec![]
+        // todo!()
     }
 
     /// Aggregate and marginalise over all adjacent variables, and send.

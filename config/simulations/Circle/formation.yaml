@@ -7,7 +7,7 @@ formations:
   delay:
     secs: 1
     nanos: 0
-  robots: 7
+  robots: 10
   initial-position:
     shape: !circle
       radius: 25.0

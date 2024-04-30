@@ -63,11 +63,9 @@ impl Plugin for RobotPlugin {
                     // iterate_gbp_external,
                     iterate_gbp,
                     update_prior_of_horizon_state,
-                    update_prior_of_current_state,
+                    update_prior_of_current_state_v2,
                     despawn_robots,
-                    // finish_manual_step.run_if(ManualMode::enabled),
                     finish_manual_step.run_if(ManualModeState::enabled),
-                    // finish_manual_step.run_if(in_state(ManualModeState::Enabled)),
                 )
                     .chain()
                     .run_if(not(virtual_time_is_paused)),
@@ -663,8 +661,8 @@ fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
     }
 }
 
-fn iterate_gbp_internal(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {
-    query.par_iter_mut().for_each(|(entity, mut factorgraph)| {
+fn iterate_gbp_internal(mut query: Query<&mut FactorGraph, With<RobotState>>, config: Res<Config>) {
+    query.par_iter_mut().for_each(|mut factorgraph| {
         for _ in 0..config.gbp.iterations_per_timestep.internal {
             factorgraph.internal_factor_iteration();
             factorgraph.internal_variable_iteration();
@@ -676,10 +674,10 @@ fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph, &RobotState)
     for _ in 0..config.gbp.iterations_per_timestep.external {
         // PERF: use Local<> to reuse arrays
 
-        let mut messages_to_external_variables: Arc<Mutex<Vec<FactorToVariableMessage>>> = Arc::default();
-        let mut messages_to_external_factors: Arc<Mutex<Vec<VariableToFactorMessage>>> = Arc::default();
+        let messages_to_external_variables: Arc<Mutex<Vec<FactorToVariableMessage>>> = Arc::default();
+        let messages_to_external_factors: Arc<Mutex<Vec<VariableToFactorMessage>>> = Arc::default();
 
-        query.par_iter_mut().for_each(|(entity, mut factorgraph, state)| {
+        query.par_iter_mut().for_each(|(_, mut factorgraph, state)| {
             if !state.interrobot_comms_active {
                 return;
             }
@@ -726,25 +724,6 @@ fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph, &RobotState)
             if let Some(factor) = factorgraph.get_factor_mut(message.to.factor_index) {
                 factor.receive_message_from(message.from, message.message.clone());
             }
-
-            // if let Some(factor) = query
-            //     .get_mut(message.to.factorgraph_id)
-            //     .ok()
-            //     .map(|(_, fg, _)| fg)
-            //     .and_then(|mut fg|
-            // fg.get_factor_mut(message.to.factor_index)) {
-            //     factor.receive_message_from(message.from,
-            // message.message.clone()); }
-
-            // let (_, mut factorgraph) = query
-            //     .get_mut(message.to.factorgraph_id)
-            //     .expect("the factorgraph of the receiving variable should
-            // exist in the world");
-
-            // if let Some(factor) =
-            // factorgraph.get_factor_mut(message.to.factor_index) {
-            //     factor.receive_message_from(message.from,
-            // message.message.clone()); }
         }
     }
 }
@@ -762,8 +741,7 @@ fn iterate_gbp(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, c
         // Send messages to external variables
         for message in messages_to_external_variables.iter().flatten() {
             let (_, mut external_factorgraph) = query
-                .iter_mut()
-                .find(|(id, _)| *id == message.to.factorgraph_id)
+                .get_mut(message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving variable should exist in the world");
 
             if let Some(variable) = external_factorgraph.get_variable_mut(message.to.variable_index) {
@@ -786,17 +764,12 @@ fn iterate_gbp(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, c
         // Send messages to external factors
         for message in messages_to_external_factors.iter().flatten() {
             let (_, mut external_factorgraph) = query
-                .iter_mut()
-                .find(|(id, _)| *id == message.to.factorgraph_id)
+                .get_mut(message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving factor should exist in the world");
 
             if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
                 factor.receive_message_from(message.from, message.message.clone());
             }
-
-            // external_factorgraph
-            //     .factor_mut(message.to.factor_index)
-            //     .receive_message_from(message.from, message.message.clone());
         }
     }
 }
@@ -813,6 +786,8 @@ fn update_prior_of_horizon_state(
     mut evw_robot_finalized_path: EventWriter<RobotFinishedPath>,
     mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
 ) {
+    // let t_start = std::time::Instant::now();
+
     let delta_t = Float::from(time.delta_seconds());
     // let robot_radius = config.robot.radius.get();
     let robot_radius_squared = config.robot.radius.get().powi(2);
@@ -901,13 +876,6 @@ fn update_prior_of_horizon_state(
             .get_mut(message.to.factorgraph_id)
             .expect("the factorgraph of the receiving factor exists in the world");
 
-        // // TODO: use query.get()
-        // let (_, mut external_factorgraph, _, _) = query
-        //     .iter_mut()
-        //     .find(|(id, _, _, _)| *id == message.to.factorgraph_id)
-        //     .expect("the factorgraph_id of the receiving factor should exist in the
-        // world");
-
         if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
             // PERF: avoid the clone here
             factor.receive_message_from(message.from, message.message.clone());
@@ -920,6 +888,83 @@ fn update_prior_of_horizon_state(
             evw_robot_despawned.send_batch(robots_to_despawn.into_iter().map(RobotDespawned));
         }
     }
+
+    // let t_end = std::time::Instant::now();
+    //
+    // error!(
+    //     "Planner iteration took {} microseconds",
+    //     t_end.duration_since(t_start).as_micros()
+    // );
+}
+
+/// Called `Robot::updateCurrent` in **gbpplanner**
+fn update_prior_of_current_state_v2(
+    mut query: Query<(Entity, &mut FactorGraph, &mut Transform), With<RobotState>>,
+    config: Res<Config>,
+    time_fixed: Res<Time<Fixed>>,
+) {
+    let scale = time_fixed.delta_seconds() / config.simulation.t0.get();
+
+    let messages_to_external_factors: Arc<Mutex<Vec<VariableToFactorMessage>>> = Arc::default();
+
+    query.par_iter_mut().for_each(|(_, mut factorgraph, mut transform)| {
+        let (current_variable_index, current_variable) = factorgraph
+            .nth_variable(0)
+            .expect("factorgraph should have a current variable");
+        let (_, next_variable) = factorgraph
+            .nth_variable(1)
+            .expect("factorgraph should have a next variable");
+
+        let change_in_position = Float::from(scale) * (&next_variable.belief.mean - &current_variable.belief.mean);
+        let mean_updated = &current_variable.belief.mean + &change_in_position;
+
+        let external_factor_messages = factorgraph.change_prior_of_variable(current_variable_index, mean_updated);
+
+        let mut guard = messages_to_external_factors.lock().unwrap();
+        guard.extend(external_factor_messages);
+
+        #[allow(clippy::cast_possible_truncation)]
+        let increment = Vec3::new(change_in_position[0] as f32, 0.0, change_in_position[1] as f32);
+
+        transform.translation += increment;
+    });
+
+    let guard = messages_to_external_factors.lock().unwrap();
+    for message in guard.iter() {
+        let (_, mut external_factorgraph, _) = query
+            .get_mut(message.to.factorgraph_id)
+            .expect("the factorgraph of the receiving factor exists in the world");
+
+        if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
+            // PERF: avoid the clone here
+            factor.receive_message_from(message.from, message.message.clone());
+        }
+    }
+
+    // for (mut factorgraph, mut transform) in &mut query {
+    //     let (current_variable_index, current_variable) = factorgraph
+    //         .nth_variable(0)
+    //         .expect("factorgraph should have a current variable");
+    //     let (_, next_variable) = factorgraph
+    //         .nth_variable(1)
+    //         .expect("factorgraph should have a next variable");
+    //     // let mean_of_current_variable = &current_variable.belief.mean;
+
+    //     let change_in_position = Float::from(scale) *
+    // (&next_variable.belief.mean - &current_variable.belief.mean);     let
+    // mean_updated = &current_variable.belief.mean + &change_in_position;
+
+    //     // factorgraph.change_prior_of_variable(current_variable_index,
+    //     // mean_of_current_variable + &change_in_position);
+    //     factorgraph.change_prior_of_variable(current_variable_index,
+    // mean_updated);
+
+    //     #[allow(clippy::cast_possible_truncation)]
+    //     let increment = Vec3::new(change_in_position[0] as f32, 0.0,
+    // change_in_position[1] as f32);
+
+    //     transform.translation += increment;
+    // }
 }
 
 /// Called `Robot::updateCurrent` in **gbpplanner**
@@ -966,10 +1011,12 @@ pub enum ManualModeState {
 }
 
 impl ManualModeState {
+    #[inline]
     pub fn enabled(state: Res<State<Self>>) -> bool {
         matches!(state.get(), Self::Enabled { .. })
     }
 
+    #[inline]
     pub fn disabled(state: Res<State<Self>>) -> bool {
         matches!(state.get(), Self::Disabled)
     }

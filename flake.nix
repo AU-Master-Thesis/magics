@@ -58,6 +58,7 @@
         cargo-watch
         cargo-wizard
         cargo-pgo
+        cargo-flamegraph
         # cargo-tree
 
         #   # cargo-profiler

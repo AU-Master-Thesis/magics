@@ -157,12 +157,12 @@ impl Factor for InterRobotFactor {
             h[0] = 1.0 * (1.0 - radius / self.safety_distance);
             // println!("h = {}", h);
         } else {
-            if !self.skip {
-                // info!(
-                //     "outside safety distance, radius = {}, setting self.skip
-                // to true",     radius
-                // );
-            }
+            // if !self.skip {
+            //     // info!(
+            //     //     "outside safety distance, radius = {}, setting
+            // self.skip     // to true",     radius
+            //     // );
+            // }
             // self.skip = true;
         }
 

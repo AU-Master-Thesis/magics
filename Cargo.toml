@@ -105,3 +105,7 @@ lto           = true
 codegen-units = 1
 incremental   = false
 panic         = "abort"
+
+[profile.flamegraph]
+inherits = "release"
+strip    = false

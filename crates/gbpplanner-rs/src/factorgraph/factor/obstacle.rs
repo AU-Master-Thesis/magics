@@ -2,8 +2,10 @@
 
 use std::{
     borrow::Cow,
-    cell::{Cell, RefCell},
+    cell::Cell,
     sync::{Arc, Mutex},
+    // cell::{Cell, RefCell},
+    // sync::{Arc, Mutex},
 };
 
 use bevy::math::Vec2;
@@ -22,8 +24,10 @@ pub struct ObstacleFactor {
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy
     /// of here since `ObstacleFactor` needs this information to calculate
     /// `.jacobian_delta()` and `.measurement()`
-    world_size:   Float,
-    // last_measurement: Option<LastMeasurement>,
+    world_size:       Float,
+    // last_measurement: Arc<Mutex<Cell<Option<LastMeasurement>>>>,
+    // last_measurement: Cell<Option<LastMeasurement>>,
+    last_measurement: Option<LastMeasurement>,
     // last_measurement: Arc<Cell<LastMeasurement>>,
     // last_measurement: Arc<Mutex<LastMeasurement>>,
 }
@@ -33,6 +37,9 @@ pub struct LastMeasurement {
     pub pos:   bevy::math::Vec2,
     pub value: Float,
 }
+
+// unsafe impl Sync for LastMeasurement {}
+// unsafe impl Send for LastMeasurement {}
 
 impl Default for LastMeasurement {
     fn default() -> Self {
@@ -61,11 +68,11 @@ impl ObstacleFactor {
 
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
-    pub const fn new(obstacle_sdf: SdfImage, world_size: Float) -> Self {
+    pub fn new(obstacle_sdf: SdfImage, world_size: Float) -> Self {
         Self {
             obstacle_sdf,
             world_size,
-            // last_measurement: Default::default(),
+            last_measurement: Default::default(),
         }
     }
 
@@ -77,8 +84,9 @@ impl ObstacleFactor {
     //     // self.last_measurement.try_borrow().ok().as_deref().copied()
     // }
 
-    // pub fn last_measurement(&self) -> LastMeasurement {
-    //     self.last_measurement.get()
+    // pub fn last_measurement(&self) -> Option<LastMeasurement> {
+    //     self.last_measurement.lock().unwrap().get()
+    //     // self.last_measurement.get()
     // }
 }
 
@@ -157,8 +165,21 @@ impl Factor for ObstacleFactor {
 
         // self.last_measurement.pos.x = x[0] as f32;
         // self.last_measurement.pos.y = x[1] as f32;
-        // // self.last_measurement.pos.x = pixel_x as f32;
-        // // self.last_measurement.pos.y = pixel_y as f32;
+
+        // self.last_measurement.set(Some(LastMeasurement {
+        //     pos:   Vec2::new(pixel_x as f32, pixel_y as f32),
+        //     value: hsv_value,
+        // }));
+
+        // let guard = self.last_measurement.lock().unwrap();
+        // // guard.set()
+
+        // guard.set(Some(LastMeasurement {
+        //     pos:   Vec2::new(pixel_x as f32, pixel_y as f32),
+        //     value: hsv_value,
+        // }));
+        // self.last_measurement.pos.x = pixel_x as f32;
+        // self.last_measurement.pos.y = pixel_y as f32;
         // self.last_measurement.value = hsv_value;
 
         // let hsv_value = pixel as Float / 255.0;

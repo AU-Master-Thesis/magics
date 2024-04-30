@@ -89,11 +89,22 @@ fn track_score(
     }
 }
 
-fn notify_on_all_formations_finished(mut evw_toast: EventWriter<ToastEvent>, time: Res<Time<Virtual>>) {
-    evw_toast.send(ToastEvent::info(format!(
-        "all formations finished after {} seconds",
-        time.elapsed_seconds()
-    )));
+fn notify_on_all_formations_finished(
+    mut evw_toast: EventWriter<ToastEvent>,
+    time_virtual: Res<Time<Virtual>>,
+    time_real: Res<Time<Real>>,
+    // mut last_t_real: Local<f32>,
+) {
+    let caption = format!(
+        "all formations finished after {} seconds (virtual), {} (real)",
+        time_virtual.elapsed_seconds(),
+        time_real.elapsed_seconds(),
+        // time_real.elapsed_seconds() - *last_t_real
+    );
+    let toast = ToastEvent::info(caption);
+    evw_toast.send(toast);
+
+    // *last_t_real = time_real.elapsed_seconds();
 }
 
 /// run criteria if time is not paused

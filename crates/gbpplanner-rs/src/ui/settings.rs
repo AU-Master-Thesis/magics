@@ -138,9 +138,12 @@ fn ui_settings_panel(
 
     let panel_resizable = false;
 
+    let width = 400.0;
     let right_panel = egui::SidePanel::right("Settings Panel")
-        .default_width(200.0)
-        .resizable(panel_resizable)
+        .default_width(width)
+        // .max_width(width)
+        // .exact_width(width)
+        .resizable(false)
         // .show(ctx, |ui| {
             .show_animated(ctx, ui_state.right_panel_visible, |ui| {
             ui_state.mouse_over.right_panel = ui.rect_contains_pointer(ui.max_rect())
@@ -208,17 +211,22 @@ fn ui_settings_panel(
                             },
                         );
 
+                        // ui.spacing_mut().slider_width = ui.available_size_before_wrap().x;
+                        // ui.spacing_mut().slider_width = ui.available_width();
                         ui.spacing_mut().slider_width =
                             ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let slider_response = ui.add_enabled(
-                            matches!(ui_state.scale_type, UiScaleType::Custom),
-                            // egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
-                            egui::Slider::new(
+                        let enabled = matches!(ui_state.scale_type, UiScaleType::Custom);
+                        let slider = egui::Slider::new(
                                 &mut ui_state.scale_percent,
                                 UiState::VALID_SCALE_INTERVAL,
                             )
+
                             .suffix("%")
-                            .show_value(true),
+                            .show_value(true);
+
+                        let slider_response = ui.add_enabled(
+                            enabled,
+                            slider
                         );
                         // Only trigger ui scale update when the slider is released or lost focus
                         // otherwise it would be imposssible to drag the slider while the ui is
@@ -253,7 +261,7 @@ fn ui_settings_panel(
                         ui.separator();
                         // ui.add_space(2.5);
 
-                        custom::grid("gbp_grid", 2).show(ui, |ui| {
+                        custom::grid("iterations_per_timestep_grid", 2).show(ui, |ui| {
                             ui.label("Internal");
                             let mut text = config.gbp.iterations_per_timestep.internal.to_string();
 
@@ -286,6 +294,29 @@ fn ui_settings_panel(
                                 } else {
                                     error!("failed to parse {} as usize", text);
                                 }
+                            }
+
+                            ui.end_row();
+                        });
+
+                        custom::grid("gbp_grid", 2).show(ui, |ui| {
+                            ui.label("Max Speed");
+                            // slider for robot max speed  in (0.0, 10.]
+                            ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
+
+                            let mut max_speed = config.robot.max_speed.get();
+                            // let mut available_size = ui.available_size();
+                            // available_size.x += 10.0;
+                            // let slider_response = ui.add_sized(available_size,
+                               let slider_response = ui.add_enabled(
+                                   time_virtual.is_paused(),
+                                                                      egui::Slider::new(&mut max_speed, 0.1..=100.0)
+
+                                    .suffix("m/s")
+                                    .fixed_decimals(1)
+                                    .trailing_fill(true));
+                            if slider_response.enabled() && slider_response.changed() {
+                                config.robot.max_speed = max_speed.try_into().expect("slider range set to [0.1, 10.0]");
                             }
 
                             ui.end_row();
@@ -361,10 +392,6 @@ fn ui_settings_panel(
                                         "the ui strings are generated from the enum, so parse \
                                          should not fail",
                                     );
-                                    // let setting_kind = DrawSetting::from_str(name).expect(
-                                    //     "The name of the draw section should be a valid \
-                                    //      DrawSection",
-                                    // );
                                     let event = DrawSettingsEvent {
                                         setting: setting_kind,
                                         draw:    *setting,
@@ -422,8 +449,6 @@ fn ui_settings_panel(
 
                         ui.end_row();
 
-
-
                         ui.label("Simulation Time");
 
                         custom::rect_label(
@@ -439,8 +464,9 @@ fn ui_settings_panel(
 
                         ui.label("Δt");
                         let dt = time_fixed.delta_seconds();
-                        let hz = 1.0 / dt;
-                        custom::rect_label(ui, format!("{:.4} s = {:.4} Hz", dt, hz), None);
+                        let hz = (1.0 / dt) as u32;
+                        // custom::rect_label(ui, format!("{:.4} s = {:.4} Hz", dt, hz), None);
+                        custom::rect_label(ui, format!("{:.4} s = {} Hz", dt, hz), None);
                         ui.end_row();
 
                         // slider for simulation time between 0 and 100

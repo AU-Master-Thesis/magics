@@ -22,6 +22,10 @@ pub(crate) mod utils;
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
+
 use bevy::{
     asset::AssetMetaCheck,
     prelude::*,
@@ -62,6 +66,9 @@ const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
 #[allow(clippy::too_many_lines)]
 fn main() -> anyhow::Result<()> {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+
     // if cfg!(all(not(target_arch = "wasm32"), debug_assertions)) {
     if cfg!(not(target_arch = "wasm32")) {
         if cfg!(debug_assertions) {
@@ -296,9 +303,6 @@ fn main() -> anyhow::Result<()> {
     // app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
     let hz = 60.0;
     app.insert_resource(Time::<Fixed>::from_hz(hz))
-        // .insert_resource(config)
-        // .insert_resource(formation)
-        // .insert_resource(environment)
         .add_plugins(DefaultPlugins
             .set(window_plugin)
             // .set(log_plugin)
@@ -311,39 +315,19 @@ fn main() -> anyhow::Result<()> {
         // our plugins
         .add_plugins(SimulationLoaderPlugin::default())
         .add_plugins((
-            // SimulationLoaderPlugin::default(),
             DefaultPickingPlugins,
             PausePlayPlugin::default(),
             ThemePlugin,       // Custom
             AssetLoaderPlugin, // Custom
             EnvironmentPlugin, // Custom
             MovementPlugin,    // Custom
-            // PausePlayPlugin,   // Custom
             InputPlugin,       // Custom
-            // // MoveableObjectPlugin, // Custom
-            // // CameraPlugin,        // Custom
-            // // FollowCamerasPlugin, // Custom
-            // // FactorGraphPlugin,   // Custom
             EguiInterfacePlugin, // Custom
             PlannerPlugin,
             NotifyPlugin::default(),
             // PrngPlugin,
         ))
         .add_plugins(ToggleFullscreenPlugin::default())
-        // .add_plugins(bevy_dev::DevPlugins)
-
-        // .add_plugins(bevy_touchpad::BevyTouchpadPlugin::default())
-
-        // .add_plugins(NotifyPlugin)
-        //         .insert_resource(Notifications(Toasts::default()))
-        // we want Bevy to measure these values for us:
-        // .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
-        // .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
-        // .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
-        // .add_plugins(PerfUiPlugin)
-        // .add_systems(Startup, spawn_perf_ui)
-        // .add_systems(Update, make_window_visible)
-
         .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));
 
     app.run();
