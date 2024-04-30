@@ -186,22 +186,9 @@ pub fn env_to_image(
                     expansion,
                 ) || is_placeable_obstacle(&env, tile_coords, percentage_coords, expansion)
                 {
-                    // println!("({}, {}): Obstacle", x, y);
                     image.put_pixel(x, y, image::Rgb([0, 0, 0]));
                 } else {
-                    // println!("({}, {}): No obstacle", x, y);
-                    // let boundary_pixels: [u32; 4] = std::array::from_fn(|i| (i as u32 + 1) +
-                    // 100); if boundary_pixels.contains(&x) ||
-                    // boundary_pixels.contains(&y) {     println!("({}, {}):
-                    // Not obstacle", x, y); }
                     image.put_pixel(x, y, image::Rgb([255, 255, 255]));
-                }
-
-                // red if y is half way
-                if pixel_coords.x == 99 {
-                    image.put_pixel(x, y, image::Rgb([255, 0, 0]));
-                } else if pixel_coords.y == 99 {
-                    image.put_pixel(x, y, image::Rgb([0, 255, 0]));
                 }
             } else {
                 Err(anyhow::anyhow!("Tile not found"))?;
