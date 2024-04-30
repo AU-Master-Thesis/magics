@@ -160,16 +160,15 @@ impl Triangle {
     /// - `base_length`
     /// - `height`
     pub fn expanded(&self, expansion: Float) -> Self {
-        // self.base_length =
-        //     StrictlyPositiveFinite::<Float>::new(self.base_length.get() *
-        // expansion).unwrap(); self.height =
-        // StrictlyPositiveFinite::<Float>::new(self.height.get() * expansion).unwrap();
+        let factor = expansion * 3.0;
+
+        let expanded_height = self.height.get() + factor;
+        let height_factor = expanded_height / self.height.get();
+        let expanded_base_length = self.base_length.get() * height_factor;
 
         Self {
-            base_length: StrictlyPositiveFinite::<Float>::new(self.base_length.get() + expansion)
-                .unwrap(),
-            height:      StrictlyPositiveFinite::<Float>::new(self.height.get() + expansion)
-                .unwrap(),
+            base_length: StrictlyPositiveFinite::<Float>::new(expanded_base_length).unwrap(),
+            height:      StrictlyPositiveFinite::<Float>::new(expanded_height).unwrap(),
             mid_point:   self.mid_point,
         }
     }
@@ -253,7 +252,7 @@ pub struct RegularPolygon {
 impl RegularPolygon {
     /// Expand the polygon's `side_length` with a given factor `expansion`
     pub fn expanded(&self, expansion: Float) -> Self {
-        // let factor = expansion + 1.0;
+        // let factor = expansion * 2.0;
 
         RegularPolygon::new(
             self.sides,
@@ -413,12 +412,12 @@ impl PlaceableShape {
 
     /// Expand the shape by a given factor `expansion`
     pub fn expanded(&self, expansion: Float) -> Self {
-        // let factor = expansion + 1.0;
+        let factor = expansion * 1.0;
         match self {
-            Self::Circle(circle) => Self::Circle(circle.expanded(expansion)),
-            Self::Triangle(triangle) => Self::Triangle(triangle.expanded(expansion)),
-            Self::RegularPolygon(polygon) => Self::RegularPolygon(polygon.expanded(expansion)),
-            Self::Rectangle(rectangle) => Self::Rectangle(rectangle.expanded(expansion)),
+            Self::Circle(circle) => Self::Circle(circle.expanded(factor)),
+            Self::Triangle(triangle) => Self::Triangle(triangle.expanded(factor)),
+            Self::RegularPolygon(polygon) => Self::RegularPolygon(polygon.expanded(factor)),
+            Self::Rectangle(rectangle) => Self::Rectangle(rectangle.expanded(factor)),
         }
     }
 
