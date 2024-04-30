@@ -110,11 +110,11 @@ paste            = "1.0.14"
 egui_plot        = "0.26"
 egui_graphs      = "0.19.0"
 serde_yaml.workspace = true
-rrt              = "0.7.0"
+rrt              = { git = "https://github.com/AU-Master-Thesis/rrt", branch = "main" }
+colored          = "2.1.0"
+directories      = "5.0.1"
+chrono           = "0.4.37"
 # parry3d = "0.13.7"
-colored     = "2.1.0"
-directories = "5.0.1"
-chrono      = "0.4.37"
 
 
 # font-kit = { version = "0.13.0", features = ["freetype"] }

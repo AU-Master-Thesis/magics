@@ -124,6 +124,7 @@
               gcc
               gfortran
               zlib
+              gh
             ]
             ++ bevy-deps
             ++ rust-deps;

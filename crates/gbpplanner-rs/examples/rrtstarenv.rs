@@ -314,7 +314,7 @@ fn rrt_path(
     let start = [START.x as f64, START.y as f64];
     let end = [END.x as f64, END.y as f64];
 
-    if let Ok(mut res) = rrt::rrt_star_connect(
+    if let Ok(mut res) = rrt::dual_rrt_connect(
         &start,
         &end,
         |x: &[f64]| collision_solver.is_feasible(x),
@@ -325,7 +325,6 @@ fn rrt_path(
     .inspect_err(|e| {
         warn!("Failed to find path with error: {}", e);
     }) {
-        info!("Found path with {} waypoints", res.len());
         // optimise and smooth the found path
         rrt::smooth_path(
             &mut res,
@@ -334,15 +333,11 @@ fn rrt_path(
             config.rrt.smoothing.max_iterations.get(),
         );
 
-        info!("Smoothed path with {} waypoints", res.len());
-
         // convert the path to Vec3 and update the path resource
         path.clear();
         res.iter().for_each(|x| {
             path.push(Vec3::new(x[0] as f32, 0.0, x[1] as f32));
         });
-
-        info!("Path length: {:.2}", path.euclidean_length());
 
         // update state and signal event
         next_state_path_found.set(PathFindingState::Found);
