@@ -1,25 +1,25 @@
 cargo-features = [
-  "codegen-backend",
+    "codegen-backend",
 ]
 
 [workspace]
 resolver = "2" # Important! wgpu/bevy needs this!
 members = [
-  "crates/angle",
-  "crates/min_len_vec",
-  "crates/percentage",
-  "crates/unit_interval",
-  "crates/gbp_linalg",
-  "crates/gbp_multivariate_normal",
-  # "crates/bevy_undo_redo",
-  "crates/gbpplanner-rs",
-  "crates/bevy_notify",
-  "crates/units",
-  "crates/repeating_array",
-  "crates/bevy_fullscreen",
-  "crates/bevy_touchpad",
-  "crates/seq",
-  "crates/as_variant",
+    "crates/angle",
+    "crates/min_len_vec",
+    "crates/percentage",
+    "crates/unit_interval",
+    "crates/gbp_linalg",
+    "crates/gbp_multivariate_normal",
+    # "crates/bevy_undo_redo",
+    "crates/gbpplanner-rs",
+    "crates/bevy_notify",
+    "crates/units",
+    "crates/repeating_array",
+    "crates/bevy_fullscreen",
+    "crates/bevy_touchpad",
+    "crates/seq",
+    "crates/as_variant",
 ]
 
 [workspace.package]
@@ -27,8 +27,8 @@ version = "1.1.0"
 edition = "2021"
 repository = "https://github.com/AU-Master-Thesis/gbp-rs"
 authors = [
-  "Jens Høigaard Jensen <jens.jens@live.dk>",
-  "Kristoffer Plagborg Bak Sørensen <kristoffer.pbs@tuta.io>",
+    "Jens Høigaard Jensen <jens.jens@live.dk>",
+    "Kristoffer Plagborg Bak Sørensen <kristoffer.pbs@tuta.io>",
 ]
 rust-version = "1.77"
 license = "MIT"
@@ -39,7 +39,7 @@ ndarray = "0.15.6"
 anyhow = "1.0.81"
 thiserror = "1.0.58"
 serde = { version = "1.0.197", features = [
-  "derive",
+    "derive",
 ] }
 
 [workspace.lints.rust]
@@ -106,6 +106,8 @@ codegen-units = 1
 incremental   = false
 panic         = "abort"
 
+
 [profile.flamegraph]
 inherits = "release"
-strip    = false
+debug    = true
+# strip    = false

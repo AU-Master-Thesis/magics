@@ -103,6 +103,7 @@ impl Message {
     }
 
     /// Create an empty message
+    // PERF(kpbaks): set to None instead
     #[must_use]
     pub fn empty(/*origin: MessageOrigin*/) -> Self {
         Self {
@@ -124,17 +125,21 @@ impl Message {
     /// - if `lam.0.ncols() != DOFS`
     /// - if `mu.0.len() != DOFS`
     #[must_use]
-    pub fn new(eta: InformationVec, lam: PrecisionMatrix, mu: Mean /* , origin: MessageOrigin */) -> Self {
-        debug_assert_eq!(eta.0.len(), DOFS);
-        debug_assert_eq!(lam.0.nrows(), DOFS);
-        debug_assert_eq!(lam.0.ncols(), DOFS);
-        debug_assert_eq!(mu.0.len(), DOFS);
+    pub fn new(
+        information_vector: InformationVec,
+        precision_matrix: PrecisionMatrix,
+        mean: Mean, // , origin: MessageOrigin
+    ) -> Self {
+        debug_assert_eq!(information_vector.0.len(), DOFS);
+        debug_assert_eq!(precision_matrix.0.nrows(), DOFS);
+        debug_assert_eq!(precision_matrix.0.ncols(), DOFS);
+        debug_assert_eq!(mean.0.len(), DOFS);
 
         Self {
             payload: Some(Payload {
-                information_vector: eta.0,
-                precision_matrix: lam.0,
-                mean: mu.0,
+                information_vector: information_vector.0,
+                precision_matrix: precision_matrix.0,
+                mean: mean.0,
             }),
             // origin,
         }
