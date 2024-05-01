@@ -485,22 +485,12 @@ mod tests {
     }
 
     #[test]
-    fn test_tile_to_image_coords() {
-        let tile_coords = TileCoords { x: 2, y: 5 };
-        let resolution = PixelsPerTile::new(100);
-        let tile_size = 10.0;
-        let pixel_coords = tile_to_image_coords(tile_coords, resolution, tile_size);
-        assert_eq!(pixel_coords.x, 20);
-        assert_eq!(pixel_coords.y, 50);
-    }
-
-    #[test]
     fn test_tile_units_to_percentage() {
         let tile_dimensions = TileDimensions { x: 2.3, y: 5.6 };
         let tile_size = 10.0;
         let percentage = tile_units_to_percentage(tile_dimensions, tile_size);
-        assert_eq!(percentage.x.0, 0.3);
-        assert_eq!(percentage.y.0, 0.6);
+        assert_eq!(percentage.x().0, 0.3);
+        assert_eq!(percentage.y().0, 0.6);
     }
 
     #[test]

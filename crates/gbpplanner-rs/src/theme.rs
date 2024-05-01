@@ -9,6 +9,7 @@ use bevy_egui::{
 };
 use bevy_infinite_grid::InfiniteGridSettings;
 use catppuccin::{Colour, Flavour, FlavourColours};
+// use colorgrad::{BlendMode, Color, CustomGradient};
 use strum_macros::EnumIter;
 
 use crate::{
@@ -124,6 +125,22 @@ impl CatppuccinTheme {
     #[inline]
     pub const fn colours(&self) -> FlavourColours {
         self.flavour.colours()
+    }
+
+    /// Get a gradient from colour1 to colour2
+    pub fn gradient(&self, colour1: Colour, colour2: Colour) -> colorgrad::Gradient {
+        let (r1, g1, b1) = colour1.into();
+        let (r2, g2, b2) = colour2.into();
+        let ccolor1 = colorgrad::Color::from_linear_rgba8(r1, g1, b1, 255);
+        let ccolor2 = colorgrad::Color::from_linear_rgba8(r2, g2, b2, 255);
+
+        colorgrad::CustomGradient::new()
+            .colors(&[ccolor1, ccolor2])
+            // .interpolation(colorgrad::Interpolation::Linear)
+            .mode(colorgrad::BlendMode::Hsv)
+            .domain(&[0.0, 1.0])
+            .build()
+            .unwrap()
     }
 
     /// Iterator over colours for display
