@@ -2,16 +2,9 @@ use crate::{GbpSchedule, GbpScheduleConfig, GbpScheduleIter, GbpScheduleTimestep
 
 pub struct SoonAsPossible;
 
-// impl SoonAsPossible {
-//     pub fn new() -> Self {
-//         Self
-//     }
-// }
-
 pub struct SoonAsPossibleIter {
     max: u8,
     config: GbpScheduleConfig,
-    // counters: [u8; 2],
     internal: u8,
     external: u8,
     i: u8,
@@ -20,13 +13,11 @@ pub struct SoonAsPossibleIter {
 impl SoonAsPossibleIter {
     pub fn new(config: GbpScheduleConfig) -> Self {
         let max = config.max();
-        // let counters = [0u8; 2];
         Self {
             max,
             config,
             internal: 0,
             external: 0,
-            // counters,
             i: 0,
         }
     }
@@ -69,7 +60,7 @@ impl GbpSchedule for SoonAsPossible {
 mod tests {
     use super::*;
 
-    fn ts(internal: bool, external: bool) -> GbpScheduleTimestep {
+    const fn ts(internal: bool, external: bool) -> GbpScheduleTimestep {
         GbpScheduleTimestep { internal, external }
     }
 
@@ -123,6 +114,40 @@ mod tests {
         assert_eq!(schedule.next(), Some(ts(true, true)));
         assert_eq!(schedule.next(), Some(ts(true, true)));
         assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), None);
+    }
+
+    #[test]
+    fn both_zero() {
+        let config = GbpScheduleConfig {
+            internal: 0,
+            external: 0,
+        };
+        let mut schedule = SoonAsPossible::schedule(config);
+        assert_eq!(schedule.next(), None);
+    }
+
+    #[test]
+    fn internal_zero_external_not() {
+        let config = GbpScheduleConfig {
+            internal: 0,
+            external: 2,
+        };
+        let mut schedule = SoonAsPossible::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), None);
+    }
+
+    #[test]
+    fn external_zero_internal_not() {
+        let config = GbpScheduleConfig {
+            internal: 2,
+            external: 0,
+        };
+        let mut schedule = SoonAsPossible::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(true, false)));
+        assert_eq!(schedule.next(), Some(ts(true, false)));
         assert_eq!(schedule.next(), None);
     }
 }
