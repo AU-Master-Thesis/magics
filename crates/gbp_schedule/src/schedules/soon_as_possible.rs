@@ -1,0 +1,128 @@
+use crate::{GbpSchedule, GbpScheduleConfig, GbpScheduleIter, GbpScheduleTimestep};
+
+pub struct SoonAsPossible;
+
+// impl SoonAsPossible {
+//     pub fn new() -> Self {
+//         Self
+//     }
+// }
+
+pub struct SoonAsPossibleIter {
+    max: u8,
+    config: GbpScheduleConfig,
+    // counters: [u8; 2],
+    internal: u8,
+    external: u8,
+    i: u8,
+}
+
+impl SoonAsPossibleIter {
+    pub fn new(config: GbpScheduleConfig) -> Self {
+        let max = config.max();
+        // let counters = [0u8; 2];
+        Self {
+            max,
+            config,
+            internal: 0,
+            external: 0,
+            // counters,
+            i: 0,
+        }
+    }
+}
+
+impl std::iter::Iterator for SoonAsPossibleIter {
+    type Item = GbpScheduleTimestep;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.i < self.max {
+            let mut ts = GbpScheduleTimestep::default();
+            if self.internal < self.config.internal {
+                ts.internal = true;
+                self.internal += 1;
+            }
+
+            if self.external < self.config.external {
+                ts.external = true;
+                self.external += 1;
+            }
+
+            self.i += 1;
+
+            Some(ts)
+        } else {
+            None
+        }
+    }
+}
+
+impl GbpScheduleIter for SoonAsPossibleIter {}
+
+impl GbpSchedule for SoonAsPossible {
+    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIter {
+        SoonAsPossibleIter::new(config)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ts(internal: bool, external: bool) -> GbpScheduleTimestep {
+        GbpScheduleTimestep { internal, external }
+    }
+
+    #[test]
+    fn internal_greater_than_external() {
+        let config = GbpScheduleConfig {
+            internal: 10,
+            external: 5,
+        };
+        let mut schedule = SoonAsPossible::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+
+        assert_eq!(schedule.next(), Some(ts(true, false)));
+        assert_eq!(schedule.next(), Some(ts(true, false)));
+        assert_eq!(schedule.next(), Some(ts(true, false)));
+        assert_eq!(schedule.next(), Some(ts(true, false)));
+        assert_eq!(schedule.next(), Some(ts(true, false)));
+
+        assert_eq!(schedule.next(), None);
+    }
+
+    #[test]
+    fn internal_less_than_external() {
+        let config = GbpScheduleConfig {
+            internal: 3,
+            external: 6,
+        };
+        let mut schedule = SoonAsPossible::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+
+        assert_eq!(schedule.next(), None);
+    }
+
+    #[test]
+    fn internal_external_even() {
+        let config = GbpScheduleConfig {
+            internal: 3,
+            external: 3,
+        };
+        let mut schedule = SoonAsPossible::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), None);
+    }
+}
