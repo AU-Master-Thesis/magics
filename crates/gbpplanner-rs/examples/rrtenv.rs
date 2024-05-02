@@ -13,7 +13,7 @@ use gbp_environment::Environment;
 use gbpplanner_rs::{
     asset_loader::{AssetLoaderPlugin, Fonts},
     cli,
-    config::{read_config, Config, FormationGroup, RrtSection},
+    config::{read_config, Config, FormationGroup, RRTSection},
     environment::{map_generator::Colliders, EnvironmentPlugin},
     input::{camera::CameraInputPlugin, general::GeneralInputPlugin, ChangingBinding},
     simulation_loader::{InitialSimulation, SimulationLoaderPlugin},
@@ -250,7 +250,7 @@ fn spawn_rrt_path_finding_task(
     start: Vec2,
     end: Vec2,
     colliders: &'static Colliders,
-    rrt_params: RrtSection,
+    rrt_params: RRTSection,
     target: Entity, // task_pool: Res<AsyncComputeTaskPool>,
 ) {
     let collision_solver = CollisionProblem::new(Arc::new(colliders))

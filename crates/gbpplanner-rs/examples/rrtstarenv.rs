@@ -13,7 +13,7 @@ use gbp_environment::Environment;
 use gbpplanner_rs::{
     asset_loader::{AssetLoaderPlugin, Fonts},
     cli,
-    config::{read_config, Config, FormationGroup, RrtSection},
+    config::{read_config, Config, FormationGroup, RRTSection},
     environment::{map_generator::Colliders, EnvironmentPlugin},
     input::{camera::CameraInputPlugin, general::GeneralInputPlugin, ChangingBinding},
     simulation_loader::{InitialSimulation, SimulationLoaderPlugin},
@@ -89,7 +89,13 @@ fn main() -> anyhow::Result<()> {
             GeneralInputPlugin,
             EnvironmentPlugin,
         ))
-        .add_systems(Startup, (spawn_waypoints, init_path_info_text))
+        .add_systems(
+            Startup,
+            (
+                spawn_waypoints,
+                // init_path_info_text
+            ),
+        )
         .add_systems(PostStartup, change_infinite_grid_settings)
         .add_systems(
             Update,
@@ -276,6 +282,7 @@ fn rrt_path(
         || collision_solver.random_sample(),
         config.rrt.step_size.get() as f64,
         config.rrt.max_iterations.get(),
+        config.rrt.neighbourhood_radius.get() as f64,
         false,
     )
     .inspect_err(|e| {

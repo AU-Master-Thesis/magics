@@ -5944,7 +5944,7 @@ checksum = "3cd14fd5e3b777a7422cca79358c57a8f6e3a703d9ac187448d0daf220c2407f"
 [[package]]
 name = "rrt"
 version = "0.7.0"
-source = "git+https://github.com/AU-Master-Thesis/rrt?branch=main#d9eef7cec97dee331be9d42f8351e2e82a39eb72"
+source = "git+https://github.com/AU-Master-Thesis/rrt?branch=main#9456249aef1c6a4f46799e3feb4969188345e57c"
 dependencies = [
  "derive_more",
  "kdtree",

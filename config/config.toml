@@ -62,9 +62,10 @@ pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = false
 
 [rrt]
-max-iterations   = 1000
-step-size        = 2.0
-collision-radius = 10.0
+max-iterations       = 1000
+step-size            = 2.0
+collision-radius     = 10.0
+neighbourhood-radius = 10.0
 
 [rrt.smoothing]
 max-iterations = 500
