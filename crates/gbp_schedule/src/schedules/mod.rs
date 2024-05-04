@@ -1,13 +1,13 @@
 mod centered;
-mod half_end_half_beginning;
+mod half_beginning_half_end;
 mod interleave_evenly;
 mod late_as_possible;
 mod soon_as_possible;
 
-use std::num::NonZeroUsize;
+// use std::num::NonZeroUsize;
 
 pub use centered::*;
-pub use half_end_half_beginning::*;
+pub use half_beginning_half_end::*;
 pub use interleave_evenly::*;
 pub use late_as_possible::*;
 pub use soon_as_possible::*;

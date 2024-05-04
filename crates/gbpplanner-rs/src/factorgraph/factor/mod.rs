@@ -38,8 +38,6 @@ pub trait Factor {
     fn jacobian_delta(&self) -> Float;
 
     /// Returns the number of neighbours this factor expects
-    /// NOTE: defined as an instance method, so that `FactorKind` can dispatch
-    /// on itself to get the right value
     fn neighbours(&self) -> usize;
 
     /// Whether to skip this factor in the update step
@@ -60,8 +58,6 @@ pub trait Factor {
     }
 
     /// Measurement function
-    /// **Note**: This method takes a mutable reference to self, because the
-    /// interrobot factor
     #[must_use]
     fn measure(&self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
 
@@ -272,6 +268,7 @@ impl FactorNode {
 
         let mut marginalisation_idx = 0;
         let mut messages = MessagesToVariables::new();
+        // let mut messages = MessagesToVariables::with_capacity(self.inbox.len());
 
         for variable_id in self.inbox.keys() {
             let mut information_vec = potential_information_vec.clone();
@@ -284,15 +281,19 @@ impl FactorNode {
                 }
 
                 if other_message.is_empty() {
-                    // error!("skipping empty message");
                     continue;
                 }
 
-                let message_eta = other_message.information_vector().expect("it better be there");
+                // let message_eta = other_message.information_vector().expect("it better be
+                // there"); information_vec
+                //     .slice_mut(s![j * DOFS..(j + 1) * DOFS])
+                //     .add_assign(message_eta);
 
-                information_vec
-                    .slice_mut(s![j * DOFS..(j + 1) * DOFS])
-                    .add_assign(message_eta);
+                if let Some(message_information) = other_message.information_vector() {
+                    information_vec
+                        .slice_mut(s![j * DOFS..(j + 1) * DOFS])
+                        .add_assign(message_information);
+                }
 
                 if let Some(message_precision) = other_message.precision_matrix() {
                     precision_matrix

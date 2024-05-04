@@ -75,7 +75,7 @@ impl Plugin for RobotDiagnosticsPlugin {
 }
 
 impl RobotDiagnosticsPlugin {
-    pub const ENVIRONMEN_COLLISION_COUNT: DiagnosticPath = DiagnosticPath::const_new("environment_collision_count");
+    pub const ENVIRONMENT_COLLISION_COUNT: DiagnosticPath = DiagnosticPath::const_new("environment_collision_count");
     pub const EXTERNAL_MESSAGES_SENT_COUNT: DiagnosticPath = DiagnosticPath::const_new("external_messages_sent_count");
     pub const FACTOR_COUNT: DiagnosticPath = DiagnosticPath::const_new("factor_count");
     pub const MESSAGES_SENT_COUNT: DiagnosticPath = DiagnosticPath::const_new("messages_sent_count");
@@ -126,6 +126,7 @@ impl RobotDiagnosticsPlugin {
     fn count_external_messages_sent(
         mut diagnostics: Diagnostics,
         mut messages_sent_in_total: Local<usize>,
+        // FIXME: remove mut requirement
         mut factorgraphs: Query<&mut FactorGraph, With<RobotState>>,
     ) {
         diagnostics.add_measurement(&Self::EXTERNAL_MESSAGES_SENT_COUNT, || {
@@ -169,7 +170,7 @@ impl RobotDiagnosticsPlugin {
             Self::MESSAGES_SENT_COUNT,
             Self::EXTERNAL_MESSAGES_SENT_COUNT,
             Self::ROBOT_COLLISION_COUNT,
-            Self::ENVIRONMEN_COLLISION_COUNT,
+            Self::ENVIRONMENT_COLLISION_COUNT,
         ] {
             if let Some(diagnostic) = store.get_mut(path) {
                 diagnostic.clear_history();

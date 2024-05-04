@@ -6,6 +6,7 @@
 pub mod robot;
 mod spawner;
 // mod variable;
+mod run_schedule;
 mod visualiser;
 
 use bevy::prelude::*;

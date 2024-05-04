@@ -8,6 +8,7 @@ use std::{
 };
 
 use bevy::{ecs::system::Resource, math::Vec2};
+use itertools::Itertools;
 use min_len_vec::{one_or_more, OneOrMore};
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
@@ -238,7 +239,8 @@ impl Formation {
     pub fn as_positions(
         &self,
         world_dims: WorldDimensions,
-        robot_radius: StrictlyPositiveFinite<f32>,
+        // robot_radius: StrictlyPositiveFinite<f32>,
+        robot_radii: &[f32],
         rng: &mut impl Rng,
     ) -> Option<(Vec<Vec2>, Vec<Vec<Vec2>>)> {
         match self.initial_position.shape {
@@ -251,26 +253,26 @@ impl Formation {
                         randomly_place_nonoverlapping_circles_along_line_segment(
                             ls_start,
                             ls_end,
-                            self.robots,
-                            robot_radius,
+                            &robot_radii,
+                            // self.robots,
+                            // robot_radius,
                             *attempts,
-                            // max_placement_attempts,
                             rng,
                         )
                     }
                     InitialPlacementStrategy::Equal => {
-                        let d = ls_start.distance(ls_end);
-                        let n_robots: f32 = self.robots.get() as f32;
-                        let robot_diameter = robot_radius.get() * 2.0;
-                        if d < robot_diameter * n_robots {
-                            None
-                        } else {
-                            Some((0..self.robots.get()).map(|x| x as f32 / n_robots).collect())
-                        }
+                        evenly_place_nonoverlapping_circles_along_line_segment(ls_start, ls_end, &robot_radii)
+
+                        // let d = ls_start.distance(ls_end);
+                        // let n_robots: f32 = self.robots.get() as f32;
+                        // let robot_diameter = robot_radius.get() * 2.0;
+                        // if d < robot_diameter * n_robots {
+                        //     None
+                        // } else {
+                        //     Some((0..self.robots.get()).map(|x| x as f32 /
+                        // n_robots).collect()) }
                     }
                 }?;
-
-                // dbg!(&lerp_amounts);
 
                 assert_eq!(lerp_amounts.len(), self.robots.get());
 
@@ -324,14 +326,15 @@ impl Formation {
                         // TODO: check if it even makes sense to iterate
                         // if B * n > 2 * math.pi * A:
                         let mut rng = thread_rng();
+                        todo!()
 
-                        randomly_place_nonoverlapping_circles_along_circle_perimeter(
-                            self.robots,
-                            robot_radius,
-                            radius,
-                            attempts,
-                            &mut rng,
-                        )
+                        // randomly_place_nonoverlapping_circles_along_circle_perimeter(
+                        //     self.robots,
+                        //     robot_radius,
+                        //     radius,
+                        //     attempts,
+                        //     &mut rng,
+                        // )
                     }
                 }?;
                 assert_eq!(angles.len(), self.robots.get());
@@ -467,31 +470,38 @@ fn randomly_place_nonoverlapping_circles_along_circle_perimeter(
 fn randomly_place_nonoverlapping_circles_along_line_segment(
     from: Vec2,
     to: Vec2,
-    num_circles: NonZeroUsize,
-    radius: StrictlyPositiveFinite<f32>,
+    radii: &[f32],
+    // num_circles: NonZeroUsize,
+    // radius: StrictlyPositiveFinite<f32>,
     max_attempts: NonZeroUsize,
     rng: &mut impl Rng,
 ) -> Option<Vec<f32>> {
-    let num_circles = num_circles.get();
+    // let num_circles = num_circles.get();
+    let num_circles = radii.len();
     let max_attempts = max_attempts.get();
     let mut lerp_amounts: Vec<f32> = Vec::with_capacity(num_circles);
-    let mut placed: Vec<Vec2> = Vec::with_capacity(num_circles);
+    let mut placed: Vec<(Vec2, f32)> = Vec::with_capacity(num_circles);
 
-    let diameter = radius.get() * 2.0;
+    // let diameter = radius.get() * 2.0;
 
     for _ in 0..max_attempts {
         placed.clear();
         lerp_amounts.clear();
 
-        for _ in 0..num_circles {
+        // for _ in 0..num_circles {
+        for &radius in radii {
             let lerp_amount = rng.gen_range(0.0..1.0);
             let new_position = from.lerp(to, lerp_amount);
 
-            let valid = placed.iter().all(|&p| new_position.distance(p) >= diameter);
+            let valid = placed
+                .iter()
+                .all(|(pos, other_radius)| new_position.distance(*pos) >= *other_radius + radius);
+
+            // let valid = placed.iter().all(|&p| new_position.distance(p) >= diameter);
 
             if valid {
                 lerp_amounts.push(lerp_amount);
-                placed.push(new_position);
+                placed.push((new_position, radius));
                 if placed.len() == num_circles {
                     return Some(lerp_amounts);
                 }
@@ -500,6 +510,54 @@ fn randomly_place_nonoverlapping_circles_along_line_segment(
     }
 
     None
+}
+
+// fn evenly_place_nonoverlapping_circles_along_line_segment(from: Vec2, to:
+// Vec2, radii: &[f32]) -> Option<Vec<Vec2>> {
+fn evenly_place_nonoverlapping_circles_along_line_segment(from: Vec2, to: Vec2, radii: &[f32]) -> Option<Vec<f32>> {
+    assert!(!radii.is_empty());
+    let min = {
+        let mut min = radii[0];
+        for &radius in radii {
+            if radius < min {
+                min = radius;
+            }
+        }
+        min
+    };
+
+    let max = {
+        let mut max = radii[0];
+        for &radius in radii {
+            if radius > max {
+                max = radius;
+            }
+        }
+        max
+    };
+
+    if from.distance(to) / max < min {
+        return None;
+    }
+
+    let line_segment_length = from.distance(to);
+    let dir = (to - from).normalize();
+    let extra = from.distance(to) / max;
+
+    let mut center = from + *radii.first().unwrap() * dir;
+    let mut placed = Vec::with_capacity(radii.len());
+
+    for (r1, r2) in radii.iter().chain(std::iter::once(&0.0)).tuple_windows() {
+        let diff = r2 - r1;
+
+        let lerp_amount = (center - from).length() / line_segment_length;
+
+        // placed.push(center);
+        placed.push(lerp_amount);
+        center += (r1 + diff) * 2. + (extra - diff) * dir;
+    }
+
+    Some(placed)
 }
 
 #[derive(Debug, thiserror::Error)]

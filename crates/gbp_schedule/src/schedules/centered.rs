@@ -39,20 +39,25 @@ mod private {
             Some(result)
         }
     }
+
+    impl ExactSizeIterator for CenteredIter {
+        fn len(&self) -> usize {
+            self.max as usize
+        }
+    }
 }
 
 pub struct CenteredIter {
-    internal: private::CenteredIter,
-    external: private::CenteredIter,
+    iter: std::iter::Zip<private::CenteredIter, private::CenteredIter>,
 }
 
 impl CenteredIter {
     pub fn new(config: GbpScheduleConfig) -> Self {
         let max = config.max();
-        Self {
-            internal: private::CenteredIter::new(config.internal, max),
-            external: private::CenteredIter::new(config.external, max),
-        }
+        let internal = private::CenteredIter::new(config.internal, max);
+        let external = private::CenteredIter::new(config.external, max);
+        let iter = internal.zip(external);
+        Self { iter }
     }
 }
 
@@ -60,13 +65,13 @@ impl Iterator for CenteredIter {
     type Item = GbpScheduleTimestep;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match (self.internal.next(), self.external.next()) {
-            (None, None) => None,
-            (Some(internal), Some(external)) => Some(GbpScheduleTimestep { internal, external }),
-            _ => unreachable!("both iterators have the same length"),
-        }
+        self.iter
+            .next()
+            .map(|(internal, external)| GbpScheduleTimestep { internal, external })
     }
 }
+
+impl ExactSizeIterator for CenteredIter {}
 
 impl GbpScheduleIter for CenteredIter {}
 

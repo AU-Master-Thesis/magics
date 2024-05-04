@@ -22,16 +22,19 @@ use super::{
 /// the factorgraph is attached to as a Component, as its unique identifier.
 pub type FactorGraphId = Entity;
 
+/// Type parameter setting the upper bound for the size of the graph
+/// u16 -> 2^16 -1 = 65535
+type IndexSize = u16;
 /// The type used to represent indices into the nodes of the factorgraph.
 /// This is just a type alias for `petgraph::graph::NodeIndex`, but
 /// we make an alias for it here, such that it is easier to use the same
 /// index type across modules, as the various node index types `petgraph`
 /// are not interchangeable.
-pub type NodeIndex = petgraph::stable_graph::NodeIndex;
+pub type NodeIndex = petgraph::stable_graph::NodeIndex<IndexSize>;
 /// The type used to represent indices into the nodes of the factorgraph.
-pub type EdgeIndex = petgraph::stable_graph::EdgeIndex;
+pub type EdgeIndex = petgraph::stable_graph::EdgeIndex<IndexSize>;
 /// A factorgraph is an undirected graph
-pub type Graph = petgraph::stable_graph::StableGraph<Node, (), Undirected, u32>;
+pub type Graph = petgraph::stable_graph::StableGraph<Node, (), Undirected, IndexSize>;
 
 /// A newtype used to enforce type safety of the indices of the factors in the
 /// factorgraph.
@@ -427,7 +430,7 @@ impl FactorGraph {
             panic!("the variable index either does not exist or does not point to a variable node");
         };
 
-        let factor_messages = variable.change_prior(new_mean);
+        let factor_messages = variable.change_prior(&new_mean);
         let mut messages_to_external_factors: Vec<VariableToFactorMessage> = Vec::new();
 
         for (factor_id, message) in factor_messages {
@@ -599,37 +602,6 @@ impl FactorGraph {
         messages_to_external_factors
     }
 
-    pub fn internal_variable_iteration(&mut self) {
-        for &ix in &self.variable_indices {
-            let node = &mut self.graph[ix];
-            let variable = node.variable_mut();
-            // let variable = node
-            //     .as_variable_mut()
-            //     .expect("self.variable_indices should only contain indices that point to
-            // Variables in the graph");
-            let variable_index = VariableIndex(ix);
-            let variable_id = VariableId::new(self.id, variable_index);
-            // TODO: do internal only
-            let factor_messages = variable.update_belief_and_create_factor_responses();
-
-            for (factor_id, message) in factor_messages {
-                let in_internal_graph = factor_id.factorgraph_id == self.id;
-                if !in_internal_graph {
-                    continue;
-                }
-                // error!(
-                //     "factorgraph id: {:?}, factor.factorgraph_id: {:?}",
-                //     self.id, factor_id.factorgraph_id
-                // );
-                let factor = self.graph[factor_id.factor_index.0]
-                    .as_factor_mut()
-                    .expect("a factor only has variables as neighbours");
-
-                factor.receive_message_from(variable_id, message);
-            }
-        }
-    }
-
     pub fn internal_factor_iteration(&mut self) {
         // TODO: create InternalFactors<'a> iterator
         // for ix in self
@@ -685,12 +657,12 @@ impl FactorGraph {
             Vec::with_capacity(self.interrobot_factor_indices.len());
 
         for i in 0..self.interrobot_factor_indices.len() {
-            // }
-            // for ix in &self.interrobot_factor_indices {
             let ix = self.interrobot_factor_indices[i];
             if !self.graph.contains_node(ix) {
+                // TODO: document when this happens
                 continue;
             }
+
             let node = &mut self.graph[ix];
             let factor = node.factor_mut();
 
@@ -715,8 +687,30 @@ impl FactorGraph {
                 }
             }
         }
-
         messages_to_external_variables
+    }
+
+    pub fn internal_variable_iteration(&mut self) {
+        for &ix in &self.variable_indices {
+            let node = &mut self.graph[ix];
+            let variable = node.variable_mut();
+            let variable_index = VariableIndex(ix);
+            let variable_id = VariableId::new(self.id, variable_index);
+            // TODO: do internal only
+            let factor_messages = variable.update_belief_and_create_factor_responses();
+
+            for (factor_id, message) in factor_messages {
+                let in_internal_graph = factor_id.factorgraph_id == self.id;
+                if !in_internal_graph {
+                    continue;
+                }
+                let factor = self.graph[factor_id.factor_index.0]
+                    .as_factor_mut()
+                    .expect("a factor only has variables as neighbours");
+
+                factor.receive_message_from(variable_id, message);
+            }
+        }
     }
 
     // TODO(kpbaks): does this method even make sense?

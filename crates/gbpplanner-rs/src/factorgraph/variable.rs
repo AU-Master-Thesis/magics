@@ -188,12 +188,10 @@ impl VariableNode {
     /// It updates the belief of the variable.
     /// The prior acts as the pose factor
     /// Called `Variable::change_variable_prior` in **gbpplanner**
-    pub fn change_prior(&mut self, mean: Vector<Float>) -> MessagesToFactors {
-        self.prior.information_vector = self.prior.precision_matrix.dot(&mean);
-        self.belief.mean = mean;
-
-        // FIXME: forgot this line in the original code
-        // this->belief_ = Message {this->eta_, this->lam_, this->mu_};
+    pub fn change_prior(&mut self, mean: &Vector<Float>) -> MessagesToFactors {
+        self.prior.information_vector = self.prior.precision_matrix.dot(mean);
+        // self.belief.mean = mean;
+        self.belief.mean.clone_from(mean);
 
         let messages: MessagesToFactors = self
             .inbox

@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, num::NonZeroUsize, time::Duration};
+use std::{num::NonZeroUsize, time::Duration};
 
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
@@ -8,16 +8,15 @@ use rand::{seq::IteratorRandom, thread_rng, Rng};
 use strum::IntoEnumIterator;
 
 use super::{
-    robot::{RobotDespawned, RobotFinishedPath, RobotSpawned, VariableTimesteps},
+    robot::{RobotFinishedPath, RobotSpawned, VariableTimesteps},
     RobotId,
 };
 use crate::{
     // asset_loader::SceneAssets,
-    asset_loader::{Meshes, Obstacles},
+    asset_loader::Meshes,
     config::{
-        formation::{RepeatTimes, Waypoint, WorldDimensions},
-        geometry::{Point, RelativePoint, Shape},
-        Config, FormationGroup,
+        formation::{RepeatTimes, WorldDimensions},
+        Config,
     },
     environment::FollowCameraMe,
     pause_play::PausePlay,
@@ -174,7 +173,7 @@ pub struct WaypointCreated {
 // }
 
 #[derive(Debug, Clone)]
-struct RepeatingTimer {
+pub struct RepeatingTimer {
     timer:  Timer,
     repeat: RepeatTimes,
 }
@@ -201,7 +200,6 @@ impl RepeatingTimer {
 
     #[inline]
     pub fn just_finished(&mut self) -> bool {
-        // self.timer.just_finished() && !self.repeat.exhausted()
         let finished = self.timer.just_finished() && !self.repeat.exhausted();
         if finished {
             self.repeat.decrement();
@@ -210,10 +208,10 @@ impl RepeatingTimer {
         finished
     }
 
-    #[inline]
-    pub fn duration(&self) -> Duration {
-        self.timer.duration()
-    }
+    // #[inline]
+    // pub fn duration(&self) -> Duration {
+    //     self.timer.duration()
+    // }
 }
 
 #[derive(Debug, Component)]
@@ -238,9 +236,7 @@ enum FormationSpawnerState {
 
 impl FormationSpawner {
     #[must_use]
-    pub fn new(formation_group_index: usize, initial_delay: Duration, mut timer: RepeatingTimer) -> Self {
-        // timer.tick(timer.duration());
-
+    pub fn new(formation_group_index: usize, initial_delay: Duration, timer: RepeatingTimer) -> Self {
         Self {
             formation_group_index,
             initial_delay: Timer::new(initial_delay, TimerMode::Once),
@@ -306,10 +302,10 @@ impl FormationSpawner {
         matches!(self.state, FormationSpawnerState::Active { on_cooldown: false })
     }
 
-    #[inline]
-    fn on_cooldown(&mut self) -> bool {
-        matches!(self.state, FormationSpawnerState::Active { on_cooldown: true })
-    }
+    // #[inline]
+    // fn on_cooldown(&mut self) -> bool {
+    //     matches!(self.state, FormationSpawnerState::Active { on_cooldown: true })
+    // }
 }
 
 fn delete_formation_group_spawners(mut commands: Commands, formation_spawners: Query<Entity, With<FormationSpawner>>) {
@@ -417,7 +413,8 @@ fn spawn_formation(
     // obstacles: Res<Obstacles>,
     sdf: Res<Sdf>,
     // obstacle_sdf: Res<ObstacleSdf>,
-    image_assets: ResMut<Assets<Image>>,
+    // image_assets: ResMut<Assets<Image>>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
 ) {
     for event in evr_robot_formation_spawned.read() {
         // only continue if the image has been loaded
@@ -434,8 +431,6 @@ fn spawn_formation(
 
         let formation = &formation_group.formations[event.formation_group_index];
 
-        // dbg!(&formation);
-
         // TODO: check this gets reloaded correctly
         let world_dims = WorldDimensions::new(
             config.simulation.world_size.get().into(),
@@ -446,9 +441,12 @@ fn spawn_formation(
         let mut rng = rand::thread_rng();
         let max_placement_attempts = NonZeroUsize::new(1000).expect("1000 is not zero");
 
+        let radii = (0..formation.robots.get())
+            .map(|_| rng.gen_range(config.robot.radius.range()))
+            .collect::<Vec<_>>();
+
         let Some((initial_position_for_each_robot, waypoint_positions_for_each_robot)) = formation.as_positions(
-            world_dims,
-            config.robot.radius,
+            world_dims, &radii, // config.robot.radius,
             // max_placement_attempts,
             &mut rng,
         ) else {
@@ -528,13 +526,8 @@ fn spawn_formation(
                 waypoints,
                 variable_timesteps.as_slice(),
                 &config,
+                radii[i],
                 &sdf.0,
-                // image,
-                // scene_assets.obstacle_image_sdf.clone_weak(),
-                // obstacle_sdf,
-                // OBSTACLE_IMAGE
-                //     .get()
-                //     .expect("obstacle image should be allocated and initialised"),
             )
             .expect("Possible `RobotInitError`s should be avoided due to the formation input being validated.");
 
@@ -557,9 +550,24 @@ fn spawn_formation(
                 base_color: Color::from_catppuccin_colour(theme.get_display_colour(&random_color)),
                 ..Default::default()
             });
+            // robot:    meshes.add(
+            //           Sphere::new(1.0)
+            //               .mesh()
+            //               .ico(4)
+            //               .expect("4 subdivisions is less than the maximum allowed of
+            // 80"),       ),
+            //
+
+            let mesh = mesh_assets.add(
+                Sphere::new(radii[i])
+                    .mesh()
+                    .ico(4)
+                    .expect("4 subdivisions is less than the maximum allowed of 80"),
+            );
 
             let pbrbundle = PbrBundle {
-                mesh: meshes.robot.clone(),
+                mesh,
+                // mesh: meshes.robot.clone(),
                 material,
                 transform: Transform::from_translation(initial_translation),
                 visibility: initial_visibility,
@@ -587,13 +595,13 @@ fn spawn_formation(
 }
 
 #[derive(Event)]
-struct RobotClickedOn(pub Entity);
+pub struct RobotClickedOn(pub Entity);
 
 impl RobotClickedOn {
-    #[inline]
-    pub const fn target(&self) -> Entity {
-        self.0
-    }
+    // #[inline]
+    // pub const fn target(&self) -> Entity {
+    //     self.0
+    // }
 }
 
 impl From<ListenerInput<Pointer<Click>>> for RobotClickedOn {

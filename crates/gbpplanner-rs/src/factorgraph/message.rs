@@ -87,6 +87,13 @@ impl Message {
         self.payload.take()
     }
 
+    #[must_use]
+    pub fn acquire(&mut self) -> Self {
+        Self {
+            payload: self.payload.take(),
+        }
+    }
+
     /// Access the payload of the message.
     /// Returns `None` if the message is empty.
     #[inline]

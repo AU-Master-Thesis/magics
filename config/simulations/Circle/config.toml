@@ -38,13 +38,18 @@ lookahead-multiple      = 3
 [gbp.iterations-per-timestep]
 internal = 10
 external = 10
+schedule = "interleave-evenly"
 
 [robot]
 planning-horizon  = 5.0
 max-speed         = 4.0
 dofs              = 4
 symmetric-factors = true
-radius            = 1.0
+# radius            = 1.0
+
+[robot.radius]
+min = 1.0
+max = 2.0
 
 [robot.communication]
 radius       = 10.0
