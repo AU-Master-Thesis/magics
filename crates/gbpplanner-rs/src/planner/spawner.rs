@@ -550,18 +550,11 @@ fn spawn_formation(
                 base_color: Color::from_catppuccin_colour(theme.get_display_colour(&random_color)),
                 ..Default::default()
             });
-            // robot:    meshes.add(
-            //           Sphere::new(1.0)
-            //               .mesh()
-            //               .ico(4)
-            //               .expect("4 subdivisions is less than the maximum allowed of
-            // 80"),       ),
-            //
 
             let mesh = mesh_assets.add(
                 Sphere::new(radii[i])
                     .mesh()
-                    .ico(4)
+                    .ico(2)
                     .expect("4 subdivisions is less than the maximum allowed of 80"),
             );
 

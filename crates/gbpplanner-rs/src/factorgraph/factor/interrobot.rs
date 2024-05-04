@@ -1,6 +1,6 @@
 use std::{borrow::Cow, ops::Sub};
 
-use bevy::log::{error, info};
+use bevy::log::info;
 use gbp_linalg::prelude::*;
 use ndarray::s;
 use typed_floats::StrictlyPositiveFinite;

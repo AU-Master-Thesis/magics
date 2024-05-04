@@ -227,6 +227,18 @@ impl Waypoints {
     }
 }
 
+#[derive(Component, Debug)]
+pub struct RadioAntenna {
+    pub radius: f32,
+    pub active: bool,
+}
+
+impl RadioAntenna {
+    pub fn new(radius: f32, active: bool) -> Self {
+        Self { radius, active }
+    }
+}
+
 /// A robot's state, consisting of other robots within communication range,
 /// and other robots that are connected via inter-robot factors.
 #[derive(Component, Debug)]
@@ -237,10 +249,10 @@ pub struct RobotState {
     pub ids_of_robots_within_comms_range: BTreeSet<RobotId>,
     /// List of robot ids that are currently connected via inter-robot factors
     /// to this robot called `connected_r_ids_` in **gbpplanner**.
-    pub ids_of_robots_connected_with: BTreeSet<RobotId>,
+    pub ids_of_robots_connected_with:     BTreeSet<RobotId>,
     // pub ids_of_robots_connected_with: Vec<RobotId>,
-    /// Flag for whether this factorgraph/robot communicates with other robots
-    pub interrobot_comms_active: bool,
+    // / Flag for whether this factorgraph/robot communicates with other robots
+    // pub interrobot_comms_active: bool,
 }
 
 impl RobotState {
@@ -249,8 +261,8 @@ impl RobotState {
     pub fn new() -> Self {
         Self {
             ids_of_robots_within_comms_range: BTreeSet::new(),
-            ids_of_robots_connected_with: BTreeSet::new(),
-            interrobot_comms_active: true,
+            ids_of_robots_connected_with:     BTreeSet::new(),
+            // interrobot_comms_active: true,
         }
     }
 }
@@ -260,6 +272,8 @@ impl Default for RobotState {
         Self::new()
     }
 }
+
+// TODO: change to collider
 
 #[derive(Debug, Component, Deref)]
 pub struct Ball(parry2d::shape::Ball);
@@ -275,6 +289,7 @@ pub struct RobotBundle {
     /// > 0.0
     pub radius: Radius,
     pub ball: Ball,
+    pub antenna: RadioAntenna,
     /// The current state of the robot
     pub state: RobotState,
     /// Waypoints used to instruct the robot to move to a specific position.
@@ -365,9 +380,7 @@ impl RobotBundle {
         let n_variables = variable_timesteps.len();
         let mut variable_node_indices = Vec::with_capacity(n_variables);
 
-        for (i, &variable_timestep) in variable_timesteps.iter().enumerate()
-        // .take(n_variables)
-        {
+        for (i, &variable_timestep) in variable_timesteps.iter().enumerate() {
             // Set initial mean and covariance of variable interpolated between start and
             // horizon
             #[allow(clippy::cast_precision_loss)]
@@ -454,6 +467,7 @@ impl RobotBundle {
             radius: Radius(radius),
             // ball: Ball(parry2d::shape::Ball::new(config.robot.radius.get())),
             ball: Ball(parry2d::shape::Ball::new(radius)),
+            antenna: RadioAntenna::new(config.robot.communication.radius.get(), true),
             state: RobotState::new(),
             waypoints,
             finished_path: FinishedPath::default(),
@@ -686,9 +700,13 @@ fn create_interrobot_factors(
 /// any other robot. The probability of failure is set by the user in the config
 /// file. `config.robot.communication.failure_rate`
 /// Called `Simulator::setCommsFailure` in **gbpplanner**
-fn update_failed_comms(mut query: Query<&mut RobotState>, config: Res<Config>) {
-    for mut state in &mut query {
-        state.interrobot_comms_active = config.robot.communication.failure_rate < rand::random::<f32>();
+fn update_failed_comms(mut antennas: Query<&mut RadioAntenna>, config: Res<Config>) {
+    // fn update_failed_comms(mut query: Query<&mut RobotState>, config:
+    // Res<Config>) {
+    for mut antenna in &mut antennas {
+        antenna.active = config.robot.communication.failure_rate < rand::random::<f32>();
+        // state.interrobot_comms_active =
+        // config.robot.communication.failure_rate < rand::random::<f32>();
     }
 }
 
@@ -710,14 +728,15 @@ fn iterate_gbp_internal_sync(mut query: Query<&mut FactorGraph, With<RobotState>
     }
 }
 
-fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph, &RobotState)>, config: Res<Config>) {
+fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph, &RobotState, &RadioAntenna)>, config: Res<Config>) {
     // PERF: use Local<> to reuse arrays
     let messages_to_external_variables: Arc<Mutex<Vec<FactorToVariableMessage>>> = Default::default();
     let messages_to_external_factors: Arc<Mutex<Vec<VariableToFactorMessage>>> = Default::default();
 
     for _ in 0..config.gbp.iterations_per_timestep.external {
-        query.par_iter_mut().for_each(|(_, mut factorgraph, state)| {
-            if !state.interrobot_comms_active {
+        query.par_iter_mut().for_each(|(_, mut factorgraph, state, antenna)| {
+            // if !state.interrobot_comms_active {
+            if !antenna.active {
                 return;
             }
 
@@ -737,7 +756,7 @@ fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph, &RobotState)
         // Send messages to external variables
         let mut variable_messages = messages_to_external_variables.lock().expect("not poisoned");
         for message in variable_messages.iter() {
-            let (_, mut factorgraph, _) = query
+            let (_, mut factorgraph, _, _) = query
                 .get_mut(message.to.factorgraph_id)
                 .expect("the factorgraph of the receiving variable should exist in the world");
 
@@ -756,7 +775,7 @@ fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph, &RobotState)
         // Send messages to external factors
         let mut factor_messages = messages_to_external_factors.lock().expect("not poisoned");
         for message in factor_messages.iter() {
-            let (_, mut factorgraph, _) = query
+            let (_, mut factorgraph, _, _) = query
                 .get_mut(message.to.factorgraph_id)
                 .expect("the factorgraph of the receiving variable should exist in the world");
 
@@ -769,14 +788,18 @@ fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph, &RobotState)
     }
 }
 
-fn iterate_gbp_external_sync(mut query: Query<(Entity, &mut FactorGraph, &RobotState)>, config: Res<Config>) {
+fn iterate_gbp_external_sync(
+    mut query: Query<(Entity, &mut FactorGraph, &RobotState, &RadioAntenna)>,
+    config: Res<Config>,
+) {
     // PERF: use Local<> to reuse arrays
     let mut messages_to_external_variables: Vec<FactorToVariableMessage> = Default::default();
     let mut messages_to_external_factors: Vec<VariableToFactorMessage> = Default::default();
 
     for _ in 0..config.gbp.iterations_per_timestep.external {
-        for (_, mut factorgraph, state) in &mut query {
-            if !state.interrobot_comms_active {
+        for (_, mut factorgraph, state, antenna) in &mut query {
+            // if !state.interrobot_comms_active {
+            if !antenna.active {
                 return;
             }
 
@@ -801,7 +824,7 @@ fn iterate_gbp_external_sync(mut query: Query<(Entity, &mut FactorGraph, &RobotS
         // let mut variable_messages = messages_to_external_variables.lock().expect("not
         // poisoned");
         for message in messages_to_external_variables.iter() {
-            let (_, mut factorgraph, _) = query
+            let (_, mut factorgraph, _, _) = query
                 .get_mut(message.to.factorgraph_id)
                 .expect("the factorgraph of the receiving variable should exist in the world");
 
@@ -821,7 +844,7 @@ fn iterate_gbp_external_sync(mut query: Query<(Entity, &mut FactorGraph, &RobotS
         // let mut factor_messages = messages_to_external_factors.lock().expect("not
         // poisoned");
         for message in messages_to_external_factors.iter() {
-            let (_, mut factorgraph, _) = query
+            let (_, mut factorgraph, _, _) = query
                 .get_mut(message.to.factorgraph_id)
                 .expect("the factorgraph of the receiving variable should exist in the world");
 
@@ -1351,14 +1374,14 @@ fn finish_manual_step(
 
 fn on_robot_clicked(
     mut evr_robot_clicked_on: EventReader<RobotClickedOn>,
-    robots: Query<(Entity, &FactorGraph, &RobotState)>,
+    robots: Query<(Entity, &FactorGraph, &RobotState, &Radius, &RadioAntenna)>,
     // mut last_print: Local<Option<String>>,
 ) {
     // use std::fmt::Write;
 
     use colored::Colorize;
     for RobotClickedOn(robot_id) in evr_robot_clicked_on.read() {
-        let Ok((_, factorgraph, robotstate)) = robots.get(*robot_id) else {
+        let Ok((_, factorgraph, robotstate, radius, antenna)) = robots.get(*robot_id) else {
             error!("robot_id {:?} does not exist", robot_id);
             continue;
         };
@@ -1367,18 +1390,15 @@ fn on_robot_clicked(
 
         println!("----- robot cliked on -----");
         println!("{}: {:?}", "robot".magenta(), robot_id);
-        println!("  {}:", "state".magenta());
-        println!("    {}:", "radio".magenta());
-        println!("      {}: todo", "range".magenta());
+        println!("  {}: {}", "radius".magenta(), radius.0);
+        println!("  {}:", "antenna".magenta());
+        println!("    {}: {}", "radius".magenta(), antenna.radius);
         println!(
-            "      {}: {}",
+            "    {}: {}",
             "on".magenta(),
-            if robotstate.interrobot_comms_active {
-                "true".green()
-            } else {
-                "false".red()
-            }
+            if antenna.active { "true".green() } else { "false".red() }
         );
+        println!("  {}:", "state".magenta());
         println!(
             "    {}: {:?}",
             "neighbours".magenta(),
@@ -1405,39 +1425,16 @@ fn on_robot_clicked(
         println!("      {}: {}", "obstacle".magenta(), factor_counts.obstacle);
         println!("      {}: {}", "dynamic".magenta(), factor_counts.dynamic);
         println!("      {}: {}", "interrobot".magenta(), factor_counts.interrobot);
+        println!("      {}: {}", "pose".magenta(), node_counts.variables); // bundled together
 
         // println!("{}\n", text);
         println!("  {}:", "messages".magenta());
         // println!("    {}: {}", "sent".magenta(), factorgraph.messages_sent());
         println!("    {}: {}", "sent".magenta(), "todo");
         println!("    {}: {}", "received".magenta(), "todo");
+        println!("  {}:", "collisions".magenta());
+        println!("    {}: {}", "other-robots".magenta(), "todo");
+        println!("    {}: {}", "environment".magenta(), "todo");
         println!("");
-
-        // if let Some(last) = last_print.as_ref() {
-        //     println!("{}", colored_diff::PrettyDifference {
-        //         expected: last,
-        //         actual:   &text,
-        //     });
-        //     // colored_diff::diff(colored_diff::PrettyDifference, last,
-        //     // &text).unwrap();
-        // } else {
-        //     println!("{}", text);
-        //     // *last_print = Some(text);
-        // }
-
-        // *last_print = Some(text);
-
-        // println!("robot: {:?}", robot_id);
-        // println!("  neighbours:\n    {:?}",
-        // robotstate.ids_of_robots_within_comms_range); println!("
-        // connected:\n     {:?}", robotstate.ids_of_robots_connected_with);
-        // println!("  factorgraph:");
-        // let node_counts = factorgraph.node_count();
-        // println!("    variable: {:?}", node_counts.variables);
-        // println!("    factors:  {:?}", node_counts.factors);
-        // let factor_counts = factorgraph.factor_count();
-        // println!("      obstacle: {:?}", factor_counts.obstacle);
-        // println!("      dynamic: {:?}", factor_counts.dynamic);
-        // println!("      interrobot: {:?}", factor_counts.interrobot);
     }
 }

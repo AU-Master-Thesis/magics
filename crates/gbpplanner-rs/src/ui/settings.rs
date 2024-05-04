@@ -18,6 +18,7 @@ use crate::{
     environment::cursor::CursorCoordinates,
     input::{screenshot::TakeScreenshot, ChangingBinding, DrawSettingsEvent, ExportGraphEvent},
     pause_play::{PausePlay, PausedState},
+    planner::robot::RadioAntenna,
     simulation_loader::{SimulationId, SimulationManager},
     theme::{CatppuccinTheme, CycleTheme, FromCatppuccinColourExt},
 };
@@ -390,6 +391,12 @@ fn ui_settings_panel(
                         );
                         if slider_response.changed() {
                             config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 50.0]");
+                            // TODO: this should not be done with a query here, but there is not
+                            // much time left.
+                            let mut query = world.query::<&mut RadioAntenna>();
+                            for mut antenna in query.iter_mut(world) {
+                                antenna.radius = comms_radius;
+                            }
                         }
                         ui.end_row();
                         // Slider for communication failure rate (probability) in [0.0, 1.0]
