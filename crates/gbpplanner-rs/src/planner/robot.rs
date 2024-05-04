@@ -1399,6 +1399,14 @@ fn on_robot_clicked(
             if antenna.active { "true".green() } else { "false".red() }
         );
         println!("  {}:", "state".magenta());
+        let (_, current_variable) = factorgraph
+            .first_variable()
+            .expect("factorgraph should have >= 2 variables");
+        let [px, py] = current_variable.estimated_position();
+        let [vx, vy] = current_variable.estimated_velocity();
+        println!("    {}: [{:.4}, {:.4}]", "position".magenta(), px, py);
+        println!("    {}: [{:.4}, {:.4}]", "velocity".magenta(), vx, vy);
+
         println!(
             "    {}: {:?}",
             "neighbours".magenta(),
