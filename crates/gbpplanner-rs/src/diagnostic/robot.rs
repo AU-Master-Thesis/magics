@@ -108,7 +108,7 @@ impl RobotDiagnosticsPlugin {
     #[allow(clippy::cast_precision_loss)]
     fn messages_sent(
         mut diagnostics: Diagnostics,
-        mut factorgraphs: Query<&mut FactorGraph, With<RobotState>>,
+        mut factorgraphs: Query<&mut FactorGraph>,
         mut messages_sent_in_total: Local<usize>,
     ) {
         diagnostics.add_measurement(&Self::MESSAGES_SENT_COUNT, || {

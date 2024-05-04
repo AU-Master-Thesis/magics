@@ -1372,21 +1372,18 @@ fn finish_manual_step(
     };
 }
 
+/// Event handler called whenever the mesh of a robot is clicked
+/// Meant for debugging purposes
 fn on_robot_clicked(
     mut evr_robot_clicked_on: EventReader<RobotClickedOn>,
     robots: Query<(Entity, &FactorGraph, &RobotState, &Radius, &RadioAntenna)>,
-    // mut last_print: Local<Option<String>>,
 ) {
-    // use std::fmt::Write;
-
     use colored::Colorize;
     for RobotClickedOn(robot_id) in evr_robot_clicked_on.read() {
         let Ok((_, factorgraph, robotstate, radius, antenna)) = robots.get(*robot_id) else {
             error!("robot_id {:?} does not exist", robot_id);
             continue;
         };
-
-        // let mut text = String::new();
 
         println!("----- robot cliked on -----");
         println!("{}: {:?}", "robot".magenta(), robot_id);
@@ -1438,11 +1435,12 @@ fn on_robot_clicked(
         // println!("{}\n", text);
         println!("  {}:", "messages".magenta());
         // println!("    {}: {}", "sent".magenta(), factorgraph.messages_sent());
-        println!("    {}: {}", "sent".magenta(), "todo");
-        println!("    {}: {}", "received".magenta(), "todo");
+        let message_count = factorgraph.message_count();
+        println!("    {}: {}", "sent".cyan(), message_count.sent);
+        println!("    {}: {}", "received".cyan(), message_count.received);
         println!("  {}:", "collisions".magenta());
-        println!("    {}: {}", "other-robots".magenta(), "todo");
-        println!("    {}: {}", "environment".magenta(), "todo");
+        println!("    {}: {}", "other-robots".cyan(), "todo");
+        println!("    {}: {}", "environment".cyan(), "todo");
         println!("");
     }
 }

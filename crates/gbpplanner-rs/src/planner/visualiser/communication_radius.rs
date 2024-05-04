@@ -29,14 +29,14 @@ fn draw_communication_radius(
 ) {
     let active_comms_color = Color::from_catppuccin_colour(catppuccin_theme.sky());
     let segments = 24;
-    let radius: f32 = config.robot.communication.radius.into();
+    // let radius: f32 = config.robot.communication.radius.into();
 
     for (antenna, transform) in query.iter() {
         gizmos
             .circle(
                 transform.translation,
                 Direction3d::Y,
-                radius,
+                antenna.radius,
                 if antenna.active {
                     active_comms_color
                 } else {

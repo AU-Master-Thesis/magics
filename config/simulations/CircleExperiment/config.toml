@@ -27,6 +27,7 @@ height-map             = false
 sdf                    = false
 communication-radius   = false
 obstacle-factors       = false
+interrobot-factors     = false
 
 [gbp]
 # sigma-pose-fixed        = 0.000000000000001

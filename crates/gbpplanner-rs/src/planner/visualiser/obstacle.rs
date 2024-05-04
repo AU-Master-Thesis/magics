@@ -53,7 +53,7 @@ fn visualize_obstacle_factors(mut gizmos: Gizmos, factorgraphs: Query<&FactorGra
     }
 }
 
-/// Used to check if the communication graph should be drawn
+/// **Bevy** run condition for drawing obstacle factors
 #[inline]
 fn enabled(config: Res<Config>) -> bool {
     config.visualisation.draw.obstacle_factors
