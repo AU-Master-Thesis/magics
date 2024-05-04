@@ -299,10 +299,55 @@ fn ui_settings_panel(
                             ui.end_row();
                         });
 
+                        ui.separator();
+
+                        custom::grid("factors_grid", 2).show(ui, |ui| {
+                            ui.label("Obstacle");
+
+                            custom::float_right(ui, |ui| {
+                                let mut obstacle: bool = true;
+                                if custom::toggle_ui(ui, &mut obstacle).clicked() {
+                                    info!("todo");
+                                }
+                            });
+                            ui.end_row();
+
+                            ui.label("Pose");
+                            custom::float_right(ui, |ui| {
+                                let mut toggle: bool = true;
+                                if custom::toggle_ui(ui, &mut toggle).clicked() {
+                                    info!("todo");
+                                }
+                            });
+                            ui.end_row();
+
+                            ui.label("Dynamic");
+                            custom::float_right(ui, |ui| {
+                                let mut toggle: bool = true;
+                                if custom::toggle_ui(ui, &mut toggle).clicked() {
+                                    info!("todo");
+                                }
+                            });
+                            ui.end_row();
+
+                            ui.label("Interrobot");
+                            custom::float_right(ui, |ui| {
+                                let mut toggle: bool = true;
+                                if custom::toggle_ui(ui, &mut toggle).clicked() {
+                                    info!("todo");
+                                }
+                            });
+                            ui.end_row();
+
+                        });
+
+                        ui.add_space(2.5);
+
                         custom::grid("gbp_grid", 2).show(ui, |ui| {
                             ui.label("Max Speed");
                             // slider for robot max speed  in (0.0, 10.]
-                            ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
+                            // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
+                            ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
 
                             let mut max_speed = config.robot.max_speed.get();
                             // let mut available_size = ui.available_size();
@@ -464,7 +509,7 @@ fn ui_settings_panel(
 
                         ui.label("Δt");
                         let dt = time_fixed.delta_seconds();
-                        let hz = (1.0 / dt) as u32;
+                        let hz = (1.0 / dt).ceil() as u32;
                         // custom::rect_label(ui, format!("{:.4} s = {:.4} Hz", dt, hz), None);
                         custom::rect_label(ui, format!("{:.4} s = {} Hz", dt, hz), None);
                         ui.end_row();
@@ -516,6 +561,7 @@ fn ui_settings_panel(
                             } else {
                                 ""
                             };
+
                             custom::fill_x(ui, |ui| {
                                 if ui
                                     .button(pause_play_text)
@@ -526,11 +572,30 @@ fn ui_settings_panel(
                                 }
                             });
 
-                            // TODO: add control for timesteps per manual step
 
-                            // ui.end_row();
                         });
-                        // ui.end_row();
+                        ui.end_row();
+
+                        ui.label("Timesteps per Step");
+
+                        let mut text = config.manual.timesteps_per_step.to_string();
+
+                        let te_output = egui::TextEdit::singleline(&mut text)
+                            .char_limit(3)
+                            .interactive(time_virtual.is_paused())
+                            .show(ui);
+
+                        if te_output.response.changed() {
+                            match text.parse::<usize>() {
+                                Ok(x) if x >= 1 => {
+                                    config.manual.timesteps_per_step = x.try_into().unwrap();
+
+                                },
+                                _ => {
+                                    error!("failed to parse {} as usize", text);
+                                },
+                            }
+                        }
                     });
 
                     custom::subheading(
