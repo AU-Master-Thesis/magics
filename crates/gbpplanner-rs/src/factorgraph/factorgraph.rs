@@ -7,6 +7,7 @@ use bevy::{
 // use gbp_linalg::Float;
 use gbp_linalg::prelude::*;
 use petgraph::{stable_graph::EdgeReference, visit::EdgeRef, Undirected};
+use typed_floats::StrictlyPositiveFinite;
 
 use super::{
     factor::{interrobot::InterRobotFactor, obstacle::ObstacleFactor, FactorKind, FactorNode},
@@ -795,6 +796,25 @@ impl FactorGraph {
     #[must_use]
     pub fn messages_received(&self) -> MessagesReceived {
         self.graph.node_weights().map(|node| node.messages_received()).sum()
+    }
+
+    pub fn update_inter_robot_safety_distance_multiplier(
+        &mut self,
+        safety_distance_multiplier: StrictlyPositiveFinite<Float>,
+    ) {
+        for ix in &self.interrobot_factor_indices {
+            let Some(node) = self.graph.node_weight_mut(*ix) else {
+                continue;
+            };
+            // let node = &mut self.graph[*ix];
+            let factor = node
+                .as_factor_mut()
+                .expect("self.factor_indices should only contain indices that point to Factors in the graph");
+            let FactorKind::InterRobot(ref mut interrobot) = factor.kind else {
+                panic!("Expected an interrobot factor");
+            };
+            interrobot.update_safety_distance(safety_distance_multiplier);
+        }
     }
 
     // pub fn receive_variable_message_from(&mut self,)

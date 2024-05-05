@@ -638,9 +638,13 @@ fn create_interrobot_factors(
                     factorgraph.id(),
                     Float::from(config.gbp.sigma_factor_interrobot),
                     z,
-                    Float::from(safety_radius)
+                    Float::from(radius.0).try_into().expect("> 0.0"),
+                    Float::from(config.robot.inter_robot_safety_distance_multiplier.get())
                         .try_into()
-                        .expect("safe radius is positive and finite"),
+                        .expect("> 0.0"),
+                    // Float::from(safety_radius)
+                    //     .try_into()
+                    //     .expect("safe radius is positive and finite"),
                     external_variable_id,
                 );
 

@@ -7,6 +7,7 @@ use bevy_egui::{
 };
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
 use catppuccin::Colour;
+use gbp_linalg::Float;
 use repeating_array::RepeatingArray;
 use smol_str::SmolStr;
 use struct_iterable::Iterable;
@@ -16,6 +17,7 @@ use super::{custom, scale::ScaleUi, OccupiedScreenSpace, ToDisplayString, UiScal
 use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
+    factorgraph::prelude::FactorGraph,
     input::{screenshot::TakeScreenshot, ChangingBinding, DrawSettingsEvent, ExportGraphEvent},
     pause_play::{PausePlay, PausedState},
     planner::robot::RadioAntenna,
@@ -308,7 +310,7 @@ fn ui_settings_panel(
                             custom::float_right(ui, |ui| {
                                 let mut obstacle: bool = true;
                                 if custom::toggle_ui(ui, &mut obstacle).clicked() {
-                                    info!("todo");
+                                    error!("todo");
                                 }
                             });
                             ui.end_row();
@@ -317,7 +319,7 @@ fn ui_settings_panel(
                             custom::float_right(ui, |ui| {
                                 let mut toggle: bool = true;
                                 if custom::toggle_ui(ui, &mut toggle).clicked() {
-                                    info!("todo");
+                                    error!("todo");
                                 }
                             });
                             ui.end_row();
@@ -326,7 +328,7 @@ fn ui_settings_panel(
                             custom::float_right(ui, |ui| {
                                 let mut toggle: bool = true;
                                 if custom::toggle_ui(ui, &mut toggle).clicked() {
-                                    info!("todo");
+                                    error!("todo");
                                 }
                             });
                             ui.end_row();
@@ -335,7 +337,7 @@ fn ui_settings_panel(
                             custom::float_right(ui, |ui| {
                                 let mut toggle: bool = true;
                                 if custom::toggle_ui(ui, &mut toggle).clicked() {
-                                    info!("todo");
+                                    error!("todo");
                                 }
                             });
                             ui.end_row();
@@ -345,6 +347,30 @@ fn ui_settings_panel(
                         ui.add_space(2.5);
 
                         custom::grid("gbp_grid", 2).show(ui, |ui| {
+                            ui.label("Safety Distance");
+                            ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                            let mut safety_dist_multiplier = config.robot.inter_robot_safety_distance_multiplier.get();
+                            // let mut available_size = ui.available_size();
+                            // available_size.x += 10.0;
+                            // let slider_response = ui.add_sized(available_size,
+                               let slider_response = ui.add_enabled(
+                                   time_virtual.is_paused(),
+                                      egui::Slider::new(&mut safety_dist_multiplier, 1.0..=10.0)
+                                    // .suffix(" * radius")
+                                    // .text(" * radius")
+                                    .fixed_decimals(1)
+                                    .trailing_fill(true));
+                            if slider_response.enabled() && slider_response.changed() {
+                                config.robot.inter_robot_safety_distance_multiplier = safety_dist_multiplier.try_into().expect("slider range set to [0.1, 10.0]");
+
+                                let mut query = world.query::<&mut FactorGraph>();
+                                for mut factorgraph in query.iter_mut(world) {
+                                    factorgraph.update_inter_robot_safety_distance_multiplier(Float::from(config.robot.inter_robot_safety_distance_multiplier.get()).try_into().expect("> 0.0"));
+                                }
+                            }
+
+                            ui.end_row();
+
                             ui.label("Max Speed");
                             // slider for robot max speed  in (0.0, 10.]
                             // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);

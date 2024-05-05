@@ -39,20 +39,39 @@ impl ExternalVariableId {
 #[derive(Debug, Clone)]
 pub struct InterRobotFactor {
     safety_distance: Float,
+    robot_radius: Float,
     skip: bool,
     pub external_variable: ExternalVariableId,
 }
 
 impl InterRobotFactor {
+    pub const DEFAULT_SAFETY_DISTANCE_MULTIPLIER: Float = 2.2;
     pub const NEIGHBORS: usize = 2;
 
     #[must_use]
-    pub fn new(robot_radius: StrictlyPositiveFinite<Float>, external_variable: ExternalVariableId) -> Self {
+    pub fn new(
+        robot_radius: StrictlyPositiveFinite<Float>,
+        external_variable: ExternalVariableId,
+        safety_distance_multiplier: Option<StrictlyPositiveFinite<Float>>,
+    ) -> Self {
         let robot_radius = robot_radius.get();
-        let epsilon = 0.2 * robot_radius;
+        // let epsilon = 0.2 * robot_radius;
+        //
+        // Self {
+        //     safety_distance: 2.0f64.mul_add(robot_radius, epsilon),
+        //     skip: false,
+        //     external_variable,
+        // }
+
+        let safety_distance_multiplier =
+            safety_distance_multiplier.map_or(Self::DEFAULT_SAFETY_DISTANCE_MULTIPLIER, |x| x.get());
+        // .unwrap_or(2.2.try_into().expect("2.2 > 0.0"))
+        // .get();
+        let safety_distance = safety_distance_multiplier * robot_radius;
 
         Self {
-            safety_distance: 2.0f64.mul_add(robot_radius, epsilon),
+            safety_distance,
+            robot_radius,
             skip: false,
             external_variable,
         }
@@ -63,6 +82,10 @@ impl InterRobotFactor {
     pub const fn safety_distance(&self) -> Float {
         self.safety_distance
     }
+
+    pub fn update_safety_distance(&mut self, multiplier: StrictlyPositiveFinite<Float>) {
+        self.safety_distance = multiplier.get() * self.robot_radius
+    }
 }
 
 impl Factor for InterRobotFactor {
@@ -72,10 +95,8 @@ impl Factor for InterRobotFactor {
     }
 
     fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+        // PERF: reuse allocation by
         let mut jacobian = Matrix::<Float>::zeros((state.initial_measurement.len(), DOFS * 2));
-        // if jacobian.ncols() > 8 {
-        //     error!("InterRobotFactor jacobian is large {:?}", jacobian.dim());
-        // }
 
         let x_diff = {
             let offset = DOFS / 2;
@@ -85,12 +106,8 @@ impl Factor for InterRobotFactor {
             // unclear as a robot id should be unique, and not have any
             // semantics of distance/weight.
             for i in 0..offset {
-                // x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as
-                // Float;
-                // x_diff[i] += 1e-6 * self.connection.other_variable.factorgraph_id.index() as
-                // Float;
-                x_diff[i] += 1e-6 * Float::from(self.external_variable.factorgraph_id.index());
                 // Add a tiny random offset to avoid div/0 errors
+                x_diff[i] += 1e-6 * Float::from(self.external_variable.factorgraph_id.index());
             }
             x_diff
         };
@@ -123,24 +140,12 @@ impl Factor for InterRobotFactor {
             // semantics of distance/weight.
             for i in 0..offset {
                 // Add a tiny random offset to avoid div/0 errors
-                // x_diff[i] += 1e-6 * self.connection.id_of_robot_connected_with.index() as
-                // Float;
                 x_diff[i] += 1e-6 * Float::from(self.external_variable.factorgraph_id.index());
             }
             x_diff
         };
 
         let radius = x_diff.euclidean_norm();
-        // let within_safety_distance = radius <= self.safety_distance;
-        // match (self.skip, within_safety_distance) {
-        //     (Skip(true), true) => {}
-        //     (Skip(true), false) => {}
-        //     (Skip(false), true) => {
-        //         self.skip = Skip(true);
-        //         info!("skip = true, radius = {}", radius);
-        //     }
-        //     (Skip(false), false) => {}
-        // };
         if radius <= self.safety_distance {
             if self.skip {
                 info!(
@@ -148,22 +153,12 @@ impl Factor for InterRobotFactor {
                     radius
                 );
             }
-            // self.skip = false;
 
             // gbpplanner: h(0) = 1.f*(1 - r/safety_distance_);
             // NOTE: in Eigen, indexing a matrix with a single index corresponds to indexing
             // the matrix as a flattened array in column-major order.
             // h[(0, 0)] = 1.0 * (1.0 - radius / self.safety_distance);
             h[0] = 1.0 * (1.0 - radius / self.safety_distance);
-            // println!("h = {}", h);
-        } else {
-            // if !self.skip {
-            //     // info!(
-            //     //     "outside safety distance, radius = {}, setting
-            // self.skip     // to true",     radius
-            //     // );
-            // }
-            // self.skip = true;
         }
 
         h
@@ -175,13 +170,9 @@ impl Factor for InterRobotFactor {
     }
 
     fn skip(&self, state: &FactorState) -> bool {
-        // this->skip_flag = ( (X_(seqN(0,n_dofs_/2)) - X_(seqN(n_dofs_,
-        // n_dofs_/2))).squaredNorm() >= safety_distance_*safety_distance_ );
         let offset = DOFS / 2;
-
         // [..offset] is the position of the first variable
         // [dofs..dofs + offset] is the position of the other variable
-
         let difference_between_estimated_positions = state
             .linearisation_point
             .slice(s![..offset])
@@ -189,18 +180,6 @@ impl Factor for InterRobotFactor {
         let squared_norm = difference_between_estimated_positions.mapv(|x| x.powi(2)).sum();
 
         let skip = squared_norm >= self.safety_distance.powi(2);
-        // let skip = squared_norm >= Float::powi(self.safety_distance, 2);
-        // if self.skip != skip {
-        // warn!(
-        //     "skip = {}, squared_norm = {} safety_distance^2 = {}",
-        //     skip,
-        //     squared_norm,
-        //     Float::powi(self.safety_distance, 2)
-        // );
-        // }
-        // self.skip = skip;
-        // self.skip = squared_norm >= Float::powi(self.safety_distance, 2);
-        // self.skip
         skip
     }
 

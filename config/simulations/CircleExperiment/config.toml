@@ -46,10 +46,11 @@ external = 10
 schedule = "interleave-evenly"
 
 [robot]
-planning-horizon  = 5.0
-max-speed         = 4.0
-dofs              = 4
-symmetric-factors = true
+planning-horizon                       = 5.0
+max-speed                              = 4.0
+dofs                                   = 4
+symmetric-factors                      = true
+inter-robot-safety-distance-multiplier = 2.2
 # radius            = 1.0
 [robot.radius]
 min = 2.0

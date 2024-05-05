@@ -446,10 +446,10 @@ pub struct RobotSection {
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
-    // pub radius: StrictlyPositiveFinite<f32>,
     pub radius: RobotRadiusSection,
     /// Communication parameters
     pub communication: CommunicationSection,
+    pub inter_robot_safety_distance_multiplier: StrictlyPositiveFinite<f32>,
 }
 
 impl Default for RobotSection {
@@ -463,6 +463,9 @@ impl Default for RobotSection {
             // radius: StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
             radius: RobotRadiusSection::default(),
             communication: CommunicationSection::default(),
+
+            // **gbpplanner** effectively uses 2.2 * radius with the way they calculate it
+            inter_robot_safety_distance_multiplier: StrictlyPositiveFinite::<f32>::new(2.2).expect("2.2 > 0.0"),
         }
     }
 }

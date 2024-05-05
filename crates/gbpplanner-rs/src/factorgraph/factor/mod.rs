@@ -155,10 +155,13 @@ impl FactorNode {
         factorgraph_id: FactorGraphId,
         strength: Float,
         measurement: Vector<Float>,
-        safety_radius: StrictlyPositiveFinite<Float>,
+        // safety_radius: StrictlyPositiveFinite<Float>,
+        robot_radius: StrictlyPositiveFinite<Float>,
+        safety_distance_multiplier: StrictlyPositiveFinite<Float>,
         external_variable: ExternalVariableId,
     ) -> Self {
-        let interrobot_factor = InterRobotFactor::new(safety_radius, external_variable);
+        let interrobot_factor =
+            InterRobotFactor::new(robot_radius, external_variable, Some(safety_distance_multiplier));
         let kind = FactorKind::InterRobot(interrobot_factor);
         let state = FactorState::new(measurement, strength, InterRobotFactor::NEIGHBORS);
 
