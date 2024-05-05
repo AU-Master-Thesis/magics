@@ -6,6 +6,7 @@
 pub mod collisions;
 pub mod robot;
 mod spawner;
+pub mod tracking;
 // mod variable;
 mod run_schedule;
 mod visualiser;
@@ -26,6 +27,7 @@ impl Plugin for PlannerPlugin {
             RobotSpawnerPlugin,
             VisualiserPlugin,
             collisions::RobotCollisionsPlugin,
+            tracking::TrackingPlugin,
             // PlannerDebugPlugin,
         ));
     }

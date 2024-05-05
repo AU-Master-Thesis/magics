@@ -83,7 +83,6 @@ fn create_tracer_when_a_robot_is_spawned(
 fn track_robots(
     query: Query<(RobotId, &Transform, &ColorAssociation), (With<RobotState>, Changed<Transform>)>,
     mut traces: ResMut<Traces>,
-    // theme: Res<CatppuccinTheme>,
 ) {
     for (robot_id, transform, color_association) in &query {
         let _ = traces

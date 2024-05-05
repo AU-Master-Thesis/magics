@@ -571,6 +571,7 @@ fn spawn_formation(
                 robotbundle,
                 pbrbundle,
                 simulation_loader::Reloadable,
+                super::tracking::PositionTracker::new(100, Duration::from_millis(200)),
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickedOn>(),
                 ColorAssociation { name: random_color },
