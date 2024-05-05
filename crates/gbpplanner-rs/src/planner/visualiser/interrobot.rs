@@ -18,10 +18,11 @@ impl Plugin for InterRobotFactorVisualizerPlugin {
 
 /// **Bevy** run condition for drawing obstacle factors
 fn enabled(config: Res<Config>) -> bool {
-    config.visualisation.draw.interrobot_factors
+    // config.visualisation.draw.interrobot_factors
+    config.visualisation.draw.interrobot_factors_safety_distance || config.visualisation.draw.interrobot_factors
 }
 
-fn visualize_interrobot_factors(mut gizmos: Gizmos, q: Query<(&FactorGraph, &RadioAntenna)>) {
+fn visualize_interrobot_factors(mut gizmos: Gizmos, q: Query<(&FactorGraph, &RadioAntenna)>, config: Res<Config>) {
     for (factorgraph, antenna) in &q {
         for (variable, interrobot) in factorgraph.variable_and_inter_robot_factors() {
             let estimated_position = variable.estimated_position_vec2();
@@ -58,22 +59,25 @@ fn visualize_interrobot_factors(mut gizmos: Gizmos, q: Query<(&FactorGraph, &Rad
                 (Color::GRAY, Color::GRAY)
             };
 
-            // Sphere::new(0.3)
-
             let height = 0.5f32;
-            let offset = 0.15; // 0.3 / 2.0;
-            let start = estimated_position + dir * offset;
-            let end = external_position + dir * offset;
-            gizmos.line(start.extend(height).xzy(), end.extend(height).xzy(), line_color);
 
-            gizmos
-                .circle(
-                    estimated_position.extend(height).xzy(),
-                    Direction3d::Y,
-                    safety_dist as f32,
-                    circle_color,
-                )
-                .segments(18);
+            if config.visualisation.draw.interrobot_factors {
+                let offset = 0.15; // 0.3 / 2.0;
+                let start = estimated_position + dir * offset;
+                let end = external_position + dir * offset;
+                gizmos.line(start.extend(height).xzy(), end.extend(height).xzy(), line_color);
+            }
+
+            if config.visualisation.draw.interrobot_factors_safety_distance {
+                gizmos
+                    .circle(
+                        estimated_position.extend(height).xzy(),
+                        Direction3d::Y,
+                        safety_dist as f32,
+                        circle_color,
+                    )
+                    .segments(18);
+            }
         }
     }
 }

@@ -16,19 +16,20 @@ objects    = 0.5
 height-map = 1.0
 
 [visualisation.draw]
-robots                 = true
-communication-graph    = false
-predicted-trajectories = true
-waypoints              = false
-uncertainty            = false
-paths                  = true
-generated-map          = true
-height-map             = false
-sdf                    = false
-communication-radius   = false
-obstacle-factors       = true
-interrobot-factors     = false
-robot-colliders        = false
+robots                             = true
+communication-graph                = false
+predicted-trajectories             = true
+waypoints                          = false
+uncertainty                        = false
+paths                              = true
+generated-map                      = true
+height-map                         = false
+sdf                                = false
+communication-radius               = false
+obstacle-factors                   = true
+interrobot-factors                 = false
+interrobot-factors-safety-distance = false
+robot-colliders                    = false
 
 
 [gbp]
