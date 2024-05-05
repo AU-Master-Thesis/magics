@@ -13,7 +13,7 @@ use gbp_linalg::prelude::*;
 use ndarray::{array, concatenate, s, Axis};
 use rand::{thread_rng, Rng};
 
-use super::spawner::RobotClickedOn;
+use super::{collisions::RobotCollisions, spawner::RobotClickedOn};
 use crate::{
     bevy_utils::run_conditions::time::virtual_time_is_paused,
     config::{formation::WaypointReachedWhenIntersects, Config},
@@ -1385,6 +1385,7 @@ fn on_robot_clicked(
         &Ball,
         &RadioAntenna,
     )>,
+    robot_collisions: Res<RobotCollisions>,
 ) {
     use colored::Colorize;
     for RobotClickedOn(robot_id) in evr_robot_clicked_on.read() {
@@ -1444,15 +1445,17 @@ fn on_robot_clicked(
         let message_count = factorgraph.message_count();
         println!("    {}: {}", "sent".cyan(), message_count.sent);
         println!("    {}: {}", "received".cyan(), message_count.received);
+        let collisions = robot_collisions.get(*robot_id).unwrap_or(0);
+
         println!("  {}:", "collisions".magenta());
-        println!("    {}: {}", "other-robots".cyan(), "todo");
+        println!("    {}: {}", "other-robots".cyan(), collisions);
         println!("    {}: {}", "environment".cyan(), "todo");
         println!("  {}:", "aabb".magenta());
         let position = parry2d::na::Isometry2::translation(transform.translation.x, transform.translation.z);
         let aabb = ball.aabb(&position);
         println!("    {}: [{:.4}, {:.4}]", "min".cyan(), aabb.mins.x, aabb.mins.y);
         println!("    {}: [{:.4}, {:.4}]", "max".cyan(), aabb.maxs.x, aabb.maxs.y);
-        println!("    {}: {:.4} m^3", "volume".cyan(), aabb.volume());
+        println!("    {}: {:.4} m^2", "volume".cyan(), aabb.volume());
         println!("");
     }
 }

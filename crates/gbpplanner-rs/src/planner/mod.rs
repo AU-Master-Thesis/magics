@@ -3,6 +3,7 @@
 // mod factorgraph;
 // mod marginalise_factor_distance;
 // mod message;
+pub mod collisions;
 pub mod robot;
 mod spawner;
 // mod variable;
@@ -24,6 +25,7 @@ impl Plugin for PlannerPlugin {
             RobotPlugin,
             RobotSpawnerPlugin,
             VisualiserPlugin,
+            collisions::RobotCollisionsPlugin,
             // PlannerDebugPlugin,
         ));
     }

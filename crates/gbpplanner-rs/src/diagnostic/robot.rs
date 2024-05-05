@@ -2,15 +2,14 @@ use bevy::{
     diagnostic::{Diagnostic, DiagnosticPath, Diagnostics, RegisterDiagnostic},
     prelude::*,
     time::common_conditions::on_timer,
-    utils::HashMap,
 };
 // use itertools::Itertools;
-use parry2d::bounding_volume::BoundingVolume;
+// use parry2d::bounding_volume::BoundingVolume;
 use units::sample_rate::SampleRate;
 
 use crate::{
     factorgraph::prelude::FactorGraph,
-    planner::{robot::Ball, RobotState},
+    planner::{collisions::RobotCollisions, robot::Ball, RobotState},
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };
 
@@ -66,7 +65,7 @@ impl Plugin for RobotDiagnosticsPlugin {
         );
         add_diagnostic_system!(app, self.sample_rates.messages_sent, Self::messages_sent);
 
-        add_diagnostic_system!(app, self.sample_rates.robot_collisions, Self::robot_collisions);
+        add_diagnostic_system!(app, self.sample_rates.robot_collisions, Self::count_robot_collisions);
 
         app.add_systems(
             Update,
@@ -137,47 +136,55 @@ impl RobotDiagnosticsPlugin {
     }
 
     #[allow(clippy::cast_precision_loss)]
-    fn robot_collisions(
-        mut diagnostics: Diagnostics,
-        robots: Query<(&Transform, &Ball), With<RobotState>>,
-        mut aabbs: Local<Vec<parry2d::bounding_volume::Aabb>>,
-        // TODO: move into a component/resource so it can be queried by other systems
-        mut robot_collisions: Local<RobotCollisions>,
-    ) {
-        diagnostics.add_measurement(&Self::ROBOT_COLLISION_COUNT, || {
-            // reuse the same vector for performance
-            aabbs.clear();
-
-            let iter = robots.iter().map(|(tf, ball)| {
-                let position = parry2d::na::Isometry2::translation(tf.translation.x, tf.translation.z); // bevy uses xzy coordinates
-                ball.aabb(&position)
-            });
-
-            aabbs.extend(iter);
-
-            if aabbs.len() < 2 {
-                // No collisions if there is less than two robots
-                return 0.0;
-            }
-
-            for (r, c) in seq::upper_triangular_exclude_diagonal(aabbs.len().try_into().expect("more than one robot"))
-                .expect("more than one robot")
-            {
-                let is_colliding = aabbs[r].intersects(&aabbs[c]);
-                robot_collisions.update(r, c, is_colliding);
-            }
-
-            let collisions = robot_collisions.collisions();
-
-            // let collisions =
-            //     seq::upper_triangular_exclude_diagonal(aabbs.len().try_into().expect("
-            // more than one robot"))         .expect("more that one robot")
-            //         .filter(|(r, c)| aabbs[*r].intersects(&aabbs[*c]))
-            //         .count();
-
-            collisions as f64
-        });
+    fn count_robot_collisions(mut diagnostics: Diagnostics, robot_collisions: Res<RobotCollisions>) {
+        diagnostics.add_measurement(&Self::ROBOT_COLLISION_COUNT, || robot_collisions.collisions() as f64);
     }
+
+    // #[allow(clippy::cast_precision_loss)]
+    // fn robot_collisions(
+    //     mut diagnostics: Diagnostics,
+    //     robots: Query<(&Transform, &Ball), With<RobotState>>,
+    //     mut aabbs: Local<Vec<parry2d::bounding_volume::Aabb>>,
+    //     // TODO: move into a component/resource so it can be queried by other
+    // systems     mut robot_collisions: Local<RobotCollisions>,
+    // ) {
+    //     diagnostics.add_measurement(&Self::ROBOT_COLLISION_COUNT, || {
+    //         // reuse the same vector for performance
+    //         aabbs.clear();
+    //
+    //         let iter = robots.iter().map(|(tf, ball)| {
+    //             let position =
+    // parry2d::na::Isometry2::translation(tf.translation.x, tf.translation.z); //
+    // bevy uses xzy coordinates             ball.aabb(&position)
+    //         });
+    //
+    //         aabbs.extend(iter);
+    //
+    //         if aabbs.len() < 2 {
+    //             // No collisions if there is less than two robots
+    //             return 0.0;
+    //         }
+    //
+    //         for (r, c) in
+    // seq::upper_triangular_exclude_diagonal(aabbs.len().try_into().expect("more
+    // than one robot"))             .expect("more than one robot")
+    //         {
+    //             let is_colliding = aabbs[r].intersects(&aabbs[c]);
+    //             robot_collisions.update(r, c, is_colliding);
+    //         }
+    //
+    //         let collisions = robot_collisions.collisions();
+    //
+    //         // let collisions =
+    //         //
+    // seq::upper_triangular_exclude_diagonal(aabbs.len().try_into().expect("
+    //         // more than one robot"))         .expect("more that one robot")
+    //         //         .filter(|(r, c)| aabbs[*r].intersects(&aabbs[*c]))
+    //         //         .count();
+    //
+    //         collisions as f64
+    //     });
+    // }
 
     /// **Bevy** system to clear the history of every diagnostic source of this
     /// plugin.
@@ -196,77 +203,5 @@ impl RobotDiagnosticsPlugin {
                 info!("clearing history of diagnostic source: {:?}", path);
             }
         }
-    }
-}
-
-#[derive(Debug, Default)]
-enum CollisionState {
-    Colliding,
-    #[default]
-    Free,
-}
-
-struct CollisionHistory {
-    /// How many times a collision has happened between two robots
-    times: usize,
-    /// The current state of the collision
-    state: CollisionState,
-}
-
-impl CollisionHistory {
-    fn new() -> Self {
-        Self {
-            times: 0,
-            state: CollisionState::Free,
-        }
-    }
-
-    fn update(&mut self, is_colliding: bool) {
-        match self.state {
-            CollisionState::Colliding if is_colliding => {}
-            CollisionState::Colliding if !is_colliding => {
-                self.state = CollisionState::Free;
-            }
-            CollisionState::Free if !is_colliding => {}
-            CollisionState::Free if is_colliding => {
-                self.state = CollisionState::Colliding;
-                self.times += 1;
-            }
-
-            _ => unreachable!(),
-        }
-    }
-
-    fn collisions(&self) -> usize {
-        self.times
-    }
-}
-
-struct RobotCollisions {
-    inner: HashMap<(usize, usize), CollisionHistory>,
-}
-
-impl RobotCollisions {
-    fn new() -> Self {
-        Self { inner: HashMap::new() }
-    }
-
-    fn update(&mut self, r1: usize, r2: usize, is_colliding: bool) {
-        let entry = self.inner.entry((r1, r2)).or_insert(CollisionHistory::new());
-        entry.update(is_colliding);
-    }
-
-    // fn collisions(&self, r1: usize, r2: usize) -> usize {
-    //     self.inner.get(&(r1, r2)).map(|c| c.collisions()).unwrap_or(0)
-    // }
-
-    fn collisions(&self) -> usize {
-        self.inner.values().map(|c| c.collisions()).sum::<usize>()
-    }
-}
-
-impl Default for RobotCollisions {
-    fn default() -> Self {
-        Self::new()
     }
 }
