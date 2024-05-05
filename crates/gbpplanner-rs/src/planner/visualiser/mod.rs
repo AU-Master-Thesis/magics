@@ -1,3 +1,4 @@
+mod collider;
 mod communication;
 pub mod communication_radius;
 pub mod factorgraphs;
@@ -38,6 +39,7 @@ impl Plugin for VisualiserPlugin {
             RobotVisualiserPlugin,
             obstacle::ObstacleFactorVisualizerPlugin,
             interrobot::InterRobotFactorVisualizerPlugin,
+            collider::ColliderVisualizerPlugin,
         ));
     }
 }

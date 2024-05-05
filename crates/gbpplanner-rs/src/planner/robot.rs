@@ -1376,11 +1376,19 @@ fn finish_manual_step(
 /// Meant for debugging purposes
 fn on_robot_clicked(
     mut evr_robot_clicked_on: EventReader<RobotClickedOn>,
-    robots: Query<(Entity, &FactorGraph, &RobotState, &Radius, &RadioAntenna)>,
+    robots: Query<(
+        Entity,
+        &Transform,
+        &FactorGraph,
+        &RobotState,
+        &Radius,
+        &Ball,
+        &RadioAntenna,
+    )>,
 ) {
     use colored::Colorize;
     for RobotClickedOn(robot_id) in evr_robot_clicked_on.read() {
-        let Ok((_, factorgraph, robotstate, radius, antenna)) = robots.get(*robot_id) else {
+        let Ok((_, transform, factorgraph, robotstate, radius, ball, antenna)) = robots.get(*robot_id) else {
             error!("robot_id {:?} does not exist", robot_id);
             continue;
         };
@@ -1432,15 +1440,19 @@ fn on_robot_clicked(
         println!("      {}: {}", "interrobot".magenta(), factor_counts.interrobot);
         println!("      {}: {}", "pose".magenta(), node_counts.variables); // bundled together
 
-        // println!("{}\n", text);
         println!("  {}:", "messages".magenta());
-        // println!("    {}: {}", "sent".magenta(), factorgraph.messages_sent());
         let message_count = factorgraph.message_count();
         println!("    {}: {}", "sent".cyan(), message_count.sent);
         println!("    {}: {}", "received".cyan(), message_count.received);
         println!("  {}:", "collisions".magenta());
         println!("    {}: {}", "other-robots".cyan(), "todo");
         println!("    {}: {}", "environment".cyan(), "todo");
+        println!("  {}:", "aabb".magenta());
+        let position = parry2d::na::Isometry2::translation(transform.translation.x, transform.translation.z);
+        let aabb = ball.aabb(&position);
+        println!("    {}: [{:.4}, {:.4}]", "min".cyan(), aabb.mins.x, aabb.mins.y);
+        println!("    {}: [{:.4}, {:.4}]", "max".cyan(), aabb.maxs.x, aabb.maxs.y);
+        println!("    {}: {:.4} m^3", "volume".cyan(), aabb.volume());
         println!("");
     }
 }

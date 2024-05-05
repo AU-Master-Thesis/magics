@@ -130,6 +130,7 @@ pub enum DrawSetting {
     Robots,
     ObstacleFactors,
     InterRobotFactors,
+    RobotColliders,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -152,6 +153,7 @@ impl std::str::FromStr for DrawSetting {
             "robots" => Self::Robots,
             "obstacle_factors" => Self::ObstacleFactors,
             "interrobot_factors" => Self::InterRobotFactors,
+            "robot_colliders" => Self::RobotColliders,
 
             _ => return Err(ParseDrawSettingError),
         };
@@ -177,6 +179,7 @@ pub struct DrawSection {
     pub generated_map: bool,
     pub height_map: bool,
     pub sdf: bool,
+    pub robot_colliders: bool,
 }
 
 impl Default for DrawSection {
@@ -194,6 +197,7 @@ impl Default for DrawSection {
             communication_radius: false,
             obstacle_factors: false,
             interrobot_factors: false,
+            robot_colliders: false,
         }
     }
 }
@@ -213,6 +217,7 @@ impl DrawSection {
             "robots" => "Robots".to_string(),
             "obstacle_factors" => "Obstacle Factors".to_string(),
             "interrobot_factors" => "InterRobot Factors".to_string(),
+            "robot_colliders" => "Robot Colliders".to_string(),
             _ => "Unknown".to_string(),
         }
     }

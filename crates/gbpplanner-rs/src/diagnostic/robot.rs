@@ -29,7 +29,7 @@ impl Default for SampleRates {
     fn default() -> Self {
         Self {
             robots: None,
-            robot_collisions: Some(SampleRate::from_hz(1.try_into().expect("1 > 0"))),
+            robot_collisions: Some(SampleRate::from_hz(5.try_into().expect("1 > 0"))),
             variables_and_factors: Some(SampleRate::from_hz(2.try_into().expect("2 > 0"))),
             messages_sent: Some(SampleRate::from_hz(2.try_into().expect("2 > 0"))),
         }
@@ -136,24 +136,31 @@ impl RobotDiagnosticsPlugin {
     }
 
     #[allow(clippy::cast_precision_loss)]
-    fn robot_collisions(mut diagnostics: Diagnostics, robots: Query<(&Transform, &Ball), With<RobotState>>) {
+    fn robot_collisions(
+        mut diagnostics: Diagnostics,
+        robots: Query<(&Transform, &Ball), With<RobotState>>,
+        mut aabbs: Local<Vec<parry2d::bounding_volume::Aabb>>,
+    ) {
         diagnostics.add_measurement(&Self::ROBOT_COLLISION_COUNT, || {
-            let aabbs = robots
-                .iter()
-                .map(|(tf, ball)| {
-                    let position = parry2d::na::Isometry2::translation(tf.translation.x, tf.translation.y);
-                    ball.aabb(&position)
-                })
-                .collect::<Vec<_>>();
+            // reuse the same vector for performance
+            aabbs.clear();
+
+            let iter = robots.iter().map(|(tf, ball)| {
+                let position = parry2d::na::Isometry2::translation(tf.translation.x, tf.translation.z); // bevy uses xzy coordinates
+                ball.aabb(&position)
+            });
+
+            aabbs.extend(iter);
 
             if aabbs.len() < 2 {
+                // No collisions if there is less than two robots
                 return 0.0;
             }
 
             let collisions =
                 seq::upper_triangular_exclude_diagonal(aabbs.len().try_into().expect("more than one robot"))
                     .expect("more that one robot")
-                    .filter(|(r, c)| aabbs[*r].contains(&aabbs[*c]))
+                    .filter(|(r, c)| aabbs[*r].intersects(&aabbs[*c]))
                     .count();
 
             collisions as f64

@@ -28,6 +28,7 @@ sdf                    = false
 communication-radius   = false
 obstacle-factors       = true
 interrobot-factors     = false
+robot-colliders        = false
 
 
 [gbp]
