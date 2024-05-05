@@ -1,4 +1,4 @@
-use super::{factor::FactorNode, factorgraph::FactorGraphId, variable::VariableNode};
+use super::{factor::FactorNode, factorgraph::FactorGraphId, variable::VariableNode, MessagesReceived, MessagesSent};
 
 /// Error type returned by `FactorGraphNode::remove_connection_to`
 #[derive(Debug, derive_more::Display)]
@@ -10,8 +10,8 @@ impl std::error::Error for RemoveConnectionToError {}
 pub(in crate::factorgraph) trait FactorGraphNode {
     fn remove_connection_to(&mut self, factorgraph_id: FactorGraphId) -> Result<(), RemoveConnectionToError>;
 
-    fn messages_sent(&self) -> usize;
-    fn messages_received(&self) -> usize;
+    fn messages_sent(&self) -> MessagesSent;
+    fn messages_received(&self) -> MessagesReceived;
 
     fn reset_message_count(&mut self);
 }
@@ -148,14 +148,14 @@ impl FactorGraphNode for Node {
         }
     }
 
-    fn messages_sent(&self) -> usize {
+    fn messages_sent(&self) -> MessagesSent {
         match self.kind {
             NodeKind::Factor(ref factor) => factor.messages_sent(),
             NodeKind::Variable(ref variable) => variable.messages_sent(),
         }
     }
 
-    fn messages_received(&self) -> usize {
+    fn messages_received(&self) -> MessagesReceived {
         match self.kind {
             NodeKind::Factor(ref factor) => factor.messages_received(),
             NodeKind::Variable(ref variable) => variable.messages_received(),

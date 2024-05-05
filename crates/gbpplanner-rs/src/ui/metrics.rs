@@ -109,25 +109,26 @@ impl MetricsPlugin {
                     }
                 }
 
-                if let Some(messages_sent) = diagnostics.get(&RobotDiagnosticsPlugin::MESSAGES_SENT_COUNT) {
-                    #[allow(clippy::cast_precision_loss)]
-                    let points: PlotPoints = messages_sent.values()
-                        // .iter()
-                        .enumerate()
-                        .map(|(i, robot)| [i as f64, *robot])
-                        .collect();
-                    let line = Line::new(points);
+                // if let Some(messages_sent) =
+                // diagnostics.get(&RobotDiagnosticsPlugin::MESSAGES_SENT_COUNT) {
+                //     #[allow(clippy::cast_precision_loss)]
+                //     let points: PlotPoints = messages_sent.values()
+                //         // .iter()
+                //         .enumerate()
+                //         .map(|(i, robot)| [i as f64, *robot])
+                //         .collect();
+                //     let line = Line::new(points);
+                //
+                //     let plot = Plot::new("messages sent")
+                //         .view_aspect(2.0)
+                //         .show_grid(true)
+                //         .x_axis_label("samples recorded")
+                //         .y_axis_label("messages sent");
+                //
+                //     plot.show(ui, |plot_ui| plot_ui.line(line));
+                // }
 
-                    let plot = Plot::new("messages sent")
-                        .view_aspect(2.0)
-                        .show_grid(true)
-                        .x_axis_label("samples recorded")
-                        .y_axis_label("messages sent");
-
-                    plot.show(ui, |plot_ui| plot_ui.line(line));
-                }
-
-                ui.label(format!("{}", egui::special_emojis::GITHUB));
+                // ui.label(format!("{}", egui::special_emojis::GITHUB));
 
                 // if ui.color_edit_button_rgb(&mut [0.1, 0.5, 0.6]).clicked() {
                 //     info!("todo");

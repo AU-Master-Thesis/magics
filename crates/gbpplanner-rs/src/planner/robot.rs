@@ -407,7 +407,7 @@ impl RobotBundle {
                 Float::from(mean.w)
             ];
 
-            let variable = VariableNode::new(mean, precision_matrix, DOFS);
+            let variable = VariableNode::new(factorgraph.id(), mean, precision_matrix, DOFS);
             let variable_index = factorgraph.add_variable(variable);
             variable_node_indices.push(variable_index);
         }
@@ -421,6 +421,7 @@ impl RobotBundle {
             let measurement = Vector::<Float>::zeros(config.robot.dofs.get());
 
             let dynamic_factor = FactorNode::new_dynamic_factor(
+                factorgraph.id(),
                 Float::from(config.gbp.sigma_factor_dynamics),
                 measurement,
                 Float::from(delta_t),
@@ -441,6 +442,7 @@ impl RobotBundle {
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
             let obstacle_factor = FactorNode::new_obstacle_factor(
+                factorgraph.id(),
                 Float::from(config.gbp.sigma_factor_obstacle),
                 array![0.0],
                 // obstacle_sdf.clone(),
@@ -633,6 +635,7 @@ fn create_interrobot_factors(
                 // - 1]);
                 //
                 let interrobot_factor = FactorNode::new_interrobot_factor(
+                    factorgraph.id(),
                     Float::from(config.gbp.sigma_factor_interrobot),
                     z,
                     Float::from(safety_radius)
@@ -1387,6 +1390,10 @@ fn on_robot_clicked(
     )>,
     robot_collisions: Res<RobotCollisions>,
 ) {
+    // let print_line = |text: &str,
+    //     println!("{}", text);
+    // };
+
     use colored::Colorize;
     for RobotClickedOn(robot_id) in evr_robot_clicked_on.read() {
         let Ok((_, transform, factorgraph, robotstate, radius, ball, antenna)) = robots.get(*robot_id) else {
@@ -1395,13 +1402,13 @@ fn on_robot_clicked(
         };
 
         println!("----- robot cliked on -----");
-        println!("{}: {:?}", "robot".magenta(), robot_id);
+        println!("{}: {:?}", "robot".blue(), robot_id);
         println!("  {}: {}", "radius".magenta(), radius.0);
         println!("  {}:", "antenna".magenta());
-        println!("    {}: {}", "radius".magenta(), antenna.radius);
+        println!("    {}: {}", "radius".cyan(), antenna.radius);
         println!(
             "    {}: {}",
-            "on".magenta(),
+            "on".cyan(),
             if antenna.active { "true".green() } else { "false".red() }
         );
         println!("  {}:", "state".magenta());
@@ -1410,41 +1417,46 @@ fn on_robot_clicked(
             .expect("factorgraph should have >= 2 variables");
         let [px, py] = current_variable.estimated_position();
         let [vx, vy] = current_variable.estimated_velocity();
-        println!("    {}: [{:.4}, {:.4}]", "position".magenta(), px, py);
-        println!("    {}: [{:.4}, {:.4}]", "velocity".magenta(), vx, vy);
+        println!("    {}: [{:.4}, {:.4}]", "position".cyan(), px, py);
+        println!("    {}: [{:.4}, {:.4}]", "velocity".cyan(), vx, vy);
 
         println!(
             "    {}: {:?}",
-            "neighbours".magenta(),
+            "neighbours".cyan(),
             robotstate.ids_of_robots_within_comms_range
         );
         println!(
             "    {}: {:?}",
-            "connected".magenta(),
+            "connected".cyan(),
             robotstate.ids_of_robots_connected_with
         );
-        println!("  {}:", "factorgraph".magenta());
         let node_counts = factorgraph.node_count();
+        let edge_count = factorgraph.edge_count();
+        println!("  {}:", "factorgraph".magenta());
+        println!("    {}: {}", "edges".cyan(), edge_count);
+        println!("    {}: {}", "nodes".cyan(), node_counts.total());
         println!(
-            "    {}: {}",
-            "variable".magenta(),
+            "      {}: {}",
+            "variable".red(),
             node_counts.variables.to_string().red()
         );
-        println!(
-            "    {}:  {}",
-            "factors".magenta(),
-            node_counts.factors.to_string().blue()
-        );
+        println!("      {}:  {}", "factors".red(), node_counts.factors.to_string().blue());
         let factor_counts = factorgraph.factor_count();
-        println!("      {}: {}", "obstacle".magenta(), factor_counts.obstacle);
-        println!("      {}: {}", "dynamic".magenta(), factor_counts.dynamic);
-        println!("      {}: {}", "interrobot".magenta(), factor_counts.interrobot);
-        println!("      {}: {}", "pose".magenta(), node_counts.variables); // bundled together
+        println!("        {}: {}", "obstacle".yellow(), factor_counts.obstacle);
+        println!("        {}: {}", "dynamic".yellow(), factor_counts.dynamic);
+        println!("        {}: {}", "interrobot".yellow(), factor_counts.interrobot);
+        println!("        {}: {}", "pose".yellow(), node_counts.variables); // bundled together
 
         println!("  {}:", "messages".magenta());
-        let message_count = factorgraph.message_count();
-        println!("    {}: {}", "sent".cyan(), message_count.sent);
-        println!("    {}: {}", "received".cyan(), message_count.received);
+        // let message_count = factorgraph.message_count();
+        let messages_sent = factorgraph.messages_sent();
+        let messages_received = factorgraph.messages_received();
+        println!("    {}:", "sent".cyan());
+        println!("      {}: {}", "internal".red(), messages_sent.internal);
+        println!("      {}: {}", "external".red(), messages_sent.external);
+        println!("    {}:", "received".cyan());
+        println!("      {}: {}", "internal".red(), messages_received.internal);
+        println!("      {}: {}", "external".red(), messages_received.external);
         let collisions = robot_collisions.get(*robot_id).unwrap_or(0);
 
         println!("  {}:", "collisions".magenta());

@@ -1,14 +1,17 @@
 use std::{borrow::Cow, ops::AddAssign};
 
-use bevy::log::error;
 use gbp_linalg::prelude::*;
 use ndarray::{array, s};
 use typed_floats::StrictlyPositiveFinite;
 
 use self::{dynamic::DynamicFactor, interrobot::InterRobotFactor, obstacle::ObstacleFactor};
 use super::{
-    factorgraph::NodeIndex, id::VariableId, message::MessagesToVariables, node::FactorGraphNode, prelude::Message,
-    MessageCount, DOFS,
+    factorgraph::{FactorGraphId, NodeIndex},
+    id::VariableId,
+    message::MessagesToVariables,
+    node::FactorGraphNode,
+    prelude::Message,
+    MessageCount, MessagesReceived, MessagesSent, DOFS,
 };
 use crate::{factorgraph::node::RemoveConnectionToError, simulation_loader::SdfImage};
 
@@ -23,10 +26,6 @@ use marginalise_factor_distance::marginalise_factor_distance;
 
 // pub use crate::factorgraph::factor::interrobot::InterRobotFactorConnection;
 pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
-
-// TODO: make generic over f32 | f64
-// TODO: hide the state parameter from the public API, by having the `Factor`
-// struct expose similar methods that dispatch to the `FactorState` struct.
 
 /// Common interface for all factors
 pub trait Factor {
@@ -84,6 +83,7 @@ pub trait Factor {
 /// Factor node in the factorgraph
 #[derive(Debug)]
 pub struct FactorNode {
+    factorgraph_id: FactorGraphId,
     /// Unique identifier that associates the variable with the factorgraph it
     /// is part of.
     pub node_index: Option<NodeIndex>,
@@ -98,14 +98,21 @@ pub struct FactorNode {
 }
 
 impl FactorNode {
-    fn new(state: FactorState, kind: FactorKind) -> Self {
+    fn new(factorgraph_id: FactorGraphId, state: FactorState, kind: FactorKind) -> Self {
         Self {
+            factorgraph_id,
             node_index: None,
             state,
             kind,
             inbox: MessagesToVariables::new(),
             message_count: MessageCount::default(),
         }
+    }
+
+    /// Returns the factorgraph id that the factor belongs to
+    #[inline]
+    pub fn factorgraph_id(&self) -> FactorGraphId {
+        self.factorgraph_id
     }
 
     /// Returns the node index of the factor
@@ -131,15 +138,21 @@ impl FactorNode {
     }
 
     /// Create a new dynamic factor
-    pub fn new_dynamic_factor(strength: Float, measurement: Vector<Float>, delta_t: Float) -> Self {
+    pub fn new_dynamic_factor(
+        factorgraph_id: FactorGraphId,
+        strength: Float,
+        measurement: Vector<Float>,
+        delta_t: Float,
+    ) -> Self {
         let mut state = FactorState::new(measurement, strength, DynamicFactor::NEIGHBORS);
         let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
         let kind = FactorKind::Dynamic(dynamic_factor);
-        Self::new(state, kind)
+        Self::new(factorgraph_id, state, kind)
     }
 
     /// Create a new interrobot factor
     pub fn new_interrobot_factor(
+        factorgraph_id: FactorGraphId,
         strength: Float,
         measurement: Vector<Float>,
         safety_radius: StrictlyPositiveFinite<Float>,
@@ -149,7 +162,7 @@ impl FactorNode {
         let kind = FactorKind::InterRobot(interrobot_factor);
         let state = FactorState::new(measurement, strength, InterRobotFactor::NEIGHBORS);
 
-        Self::new(state, kind)
+        Self::new(factorgraph_id, state, kind)
     }
 
     // pub fn new_pose_factor() -> Self {
@@ -158,17 +171,16 @@ impl FactorNode {
 
     /// Create a new obstacle factor
     pub fn new_obstacle_factor(
+        factorgraph_id: FactorGraphId,
         strength: Float,
         measurement: Vector<Float>,
-        // obstacle_sdf: Image,
         obstacle_sdf: SdfImage,
         world_size: Float,
     ) -> Self {
         let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS);
-        // let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
-        Self::new(state, kind)
+        Self::new(factorgraph_id, state, kind)
     }
 
     // #[inline(always)]
@@ -197,7 +209,11 @@ impl FactorNode {
     /// Add a message to this factors inbox
     pub fn receive_message_from(&mut self, from: VariableId, message: Message) {
         let _ = self.inbox.insert(from, message);
-        self.message_count.received += 1;
+        if from.factorgraph_id == self.factorgraph_id {
+            self.message_count.received.internal += 1;
+        } else {
+            self.message_count.received.external += 1;
+        }
     }
 
     // #[inline(always)]
@@ -242,12 +258,21 @@ impl FactorNode {
         }
 
         if self.skip() {
+            let mut messages_sent = MessagesSent::new();
             let messages: MessagesToVariables = self
                 .inbox
                 .keys()
-                .map(|variable_id| (*variable_id, Message::empty()))
+                .map(|variable_id| {
+                    if variable_id.factorgraph_id == self.factorgraph_id {
+                        messages_sent.internal += 1;
+                    } else {
+                        messages_sent.external += 1;
+                    }
+
+                    (*variable_id, Message::empty())
+                })
                 .collect();
-            self.message_count.sent += messages.len();
+            self.message_count.sent += messages_sent;
             return messages;
         }
 
@@ -269,6 +294,8 @@ impl FactorNode {
         let mut marginalisation_idx = 0;
         let mut messages = MessagesToVariables::new();
         // let mut messages = MessagesToVariables::with_capacity(self.inbox.len());
+
+        let mut messages_sent = MessagesSent::new();
 
         for variable_id in self.inbox.keys() {
             let mut information_vec = potential_information_vec.clone();
@@ -304,10 +331,17 @@ impl FactorNode {
 
             let message = marginalise_factor_distance(information_vec, precision_matrix, marginalisation_idx);
             messages.insert(*variable_id, message);
+
+            if variable_id.factorgraph_id == self.factorgraph_id {
+                messages_sent.internal += 1;
+            } else {
+                messages_sent.external += 1;
+            }
+
             marginalisation_idx += DOFS;
         }
 
-        self.message_count.sent += messages.len();
+        self.message_count.sent += messages_sent;
         messages
     }
 
@@ -512,12 +546,12 @@ impl FactorGraphNode for FactorNode {
     }
 
     #[inline(always)]
-    fn messages_sent(&self) -> usize {
+    fn messages_sent(&self) -> MessagesSent {
         self.message_count.sent
     }
 
     #[inline(always)]
-    fn messages_received(&self) -> usize {
+    fn messages_received(&self) -> MessagesReceived {
         self.message_count.received
     }
 

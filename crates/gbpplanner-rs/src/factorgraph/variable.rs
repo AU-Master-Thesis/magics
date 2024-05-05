@@ -1,13 +1,12 @@
-use bevy::log::debug;
 use gbp_linalg::{Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
 use super::{
-    factorgraph::NodeIndex,
+    factorgraph::{FactorGraphId, NodeIndex},
     id::FactorId,
     message::{InformationVec, Mean, Message, MessagesToFactors, PrecisionMatrix},
     node::{FactorGraphNode, RemoveConnectionToError},
-    MessageCount,
+    MessageCount, MessagesReceived, MessagesSent,
 };
 
 /// Variable prior distribution
@@ -84,10 +83,11 @@ impl From<VariableBelief> for Message {
 /// A variable in the factor graph.
 #[derive(Debug)]
 pub struct VariableNode {
+    factorgraph_id: FactorGraphId,
     /// Prior distribution
-    pub prior:  VariablePrior,
+    pub prior:      VariablePrior,
     /// Variables belief about its position and velocity
-    pub belief: VariableBelief,
+    pub belief:     VariableBelief,
 
     // / Flag to indicate if the variable's covariance is finite, i.e. it does
     // / not contain NaNs or Infs In gbpplanner it is used to control if a
@@ -136,7 +136,12 @@ impl VariableNode {
 
     /// Construct a new variable
     #[must_use]
-    pub fn new(prior_mean: Vector<Float>, mut prior_precision_matrix: Matrix<Float>, dofs: usize) -> Self {
+    pub fn new(
+        factorgraph_id: FactorGraphId,
+        prior_mean: Vector<Float>,
+        mut prior_precision_matrix: Matrix<Float>,
+        dofs: usize,
+    ) -> Self {
         if !prior_precision_matrix.iter().all(|x| x.is_finite()) {
             prior_precision_matrix.fill(0.0);
         }
@@ -150,6 +155,7 @@ impl VariableNode {
         let lam = prior_precision_matrix.clone();
 
         Self {
+            factorgraph_id,
             prior: VariablePrior::new(eta_prior, prior_precision_matrix),
             belief: VariableBelief::new(eta, lam, prior_mean, sigma),
             inbox: MessagesToFactors::new(),
@@ -170,12 +176,17 @@ impl VariableNode {
 
     /// Receives a message from a factor
     pub fn receive_message_from(&mut self, from: FactorId, message: Message) {
-        debug!("variable ? received message from {:?}", from);
+        // debug!("variable ? received message from {:?}", from);
         if message.is_empty() {
             // warn!("Empty message received from factor {:?}", from);
         }
         let _ = self.inbox.insert(from, message);
-        self.message_count.received += 1;
+        if from.factorgraph_id == self.factorgraph_id {
+            self.message_count.received.internal += 1;
+        } else {
+            self.message_count.received.external += 1;
+        }
+        // self.message_count.received += 1;
     }
 
     // // TODO: why never used?
@@ -193,12 +204,22 @@ impl VariableNode {
         // self.belief.mean = mean;
         self.belief.mean.clone_from(mean);
 
+        let mut messages_sent = MessagesSent::new();
+
         let messages: MessagesToFactors = self
             .inbox
             .keys()
-            .map(|factor_id| (*factor_id, self.belief.clone().into()))
+            .map(|factor_id| {
+                if factor_id.factorgraph_id == self.factorgraph_id {
+                    messages_sent.internal += 1;
+                } else {
+                    messages_sent.external += 1;
+                }
+                (*factor_id, self.belief.clone().into())
+            })
             .collect();
 
+        // PERF: do we need to reset the inbox?
         for message in self.inbox.values_mut() {
             *message = Message::empty();
         }
@@ -266,6 +287,8 @@ impl VariableNode {
             }
         }
 
+        let mut messages_sent = MessagesSent::new();
+
         let messages: MessagesToFactors = self
             .inbox
             .iter()
@@ -280,11 +303,25 @@ impl VariableNode {
                         )
                     },
                 );
+
+                if factor_id.factorgraph_id == self.factorgraph_id {
+                    messages_sent.internal += 1;
+                } else {
+                    messages_sent.external += 1;
+                }
+
                 (factor_id, response)
             })
             .collect();
 
-        self.message_count.sent += messages.len();
+        self.message_count.sent += messages_sent;
+        // for recipient in messages.keys() {
+        //     if recipient.factorgraph_id == self.factorgraph_id {
+        //         self.message_count.sent.internal += 1;
+        //     } else {
+        //         self.message_count.sent.external += 1;
+        //     }
+        // }
 
         messages
     }
@@ -315,12 +352,12 @@ impl FactorGraphNode for VariableNode {
     }
 
     #[inline(always)]
-    fn messages_sent(&self) -> usize {
+    fn messages_sent(&self) -> MessagesSent {
         self.message_count.sent
     }
 
     #[inline(always)]
-    fn messages_received(&self) -> usize {
+    fn messages_received(&self) -> MessagesReceived {
         self.message_count.received
     }
 

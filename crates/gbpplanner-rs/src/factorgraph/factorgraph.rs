@@ -15,7 +15,7 @@ use super::{
     node::{FactorGraphNode, Node, NodeKind, RemoveConnectionToError},
     prelude::Message,
     variable::VariableNode,
-    MessageCount,
+    MessageCount, MessagesReceived, MessagesSent,
 };
 
 /// type alias used to represent the id of the factorgraph
@@ -228,6 +228,13 @@ impl FactorGraph {
             factors:   self.factor_indices.len(),
             variables: self.variable_indices.len(),
         }
+    }
+
+    /// Number of edges in the factorgraph
+    ///
+    /// **Computes in O(1) time**
+    pub fn edge_count(&self) -> usize {
+        self.graph.edge_count()
     }
 
     /// Returns the number of the different factors in the factorgraph
@@ -462,6 +469,8 @@ impl FactorGraph {
             }
         }
 
+        // PERF: pass a mutable reference to the vec of messages, instead of allocating
+        // and returning
         messages_to_external_factors
     }
 
@@ -778,17 +787,17 @@ impl FactorGraph {
 
     /// Returns the number of messages sent by all variables and factors
     #[must_use]
-    pub fn messages_sent(&mut self) -> usize {
-        self.graph
-            .node_weights_mut()
-            .map(|node| {
-                let messages_sent = node.messages_sent();
-
-                node.reset_message_count();
-                messages_sent
-            })
-            .sum()
+    pub fn messages_sent(&self) -> MessagesSent {
+        self.graph.node_weights().map(|node| node.messages_sent()).sum()
     }
+
+    /// Returns the number of messages received by all variables and factors
+    #[must_use]
+    pub fn messages_received(&self) -> MessagesReceived {
+        self.graph.node_weights().map(|node| node.messages_received()).sum()
+    }
+
+    // pub fn receive_variable_message_from(&mut self,)
 }
 
 /// Record type used to keep track of how many factors and variables
@@ -800,6 +809,13 @@ pub struct NodeCount {
     pub factors:   usize,
     /// Number of `Variable` nodes
     pub variables: usize,
+}
+
+impl NodeCount {
+    /// Return the total number of nodes
+    pub fn total(&self) -> usize {
+        self.factors + self.variables
+    }
 }
 
 /// Record type returned by `FactorGraph::factor_count()`.
