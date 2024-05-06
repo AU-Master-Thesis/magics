@@ -1,8 +1,8 @@
 //! cli argument parser module
 
 use clap::Parser;
-
-use crate::config::EnvironmentType;
+// use crate::config::EnvironmentType;
+use gbp_environment::EnvironmentType;
 
 /// Which type of configuration data to dump to stdout
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]

@@ -1,0 +1,19 @@
+[package]
+name                   = "env_to_png"
+edition                = "2021"
+version.workspace      = true
+repository.workspace   = true
+authors.workspace      = true
+rust-version.workspace = true
+license.workspace      = true
+
+[dependencies]
+anyhow.workspace = true
+gbp_environment  = { path = "../gbp_environment" }
+gbp_geometry     = { path = "../gbp_geometry" }
+unit_interval    = { path = "../unit_interval" }
+image            = "0.25.1"
+glam             = "0.25.0"
+
+[lints]
+workspace = true

@@ -33,8 +33,11 @@ sigma-pose-fixed        = 0.000000000000001
 sigma-factor-dynamics   = 0.1
 sigma-factor-interrobot = 0.01
 sigma-factor-obstacle   = 0.01
-iterations-per-timestep = 10
 lookahead-multiple      = 3
+
+[gbp.iterations-per-timestep]
+internal = 10
+external = 10
 
 [robot]
 planning-horizon  = 5.0

@@ -1,4 +1,4 @@
-pub mod environment;
+// pub mod environment;
 pub mod formation;
 pub mod geometry;
 
@@ -7,7 +7,7 @@ pub mod reader;
 use std::num::NonZeroUsize;
 
 use bevy::{ecs::system::Resource, reflect::Reflect};
-pub use environment::{Environment, EnvironmentType};
+// pub use environment::{Environment, EnvironmentType};
 pub use formation::FormationGroup;
 pub use reader::read_config;
 use serde::{Deserialize, Serialize};

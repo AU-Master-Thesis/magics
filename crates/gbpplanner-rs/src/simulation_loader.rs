@@ -10,10 +10,11 @@ use bevy::{
     time::common_conditions::on_real_timer,
 };
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
+use gbp_environment::Environment;
 use image::GenericImageView;
 use smol_str::SmolStr;
 
-use crate::config::{Config, Environment, FormationGroup};
+use crate::config::{Config, FormationGroup};
 
 // #[derive(Debug, thiserror::Error)]
 // pub enum SimulationLoaderPluginError {
@@ -75,7 +76,8 @@ impl SimulationLoaderPlugin {}
 
 impl Plugin for SimulationLoaderPlugin {
     fn build(&self, app: &mut App) {
-        let reader = std::fs::read_dir(SIMULATIONS_DIR).expect("failed to read simulation directory");
+        let reader =
+            std::fs::read_dir(SIMULATIONS_DIR).expect("failed to read simulation directory");
 
         let simulations: BTreeMap<_, _> = reader
             .map(|dir| {
@@ -103,7 +105,10 @@ impl Plugin for SimulationLoaderPlugin {
                     .join(format!("{}.png", config.environment_image));
                 let raw_image_buffer = image::io::Reader::open(raw_path).unwrap().decode().unwrap();
 
-                let name = dir.file_name().into_string().expect("failed to parse simulation name");
+                let name = dir
+                    .file_name()
+                    .into_string()
+                    .expect("failed to parse simulation name");
 
                 let simulation = Simulation {
                     name: name.clone(),
@@ -118,14 +123,20 @@ impl Plugin for SimulationLoaderPlugin {
             })
             .collect();
 
-        assert!(!simulations.is_empty(), "No simulations found in {}", SIMULATIONS_DIR);
+        assert!(
+            !simulations.is_empty(),
+            "No simulations found in {}",
+            SIMULATIONS_DIR
+        );
 
         let initial_simulation = match &self.initial_simulation {
             InitialSimulation::FirstFoundInFolder => simulations
                 .first_key_value()
                 .map(|(_, v)| v)
                 .expect("there is 1 or more simulations"),
-            InitialSimulation::Name(name) => simulations.get(name).expect("simulation with name exists"),
+            InitialSimulation::Name(name) => {
+                simulations.get(name).expect("simulation with name exists")
+            }
         };
 
         // let initial_simulation = simulations.first_key_value().map(|(_, v)|
@@ -329,14 +340,23 @@ impl SimulationManager {
     }
 
     pub fn load_next(&mut self) {
-        let next = self.active.map(|id| (id + 1) % self.simulations.len()).unwrap_or(0);
+        let next = self
+            .active
+            .map(|id| (id + 1) % self.simulations.len())
+            .unwrap_or(0);
         self.load(SimulationId(next));
     }
 
     pub fn load_previous(&mut self) {
         let next = self
             .active
-            .map(|id| if id == 0 { self.simulations.len() - 1 } else { id - 1 })
+            .map(|id| {
+                if id == 0 {
+                    self.simulations.len() - 1
+                } else {
+                    id - 1
+                }
+            })
             .unwrap_or(0);
         self.load(SimulationId(next));
     }
@@ -586,11 +606,18 @@ fn load_initial_simulation(
         };
 
         let Some(environment) = simulation_manager.get_environment_for(simulation_id) else {
-            panic!("no environment found for simulation id: {}", simulation_id.0);
+            panic!(
+                "no environment found for simulation id: {}",
+                simulation_id.0
+            );
         };
 
-        let Some(formation_group) = simulation_manager.get_formation_group_for(simulation_id) else {
-            panic!("no formation group found for simulation id: {}", simulation_id.0);
+        let Some(formation_group) = simulation_manager.get_formation_group_for(simulation_id)
+        else {
+            panic!(
+                "no formation group found for simulation id: {}",
+                simulation_id.0
+            );
         };
 
         (
@@ -609,7 +636,9 @@ fn load_initial_simulation(
         .get_resource_mut::<SimulationManager>()
         .expect("SimulationManager has been inserted");
     // simulation_manager.active = Some(0);
-    simulation_manager.requests.push_back(Request::Load(simulation_id));
+    simulation_manager
+        .requests
+        .push_back(Request::Load(simulation_id));
 
     // let Some(simulation_id) = simulation_manager.active_id() else {
     //     panic!("no initial simulation set to active");
@@ -678,7 +707,9 @@ fn handle_requests(
         //     simulation_manager.active = Some(id.0);
         // }
         Request::Load(id)
-            if simulation_manager.active.is_some_and(|active| active == id.0)
+            if simulation_manager
+                .active
+                .is_some_and(|active| active == id.0)
                 && simulation_manager.simulations_loaded > 0 =>
         {
             warn!("simulation already loaded with id: {}", id.0);

@@ -34,7 +34,8 @@ use bevy_notify::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
 use colored::Colorize;
-use config::{environment::EnvironmentType, Environment};
+// use config::{environment::EnvironmentType, Environment};
+use gbp_environment::{Environment, EnvironmentType};
 use gbpplanner_rs::AppState;
 
 // use iyes_perf_ui::prelude::*;
@@ -76,9 +77,21 @@ fn main() -> anyhow::Result<()> {
     if cli.metadata {
         let authors = env!("CARGO_PKG_AUTHORS").split(':').collect::<Vec<_>>();
 
-        eprintln!("{}:   {}", "target arch".green().bold(), std::env::consts::ARCH);
-        eprintln!("{}:     {}", "target os".green().bold(), std::env::consts::OS);
-        eprintln!("{}: {}", "target family".green().bold(), std::env::consts::FAMILY);
+        eprintln!(
+            "{}:   {}",
+            "target arch".green().bold(),
+            std::env::consts::ARCH
+        );
+        eprintln!(
+            "{}:     {}",
+            "target os".green().bold(),
+            std::env::consts::OS
+        );
+        eprintln!(
+            "{}: {}",
+            "target family".green().bold(),
+            std::env::consts::FAMILY
+        );
 
         eprintln!("{}:          {}", "name".green().bold(), NAME);
         eprintln!("{}:", "authors".green().bold());
