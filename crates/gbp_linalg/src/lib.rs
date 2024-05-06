@@ -73,6 +73,19 @@ macro_rules! vector_norm_trait_impl {
                 self.fold(0.0, |acc, x| acc + x.abs())
             }
         }
+
+        impl VectorNorm for VectorView<'_, $float> {
+            type Scalar = $float;
+
+            fn euclidean_norm(&self) -> Self::Scalar {
+                <$float>::sqrt(self.fold(0.0, |acc, x| acc + x * x))
+            }
+
+            #[inline(always)]
+            fn l1_norm(&self) -> Self::Scalar {
+                self.fold(0.0, |acc, x| acc + x.abs())
+            }
+        }
     };
 }
 
@@ -113,6 +126,24 @@ macro_rules! ndarray_vector_ext_trait_impl {
                 // self.map_mut(|x| *x = *x / mag);
             }
         }
+
+        // impl NdarrayVectorExt for VectorView<'_, $float> {
+        //     type Scalar = $float;
+
+        //     /// Normalize the vector in place.
+        //     fn normalize(&mut self) {
+        //         let mag = self.euclidean_norm();
+        //         if mag == 0.0 || mag.is_infinite() {
+        //             return;
+        //             // panic!("Cannot normalize a vector with zero magnitude or
+        // infinite             // magnitude.");
+        //         }
+        //         for i in 0..self.len() {
+        //             self[i] /= mag;
+        //         }
+        //         // self.map_mut(|x| *x = *x / mag);
+        //     }
+        // }
     };
 }
 
