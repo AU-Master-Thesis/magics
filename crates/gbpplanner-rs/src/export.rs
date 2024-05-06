@@ -103,6 +103,7 @@ fn export(
     robot_collisions: Res<crate::planner::collisions::RobotCollisions>,
     sim_manager: Res<SimulationManager>,
     config: Res<Config>,
+    time_virtual: Res<Time<Virtual>>,
 ) {
     // schema:
     //
@@ -119,9 +120,9 @@ fn export(
     //     {
     //       "id": <string>,
     //       "radius": <float>,
-    //       "positions": <json array>, [[x, y], ]
-    //       "velocities": <json array>, [[x, y], ]
-    //       "collisions": {
+    //       "positions": <json array>, [{"x": <float>, "y": <float>, "timestamp":
+    // <float> } ], ]       "velocities": <json array>, [{"x": <float>, "y":
+    // <float>, "timestamp": <float> } ], ]       "collisions": {
     //          "robots": <integer>
     //          "environment": <integer>
     //       },
@@ -142,13 +143,18 @@ fn export(
 
     for event in evr_export.read() {
         let environment = sim_manager.active_name().unwrap_or_default();
-        let makespan = -1.0; // Placeholder, replace with actual makespan calculation
+        // let makespan = -1.0; // Placeholder, replace with actual makespan calculation
+        let makespan = time_virtual.elapsed_seconds() as f64;
 
         let robots: HashMap<_, _> = q_robots
             .iter()
             .map(|(entity, graph, positions, velocities, radius)| {
-                let positions: Vec<[f32; 2]> = positions.positions().map(|pos| [pos.x, pos.z]).collect();
-                let velocities: Vec<[f32; 2]> = velocities.velocities().map(|vel| [vel.x, vel.z]).collect();
+                // let positions: Vec<[f32; 2]> = positions.positions().map(|pos| [pos.x,
+                // pos.z]).collect();
+                let positions: Vec<[f32; 2]> = positions.positions().map(Into::into).collect();
+                // let velocities: Vec<[f32; 2]> = velocities.velocities().map(|vel| [vel.x,
+                // vel.z]).collect();
+                let velocities: Vec<[f32; 2]> = velocities.velocities().map(Into::into).collect();
                 let robot_collisions = robot_collisions
                 .get(entity)
                 // .map(|collisions| collisions.robots)

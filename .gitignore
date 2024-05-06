@@ -17,3 +17,7 @@
 **/*rustc-ice*
 
 .bacon-locations
+
+perf*
+dhat-heap.json
+flamegraphs/*

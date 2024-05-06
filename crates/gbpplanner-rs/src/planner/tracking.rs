@@ -34,13 +34,19 @@ pub struct TrackingBundle {
     pub velocity_tracker: VelocityTracker,
 }
 
+#[derive(Clone, Copy)]
+pub struct PositionMeasurement {
+    pub position:  Vec3,
+    pub timestamp: Instant,
+}
+
 /// A component that tracks position data of an entity using a ring buffer.
 ///
 /// It stores position vectors (`Vec3`) and utilizes a timer to determine when
 /// to capture and store an entity's current position into the ring buffer.
 #[derive(Component)]
 pub struct PositionTracker {
-    ringbuf: HeapRb<Vec3>,
+    ringbuf: HeapRb<PositionMeasurement>,
     timer: Timer,
     first_measurement_at: Option<Instant>,
 }
@@ -61,7 +67,7 @@ impl PositionTracker {
     }
 
     /// Returns a reference to the internal ring buffer.
-    pub fn ringbuf(&self) -> &HeapRb<Vec3> {
+    pub fn ringbuf(&self) -> &HeapRb<PositionMeasurement> {
         &self.ringbuf
     }
 
@@ -70,9 +76,21 @@ impl PositionTracker {
         &self.timer
     }
 
+    pub fn measurements(&self) -> impl Iterator<Item = &PositionMeasurement> + '_ {
+        self.ringbuf.iter()
+    }
+
+    // // pub fn positions(&self) -> impl Iterator<Item = Vec3> + '_ {
+    // pub fn positions(&self) -> impl Iterator<Item = Vec3> + '_ {
+    //     self.ringbuf.iter().cloned().map(|m| m.position)
+    // }
+
     /// Provides an iterator over the positions stored in the ring buffer.
-    pub fn positions(&self) -> impl Iterator<Item = Vec3> + '_ {
-        self.ringbuf.iter().cloned()
+    pub fn positions(&self) -> impl Iterator<Item = Vec2> + '_ {
+        self.ringbuf
+            .iter()
+            .cloned()
+            .map(|m| Vec2::new(m.position.x, m.position.z))
     }
 
     /// Clears all stored positions from the ring buffer.
@@ -100,7 +118,12 @@ fn track_positions(mut q: Query<(&Transform, &mut PositionTracker), Changed<Tran
     for (transform, mut tracker) in &mut q {
         tracker.timer.tick(time.delta());
         if tracker.timer.just_finished() {
-            tracker.ringbuf.push_overwrite(transform.translation);
+            let measurement = PositionMeasurement {
+                position:  transform.translation,
+                timestamp: Instant::now(),
+            };
+            // tracker.ringbuf.push_overwrite(transform.translation);
+            tracker.ringbuf.push_overwrite(measurement);
 
             if tracker.first_measurement_at.is_none() {
                 tracker.first_measurement_at = Some(Instant::now());
@@ -109,13 +132,27 @@ fn track_positions(mut q: Query<(&Transform, &mut PositionTracker), Changed<Tran
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct VelocityMeasurement {
+    pub velocity:      Vec3,
+    pub timestamp:     Instant,
+    pub measured_over: Duration,
+}
+
+#[derive(Clone, Copy)]
+struct PreviousPosition {
+    position:  Vec3,
+    timestamp: Instant,
+}
+
 /// A component that tracks velocity data of an entity with a transform using a
 /// ring buffer.
 #[derive(Component)]
 pub struct VelocityTracker {
-    ringbuf: HeapRb<Vec3>,
-    last_position: Option<Vec3>,
+    ringbuf: HeapRb<VelocityMeasurement>,
+    // last_position: Option<Vec3>,
     timer: Timer,
+    previous_position: Option<PreviousPosition>,
     first_measurement_at: Option<Instant>,
 }
 
@@ -129,15 +166,33 @@ impl VelocityTracker {
     pub fn new(capacity: usize, duration: Duration) -> Self {
         Self {
             ringbuf: HeapRb::new(capacity),
-            last_position: None,
+            // last_position: None,
             timer: Timer::new(duration, TimerMode::Repeating),
+            // previous_measurement: Some(VelocityMeasurement {
+            //     velocity:      Vec3::ZERO,
+            //     timestamp:     Instant::now(),
+            //     measured_over: Duration::ZERO,
+            // }),
+            previous_position: None,
             first_measurement_at: None,
         }
     }
 
-    /// Provides an iterator over the velocities stored in the ring buffer.
-    pub fn velocities(&self) -> impl Iterator<Item = Vec3> + '_ {
+    pub fn measurements(&self) -> impl Iterator<Item = VelocityMeasurement> + '_ {
         self.ringbuf.iter().cloned()
+    }
+
+    // /// Provides an iterator over the velocities stored in the ring buffer.
+    // pub fn velocities(&self) -> impl Iterator<Item = Vec3> + '_ {
+    //     self.ringbuf.iter().cloned().map(|v| v.velocity)
+    // }
+
+    /// Provides an iterator over the velocities stored in the ring buffer.
+    pub fn velocities(&self) -> impl Iterator<Item = Vec2> + '_ {
+        self.ringbuf
+            .iter()
+            .cloned()
+            .map(|v| Vec2::new(v.velocity.x, v.velocity.z))
     }
 }
 
@@ -150,14 +205,25 @@ fn track_velocities(mut q: Query<(&Transform, &mut VelocityTracker), Changed<Tra
     for (transform, mut tracker) in &mut q {
         tracker.timer.tick(time.delta());
         if tracker.timer.just_finished() {
-            if let Some(last_position) = tracker.last_position {
-                let velocity = (transform.translation - last_position) / time.delta_seconds();
-                tracker.ringbuf.push_overwrite(velocity);
+            let now = Instant::now();
+
+            if let Some(previous_position) = tracker.previous_position {
+                let dt = now - previous_position.timestamp;
+                let measurement = VelocityMeasurement {
+                    velocity:      (transform.translation - previous_position.position) / dt.as_secs_f32(),
+                    timestamp:     now,
+                    measured_over: dt,
+                };
+                // tracker.ringbuf.push_overwrite(transform.translation);
+                tracker.ringbuf.push_overwrite(measurement);
             }
-            tracker.last_position = Some(transform.translation);
+            tracker.previous_position = Some(PreviousPosition {
+                position:  transform.translation,
+                timestamp: now,
+            });
 
             if tracker.first_measurement_at.is_none() {
-                tracker.first_measurement_at = Some(Instant::now());
+                tracker.first_measurement_at = Some(now);
             }
         }
     }
