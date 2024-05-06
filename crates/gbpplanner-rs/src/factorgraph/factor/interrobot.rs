@@ -63,8 +63,8 @@ impl InterRobotFactor {
         //     external_variable,
         // }
 
-        let safety_distance_multiplier =
-            safety_distance_multiplier.map_or(Self::DEFAULT_SAFETY_DISTANCE_MULTIPLIER, |x| x.get());
+        let safety_distance_multiplier = safety_distance_multiplier
+            .map_or(Self::DEFAULT_SAFETY_DISTANCE_MULTIPLIER, |x| x.get());
         // .unwrap_or(2.2.try_into().expect("2.2 > 0.0"))
         // .get();
         let safety_distance = safety_distance_multiplier * robot_radius;
@@ -177,7 +177,9 @@ impl Factor for InterRobotFactor {
             .linearisation_point
             .slice(s![..offset])
             .sub(&state.linearisation_point.slice(s![DOFS..DOFS + offset]));
-        let squared_norm = difference_between_estimated_positions.mapv(|x| x.powi(2)).sum();
+        let squared_norm = difference_between_estimated_positions
+            .mapv(|x| x.powi(2))
+            .sum();
 
         let skip = squared_norm >= self.safety_distance.powi(2);
         skip

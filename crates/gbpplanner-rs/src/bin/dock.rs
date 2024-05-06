@@ -15,7 +15,10 @@ fn main() {
         .init_resource::<MyTabs>()
         .init_resource::<Enabled>()
         .add_systems(Update, render)
-        .add_systems(Update, toggle_enabled.run_if(input_just_pressed(KeyCode::Space)));
+        .add_systems(
+            Update,
+            toggle_enabled.run_if(input_just_pressed(KeyCode::Space)),
+        );
 
     app.run();
 }
@@ -62,7 +65,10 @@ impl MyTabs {
     pub fn new() -> Self {
         // Create a `DockState` with an initial tab "tab1" in the main `Surface`'s root
         // node.
-        let tabs = ["tab1", "tab2", "tab3"].map(str::to_string).into_iter().collect();
+        let tabs = ["tab1", "tab2", "tab3"]
+            .map(str::to_string)
+            .into_iter()
+            .collect();
         let dock_state = DockState::new(tabs);
         Self { dock_state }
     }

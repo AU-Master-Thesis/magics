@@ -4,7 +4,10 @@ use bevy::prelude::*;
 
 fn main() {
     better_panic::debug_install();
-    App::new().add_plugins(DefaultPlugins).add_systems(Startup, setup).run();
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_systems(Startup, setup)
+        .run();
 }
 
 fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {

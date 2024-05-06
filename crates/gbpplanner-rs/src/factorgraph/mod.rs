@@ -34,7 +34,11 @@ pub struct MessagesSent {
 
 impl std::fmt::Display for MessagesSent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[internal: {}, external: {}]", self.internal, self.external)
+        write!(
+            f,
+            "[internal: {}, external: {}]",
+            self.internal, self.external
+        )
     }
 }
 
@@ -88,7 +92,11 @@ impl std::iter::Sum for MessagesReceived {
 
 impl std::fmt::Display for MessagesReceived {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[internal: {}, external: {}]", self.internal, self.external)
+        write!(
+            f,
+            "[internal: {}, external: {}]",
+            self.internal, self.external
+        )
     }
 }
 

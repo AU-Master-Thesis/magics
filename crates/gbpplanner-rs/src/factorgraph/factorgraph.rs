@@ -257,7 +257,10 @@ impl FactorGraph {
     /// go through all nodes, and remove their individual connection to the
     /// other factorgraph if none of the nodes has a connection to the other
     /// factorgraph, then return and Error.
-    pub fn remove_connection_to(&mut self, factorgraph_id: FactorGraphId) -> Result<(), RemoveConnectionToError> {
+    pub fn remove_connection_to(
+        &mut self,
+        factorgraph_id: FactorGraphId,
+    ) -> Result<(), RemoveConnectionToError> {
         let mut connections_removed: usize = 0;
         for node in self.graph.node_weights_mut() {
             if node.remove_connection_to(factorgraph_id).is_ok() {
@@ -364,7 +367,9 @@ impl FactorGraph {
                 let variable = node
                     .as_variable_mut()
                     .expect("A variable index should point to a Variable in the graph");
-                variable.inbox.retain(|factor_id, _| factor_id.factorgraph_id != other);
+                variable
+                    .inbox
+                    .retain(|factor_id, _| factor_id.factorgraph_id != other);
                 continue;
             }
 
@@ -376,9 +381,9 @@ impl FactorGraph {
             };
 
             if interrobot.external_variable.factorgraph_id == other {
-                self.graph
-                    .remove_node(node_index)
-                    .expect("The node index was retrieved from the graph in the previous statement");
+                self.graph.remove_node(node_index).expect(
+                    "The node index was retrieved from the graph in the previous statement",
+                );
 
                 self.factor_indices.retain(|&idx| idx != node_index);
 
@@ -398,7 +403,9 @@ impl FactorGraph {
                 .expect("A variable index should point to a Variable in the graph");
 
             for factor_index in &factor_indices_to_remove {
-                variable.inbox.remove(&FactorId::new(self.id, *factor_index));
+                variable
+                    .inbox
+                    .remove(&FactorId::new(self.id, *factor_index));
             }
         }
     }
@@ -411,7 +418,9 @@ impl FactorGraph {
             let Some(variable) = node.as_variable_mut() else {
                 continue;
             };
-            variable.inbox.retain(|factor_id, _| factor_id.factorgraph_id != other);
+            variable
+                .inbox
+                .retain(|factor_id, _| factor_id.factorgraph_id != other);
         }
     }
 
@@ -419,7 +428,10 @@ impl FactorGraph {
     /// The indices are ordered by the order in which they are inserted into the
     /// factorgraph. Returns `None`, if the end of the  **range** exceeds
     /// the number of variables in the factorgraph.
-    pub fn variable_indices_ordered_by_creation(&self, range: Range<usize>) -> Option<Vec<NodeIndex>> {
+    pub fn variable_indices_ordered_by_creation(
+        &self,
+        range: Range<usize>,
+    ) -> Option<Vec<NodeIndex>> {
         let within_range = range.end <= self.variable_indices.len();
         if within_range {
             Some(
@@ -478,19 +490,25 @@ impl FactorGraph {
     /// Returns a refenrence to the factor with the given index.
     /// Returns `None`, if the factor does not exist.
     pub fn get_factor(&self, index: FactorIndex) -> Option<&FactorNode> {
-        self.graph.node_weight(index.0).and_then(|node| node.as_factor())
+        self.graph
+            .node_weight(index.0)
+            .and_then(|node| node.as_factor())
     }
 
     /// Returns a mutable refenrence to the factor with the given index.
     /// Returns `None`, if the factor does not exist.
     pub fn get_factor_mut(&mut self, index: FactorIndex) -> Option<&mut FactorNode> {
-        self.graph.node_weight_mut(*index).and_then(|node| node.as_factor_mut())
+        self.graph
+            .node_weight_mut(*index)
+            .and_then(|node| node.as_factor_mut())
     }
 
     /// Returns a refenrence to the variable with the given index.
     /// Returns `None`, if the variable does not exist.
     pub fn get_variable(&self, index: VariableIndex) -> Option<&VariableNode> {
-        self.graph.node_weight(*index).and_then(|node| node.as_variable())
+        self.graph
+            .node_weight(*index)
+            .and_then(|node| node.as_variable())
     }
 
     /// Returns a mutable refenrence to the variable with the given index.
@@ -576,15 +594,17 @@ impl FactorGraph {
 
         for &node_index in &self.variable_indices {
             let node = &mut self.graph[node_index];
-            let variable = node
-                .as_variable_mut()
-                .expect("self.variable_indices should only contain indices that point to Variables in the graph");
+            let variable = node.as_variable_mut().expect(
+                "self.variable_indices should only contain indices that point to Variables in the \
+                 graph",
+            );
             let variable_index = VariableIndex(node_index);
 
             let factor_messages = variable.update_belief_and_create_factor_responses();
             debug_assert!(
                 !factor_messages.is_empty(),
-                "The factorgraph {:?} with variable {:?} did not receive any messages from its connected factors",
+                "The factorgraph {:?} with variable {:?} did not receive any messages from its \
+                 connected factors",
                 self.id,
                 variable_index
             );
@@ -749,9 +769,10 @@ impl FactorGraph {
 
         for ix in &self.factor_indices {
             let node = &mut self.graph[*ix];
-            let factor = node
-                .as_factor_mut()
-                .expect("self.factor_indices should only contain indices that point to Factors in the graph");
+            let factor = node.as_factor_mut().expect(
+                "self.factor_indices should only contain indices that point to Factors in the \
+                 graph",
+            );
 
             let variable_messages = factor.update();
             let factor_id = FactorId::new(self.id, FactorIndex(*ix));
@@ -789,13 +810,19 @@ impl FactorGraph {
     /// Returns the number of messages sent by all variables and factors
     #[must_use]
     pub fn messages_sent(&self) -> MessagesSent {
-        self.graph.node_weights().map(|node| node.messages_sent()).sum()
+        self.graph
+            .node_weights()
+            .map(|node| node.messages_sent())
+            .sum()
     }
 
     /// Returns the number of messages received by all variables and factors
     #[must_use]
     pub fn messages_received(&self) -> MessagesReceived {
-        self.graph.node_weights().map(|node| node.messages_received()).sum()
+        self.graph
+            .node_weights()
+            .map(|node| node.messages_received())
+            .sum()
     }
 
     pub fn update_inter_robot_safety_distance_multiplier(
@@ -807,9 +834,10 @@ impl FactorGraph {
                 continue;
             };
             // let node = &mut self.graph[*ix];
-            let factor = node
-                .as_factor_mut()
-                .expect("self.factor_indices should only contain indices that point to Factors in the graph");
+            let factor = node.as_factor_mut().expect(
+                "self.factor_indices should only contain indices that point to Factors in the \
+                 graph",
+            );
             let FactorKind::InterRobot(ref mut interrobot) = factor.kind else {
                 panic!("Expected an interrobot factor");
             };
@@ -957,7 +985,8 @@ impl<'a> Iterator for Variables<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let &index = self.variable_indices.next()?;
         let node = &self.graph[index];
-        node.as_variable().map(|variable| (VariableIndex(index), variable))
+        node.as_variable()
+            .map(|variable| (VariableIndex(index), variable))
     }
 }
 
@@ -1025,7 +1054,9 @@ pub struct VariableAndTheirInterRobotFactors<'fg> {
 // 'edges: 'fg {
 impl<'fg> VariableAndTheirInterRobotFactors<'fg> {
     fn new(graph: &'fg Graph, variable_indices: &'fg [NodeIndex]) -> Self {
-        let iter = variable_indices.iter().flat_map(|var_ix| graph.edges(*var_ix));
+        let iter = variable_indices
+            .iter()
+            .flat_map(|var_ix| graph.edges(*var_ix));
         // let iter = variable_indices.iter().map(|var_ix|
         // graph.edges(*var_ix)).reduce(|a, b| a.chain(b));
         Self {
@@ -1106,7 +1137,11 @@ pub struct VariableAndTheirObstacleFactors<'fg> {
 }
 
 impl<'fg> VariableAndTheirObstacleFactors<'fg> {
-    fn new(graph: &'fg Graph, variable_indices: &'fg [NodeIndex], obstacle_factor_indices: &'fg [NodeIndex]) -> Self {
+    fn new(
+        graph: &'fg Graph,
+        variable_indices: &'fg [NodeIndex],
+        obstacle_factor_indices: &'fg [NodeIndex],
+    ) -> Self {
         Self {
             graph,
             pairs: variable_indices.iter().zip(obstacle_factor_indices.iter()),
@@ -1202,10 +1237,12 @@ impl graphviz::Graph for FactorGraph {
             .graph
             .edge_indices()
             .filter_map(|edge_index| {
-                self.graph.edge_endpoints(edge_index).map(|(from, to)| graphviz::Edge {
-                    from: from.index(),
-                    to:   to.index(),
-                })
+                self.graph
+                    .edge_endpoints(edge_index)
+                    .map(|(from, to)| graphviz::Edge {
+                        from: from.index(),
+                        to:   to.index(),
+                    })
             })
             .collect::<Vec<_>>();
 

@@ -143,30 +143,46 @@ mod tests {
                 13., 14., 15., 16.
             ]];
 
-            let upper_right = array![[17., 18., 19., 20.], [21., 22., 23., 24.], [25., 26., 27., 28.], [
-                29., 30., 31., 32.
-            ]];
+            let upper_right = array![
+                [17., 18., 19., 20.],
+                [21., 22., 23., 24.],
+                [25., 26., 27., 28.],
+                [29., 30., 31., 32.]
+            ];
 
-            let lower_left = array![[33., 34., 35., 36.], [37., 38., 39., 40.], [41., 42., 43., 44.], [
-                45., 46., 47., 48.
-            ]];
+            let lower_left = array![
+                [33., 34., 35., 36.],
+                [37., 38., 39., 40.],
+                [41., 42., 43., 44.],
+                [45., 46., 47., 48.]
+            ];
 
-            let lower_right = array![[49., 50., 51., 52.], [53., 54., 55., 56.], [57., 58., 59., 60.], [
-                61., 62., 63., 64.
-            ]];
+            let lower_right = array![
+                [49., 50., 51., 52.],
+                [53., 54., 55., 56.],
+                [57., 58., 59., 60.],
+                [61., 62., 63., 64.]
+            ];
 
-            let precision_matrix = concatenate![Axis(0), concatenate![Axis(1), upper_left, upper_right], concatenate![
-                Axis(1),
+            let precision_matrix = concatenate![
+                Axis(0),
+                concatenate![Axis(1), upper_left, upper_right],
+                concatenate![Axis(1), lower_left, lower_right]
+            ];
+            (
+                precision_matrix,
+                upper_left,
+                upper_right,
                 lower_left,
-                lower_right
-            ]];
-            (precision_matrix, upper_left, upper_right, lower_left, lower_right)
+                lower_right,
+            )
         }};
     }
 
     #[test]
     fn extract_submatrices_from_precision_matrix_with_marg_idx0_dofs4() {
-        let (precision_matrix, upper_left, upper_right, lower_left, lower_right) = generate_8x8_precision_matrix!();
+        let (precision_matrix, upper_left, upper_right, lower_left, lower_right) =
+            generate_8x8_precision_matrix!();
 
         assert!(precision_matrix.is_square());
 
@@ -180,7 +196,8 @@ mod tests {
 
     #[test]
     fn extract_submatrices_from_precision_matrix_with_marg_idx4_dofs4() {
-        let (precision_matrix, upper_left, upper_right, lower_left, lower_right) = generate_8x8_precision_matrix!();
+        let (precision_matrix, upper_left, upper_right, lower_left, lower_right) =
+            generate_8x8_precision_matrix!();
 
         assert!(precision_matrix.is_square());
 
@@ -196,9 +213,10 @@ mod tests {
     fn information_vector_length_equal_to_ndofs_do_nothing() {
         #![allow(clippy::unwrap_used)]
         let information_vector: Vector<Float> = array![0., 1., 2., 3.];
-        let precision_matrix: Matrix<Float> = array![[5., 0.2, 0., 0.], [0.2, 5., 0., 0.], [0., 0.0, 5., 0.3], [
-            0., 0., 0.3, 5.
-        ]];
+        let precision_matrix: Matrix<Float> =
+            array![[5., 0.2, 0., 0.], [0.2, 5., 0., 0.], [0., 0.0, 5., 0.3], [
+                0., 0., 0.3, 5.
+            ]];
 
         let marginalisation_idx = 0;
 

@@ -41,7 +41,10 @@ pub fn get_variable_timesteps(lookahead_horizon: u32, lookahead_multiple: u32) -
     let mut timesteps = Vec::<u32>::with_capacity(estimated_capacity);
     // timesteps.push(0);
 
-    let n = 1 + (0.5 * (-1.0 + f32::sqrt(1.0 + 8.0 * lookahead_horizon as f32 / lookahead_multiple as f32))) as u32;
+    let n = 1
+        + (0.5
+            * (-1.0 + f32::sqrt(1.0 + 8.0 * lookahead_horizon as f32 / lookahead_multiple as f32)))
+            as u32;
     // TODO: use std::iter::successors instead
     for i in 0..(lookahead_multiple * (n + 1)) {
         let section = i / lookahead_multiple;
@@ -94,34 +97,39 @@ mod tests {
         let lookahead_horizon = 4;
         let lookahead_multiple = 3;
 
-        assert_eq!(get_variable_timesteps(lookahead_horizon, lookahead_multiple), vec![
-            0, 1, 2, 3, 4
-        ]);
+        assert_eq!(
+            get_variable_timesteps(lookahead_horizon, lookahead_multiple),
+            vec![0, 1, 2, 3, 4]
+        );
 
         let lookahead_horizon = 30;
         let lookahead_multiple = 3;
 
-        assert_eq!(get_variable_timesteps(lookahead_horizon, lookahead_multiple), vec![
-            0, 1, 2, 3, 5, 7, 9, 12, 15, 18, 22, 26, 30
-        ]);
+        assert_eq!(
+            get_variable_timesteps(lookahead_horizon, lookahead_multiple),
+            vec![0, 1, 2, 3, 5, 7, 9, 12, 15, 18, 22, 26, 30]
+        );
 
         let lookahead_horizon = 60;
         let lookahead_multiple = 3;
-        assert_eq!(get_variable_timesteps(lookahead_horizon, lookahead_multiple), vec![
-            0, 1, 2, 3, 5, 7, 9, 12, 15, 18, 22, 26, 30, 35, 40, 45, 51, 57, 60
-        ]);
+        assert_eq!(
+            get_variable_timesteps(lookahead_horizon, lookahead_multiple),
+            vec![0, 1, 2, 3, 5, 7, 9, 12, 15, 18, 22, 26, 30, 35, 40, 45, 51, 57, 60]
+        );
 
         let lookahead_horizon = 10;
         let lookahead_multiple = 3;
-        assert_eq!(get_variable_timesteps(lookahead_horizon, lookahead_multiple), vec![
-            0, 1, 2, 3, 5, 7, 9, 10
-        ]);
+        assert_eq!(
+            get_variable_timesteps(lookahead_horizon, lookahead_multiple),
+            vec![0, 1, 2, 3, 5, 7, 9, 10]
+        );
 
         let lookahead_horizon = 20;
         let lookahead_multiple = 5;
-        assert_eq!(get_variable_timesteps(lookahead_horizon, lookahead_multiple), vec![
-            0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 18, 20
-        ],);
+        assert_eq!(
+            get_variable_timesteps(lookahead_horizon, lookahead_multiple),
+            vec![0, 1, 2, 3, 4, 5, 7, 9, 11, 13, 15, 18, 20],
+        );
     }
 }
 

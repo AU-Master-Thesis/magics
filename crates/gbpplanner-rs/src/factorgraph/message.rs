@@ -64,14 +64,18 @@ impl Message {
     /// or `None` if the message is empty.
     #[inline]
     pub fn precision_matrix(&self) -> Option<&Matrix<Float>> {
-        self.payload.as_ref().map(|payload| &payload.precision_matrix)
+        self.payload
+            .as_ref()
+            .map(|payload| &payload.precision_matrix)
     }
 
     /// Returns a reference to the information vector
     /// or `None` if the message is empty.
     #[inline]
     pub fn information_vector(&self) -> Option<&Vector<Float>> {
-        self.payload.as_ref().map(|payload| &payload.information_vector)
+        self.payload
+            .as_ref()
+            .map(|payload| &payload.information_vector)
     }
 
     /// Returns `true` if the message is [`Empty`].
@@ -107,7 +111,9 @@ impl Message {
     pub fn size_of_payload(&self) -> usize {
         self.payload.as_ref().map_or(0, |p| {
             // p.information_vector.len()
-            (p.information_vector.len() + (p.precision_matrix.nrows() * p.precision_matrix.ncols()) + p.mean.len())
+            (p.information_vector.len()
+                + (p.precision_matrix.nrows() * p.precision_matrix.ncols())
+                + p.mean.len())
                 * std::mem::size_of::<Float>()
         })
     }

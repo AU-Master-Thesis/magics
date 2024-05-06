@@ -16,10 +16,14 @@ impl RobotCollisionsPlugin {
 impl Plugin for RobotCollisionsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<RobotCollisions>()
-            .add_systems(Update, update_robot_collisions.run_if(on_timer(Self::UPDATE_EVERY)))
+            .add_systems(
+                Update,
+                update_robot_collisions.run_if(on_timer(Self::UPDATE_EVERY)),
+            )
             .add_systems(
                 PostUpdate,
-                clear_robot_collisions.run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
+                clear_robot_collisions
+                    .run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
             );
     }
 }
@@ -47,8 +51,9 @@ fn update_robot_collisions(
         return;
     }
 
-    for (r, c) in seq::upper_triangular_exclude_diagonal(aabbs.len().try_into().expect("more than one robot"))
-        .expect("more than one robot")
+    for (r, c) in
+        seq::upper_triangular_exclude_diagonal(aabbs.len().try_into().expect("more than one robot"))
+            .expect("more than one robot")
     {
         let is_colliding = aabbs[r].1.intersects(&aabbs[c].1);
         robot_collisions.update(aabbs[r].0, aabbs[c].0, is_colliding);
@@ -106,11 +111,16 @@ pub struct RobotCollisions {
 
 impl RobotCollisions {
     fn new() -> Self {
-        Self { inner: HashMap::new() }
+        Self {
+            inner: HashMap::new(),
+        }
     }
 
     fn update(&mut self, e1: Entity, e2: Entity, is_colliding: bool) {
-        let entry = self.inner.entry((e1, e2)).or_insert(CollisionHistory::new());
+        let entry = self
+            .inner
+            .entry((e1, e2))
+            .or_insert(CollisionHistory::new());
         entry.update(is_colliding);
     }
 

@@ -4,7 +4,10 @@ use std::{
     time::Duration,
 };
 
-use bevy::{input::common_conditions::input_just_pressed, prelude::*, time::common_conditions::on_real_timer};
+use bevy::{
+    input::common_conditions::input_just_pressed, prelude::*,
+    time::common_conditions::on_real_timer,
+};
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use gbp_environment::Environment;
 use image::GenericImageView;
@@ -320,14 +323,20 @@ impl SimulationManager {
     }
 
     pub fn load_next(&mut self) {
-        let next = self.active.map_or(0, |id| (id + 1) % self.simulations.len());
+        let next = self
+            .active
+            .map_or(0, |id| (id + 1) % self.simulations.len());
         self.load(SimulationId(next));
     }
 
     pub fn load_previous(&mut self) {
-        let next = self
-            .active
-            .map_or(0, |id| if id == 0 { self.simulations.len() - 1 } else { id - 1 });
+        let next = self.active.map_or(0, |id| {
+            if id == 0 {
+                self.simulations.len() - 1
+            } else {
+                id - 1
+            }
+        });
         self.load(SimulationId(next));
     }
 

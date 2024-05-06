@@ -114,7 +114,10 @@ impl PositionTracker {
 ///
 /// It checks if the update interval specified by the internal timer has elapsed
 /// and updates the ring buffer with the current position of the entity.
-fn track_positions(mut q: Query<(&Transform, &mut PositionTracker), Changed<Transform>>, time: Res<Time>) {
+fn track_positions(
+    mut q: Query<(&Transform, &mut PositionTracker), Changed<Transform>>,
+    time: Res<Time>,
+) {
     for (transform, mut tracker) in &mut q {
         tracker.timer.tick(time.delta());
         if tracker.timer.just_finished() {
@@ -201,7 +204,10 @@ impl VelocityTracker {
 ///
 /// It checks if the update interval specified by the internal timer has elapsed
 /// and updates the ring buffer with the current velocity of the entity.
-fn track_velocities(mut q: Query<(&Transform, &mut VelocityTracker), Changed<Transform>>, time: Res<Time>) {
+fn track_velocities(
+    mut q: Query<(&Transform, &mut VelocityTracker), Changed<Transform>>,
+    time: Res<Time>,
+) {
     for (transform, mut tracker) in &mut q {
         tracker.timer.tick(time.delta());
         if tracker.timer.just_finished() {
@@ -210,7 +216,8 @@ fn track_velocities(mut q: Query<(&Transform, &mut VelocityTracker), Changed<Tra
             if let Some(previous_position) = tracker.previous_position {
                 let dt = now - previous_position.timestamp;
                 let measurement = VelocityMeasurement {
-                    velocity:      (transform.translation - previous_position.position) / dt.as_secs_f32(),
+                    velocity:      (transform.translation - previous_position.position)
+                        / dt.as_secs_f32(),
                     timestamp:     now,
                     measured_over: dt,
                 };

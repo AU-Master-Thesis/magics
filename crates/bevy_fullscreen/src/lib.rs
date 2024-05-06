@@ -48,7 +48,8 @@ impl Plugin for ToggleFullscreenPlugin {
     fn build(&self, app: &mut App) {
         if cfg!(target_arch = "wasm32") {
             warn!(
-                "ToggleFullscreenPlugin: on target 'wasm32' the window cannot be fullscreened. no systems registered."
+                "ToggleFullscreenPlugin: on target 'wasm32' the window cannot be fullscreened. no \
+                 systems registered."
             );
             return;
         }
@@ -57,7 +58,10 @@ impl Plugin for ToggleFullscreenPlugin {
             .add_systems(PostUpdate, toggle_fullscreen);
 
         if let Some(keycode) = self.keybind {
-            app.add_systems(Update, emit_toggle_fullscreen.run_if(input_just_released(keycode)));
+            app.add_systems(
+                Update,
+                emit_toggle_fullscreen.run_if(input_just_released(keycode)),
+            );
         }
     }
 }
@@ -82,7 +86,10 @@ fn emit_toggle_fullscreen(mut event_writer: EventWriter<ToggleFullscreen>) {
 
 /// Toggles fullscreen of the primary window, when `ToggleFullscreenEvent` is
 /// emitted.
-fn toggle_fullscreen(mut query: Query<&mut Window>, mut event_reader: EventReader<ToggleFullscreen>) {
+fn toggle_fullscreen(
+    mut query: Query<&mut Window>,
+    mut event_reader: EventReader<ToggleFullscreen>,
+) {
     for _ in event_reader.read() {
         for mut window in &mut query {
             use WindowMode::{BorderlessFullscreen, Fullscreen, SizedFullscreen, Windowed};
@@ -91,7 +98,10 @@ fn toggle_fullscreen(mut query: Query<&mut Window>, mut event_reader: EventReade
                 SizedFullscreen | Fullscreen | BorderlessFullscreen => Windowed,
             };
 
-            info!("changed window mode from: {:?} to: {:?}", window.mode, new_window_mode);
+            info!(
+                "changed window mode from: {:?} to: {:?}",
+                window.mode, new_window_mode
+            );
             window.mode = new_window_mode;
         }
     }

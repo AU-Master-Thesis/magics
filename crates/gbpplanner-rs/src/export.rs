@@ -210,10 +210,15 @@ fn export(
                 let latest_id = existing_files
                     .filter_map(std::result::Result::ok)
                     .filter_map(|path| {
-                        path.file_name()
-                            .and_then(|file_name| file_name.to_str().map(std::string::ToString::to_string))
+                        path.file_name().and_then(|file_name| {
+                            file_name.to_str().map(std::string::ToString::to_string)
+                        })
                     })
-                    .filter_map(|basename| basename[prefix.len()..basename.len() - 5].parse::<usize>().ok())
+                    .filter_map(|basename| {
+                        basename[prefix.len()..basename.len() - 5]
+                            .parse::<usize>()
+                            .ok()
+                    })
                     .max();
 
                 let id = latest_id.map_or(0, |id| id + 1);

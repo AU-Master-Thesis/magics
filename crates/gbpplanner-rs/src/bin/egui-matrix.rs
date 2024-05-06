@@ -14,7 +14,10 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(EguiPlugin)
         .insert_resource(VariableData::default())
-        .add_systems(Update, quit_application.run_if(input_just_pressed(KeyCode::KeyQ)))
+        .add_systems(
+            Update,
+            quit_application.run_if(input_just_pressed(KeyCode::KeyQ)),
+        )
         .add_systems(Update, render)
         .run();
 }
@@ -126,7 +129,12 @@ pub fn float_cell(f: f32) -> egui::RichText {
 }
 
 /// A separator with color and space before and after
-pub fn separator(ui: &mut Ui, color: Option<Color32>, space_before: Option<f32>, space_after: Option<f32>) {
+pub fn separator(
+    ui: &mut Ui,
+    color: Option<Color32>,
+    space_before: Option<f32>,
+    space_after: Option<f32>,
+) {
     ui.add_space(space_before.unwrap_or(0.0));
     let before = ui.visuals().widgets.noninteractive.bg_stroke.color;
     ui.visuals_mut().widgets.noninteractive.bg_stroke.color = color.unwrap_or(before);

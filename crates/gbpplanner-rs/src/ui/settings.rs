@@ -81,25 +81,29 @@ fn ui_settings_exclusive(world: &mut World) {
                             world.resource_scope(|world, pause_play: Mut<State<PausedState>>| {
                                 world.resource_scope(|world, time: Mut<Time<Virtual>>| {
                                     world.resource_scope(|world, time_fixed: Mut<Time<Fixed>>| {
-                                        world.resource_scope(|world, simulation_manager: Mut<SimulationManager>| {
-                                            world.resource_scope(|world, config_store: Mut<GizmoConfigStore>| {
-                                                ui_settings_panel(
-                                                    egui_context.get_mut(),
-                                                    ui_state,
-                                                    config,
-                                                    occupied_screen_space,
-                                                    cursor_coordinates,
-                                                    catppuccin_theme,
-                                                    world,
-                                                    currently_changing,
-                                                    pause_play,
-                                                    time,
-                                                    time_fixed,
-                                                    config_store,
-                                                    simulation_manager,
+                                        world.resource_scope(
+                                            |world, simulation_manager: Mut<SimulationManager>| {
+                                                world.resource_scope(
+                                                    |world, config_store: Mut<GizmoConfigStore>| {
+                                                        ui_settings_panel(
+                                                            egui_context.get_mut(),
+                                                            ui_state,
+                                                            config,
+                                                            occupied_screen_space,
+                                                            cursor_coordinates,
+                                                            catppuccin_theme,
+                                                            world,
+                                                            currently_changing,
+                                                            pause_play,
+                                                            time,
+                                                            time_fixed,
+                                                            config_store,
+                                                            simulation_manager,
+                                                        );
+                                                    },
                                                 );
-                                            });
-                                        });
+                                            },
+                                        );
                                     });
                                 });
                             });

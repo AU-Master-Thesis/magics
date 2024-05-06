@@ -21,7 +21,9 @@ use crate::{
     environment::FollowCameraMe,
     pause_play::PausePlay,
     planner::robot::{RobotBundle, StateVector, Waypoints},
-    simulation_loader::{self, EndSimulation, LoadSimulation, ReloadSimulation, Sdf, SimulationManager},
+    simulation_loader::{
+        self, EndSimulation, LoadSimulation, ReloadSimulation, Sdf, SimulationManager,
+    },
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
 
@@ -82,7 +84,10 @@ fn track_score(
         }
     }
 
-    if scoreboard.robots_left == 0 && !scoreboard.game_over && spawners.iter().all(FormationSpawner::exhausted) {
+    if scoreboard.robots_left == 0
+        && !scoreboard.game_over
+        && spawners.iter().all(FormationSpawner::exhausted)
+    {
         evw_formations_finished.send(AllFormationsFinished);
         scoreboard.game_over = true;
     }
@@ -236,7 +241,11 @@ enum FormationSpawnerState {
 
 impl FormationSpawner {
     #[must_use]
-    pub fn new(formation_group_index: usize, initial_delay: Duration, timer: RepeatingTimer) -> Self {
+    pub fn new(
+        formation_group_index: usize,
+        initial_delay: Duration,
+        timer: RepeatingTimer,
+    ) -> Self {
         Self {
             formation_group_index,
             initial_delay: Timer::new(initial_delay, TimerMode::Once),
@@ -291,7 +300,9 @@ impl FormationSpawner {
     }
 
     fn spawn(&mut self) {
-        if matches!(self.state, FormationSpawnerState::Active { on_cooldown: false }) {
+        if matches!(self.state, FormationSpawnerState::Active {
+            on_cooldown: false,
+        }) {
             self.state = FormationSpawnerState::Active { on_cooldown: true };
             self.spawned += 1;
         };
@@ -299,7 +310,9 @@ impl FormationSpawner {
 
     #[inline]
     fn ready_to_spawn(&mut self) -> bool {
-        matches!(self.state, FormationSpawnerState::Active { on_cooldown: false })
+        matches!(self.state, FormationSpawnerState::Active {
+            on_cooldown: false,
+        })
     }
 
     // #[inline]
@@ -308,7 +321,10 @@ impl FormationSpawner {
     // }
 }
 
-fn delete_formation_group_spawners(mut commands: Commands, formation_spawners: Query<Entity, With<FormationSpawner>>) {
+fn delete_formation_group_spawners(
+    mut commands: Commands,
+    formation_spawners: Query<Entity, With<FormationSpawner>>,
+) {
     for spawner in &formation_spawners {
         info!("despawning formation spawner: {:?}", spawner);
         commands.entity(spawner).despawn();
@@ -321,7 +337,10 @@ pub struct Scoreboard {
     pub game_over:   bool,
 }
 
-fn create_formation_group_spawners(mut commands: Commands, simulation_manager: Res<SimulationManager>) {
+fn create_formation_group_spawners(
+    mut commands: Commands,
+    simulation_manager: Res<SimulationManager>,
+) {
     let Some(formation_group) = simulation_manager.active_formation_group() else {
         warn!("No active formation group!");
         return;
@@ -384,7 +403,10 @@ fn advance_time(
 
         if spawner.ready_to_spawn() {
             spawner.spawn();
-            info!("FormationSpawner[{}] ready to spawn!", spawner.formation_group_index);
+            info!(
+                "FormationSpawner[{}] ready to spawn!",
+                spawner.formation_group_index
+            );
             evw_robot_formation_spawned.send(RobotFormationSpawned {
                 formation_group_index: spawner.formation_group_index,
             });
@@ -445,14 +467,16 @@ fn spawn_formation(
             .map(|_| rng.gen_range(config.robot.radius.range()))
             .collect::<Vec<_>>();
 
-        let Some((initial_position_for_each_robot, waypoint_positions_for_each_robot)) = formation.as_positions(
-            world_dims, &radii, // config.robot.radius,
-            // max_placement_attempts,
-            &mut rng,
-        ) else {
+        let Some((initial_position_for_each_robot, waypoint_positions_for_each_robot)) = formation
+            .as_positions(
+                world_dims, &radii, // config.robot.radius,
+                // max_placement_attempts,
+                &mut rng,
+            )
+        else {
             error!(
-                "failed to spawn formation {}, reason: was not able to place robots along line segment after {} \
-                 attempts, skipping",
+                "failed to spawn formation {}, reason: was not able to place robots along line \
+                 segment after {} attempts, skipping",
                 event.formation_group_index,
                 max_placement_attempts.get()
             );
@@ -496,13 +520,19 @@ fn spawn_formation(
         // dbg!(&waypoint_poses_for_each_robot);
 
         for (i, initial_pose) in initial_pose_for_each_robot.iter().enumerate() {
-            let waypoints: Vec<Vec4> = waypoint_poses_for_each_robot.iter().map(|wps| wps[i]).collect();
+            let waypoints: Vec<Vec4> = waypoint_poses_for_each_robot
+                .iter()
+                .map(|wps| wps[i])
+                .collect();
             // }
             // for (initial_pose, waypoints) in initial_pose_for_each_robot
             //     .iter()
             //     .zip(waypoint_poses_for_each_robot.iter())
             // {
-            info!("initial pose: {:?}, waypoints: {:?}", initial_pose, waypoints);
+            info!(
+                "initial pose: {:?}, waypoints: {:?}",
+                initial_pose, waypoints
+            );
             let initial_direction = initial_pose.yz().extend(0.0);
             let initial_translation = Vec3::new(initial_pose.x, 0.5, initial_pose.y);
 
@@ -529,7 +559,10 @@ fn spawn_formation(
                 radii[i],
                 &sdf.0,
             )
-            .expect("Possible `RobotInitError`s should be avoided due to the formation input being validated.");
+            .expect(
+                "Possible `RobotInitError`s should be avoided due to the formation input being \
+                 validated.",
+            );
 
             let initial_visibility = if config.visualisation.draw.robots {
                 Visibility::Visible
@@ -578,8 +611,8 @@ fn spawn_formation(
                 ColorAssociation { name: random_color },
                 FollowCameraMe::new(0.0, 30.0, 0.0)
                     .with_up_direction(Direction3d::new(initial_direction).expect(
-                        "Vector between initial position and first waypoint should be different from 0, NaN, and \
-                         infinity.",
+                        "Vector between initial position and first waypoint should be different \
+                         from 0, NaN, and infinity.",
                     ))
                     .with_attached(true),
             ));

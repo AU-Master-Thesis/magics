@@ -16,8 +16,8 @@ use super::{custom, OccupiedScreenSpace, ToDisplayString, UiState};
 use crate::{
     config::Config,
     input::{
-        CameraAction, CameraSensitivity, ChangingBinding, GeneralAction, InputAction, MoveableObjectAction,
-        MoveableObjectSensitivity, UiAction,
+        CameraAction, CameraSensitivity, ChangingBinding, GeneralAction, InputAction,
+        MoveableObjectAction, MoveableObjectSensitivity, UiAction,
     },
     theme::{CatppuccinTheme, FromCatppuccinColourExt},
 };

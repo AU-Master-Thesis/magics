@@ -33,7 +33,10 @@ fn main() -> anyhow::Result<()> {
         .init_state::<Environments>()
         .add_systems(Startup, (spawn_camera, create_sprite_bundle))
         .add_systems(Update, render_sdf.run_if(resource_changed::<SceneAssets>))
-        .add_systems(Update, load_next_sdf.run_if(on_real_timer(Duration::from_secs(1))))
+        .add_systems(
+            Update,
+            load_next_sdf.run_if(on_real_timer(Duration::from_secs(1))),
+        )
         .run();
 
     Ok(())

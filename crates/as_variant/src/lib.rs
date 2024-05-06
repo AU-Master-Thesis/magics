@@ -88,7 +88,8 @@ pub fn as_variant_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStr
                 quote! { (#(&mut #data_types),*) }
             };
 
-            let doc_comment = format!(" Return a mutable reference to `{enum_name}::{variant_ident}` variant.");
+            let doc_comment =
+                format!(" Return a mutable reference to `{enum_name}::{variant_ident}` variant.");
             let as_mut_ = quote! {
                #[inline]
                #[track_caller]
@@ -133,7 +134,13 @@ pub fn as_variant_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStr
 // Example::as_b_mut();
 
 // https://github.com/JelteF/derive_more/blob/e0d169887d1d5f026be077a9458467e970a168f9/impl/src/unwrap.rs#L130-L144
-fn get_field_info(fields: &syn::Fields) -> (proc_macro2::TokenStream, proc_macro2::TokenStream, Vec<&syn::Type>) {
+fn get_field_info(
+    fields: &syn::Fields,
+) -> (
+    proc_macro2::TokenStream,
+    proc_macro2::TokenStream,
+    Vec<&syn::Type>,
+) {
     match fields {
         syn::Fields::Named(_) => panic!("cannot unwrap anonymous records"),
         syn::Fields::Unnamed(ref fields) => {

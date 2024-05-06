@@ -1,7 +1,9 @@
 #![deny(missing_docs)]
 use bevy::prelude::*;
 
-use crate::{boolean_bevy_resource, config::DrawSetting, input::DrawSettingsEvent, planner::RobotState};
+use crate::{
+    boolean_bevy_resource, config::DrawSetting, input::DrawSettingsEvent, planner::RobotState,
+};
 
 pub struct RobotVisualiserPlugin;
 

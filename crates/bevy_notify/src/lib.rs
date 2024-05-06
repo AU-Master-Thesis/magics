@@ -215,8 +215,16 @@ impl Default for ToastOptions {
     }
 }
 
-fn update_toasts(mut egui_ctx: EguiContexts, mut toasts: ResMut<Toasts>, mut toast_event: EventReader<ToastEvent>) {
-    for ToastEvent { caption, ref options } in toast_event.read() {
+fn update_toasts(
+    mut egui_ctx: EguiContexts,
+    mut toasts: ResMut<Toasts>,
+    mut toast_event: EventReader<ToastEvent>,
+) {
+    for ToastEvent {
+        caption,
+        ref options,
+    } in toast_event.read()
+    {
         debug!("received toast event");
         trace!("toast, caption: {}, options: {:?}", caption, options);
         let mut toast = egui_notify::Toast::custom(caption, options.level.clone());

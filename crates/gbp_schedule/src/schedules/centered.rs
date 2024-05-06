@@ -27,7 +27,11 @@ mod private {
             let mid_point = self.max / 2;
             let half_n = self.n / 2;
 
-            let start = if mid_point >= half_n { mid_point - half_n } else { 0 };
+            let start = if mid_point >= half_n {
+                mid_point - half_n
+            } else {
+                0
+            };
             let end = if start + self.n <= self.max {
                 start + self.n - 1
             } else {

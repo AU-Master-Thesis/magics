@@ -9,16 +9,22 @@ pub enum MultivariateNormalError {
     #[error("the precision matrix is not square, it has shape {0}x{1}")]
     NonSquarePrecisionMatrix(usize, usize),
     #[error(
-        "the length of the information vector ({0}) is not equal to the number of rows ({1}) or columns ({2}) of the \
-         precision matrix"
+        "the length of the information vector ({0}) is not equal to the number of rows ({1}) or \
+         columns ({2}) of the precision matrix"
     )]
     /// The length of the information vector is not equal to the number of rows
     /// or columns of the precision matrix
     VectorLengthNotEqualMatrixShape(usize, usize, usize),
-    #[error("the covariance matrix is not invertible, which is required to calculate the precision matrix")]
+    #[error(
+        "the covariance matrix is not invertible, which is required to calculate the precision \
+         matrix"
+    )]
     /// The covariance matrix is not invertible
     NonInvertibleCovarianceMatrix,
-    #[error("the precision matrix is not invertible, which is required to calculate the covariance matrix")]
+    #[error(
+        "the precision matrix is not invertible, which is required to calculate the covariance \
+         matrix"
+    )]
     /// The precision matrix is not invertible
     NonInvertiblePrecisionMatrix,
 }
@@ -108,7 +114,10 @@ impl MultivariateNormal {
     ///     Ok(())
     /// }
     /// ```
-    pub fn from_mean_and_covariance(mean: Vector<Float>, covariance: Matrix<Float>) -> Result<Self> {
+    pub fn from_mean_and_covariance(
+        mean: Vector<Float>,
+        covariance: Matrix<Float>,
+    ) -> Result<Self> {
         if !covariance.is_square() {
             Err(MultivariateNormalError::NonSquarePrecisionMatrix(
                 covariance.nrows(),
@@ -195,7 +204,9 @@ impl MultivariateNormal {
     #[allow(clippy::missing_panics_doc)] // internally the invariant that `precision` is always non singular should be
                                          // upheld
     pub fn covariance(&self) -> Matrix<Float> {
-        self.precision.inv().expect("the precision matrix is invertible")
+        self.precision
+            .inv()
+            .expect("the precision matrix is invertible")
     }
 
     /// Set the information vector of the multivariate normal distribution
@@ -409,8 +420,11 @@ mod tests {
     fn create_from_information_and_precision() {
         let information = array![1.0, 2.0, 3.0];
         let precision = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let normal =
-            MultivariateNormal::from_information_and_precision(information.clone(), precision.clone()).unwrap();
+        let normal = MultivariateNormal::from_information_and_precision(
+            information.clone(),
+            precision.clone(),
+        )
+        .unwrap();
         assert_eq!(normal.information_vector(), &information);
         assert_eq!(normal.precision_matrix(), &precision);
         assert_eq!(normal.covariance(), precision.inv().unwrap());
@@ -421,11 +435,15 @@ mod tests {
     fn create_from_mean_and_covariance() {
         let mean = array![1.0, 2.0, 3.0];
         let covariance = array![[2.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.5]];
-        let normal = MultivariateNormal::from_mean_and_covariance(mean.clone(), covariance.clone()).unwrap();
+        let normal =
+            MultivariateNormal::from_mean_and_covariance(mean.clone(), covariance.clone()).unwrap();
         assert_eq!(normal.mean(), &mean);
         assert_eq!(normal.covariance(), covariance);
         assert_eq!(normal.precision_matrix(), covariance.inv().unwrap());
-        assert_eq!(normal.information_vector(), covariance.inv().unwrap().dot(&mean));
+        assert_eq!(
+            normal.information_vector(),
+            covariance.inv().unwrap().dot(&mean)
+        );
     }
 
     #[test]
@@ -435,7 +453,9 @@ mod tests {
         let result = MultivariateNormal::from_information_and_precision(information, precision);
         assert!(matches!(
             result,
-            Err(MultivariateNormalError::VectorLengthNotEqualMatrixShape(3, 2, 2))
+            Err(MultivariateNormalError::VectorLengthNotEqualMatrixShape(
+                3, 2, 2
+            ))
         ));
 
         let information = array![1.0, 2.0];
@@ -443,7 +463,9 @@ mod tests {
         let result = MultivariateNormal::from_information_and_precision(information, precision);
         assert!(matches!(
             result,
-            Err(MultivariateNormalError::VectorLengthNotEqualMatrixShape(2, 3, 3))
+            Err(MultivariateNormalError::VectorLengthNotEqualMatrixShape(
+                2, 3, 3
+            ))
         ));
     }
 
@@ -454,7 +476,9 @@ mod tests {
         let result = MultivariateNormal::from_mean_and_covariance(mean, covariance);
         assert!(matches!(
             result,
-            Err(MultivariateNormalError::VectorLengthNotEqualMatrixShape(3, 2, 2))
+            Err(MultivariateNormalError::VectorLengthNotEqualMatrixShape(
+                3, 2, 2
+            ))
         ));
 
         let mean = array![1.0, 2.0];
@@ -462,7 +486,9 @@ mod tests {
         let result = MultivariateNormal::from_mean_and_covariance(mean, covariance);
         assert!(matches!(
             result,
-            Err(MultivariateNormalError::VectorLengthNotEqualMatrixShape(2, 3, 3))
+            Err(MultivariateNormalError::VectorLengthNotEqualMatrixShape(
+                2, 3, 3
+            ))
         ));
     }
 
@@ -530,8 +556,11 @@ mod tests {
     fn update_mean() {
         let information = array![1.0, 2.0, 3.0];
         let precision = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let mut normal =
-            MultivariateNormal::from_information_and_precision(information.clone(), precision.clone()).unwrap();
+        let mut normal = MultivariateNormal::from_information_and_precision(
+            information.clone(),
+            precision.clone(),
+        )
+        .unwrap();
         assert_eq!(normal.mean(), precision.dot(&information));
         assert!(!normal.update());
         #[allow(clippy::undocumented_unsafe_blocks)]
@@ -555,13 +584,19 @@ mod tests {
     fn add_two_normals() {
         let information1 = array![1.0, 2.0, 3.0];
         let precision1 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let normal1 =
-            MultivariateNormal::from_information_and_precision(information1.clone(), precision1.clone()).unwrap();
+        let normal1 = MultivariateNormal::from_information_and_precision(
+            information1.clone(),
+            precision1.clone(),
+        )
+        .unwrap();
 
         let information2 = array![3.0, 2.0, 1.0];
         let precision2 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let normal2 =
-            MultivariateNormal::from_information_and_precision(information2.clone(), precision2.clone()).unwrap();
+        let normal2 = MultivariateNormal::from_information_and_precision(
+            information2.clone(),
+            precision2.clone(),
+        )
+        .unwrap();
 
         let sum = normal1 + &normal2;
         assert_eq!(sum.information_vector(), &information1 + &information2);
@@ -576,13 +611,19 @@ mod tests {
     fn add_assign_two_normals() {
         let information1 = array![1.0, 2.0, 3.0];
         let precision1 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let mut normal1 =
-            MultivariateNormal::from_information_and_precision(information1.clone(), precision1.clone()).unwrap();
+        let mut normal1 = MultivariateNormal::from_information_and_precision(
+            information1.clone(),
+            precision1.clone(),
+        )
+        .unwrap();
 
         let information2 = array![3.0, 2.0, 1.0];
         let precision2 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let normal2 =
-            MultivariateNormal::from_information_and_precision(information2.clone(), precision2.clone()).unwrap();
+        let normal2 = MultivariateNormal::from_information_and_precision(
+            information2.clone(),
+            precision2.clone(),
+        )
+        .unwrap();
 
         normal1 += &normal2;
         assert_eq!(normal1.information_vector(), &information1 + &information2);
@@ -597,13 +638,19 @@ mod tests {
     fn sub_two_normals() {
         let information1 = array![1.0, 2.0, 3.0];
         let precision1 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let normal1 =
-            MultivariateNormal::from_information_and_precision(information1.clone(), precision1.clone()).unwrap();
+        let normal1 = MultivariateNormal::from_information_and_precision(
+            information1.clone(),
+            precision1.clone(),
+        )
+        .unwrap();
 
         let information2 = array![3.0, 2.0, 1.0];
         let precision2 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let normal2 =
-            MultivariateNormal::from_information_and_precision(information2.clone(), precision2.clone()).unwrap();
+        let normal2 = MultivariateNormal::from_information_and_precision(
+            information2.clone(),
+            precision2.clone(),
+        )
+        .unwrap();
 
         let diff = normal1 - &normal2;
         assert_eq!(diff.information_vector(), &information1 - &information2);
@@ -618,13 +665,19 @@ mod tests {
     fn sub_assign_two_normals() {
         let information1 = array![1.0, 2.0, 3.0];
         let precision1 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let mut normal1 =
-            MultivariateNormal::from_information_and_precision(information1.clone(), precision1.clone()).unwrap();
+        let mut normal1 = MultivariateNormal::from_information_and_precision(
+            information1.clone(),
+            precision1.clone(),
+        )
+        .unwrap();
 
         let information2 = array![3.0, 2.0, 1.0];
         let precision2 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let normal2 =
-            MultivariateNormal::from_information_and_precision(information2.clone(), precision2.clone()).unwrap();
+        let normal2 = MultivariateNormal::from_information_and_precision(
+            information2.clone(),
+            precision2.clone(),
+        )
+        .unwrap();
 
         normal1 -= &normal2;
         assert_eq!(normal1.information_vector(), &information1 - &information2);
@@ -639,13 +692,19 @@ mod tests {
     fn mul_two_normals() {
         let information1 = array![1.0, 2.0, 3.0];
         let precision1 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let normal1 =
-            MultivariateNormal::from_information_and_precision(information1.clone(), precision1.clone()).unwrap();
+        let normal1 = MultivariateNormal::from_information_and_precision(
+            information1.clone(),
+            precision1.clone(),
+        )
+        .unwrap();
 
         let information2 = array![3.0, 2.0, 1.0];
         let precision2 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let normal2 =
-            MultivariateNormal::from_information_and_precision(information2.clone(), precision2.clone()).unwrap();
+        let normal2 = MultivariateNormal::from_information_and_precision(
+            information2.clone(),
+            precision2.clone(),
+        )
+        .unwrap();
 
         let product = normal1 * &normal2;
         assert_eq!(product.information_vector(), &information1 + &information2);
@@ -660,13 +719,19 @@ mod tests {
     fn mul_assign_two_normals() {
         let information1 = array![1.0, 2.0, 3.0];
         let precision1 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let mut normal1 =
-            MultivariateNormal::from_information_and_precision(information1.clone(), precision1.clone()).unwrap();
+        let mut normal1 = MultivariateNormal::from_information_and_precision(
+            information1.clone(),
+            precision1.clone(),
+        )
+        .unwrap();
 
         let information2 = array![3.0, 2.0, 1.0];
         let precision2 = array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let normal2 =
-            MultivariateNormal::from_information_and_precision(information2.clone(), precision2.clone()).unwrap();
+        let normal2 = MultivariateNormal::from_information_and_precision(
+            information2.clone(),
+            precision2.clone(),
+        )
+        .unwrap();
 
         normal1 *= &normal2;
         assert_eq!(normal1.information_vector(), &information1 + &information2);

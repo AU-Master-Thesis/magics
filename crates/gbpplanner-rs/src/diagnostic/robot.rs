@@ -38,7 +38,11 @@ impl Default for SampleRates {
 macro_rules! add_diagnostic_system {
     ($app:ident, $samplerate_cfg:expr, $method:path) => {
         if let Some(duration) = $samplerate_cfg.map(SampleRate::as_duration) {
-            info!("sampling diagnostic {} every {:?}", stringify!($method), duration);
+            info!(
+                "sampling diagnostic {} every {:?}",
+                stringify!($method),
+                duration
+            );
             $app.add_systems(PostUpdate, $method.run_if(on_timer(duration)));
         } else {
             $app.add_systems(PostUpdate, $method);
@@ -67,18 +71,25 @@ impl Plugin for RobotDiagnosticsPlugin {
         // add_diagnostic_system!(app, self.sample_rates.messages_sent,
         // Self::messages_sent);
 
-        add_diagnostic_system!(app, self.sample_rates.robot_collisions, Self::count_robot_collisions);
+        add_diagnostic_system!(
+            app,
+            self.sample_rates.robot_collisions,
+            Self::count_robot_collisions
+        );
 
         app.add_systems(
             Update,
-            Self::flush_diagnostics.run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
+            Self::flush_diagnostics
+                .run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
         );
     }
 }
 
 impl RobotDiagnosticsPlugin {
-    pub const ENVIRONMENT_COLLISION_COUNT: DiagnosticPath = DiagnosticPath::const_new("environment_collision_count");
-    pub const EXTERNAL_MESSAGES_SENT_COUNT: DiagnosticPath = DiagnosticPath::const_new("external_messages_sent_count");
+    pub const ENVIRONMENT_COLLISION_COUNT: DiagnosticPath =
+        DiagnosticPath::const_new("environment_collision_count");
+    pub const EXTERNAL_MESSAGES_SENT_COUNT: DiagnosticPath =
+        DiagnosticPath::const_new("external_messages_sent_count");
     pub const FACTOR_COUNT: DiagnosticPath = DiagnosticPath::const_new("factor_count");
     pub const MESSAGES_RECEIVED_EXTERNAL_COUNT: DiagnosticPath =
         DiagnosticPath::const_new("messages_received_internal_count");
@@ -86,9 +97,12 @@ impl RobotDiagnosticsPlugin {
         DiagnosticPath::const_new("messages_received_external_count");
     // pub const MESSAGES_SENT_COUNT: DiagnosticPath =
     // DiagnosticPath::const_new("messages_sent_count");
-    pub const MESSAGES_SENT_EXTERNAL_COUNT: DiagnosticPath = DiagnosticPath::const_new("messages_sent_external_count");
-    pub const MESSAGES_SENT_INTERNAL_COUNT: DiagnosticPath = DiagnosticPath::const_new("messages_sent_internal_count");
-    pub const ROBOT_COLLISION_COUNT: DiagnosticPath = DiagnosticPath::const_new("robot_collision_count");
+    pub const MESSAGES_SENT_EXTERNAL_COUNT: DiagnosticPath =
+        DiagnosticPath::const_new("messages_sent_external_count");
+    pub const MESSAGES_SENT_INTERNAL_COUNT: DiagnosticPath =
+        DiagnosticPath::const_new("messages_sent_internal_count");
+    pub const ROBOT_COLLISION_COUNT: DiagnosticPath =
+        DiagnosticPath::const_new("robot_collision_count");
     pub const ROBOT_COUNT: DiagnosticPath = DiagnosticPath::const_new("robot_count");
     pub const VARIABLE_COUNT: DiagnosticPath = DiagnosticPath::const_new("variable_count");
 
@@ -98,7 +112,10 @@ impl RobotDiagnosticsPlugin {
     }
 
     #[allow(clippy::cast_precision_loss)]
-    fn variables_and_factors(mut diagnostics: Diagnostics, factorgraphs: Query<&FactorGraph, With<RobotState>>) {
+    fn variables_and_factors(
+        mut diagnostics: Diagnostics,
+        factorgraphs: Query<&FactorGraph, With<RobotState>>,
+    ) {
         diagnostics.add_measurement(&Self::VARIABLE_COUNT, || {
             factorgraphs
                 .iter()
@@ -145,8 +162,13 @@ impl RobotDiagnosticsPlugin {
     // }
 
     #[allow(clippy::cast_precision_loss)]
-    fn count_robot_collisions(mut diagnostics: Diagnostics, robot_collisions: Res<RobotCollisions>) {
-        diagnostics.add_measurement(&Self::ROBOT_COLLISION_COUNT, || robot_collisions.collisions() as f64);
+    fn count_robot_collisions(
+        mut diagnostics: Diagnostics,
+        robot_collisions: Res<RobotCollisions>,
+    ) {
+        diagnostics.add_measurement(&Self::ROBOT_COLLISION_COUNT, || {
+            robot_collisions.collisions() as f64
+        });
     }
 
     // #[allow(clippy::cast_precision_loss)]

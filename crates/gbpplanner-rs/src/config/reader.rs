@@ -28,7 +28,12 @@ fn default_paths() -> Vec<std::path::PathBuf> {
     let mut paths = vec![];
 
     if let Some(base_dirs) = BaseDirs::new() {
-        paths.push(base_dirs.config_dir().join("gbpplanner").join("config.toml"));
+        paths.push(
+            base_dirs
+                .config_dir()
+                .join("gbpplanner")
+                .join("config.toml"),
+        );
     }
 
     if let Ok(cwd) = std::env::current_dir() {

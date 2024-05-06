@@ -49,7 +49,10 @@ fn advance_time(time: Res<Time>, mut formation_spawners: Query<&mut FormationSpa
         formation_spawner.tick(time.delta());
         if formation_spawner.ready_to_spawn() {
             println!("time elapsed: {:?}", time.elapsed());
-            println!("ready to spawn, {}", formation_spawner.formation_group_index);
+            println!(
+                "ready to spawn, {}",
+                formation_spawner.formation_group_index
+            );
         }
     }
 }
@@ -138,7 +141,11 @@ pub struct FormationSpawner {
 
 impl FormationSpawner {
     #[must_use]
-    pub fn new(formation_group_index: usize, initial_delay: Duration, timer: RepeatingTimer) -> Self {
+    pub fn new(
+        formation_group_index: usize,
+        initial_delay: Duration,
+        timer: RepeatingTimer,
+    ) -> Self {
         Self {
             formation_group_index,
             initial_delay: Timer::new(initial_delay, TimerMode::Once),

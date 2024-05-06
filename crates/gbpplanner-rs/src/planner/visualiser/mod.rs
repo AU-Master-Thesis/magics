@@ -17,9 +17,11 @@ use bevy::{
 };
 
 use self::{
-    communication::CommunicationGraphVisualiserPlugin, communication_radius::CommunicationRadiusVisualizerPlugin,
-    factorgraphs::FactorGraphVisualiserPlugin, robot::RobotVisualiserPlugin, tracer::TracerVisualiserPlugin,
-    uncertainty::UncertaintyVisualiserPlugin, waypoints::WaypointVisualiserPlugin,
+    communication::CommunicationGraphVisualiserPlugin,
+    communication_radius::CommunicationRadiusVisualizerPlugin,
+    factorgraphs::FactorGraphVisualiserPlugin, robot::RobotVisualiserPlugin,
+    tracer::TracerVisualiserPlugin, uncertainty::UncertaintyVisualiserPlugin,
+    waypoints::WaypointVisualiserPlugin,
 };
 use super::RobotId;
 

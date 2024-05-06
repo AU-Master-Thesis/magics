@@ -22,17 +22,18 @@ pub struct UncertaintyVisualiserPlugin;
 
 impl Plugin for UncertaintyVisualiserPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<UncertaintyVisualizerEnabled>().add_systems(
-            Update,
-            (
-                init_uncertainty,
-                show_or_hide_uncertainty.run_if(event_exists::<DrawSettingsEvent>),
-                // show_or_hide_uncertainty.run_if(event_exists::<DrawSetting<Uncertainty>>),
-                update_uncertainty.run_if(uncertainty_visualizer_enabled),
-                // remove_all_uncertainty_visualisers.run_if(on_event::<ReloadSimulation>()),
-                // remove_all_uncertainty_visualisers.run_if(on_event::<EndSimulation>()),
-            ),
-        );
+        app.init_resource::<UncertaintyVisualizerEnabled>()
+            .add_systems(
+                Update,
+                (
+                    init_uncertainty,
+                    show_or_hide_uncertainty.run_if(event_exists::<DrawSettingsEvent>),
+                    // show_or_hide_uncertainty.run_if(event_exists::<DrawSetting<Uncertainty>>),
+                    update_uncertainty.run_if(uncertainty_visualizer_enabled),
+                    // remove_all_uncertainty_visualisers.run_if(on_event::<ReloadSimulation>()),
+                    // remove_all_uncertainty_visualisers.run_if(on_event::<EndSimulation>()),
+                ),
+            );
     }
 }
 
@@ -315,7 +316,10 @@ fn show_or_hide_uncertainty(
     }
 }
 
-fn remove_all_uncertainty_visualisers(mut commands: Commands, query: Query<Entity, With<UncertaintyVisualiser>>) {
+fn remove_all_uncertainty_visualisers(
+    mut commands: Commands,
+    query: Query<Entity, With<UncertaintyVisualiser>>,
+) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
     }

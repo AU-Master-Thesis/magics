@@ -108,7 +108,8 @@ fn despawn_robots(
             entitycommand.despawn();
         } else {
             error!(
-                "A DespawnRobotEvent event was emitted with entity id: {:?} but the entity does not exist!",
+                "A DespawnRobotEvent event was emitted with entity id: {:?} but the entity does \
+                 not exist!",
                 robot_id
             );
         }
@@ -361,7 +362,9 @@ impl RobotBundle {
         //     .pop_front()
         //     .expect("Waypoints has at least one element");
 
-        let goal = waypoints.front().expect("Waypoints has at least one element");
+        let goal = waypoints
+            .front()
+            .expect("Waypoints has at least one element");
 
         // Initialise the horizon in the direction of the goal, at a distance T_HORIZON
         // * MAX_SPEED from the start.
@@ -384,7 +387,8 @@ impl RobotBundle {
             // Set initial mean and covariance of variable interpolated between start and
             // horizon
             #[allow(clippy::cast_precision_loss)]
-            let mean = start + (horizon - start) * (variable_timestep as f32 / last_variable_timestep as f32);
+            let mean = start
+                + (horizon - start) * (variable_timestep as f32 / last_variable_timestep as f32);
 
             let sigma = if i == 0 || i == n_variables - 1 {
                 // Start and Horizon state variables should be 'fixed' during optimisation at a
@@ -416,7 +420,8 @@ impl RobotBundle {
         for i in 0..variable_timesteps.len() - 1 {
             // T0 is the timestep between the current state and the first planned state.
             #[allow(clippy::cast_precision_loss)]
-            let delta_t = config.simulation.t0.get() * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
+            let delta_t = config.simulation.t0.get()
+                * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
 
             let measurement = Vector::<Float>::zeros(config.robot.dofs.get());
 
@@ -434,8 +439,10 @@ impl RobotBundle {
                 VariableId::new(factorgraph.id(), variable_node_indices[i + 1]),
                 factor_id,
             );
-            let _ =
-                factorgraph.add_internal_edge(VariableId::new(factorgraph.id(), variable_node_indices[i]), factor_id);
+            let _ = factorgraph.add_internal_edge(
+                VariableId::new(factorgraph.id(), variable_node_indices[i]),
+                factor_id,
+            );
         }
 
         // Create Obstacle factors for all variables excluding start, excluding horizon
@@ -453,8 +460,10 @@ impl RobotBundle {
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
             let factor_id = FactorId::new(factorgraph.id(), factor_node_index);
-            let _ =
-                factorgraph.add_internal_edge(VariableId::new(factorgraph.id(), variable_node_indices[i]), factor_id);
+            let _ = factorgraph.add_internal_edge(
+                VariableId::new(factorgraph.id(), variable_node_indices[i]),
+                factor_id,
+            );
         }
 
         // FIXME: use global rng source/ or resource
@@ -563,10 +572,13 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
         //     }
         // }
 
-        let Some((_, mut factorgraph2, _)) = query.iter_mut().find(|(robot_id, _, _)| *robot_id == robot2) else {
+        let Some((_, mut factorgraph2, _)) = query
+            .iter_mut()
+            .find(|(robot_id, _, _)| *robot_id == robot2)
+        else {
             error!(
-                "attempt to delete interrobot factors between robots: {:?} and {:?} failed, reason: {:?} does not \
-                 exist!",
+                "attempt to delete interrobot factors between robots: {:?} and {:?} failed, \
+                 reason: {:?} does not exist!",
                 robot1, robot2, robot2
             );
             continue;
@@ -628,8 +640,10 @@ fn create_interrobot_factors(
                 // let safety_radius = 2.0f32.mul_add(config.robot.radius.get(), eps);
                 let safety_radius = 2.0f32.mul_add(radius.0, eps);
                 // TODO: should it be i - 1 or i?
-                let external_variable_id =
-                    ExternalVariableId::new(*other_robot_id, VariableIndex(other_variable_indices[i - 1]));
+                let external_variable_id = ExternalVariableId::new(
+                    *other_robot_id,
+                    VariableIndex(other_variable_indices[i - 1]),
+                );
                 // let connection =
                 //     InterRobotFactorConnection::new(*other_robot_id, other_variable_indices[i
                 // - 1]);
@@ -660,7 +674,9 @@ fn create_interrobot_factors(
                 external_edges_to_add.push((robot_id, factor_index, *other_robot_id, i));
             }
 
-            robotstate.ids_of_robots_connected_with.insert(*other_robot_id);
+            robotstate
+                .ids_of_robots_connected_with
+                .insert(*other_robot_id);
         }
     }
 
@@ -697,7 +713,10 @@ fn create_interrobot_factors(
         if let Some(factor) = factorgraph.get_factor_mut(factor_index) {
             factor.receive_message_from(variable_id, variable_message.clone());
         } else {
-            error!("factorgraph {:?} has no factor with index {:?}", robot_id, factor_index);
+            error!(
+                "factorgraph {:?} has no factor with index {:?}",
+                robot_id, factor_index
+            );
         }
     }
 }
@@ -726,7 +745,10 @@ fn iterate_gbp_internal(mut query: Query<&mut FactorGraph, With<RobotState>>, co
     });
 }
 
-fn iterate_gbp_internal_sync(mut query: Query<&mut FactorGraph, With<RobotState>>, config: Res<Config>) {
+fn iterate_gbp_internal_sync(
+    mut query: Query<&mut FactorGraph, With<RobotState>>,
+    config: Res<Config>,
+) {
     for mut factorgraph in &mut query {
         for _ in 0..config.gbp.iterations_per_timestep.internal {
             factorgraph.internal_factor_iteration();
@@ -735,30 +757,36 @@ fn iterate_gbp_internal_sync(mut query: Query<&mut FactorGraph, With<RobotState>
     }
 }
 
-fn iterate_gbp_external(mut query: Query<(Entity, &mut FactorGraph, &RobotState, &RadioAntenna)>, config: Res<Config>) {
+fn iterate_gbp_external(
+    mut query: Query<(Entity, &mut FactorGraph, &RobotState, &RadioAntenna)>,
+    config: Res<Config>,
+) {
     // PERF: use Local<> to reuse arrays
-    let messages_to_external_variables: Arc<Mutex<Vec<FactorToVariableMessage>>> = Default::default();
+    let messages_to_external_variables: Arc<Mutex<Vec<FactorToVariableMessage>>> =
+        Default::default();
     let messages_to_external_factors: Arc<Mutex<Vec<VariableToFactorMessage>>> = Default::default();
 
     for _ in 0..config.gbp.iterations_per_timestep.external {
-        query.par_iter_mut().for_each(|(_, mut factorgraph, state, antenna)| {
-            // if !state.interrobot_comms_active {
-            if !antenna.active {
-                return;
-            }
+        query
+            .par_iter_mut()
+            .for_each(|(_, mut factorgraph, state, antenna)| {
+                // if !state.interrobot_comms_active {
+                if !antenna.active {
+                    return;
+                }
 
-            let variable_messages = factorgraph.external_factor_iteration();
-            if !variable_messages.is_empty() {
-                let mut guard = messages_to_external_variables.lock().expect("not poisoned");
-                guard.extend(variable_messages.into_iter());
-            }
+                let variable_messages = factorgraph.external_factor_iteration();
+                if !variable_messages.is_empty() {
+                    let mut guard = messages_to_external_variables.lock().expect("not poisoned");
+                    guard.extend(variable_messages.into_iter());
+                }
 
-            let factor_messages = factorgraph.external_variable_iteration();
-            if !factor_messages.is_empty() {
-                let mut guard = messages_to_external_factors.lock().expect("not poisoned");
-                guard.extend(factor_messages.into_iter());
-            }
-        });
+                let factor_messages = factorgraph.external_variable_iteration();
+                if !factor_messages.is_empty() {
+                    let mut guard = messages_to_external_factors.lock().expect("not poisoned");
+                    guard.extend(factor_messages.into_iter());
+                }
+            });
 
         // Send messages to external variables
         let mut variable_messages = messages_to_external_variables.lock().expect("not poisoned");
@@ -867,9 +895,16 @@ fn iterate_gbp_external_sync(
     }
 }
 
-fn iterate_gbp_v2(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {}
+fn iterate_gbp_v2(
+    mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
+    config: Res<Config>,
+) {
+}
 
-fn iterate_gbp(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, config: Res<Config>) {
+fn iterate_gbp(
+    mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
+    config: Res<Config>,
+) {
     for _ in 0..config.gbp.iterations_per_timestep.internal {
         // pretty_print_title!(format!("GBP iteration: {}", i + 1));
         // ╭────────────────────────────────────────────────────────────────────────────────────────
@@ -885,7 +920,8 @@ fn iterate_gbp(mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>, c
                 .get_mut(message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving variable should exist in the world");
 
-            if let Some(variable) = external_factorgraph.get_variable_mut(message.to.variable_index) {
+            if let Some(variable) = external_factorgraph.get_variable_mut(message.to.variable_index)
+            {
                 variable.receive_message_from(message.from, message.message.clone());
             } else {
                 error!(
@@ -1087,7 +1123,16 @@ pub struct FinishedPath(pub bool);
 fn update_prior_of_horizon_state(
     config: Res<Config>,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut FactorGraph, &mut Waypoints, &mut FinishedPath, &Radius), With<RobotState>>,
+    mut query: Query<
+        (
+            Entity,
+            &mut FactorGraph,
+            &mut Waypoints,
+            &mut FinishedPath,
+            &Radius,
+        ),
+        With<RobotState>,
+    >,
     mut evw_robot_despawned: EventWriter<RobotDespawned>,
     mut evw_robot_finalized_path: EventWriter<RobotFinishedPath>,
     mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
@@ -1137,7 +1182,10 @@ fn update_prior_of_horizon_state(
             .last_variable_mut()
             .expect("factorgraph has a horizon variable");
         let estimated_position = horizon_variable.belief.mean.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
-        let current_waypoint = array![Float::from(current_waypoint.x), Float::from(current_waypoint.y)];
+        let current_waypoint = array![
+            Float::from(current_waypoint.x),
+            Float::from(current_waypoint.y)
+        ];
 
         let horizon2waypoint = current_waypoint - estimated_position;
         let horizon2goal_dist = horizon2waypoint.euclidean_norm();
@@ -1151,7 +1199,8 @@ fn update_prior_of_horizon_state(
 
         horizon_variable.belief.mean.clone_from(&new_mean);
 
-        let messages_to_external_factors = factorgraph.change_prior_of_variable(variable_index, new_mean);
+        let messages_to_external_factors =
+            factorgraph.change_prior_of_variable(variable_index, new_mean);
         all_messages_to_external_factors.extend(messages_to_external_factors);
 
         if reached_waypoint && !waypoints.is_empty() {
@@ -1192,7 +1241,8 @@ fn update_prior_of_horizon_state(
     }
 
     if !robots_to_despawn.is_empty() {
-        evw_robot_finalized_path.send_batch(robots_to_despawn.iter().copied().map(RobotFinishedPath));
+        evw_robot_finalized_path
+            .send_batch(robots_to_despawn.iter().copied().map(RobotFinishedPath));
         if config.simulation.despawn_robot_when_final_waypoint_reached {
             evw_robot_despawned.send_batch(robots_to_despawn.into_iter().map(RobotDespawned));
         }
@@ -1216,27 +1266,35 @@ fn update_prior_of_current_state_v2(
 
     let messages_to_external_factors: Arc<Mutex<Vec<VariableToFactorMessage>>> = Arc::default();
 
-    query.par_iter_mut().for_each(|(_, mut factorgraph, mut transform)| {
-        let (current_variable_index, current_variable) = factorgraph
-            .nth_variable(0)
-            .expect("factorgraph should have a current variable");
-        let (_, next_variable) = factorgraph
-            .nth_variable(1)
-            .expect("factorgraph should have a next variable");
+    query
+        .par_iter_mut()
+        .for_each(|(_, mut factorgraph, mut transform)| {
+            let (current_variable_index, current_variable) = factorgraph
+                .nth_variable(0)
+                .expect("factorgraph should have a current variable");
+            let (_, next_variable) = factorgraph
+                .nth_variable(1)
+                .expect("factorgraph should have a next variable");
 
-        let change_in_position = Float::from(scale) * (&next_variable.belief.mean - &current_variable.belief.mean);
-        let mean_updated = &current_variable.belief.mean + &change_in_position;
+            let change_in_position =
+                Float::from(scale) * (&next_variable.belief.mean - &current_variable.belief.mean);
+            let mean_updated = &current_variable.belief.mean + &change_in_position;
 
-        let external_factor_messages = factorgraph.change_prior_of_variable(current_variable_index, mean_updated);
+            let external_factor_messages =
+                factorgraph.change_prior_of_variable(current_variable_index, mean_updated);
 
-        let mut guard = messages_to_external_factors.lock().unwrap();
-        guard.extend(external_factor_messages);
+            let mut guard = messages_to_external_factors.lock().unwrap();
+            guard.extend(external_factor_messages);
 
-        #[allow(clippy::cast_possible_truncation)]
-        let increment = Vec3::new(change_in_position[0] as f32, 0.0, change_in_position[1] as f32);
+            #[allow(clippy::cast_possible_truncation)]
+            let increment = Vec3::new(
+                change_in_position[0] as f32,
+                0.0,
+                change_in_position[1] as f32,
+            );
 
-        transform.translation += increment;
-    });
+            transform.translation += increment;
+        });
 
     let guard = messages_to_external_factors.lock().unwrap();
     for message in guard.iter() {
@@ -1292,12 +1350,20 @@ fn update_prior_of_current_state(
             .nth_variable(1)
             .expect("factorgraph should have a next variable");
         let mean_of_current_variable = current_variable.belief.mean.clone();
-        let change_in_position = Float::from(scale) * (&next_variable.belief.mean - &mean_of_current_variable);
+        let change_in_position =
+            Float::from(scale) * (&next_variable.belief.mean - &mean_of_current_variable);
 
-        factorgraph.change_prior_of_variable(current_variable_index, &mean_of_current_variable + &change_in_position);
+        factorgraph.change_prior_of_variable(
+            current_variable_index,
+            &mean_of_current_variable + &change_in_position,
+        );
 
         #[allow(clippy::cast_possible_truncation)]
-        let increment = Vec3::new(change_in_position[0] as f32, 0.0, change_in_position[1] as f32);
+        let increment = Vec3::new(
+            change_in_position[0] as f32,
+            0.0,
+            change_in_position[1] as f32,
+        );
 
         // dbg!((&increment, scale));
         // pretty_print_subtitle!("CURRENT STATE UPDATE");
@@ -1364,11 +1430,15 @@ fn finish_manual_step(
     mut pause_play_event: EventWriter<PausePlay>,
 ) {
     match state.get() {
-        ManualModeState::Enabled { iterations_remaining } if (0..=1).contains(iterations_remaining) => {
+        ManualModeState::Enabled {
+            iterations_remaining,
+        } if (0..=1).contains(iterations_remaining) => {
             next_state.set(ManualModeState::Disabled);
             pause_play_event.send(PausePlay::Pause);
         }
-        ManualModeState::Enabled { iterations_remaining } => {
+        ManualModeState::Enabled {
+            iterations_remaining,
+        } => {
             next_state.set(ManualModeState::Enabled {
                 iterations_remaining: iterations_remaining - 1,
             });
@@ -1400,7 +1470,9 @@ fn on_robot_clicked(
 
     use colored::Colorize;
     for RobotClickedOn(robot_id) in evr_robot_clicked_on.read() {
-        let Ok((_, transform, factorgraph, robotstate, radius, ball, antenna)) = robots.get(*robot_id) else {
+        let Ok((_, transform, factorgraph, robotstate, radius, ball, antenna)) =
+            robots.get(*robot_id)
+        else {
             error!("robot_id {:?} does not exist", robot_id);
             continue;
         };
@@ -1413,7 +1485,11 @@ fn on_robot_clicked(
         println!(
             "    {}: {}",
             "on".cyan(),
-            if antenna.active { "true".green() } else { "false".red() }
+            if antenna.active {
+                "true".green()
+            } else {
+                "false".red()
+            }
         );
         println!("  {}:", "state".magenta());
         let (_, current_variable) = factorgraph
@@ -1444,11 +1520,23 @@ fn on_robot_clicked(
             "variable".red(),
             node_counts.variables.to_string().red()
         );
-        println!("      {}:  {}", "factors".red(), node_counts.factors.to_string().blue());
+        println!(
+            "      {}:  {}",
+            "factors".red(),
+            node_counts.factors.to_string().blue()
+        );
         let factor_counts = factorgraph.factor_count();
-        println!("        {}: {}", "obstacle".yellow(), factor_counts.obstacle);
+        println!(
+            "        {}: {}",
+            "obstacle".yellow(),
+            factor_counts.obstacle
+        );
         println!("        {}: {}", "dynamic".yellow(), factor_counts.dynamic);
-        println!("        {}: {}", "interrobot".yellow(), factor_counts.interrobot);
+        println!(
+            "        {}: {}",
+            "interrobot".yellow(),
+            factor_counts.interrobot
+        );
         println!("        {}: {}", "pose".yellow(), node_counts.variables); // bundled together
 
         println!("  {}:", "messages".magenta());
@@ -1467,10 +1555,21 @@ fn on_robot_clicked(
         println!("    {}: {}", "other-robots".cyan(), collisions);
         println!("    {}: {}", "environment".cyan(), "todo");
         println!("  {}:", "aabb".magenta());
-        let position = parry2d::na::Isometry2::translation(transform.translation.x, transform.translation.z);
+        let position =
+            parry2d::na::Isometry2::translation(transform.translation.x, transform.translation.z);
         let aabb = ball.aabb(&position);
-        println!("    {}: [{:.4}, {:.4}]", "min".cyan(), aabb.mins.x, aabb.mins.y);
-        println!("    {}: [{:.4}, {:.4}]", "max".cyan(), aabb.maxs.x, aabb.maxs.y);
+        println!(
+            "    {}: [{:.4}, {:.4}]",
+            "min".cyan(),
+            aabb.mins.x,
+            aabb.mins.y
+        );
+        println!(
+            "    {}: [{:.4}, {:.4}]",
+            "max".cyan(),
+            aabb.maxs.x,
+            aabb.maxs.y
+        );
         println!("    {}: {:.4} m^2", "volume".cyan(), aabb.volume());
         println!("");
     }

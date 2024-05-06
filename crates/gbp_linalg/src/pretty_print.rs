@@ -86,8 +86,12 @@ fn float_color(f: f64) -> &'static str {
 ///
 /// # Panics
 /// - If any of the elements of the matrix cannot be converted to a `f64`
-pub fn _pretty_print_matrix<T, M>(matrix: &M, name: Option<&str>, file: Option<&str>, line: Option<u32>)
-where
+pub fn _pretty_print_matrix<T, M>(
+    matrix: &M,
+    name: Option<&str>,
+    file: Option<&str>,
+    line: Option<u32>,
+) where
     T: GbpFloat,
     M: PrettyPrintMatrix<T>,
 {
@@ -97,7 +101,9 @@ where
         for i in 0..nrows {
             for j in 0..ncols {
                 let x = matrix.at(i, j);
-                let width = num_of_integral_digits(x.to_f64().expect("x is representable as f64")).unwrap_or(0) + 1;
+                let width = num_of_integral_digits(x.to_f64().expect("x is representable as f64"))
+                    .unwrap_or(0)
+                    + 1;
                 if width > max_width {
                     max_width = width;
                 }
@@ -186,8 +192,12 @@ where
 ///
 /// # Panics
 /// - If any of the elements of the matrix cannot be converted to a `f64`
-pub fn _pretty_print_vector<T, V>(vector: &V, name: Option<&str>, file: Option<&str>, line: Option<u32>)
-where
+pub fn _pretty_print_vector<T, V>(
+    vector: &V,
+    name: Option<&str>,
+    file: Option<&str>,
+    line: Option<u32>,
+) where
     T: GbpFloat,
     V: PrettyPrintVector<T>,
 {
@@ -237,7 +247,10 @@ where
                 "{}{}{}:{}{}{}",
                 CYAN_TEXT, name, RESET_TEXT, MAGENTA_TEXT, dims, RESET_TEXT
             );
-            println!("{}{}{}", UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER);
+            println!(
+                "{}{}{}",
+                UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
+            );
         } else {
             println!(
                 "{}{}{}{}{}{}{}{}{}",
@@ -253,7 +266,10 @@ where
             );
         }
     } else {
-        println!("{}{}{}", UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER);
+        println!(
+            "{}{}{}",
+            UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
+        );
     }
 
     print!("{}", BAR);
@@ -344,10 +360,20 @@ impl<T: GbpFloat> PrettyPrintMatrix<T> for Matrix<T> {
 #[macro_export]
 macro_rules! pretty_print_vector {
     ($name:expr) => {
-        $crate::pretty_print::_pretty_print_vector($name, Some(stringify!($name)), Some(file!()), Some(line!()));
+        $crate::pretty_print::_pretty_print_vector(
+            $name,
+            Some(stringify!($name)),
+            Some(file!()),
+            Some(line!()),
+        );
     };
     ($name:literal, $vector:expr) => {
-        $crate::pretty_print::_pretty_print_vector($vector, Some($name), Some(file!()), Some(line!()));
+        $crate::pretty_print::_pretty_print_vector(
+            $vector,
+            Some($name),
+            Some(file!()),
+            Some(line!()),
+        );
     };
 }
 
@@ -355,9 +381,19 @@ macro_rules! pretty_print_vector {
 #[macro_export]
 macro_rules! pretty_print_matrix {
     ($name:expr) => {
-        $crate::pretty_print::_pretty_print_matrix($name, Some(stringify!($name)), Some(file!()), Some(line!()));
+        $crate::pretty_print::_pretty_print_matrix(
+            $name,
+            Some(stringify!($name)),
+            Some(file!()),
+            Some(line!()),
+        );
     };
     ($name:literal, $matrix:expr) => {
-        $crate::pretty_print::_pretty_print_matrix($matrix, Some($name), Some(file!()), Some(line!()));
+        $crate::pretty_print::_pretty_print_matrix(
+            $matrix,
+            Some($name),
+            Some(file!()),
+            Some(line!()),
+        );
     };
 }

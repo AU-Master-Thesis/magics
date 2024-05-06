@@ -16,7 +16,19 @@ impl Plugin for UiInputPlugin {
     }
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Default, Reflect, EnumIter, derive_more::Display)]
+#[derive(
+    Actionlike,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    Debug,
+    Default,
+    Reflect,
+    EnumIter,
+    derive_more::Display,
+)]
 pub enum UiAction {
     #[default] // Necessary to implement `Default` for `EnumIter`
     #[display(fmt = "Toggle Left Panel")]

@@ -148,7 +148,9 @@ impl std::iter::ExactSizeIterator for UpperTriangularExcludeDiagonal {
 /// # Returns
 /// `None` if `n == 1`
 #[must_use]
-pub fn upper_triangular_exclude_diagonal(n: NonZeroUsize) -> Option<UpperTriangularExcludeDiagonal> {
+pub fn upper_triangular_exclude_diagonal(
+    n: NonZeroUsize,
+) -> Option<UpperTriangularExcludeDiagonal> {
     let n = n.get();
     // n cannot be zero, due to the NonZeroUsize constraint
     if n == 1 {

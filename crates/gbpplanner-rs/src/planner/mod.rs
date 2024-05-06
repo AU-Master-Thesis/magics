@@ -14,7 +14,9 @@ mod visualiser;
 use bevy::prelude::*;
 // pub use factorgraph::{graphviz::NodeKind, FactorGraph, NodeIndex};
 pub use robot::{RobotId, RobotState};
-pub use visualiser::{factorgraphs::VariableVisualiser, waypoints::WaypointVisualiser, RobotTracker};
+pub use visualiser::{
+    factorgraphs::VariableVisualiser, waypoints::WaypointVisualiser, RobotTracker,
+};
 
 use self::{robot::RobotPlugin, spawner::RobotSpawnerPlugin, visualiser::VisualiserPlugin};
 

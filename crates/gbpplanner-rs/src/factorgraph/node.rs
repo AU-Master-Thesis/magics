@@ -1,4 +1,7 @@
-use super::{factor::FactorNode, factorgraph::FactorGraphId, variable::VariableNode, MessagesReceived, MessagesSent};
+use super::{
+    factor::FactorNode, factorgraph::FactorGraphId, variable::VariableNode, MessagesReceived,
+    MessagesSent,
+};
 
 /// Error type returned by `FactorGraphNode::remove_connection_to`
 #[derive(Debug, derive_more::Display)]
@@ -8,7 +11,10 @@ pub struct RemoveConnectionToError;
 impl std::error::Error for RemoveConnectionToError {}
 
 pub(in crate::factorgraph) trait FactorGraphNode {
-    fn remove_connection_to(&mut self, factorgraph_id: FactorGraphId) -> Result<(), RemoveConnectionToError>;
+    fn remove_connection_to(
+        &mut self,
+        factorgraph_id: FactorGraphId,
+    ) -> Result<(), RemoveConnectionToError>;
 
     fn messages_sent(&self) -> MessagesSent;
     fn messages_received(&self) -> MessagesReceived;
@@ -136,12 +142,16 @@ impl Node {
     /// Panics if the node is not a variable
     #[inline]
     pub fn variable_mut(&mut self) -> &mut VariableNode {
-        self.as_variable_mut().expect("The node should be a Variable")
+        self.as_variable_mut()
+            .expect("The node should be a Variable")
     }
 }
 
 impl FactorGraphNode for Node {
-    fn remove_connection_to(&mut self, factorgraph_id: FactorGraphId) -> Result<(), RemoveConnectionToError> {
+    fn remove_connection_to(
+        &mut self,
+        factorgraph_id: FactorGraphId,
+    ) -> Result<(), RemoveConnectionToError> {
         match self.kind {
             NodeKind::Factor(ref mut factor) => factor.remove_connection_to(factorgraph_id),
             NodeKind::Variable(ref mut variable) => variable.remove_connection_to(factorgraph_id),

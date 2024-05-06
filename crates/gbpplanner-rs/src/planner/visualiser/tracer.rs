@@ -45,12 +45,18 @@ pub struct Trace {
 pub struct Traces(pub BTreeMap<RobotId, Trace>);
 
 #[allow(dead_code)]
-fn remove_trace_of_despawned_robot(mut traces: ResMut<Traces>, mut despawn_robot_event: EventReader<RobotDespawned>) {
+fn remove_trace_of_despawned_robot(
+    mut traces: ResMut<Traces>,
+    mut despawn_robot_event: EventReader<RobotDespawned>,
+) {
     for RobotDespawned(robot_id) in despawn_robot_event.read() {
         if traces.0.remove(robot_id).is_some() {
             info!("removed trace of robot: {:?}", robot_id);
         } else {
-            error!("attempted to remove trace of untracked robot: {:?}", robot_id);
+            error!(
+                "attempted to remove trace of untracked robot: {:?}",
+                robot_id
+            );
         }
     }
 }

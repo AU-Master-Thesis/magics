@@ -465,7 +465,8 @@ impl Default for RobotSection {
             communication: CommunicationSection::default(),
 
             // **gbpplanner** effectively uses 2.2 * radius with the way they calculate it
-            inter_robot_safety_distance_multiplier: StrictlyPositiveFinite::<f32>::new(2.2).expect("2.2 > 0.0"),
+            inter_robot_safety_distance_multiplier: StrictlyPositiveFinite::<f32>::new(2.2)
+                .expect("2.2 > 0.0"),
         }
     }
 }

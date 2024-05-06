@@ -8,7 +8,8 @@ pub mod prelude {
     // pub use ndarray::{array, concatenate, s, Axis};
 
     pub use super::{
-        pretty_print::*, Float, GbpFloat, Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm, VectorView,
+        pretty_print::*, Float, GbpFloat, Matrix, MatrixView, NdarrayVectorExt, Vector, VectorNorm,
+        VectorView,
     };
 }
 

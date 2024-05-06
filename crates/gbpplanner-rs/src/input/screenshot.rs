@@ -38,8 +38,9 @@ impl Plugin for ScreenshotPlugin {
             .add_systems(
                 Update,
                 (
-                    toast_on_screenshot_finished_event
-                        .run_if(event_exists::<ToastEvent>.and_then(on_event::<TakeScreenshotFinished>())),
+                    toast_on_screenshot_finished_event.run_if(
+                        event_exists::<ToastEvent>.and_then(on_event::<TakeScreenshotFinished>()),
+                    ),
                     handle_screenshot_event.run_if(on_event::<TakeScreenshot>()),
                 ),
             );
@@ -111,14 +112,20 @@ fn handle_screenshot_event(
 
         let basename_postfix = match event.postfix {
             ScreenshotSavePostfix::Number => {
-                let existing_screenshots = glob::glob("./screenshot_*.png").expect("valid glob pattern");
+                let existing_screenshots =
+                    glob::glob("./screenshot_*.png").expect("valid glob pattern");
                 let latest_screenshot_id = existing_screenshots
                     .filter_map(std::result::Result::ok)
                     .filter_map(|path| {
-                        path.file_name()
-                            .and_then(|file_name| file_name.to_str().map(std::string::ToString::to_string))
+                        path.file_name().and_then(|file_name| {
+                            file_name.to_str().map(std::string::ToString::to_string)
+                        })
                     })
-                    .filter_map(|basename| basename["screenshot_".len()..basename.len() - 4].parse::<usize>().ok())
+                    .filter_map(|basename| {
+                        basename["screenshot_".len()..basename.len() - 4]
+                            .parse::<usize>()
+                            .ok()
+                    })
                     .max();
 
                 // TODO: handle wasm32 constraints
@@ -177,10 +184,16 @@ fn toast_on_screenshot_finished_event(
     for event in screen_shot_finished_event.read() {
         match event {
             TakeScreenshotFinished::Success(path) => {
-                toast_event.send(ToastEvent::success(format!("saved screenshot to ./{}", path)));
+                toast_event.send(ToastEvent::success(format!(
+                    "saved screenshot to ./{}",
+                    path
+                )));
             }
             TakeScreenshotFinished::Failure(err) => {
-                toast_event.send(ToastEvent::error(format!("failed to save screenshot: {}", err)));
+                toast_event.send(ToastEvent::error(format!(
+                    "failed to save screenshot: {}",
+                    err
+                )));
             }
         }
     }

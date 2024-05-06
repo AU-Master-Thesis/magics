@@ -121,7 +121,10 @@ fn draw(
 /// This system shows how to respond to a window being resized.
 /// Whenever the window is resized, the text will update with the new
 /// resolution.
-fn on_resize_system(mut resize_reader: EventReader<WindowResized>, mut window_resolution: ResMut<WindowResolution>) {
+fn on_resize_system(
+    mut resize_reader: EventReader<WindowResized>,
+    mut window_resolution: ResMut<WindowResolution>,
+) {
     for e in resize_reader.read() {
         window_resolution.width = e.width;
         window_resolution.height = e.height;

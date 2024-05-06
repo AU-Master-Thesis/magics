@@ -41,7 +41,10 @@ fn advance_time(time: Res<Time>, mut formation_spawners: Query<&mut FormationSpa
         formation_spawner.tick(time.delta());
         if formation_spawner.ready_to_spawn() {
             println!("time elapsed: {:?}", time.elapsed());
-            println!("ready to spawn, {}", formation_spawner.formation_group_index);
+            println!(
+                "ready to spawn, {}",
+                formation_spawner.formation_group_index
+            );
         }
     }
 }

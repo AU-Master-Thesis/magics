@@ -1,7 +1,8 @@
 #![warn(missing_docs)]
 
 use bevy_egui::egui::{
-    self, Align, Align2, Color32, Direction, FontId, Grid, InnerResponse, Layout, RichText, Ui, Vec2b,
+    self, Align, Align2, Color32, Direction, FontId, Grid, InnerResponse, Layout, RichText, Ui,
+    Vec2b,
 };
 use egui_extras::{Column, TableBuilder};
 
@@ -17,7 +18,10 @@ pub fn float_left<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> In
 
 /// A simple function to make a widget fill the available space in x
 pub fn fill_x<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
-    ui.with_layout(Layout::centered_and_justified(Direction::TopDown), add_contents)
+    ui.with_layout(
+        Layout::centered_and_justified(Direction::TopDown),
+        add_contents,
+    )
 }
 
 // /// A function to fill in both x and y
@@ -31,7 +35,12 @@ pub fn center_y<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> Inne
 }
 
 /// A separator with color and space before and after
-pub fn separator(ui: &mut Ui, color: Option<Color32>, space_before: Option<f32>, space_after: Option<f32>) {
+pub fn separator(
+    ui: &mut Ui,
+    color: Option<Color32>,
+    space_before: Option<f32>,
+    space_after: Option<f32>,
+) {
     ui.add_space(space_before.unwrap_or(0.0));
     let before = ui.visuals().widgets.noninteractive.bg_stroke.color;
     ui.visuals_mut().widgets.noninteractive.bg_stroke.color = color.unwrap_or(before);
@@ -103,7 +112,8 @@ pub fn toggle_ui(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {
         // the elements.
         let rect = rect.expand(visuals.expansion);
         let radius = 0.5 * rect.height();
-        ui.painter().rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
+        ui.painter()
+            .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
         // Paint the circle, animating it from left to right with `how_on`:
         let circle_x = egui::lerp((rect.left() + radius)..=(rect.right() - radius), how_on);
         let center = egui::pos2(circle_x, rect.center().y);
@@ -117,7 +127,11 @@ pub fn toggle_ui(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {
 }
 
 /// Label with a rounded rectangle background
-pub fn rect_label(ui: &mut egui::Ui, text: String, interact: Option<egui::Sense>) -> egui::Response {
+pub fn rect_label(
+    ui: &mut egui::Ui,
+    text: String,
+    interact: Option<egui::Sense>,
+) -> egui::Response {
     let available_width = ui.available_width();
     let desired_y = ui.spacing().interact_size.y;
 
@@ -141,7 +155,8 @@ pub fn rect_label(ui: &mut egui::Ui, text: String, interact: Option<egui::Sense>
         let rect = rect.expand(visuals.expansion);
         let radius = visuals.rounding;
 
-        ui.painter().rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
+        ui.painter()
+            .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
         ui.painter().text(
             rect.center(),
             Align2::CENTER_CENTER,
