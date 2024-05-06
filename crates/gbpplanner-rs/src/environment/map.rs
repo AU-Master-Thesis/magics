@@ -13,7 +13,7 @@ use crate::{
     asset_loader::{Meshes, Obstacles},
     config::{self, Config},
     input::DrawSettingsEvent,
-    simulation_loader::{self, LoadSimulation, Sdf},
+    simulation_loader::{self, Sdf},
     theme::CatppuccinTheme,
 };
 
@@ -293,6 +293,7 @@ fn environment_png_is_loaded(
     clippy::cast_sign_loss,
     clippy::cast_possible_truncation
 )]
+#[allow(clippy::too_many_arguments)]
 fn obstacles(
     mut commands: Commands,
     obstacles: Res<Obstacles>,
@@ -309,15 +310,10 @@ fn obstacles(
         return;
     };
 
-    match load_state {
-        bevy::asset::LoadState::Loaded => {
-            // next_heightmap_state.set(HeightMapState::Generated);
-        }
-        _ => {
-            warn!("obstacle image not loaded yet");
-            return;
-        }
-    }
+    let bevy::asset::LoadState::Loaded = load_state else {
+        warn!("obstacle image not loaded yet");
+        return;
+    };
 
     let Some(image) = image_assets.get(obstacles.raw.id()) else {
         warn!("obstacle image not available yet");

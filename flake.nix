@@ -58,6 +58,7 @@
         cargo-watch
         cargo-wizard
         cargo-pgo
+        cargo-flamegraph
         # cargo-tree
 
         #   # cargo-profiler
@@ -124,6 +125,9 @@
               gcc
               gfortran
               zlib
+
+              python3Packages.matplotlib
+              python3Packages.ipykernel
             ]
             ++ bevy-deps
             ++ rust-deps;

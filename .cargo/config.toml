@@ -17,4 +17,8 @@ rustflags = [
 [build]
 rustflags = [
   "-Clink-arg=-fuse-ld=mold",
+  "-C",
+  "target-cpu=native",
+  "-Z",
+  "threads=8",
 ]

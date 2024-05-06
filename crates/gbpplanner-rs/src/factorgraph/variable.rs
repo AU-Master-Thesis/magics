@@ -1,15 +1,15 @@
-use bevy::log::debug;
 use gbp_linalg::{Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
 use super::{
-    factorgraph::NodeIndex,
+    factorgraph::{FactorGraphId, NodeIndex},
     id::FactorId,
     message::{InformationVec, Mean, Message, MessagesToFactors, PrecisionMatrix},
     node::{FactorGraphNode, RemoveConnectionToError},
-    MessageCount,
+    MessageCount, MessagesReceived, MessagesSent,
 };
 
+/// Variable prior distribution
 #[derive(Debug, Clone)]
 pub struct VariablePrior {
     information_vector: Vector<Float>,
@@ -37,10 +37,14 @@ impl VariablePrior {
 /// Vec4
 #[derive(Debug, Clone)]
 pub struct VariableBelief {
+    /// Information vector
     pub information_vector: Vector<Float>,
+    /// Precision matrix, square matrix
     pub precision_matrix: Matrix<Float>,
+    /// Mean
     pub mean: Vector<Float>,
 
+    /// Covariance matrix, square matrix
     pub covariance_matrix: Matrix<Float>,
     /// Flag to indicate if the variable's covariance is finite, i.e. it does
     /// not contain NaNs or Infs In gbpplanner it is used to control if a
@@ -79,8 +83,11 @@ impl From<VariableBelief> for Message {
 /// A variable in the factor graph.
 #[derive(Debug)]
 pub struct VariableNode {
-    pub prior:  VariablePrior,
-    pub belief: VariableBelief,
+    factorgraph_id: FactorGraphId,
+    /// Prior distribution
+    pub prior:      VariablePrior,
+    /// Variables belief about its position and velocity
+    pub belief:     VariableBelief,
 
     // / Flag to indicate if the variable's covariance is finite, i.e. it does
     // / not contain NaNs or Infs In gbpplanner it is used to control if a
@@ -127,8 +134,14 @@ impl VariableNode {
         [self.belief.mean[2], self.belief.mean[3]]
     }
 
+    /// Construct a new variable
     #[must_use]
-    pub fn new(prior_mean: Vector<Float>, mut prior_precision_matrix: Matrix<Float>, dofs: usize) -> Self {
+    pub fn new(
+        factorgraph_id: FactorGraphId,
+        prior_mean: Vector<Float>,
+        mut prior_precision_matrix: Matrix<Float>,
+        dofs: usize,
+    ) -> Self {
         if !prior_precision_matrix.iter().all(|x| x.is_finite()) {
             prior_precision_matrix.fill(0.0);
         }
@@ -142,6 +155,7 @@ impl VariableNode {
         let lam = prior_precision_matrix.clone();
 
         Self {
+            factorgraph_id,
             prior: VariablePrior::new(eta_prior, prior_precision_matrix),
             belief: VariableBelief::new(eta, lam, prior_mean, sigma),
             inbox: MessagesToFactors::new(),
@@ -150,18 +164,29 @@ impl VariableNode {
         }
     }
 
+    /// Sets the node index
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node index has already been set
     pub fn set_node_index(&mut self, index: NodeIndex) {
         assert!(self.node_index.is_none(), "The node index is already set");
         self.node_index = Some(index);
     }
 
+    /// Receives a message from a factor
     pub fn receive_message_from(&mut self, from: FactorId, message: Message) {
-        debug!("variable ? received message from {:?}", from);
+        // debug!("variable ? received message from {:?}", from);
         if message.is_empty() {
             // warn!("Empty message received from factor {:?}", from);
         }
         let _ = self.inbox.insert(from, message);
-        self.message_count.received += 1;
+        if from.factorgraph_id == self.factorgraph_id {
+            self.message_count.received.internal += 1;
+        } else {
+            self.message_count.received.external += 1;
+        }
+        // self.message_count.received += 1;
     }
 
     // // TODO: why never used?
@@ -174,19 +199,27 @@ impl VariableNode {
     /// It updates the belief of the variable.
     /// The prior acts as the pose factor
     /// Called `Variable::change_variable_prior` in **gbpplanner**
-    pub fn change_prior(&mut self, mean: Vector<Float>) -> MessagesToFactors {
-        self.prior.information_vector = self.prior.precision_matrix.dot(&mean);
-        self.belief.mean = mean;
+    pub fn change_prior(&mut self, mean: &Vector<Float>) -> MessagesToFactors {
+        self.prior.information_vector = self.prior.precision_matrix.dot(mean);
+        // self.belief.mean = mean;
+        self.belief.mean.clone_from(mean);
 
-        // FIXME: forgot this line in the original code
-        // this->belief_ = Message {this->eta_, this->lam_, this->mu_};
+        let mut messages_sent = MessagesSent::new();
 
         let messages: MessagesToFactors = self
             .inbox
             .keys()
-            .map(|factor_id| (*factor_id, self.belief.clone().into()))
+            .map(|factor_id| {
+                if factor_id.factorgraph_id == self.factorgraph_id {
+                    messages_sent.internal += 1;
+                } else {
+                    messages_sent.external += 1;
+                }
+                (*factor_id, self.belief.clone().into())
+            })
             .collect();
 
+        // PERF: do we need to reset the inbox?
         for message in self.inbox.values_mut() {
             *message = Message::empty();
         }
@@ -194,6 +227,8 @@ impl VariableNode {
         messages
     }
 
+    // PERF: try return Arc<Message> instead of clone
+    /// Construct a new message from the variables current belief
     pub fn prepare_message(&self) -> Message {
         Message::new(
             InformationVec(self.belief.information_vector.clone()),
@@ -214,11 +249,10 @@ impl VariableNode {
     pub fn update_belief_and_create_factor_responses(&mut self) -> MessagesToFactors {
         // Collect messages from all other factors, begin by "collecting message from
         // pose factor prior"
-        // self.belief.information_vector = self.prior.information_vector.clone();
-        // self.belief.precision_matrix = self.prior.precision_matrix.clone();
         self.belief
             .information_vector
             .clone_from(&self.prior.information_vector);
+
         self.belief.precision_matrix.clone_from(&self.prior.precision_matrix);
 
         // Go through received messages and update belief
@@ -226,17 +260,17 @@ impl VariableNode {
             let Some(payload) = message.payload() else {
                 continue;
             };
-            self.belief.information_vector = &self.belief.information_vector + &payload.information_factor;
+            self.belief.information_vector = &self.belief.information_vector + &payload.information_vector;
             self.belief.precision_matrix = &self.belief.precision_matrix + &payload.precision_matrix;
         }
 
         // Update belief
         // NOTE: This might not be correct, but it seems the `.inv()` method doesn't
         // catch and all-zero matrix
-        let lam_not_zero = self.belief.precision_matrix.iter().any(|x| *x - 1e-6 > 0.0);
-        if lam_not_zero {
-            if let Some(sigma) = self.belief.precision_matrix.inv() {
-                self.belief.covariance_matrix = sigma;
+        let precision_not_zero = self.belief.precision_matrix.iter().any(|x| *x - 1e-6 > 0.0);
+        if precision_not_zero {
+            if let Some(covariance) = self.belief.precision_matrix.inv() {
+                self.belief.covariance_matrix = covariance;
                 self.belief.valid = self.belief.covariance_matrix.iter().all(|x| x.is_finite());
                 if self.belief.valid {
                     self.belief.mean = self.belief.covariance_matrix.dot(&self.belief.information_vector);
@@ -253,6 +287,8 @@ impl VariableNode {
             }
         }
 
+        let mut messages_sent = MessagesSent::new();
+
         let messages: MessagesToFactors = self
             .inbox
             .iter()
@@ -261,17 +297,31 @@ impl VariableNode {
                     || self.prepare_message(),
                     |message_from_factor| {
                         Message::new(
-                            InformationVec(&self.belief.information_vector - &message_from_factor.information_factor),
+                            InformationVec(&self.belief.information_vector - &message_from_factor.information_vector),
                             PrecisionMatrix(&self.belief.precision_matrix - &message_from_factor.precision_matrix),
                             Mean(&self.belief.mean - &message_from_factor.mean),
                         )
                     },
                 );
+
+                if factor_id.factorgraph_id == self.factorgraph_id {
+                    messages_sent.internal += 1;
+                } else {
+                    messages_sent.external += 1;
+                }
+
                 (factor_id, response)
             })
             .collect();
 
-        self.message_count.sent += messages.len();
+        self.message_count.sent += messages_sent;
+        // for recipient in messages.keys() {
+        //     if recipient.factorgraph_id == self.factorgraph_id {
+        //         self.message_count.sent.internal += 1;
+        //     } else {
+        //         self.message_count.sent.external += 1;
+        //     }
+        // }
 
         messages
     }
@@ -302,12 +352,12 @@ impl FactorGraphNode for VariableNode {
     }
 
     #[inline(always)]
-    fn messages_sent(&self) -> usize {
+    fn messages_sent(&self) -> MessagesSent {
         self.message_count.sent
     }
 
     #[inline(always)]
-    fn messages_received(&self) -> usize {
+    fn messages_received(&self) -> MessagesReceived {
         self.message_count.received
     }
 

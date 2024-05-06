@@ -7,10 +7,26 @@ authors.workspace      = true
 rust-version.workspace = true
 license.workspace      = true
 
+
 [features]
 dev = [
   "bevy/dynamic_linking",
 ]
+dhat-heap = [
+  "dep:dhat",
+] # if you are doing heap profiling
+dhat-ad-hoc = [
+  "dep:dhat",
+] # if you are doing ad hoc profiling
+
+# TODO: use this feature, to only sample last measurement when enabled
+visualization-obstacle-factors = [
+]
+
+visualization = [
+  "visualization-obstacle-factors",
+]
+
 
 [dependencies]
 percentage              = { path = "../percentage" }
@@ -22,10 +38,11 @@ gbp_multivariate_normal = { path = "../gbp_multivariate_normal" }
 bevy_notify             = { path = "../bevy_notify" }
 units                   = { path = "../units" }
 bevy_fullscreen         = { path = "../bevy_fullscreen" }
-
-bevy_touchpad   = { path = "../bevy_touchpad" }
-repeating_array = { path = "../repeating_array" }
-seq             = { path = "../seq" }
+bevy_touchpad           = { path = "../bevy_touchpad" }
+repeating_array         = { path = "../repeating_array" }
+seq                     = { path = "../seq" }
+interleave_evenly       = { path = "../interleave_evenly" }
+gbp_schedule            = { path = "../gbp_schedule" }
 
 glob = "0.3.1"
 better-panic = "0.3.0"
@@ -121,7 +138,7 @@ chrono      = "0.4.37"
 
 dark-light = "1.1.1"
 bevy_dev   = "0.3.0"
-once_cell = "1.19.0"
+once_cell  = "1.19.0"
 
 smol_str = "0.2.1"
 fastrand = "2.0.2"
@@ -132,11 +149,18 @@ rand_chacha = { version = "0.3.1", features = [
 typed-builder = "0.18.2"
 atty          = "0.2.14"
 bat           = "0.24.0"
+dhat          = { version = "0.3.3", optional = true }
+indexmap      = "2.2.6"
+colored-diff  = "0.2.3"
+serde_json = "1.0.116"
 
 
 # TODO: change to not wasm
 [target.'cfg(linux)'.dependencies]
 open = "5.1.0"
+
+
+# [feature.]
 
 
 [dev-dependencies]

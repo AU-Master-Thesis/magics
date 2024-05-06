@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     config::Config,
-    planner::RobotState,
+    planner::{robot::RadioAntenna, RobotState},
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 
@@ -23,21 +23,21 @@ fn draw_communication_radius_enabled(config: Res<Config>) -> bool {
 
 fn draw_communication_radius(
     mut gizmos: Gizmos,
-    query: Query<(&RobotState, &Transform)>,
+    query: Query<(&RadioAntenna, &Transform)>,
     config: Res<Config>,
     catppuccin_theme: Res<CatppuccinTheme>,
 ) {
     let active_comms_color = Color::from_catppuccin_colour(catppuccin_theme.sky());
     let segments = 24;
-    let radius: f32 = config.robot.communication.radius.into();
+    // let radius: f32 = config.robot.communication.radius.into();
 
-    for (robot_state, transform) in query.iter() {
+    for (antenna, transform) in query.iter() {
         gizmos
             .circle(
                 transform.translation,
                 Direction3d::Y,
-                radius,
-                if robot_state.interrobot_comms_active {
+                antenna.radius,
+                if antenna.active {
                     active_comms_color
                 } else {
                     // Color::RED

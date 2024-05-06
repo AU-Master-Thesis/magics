@@ -1,4 +1,4 @@
-use std::ops::AddAssign;
+use std::{borrow::Cow, ops::AddAssign};
 
 use gbp_linalg::prelude::*;
 use ndarray::{array, s};
@@ -6,8 +6,12 @@ use typed_floats::StrictlyPositiveFinite;
 
 use self::{dynamic::DynamicFactor, interrobot::InterRobotFactor, obstacle::ObstacleFactor};
 use super::{
-    factorgraph::NodeIndex, id::VariableId, message::MessagesToVariables, node::FactorGraphNode,
-    prelude::Message, MessageCount, DOFS,
+    factorgraph::{FactorGraphId, NodeIndex},
+    id::VariableId,
+    message::MessagesToVariables,
+    node::FactorGraphNode,
+    prelude::Message,
+    MessageCount, MessagesReceived, MessagesSent, DOFS,
 };
 use crate::{factorgraph::node::RemoveConnectionToError, simulation_loader::SdfImage};
 
@@ -23,10 +27,6 @@ use marginalise_factor_distance::marginalise_factor_distance;
 // pub use crate::factorgraph::factor::interrobot::InterRobotFactorConnection;
 pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 
-// TODO: make generic over f32 | f64
-// TODO: hide the state parameter from the public API, by having the `Factor`
-// struct expose similar methods that dispatch to the `FactorState` struct.
-
 /// Common interface for all factors
 pub trait Factor {
     // const NEIGHBORS: usize;
@@ -37,14 +37,12 @@ pub trait Factor {
     fn jacobian_delta(&self) -> Float;
 
     /// Returns the number of neighbours this factor expects
-    /// NOTE: defined as an instance method, so that `FactorKind` can dispatch
-    /// on itself to get the right value
     fn neighbours(&self) -> usize;
 
     /// Whether to skip this factor in the update step
     /// In gbpplanner, this is only used for the interrobot factor.
     /// The other factors are always included in the update step.
-    fn skip(&mut self, state: &FactorState) -> bool;
+    fn skip(&self, state: &FactorState) -> bool;
 
     /// Whether the factor is linear or non-linear
     fn linear(&self) -> bool;
@@ -52,20 +50,20 @@ pub trait Factor {
     /// The jacobian of the factor
     #[must_use]
     #[inline]
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
-        self.first_order_jacobian(state, x.clone())
+    // fn jacobian<'a>(&mut self, state: &'a FactorState, x: &Vector<Float>) ->
+    // Cow<'a, Matrix<Float>> {
+    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+        Cow::Owned(self.first_order_jacobian(state, x.clone()))
     }
 
     /// Measurement function
-    /// **Note**: This method takes a mutable reference to self, because the
-    /// interrobot factor
     #[must_use]
-    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
+    fn measure(&self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
 
     /// The first order jacobian
     /// This is a default impl as factor variants should compute the first order
     /// jacobian the same way
-    fn first_order_jacobian(&mut self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
+    fn first_order_jacobian(&self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
         let h0 = self.measure(state, &x); // value at linearization point
         let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
 
@@ -85,6 +83,7 @@ pub trait Factor {
 /// Factor node in the factorgraph
 #[derive(Debug)]
 pub struct FactorNode {
+    factorgraph_id: FactorGraphId,
     /// Unique identifier that associates the variable with the factorgraph it
     /// is part of.
     pub node_index: Option<NodeIndex>,
@@ -99,14 +98,21 @@ pub struct FactorNode {
 }
 
 impl FactorNode {
-    fn new(state: FactorState, kind: FactorKind) -> Self {
+    fn new(factorgraph_id: FactorGraphId, state: FactorState, kind: FactorKind) -> Self {
         Self {
+            factorgraph_id,
             node_index: None,
             state,
             kind,
             inbox: MessagesToVariables::new(),
             message_count: MessageCount::default(),
         }
+    }
+
+    /// Returns the factorgraph id that the factor belongs to
+    #[inline]
+    pub fn factorgraph_id(&self) -> FactorGraphId {
+        self.factorgraph_id
     }
 
     /// Returns the node index of the factor
@@ -132,25 +138,37 @@ impl FactorNode {
     }
 
     /// Create a new dynamic factor
-    pub fn new_dynamic_factor(strength: Float, measurement: Vector<Float>, delta_t: Float) -> Self {
+    pub fn new_dynamic_factor(
+        factorgraph_id: FactorGraphId,
+        strength: Float,
+        measurement: Vector<Float>,
+        delta_t: Float,
+    ) -> Self {
         let mut state = FactorState::new(measurement, strength, DynamicFactor::NEIGHBORS);
         let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
         let kind = FactorKind::Dynamic(dynamic_factor);
-        Self::new(state, kind)
+        Self::new(factorgraph_id, state, kind)
     }
 
     /// Create a new interrobot factor
     pub fn new_interrobot_factor(
+        factorgraph_id: FactorGraphId,
         strength: Float,
         measurement: Vector<Float>,
-        safety_radius: StrictlyPositiveFinite<Float>,
+        // safety_radius: StrictlyPositiveFinite<Float>,
+        robot_radius: StrictlyPositiveFinite<Float>,
+        safety_distance_multiplier: StrictlyPositiveFinite<Float>,
         external_variable: ExternalVariableId,
     ) -> Self {
-        let interrobot_factor = InterRobotFactor::new(safety_radius, external_variable);
+        let interrobot_factor = InterRobotFactor::new(
+            robot_radius,
+            external_variable,
+            Some(safety_distance_multiplier),
+        );
         let kind = FactorKind::InterRobot(interrobot_factor);
         let state = FactorState::new(measurement, strength, InterRobotFactor::NEIGHBORS);
 
-        Self::new(state, kind)
+        Self::new(factorgraph_id, state, kind)
     }
 
     // pub fn new_pose_factor() -> Self {
@@ -159,17 +177,16 @@ impl FactorNode {
 
     /// Create a new obstacle factor
     pub fn new_obstacle_factor(
+        factorgraph_id: FactorGraphId,
         strength: Float,
         measurement: Vector<Float>,
-        // obstacle_sdf: Image,
         obstacle_sdf: SdfImage,
         world_size: Float,
     ) -> Self {
         let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS);
-        // let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
-        Self::new(state, kind)
+        Self::new(factorgraph_id, state, kind)
     }
 
     // #[inline(always)]
@@ -178,13 +195,15 @@ impl FactorNode {
     // }
 
     #[inline(always)]
-    fn jacobian(&mut self, x: &Vector<Float>) -> Matrix<Float> {
+    fn jacobian(&self, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
         self.kind.jacobian(&self.state, x)
     }
 
-    fn measure(&mut self, x: &Vector<Float>) -> Vector<Float> {
-        self.state.cached_measurement = self.kind.measure(&self.state, x);
-        self.state.cached_measurement.clone()
+    #[inline]
+    fn measure(&self, x: &Vector<Float>) -> Vector<Float> {
+        self.kind.measure(&self.state, x)
+        // self.state.cached_measurement = self.kind.measure(&self.state, x);
+        // self.state.cached_measurement.clone()
     }
 
     /// Check if the factor should be skipped in the update step
@@ -196,7 +215,11 @@ impl FactorNode {
     /// Add a message to this factors inbox
     pub fn receive_message_from(&mut self, from: VariableId, message: Message) {
         let _ = self.inbox.insert(from, message);
-        self.message_count.received += 1;
+        if from.factorgraph_id == self.factorgraph_id {
+            self.message_count.received.internal += 1;
+        } else {
+            self.message_count.received.external += 1;
+        }
     }
 
     // #[inline(always)]
@@ -220,45 +243,71 @@ impl FactorNode {
             DOFS * self.inbox.len()
         );
 
-        let zero_mean = Vector::<Float>::zeros(DOFS);
+        // // let chunks = self.state.linearisation_point.exact_chunks_mut(DOFS);
+        // for chunk in
+        // self.state.linearisation_point.exact_chunks_mut(DOFS).into_iter() {
+        //     // chunk.into_slice_memory_order()
+        //     if let Some(data) = chunk.as_slice_memory_order_mut() {
+        //         data.assign_elem(0.0);
+        //     } else {
+        //         panic!("should not happen, is 1d");
+        //     }
+        // }
 
         for (i, (_, message)) in self.inbox.iter().enumerate() {
-            let mean = message.mean().unwrap_or(&zero_mean);
-            self.state
+            let mut slice = self
+                .state
                 .linearisation_point
-                .slice_mut(s![i * DOFS..(i + 1) * DOFS])
-                .assign(mean);
+                .slice_mut(s![i * DOFS..(i + 1) * DOFS]);
+
+            if let Some(mean) = message.mean() {
+                slice.assign(mean);
+            } else {
+                for x in slice {
+                    *x = 0.0;
+                }
+            }
         }
 
         if self.skip() {
+            let mut messages_sent = MessagesSent::new();
             let messages: MessagesToVariables = self
                 .inbox
                 .keys()
-                .map(|variable_id| (*variable_id, Message::empty()))
+                .map(|variable_id| {
+                    if variable_id.factorgraph_id == self.factorgraph_id {
+                        messages_sent.internal += 1;
+                    } else {
+                        messages_sent.external += 1;
+                    }
+
+                    (*variable_id, Message::empty())
+                })
                 .collect();
-            self.message_count.sent += messages.len();
+            self.message_count.sent += messages_sent;
             return messages;
         }
 
-        // let meas = self.measure(&self.state.linearisation_point.clone());
-        let _ = self.measure(&self.state.linearisation_point.clone());
-        let jacobian = self.jacobian(&self.state.linearisation_point.clone());
+        let measurement = self.measure(&self.state.linearisation_point);
+        let jacobian = self.jacobian(&self.state.linearisation_point);
 
         let potential_precision_matrix = jacobian
             .t()
             .dot(&self.state.measurement_precision)
-            .dot(&jacobian);
+            .dot(jacobian.as_ref());
+        let residual = &self.state.initial_measurement - measurement;
         let potential_information_vec = jacobian
             .t()
             .dot(&self.state.measurement_precision)
-            .dot(&(jacobian.dot(&self.state.linearisation_point) + self.residual()));
+            .dot(&(jacobian.dot(&self.state.linearisation_point) + residual));
 
         self.state.initialized = true;
 
         let mut marginalisation_idx = 0;
         let mut messages = MessagesToVariables::new();
+        // let mut messages = MessagesToVariables::with_capacity(self.inbox.len());
 
-        let zero_precision = Matrix::<Float>::zeros((DOFS, DOFS));
+        let mut messages_sent = MessagesSent::new();
 
         for variable_id in self.inbox.keys() {
             let mut information_vec = potential_information_vec.clone();
@@ -270,31 +319,42 @@ impl FactorNode {
                     continue;
                 }
 
-                let message_eta = other_message
-                    .information_vector()
-                    .expect("it better be there");
+                if other_message.is_empty() {
+                    continue;
+                }
 
-                // let message_precision =
-                // other_message.precision_matrix().unwrap_or(&zero_precision);
-                let message_precision = other_message.precision_matrix().unwrap_or(&zero_precision);
-                // .unwrap_or_else(|| &Matrix::<Float>::zeros((DOFS, DOFS)));
+                // let message_eta = other_message.information_vector().expect("it better be
+                // there"); information_vec
+                //     .slice_mut(s![j * DOFS..(j + 1) * DOFS])
+                //     .add_assign(message_eta);
 
-                information_vec
-                    .slice_mut(s![j * DOFS..(j + 1) * DOFS])
-                    .add_assign(message_eta);
-                precision_matrix
-                    .slice_mut(s![j * DOFS..(j + 1) * DOFS, j * DOFS..(j + 1) * DOFS])
-                    .add_assign(message_precision);
+                if let Some(message_information) = other_message.information_vector() {
+                    information_vec
+                        .slice_mut(s![j * DOFS..(j + 1) * DOFS])
+                        .add_assign(message_information);
+                }
+
+                if let Some(message_precision) = other_message.precision_matrix() {
+                    precision_matrix
+                        .slice_mut(s![j * DOFS..(j + 1) * DOFS, j * DOFS..(j + 1) * DOFS])
+                        .add_assign(message_precision);
+                }
             }
 
             let message =
                 marginalise_factor_distance(information_vec, precision_matrix, marginalisation_idx);
-            // .expect("marginalise_factor_distance should not fail");
             messages.insert(*variable_id, message);
+
+            if variable_id.factorgraph_id == self.factorgraph_id {
+                messages_sent.internal += 1;
+            } else {
+                messages_sent.external += 1;
+            }
+
             marginalisation_idx += DOFS;
         }
 
-        self.message_count.sent += messages.len();
+        self.message_count.sent += messages_sent;
         messages
     }
 
@@ -325,14 +385,15 @@ impl FactorNode {
 
 /// Static dispatch enum for the various factors in the factorgraph
 /// Used instead of dynamic dispatch
+#[allow(missing_docs)]
 #[derive(Debug, derive_more::IsVariant)]
 pub enum FactorKind {
     // Pose(PoseFactor),
-    /// InterRobotFactor
+    /// `InterRobotFactor`
     InterRobot(InterRobotFactor),
-    /// DynamicFactor
+    /// `DynamicFactor`
     Dynamic(DynamicFactor),
-    /// ObstacleFactor
+    /// `ObstacleFactor`
     Obstacle(ObstacleFactor),
 }
 
@@ -375,7 +436,7 @@ impl Factor for FactorKind {
         }
     }
 
-    fn jacobian(&mut self, state: &FactorState, x: &Vector<Float>) -> Matrix<Float> {
+    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
         match self {
             // Self::Pose(f) => f.jacobian(state, x),
             Self::Dynamic(f) => f.jacobian(state, x),
@@ -384,7 +445,7 @@ impl Factor for FactorKind {
         }
     }
 
-    fn measure(&mut self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
         match self {
             // Self::Pose(f) => f.measure(state, x),
             Self::Dynamic(f) => f.measure(state, x),
@@ -402,7 +463,7 @@ impl Factor for FactorKind {
         }
     }
 
-    fn skip(&mut self, state: &FactorState) -> bool {
+    fn skip(&self, state: &FactorState) -> bool {
         match self {
             // Self::Pose(f) => f.skip(state),
             Self::Dynamic(f) => f.skip(state),
@@ -499,12 +560,12 @@ impl FactorGraphNode for FactorNode {
     }
 
     #[inline(always)]
-    fn messages_sent(&self) -> usize {
+    fn messages_sent(&self) -> MessagesSent {
         self.message_count.sent
     }
 
     #[inline(always)]
-    fn messages_received(&self) -> usize {
+    fn messages_received(&self) -> MessagesReceived {
         self.message_count.received
     }
 

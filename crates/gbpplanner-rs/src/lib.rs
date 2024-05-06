@@ -7,6 +7,7 @@ pub mod cli;
 pub mod config;
 pub mod diagnostic;
 pub mod environment;
+pub mod export;
 pub mod factorgraph;
 pub mod input;
 pub mod moveable_object;

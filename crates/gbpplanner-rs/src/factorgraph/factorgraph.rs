@@ -2,11 +2,12 @@ use std::ops::Range;
 
 use bevy::{
     ecs::{component::Component, entity::Entity},
-    log::{debug, info},
+    log::{debug, error, info},
 };
 // use gbp_linalg::Float;
 use gbp_linalg::prelude::*;
-use petgraph::Undirected;
+use petgraph::{stable_graph::EdgeReference, visit::EdgeRef, Undirected};
+use typed_floats::StrictlyPositiveFinite;
 
 use super::{
     factor::{interrobot::InterRobotFactor, obstacle::ObstacleFactor, FactorKind, FactorNode},
@@ -15,6 +16,7 @@ use super::{
     node::{FactorGraphNode, Node, NodeKind, RemoveConnectionToError},
     prelude::Message,
     variable::VariableNode,
+    MessageCount, MessagesReceived, MessagesSent,
 };
 
 /// type alias used to represent the id of the factorgraph
@@ -22,30 +24,24 @@ use super::{
 /// the factorgraph is attached to as a Component, as its unique identifier.
 pub type FactorGraphId = Entity;
 
+/// Type parameter setting the upper bound for the size of the graph
+/// u16 -> 2^16 -1 = 65535
+type IndexSize = u16;
 /// The type used to represent indices into the nodes of the factorgraph.
 /// This is just a type alias for `petgraph::graph::NodeIndex`, but
 /// we make an alias for it here, such that it is easier to use the same
 /// index type across modules, as the various node index types `petgraph`
 /// are not interchangeable.
-pub type NodeIndex = petgraph::stable_graph::NodeIndex;
+pub type NodeIndex = petgraph::stable_graph::NodeIndex<IndexSize>;
 /// The type used to represent indices into the nodes of the factorgraph.
-pub type EdgeIndex = petgraph::stable_graph::EdgeIndex;
+pub type EdgeIndex = petgraph::stable_graph::EdgeIndex<IndexSize>;
 /// A factorgraph is an undirected graph
-pub type Graph = petgraph::stable_graph::StableGraph<Node, (), Undirected, u32>;
+pub type Graph = petgraph::stable_graph::StableGraph<Node, (), Undirected, IndexSize>;
 
 /// A newtype used to enforce type safety of the indices of the factors in the
 /// factorgraph.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::From, derive_more::Deref)]
 pub struct FactorIndex(pub NodeIndex);
-
-// impl std::ops::Deref for FactorIndex {
-//     type Target = NodeIndex;
-//
-//     #[inline(always)]
-//     fn deref(&self) -> &Self::Target {
-//         &self.0
-//     }
-// }
 
 impl From<FactorIndex> for usize {
     fn from(index: FactorIndex) -> Self {
@@ -57,15 +53,6 @@ impl From<FactorIndex> for usize {
 /// factorgraph.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, derive_more::From, derive_more::Deref)]
 pub struct VariableIndex(pub NodeIndex);
-
-// impl std::ops::Deref for VariableIndex {
-//     type Target = NodeIndex;
-//
-//     #[inline(always)]
-//     fn deref(&self) -> &Self::Target {
-//         &self.0
-//     }
-// }
 
 impl From<VariableIndex> for usize {
     fn from(index: VariableIndex) -> Self {
@@ -83,9 +70,11 @@ pub struct FactorGraph {
     /// - The id of the factorgraph is unique among all factorgraphs in the
     ///   system.
     /// - The id does not change during the lifetime of the factorgraph.
-    id: FactorGraphId,
+    id:    FactorGraphId,
     /// The underlying graph data structure
     graph: Graph,
+
+    message_count:    MessageCount,
     /// In **gbpplanner** the sequence in which variables are inserted/created
     /// in the graph is meaningful. `self.graph` does not capture this
     /// ordering, so we use an extra vector to manage the order in which
@@ -96,7 +85,7 @@ pub struct FactorGraph {
     variable_indices: Vec<NodeIndex>,
     /// List of indices of the factors in the graph. Order is not important.
     /// Used to speed up iteration over factors.
-    factor_indices: Vec<NodeIndex>,
+    factor_indices:   Vec<NodeIndex>,
 
     /// List of indices of the interrobot factors in the graph. Order is not
     /// important. Used to speed up iteration over interrobot factors.
@@ -115,6 +104,28 @@ pub struct FactorGraph {
     dynamic_factor_indices: Vec<NodeIndex>,
 }
 
+// macro_rules! internal_factor_iteration_inner {
+//     // ($indices:ident) => {
+//     ($indices:expr) => {
+//         for i in 0..$indices.len() {
+//             let ix = $indices[i];
+//             let node = &mut self.graph[ix];
+//             let factor = node.factor_mut();
+//             let variable_messages = factor.update();
+//             let factor_id = FactorId::new(self.id, FactorIndex(ix));
+
+//             for (variable_id, message) in variable_messages {
+//                 debug_assert_eq!(
+//                     variable_id.factorgraph_id, self.id,
+//                     "non interrobot factors can only have variable neighbours
+// in the same graph"                 );
+//                 let variable = self.variable_mut(variable_id.variable_index);
+//                 variable.receive_message_from(factor_id, message);
+//             }
+//         }
+//     };
+// }
+
 impl FactorGraph {
     /// Construct a new empty factorgraph with a given id
     #[must_use]
@@ -122,6 +133,7 @@ impl FactorGraph {
         Self {
             id,
             graph: Graph::with_capacity(0, 0),
+            message_count: MessageCount::default(),
             variable_indices: Vec::new(),
             factor_indices: Vec::new(),
             interrobot_factor_indices: Vec::new(),
@@ -139,6 +151,7 @@ impl FactorGraph {
             graph: Graph::with_capacity(nodes, edges),
             variable_indices: Vec::with_capacity(nodes),
             factor_indices: Vec::with_capacity(edges),
+            message_count: MessageCount::default(),
             interrobot_factor_indices: Vec::new(),
             obstacle_factor_indices: Vec::new(),
             dynamic_factor_indices: Vec::new(),
@@ -174,8 +187,6 @@ impl FactorGraph {
     /// Adds a factor to the factorgraph
     /// Returns the index of the factor in the factorgraph
     pub fn add_factor(&mut self, factor: FactorNode) -> FactorIndex {
-        // let is_interrobot = factor.is_inter_robot();
-        // let is_obstacle = factor.is_obstacle();
         let node = Node::new(self.id, NodeKind::Factor(factor));
         let node_index = self.graph.add_node(node);
 
@@ -184,23 +195,12 @@ impl FactorGraph {
             .expect("just added the factor to the graph in the previous statement");
         factor.set_node_index(node_index);
 
-        // self.graph[node_index]
-        //     .as_factor_mut()
-        //     .expect("just added the factor to the graph in the previous statement")
-        //     .set_node_index(node_index);
-
         self.factor_indices.push(node_index);
         match factor.kind {
             FactorKind::InterRobot(_) => self.interrobot_factor_indices.push(node_index),
             FactorKind::Dynamic(_) => self.dynamic_factor_indices.push(node_index),
             FactorKind::Obstacle(_) => self.obstacle_factor_indices.push(node_index),
         }
-
-        // if is_interrobot {
-        //     self.interrobot_factor_indices.push(node_index);
-        // } else if is_obstacle {
-        //     self.obstacle_factor_indices.push(node_index);
-        // }
 
         node_index.into()
     }
@@ -231,6 +231,13 @@ impl FactorGraph {
         }
     }
 
+    /// Number of edges in the factorgraph
+    ///
+    /// **Computes in O(1) time**
+    pub fn edge_count(&self) -> usize {
+        self.graph.edge_count()
+    }
+
     /// Returns the number of the different factors in the factorgraph
     /// **Computes in O(1) time**
     pub fn factor_count(&self) -> FactorCount {
@@ -239,6 +246,12 @@ impl FactorGraph {
             interrobot: self.interrobot_factor_indices.len(),
             dynamic:    self.dynamic_factor_indices.len(),
         }
+    }
+
+    /// Returns the number of messages sent and received by the factorgraph
+    /// **Computes in O(1) time**
+    pub fn message_count(&self) -> MessageCount {
+        self.message_count
     }
 
     /// go through all nodes, and remove their individual connection to the
@@ -271,13 +284,6 @@ impl FactorGraph {
         };
         // TODO: explain why we send an empty message
         variable.receive_message_from(factor_id, Message::empty());
-
-        //     Message::new(
-        //         InformationVec(variable.belief.information_vector.clone()),
-        //         PrecisionMatrix(variable.belief.precision_matrix.clone()),
-        //         Mean(variable.belief.mean.clone()),
-        //     )
-        // };
 
         let node = &mut self.graph[factor_id.factor_index.0];
         match node.kind {
@@ -432,6 +438,7 @@ impl FactorGraph {
     /// Change the prior of the variable with the given index
     /// Returns the messages to send to any external factors connected to it, if
     /// any
+    #[must_use]
     pub fn change_prior_of_variable(
         &mut self,
         variable_index: VariableIndex,
@@ -442,7 +449,7 @@ impl FactorGraph {
             panic!("the variable index either does not exist or does not point to a variable node");
         };
 
-        let factor_messages = variable.change_prior(new_mean);
+        let factor_messages = variable.change_prior(&new_mean);
         let mut messages_to_external_factors: Vec<VariableToFactorMessage> = Vec::new();
 
         for (factor_id, message) in factor_messages {
@@ -463,6 +470,8 @@ impl FactorGraph {
             }
         }
 
+        // PERF: pass a mutable reference to the vec of messages, instead of allocating
+        // and returning
         messages_to_external_factors
     }
 
@@ -490,6 +499,28 @@ impl FactorGraph {
         self.graph
             .node_weight_mut(*index)
             .and_then(|node| node.as_variable_mut())
+    }
+
+    /// Returns a refenrence to the variable with the given index.
+    ///
+    /// # Panics
+    ///
+    /// Panic if the `index` does not point to an existing variable
+    #[inline]
+    fn variable(&self, index: VariableIndex) -> &VariableNode {
+        self.get_variable(index)
+            .expect("variable index points to a variable in the graph")
+    }
+
+    /// Returns a mutable refenrence to the variable with the given index.
+    ///
+    /// # Panics
+    ///
+    /// Panic if the `index` does not point to an existing variable
+    #[inline]
+    fn variable_mut(&mut self, index: VariableIndex) -> &mut VariableNode {
+        self.get_variable_mut(index)
+            .expect("variable index points to a variable in the graph")
     }
 
     /// Get the index of the first variable in the factorgraph and a reference
@@ -539,6 +570,7 @@ impl FactorGraph {
     /// This method panics if a variable has not received any messages from its
     /// connected factors. As this indicates that the factorgraph is not
     /// correctly constructed.
+    #[must_use]
     pub fn variable_iteration(&mut self) -> Vec<VariableToFactorMessage> {
         let mut messages_to_external_factors: Vec<VariableToFactorMessage> = Vec::new();
 
@@ -550,7 +582,7 @@ impl FactorGraph {
             let variable_index = VariableIndex(node_index);
 
             let factor_messages = variable.update_belief_and_create_factor_responses();
-            assert!(
+            debug_assert!(
                 !factor_messages.is_empty(),
                 "The factorgraph {:?} with variable {:?} did not receive any messages from its connected factors",
                 self.id,
@@ -575,16 +607,7 @@ impl FactorGraph {
                         .as_factor_mut()
                         .expect("A factor can only have variables as neighbours")
                         .receive_message_from(variable_id, message);
-
-                    // let factor = self.graph[factor_id.factor_index.0]
-                    //     .as_factor()
-                    //     .expect("A factor index should point to a Factor in
-                    // the graph");
                 } else {
-                    // error!(
-                    //     "message from factor_id: {:?} to variable_id: {:?} is external",
-                    //     factor_id, variable_id
-                    // );
                     messages_to_external_factors.push(VariableToFactorMessage {
                         from: variable_id,
                         to: factor_id,
@@ -600,27 +623,138 @@ impl FactorGraph {
         messages_to_external_factors
     }
 
+    pub fn internal_factor_iteration(&mut self) {
+        // TODO: create InternalFactors<'a> iterator
+        // for ix in self
+        //     .dynamic_factor_indices
+        //     .iter()
+        //     .chain(self.obstacle_factor_indices.iter())
+
+        // internal_factor_iteration_inner!(self.dynamic_factor_indices);
+        // internal_factor_iteration_inner!(self.obstacle_factor_indices);
+
+        for i in 0..self.dynamic_factor_indices.len() {
+            let ix = self.dynamic_factor_indices[i];
+            let node = &mut self.graph[ix];
+            let factor = node.factor_mut();
+            let variable_messages = factor.update();
+            let factor_id = FactorId::new(self.id, FactorIndex(ix));
+
+            for (variable_id, message) in variable_messages {
+                debug_assert_eq!(
+                    variable_id.factorgraph_id, self.id,
+                    "non interrobot factors can only have variable neighbours
+        in the same graph"
+                );
+                let variable = self.variable_mut(variable_id.variable_index);
+                variable.receive_message_from(factor_id, message);
+            }
+        }
+
+        for i in 0..self.obstacle_factor_indices.len() {
+            let ix = self.obstacle_factor_indices[i];
+            let node = &mut self.graph[ix];
+            let factor = node.factor_mut();
+            let variable_messages = factor.update();
+            let factor_id = FactorId::new(self.id, FactorIndex(ix));
+
+            for (variable_id, message) in variable_messages {
+                debug_assert_eq!(
+                    variable_id.factorgraph_id, self.id,
+                    "non interrobot factors can only have variable neighbours
+        in the same graph"
+                );
+                let variable = self.variable_mut(variable_id.variable_index);
+                variable.receive_message_from(factor_id, message);
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn external_factor_iteration(&mut self) -> Vec<FactorToVariableMessage> {
+        // Each interrobot factor is connected to an internal variable
+        // So we can preallocate a vec of length the number of interrobot factors
+        let mut messages_to_external_variables: Vec<FactorToVariableMessage> =
+            Vec::with_capacity(self.interrobot_factor_indices.len());
+
+        for i in 0..self.interrobot_factor_indices.len() {
+            let ix = self.interrobot_factor_indices[i];
+            if !self.graph.contains_node(ix) {
+                // TODO: document when this happens
+                continue;
+            }
+
+            let node = &mut self.graph[ix];
+            let factor = node.factor_mut();
+
+            let variable_messages = factor.update();
+            let factor_id = FactorId::new(self.id, FactorIndex(ix));
+
+            // Each interrobot factor is connected to an internal variable
+            // and an external variable
+            // So half the iterations should enter the if block, and the other half the else
+            // block
+            for (variable_id, message) in variable_messages {
+                let in_internal_graph = variable_id.factorgraph_id == self.id;
+                if in_internal_graph {
+                    let variable = self.variable_mut(variable_id.variable_index);
+                    variable.receive_message_from(factor_id, message);
+                } else {
+                    messages_to_external_variables.push(FactorToVariableMessage {
+                        from: factor_id,
+                        to: variable_id,
+                        message,
+                    });
+                }
+            }
+        }
+        messages_to_external_variables
+    }
+
+    pub fn internal_variable_iteration(&mut self) {
+        for &ix in &self.variable_indices {
+            let node = &mut self.graph[ix];
+            let variable = node.variable_mut();
+            let variable_index = VariableIndex(ix);
+            let variable_id = VariableId::new(self.id, variable_index);
+            // TODO: do internal only
+            let factor_messages = variable.update_belief_and_create_factor_responses();
+
+            for (factor_id, message) in factor_messages {
+                let in_internal_graph = factor_id.factorgraph_id == self.id;
+                if !in_internal_graph {
+                    continue;
+                }
+                let factor = self.graph[factor_id.factor_index.0]
+                    .as_factor_mut()
+                    .expect("a factor only has variables as neighbours");
+
+                factor.receive_message_from(variable_id, message);
+            }
+        }
+    }
+
+    // TODO(kpbaks): does this method even make sense?
+    #[must_use]
+    pub fn external_variable_iteration(&mut self) -> Vec<VariableToFactorMessage> {
+        vec![]
+        // todo!()
+    }
+
     /// Aggregate and marginalise over all adjacent variables, and send.
     /// Aggregation: product of all incoming messages
+    #[must_use]
     pub fn factor_iteration(&mut self) -> Vec<FactorToVariableMessage> {
         let mut messages_to_external_variables: Vec<FactorToVariableMessage> = Vec::new();
 
-        #[allow(clippy::needless_collect)]
-        for node_index in self.graph.node_indices().collect::<Vec<_>>() {
-            let node = &mut self.graph[node_index];
-            let Some(factor) = node.as_factor_mut() else {
-                continue;
-            };
+        for ix in &self.factor_indices {
+            let node = &mut self.graph[*ix];
+            let factor = node
+                .as_factor_mut()
+                .expect("self.factor_indices should only contain indices that point to Factors in the graph");
 
             let variable_messages = factor.update();
-            assert!(
-                !variable_messages.is_empty(),
-                "The factorgraph {:?} with factor {:?} did not receive any messages from its connected variables",
-                self.id,
-                node_index
-            );
-
-            let factor_id = FactorId::new(self.id, FactorIndex(node_index));
+            let factor_id = FactorId::new(self.id, FactorIndex(*ix));
 
             for (variable_id, message) in variable_messages {
                 let in_internal_graph = variable_id.factorgraph_id == self.id;
@@ -646,19 +780,44 @@ impl FactorGraph {
         messages_to_external_variables
     }
 
+    // TODO:
+    // pub fn receive_message(&mut self, from: NodeId, message: Message) {
+    //     // self.messages_sent += 1;
+    //     todo!()
+    // }
+
     /// Returns the number of messages sent by all variables and factors
     #[must_use]
-    pub fn messages_sent(&mut self) -> usize {
-        self.graph
-            .node_weights_mut()
-            .map(|node| {
-                let messages_sent = node.messages_sent();
-
-                node.reset_message_count();
-                messages_sent
-            })
-            .sum()
+    pub fn messages_sent(&self) -> MessagesSent {
+        self.graph.node_weights().map(|node| node.messages_sent()).sum()
     }
+
+    /// Returns the number of messages received by all variables and factors
+    #[must_use]
+    pub fn messages_received(&self) -> MessagesReceived {
+        self.graph.node_weights().map(|node| node.messages_received()).sum()
+    }
+
+    pub fn update_inter_robot_safety_distance_multiplier(
+        &mut self,
+        safety_distance_multiplier: StrictlyPositiveFinite<Float>,
+    ) {
+        for ix in &self.interrobot_factor_indices {
+            let Some(node) = self.graph.node_weight_mut(*ix) else {
+                continue;
+            };
+            // let node = &mut self.graph[*ix];
+            let factor = node
+                .as_factor_mut()
+                .expect("self.factor_indices should only contain indices that point to Factors in the graph");
+            let FactorKind::InterRobot(ref mut interrobot) = factor.kind else {
+                panic!("Expected an interrobot factor");
+            };
+            interrobot.update_safety_distance(safety_distance_multiplier);
+        }
+    }
+
+    // pub fn receive_variable_message_from(&mut self,)
 }
 
 /// Record type used to keep track of how many factors and variables
@@ -670,6 +829,13 @@ pub struct NodeCount {
     pub factors:   usize,
     /// Number of `Variable` nodes
     pub variables: usize,
+}
+
+impl NodeCount {
+    /// Return the total number of nodes
+    pub fn total(&self) -> usize {
+        self.factors + self.variables
+    }
 }
 
 /// Record type returned by `FactorGraph::factor_count()`.
@@ -723,6 +889,46 @@ impl<'a> Iterator for Factors<'a> {
         node.as_factor().map(|factor| (index, factor))
     }
 }
+
+// pub struct InternalFactors<'graph> {
+//     graph: &'graph Graph,
+//     internal_factors: Box<dyn Iterator<Item = &'graph NodeIndex>>,
+//     // internal_factors: &'graph dyn Iterator<Item = &'graph NodeIndex>,
+// }
+
+// impl<'graph> InternalFactors<'graph> {
+//     pub fn new(graph: &'graph Graph, internal_factors: Box<dyn Iterator<Item
+// = &'graph NodeIndex>>) -> Self {         // pub fn new(graph: &'graph Graph,
+// internal_factors: &'graph dyn Iterator<Item         // = &'graph NodeIndex>)
+// -> Self {         Self {
+//             graph,
+//             internal_factors,
+//         }
+//     }
+// }
+
+// impl<'graph> std::iter::Iterator for InternalFactors<'graph> {
+//     type Item = (NodeIndex, &'graph FactorNode);
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let index = *self.internal_factors.next()?;
+//         Some((index, self.graph[index].factor()))
+//     }
+// }
+
+// impl FactorGraph {
+//     #[inline]
+//     #[must_use]
+//     // pub fn internal_factors<'graph>(&'graph self) ->
+// InternalFactors<'graph> {     pub fn internal_factors(&self) ->
+// InternalFactors<'_> {         let iter = self
+//             .dynamic_factor_indices
+//             .iter()
+//             .chain(self.obstacle_factor_indices.iter());
+
+//         InternalFactors::new(&self.graph, Box::new(iter))
+//     }
+// }
 
 /// Iterator over the variables in the factorgraph.
 ///
@@ -804,17 +1010,103 @@ impl FactorGraph {
     }
 }
 
-/// Iterator over the variable and their connected obstacle factors in the
-/// factorgraph
-pub struct VariableAndTheirObstacleFactors<'a> {
-    graph: &'a Graph,
-    // variable_indices: std::slice::Iter<'a, NodeIndex>,
-    // obstacle_factor_indices: std::slice::Iter<'a, NodeIndex>,
-    pairs: std::iter::Zip<std::slice::Iter<'a, NodeIndex>, std::slice::Iter<'a, NodeIndex>>,
+// pub struct VariableAndTheirInterRobotFactors<'fg,'edges> where 'edges: 'fg {
+pub struct VariableAndTheirInterRobotFactors<'fg> {
+    graph: &'fg Graph,
+    // iter: std::iter::Zip<std::slice::Iter<'fg, NodeIndex>, std::slice::Iter<'fg, NodeIndex>>,
+    // iter: impl Iterator<Item = EdgeReference<'fg, (), IndexSize>>,
+    iter:  Box<dyn Iterator<Item = EdgeReference<'fg, (), IndexSize>> + 'fg>,
+    // iter:  &'fg mut dyn Iterator<Item = EdgeReference<'fg, (), IndexSize>>,
+    // variable_indices: std::slice::Iter<'fg, NodeIndex>,
+    // edges: petgraph::stable_graph::Edges<'edges, (), Undirected, IndexSize>,
 }
 
-impl<'a> VariableAndTheirObstacleFactors<'a> {
-    fn new(graph: &'a Graph, variable_indices: &'a [NodeIndex], obstacle_factor_indices: &'a [NodeIndex]) -> Self {
+// impl <'fg, 'edges> VariableAndTheirInterRobotFactors<'fg, 'edges> where
+// 'edges: 'fg {
+impl<'fg> VariableAndTheirInterRobotFactors<'fg> {
+    fn new(graph: &'fg Graph, variable_indices: &'fg [NodeIndex]) -> Self {
+        let iter = variable_indices.iter().flat_map(|var_ix| graph.edges(*var_ix));
+        // let iter = variable_indices.iter().map(|var_ix|
+        // graph.edges(*var_ix)).reduce(|a, b| a.chain(b));
+        Self {
+            graph,
+            // iter,
+            iter: Box::new(iter),
+            // iter,
+            // iter: interrobot_factor_indices.iter().zip(interrobot_factor_indices.iter()),
+        }
+    }
+}
+
+// impl<'fg, 'edges> Iterator for VariableAndTheirInterRobotFactors<'fg, 'edges>
+// where 'edges: 'fg {
+impl<'fg> Iterator for VariableAndTheirInterRobotFactors<'fg> {
+    type Item = (&'fg VariableNode, &'fg InterRobotFactor);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // A variable can be connected to 0 or more interrobot factors
+        // Iterate over all the interrobot factors of the current variable before moving
+        // to the next variable.
+
+        while let Some(edge_ref) = self.iter.next() {
+            let source = edge_ref.source();
+            let target = edge_ref.target();
+            let Some(interrobot) = self.graph[target]
+                .as_factor()
+                .and_then(|factor| factor.kind.as_inter_robot())
+            else {
+                continue;
+            };
+
+            let variable = self.graph[source].as_variable().unwrap();
+            // let factor = self.graph[target].as_factor().unwrap();
+            // let interrobot = factor.kind.as_inter_robot().unwrap();
+            return Some((variable, interrobot));
+        }
+
+        None
+
+        // self.iter.next().map(|edge_ref| {
+        //     let source = edge_ref.source();
+        //     let target = edge_ref.target();
+        //     let variable = self.graph[source].as_variable().unwrap();
+        //     let factor = self.graph[target].as_factor().unwrap();
+        //     let interrobot = factor.kind.as_inter_robot().unwrap();
+        //     (variable, interrobot)
+        //
+        //     // let var_ix = edge_ref.source();
+        //     // let factor_ix = edge_ref.target();
+        //     // let variable = self.graph[var_ix].as_variable().unwrap();
+        //     // let factor = self.graph[factor_ix].as_factor().unwrap();
+        //     // let interrobot = factor.kind.as_inter_robot().unwrap();
+        //     // (variable, interrobot)
+        // })
+
+        // None
+    }
+}
+
+impl FactorGraph {
+    /// Returns an iterator over the variable and their connected interrobot
+    /// factors in the factorgraph
+    #[inline]
+    #[must_use]
+    pub fn variable_and_inter_robot_factors(&self) -> VariableAndTheirInterRobotFactors<'_> {
+        VariableAndTheirInterRobotFactors::new(&self.graph, &self.variable_indices)
+    }
+}
+
+/// Iterator over the variable and their connected obstacle factors in the
+/// factorgraph
+pub struct VariableAndTheirObstacleFactors<'fg> {
+    graph: &'fg Graph,
+    // variable_indices: std::slice::Iter<'a, NodeIndex>,
+    // obstacle_factor_indices: std::slice::Iter<'a, NodeIndex>,
+    pairs: std::iter::Zip<std::slice::Iter<'fg, NodeIndex>, std::slice::Iter<'fg, NodeIndex>>,
+}
+
+impl<'fg> VariableAndTheirObstacleFactors<'fg> {
+    fn new(graph: &'fg Graph, variable_indices: &'fg [NodeIndex], obstacle_factor_indices: &'fg [NodeIndex]) -> Self {
         Self {
             graph,
             pairs: variable_indices.iter().zip(obstacle_factor_indices.iter()),
@@ -827,13 +1119,15 @@ impl<'a> Iterator for VariableAndTheirObstacleFactors<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let (&variable_index, &factor_index) = self.pairs.next()?;
-        let variable = &self.graph[variable_index].as_variable().unwrap();
+        let variable = &self.graph[variable_index]
+            .as_variable()
+            .expect("variable index points to a variable node");
         let obstacle_factor = &self.graph[factor_index]
             .as_factor()
-            .unwrap()
+            .expect("factor index points to a factor node")
             .kind
             .as_obstacle()
-            .unwrap();
+            .expect("factors In VariableAndTheirObstacleFactors are obstacle factors");
 
         Some((variable, obstacle_factor))
     }

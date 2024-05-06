@@ -16,17 +16,20 @@ objects    = 0.5
 height-map = 1.0
 
 [visualisation.draw]
-robots                 = true
-communication-graph    = false
-predicted-trajectories = true
-waypoints              = false
-uncertainty            = false
-paths                  = true
-generated-map          = true
-height-map             = false
-sdf                    = false
-communication-radius   = false
-obstacle-factors       = false
+robots                             = true
+communication-graph                = false
+predicted-trajectories             = true
+waypoints                          = false
+uncertainty                        = false
+paths                              = true
+generated-map                      = true
+height-map                         = false
+sdf                                = false
+communication-radius               = false
+obstacle-factors                   = false
+interrobot-factors                 = false
+interrobot-factors-safety-distance = false
+robot-colliders                    = false
 
 [gbp]
 sigma-pose-fixed        = 0.000000000000001
@@ -38,13 +41,18 @@ lookahead-multiple = 3
 [gbp.iterations-per-timestep]
 internal = 10
 external = 10
+schedule = "interleave-evenly"
 
 [robot]
-planning-horizon  = 5.0
-max-speed         = 4.0
-dofs              = 4
-symmetric-factors = true
-radius            = 1.0
+planning-horizon                       = 5.0
+max-speed                              = 4.0
+dofs                                   = 4
+symmetric-factors                      = true
+inter-robot-safety-distance-multiplier = 2.2
+# radius            = 1.0
+[robot.radius]
+min = 2.0
+max = 3.0
 
 [robot.communication]
 radius       = 40.0

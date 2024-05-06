@@ -62,11 +62,13 @@ impl FollowCameraMe {
     //     }
     // }
 
+    #[must_use]
     pub const fn with_up_direction(mut self, up_direction: Direction3d) -> Self {
         self.up_direction = Some(up_direction);
         self
     }
 
+    #[must_use]
     pub const fn with_attached(mut self, attached: bool) -> Self {
         self.attached = attached;
         self
@@ -93,6 +95,7 @@ impl FollowCameraSettings {
         }
     }
 
+    #[must_use]
     pub const fn with_offset(mut self, offset: Vec3) -> Self {
         self.offset = offset;
         self

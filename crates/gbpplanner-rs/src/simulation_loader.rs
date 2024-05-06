@@ -4,33 +4,13 @@ use std::{
     time::Duration,
 };
 
-use bevy::{
-    input::{common_conditions::input_just_pressed, keyboard::KeyboardInput},
-    prelude::*,
-    time::common_conditions::on_real_timer,
-};
+use bevy::{input::common_conditions::input_just_pressed, prelude::*, time::common_conditions::on_real_timer};
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use gbp_environment::Environment;
 use image::GenericImageView;
 use smol_str::SmolStr;
 
 use crate::config::{Config, FormationGroup};
-
-// #[derive(Debug, thiserror::Error)]
-// pub enum SimulationLoaderPluginError {
-//     // #[error("The given simulations directory does not exist")]
-//     // SimulationsDirectoryNotExists(#[from] std::io::Error),
-//     #[error("No simulations found in {0}")]
-//     NoSimulationsFound(std::path::PathBuf),
-//     #[error("IO error: {0}")]
-//     IO(#[from] std::io::Error),
-// }
-
-// #[derive(AssetCollection, Resource)]
-// struct SimulationAssets {
-//     #[asset(path = "./config/simulations", collection(mapped))]
-//     folder: bevy::utils::HashMap<String, UntypedHandle>,
-// }
 
 #[derive(Debug, Default)]
 pub enum InitialSimulation {
@@ -83,7 +63,7 @@ impl Plugin for SimulationLoaderPlugin {
             .map(|dir| {
                 let dir = dir.unwrap();
                 let config_path = dir.path().join("config.toml");
-                let config = Config::from_file(dbg!(config_path)).unwrap();
+                let config = Config::from_file(config_path).unwrap();
                 let environment_path = dir.path().join("environment.yaml");
                 let environment = Environment::from_file(environment_path).unwrap();
                 let formation_path = dir.path().join("formation.yaml");
@@ -340,28 +320,17 @@ impl SimulationManager {
     }
 
     pub fn load_next(&mut self) {
-        let next = self
-            .active
-            .map(|id| (id + 1) % self.simulations.len())
-            .unwrap_or(0);
+        let next = self.active.map_or(0, |id| (id + 1) % self.simulations.len());
         self.load(SimulationId(next));
     }
 
     pub fn load_previous(&mut self) {
         let next = self
             .active
-            .map(|id| {
-                if id == 0 {
-                    self.simulations.len() - 1
-                } else {
-                    id - 1
-                }
-            })
-            .unwrap_or(0);
+            .map_or(0, |id| if id == 0 { self.simulations.len() - 1 } else { id - 1 });
         self.load(SimulationId(next));
     }
 
-    #[must_use]
     pub fn ids(&self) -> impl Iterator<Item = SimulationId> + '_ {
         (0..self.simulations.len()).map(SimulationId)
     }
@@ -370,13 +339,6 @@ impl SimulationManager {
     pub fn id_from_name(&self, name: &str) -> Option<SimulationId> {
         self.names.iter().position(|n| n == name).map(SimulationId)
     }
-
-    // pub fn get_
-
-    // #[must_use]
-    // pub fn new(simulations_dir: std::path::PathBuf) -> Self {
-    //     Self { simulations_dir }
-    // }
 
     pub fn get_config_for(&self, id: SimulationId) -> Option<&Config> {
         self.simulations.get(id.0).map(|s| &s.config)
@@ -409,16 +371,6 @@ impl SimulationManager {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SimulationId(usize);
-
-// #[derive(Resource)]
-// pub struct ActiveSimulation(Option<SimulationId>);
-//
-// impl FromWorld for ActiveSimulation {
-//     fn from_world(_world: &mut World) -> Self {
-//         Self(None)
-//         // todo!()
-//     }
-// }
 
 #[derive(Event)]
 pub struct LoadSimulation(pub SimulationId);
@@ -520,45 +472,45 @@ fn reload_simulation(mut simulation_manager: ResMut<SimulationManager>) {
 //     // end_simulation.send(EndSimulation(SimulationId(0)));
 // }
 
-// TODO: use in app
-#[derive(Debug, Default, States, PartialEq, Eq, Hash, Clone, Copy, derive_more::IsVariant)]
-pub enum SimulationStates {
-    #[default]
-    Loading,
-    Starting,
-    Running,
-    Paused,
-    Reloading,
-    Ended,
-    // Finished,
-}
-
-impl SimulationStates {
-    fn transition(&mut self) {
-        use SimulationStates::*;
-        *self = match self {
-            Loading => Starting,
-            Starting => Running,
-            Running => Running,
-            Paused => Paused,
-            Reloading => Loading,
-            Ended => Ended,
-        }
-    }
-}
-
-impl std::fmt::Display for SimulationStates {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Loading => write!(f, "Loading"),
-            Self::Starting => write!(f, "Starting"),
-            Self::Running => write!(f, "Running"),
-            Self::Paused => write!(f, "Paused"),
-            Self::Reloading => write!(f, "Reloading"),
-            Self::Ended => write!(f, "Ended"),
-        }
-    }
-}
+// // TODO: use in app
+// #[derive(Debug, Default, States, PartialEq, Eq, Hash, Clone, Copy,
+// derive_more::IsVariant)] pub enum SimulationStates {
+//     #[default]
+//     Loading,
+//     Starting,
+//     Running,
+//     Paused,
+//     Reloading,
+//     Ended,
+//     // Finished,
+// }
+//
+// impl SimulationStates {
+//     fn transition(&mut self) {
+//         use SimulationStates::*;
+//         *self = match self {
+//             Loading => Starting,
+//             Starting => Running,
+//             Running => Running,
+//             Paused => Paused,
+//             Reloading => Loading,
+//             Ended => Ended,
+//         }
+//     }
+// }
+//
+// impl std::fmt::Display for SimulationStates {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Self::Loading => write!(f, "Loading"),
+//             Self::Starting => write!(f, "Starting"),
+//             Self::Running => write!(f, "Running"),
+//             Self::Paused => write!(f, "Paused"),
+//             Self::Reloading => write!(f, "Reloading"),
+//             Self::Ended => write!(f, "Ended"),
+//         }
+//     }
+// }
 
 // fn load_simulation() {}
 
@@ -628,9 +580,9 @@ fn load_initial_simulation(
         )
     };
 
-    world.insert_resource(environment.clone());
-    world.insert_resource(formation_group.clone());
-    world.insert_resource(config.clone());
+    world.insert_resource(environment);
+    world.insert_resource(formation_group);
+    world.insert_resource(config);
 
     let mut simulation_manager = world
         .get_resource_mut::<SimulationManager>()
@@ -667,6 +619,7 @@ fn load_initial_simulation(
     // }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_requests(
     mut commands: Commands,
     mut simulation_manager: ResMut<SimulationManager>,
@@ -674,12 +627,13 @@ fn handle_requests(
     mut evw_reload_simulation: EventWriter<ReloadSimulation>,
     mut evw_end_simulation: EventWriter<EndSimulation>,
     mut evw_toast: EventWriter<ToastEvent>,
-    mut virtual_time: ResMut<Time<Virtual>>,
+    mut time_virtual: ResMut<Time<Virtual>>,
+    mut time_real: ResMut<Time<Real>>,
     mut config: ResMut<Config>,
     mut environment: ResMut<Environment>,
     mut sdf: ResMut<Sdf>,
     mut raw: ResMut<Raw>,
-    reloadable_entites: Query<Entity, With<Reloadable>>,
+    reloadable_entities: Query<Entity, With<Reloadable>>,
 ) {
     let Some(request) = simulation_manager.requests.pop_front() else {
         return;
@@ -690,9 +644,9 @@ fn handle_requests(
 
     match request {
         Request::Load(_) | Request::Reload => {
-            let is_paused = virtual_time.is_paused();
+            let is_paused = time_virtual.is_paused();
 
-            let virtual_time = virtual_time.bypass_change_detection();
+            let virtual_time = time_virtual.bypass_change_detection();
             *virtual_time = Time::<Virtual>::default();
             if is_paused {
                 virtual_time.unpause();
@@ -716,7 +670,7 @@ fn handle_requests(
             evw_toast.send(ToastEvent::warning("simulation already loaded"));
         }
         Request::Load(id) => {
-            for entity in &reloadable_entites {
+            for entity in &reloadable_entities {
                 // commands.entity(entity).despawn_recursive();
                 commands.entity(entity).despawn();
             }
@@ -748,7 +702,7 @@ fn handle_requests(
         }
         Request::Reload => match simulation_manager.active {
             Some(index) => {
-                for entity in &reloadable_entites {
+                for entity in &reloadable_entities {
                     // commands.entity(entity).despawn_recursive();
                     commands.entity(entity).despawn();
                 }

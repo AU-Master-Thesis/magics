@@ -1,5 +1,6 @@
-use super::{factor::FactorNode, factorgraph::FactorGraphId, variable::VariableNode};
+use super::{factor::FactorNode, factorgraph::FactorGraphId, variable::VariableNode, MessagesReceived, MessagesSent};
 
+/// Error type returned by `FactorGraphNode::remove_connection_to`
 #[derive(Debug, derive_more::Display)]
 #[display(fmt = "no connection to the given factorgraph")]
 pub struct RemoveConnectionToError;
@@ -9,29 +10,35 @@ impl std::error::Error for RemoveConnectionToError {}
 pub(in crate::factorgraph) trait FactorGraphNode {
     fn remove_connection_to(&mut self, factorgraph_id: FactorGraphId) -> Result<(), RemoveConnectionToError>;
 
-    fn messages_sent(&self) -> usize;
-    fn messages_received(&self) -> usize;
+    fn messages_sent(&self) -> MessagesSent;
+    fn messages_received(&self) -> MessagesReceived;
 
     fn reset_message_count(&mut self);
 }
 
+/// Different variants a factorgraph node can be
 #[derive(Debug, derive_more::IsVariant)]
 pub enum NodeKind {
+    /// The node is a factor
     Factor(FactorNode),
     // TODO: wrap in Box<>
+    /// The node is a variable
     Variable(VariableNode),
 }
 
+/// The node stored in the factorgraph
 #[derive(Debug)]
 pub struct Node {
-    factorgraph_id: FactorGraphId,
-    pub kind:       NodeKind,
+    // factorgraph_id: FactorGraphId,
+    /// The kind of this node, either Variable or some Factor
+    pub kind: NodeKind,
 }
 
 impl Node {
     /// Construct a new node
     pub const fn new(factorgraph_id: FactorGraphId, kind: NodeKind) -> Self {
-        Self { factorgraph_id, kind }
+        Self { kind }
+        // Self { factorgraph_id, kind }
     }
 
     /// Returns `true` if the node is [`Factor`].
@@ -41,6 +48,26 @@ impl Node {
     #[inline]
     pub fn is_factor(&self) -> bool {
         self.kind.is_factor()
+    }
+
+    /// Returns a reference to the inner factor node
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not a factor
+    #[inline]
+    pub fn factor(&self) -> &FactorNode {
+        self.as_factor().expect("The node should be a Factor")
+    }
+
+    /// Returns a mutable reference to the inner factor node
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not a factor
+    #[inline]
+    pub fn factor_mut(&mut self) -> &mut FactorNode {
+        self.as_factor_mut().expect("The node should be a Factor")
     }
 
     /// Returns `Some(&Factor)` if the node]s variant is [`Factor`], otherwise
@@ -91,6 +118,26 @@ impl Node {
             None
         }
     }
+
+    /// Returns a reference to the inner variable node
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not a variable
+    #[inline]
+    pub fn variable(&self) -> &VariableNode {
+        self.as_variable().expect("The node should be a Variable")
+    }
+
+    /// Returns a mutable reference to the inner variable node
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not a variable
+    #[inline]
+    pub fn variable_mut(&mut self) -> &mut VariableNode {
+        self.as_variable_mut().expect("The node should be a Variable")
+    }
 }
 
 impl FactorGraphNode for Node {
@@ -101,14 +148,14 @@ impl FactorGraphNode for Node {
         }
     }
 
-    fn messages_sent(&self) -> usize {
+    fn messages_sent(&self) -> MessagesSent {
         match self.kind {
             NodeKind::Factor(ref factor) => factor.messages_sent(),
             NodeKind::Variable(ref variable) => variable.messages_sent(),
         }
     }
 
-    fn messages_received(&self) -> usize {
+    fn messages_received(&self) -> MessagesReceived {
         match self.kind {
             NodeKind::Factor(ref factor) => factor.messages_received(),
             NodeKind::Variable(ref variable) => variable.messages_received(),

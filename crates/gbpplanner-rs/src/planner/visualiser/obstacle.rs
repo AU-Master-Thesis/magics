@@ -11,7 +11,7 @@ impl Plugin for ObstacleFactorVisualizerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            visualize_obstacle_factors.run_if(draw_obstacle_factors_enabled),
+            visualize_obstacle_factors.run_if(enabled),
             // visualize_obstacle_factors.run_if(on_timer(std::time::Duration::from_millis(500))),
         );
     }
@@ -28,32 +28,33 @@ impl Plugin for ObstacleFactorVisualizerPlugin {
 /// b = 0
 fn visualize_obstacle_factors(mut gizmos: Gizmos, factorgraphs: Query<&FactorGraph>) {
     for factorgraph in &factorgraphs {
-        factorgraph
-            .variable_and_their_obstacle_factors()
-            .for_each(|(variable, obstacle_factor)| {
-                let estimated_position = variable.estimated_position_vec2();
-                let last_measurement = obstacle_factor.last_measurement();
-                let mut v: f32 = last_measurement.value as f32 * 1e2;
-                v = v.max(0.0).min(1.0); // clamp to [0, 1]
+        // for (variable, obstacle_factor) in
+        // factorgraph.variable_and_their_obstacle_factors() {
+        //     let estimated_position = variable.estimated_position_vec2();
+        //     let Some(last_measurement) = obstacle_factor.last_measurement()
+        // else {         continue;
+        //     };
+        //     let mut v: f32 = last_measurement.value as f32 * 1e2;
+        //     v = v.max(0.0).min(1.0); // clamp to [0, 1]
 
-                let r = 1.0 * v;
-                let g = 1.0 - r;
-                let color = Color::rgb(r, g, 0.0);
+        //     let r = 1.0 * v;
+        //     let g = 1.0 - r;
+        //     let color = Color::rgb(r, g, 0.0);
 
-                let height = 0.5f32;
-                let scale: f32 = 1.1;
-                // [x, y]
-                // [x, y, 0]
-                // [x, 0, y]
-                let start = estimated_position.extend(height).xzy();
-                let end = scale * last_measurement.pos.extend(height).xzy();
-                gizmos.line(start, end, color)
-            })
+        //     let height = 0.5f32;
+        //     let scale: f32 = 1.1;
+        //     // [x, y]
+        //     // [x, y, 0]
+        //     // [x, 0, y]
+        //     let start = estimated_position.extend(height).xzy();
+        //     let end = scale * last_measurement.pos.extend(height).xzy();
+        //     gizmos.line(start, end, color)
+        // }
     }
 }
 
-/// Used to check if the communication graph should be drawn
+/// **Bevy** run condition for drawing obstacle factors
 #[inline]
-fn draw_obstacle_factors_enabled(config: Res<Config>) -> bool {
+fn enabled(config: Res<Config>) -> bool {
     config.visualisation.draw.obstacle_factors
 }

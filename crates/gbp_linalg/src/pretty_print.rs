@@ -1,4 +1,4 @@
-#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::module_name_repetitions, clippy::uninlined_format_args)]
 //! Pretty printing of matrices and vectors. Useful for debugging and
 //! visualizing the contents of a matrix or vector.
 

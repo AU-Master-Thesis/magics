@@ -7,6 +7,7 @@ use bevy_egui::{
 };
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
 use catppuccin::Colour;
+use gbp_linalg::Float;
 use repeating_array::RepeatingArray;
 use smol_str::SmolStr;
 use struct_iterable::Iterable;
@@ -16,8 +17,10 @@ use super::{custom, scale::ScaleUi, OccupiedScreenSpace, ToDisplayString, UiScal
 use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
+    factorgraph::prelude::FactorGraph,
     input::{screenshot::TakeScreenshot, ChangingBinding, DrawSettingsEvent, ExportGraphEvent},
     pause_play::{PausePlay, PausedState},
+    planner::robot::RadioAntenna,
     simulation_loader::{SimulationId, SimulationManager},
     theme::{CatppuccinTheme, CycleTheme, FromCatppuccinColourExt},
 };
@@ -138,9 +141,12 @@ fn ui_settings_panel(
 
     let panel_resizable = false;
 
+    let width = 400.0;
     let right_panel = egui::SidePanel::right("Settings Panel")
-        .default_width(200.0)
-        .resizable(panel_resizable)
+        .default_width(width)
+        // .max_width(width)
+        // .exact_width(width)
+        .resizable(false)
         // .show(ctx, |ui| {
             .show_animated(ctx, ui_state.right_panel_visible, |ui| {
             ui_state.mouse_over.right_panel = ui.rect_contains_pointer(ui.max_rect())
@@ -208,17 +214,22 @@ fn ui_settings_panel(
                             },
                         );
 
+                        // ui.spacing_mut().slider_width = ui.available_size_before_wrap().x;
+                        // ui.spacing_mut().slider_width = ui.available_width();
                         ui.spacing_mut().slider_width =
                             ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let slider_response = ui.add_enabled(
-                            matches!(ui_state.scale_type, UiScaleType::Custom),
-                            // egui::Slider::new(&mut ui_state.scale_percent, 50..=200)
-                            egui::Slider::new(
+                        let enabled = matches!(ui_state.scale_type, UiScaleType::Custom);
+                        let slider = egui::Slider::new(
                                 &mut ui_state.scale_percent,
                                 UiState::VALID_SCALE_INTERVAL,
                             )
-                            .text("%")
-                            .show_value(true),
+
+                            .suffix("%")
+                            .show_value(true);
+
+                        let slider_response = ui.add_enabled(
+                            enabled,
+                            slider
                         );
                         // Only trigger ui scale update when the slider is released or lost focus
                         // otherwise it would be imposssible to drag the slider while the ui is
@@ -240,6 +251,196 @@ fn ui_settings_panel(
                         });
                         ui.end_row();
                     });
+
+
+                    {
+                        custom::subheading(ui, "GBP",
+                            Some(Color32::from_catppuccin_colour(
+                                title_colors.next_or_first(),
+                            )),
+                        );
+
+                        ui.label("Iterations Per Timestep");
+                        ui.separator();
+                        // ui.add_space(2.5);
+
+                        custom::grid("iterations_per_timestep_grid", 2).show(ui, |ui| {
+                            ui.label("Internal");
+                            let mut text = config.gbp.iterations_per_timestep.internal.to_string();
+
+                            let te_output = egui::TextEdit::singleline(&mut text)
+                                .char_limit(3)
+                                .interactive(time_virtual.is_paused())
+                                .show(ui);
+
+                            // if te_output.response.lost_focus() && te_output.response.changed() {
+                            if  te_output.response.changed() {
+                                if let Ok(x) = text.parse::<usize>() {
+                                    config.gbp.iterations_per_timestep.internal = x;
+                                } else {
+                                    error!("failed to parse {} as usize", text);
+                                }
+                            }
+                            ui.end_row();
+
+                            ui.label("External");
+                            let mut text = config.gbp.iterations_per_timestep.external.to_string();
+                            let te_output = egui::TextEdit::singleline(&mut text)
+                                .char_limit(3)
+                                .interactive(time_virtual.is_paused())
+                                // .cursor_at_end(true)
+                                .show(ui);
+
+                            if  te_output.response.changed() {
+                                if let Ok(x) = text.parse::<usize>() {
+                                    config.gbp.iterations_per_timestep.external = x;
+                                } else {
+                                    error!("failed to parse {} as usize", text);
+                                }
+                            }
+
+                            ui.end_row();
+                        });
+
+                        ui.separator();
+
+                        custom::grid("factors_grid", 2).show(ui, |ui| {
+                            ui.label("Obstacle");
+
+                            custom::float_right(ui, |ui| {
+                                let mut obstacle: bool = true;
+                                if custom::toggle_ui(ui, &mut obstacle).clicked() {
+                                    error!("todo");
+                                }
+                            });
+                            ui.end_row();
+
+                            ui.label("Pose");
+                            custom::float_right(ui, |ui| {
+                                let mut toggle: bool = true;
+                                if custom::toggle_ui(ui, &mut toggle).clicked() {
+                                    error!("todo");
+                                }
+                            });
+                            ui.end_row();
+
+                            ui.label("Dynamic");
+                            custom::float_right(ui, |ui| {
+                                let mut toggle: bool = true;
+                                if custom::toggle_ui(ui, &mut toggle).clicked() {
+                                    error!("todo");
+                                }
+                            });
+                            ui.end_row();
+
+                            ui.label("Interrobot");
+                            custom::float_right(ui, |ui| {
+                                let mut toggle: bool = true;
+                                if custom::toggle_ui(ui, &mut toggle).clicked() {
+                                    error!("todo");
+                                }
+                            });
+                            ui.end_row();
+
+                        });
+
+                        ui.add_space(2.5);
+
+                        custom::grid("gbp_grid", 2).show(ui, |ui| {
+                            ui.label("Safety Distance");
+                            ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                            let mut safety_dist_multiplier = config.robot.inter_robot_safety_distance_multiplier.get();
+                            // let mut available_size = ui.available_size();
+                            // available_size.x += 10.0;
+                            // let slider_response = ui.add_sized(available_size,
+                               let slider_response = ui.add_enabled(
+                                   time_virtual.is_paused(),
+                                      egui::Slider::new(&mut safety_dist_multiplier, 1.0..=10.0)
+                                    // .suffix(" * radius")
+                                    // .text(" * radius")
+                                    .fixed_decimals(1)
+                                    .trailing_fill(true));
+                            if slider_response.enabled() && slider_response.changed() {
+                                config.robot.inter_robot_safety_distance_multiplier = safety_dist_multiplier.try_into().expect("slider range set to [0.1, 10.0]");
+
+                                let mut query = world.query::<&mut FactorGraph>();
+                                for mut factorgraph in query.iter_mut(world) {
+                                    factorgraph.update_inter_robot_safety_distance_multiplier(Float::from(config.robot.inter_robot_safety_distance_multiplier.get()).try_into().expect("> 0.0"));
+                                }
+                            }
+
+                            ui.end_row();
+
+                            ui.label("Max Speed");
+                            // slider for robot max speed  in (0.0, 10.]
+                            // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
+                            ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+
+                            let mut max_speed = config.robot.max_speed.get();
+                            // let mut available_size = ui.available_size();
+                            // available_size.x += 10.0;
+                            // let slider_response = ui.add_sized(available_size,
+                               let slider_response = ui.add_enabled(
+                                   time_virtual.is_paused(),
+                                                                      egui::Slider::new(&mut max_speed, 0.1..=100.0)
+
+                                    .suffix("m/s")
+                                    .fixed_decimals(1)
+                                    .trailing_fill(true));
+                            if slider_response.enabled() && slider_response.changed() {
+                                config.robot.max_speed = max_speed.try_into().expect("slider range set to [0.1, 10.0]");
+                            }
+
+                            ui.end_row();
+                        });
+                    }
+
+                    custom::subheading(ui, "Communication",
+                        Some(Color32::from_catppuccin_colour(
+                            title_colors.next_or_first(),
+                        )),
+                    );
+
+
+                    custom::grid("communication_grid", 2).show(ui,|ui| {
+                        ui.label("Radius");
+                        // slider for communication radius in (0.0, 50.]
+                        ui.spacing_mut().slider_width =
+                            ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                        let mut comms_radius = config.robot.communication.radius.get();
+                        let slider_response = ui.add(
+                            egui::Slider::new(&mut comms_radius, 0.1..=50.0)
+                                .suffix("m")
+                                .fixed_decimals(1)
+                                .trailing_fill(true)
+
+                        );
+                        if slider_response.changed() {
+                            config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 50.0]");
+                            // TODO: this should not be done with a query here, but there is not
+                            // much time left.
+                            let mut query = world.query::<&mut RadioAntenna>();
+                            for mut antenna in query.iter_mut(world) {
+                                antenna.radius = comms_radius;
+                            }
+                        }
+                        ui.end_row();
+                        // Slider for communication failure rate (probability) in [0.0, 1.0]
+                        ui.label("Failure");
+                        ui.spacing_mut().slider_width = ui.available_width()  - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                        let mut failure_rate = config.robot.communication.failure_rate;
+                        let slider_response = ui.add(
+                            egui::Slider::new(&mut failure_rate, 0.0..=1.0)
+                                .suffix("%")
+                                .fixed_decimals(2)
+                                .trailing_fill(true)
+                        );
+                        if slider_response.changed() {
+                            config.robot.communication.failure_rate = failure_rate;
+                        }
+                        ui.end_row();
+                    });
+
 
                     custom::subheading(
                         ui,
@@ -269,10 +470,6 @@ fn ui_settings_panel(
                                         "the ui strings are generated from the enum, so parse \
                                          should not fail",
                                     );
-                                    // let setting_kind = DrawSetting::from_str(name).expect(
-                                    //     "The name of the draw section should be a valid \
-                                    //      DrawSection",
-                                    // );
                                     let event = DrawSettingsEvent {
                                         setting: setting_kind,
                                         draw:    *setting,
@@ -312,6 +509,8 @@ fn ui_settings_panel(
                             // Combo box of available simulations
                             ui.vertical_centered_justified(|ui| {
                                 ui.menu_button(simulation_manager.active_name().map(ToString::to_string).unwrap_or(format!("N/A")), |ui| {
+                                    #[allow(clippy::needless_collect)] // clippy is wrong about
+                                    // this one
                                     for (id, sim) in simulation_manager.ids_and_names().collect::<Vec<(SimulationId, SmolStr)>>()  {
                                         ui.vertical_centered_justified(|ui| {
                                             let name: String = sim.into();
@@ -328,26 +527,24 @@ fn ui_settings_panel(
 
                         ui.end_row();
 
-
-
                         ui.label("Simulation Time");
-
-                        // let progress =
-                        //     time_fixed.elapsed_seconds() / config.simulation.max_time.get();
-                        // let progressbar =
-                        //     egui::widgets::ProgressBar::new(progress).fill(Color32::RED);
-                        // ui.add(progressbar);
 
                         custom::rect_label(
                             ui,
                             format!(
                                 "{:.2} / {:.2}",
-                                // time_fixed.elapsed_seconds(),
                                 time_virtual.elapsed_seconds(),
                                 config.simulation.max_time.get()
                             ),
                             None,
                         );
+                        ui.end_row();
+
+                        ui.label("Δt");
+                        let dt = time_fixed.delta_seconds();
+                        let hz = (1.0 / dt).ceil() as u32;
+                        // custom::rect_label(ui, format!("{:.4} s = {:.4} Hz", dt, hz), None);
+                        custom::rect_label(ui, format!("{:.4} s = {} Hz", dt, hz), None);
                         ui.end_row();
 
                         // slider for simulation time between 0 and 100
@@ -357,7 +554,8 @@ fn ui_settings_panel(
                             ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                         let slider_response = ui.add(
                             egui::Slider::new(&mut config.simulation.time_scale.get(), 0.1..=5.0)
-                                .text("x")
+                                .suffix("x")
+                                .trailing_fill(true)
                                 .show_value(true),
                         );
                         if slider_response.drag_released() || slider_response.lost_focus() {
@@ -396,6 +594,7 @@ fn ui_settings_panel(
                             } else {
                                 ""
                             };
+
                             custom::fill_x(ui, |ui| {
                                 if ui
                                     .button(pause_play_text)
@@ -406,9 +605,30 @@ fn ui_settings_panel(
                                 }
                             });
 
-                            // ui.end_row();
+
                         });
-                        // ui.end_row();
+                        ui.end_row();
+
+                        ui.label("Timesteps per Step");
+
+                        let mut text = config.manual.timesteps_per_step.to_string();
+
+                        let te_output = egui::TextEdit::singleline(&mut text)
+                            .char_limit(3)
+                            .interactive(time_virtual.is_paused())
+                            .show(ui);
+
+                        if te_output.response.changed() {
+                            match text.parse::<usize>() {
+                                Ok(x) if x >= 1 => {
+                                    config.manual.timesteps_per_step = x.try_into().unwrap();
+
+                                },
+                                _ => {
+                                    error!("failed to parse {} as usize", text);
+                                },
+                            }
+                        }
                     });
 
                     custom::subheading(
@@ -418,8 +638,6 @@ fn ui_settings_panel(
                             title_colors.next_or_first(),
                         )),
                     );
-
-                    // let png_output_path = PathBuf::from("./factorgraphs").with_extension("png");
 
                     custom::grid("export_grid", 3).show(ui, |ui| {
                         // GRAPHVIZ EXPORT TOGGLE
@@ -455,8 +673,6 @@ fn ui_settings_panel(
                     });
 
                     ui.add_space(10.0);
-                    // ui.add(egui::Image::new(egui::include_image!("../../../factorgraphs.png")));
-                    // ui.add_space(10.0);
 
                     // INSPECTOR
                     custom::subheading(
@@ -527,6 +743,5 @@ fn ui_settings_panel(
                 });
         });
 
-    // occupied_screen_space.right = right_panel.map_or(0.0, |ref inner|
-    // inner.response.rect.width());
+    occupied_screen_space.right = right_panel.map_or(0.0, |ref inner| inner.response.rect.width());
 }

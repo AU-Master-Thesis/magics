@@ -4,7 +4,7 @@ pub mod geometry;
 
 pub mod reader;
 
-use std::num::NonZeroUsize;
+use std::{num::NonZeroUsize, ops::RangeInclusive};
 
 use bevy::{ecs::system::Resource, reflect::Reflect};
 // pub use environment::{Environment, EnvironmentType};
@@ -129,6 +129,9 @@ pub enum DrawSetting {
     CommunicationRadius,
     Robots,
     ObstacleFactors,
+    InterRobotFactors,
+    InterRobotFactorsSafetyDistance,
+    RobotColliders,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -150,6 +153,10 @@ impl std::str::FromStr for DrawSetting {
             "communication_radius" => Self::CommunicationRadius,
             "robots" => Self::Robots,
             "obstacle_factors" => Self::ObstacleFactors,
+            "interrobot_factors" => Self::InterRobotFactors,
+            "interrobot_factors_safety_distance" => Self::InterRobotFactorsSafetyDistance,
+            "robot_colliders" => Self::RobotColliders,
+
             _ => return Err(ParseDrawSettingError),
         };
 
@@ -170,9 +177,12 @@ pub struct DrawSection {
     pub paths: bool,
     pub communication_radius: bool,
     pub obstacle_factors: bool,
+    pub interrobot_factors: bool,
+    pub interrobot_factors_safety_distance: bool,
     pub generated_map: bool,
     pub height_map: bool,
     pub sdf: bool,
+    pub robot_colliders: bool,
 }
 
 impl Default for DrawSection {
@@ -189,6 +199,9 @@ impl Default for DrawSection {
             sdf: false,
             communication_radius: false,
             obstacle_factors: false,
+            interrobot_factors: false,
+            interrobot_factors_safety_distance: false,
+            robot_colliders: false,
         }
     }
 }
@@ -207,6 +220,9 @@ impl DrawSection {
             "communication_radius" => "Communication Radius".to_string(),
             "robots" => "Robots".to_string(),
             "obstacle_factors" => "Obstacle Factors".to_string(),
+            "interrobot_factors" => "InterRobot Factors".to_string(),
+            "interrobot_factors_safety_distance" => "InterRobot Safety Distance".to_string(),
+            "robot_colliders" => "Robot Colliders".to_string(),
             _ => "Unknown".to_string(),
         }
     }
@@ -274,6 +290,29 @@ impl Default for SimulationSection {
     }
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum GbpSchedule {
+    #[default]
+    Centered,
+    SoonAsPossible,
+    LateAsPossible,
+    InterleaveEvenly,
+    HalfBeginningHalfEnd,
+}
+
+// impl GbpSchedule {
+//     pub fn get_schedule(&self) -> impl gbp_schedule::GbpSchedule {
+//         match self {
+//             GbpSchedule::Centered => gbp_schedule::Centered,
+//             GbpSchedule::SoonAsPossible => gbp_schedule::SoonAsPossible,
+//             GbpSchedule::LateAsPossible => gbp_schedule::LateAsPossible,
+//             GbpSchedule::InterleaveEvenly => gbp_schedule::InterleaveEvenly,
+//             GbpSchedule::HalfBeginningHalfEnd =>
+// gbp_schedule::HalfBeginningHalfEnd,         }
+//     }
+// }
+
 /// Configuration for how many iterations to run different parts of the GBP
 /// algorithm per timestep
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -285,6 +324,7 @@ pub struct GbpIterationsPerTimestepSection {
     /// External iteration i.e. message passing between interrobot factors and
     /// connected external factors
     pub external: usize,
+    // pub schedule: GbpSchedule,
 }
 
 impl Default for GbpIterationsPerTimestepSection {
@@ -293,6 +333,7 @@ impl Default for GbpIterationsPerTimestepSection {
         Self {
             internal: n,
             external: n,
+            // schedule: GbpSchedule::default(),
         }
     }
 }
@@ -358,6 +399,31 @@ impl Default for CommunicationSection {
     }
 }
 
+type NaturalQuantity = StrictlyPositiveFinite<f32>;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct RobotRadiusSection {
+    pub min: StrictlyPositiveFinite<f32>,
+    pub max: StrictlyPositiveFinite<f32>,
+}
+
+impl RobotRadiusSection {
+    /// Returns the range that the radius can take
+    pub fn range(&self) -> RangeInclusive<f32> {
+        self.min.get()..=self.max.get()
+    }
+}
+
+impl Default for RobotRadiusSection {
+    fn default() -> Self {
+        Self {
+            min: 1.0.try_into().expect("1.0 > 0.0"),
+            max: 1.0.try_into().expect("1.0 > 0.0"),
+        }
+    }
+}
+
 /// **Robot Section**
 /// Contains parameters for the robot
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -380,9 +446,10 @@ pub struct RobotSection {
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
-    pub radius: StrictlyPositiveFinite<f32>,
+    pub radius: RobotRadiusSection,
     /// Communication parameters
     pub communication: CommunicationSection,
+    pub inter_robot_safety_distance_multiplier: StrictlyPositiveFinite<f32>,
 }
 
 impl Default for RobotSection {
@@ -393,8 +460,12 @@ impl Default for RobotSection {
             dofs: NonZeroUsize::new(4).expect("4 > 0"),
 
             symmetric_factors: true,
-            radius: StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
+            // radius: StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
+            radius: RobotRadiusSection::default(),
             communication: CommunicationSection::default(),
+
+            // **gbpplanner** effectively uses 2.2 * radius with the way they calculate it
+            inter_robot_safety_distance_multiplier: StrictlyPositiveFinite::<f32>::new(2.2).expect("2.2 > 0.0"),
         }
     }
 }

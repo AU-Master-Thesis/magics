@@ -1,6 +1,8 @@
+mod collider;
 mod communication;
 pub mod communication_radius;
 pub mod factorgraphs;
+mod interrobot;
 mod obstacle;
 mod robot;
 mod tracer;
@@ -36,6 +38,8 @@ impl Plugin for VisualiserPlugin {
             CommunicationRadiusVisualizerPlugin,
             RobotVisualiserPlugin,
             obstacle::ObstacleFactorVisualizerPlugin,
+            interrobot::InterRobotFactorVisualizerPlugin,
+            collider::ColliderVisualizerPlugin,
         ));
     }
 }
@@ -51,6 +55,7 @@ pub struct RobotTracker {
 
 impl RobotTracker {
     // REFACTOR: take all 3 arguments here
+    #[must_use]
     pub const fn new(robot_id: RobotId) -> Self {
         Self {
             robot_id,

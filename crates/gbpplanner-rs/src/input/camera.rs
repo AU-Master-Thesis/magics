@@ -328,11 +328,11 @@ fn switch_camera(
             error!("There are no cameras in the world");
         }
         [camera] => {
-            if !camera.is_active {
+            if camera.is_active {
+                warn!("There is only one camera in the world, and it is already active");
+            } else {
                 warn!("There is only one camera in the world, activating it");
                 camera.is_active = true;
-            } else {
-                warn!("There is only one camera in the world, and it is already active");
             }
         }
         _ => {
