@@ -52,28 +52,36 @@ pub trait Factor {
     #[inline]
     // fn jacobian<'a>(&mut self, state: &'a FactorState, x: &Vector<Float>) ->
     // Cow<'a, Matrix<Float>> {
-    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
-        Cow::Owned(self.first_order_jacobian(state, x.clone()))
+    fn jacobian(
+        &self,
+        state: &FactorState,
+        linearisation_point: &Vector<Float>,
+    ) -> Cow<'_, Matrix<Float>> {
+        Cow::Owned(self.first_order_jacobian(state, linearisation_point.clone()))
     }
 
     /// Measurement function
     #[must_use]
-    fn measure(&self, state: &FactorState, x: &Vector<Float>) -> Vector<Float>;
+    fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>) -> Vector<Float>;
 
     /// The first order jacobian
     /// This is a default impl as factor variants should compute the first order
     /// jacobian the same way
-    fn first_order_jacobian(&self, state: &FactorState, mut x: Vector<Float>) -> Matrix<Float> {
-        let h0 = self.measure(state, &x); // value at linearization point
-        let mut jacobian = Matrix::<Float>::zeros((h0.len(), x.len()));
+    fn first_order_jacobian(
+        &self,
+        state: &FactorState,
+        mut linearization_point: Vector<Float>,
+    ) -> Matrix<Float> {
+        let h0 = self.measure(state, &linearization_point); // value at linearization point
+        let mut jacobian = Matrix::<Float>::zeros((h0.len(), linearization_point.len()));
 
         let delta = self.jacobian_delta();
 
-        for i in 0..x.len() {
-            x[i] += delta; // perturb by delta
-            let derivatives = (self.measure(state, &x) - &h0) / delta;
+        for i in 0..linearization_point.len() {
+            linearization_point[i] += delta; // perturb by delta
+            let derivatives = (self.measure(state, &linearization_point) - &h0) / delta;
             jacobian.column_mut(i).assign(&derivatives);
-            x[i] -= delta; // reset the perturbation
+            linearization_point[i] -= delta; // reset the perturbation
         }
 
         jacobian
@@ -295,7 +303,9 @@ impl FactorNode {
             .t()
             .dot(&self.state.measurement_precision)
             .dot(jacobian.as_ref());
+
         let residual = &self.state.initial_measurement - measurement;
+
         let potential_information_vec = jacobian
             .t()
             .dot(&self.state.measurement_precision)
@@ -436,21 +446,25 @@ impl Factor for FactorKind {
         }
     }
 
-    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+    fn jacobian(
+        &self,
+        state: &FactorState,
+        linearisation_point: &Vector<Float>,
+    ) -> Cow<'_, Matrix<Float>> {
         match self {
             // Self::Pose(f) => f.jacobian(state, x),
-            Self::Dynamic(f) => f.jacobian(state, x),
-            Self::InterRobot(f) => f.jacobian(state, x),
-            Self::Obstacle(f) => f.jacobian(state, x),
+            Self::Dynamic(f) => f.jacobian(state, linearisation_point),
+            Self::InterRobot(f) => f.jacobian(state, linearisation_point),
+            Self::Obstacle(f) => f.jacobian(state, linearisation_point),
         }
     }
 
-    fn measure(&self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>) -> Vector<Float> {
         match self {
             // Self::Pose(f) => f.measure(state, x),
-            Self::Dynamic(f) => f.measure(state, x),
-            Self::InterRobot(f) => f.measure(state, x),
-            Self::Obstacle(f) => f.measure(state, x),
+            Self::Dynamic(f) => f.measure(state, linearisation_point),
+            Self::InterRobot(f) => f.measure(state, linearisation_point),
+            Self::Obstacle(f) => f.measure(state, linearisation_point),
         }
     }
 
@@ -481,6 +495,7 @@ impl Factor for FactorKind {
         }
     }
 
+    // TODO: not used so maybe just remove
     fn linear(&self) -> bool {
         match self {
             // Self::Pose(f) => f.linear(),
@@ -505,16 +520,19 @@ pub struct FactorState {
     pub linearisation_point: Vector<Float>,
     /// Strength of the factor. Called `sigma` in gbpplanner.
     /// The factor precision $Lambda = sigma^-2 * Identify$
+    /// TODO: only used in `DynamicFactor` maybe move it there
     pub strength: Float,
 
     /// Cached value of the factors jacobian function
     /// called `J_` in **gbpplanner**
     /// TODO: wrap in Option<>
+    /// TODO: not used anywhere remove
     pub cached_jacobian: Matrix<Float>,
 
     /// Cached value of the factors jacobian function
     /// called `h_` in **gbpplanner**
     /// TODO: wrap in Option<>
+    /// TODO: not used anywhere remove
     pub cached_measurement: Vector<Float>,
     /// Set to true after the first call to `self.update()`
     initialized: bool,
