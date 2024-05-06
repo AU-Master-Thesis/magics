@@ -26,7 +26,7 @@ pub mod prelude {
     pub use super::{factorgraph::FactorGraph, message::Message, DOFS};
 }
 
-#[derive(Debug, Clone, Copy, Add, AddAssign)]
+#[derive(Debug, Clone, Copy, Add, AddAssign, serde::Serialize)]
 pub struct MessagesSent {
     pub internal: usize,
     pub external: usize,
@@ -59,7 +59,7 @@ impl Default for MessagesSent {
     }
 }
 
-#[derive(Debug, Clone, Copy, Add, AddAssign)]
+#[derive(Debug, Clone, Copy, Add, AddAssign, serde::Serialize)]
 pub struct MessagesReceived {
     pub internal: usize,
     pub external: usize,

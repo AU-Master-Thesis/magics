@@ -5,7 +5,7 @@
 // mod message;
 pub mod collisions;
 pub mod robot;
-mod spawner;
+pub mod spawner;
 pub mod tracking;
 // mod variable;
 mod run_schedule;

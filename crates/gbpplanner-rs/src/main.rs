@@ -19,6 +19,8 @@ pub(crate) mod theme;
 pub(crate) mod ui;
 pub(crate) mod utils;
 
+pub mod export;
+
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
@@ -325,6 +327,7 @@ fn main() -> anyhow::Result<()> {
             EguiInterfacePlugin, // Custom
             PlannerPlugin,
             NotifyPlugin::default(),
+            export::ExportPlugin::default(),
             // PrngPlugin,
         ))
         .add_plugins(ToggleFullscreenPlugin::default())
