@@ -26,12 +26,14 @@ impl Plugin for RobotCollisionsPlugin {
                 (
                     update_robot_robot_collisions.run_if(on_timer(Self::UPDATE_EVERY)),
                     render_robot_robot_collisions,
-                    toggle_visibility_of_robot_robot_collisions
-                        .run_if(input_just_pressed(KeyCode::F10)),
+                    toggle_visibility_of_robot_robot_collisions,
+                    // toggle_visibility_of_robot_robot_collisions
+                    //     .run_if(input_just_pressed(KeyCode::F10)),
                     update_robot_environment_collisions.run_if(on_timer(Self::UPDATE_EVERY)),
                     render_robot_environment_collisions,
-                    toggle_visibility_of_robot_environment_collisions
-                        .run_if(input_just_pressed(KeyCode::F10)),
+                    toggle_visibility_of_robot_environment_collisions,
+                    // toggle_visibility_of_robot_environment_collisions
+                    //     .run_if(input_just_pressed(KeyCode::F10)),
                 ),
             )
             .add_systems(
@@ -349,7 +351,6 @@ impl Default for RobotRobotCollisions {
 
 /// Marker components
 mod markers {
-
     use bevy::ecs::component::Component;
 
     #[derive(Component)]
@@ -364,6 +365,7 @@ fn render_robot_robot_collisions(
     mut evr_robots_collided: EventReader<events::RobotRobotCollision>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    config: Res<crate::config::Config>,
 ) {
     for event in evr_robots_collided.read() {
         let material = materials.add(StandardMaterial {
@@ -380,10 +382,17 @@ fn render_robot_robot_collisions(
             2.0,
             aabb.maxs.y - aabb.mins.y,
         ));
+
+        let initial_visibility = if config.visualisation.draw.robot_robot_collisions {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
         let mesh = meshes.add(cuboid);
         commands.spawn((
             PbrBundle {
                 mesh,
+                visibility: initial_visibility,
                 material,
                 transform: Transform::from_translation(center),
                 ..default()
@@ -396,13 +405,21 @@ fn render_robot_robot_collisions(
 
 fn toggle_visibility_of_robot_robot_collisions(
     mut q_robot_collisions: Query<&mut Visibility, With<markers::RobotRobotCollision>>,
+    mut evr_draw_settings: EventReader<crate::input::DrawSettingsEvent>,
 ) {
-    for mut visibility in &mut q_robot_collisions {
-        *visibility = if *visibility == Visibility::Visible {
-            Visibility::Hidden
-        } else {
-            Visibility::Visible
-        };
+    for event in evr_draw_settings.read() {
+        if matches!(
+            event.setting,
+            crate::config::DrawSetting::RobotRobotCollisions
+        ) {
+            for mut visibility in &mut q_robot_collisions {
+                *visibility = if *visibility == Visibility::Visible {
+                    Visibility::Hidden
+                } else {
+                    Visibility::Visible
+                };
+            }
+        }
     }
 }
 
@@ -411,6 +428,7 @@ fn render_robot_environment_collisions(
     mut evr_robots_collided: EventReader<events::RobotEnvironmentCollision>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    config: Res<crate::config::Config>,
     // mut q_obstacles: Query<&mut Handle<StandardMaterial>,
     // With<crate::environment::ObstacleMarker>>,
 ) {
@@ -435,29 +453,44 @@ fn render_robot_environment_collisions(
             aabb.maxs.y - aabb.mins.y,
         ));
 
+        let initial_visibility = if config.visualisation.draw.robot_environment_collisions {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
+
         let mesh = meshes.add(cuboid);
         commands.spawn((
             PbrBundle {
                 mesh,
                 material,
+                visibility: initial_visibility,
                 transform: Transform::from_translation(center),
                 ..default()
             },
             crate::simulation_loader::Reloadable,
             markers::RobotEnvironmentCollision,
         ));
-        // println!("robot environment collision {:?}", event);
     }
 }
 
 fn toggle_visibility_of_robot_environment_collisions(
     mut q_robot_collisions: Query<&mut Visibility, With<markers::RobotEnvironmentCollision>>,
+    mut evr_draw_settings: EventReader<crate::input::DrawSettingsEvent>,
 ) {
-    for mut visibility in &mut q_robot_collisions {
-        *visibility = if *visibility == Visibility::Visible {
-            Visibility::Hidden
-        } else {
-            Visibility::Visible
-        };
+    for event in evr_draw_settings.read() {
+        println!("draw setting event: {:?}", event);
+        if matches!(
+            event.setting,
+            crate::config::DrawSetting::RobotEnvironmentCollisions
+        ) {
+            for mut visibility in &mut q_robot_collisions {
+                *visibility = if *visibility == Visibility::Visible {
+                    Visibility::Hidden
+                } else {
+                    Visibility::Visible
+                };
+            }
+        }
     }
 }
