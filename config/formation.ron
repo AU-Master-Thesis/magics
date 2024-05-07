@@ -10,6 +10,7 @@
         nanos: 0,
       ),
       robots: 1,
+      r#planning-strategy: r#only-local,
       r#initial-position: (
         shape: r#line-segment(((
           x: 0.45,
@@ -44,6 +45,7 @@
         nanos: 0,
       ),
       robots: 1,
+      r#planning-strategy: r#only-local,
       r#initial-position: (
         shape: r#line-segment(((
           x: 0.0,

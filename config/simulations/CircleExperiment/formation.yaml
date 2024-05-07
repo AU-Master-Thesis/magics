@@ -8,6 +8,7 @@ formations:
     secs: 1
     nanos: 0
   robots: 7
+  planning-strategy: only-local
   initial-position:
     shape: !circle
       radius: 25.0
