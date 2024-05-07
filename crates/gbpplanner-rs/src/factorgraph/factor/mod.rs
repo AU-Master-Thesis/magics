@@ -1,5 +1,6 @@
 use std::{borrow::Cow, ops::AddAssign};
 
+use bevy::math::Vec2;
 use gbp_linalg::prelude::*;
 use ndarray::{array, s};
 use typed_floats::StrictlyPositiveFinite;
@@ -201,10 +202,18 @@ impl FactorNode {
         Self::new(factorgraph_id, state, kind)
     }
 
-    // #[inline(always)]
-    // pub fn variant(&self) -> &'static str {
-    //     self.kind.name()
-    // }
+    /// Create a new tracking factor
+    pub fn new_tracking_factor(
+        factorgraph_id: FactorGraphId,
+        strength: Float,
+        measurement: Vector<Float>,
+        rrt_path: Vec<Vec2>,
+    ) -> Self {
+        let state = FactorState::new(measurement, strength, TrackingFactor::NEIGHBORS);
+        let tracking_factor = TrackingFactor::new(rrt_path);
+        let kind = FactorKind::Tracking(tracking_factor);
+        Self::new(factorgraph_id, state, kind)
+    }
 
     #[inline(always)]
     fn jacobian(&self, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
@@ -415,6 +424,7 @@ pub enum FactorKind {
 
 impl FactorKind {
     /// Returns `Some(&InterRobotFactor)` if self is [`InterRobot`], otherwise
+    /// `None`
     pub const fn as_inter_robot(&self) -> Option<&InterRobotFactor> {
         if let Self::InterRobot(v) = self {
             Some(v)
@@ -423,7 +433,7 @@ impl FactorKind {
         }
     }
 
-    /// Returns `Some(&DynamicFactor)` if self is [`Dynamic`], otherwise
+    /// Returns `Some(&DynamicFactor)` if self is [`Dynamic`], otherwise `None`
     pub const fn as_dynamic(&self) -> Option<&DynamicFactor> {
         if let Self::Dynamic(v) = self {
             Some(v)
@@ -433,8 +443,19 @@ impl FactorKind {
     }
 
     /// Returns `Some(&ObstacleFactor)` if self is [`Obstacle`], otherwise
+    /// `None`
     pub const fn as_obstacle(&self) -> Option<&ObstacleFactor> {
         if let Self::Obstacle(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    /// Rsturns `Some(&TrackingFactor)` if self is [`Tracking`], otherwise
+    /// `None`
+    pub const fn as_tracking(&self) -> Option<&TrackingFactor> {
+        if let Self::Tracking(v) = self {
             Some(v)
         } else {
             None

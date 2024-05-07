@@ -10,7 +10,10 @@ use petgraph::{stable_graph::EdgeReference, visit::EdgeRef, Undirected};
 use typed_floats::StrictlyPositiveFinite;
 
 use super::{
-    factor::{interrobot::InterRobotFactor, obstacle::ObstacleFactor, FactorKind, FactorNode},
+    factor::{
+        interrobot::InterRobotFactor, obstacle::ObstacleFactor, tracking::TrackingFactor,
+        FactorKind, FactorNode,
+    },
     id::{FactorId, VariableId},
     message::{FactorToVariableMessage, VariableToFactorMessage},
     node::{FactorGraphNode, Node, NodeKind, RemoveConnectionToError},
@@ -1175,6 +1178,47 @@ impl<'fg> Iterator for VariableAndTheirObstacleFactors<'fg> {
     }
 }
 
+/// Iterator over the variable and their connected tracking factors in the
+/// factorgraph
+pub struct VariableAndTheirTrackingFactors<'fg> {
+    graph: &'fg Graph,
+    // variable_indices: std::slice::Iter<'a, NodeIndex>,
+    // tracking_factor_indices: std::slice::Iter<'a, NodeIndex>,
+    pairs: std::iter::Zip<std::slice::Iter<'fg, NodeIndex>, std::slice::Iter<'fg, NodeIndex>>,
+}
+
+impl<'fg> VariableAndTheirTrackingFactors<'fg> {
+    fn new(
+        graph: &'fg Graph,
+        variable_indices: &'fg [NodeIndex],
+        tracking_factor_indices: &'fg [NodeIndex],
+    ) -> Self {
+        Self {
+            graph,
+            pairs: variable_indices.iter().zip(tracking_factor_indices.iter()),
+        }
+    }
+}
+
+impl<'fg> Iterator for VariableAndTheirTrackingFactors<'fg> {
+    type Item = (&'fg VariableNode, &'fg TrackingFactor);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (&variable_index, &factor_index) = self.pairs.next()?;
+        let variable = &self.graph[variable_index]
+            .as_variable()
+            .expect("variable index points to a variable node");
+        let tracking_factor = &self.graph[factor_index]
+            .as_factor()
+            .expect("factor index points to a factor node")
+            .kind
+            .as_tracking()
+            .expect("factors In VariableAndTheirTrackingFactors are tracking factors");
+
+        Some((variable, tracking_factor))
+    }
+}
+
 impl FactorGraph {
     /// Returns an iterator over the variable and their obstacle factors in the
     /// factorgraph.
@@ -1185,6 +1229,18 @@ impl FactorGraph {
             &self.graph,
             &self.variable_indices[1..self.variable_indices.len() - 1],
             &self.obstacle_factor_indices,
+        )
+    }
+
+    /// Returns an iterator over the variable and their tracking factors in the
+    /// factorgraph.
+    #[inline]
+    #[must_use]
+    pub fn variable_and_their_tracking_factors(&self) -> VariableAndTheirTrackingFactors<'_> {
+        VariableAndTheirTrackingFactors::new(
+            &self.graph,
+            &self.variable_indices[1..],
+            &self.tracking_factor_indices,
         )
     }
 }
@@ -1228,7 +1284,7 @@ impl graphviz::Graph for FactorGraph {
                             FactorKind::InterRobot(ref inner) => {
                                 graphviz::NodeKind::InterRobotFactor(inner.external_variable)
                             }
-                            FactorKind::Tracking(_) => todo!(),
+                            FactorKind::Tracking(_) => graphviz::NodeKind::TrackingFactor,
                         },
                         NodeKind::Variable(variable) => {
                             // let mean = variable.belief.mean();

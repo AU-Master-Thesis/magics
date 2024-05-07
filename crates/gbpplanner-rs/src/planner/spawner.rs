@@ -15,7 +15,7 @@ use crate::{
     // asset_loader::SceneAssets,
     asset_loader::Meshes,
     config::{
-        formation::{RepeatTimes, WorldDimensions},
+        formation::{PlanningStrategy, RepeatTimes, WorldDimensions},
         Config,
     },
     environment::FollowCameraMe,
@@ -558,6 +558,7 @@ fn spawn_formation(
                 &config,
                 radii[i],
                 &sdf.0,
+                matches!(formation.planning_strategy, PlanningStrategy::RrtStar),
             )
             .expect(
                 "Possible `RobotInitError`s should be avoided due to the formation input being \

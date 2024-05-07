@@ -30,7 +30,7 @@ pub enum NodeKind {
     // },
     DynamicFactor,
     ObstacleFactor,
-    // PoseFactor,
+    TrackingFactor, // PoseFactor,
 }
 
 impl NodeKind {
@@ -40,8 +40,9 @@ impl NodeKind {
             Self::InterRobotFactor { .. } => "#a6da95", // green
             Self::DynamicFactor => "#8aadf4",           // blue
             // Self::ObstacleFactor => "#c6a0f6",          // mauve (purple)
-            Self::ObstacleFactor => "#ee99a0", /* mauve (purple)
-                                                * Self::PoseFactor => "#c6aof6",     // maroon (red) */
+            Self::ObstacleFactor => "#ee99a0", // mauve (purple)
+            // Self::PoseFactor => "#c6aof6",     // maroon (red)
+            Self::TrackingFactor => "#f4a15a", // orange
         }
     }
 

@@ -27,6 +27,7 @@ height-map                         = false
 sdf                                = false
 communication-radius               = false
 obstacle-factors                   = false
+tracking                           = false
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 robot-colliders                    = false
@@ -38,6 +39,7 @@ sigma-pose-fixed        = 1e-15
 sigma-factor-dynamics   = 1.0
 sigma-factor-interrobot = 0.005
 sigma-factor-obstacle   = 0.005
+sigma-factor-tracking   = 0.1
 # iterations-per-timestep = 10
 lookahead-multiple = 3
 

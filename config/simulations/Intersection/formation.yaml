@@ -1,12 +1,12 @@
 formations:
 - repeat-every:
-    secs: 3
-    nanos: 0
-  delay:
     secs: 5
     nanos: 0
+  delay:
+    secs: 0
+    nanos: 0
   robots: 1
-  planning-strategy: only-local
+  planning-strategy: rrt-star
   initial-position:
     shape: !line-segment
     - x: 0.45
@@ -18,32 +18,44 @@ formations:
   waypoints:
   - shape: !line-segment
     - x: 0.45
-      y: 1.25
+      y: 0.45
     - x: 0.55
-      y: 1.25
+      y: 0.55
+    projection-strategy: identity
+  - shape: !line-segment
+    - x: 1.25
+      y: 0.45
+    - x: 1.25
+      y: 0.55
     projection-strategy: identity
   waypoint-reached-when-intersects: horizon
-- repeat-every:
-    secs: 8
-    nanos: 0
-  delay:
-    secs: 1
-    nanos: 0
-  robots: 3
-  planning-strategy: only-local
-  initial-position:
-    shape: !line-segment
-    - x: 0.0
-      y: 0.45
-    - x: 0.0
-      y: 0.55
-    placement-strategy: !random
-      attempts: 1000
-  waypoints:
-  - shape: !line-segment
-    - x: 1.25
-      y: 0.45
-    - x: 1.25
-      y: 0.55
-    projection-strategy: cross
-  waypoint-reached-when-intersects: horizon
+# - repeat-every:
+#     secs: 5
+#     nanos: 0
+#   delay:
+#     secs: 0
+#     nanos: 0
+#   robots: 1
+#   planning-strategy: rrt-star
+#   initial-position:
+#     shape: !line-segment
+#     - x: 0.0
+#       y: 0.45
+#     - x: 0.0
+#       y: 0.55
+#     placement-strategy: !random
+#       attempts: 1000
+#   waypoints:
+#   - shape: !line-segment
+#     - x: 0.45
+#       y: 0.45
+#     - x: 0.55
+#       y: 0.55
+#     projection-strategy: identity
+#   - shape: !line-segment
+#     - x: 0.45
+#       y: 1.25
+#     - x: 0.55
+#       y: 1.25
+#     projection-strategy: identity
+#   waypoint-reached-when-intersects: horizon

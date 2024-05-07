@@ -6,6 +6,7 @@ mod interrobot;
 mod obstacle;
 mod robot;
 mod tracer;
+mod tracking;
 mod uncertainty;
 pub mod waypoints;
 
@@ -42,6 +43,7 @@ impl Plugin for VisualiserPlugin {
             obstacle::ObstacleFactorVisualizerPlugin,
             interrobot::InterRobotFactorVisualizerPlugin,
             collider::ColliderVisualizerPlugin,
+            tracking::TrackingVisualizerPlugin,
         ));
     }
 }

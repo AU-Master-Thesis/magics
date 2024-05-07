@@ -1,6 +1,10 @@
 //! Obstacle factor
 
-use std::borrow::Cow;
+use std::{
+    borrow::Cow,
+    cell::{Cell, RefCell},
+    sync::Mutex,
+};
 
 use bevy::math::Vec2;
 use gbp_linalg::prelude::*;
@@ -10,9 +14,11 @@ use super::{Factor, FactorState};
 
 #[derive(Debug)]
 pub struct TrackingFactor {
-    /// Reference to the RRT path
-    // rrt_path: &'fg [Vec2],
-    rrt_path: Vec<Vec2>,
+    /// Reference to the tracking path (Likely from RRT)
+    tracking_path: Vec<Vec2>,
+
+    /// Most recent measurement
+    last_measurement: Mutex<Cell<Vec2>>,
 }
 
 impl TrackingFactor {
@@ -20,8 +26,20 @@ impl TrackingFactor {
     pub const NEIGHBORS: usize = 1;
 
     /// Creates a new [`TrackingFactor`].
-    pub fn new(rrt_path: Vec<Vec2>) -> Self {
-        Self { rrt_path }
+    pub fn new(tracking_path: Vec<Vec2>) -> Self {
+        assert!(
+            tracking_path.len() >= 2,
+            "Tracking path must have at least 2 points"
+        );
+        Self {
+            tracking_path,
+            last_measurement: Mutex::new(Cell::new(Vec2::ZERO)),
+        }
+    }
+
+    /// Get the last measurement
+    pub fn last_measurement(&self) -> Vec2 {
+        self.last_measurement.lock().unwrap().get()
     }
 }
 
@@ -43,26 +61,14 @@ impl Factor for TrackingFactor {
         // 1.1. Find the line defined by the two points
 
         let lines = self
-            .rrt_path
+            .tracking_path
             .windows(2)
             .map(|window| {
-                // let p1 = pair[0];
-                // let p2 = pair[1];
-
-                // let line = p2 - p1;
-                // let normal = Vec2::new(-line.y, line.x).normalize();
-
-                // (p1, p2, line, normal)
-
-                // let line = window[1] - window[0];
-                // let normal = Vec2::new(-line.y, line.x).normalize();
-
                 let p2 = array![window[1].x as Float, window[1].y as Float];
                 let p1 = array![window[0].x as Float, window[0].y as Float];
 
                 let line = &p2 - &p1;
                 let normal = array![-line[1], line[0]].normalized();
-                // mapv(|x| x / x.normalized());
 
                 (p1, p2, line, normal)
             })
@@ -103,6 +109,10 @@ impl Factor for TrackingFactor {
         let speed = x.slice(s![2..4]).euclidean_norm();
 
         let future_point = projected_point + speed * lines[min_index].2.normalized();
+        self.last_measurement
+            .lock()
+            .unwrap()
+            .set(Vec2::new(future_point[0] as f32, future_point[1] as f32));
         future_point
     }
 

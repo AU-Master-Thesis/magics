@@ -203,11 +203,14 @@ pub struct Radius(pub f32);
 /// achieve.
 #[allow(clippy::similar_names)]
 #[derive(Component, Debug)]
-// pub struct Waypoints(pub VecDeque<Vec4>);
 pub struct Waypoints {
+    // TODO: Use `StateVector` here
     pub waypoints:       VecDeque<Vec4>,
     pub intersects_when: WaypointReachedWhenIntersects,
 }
+
+#[derive(Component, Debug)]
+pub struct InitialPose(pub Vec4);
 
 impl Waypoints {
     #[inline]
@@ -301,6 +304,9 @@ pub struct RobotBundle {
     /// `push_back` operations.
     pub waypoints: Waypoints,
 
+    /// Initial sate
+    pub initial_state: StateVector,
+
     /// Boolean component used to keep track of whether the robot has finished
     /// its path by reaching its final waypoint. This flag exists to ensure
     /// that the robot is not detected as having finished more than once.
@@ -311,7 +317,7 @@ pub struct RobotBundle {
 
 /// State vector of a robot
 /// [x, y, x', y']
-#[derive(Debug, Clone, Copy, derive_more::Into, derive_more::Add)]
+#[derive(Component, Debug, Clone, Copy, derive_more::Into, derive_more::Add)]
 pub struct StateVector(bevy::math::Vec4);
 
 impl StateVector {
@@ -343,6 +349,7 @@ impl RobotBundle {
         robot_id: RobotId,
         initial_state: StateVector,
         // waypoints: VecDeque<Vec4>,
+        // initial_pose: &Vec4,
         waypoints: Waypoints,
         variable_timesteps: &[u32],
         config: &Config,
@@ -351,6 +358,7 @@ impl RobotBundle {
         // obstacle_sdf: &Image,
         sdf: &SdfImage,
         // obstacle_sdf: Handle<Image>,
+        use_tracking: bool,
     ) -> Result<Self, RobotInitError> {
         if waypoints.is_empty() {
             return Err(RobotInitError::NoWaypoints);
@@ -419,7 +427,7 @@ impl RobotBundle {
             variable_node_indices.push(variable_index);
         }
 
-        // Create Dynamics factors between variables
+        // Create Dynamic factors between variables
         for i in 0..variable_timesteps.len() - 1 {
             // T0 is the timestep between the current state and the first planned state.
             #[allow(clippy::cast_precision_loss)]
@@ -448,7 +456,8 @@ impl RobotBundle {
             );
         }
 
-        // Create Obstacle factors for all variables excluding start, excluding horizon
+        // Create Obstacle & Tracking factors for all variables excluding start,
+        // excluding horizon
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
             let obstacle_factor = FactorNode::new_obstacle_factor(
@@ -469,11 +478,39 @@ impl RobotBundle {
             );
         }
 
+        let waypoints_with_init =
+            std::iter::once(&initial_state.0).chain(waypoints.waypoints.iter());
+
+        // Create Tracking factors for all variables, excluding the start
+        if use_tracking {
+            for i in 1..variable_timesteps.len() {
+                let tracking_factor = FactorNode::new_tracking_factor(
+                    factorgraph.id(),
+                    Float::from(config.gbp.sigma_factor_tracking),
+                    Vector::<Float>::zeros(2),
+                    waypoints_with_init
+                        .clone()
+                        .map(|waypoint| Vec2::new(waypoint.x, waypoint.y))
+                        .collect::<Vec<Vec2>>(),
+                );
+
+                let factor_node_index = factorgraph.add_factor(tracking_factor);
+                let factor_id = FactorId::new(factorgraph.id(), factor_node_index);
+                let _ = factorgraph.add_internal_edge(
+                    VariableId::new(factorgraph.id(), variable_node_indices[i]),
+                    factor_id,
+                );
+            }
+        }
+
         // FIXME: use global rng source/ or resource
         // let mut rng = rand::thread_rng();
         // let radius = rng.gen_range(config.robot.radius.range());
 
         // let ball = parry2d::shape::Ball::new(radius);
+
+        // waypoints.waypoints = waypoints_with_init.map(|it|
+        // *it).collect::<VecDeque<_>>();
 
         Ok(Self {
             factorgraph,
@@ -484,6 +521,7 @@ impl RobotBundle {
             antenna: RadioAntenna::new(config.robot.communication.radius.get(), true),
             state: RobotState::new(),
             waypoints,
+            initial_state,
             finished_path: FinishedPath::default(),
         })
     }

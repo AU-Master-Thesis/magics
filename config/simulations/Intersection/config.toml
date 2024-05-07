@@ -27,6 +27,7 @@ height-map                         = false
 sdf                                = false
 communication-radius               = false
 obstacle-factors                   = true
+tracking                           = true
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 robot-colliders                    = false
@@ -38,6 +39,7 @@ sigma-pose-fixed        = 0.000000000000001
 sigma-factor-dynamics   = 0.1
 sigma-factor-interrobot = 0.01
 sigma-factor-obstacle   = 0.01
+sigma-factor-tracking   = 0.1
 lookahead-multiple      = 3
 
 [gbp.iterations-per-timestep]
@@ -68,7 +70,7 @@ manual-step-factor                        = 1
 hz                                        = 60.0
 world-size                                = 100.0
 prng-seed                                 = 0
-pause-on-spawn                            = false
+pause-on-spawn                            = true
 despawn-robot-when-final-waypoint-reached = false
 
 [rrt]
