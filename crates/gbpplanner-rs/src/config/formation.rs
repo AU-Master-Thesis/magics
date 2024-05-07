@@ -35,6 +35,25 @@ pub enum InitialPlacementStrategy {
     },
 }
 
+// TODO: extend with a generalised idea of Local and Global planning
+/// Planning strategy to use for the robots after spawning
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PlanningStrategy {
+    /// The default, waypoint-to-waypoint strategy
+    OnlyLocal,
+    /// Global planning with RRT*
+    RrtStar,
+}
+
+// pub struct Local;
+// pub struct Global;
+
+// pub enum PlanningKind {
+//     Local,
+//     Global,
+// }
+
 /// Strategy to use for waypoints after the initial starting position.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -52,7 +71,6 @@ pub enum ProjectionStrategy {
 pub enum PlacementStrategy {
     Equal,
     Random,
-    Map,
 }
 
 /// Waypoint a group of robots has to reach, from either the robots initial
@@ -172,6 +190,8 @@ pub struct Formation {
     pub delay: Duration,
     /// Number of robots to spawn every iteration
     pub robots: NonZeroUsize,
+    /// Planning strategy
+    pub planning_strategy: PlanningStrategy,
     /// Where to spawn the formation
     pub initial_position: InitialPosition,
     /// List of waypoints.
@@ -224,6 +244,7 @@ impl Formation {
             repeat: Some(Repeat::new(Duration::from_secs(10), RepeatTimes::Finite(1))),
             delay: Duration::from_secs(1),
             robots: 3.try_into().expect("3 > 0"),
+            planning_strategy: PlanningStrategy::OnlyLocal,
             initial_position: InitialPosition {
                 shape: circle.clone(),
                 placement_strategy: InitialPlacementStrategy::Equal,
@@ -674,6 +695,7 @@ impl FormationGroup {
                     }),
                     delay: Duration::from_secs(2),
                     robots: 1.try_into().expect("1 > 0"),
+                    planning_strategy: PlanningStrategy::OnlyLocal,
                     initial_position: InitialPosition {
                         shape: line![(0.45, 0.0), (0.55, 0.0)],
                         placement_strategy: InitialPlacementStrategy::Equal,
@@ -694,6 +716,7 @@ impl FormationGroup {
                     }),
                     delay: Duration::from_secs(2),
                     robots: 1.try_into().expect("1 > 0"),
+                    planning_strategy: PlanningStrategy::OnlyLocal,
                     initial_position: InitialPosition {
                         shape: line![(0.0, 0.45), (0.0, 0.55)],
                         placement_strategy: InitialPlacementStrategy::Equal,

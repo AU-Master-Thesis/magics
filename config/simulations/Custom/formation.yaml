@@ -6,6 +6,7 @@ formations:
     secs: 2
     nanos: 0
   robots: 1
+  planning-strategy: only-local
   initial-position:
     shape: !line-segment
     - x: 0.45
