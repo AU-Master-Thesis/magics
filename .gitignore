@@ -21,3 +21,6 @@
 perf*
 dhat-heap.json
 flamegraphs/*
+
+*.json
+!results/*.json

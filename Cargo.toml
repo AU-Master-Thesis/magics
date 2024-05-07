@@ -22,6 +22,9 @@ members = [
   "crates/as_variant",
   "crates/interleave_evenly",
   "crates/gbp_schedule",
+  "crates/env_to_png",
+  "crates/gbp_environment",
+  "crates/gbp_geometry",
 ]
 
 [workspace.package]

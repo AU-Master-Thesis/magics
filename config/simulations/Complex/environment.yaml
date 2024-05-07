@@ -9,6 +9,6 @@ tiles:
   - '          '
   settings:
     tile-size: 25.0
-    path-width: 0.4
+    path-width: 0.6
     obstacle-height: 1.0
 obstacles: []

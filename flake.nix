@@ -128,6 +128,7 @@
 
               python3Packages.matplotlib
               python3Packages.ipykernel
+              gh
             ]
             ++ bevy-deps
             ++ rust-deps;

@@ -28,7 +28,7 @@ use parry2d::{
 use rand::distributions::{Distribution, Uniform};
 
 const START: Vec2 = Vec2::new(-100.0 + 12.5, 62.5 - 2.0);
-const END: Vec2 = Vec2::new(100.0, -62.5 + 12.5);
+const END: Vec2 = Vec2::new(100.0 - 12.5, -62.5 + 12.5);
 // const START: Vec2 = Vec2::new(0.0, 75.0 - 5.0);
 // const END: Vec2 = Vec2::new(0.0, -75.0 + 5.0);
 
@@ -72,8 +72,9 @@ fn main() -> anyhow::Result<()> {
         .insert_resource(environment)
         .init_resource::<ChangingBinding>()
         .init_resource::<Path>()
+        .init_resource::<RRTStarTree>()
         .add_event::<PathFoundEvent>()
-        .add_event::<TriggerRrtEvent>()
+        .add_event::<TriggerRRTEvent>()
         .init_state::<PathFindingState>()
         .add_plugins((
             DefaultPlugins,
@@ -88,17 +89,23 @@ fn main() -> anyhow::Result<()> {
             GeneralInputPlugin,
             EnvironmentPlugin,
         ))
-        .add_systems(Startup, (spawn_waypoints, init_path_info_text))
+        .add_systems(
+            Startup,
+            (
+                spawn_waypoints,
+                // init_path_info_text
+            ),
+        )
         .add_systems(PostStartup, change_infinite_grid_settings)
         .add_systems(
             Update,
             (
                 trigger_rrt_event,
                 rrt_path,
-                update_path_length_text.run_if(on_event::<PathFoundEvent>()),
-                update_waypoint_amount_text.run_if(on_event::<PathFoundEvent>()),
-                draw_gizmos,
-                draw_waypoints.run_if(on_event::<PathFoundEvent>()),
+                // update_path_length_text.run_if(on_event::<PathFoundEvent>()),
+                // update_waypoint_amount_text.run_if(on_event::<PathFoundEvent>()),
+                draw_tree_branches,
+                draw_nodes.run_if(on_event::<PathFoundEvent>()),
             ),
         )
         .run();
@@ -111,13 +118,13 @@ fn main() -> anyhow::Result<()> {
 fn trigger_rrt_event(
     mut path: ResMut<Path>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut event_writer: EventWriter<TriggerRrtEvent>,
+    mut event_writer: EventWriter<TriggerRRTEvent>,
     mut next_state_path_found: ResMut<NextState<PathFindingState>>,
     colliders: Res<Colliders>,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyP) {
         next_state_path_found.set(PathFindingState::NotFound);
-        event_writer.send(TriggerRrtEvent);
+        event_writer.send(TriggerRRTEvent);
     }
 
     let collision_solver = CollisionProblem::new(Arc::new(&colliders));
@@ -126,7 +133,7 @@ fn trigger_rrt_event(
 /// **Bevy** [`Event`] to trigger RRT pathfinding
 /// - Used to signal when to start the path-finding
 #[derive(Debug, Clone, Copy, Event)]
-pub struct TriggerRrtEvent;
+pub struct TriggerRRTEvent;
 
 /// **Bevy** [`Event`] for signaling when a path is found
 /// - Used to transition the state of the path-finding
@@ -177,14 +184,12 @@ macro_rules! delegate_to_inner {
             self.0.$method($($arg),*);
         }
     };
-
-    // (mut $method:ident, $($arg:ident : $t:ty),* -> $ret:ty) => {
-    //     #[inline]
-    //     fn $method(&mut self, $($arg: $t),*) -> $ret {
-    //         self.0.$method($($arg),*)
-    //     }
-    // };
 }
+
+/// **Bevy** [`Resource`] for storing an RRT* Tree
+/// Simply a wrapper for [`rrt::rrtstar::Tree`]
+#[derive(Debug, Resource, Default)]
+pub struct RRTStarTree(rrt::rrtstar::Tree<f64, f32>);
 
 /// **Bevy** [`Resource`] for storing a path
 /// Simply a wrapper for a list of [`Vec3`] points
@@ -197,6 +202,10 @@ impl Path {
     delegate_to_inner!(&mut clear);
 
     delegate_to_inner!(&mut push, point: Vec3);
+
+    fn contains(&self, point: &Vec3) -> bool {
+        self.0.contains(point)
+    }
 
     fn euclidean_length(&self) -> f32 {
         let mut length = 0.0;
@@ -242,58 +251,10 @@ pub enum PathfindingError {
 #[derive(Component, Debug)]
 pub struct PathfindingTask(Task<Result<Path, PathfindingError>>);
 
-/// Standalone function to spawn an RRT pathfinding task in an async thread
-/// - Used to run path-finding tasks that may take longer than a single frame to
-///   complete
-fn spawn_rrt_path_finding_task(
-    commands: &mut Commands,
-    start: Vec2,
-    end: Vec2,
-    colliders: &'static Colliders,
-    rrt_params: RRTSection,
-    target: Entity, // task_pool: Res<AsyncComputeTaskPool>,
-) {
-    let collision_solver = CollisionProblem::new(Arc::new(colliders))
-        .with_collision_radius(rrt_params.collision_radius.get());
-
-    let thread_pool = AsyncComputeTaskPool::get();
-    let task = thread_pool.spawn(async move {
-        let path = rrt::dual_rrt_connect(
-            &[start.x as f64, start.y as f64],
-            &[end.x as f64, end.y as f64],
-            |x: &[f64]| collision_solver.is_feasible(x),
-            || collision_solver.random_sample(),
-            rrt_params.step_size.get() as f64,
-            rrt_params.max_iterations.get(),
-        );
-
-        if let Ok(mut res) = path {
-            // optimise and smooth the found path
-            rrt::smooth_path(
-                &mut res,
-                |x: &[f64]| collision_solver.is_feasible(x),
-                rrt_params.smoothing.step_size.get() as f64,
-                rrt_params.smoothing.max_iterations.get(),
-            );
-
-            // convert the path to Vec3 and update the path resource
-            let mut path = Path::default();
-            res.iter().for_each(|x| {
-                path.push(Vec3::new(x[0] as f32, 0.0, x[1] as f32));
-            });
-
-            Ok(path)
-        } else {
-            Err(PathfindingError::ReachedMaxIterations)
-        }
-    });
-
-    commands.entity(target).insert(PathfindingTask(task));
-}
-
 /// **Bevy** [`Update`] system to find an RRT path through the environment
 fn rrt_path(
     mut path: ResMut<Path>,
+    mut tree: ResMut<RRTStarTree>,
     mut next_state_path_found: ResMut<NextState<PathFindingState>>,
     mut event_path_found_writer: EventWriter<PathFoundEvent>,
     state_path_found: Res<State<PathFindingState>>,
@@ -314,57 +275,100 @@ fn rrt_path(
     let start = [START.x as f64, START.y as f64];
     let end = [END.x as f64, END.y as f64];
 
-    if let Ok(mut res) = rrt::rrt_star_connect(
+    if let Ok(mut res) = rrt::rrtstar::rrtstar(
         &start,
         &end,
         |x: &[f64]| collision_solver.is_feasible(x),
         || collision_solver.random_sample(),
         config.rrt.step_size.get() as f64,
         config.rrt.max_iterations.get(),
+        config.rrt.neighbourhood_radius.get() as f64,
+        false,
     )
     .inspect_err(|e| {
         warn!("Failed to find path with error: {}", e);
     }) {
-        info!("Found path with {} waypoints", res.len());
-        // optimise and smooth the found path
-        rrt::smooth_path(
-            &mut res,
-            |x: &[f64]| collision_solver.is_feasible(x),
-            config.rrt.smoothing.step_size.get() as f64,
-            config.rrt.smoothing.max_iterations.get(),
-        );
+        // insert the result into the Tree resource
+        tree.0 = res;
 
-        info!("Smoothed path with {} waypoints", res.len());
+        // find closest point to end
+        let closest_index = tree
+            .0
+            .vertices
+            .iter()
+            .map(|v| Vec2::new(v.data[0] as f32, v.data[1] as f32).distance_squared(END))
+            .enumerate()
+            .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+            .map(|(i, _)| i)
+            .unwrap();
 
-        // convert the path to Vec3 and update the path resource
+        // find the path from the start to the closest point to the end
         path.clear();
-        res.iter().for_each(|x| {
-            path.push(Vec3::new(x[0] as f32, 0.0, x[1] as f32));
+        tree.0.get_until_root(closest_index).iter().for_each(|v| {
+            path.push(Vec3::new(v[0] as f32, 0.0, v[1] as f32));
         });
-
-        info!("Path length: {:.2}", path.euclidean_length());
 
         // update state and signal event
         next_state_path_found.set(PathFindingState::Found);
         event_path_found_writer.send(PathFoundEvent);
-
-        info!("Found path with {} waypoints", path.len());
     };
 }
 
-/// **Bevy** [`Update`] system for drawing the path with gizmos
-fn draw_gizmos(mut gizmos: Gizmos, path: Res<Path>, theme: Res<CatppuccinTheme>) {
-    if path.len() < 2 {
-        return;
-    }
-    for i in 0..path.len() - 1 {
-        gizmos.line(
-            path[i],
-            path[i + 1],
-            Color::from_catppuccin_colour(theme.teal()),
-        );
-    }
+/// **Bevy** [`Update`] system for drawing the tree's branches with gizmo
+/// polylines
+fn draw_tree_branches(
+    mut gizmos: Gizmos,
+    tree: Res<RRTStarTree>,
+    theme: Res<CatppuccinTheme>,
+    path: Res<Path>,
+) {
+    let mut count = tree.0.vertices.len();
+
+    let max_weight = tree
+        .0
+        .vertices
+        .iter()
+        .map(|v| v.weight)
+        .fold(0.0, |acc: f32, x| acc.max(x));
+
+    tree.0.vertices.iter().for_each(|v| {
+        if let Some(parent_index) = v.parent_index {
+            // gizmo line from v.data to tree.0.vertices[parent].data
+            let parent_point = &tree.0.vertices[parent_index].data;
+
+            let color = if path.contains(&Vec3::new(v.data[0] as f32, 0.0, v.data[1] as f32)) {
+                Color::from_catppuccin_colour(theme.blue())
+            } else {
+                // gradient from red to blue based on vertex weight
+                let t = v.weight / max_weight;
+                let (r, g, b, a) = theme
+                    .gradient(theme.red(), theme.green())
+                    .at(t.into())
+                    .to_linear_rgba();
+                Color::rgba_linear(r as f32, g as f32, b as f32, a as f32)
+            };
+
+            gizmos.line(
+                Vec3::new(v.data[0] as f32, 0.0, v.data[1] as f32),
+                Vec3::new(parent_point[0] as f32, 0.0, parent_point[1] as f32),
+                color,
+            );
+            count -= 1;
+        }
+    });
 }
+
+// /// **Bevy** [`Update`] system for drawing the resulting path with gizmo
+// /// polylines Only runs on [`PathFoundEvent`] events
+// fn draw_path(mut gizmos: Gizmos, path: Res<Path>, theme:
+// Res<CatppuccinTheme>) {     for i in 0..path.len() - 1 {
+//         gizmos.line(
+//             path[i],
+//             path[i + 1],
+//             Color::from_catppuccin_colour(theme.green()),
+//         );
+//     }
+// }
 
 /// **Bevy** marker [`Component`] for marking waypoints
 /// Used to despawn previous waypoints when a new path is found
@@ -373,24 +377,30 @@ pub struct WaypointMarker;
 
 /// **Bevy** [`Update`] system for drawing waypoints along [`Path`]s
 /// Only runs on [`PathFoundEvent`] events
-fn draw_waypoints(
+fn draw_nodes(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     previous_waypoints: Query<Entity, With<WaypointMarker>>,
-    path: Res<Path>,
+    // path: Res<Path>,
+    tree: Res<RRTStarTree>,
     theme: Res<CatppuccinTheme>,
 ) {
     for entity in &previous_waypoints {
         commands.entity(entity).despawn();
     }
 
-    for point in path.0.iter() {
+    // go through all nodes in tree.0 and draw them
+    for node in tree.0.vertices.iter() {
         commands.spawn((
             PbrBundle {
-                mesh: meshes.add(Sphere::new(1.0).mesh().ico(5).unwrap()),
-                material: materials.add(theme.yellow_material()),
-                transform: Transform::from_translation(*point),
+                mesh: meshes.add(Sphere::new(0.1).mesh().ico(5).unwrap()),
+                material: materials.add(theme.text_material()),
+                transform: Transform::from_translation(Vec3::new(
+                    node.data[0] as f32,
+                    0.0,
+                    node.data[1] as f32,
+                )),
                 ..Default::default()
             },
             WaypointMarker,
