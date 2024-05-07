@@ -37,13 +37,10 @@ mod robot_colliders {
                 transform.translation.y,
             );
             let aabb = ball.aabb(&position);
+            let half_extents = aabb.half_extents();
             let aabb = Transform {
                 translation: transform.translation,
-                scale: Vec3::new(
-                    aabb.half_extents().x * 2.0,
-                    1.0,
-                    aabb.half_extents().y * 2.0,
-                ),
+                scale: Vec3::new(half_extents.x * 2.0, 1.0, half_extents.y * 2.0),
                 ..Default::default()
             };
             gizmos.cuboid(aabb, Color::RED);
@@ -60,11 +57,14 @@ mod environment_colliders {
     pub(super) fn render(
         mut gizmos: Gizmos,
         env_colliders: Res<crate::environment::map_generator::Colliders>,
+        config: Res<Config>,
     ) {
+        let height = config.visualisation.height.objects;
         for collider in env_colliders.iter() {
             let aabb = collider.aabb();
             let center = aabb.center();
-            let translation = Vec3::new(center.x, 0.0, center.y);
+
+            let translation = Vec3::new(center.x, height, center.y);
             let half_extents = aabb.half_extents();
             let aabb = Transform {
                 translation,

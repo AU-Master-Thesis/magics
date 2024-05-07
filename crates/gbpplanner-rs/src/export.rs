@@ -101,7 +101,8 @@ fn export(
         &Radius,
     )>,
     robot_collisions: Res<crate::planner::collisions::RobotRobotCollisions>,
-    sim_manager: Res<SimulationManager>,
+    environment_collisions: Res<crate::planner::collisions::RobotEnvironmentCollisions>,
+    sim_manager: Res<crate::simulation_loader::SimulationManager>,
     config: Res<Config>,
     time_virtual: Res<Time<Virtual>>,
 ) {
@@ -155,11 +156,8 @@ fn export(
                 // let velocities: Vec<[f32; 2]> = velocities.velocities().map(|vel| [vel.x,
                 // vel.z]).collect();
                 let velocities: Vec<[f32; 2]> = velocities.velocities().map(Into::into).collect();
-                let robot_collisions = robot_collisions
-                .get(entity)
-                // .map(|collisions| collisions.robots)
-                .unwrap_or(0);
-                let environment_collisions = 0; // Placeholder, replace with actual environment collision count
+                let robot_collisions = robot_collisions.get(entity).unwrap_or(0);
+                let environment_collisions = environment_collisions.get(entity).unwrap_or(0);
 
                 let id = format!("{:?}", entity);
                 let robot_data = RobotData {
