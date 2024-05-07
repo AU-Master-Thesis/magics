@@ -470,15 +470,26 @@ fn ui_settings_panel(
                                 );
                             custom::float_right(ui, |ui| {
                                 if custom::toggle_ui(ui, setting).clicked() {
-                                    let setting_kind: DrawSetting = name.parse().expect(
-                                        "the ui strings are generated from the enum, so parse \
-                                         should not fail",
-                                    );
-                                    let event = DrawSettingsEvent {
-                                        setting: setting_kind,
-                                        draw:    *setting,
-                                    };
-                                    world.send_event::<DrawSettingsEvent>(event);
+                                    println!("name: {}", name);
+                                    if let Ok(setting_kind) = name.parse::<DrawSetting>() {
+                                        let event = DrawSettingsEvent {
+                                            setting: setting_kind,
+                                            draw:    *setting,
+                                        };
+                                        world.send_event::<DrawSettingsEvent>(event);
+                                    } else {
+                                        error!("Failed to parse into a `DrawSection`: {}", name);
+                                    }
+                                    //
+                                    // let setting_kind: DrawSetting = name.parse().expect(
+                                    //     "the ui strings are generated from the enum, so parse \
+                                    //      should not fail",
+                                    // );
+                                    // let event = DrawSettingsEvent {
+                                    //     setting: setting_kind,
+                                    //     draw:    *setting,
+                                    // };
+                                    // world.send_event::<DrawSettingsEvent>(event);
                                 }
                             });
                             ui.end_row();

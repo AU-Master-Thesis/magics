@@ -116,7 +116,8 @@ pub struct VisualisationSection {
     pub uncertainty: UncertaintySection,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum_macros::EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum DrawSetting {
     CommunicationGraph,
     PredictedTrajectories,
@@ -129,7 +130,9 @@ pub enum DrawSetting {
     CommunicationRadius,
     Robots,
     ObstacleFactors,
+    #[strum(serialize = "interrobot_factors")]
     InterRobotFactors,
+    #[strum(serialize = "interrobot_factors_safety_distance")]
     InterRobotFactorsSafetyDistance,
     RobotColliders,
     RobotRobotCollisions,
@@ -137,42 +140,9 @@ pub enum DrawSetting {
     RobotEnvironmentCollisions,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct ParseDrawSettingError;
-
-impl std::str::FromStr for DrawSetting {
-    type Err = ParseDrawSettingError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let setting = match s {
-            "communication_graph" => Self::CommunicationGraph,
-            "predicted_trajectories" => Self::PredictedTrajectories,
-            "waypoints" => Self::Waypoints,
-            "uncertainty" => Self::Uncertainty,
-            "paths" => Self::Paths,
-            "generated_map" => Self::GeneratedMap,
-            "height_map" => Self::HeightMap,
-            "sdf" => Self::Sdf,
-            "communication_radius" => Self::CommunicationRadius,
-            "robots" => Self::Robots,
-            "obstacle_factors" => Self::ObstacleFactors,
-            "interrobot_factors" => Self::InterRobotFactors,
-            "interrobot_factors_safety_distance" => Self::InterRobotFactorsSafetyDistance,
-            "robot_colliders" => Self::RobotColliders,
-            "environment_colliders" => Self::EnvironmentColliders,
-            "robot_robot_collisions" => Self::RobotRobotCollisions,
-            "robot_environment_collisions" => Self::RobotEnvironmentCollisions,
-
-            _ => return Err(ParseDrawSettingError),
-        };
-
-        Ok(setting)
-    }
-}
-
 // TODO: store in a bitset
 #[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, Serialize, Deserialize, Iterable, Reflect, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Iterable, Reflect, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct DrawSection {
     pub robots: bool,
@@ -219,26 +189,26 @@ impl Default for DrawSection {
 }
 
 impl DrawSection {
-    pub fn to_display_string(name: &str) -> String {
+    pub fn to_display_string(name: &str) -> &'static str {
         match name {
-            "communication_graph" => "Communication".to_string(),
-            "predicted_trajectories" => "Trajectories".to_string(),
-            "waypoints" => "Waypoints".to_string(),
-            "uncertainty" => "Uncertainty".to_string(),
-            "paths" => "Paths".to_string(),
-            "generated_map" => "Generated Map".to_string(),
-            "height_map" => "Height Map".to_string(),
-            "sdf" => "SDF".to_string(),
-            "communication_radius" => "Communication Radius".to_string(),
-            "robots" => "Robots".to_string(),
-            "obstacle_factors" => "Obstacle Factors".to_string(),
-            "interrobot_factors" => "InterRobot Factors".to_string(),
-            "interrobot_factors_safety_distance" => "InterRobot Safety Distance".to_string(),
-            "robot_colliders" => "Robot Colliders".to_string(),
-            "environment_colliders" => "Environment Colliders".to_string(),
-            "robot_robot_collisions" => "Robot-Robot Collisions".to_string(),
-            "robot_environment_collisions" => "Robot-Environment Collisions".to_string(),
-            _ => "Unknown".to_string(),
+            "communication_graph" => "Communication",
+            "predicted_trajectories" => "Trajectories",
+            "waypoints" => "Waypoints",
+            "uncertainty" => "Uncertainty",
+            "paths" => "Paths",
+            "generated_map" => "Generated Map",
+            "height_map" => "Height Map",
+            "sdf" => "SDF",
+            "communication_radius" => "Communication Radius",
+            "robots" => "Robots",
+            "obstacle_factors" => "Obstacle Factors",
+            "interrobot_factors" => "InterRobot Factors",
+            "interrobot_factors_safety_distance" => "InterRobot Safety Distance",
+            "robot_colliders" => "Robot Colliders",
+            "environment_colliders" => "Environment Colliders",
+            "robot_robot_collisions" => "Robot-Robot Collisions",
+            "robot_environment_collisions" => "Robot-Environment Collisions",
+            _ => "Unknown",
         }
     }
 }
