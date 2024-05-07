@@ -74,6 +74,7 @@
           gdb # debugger
           # lldb # debugger
           rr # time-traveling debugger
+          ra-multiplex
         ]
         ++ cargo-subcommands;
     in
@@ -128,6 +129,7 @@
 
               python3Packages.matplotlib
               python3Packages.ipykernel
+              gh
             ]
             ++ bevy-deps
             ++ rust-deps;

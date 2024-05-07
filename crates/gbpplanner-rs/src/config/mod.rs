@@ -502,23 +502,26 @@ impl Default for InteractionSection {
 /// Contains parameters for the RRT algorithm
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct RrtSection {
+pub struct RRTSection {
     /// Maximum number of iterations to run the RRT algorithm
     pub max_iterations: NonZeroUsize,
     /// Length to extend the random branches by in each iteration
     pub step_size: StrictlyPositiveFinite<f32>,
     /// The collision radius to check for each iteration
     pub collision_radius: StrictlyPositiveFinite<f32>,
+    /// Neighbourhood radius for RRT*
+    pub neighbourhood_radius: StrictlyPositiveFinite<f32>,
     /// The smoothing parameters
     pub smoothing: SmoothingSection,
 }
 
-impl Default for RrtSection {
+impl Default for RRTSection {
     fn default() -> Self {
         Self {
             max_iterations: NonZeroUsize::new(10000).expect("1000 > 0"),
             step_size: StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
             collision_radius: StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
+            neighbourhood_radius: StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
             smoothing: SmoothingSection::default(),
         }
     }
@@ -577,7 +580,7 @@ pub struct Config {
     /// **RRT section:**
     /// Contains parameters for the RRT algorithm such as max iterations, step
     /// size and smoothing parameters
-    pub rrt: RrtSection,
+    pub rrt: RRTSection,
     /// **Graphviz section:**
     /// Contains parameters for how to export to graphviz
     pub graphviz: GraphvizSection,
@@ -607,7 +610,7 @@ impl Default for Config {
             gbp: GbpSection::default(),
             robot: RobotSection::default(),
             simulation: SimulationSection::default(),
-            rrt: RrtSection::default(),
+            rrt: RRTSection::default(),
             graphviz: GraphvizSection::default(),
             manual: ManualSection::default(),
         }
