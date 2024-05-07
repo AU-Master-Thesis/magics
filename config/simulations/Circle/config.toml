@@ -30,6 +30,7 @@ obstacle-factors                   = false
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 robot-colliders                    = false
+environment-colliders              = false
 
 [gbp]
 sigma-pose-fixed        = 0.000000000000001

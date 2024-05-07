@@ -4,7 +4,10 @@ use gbp_linalg::prelude::*;
 use ndarray::{array, s};
 use typed_floats::StrictlyPositiveFinite;
 
-use self::{dynamic::DynamicFactor, interrobot::InterRobotFactor, obstacle::ObstacleFactor};
+use self::{
+    dynamic::DynamicFactor, interrobot::InterRobotFactor, obstacle::ObstacleFactor,
+    tracking::TrackingFactor,
+};
 use super::{
     factorgraph::{FactorGraphId, NodeIndex},
     id::VariableId,
@@ -20,6 +23,7 @@ pub(in crate::factorgraph) mod interrobot;
 mod marginalise_factor_distance;
 pub(in crate::factorgraph) mod obstacle;
 pub(in crate::factorgraph) mod pose;
+pub(in crate::factorgraph) mod tracking;
 // pub(in crate::factorgraph) mod velocity;
 
 use marginalise_factor_distance::marginalise_factor_distance;
@@ -405,6 +409,8 @@ pub enum FactorKind {
     Dynamic(DynamicFactor),
     /// `ObstacleFactor`
     Obstacle(ObstacleFactor),
+    /// `TrackingFactor`
+    Tracking(TrackingFactor),
 }
 
 impl FactorKind {
@@ -439,10 +445,10 @@ impl FactorKind {
 impl Factor for FactorKind {
     fn name(&self) -> &'static str {
         match self {
-            // Self::Pose(f) => f.name(),
             Self::InterRobot(f) => f.name(),
             Self::Dynamic(f) => f.name(),
             Self::Obstacle(f) => f.name(),
+            Self::Tracking(f) => f.name(),
         }
     }
 
@@ -452,10 +458,10 @@ impl Factor for FactorKind {
         linearisation_point: &Vector<Float>,
     ) -> Cow<'_, Matrix<Float>> {
         match self {
-            // Self::Pose(f) => f.jacobian(state, x),
             Self::Dynamic(f) => f.jacobian(state, linearisation_point),
             Self::InterRobot(f) => f.jacobian(state, linearisation_point),
             Self::Obstacle(f) => f.jacobian(state, linearisation_point),
+            Self::Tracking(f) => f.jacobian(state, linearisation_point),
         }
     }
 
@@ -465,43 +471,44 @@ impl Factor for FactorKind {
             Self::Dynamic(f) => f.measure(state, linearisation_point),
             Self::InterRobot(f) => f.measure(state, linearisation_point),
             Self::Obstacle(f) => f.measure(state, linearisation_point),
-        }
-    }
-
-    fn neighbours(&self) -> usize {
-        match self {
-            // Self::Pose(f) => f.neighbours(),
-            Self::Dynamic(f) => f.neighbours(),
-            Self::InterRobot(f) => f.neighbours(),
-            Self::Obstacle(f) => f.neighbours(),
+            Self::Tracking(f) => f.measure(state, linearisation_point),
         }
     }
 
     fn skip(&self, state: &FactorState) -> bool {
         match self {
-            // Self::Pose(f) => f.skip(state),
             Self::Dynamic(f) => f.skip(state),
             Self::InterRobot(f) => f.skip(state),
             Self::Obstacle(f) => f.skip(state),
+            Self::Tracking(f) => f.skip(state),
         }
     }
 
     fn jacobian_delta(&self) -> Float {
         match self {
-            // Self::Pose(f) => f.jacobian_delta(),
             Self::Dynamic(f) => f.jacobian_delta(),
             Self::InterRobot(f) => f.jacobian_delta(),
             Self::Obstacle(f) => f.jacobian_delta(),
+            Self::Tracking(f) => f.jacobian_delta(),
         }
     }
 
     // TODO: not used so maybe just remove
     fn linear(&self) -> bool {
         match self {
-            // Self::Pose(f) => f.linear(),
             Self::Dynamic(f) => f.linear(),
             Self::InterRobot(f) => f.linear(),
             Self::Obstacle(f) => f.linear(),
+            Self::Tracking(f) => f.linear(),
+        }
+    }
+
+    fn neighbours(&self) -> usize {
+        match self {
+            FactorKind::InterRobot(f) => f.neighbours(),
+            FactorKind::Dynamic(f) => f.neighbours(),
+            FactorKind::Obstacle(f) => f.neighbours(),
+            FactorKind::Tracking(f) => f.neighbours(),
         }
     }
 }

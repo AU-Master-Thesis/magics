@@ -100,7 +100,7 @@ fn export(
         &planner::tracking::VelocityTracker,
         &Radius,
     )>,
-    robot_collisions: Res<crate::planner::collisions::RobotCollisions>,
+    robot_collisions: Res<crate::planner::collisions::RobotRobotCollisions>,
     sim_manager: Res<SimulationManager>,
     config: Res<Config>,
     time_virtual: Res<Time<Virtual>>,

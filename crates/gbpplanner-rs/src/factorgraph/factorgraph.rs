@@ -102,6 +102,10 @@ pub struct FactorGraph {
     /// List of indices of the dynamic factors in the graph.
     /// Used to speed up iteration over dynamic factors.
     dynamic_factor_indices: Vec<NodeIndex>,
+
+    /// List of indices of the tracking factors in the graph.
+    /// Used to speed up iteration over tracking factors.
+    tracking_factor_indices: Vec<NodeIndex>,
 }
 
 // macro_rules! internal_factor_iteration_inner {
@@ -139,6 +143,7 @@ impl FactorGraph {
             interrobot_factor_indices: Vec::new(),
             obstacle_factor_indices: Vec::new(),
             dynamic_factor_indices: Vec::new(),
+            tracking_factor_indices: Vec::new(),
         }
     }
 
@@ -155,6 +160,7 @@ impl FactorGraph {
             interrobot_factor_indices: Vec::new(),
             obstacle_factor_indices: Vec::new(),
             dynamic_factor_indices: Vec::new(),
+            tracking_factor_indices: Vec::new(),
         }
     }
 
@@ -200,6 +206,7 @@ impl FactorGraph {
             FactorKind::InterRobot(_) => self.interrobot_factor_indices.push(node_index),
             FactorKind::Dynamic(_) => self.dynamic_factor_indices.push(node_index),
             FactorKind::Obstacle(_) => self.obstacle_factor_indices.push(node_index),
+            FactorKind::Tracking(_) => self.tracking_factor_indices.push(node_index),
         }
 
         node_index.into()
@@ -884,14 +891,14 @@ pub struct FactorCount {
 /// Created with [`.factors()`][1]
 ///
 /// [1]: struct.FactorGraph.html#method.factors
-pub struct Factors<'a> {
-    graph: &'a Graph,
-    factor_indices: std::slice::Iter<'a, NodeIndex>,
+pub struct Factors<'fg> {
+    graph: &'fg Graph,
+    factor_indices: std::slice::Iter<'fg, NodeIndex>,
 }
 
-impl<'a> Factors<'a> {
+impl<'fg> Factors<'fg> {
     #[must_use]
-    fn new(graph: &'a Graph, factor_indices: &'a [NodeIndex]) -> Self {
+    fn new(graph: &'fg Graph, factor_indices: &'fg [NodeIndex]) -> Self {
         Self {
             graph,
             factor_indices: factor_indices.iter(),
@@ -908,8 +915,8 @@ impl FactorGraph {
     }
 }
 
-impl<'a> Iterator for Factors<'a> {
-    type Item = (NodeIndex, &'a FactorNode);
+impl<'fg> Iterator for Factors<'fg> {
+    type Item = (NodeIndex, &'fg FactorNode);
 
     fn next(&mut self) -> Option<Self::Item> {
         let &index = self.factor_indices.next()?;
@@ -965,13 +972,13 @@ impl<'a> Iterator for Factors<'a> {
 /// Created with [`.variables()`][1]
 ///
 /// [1]: struct.FactorGraph.html#method.variables
-pub struct Variables<'a> {
-    graph: &'a Graph,
-    variable_indices: std::slice::Iter<'a, NodeIndex>,
+pub struct Variables<'fg> {
+    graph: &'fg Graph,
+    variable_indices: std::slice::Iter<'fg, NodeIndex>,
 }
 
-impl<'a> Variables<'a> {
-    fn new(graph: &'a Graph, variable_indices: &'a [NodeIndex]) -> Self {
+impl<'fg> Variables<'fg> {
+    fn new(graph: &'fg Graph, variable_indices: &'fg [NodeIndex]) -> Self {
         Self {
             graph,
             variable_indices: variable_indices.iter(),
@@ -979,8 +986,8 @@ impl<'a> Variables<'a> {
     }
 }
 
-impl<'a> Iterator for Variables<'a> {
-    type Item = (VariableIndex, &'a VariableNode);
+impl<'fg> Iterator for Variables<'fg> {
+    type Item = (VariableIndex, &'fg VariableNode);
 
     fn next(&mut self) -> Option<Self::Item> {
         let &index = self.variable_indices.next()?;
@@ -1004,13 +1011,13 @@ impl FactorGraph {
 /// Iterator element type is `(FactorIndex, &'a InterRobotFactor)`.
 ///
 /// Created with [`.inter_robot_factors()`][1]
-pub struct InterRobotFactors<'a> {
-    graph: &'a Graph,
-    factor_indices: std::slice::Iter<'a, NodeIndex>,
+pub struct InterRobotFactors<'fg> {
+    graph: &'fg Graph,
+    factor_indices: std::slice::Iter<'fg, NodeIndex>,
 }
 
-impl<'a> InterRobotFactors<'a> {
-    fn new(graph: &'a Graph, factor_indices: &'a [NodeIndex]) -> Self {
+impl<'fg> InterRobotFactors<'fg> {
+    fn new(graph: &'fg Graph, factor_indices: &'fg [NodeIndex]) -> Self {
         Self {
             graph,
             factor_indices: factor_indices.iter(),
@@ -1018,8 +1025,8 @@ impl<'a> InterRobotFactors<'a> {
     }
 }
 
-impl<'a> Iterator for InterRobotFactors<'a> {
-    type Item = (NodeIndex, &'a InterRobotFactor);
+impl<'fg> Iterator for InterRobotFactors<'fg> {
+    type Item = (NodeIndex, &'fg InterRobotFactor);
 
     fn next(&mut self) -> Option<Self::Item> {
         let &index = self.factor_indices.next()?;
@@ -1149,8 +1156,8 @@ impl<'fg> VariableAndTheirObstacleFactors<'fg> {
     }
 }
 
-impl<'a> Iterator for VariableAndTheirObstacleFactors<'a> {
-    type Item = (&'a VariableNode, &'a ObstacleFactor);
+impl<'fg> Iterator for VariableAndTheirObstacleFactors<'fg> {
+    type Item = (&'fg VariableNode, &'fg ObstacleFactor);
 
     fn next(&mut self) -> Option<Self::Item> {
         let (&variable_index, &factor_index) = self.pairs.next()?;
@@ -1182,25 +1189,25 @@ impl FactorGraph {
     }
 }
 
-impl std::ops::Index<FactorIndex> for FactorGraph {
-    type Output = FactorNode;
+// impl<'fg> std::ops::Index<FactorIndex> for FactorGraph<'fg> {
+//     type Output = FactorNode<'fg>;
 
-    fn index(&self, index: FactorIndex) -> &Self::Output {
-        let node = &self.graph[index.0];
-        node.as_factor()
-            .expect("a factor index points to a factor node in the graph")
-    }
-}
+//     fn index(&self, index: FactorIndex) -> &'fg Self::Output {
+//         let node: &'fg Node<'fg> = &self.graph[index.0];
+//         node.as_factor()
+//             .expect("a factor index points to a factor node in the graph")
+//     }
+// }
 
-impl std::ops::Index<VariableIndex> for FactorGraph {
-    type Output = VariableNode;
+// impl std::ops::Index<VariableIndex> for FactorGraph {
+//     type Output = VariableNode;
 
-    fn index(&self, index: VariableIndex) -> &Self::Output {
-        self.graph[index.0]
-            .as_variable()
-            .expect("a variable index points to a variable node in the graph")
-    }
-}
+//     fn index(&self, index: VariableIndex) -> &Self::Output {
+//         self.graph[index.0]
+//             .as_variable()
+//             .expect("a variable index points to a variable node in the
+// graph")     }
+// }
 
 use super::graphviz;
 
@@ -1221,6 +1228,7 @@ impl graphviz::Graph for FactorGraph {
                             FactorKind::InterRobot(ref inner) => {
                                 graphviz::NodeKind::InterRobotFactor(inner.external_variable)
                             }
+                            FactorKind::Tracking(_) => todo!(),
                         },
                         NodeKind::Variable(variable) => {
                             // let mean = variable.belief.mean();

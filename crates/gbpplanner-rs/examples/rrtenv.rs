@@ -14,7 +14,10 @@ use gbpplanner_rs::{
     asset_loader::{AssetLoaderPlugin, Fonts},
     cli,
     config::{read_config, Config, FormationGroup, RrtSection},
-    environment::{map_generator::Colliders, EnvironmentPlugin},
+    environment::{
+        map_generator::{Collider, Colliders},
+        EnvironmentPlugin,
+    },
     input::{camera::CameraInputPlugin, general::GeneralInputPlugin, ChangingBinding},
     simulation_loader::{InitialSimulation, SimulationLoaderPlugin},
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt, ThemePlugin},
@@ -442,30 +445,37 @@ impl<'world> CollisionProblem<'world> {
         // place the intersection ball at the point
         let ball_pos = Isometry2::new(Vector2::new(point[0] as f32, point[1] as f32), na::zero());
 
-        let mut intersecting = false;
-
-        // self.colliders.iter().for_each(|(isometry, collider)| {
-        //     // info!("isometry: {:?}", isometry);
-        //     // info!("collider: {:?}", *collider);
-        //     intersecting = intersection_test(&ball_pos, &self.ball, &isometry,
-        // collider.as_ref())         .expect("Correct shapes should have been
-        // given."); });
-
-        for (isometry, collider) in self.colliders.iter() {
-            intersecting = intersection_test(
+        let intersecting = self.colliders.iter().any(|collider| {
+            intersection_test(
                 &ball_pos,
                 &self.collision_checker,
-                &isometry,
-                collider.as_ref(),
+                &collider.isometry,
+                collider.shape.as_ref(),
             )
-            .expect("Correct shapes should have been given.");
-            if intersecting {
-                // info!("intersecting with collider: {}", i);
-                break;
-            }
-        }
-
-        // std::process::exit(0);
+            .expect("Correct shapes should have been given.")
+        });
+        // let mut intersecting = false;
+        //
+        // // for (isometry, collider) in self.colliders.iter() {
+        // for Collider {
+        //     associated_mesh,
+        //     isometry,
+        //     shape,
+        // } in self.colliders.iter()
+        // {
+        //     intersecting = intersection_test(
+        //         &ball_pos,
+        //         &self.collision_checker,
+        //         &isometry,
+        //         shape.as_ref(),
+        //         // collider.as_ref(),
+        //     )
+        //     .expect("Correct shapes should have been given.");
+        //     if intersecting {
+        //         // info!("intersecting with collider: {}", i);
+        //         break;
+        //     }
+        // }
 
         // return true if not intersecting
         !intersecting

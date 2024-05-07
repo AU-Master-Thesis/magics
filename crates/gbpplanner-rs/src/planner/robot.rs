@@ -13,7 +13,10 @@ use gbp_linalg::prelude::*;
 use ndarray::{array, concatenate, s, Axis};
 use rand::{thread_rng, Rng};
 
-use super::{collisions::RobotCollisions, spawner::RobotClickedOn};
+use super::{
+    collisions::{RobotEnvironmentCollisions, RobotRobotCollisions},
+    spawner::RobotClickedOn,
+};
 use crate::{
     bevy_utils::run_conditions::time::virtual_time_is_paused,
     config::{formation::WaypointReachedWhenIntersects, Config},
@@ -1462,7 +1465,8 @@ fn on_robot_clicked(
         &Ball,
         &RadioAntenna,
     )>,
-    robot_collisions: Res<RobotCollisions>,
+    robot_robot_collisions: Res<RobotRobotCollisions>,
+    robot_environment_collisions: Res<RobotEnvironmentCollisions>,
 ) {
     // let print_line = |text: &str,
     //     println!("{}", text);
@@ -1549,11 +1553,11 @@ fn on_robot_clicked(
         println!("    {}:", "received".cyan());
         println!("      {}: {}", "internal".red(), messages_received.internal);
         println!("      {}: {}", "external".red(), messages_received.external);
-        let collisions = robot_collisions.get(*robot_id).unwrap_or(0);
-
         println!("  {}:", "collisions".magenta());
-        println!("    {}: {}", "other-robots".cyan(), collisions);
-        println!("    {}: {}", "environment".cyan(), "todo");
+        let robot_collisions = robot_robot_collisions.get(*robot_id).unwrap_or(0);
+        println!("    {}: {}", "other-robots".cyan(), robot_collisions);
+        let env_collisions = robot_environment_collisions.get(*robot_id).unwrap_or(0);
+        println!("    {}: {}", "environment".cyan(), env_collisions);
         println!("  {}:", "aabb".magenta());
         let position =
             parry2d::na::Isometry2::translation(transform.translation.x, transform.translation.z);

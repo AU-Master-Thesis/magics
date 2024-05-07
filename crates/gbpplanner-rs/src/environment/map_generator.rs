@@ -47,18 +47,49 @@ pub trait DebugShape: shape::Shape + std::fmt::Debug {}
 
 impl DebugShape for shape::Cuboid {}
 
+// #[derive(Debug)]
+pub struct Collider {
+    pub associated_mesh: Option<Entity>,
+    pub isometry: Isometry2<f32>,
+    pub shape: Arc<dyn shape::Shape>,
+}
+
+impl Collider {
+    #[inline]
+    pub fn aabb(&self) -> parry2d::bounding_volume::Aabb {
+        self.shape.compute_aabb(&self.isometry)
+    }
+}
+
 #[derive(Resource, Default)]
-pub struct Colliders(Vec<(Isometry2<f32>, Arc<dyn shape::Shape>)>);
-// where
-//     S: shape::Shape + std::fmt::Debug;
+pub struct Colliders(Vec<Collider>);
+// pub struct Colliders(Vec<(Isometry2<f32>, Arc<dyn shape::Shape>)>);
 
 impl Colliders {
-    pub fn push(&mut self, position: Isometry2<f32>, shape: Arc<dyn shape::Shape>) {
-        self.0.push((position, shape));
+    pub fn push(
+        &mut self,
+        associated_mesh: Option<Entity>,
+        position: Isometry2<f32>,
+        shape: Arc<dyn shape::Shape>,
+    ) {
+        self.0.push(Collider {
+            associated_mesh,
+            isometry: position,
+            shape,
+        });
+        // self.0.push((position, shape));
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &(Isometry2<f32>, Arc<dyn shape::Shape>)> {
+    pub fn iter(&self) -> impl Iterator<Item = &Collider> {
         self.0.iter()
+    }
+
+    // pub fn iter(&self) -> impl Iterator<Item = &(Isometry2<f32>, Arc<dyn
+    // shape::Shape>)> {     self.0.iter()
+    // }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -1033,30 +1064,33 @@ fn build_tile_grid(
                 }
                 _ => None,
             } {
-                // obstacle_information.iter().for_each(|(cuboid, transform)| {
                 for (cuboid, transform) in &obstacle_information {
+                    let entity = commands
+                        .spawn((
+                            PbrBundle {
+                                mesh: meshes.add(*cuboid),
+                                transform: *transform,
+                                material: materials.obstacle.clone(),
+                                visibility: if config.visualisation.draw.generated_map {
+                                    Visibility::Visible
+                                } else {
+                                    Visibility::Hidden
+                                },
+                                ..Default::default()
+                            },
+                            TileCoordinates::new(x, y),
+                            ObstacleMarker,
+                        ))
+                        .id();
+
                     colliders.push(
+                        Some(entity),
                         Isometry2::new(
                             Vector2::new(transform.translation.x, transform.translation.z),
                             na::zero(),
                         ),
                         Arc::new(Into::<shape::Cuboid>::into(*cuboid)),
                     );
-                    commands.spawn((
-                        PbrBundle {
-                            mesh: meshes.add(*cuboid),
-                            transform: *transform,
-                            material: materials.obstacle.clone(),
-                            visibility: if config.visualisation.draw.generated_map {
-                                Visibility::Visible
-                            } else {
-                                Visibility::Hidden
-                            },
-                            ..Default::default()
-                        },
-                        TileCoordinates::new(x, y),
-                        ObstacleMarker,
-                    ));
                 }
             }
         }

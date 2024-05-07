@@ -7,7 +7,7 @@ use units::sample_rate::SampleRate;
 
 use crate::{
     factorgraph::prelude::FactorGraph,
-    planner::{collisions::RobotCollisions, RobotState},
+    planner::{collisions::RobotRobotCollisions, RobotState},
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };
 
@@ -164,7 +164,7 @@ impl RobotDiagnosticsPlugin {
     #[allow(clippy::cast_precision_loss)]
     fn count_robot_collisions(
         mut diagnostics: Diagnostics,
-        robot_collisions: Res<RobotCollisions>,
+        robot_collisions: Res<RobotRobotCollisions>,
     ) {
         diagnostics.add_measurement(&Self::ROBOT_COLLISION_COUNT, || {
             robot_collisions.collisions() as f64
