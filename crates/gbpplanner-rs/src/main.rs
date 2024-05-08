@@ -223,12 +223,25 @@ fn main() -> anyhow::Result<()> {
 
         // sort directory names, to match order in simulation picker
         directories.sort();
+
+        // Determine the maximum length of the basename for alignment
+        let max_basename_length = directories
+            .iter()
+            .map(|s| Path::new(s).file_name().unwrap().to_string_lossy().len())
+            .max()
+            .unwrap_or(0);
+
         for name in directories {
             let basename = Path::new(&name).file_name().unwrap().to_string_lossy();
             if atty::is(atty::Stream::Stdout) {
-                println!("{} {}", basename.green().bold(), name);
+                println!(
+                    "{:width$} {}",
+                    basename.green().bold(),
+                    name,
+                    width = max_basename_length
+                );
             } else {
-                println!("{} {}", basename, name);
+                println!("{:width$} {}", basename, name, width = max_basename_length);
             }
         }
 
@@ -364,7 +377,8 @@ fn main() -> anyhow::Result<()> {
 
         // our plugins
         .add_plugins((
-            simulation_loader::SimulationLoaderPlugin::default(),
+            // simulation_loader::SimulationLoaderPlugin::default(),
+            simulation_loader::SimulationLoaderPlugin::new(true, cli.initial_scenario.clone()),
             pause_play::PausePlayPlugin::default(),
             theme::ThemePlugin,
             asset_loader::AssetLoaderPlugin,

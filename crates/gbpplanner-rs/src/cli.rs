@@ -42,12 +42,20 @@ pub struct Cli {
     // #[arg(short, long, value_name = "DIR")]
     /// Path to directory with simuliations to load. [default:
     /// ./config/simulations]
+    // #[arg(short, long, group = "configuration", default_value_t =
+    // String::from("./config/simulations"))]
     #[arg(short, long, group = "configuration")]
     pub simulations_dir: Option<std::path::PathBuf>,
 
     /// List all detected simulations
     #[arg(short, long, group = "dump")]
     pub list_scenarios: bool,
+
+    /// Initial scenario to load
+    /// If not specified, the first scenario in lexiographical order is loaded
+    /// from the simulations directory
+    #[arg(short, long)]
+    pub initial_scenario: Option<String>,
 
     // /// Run the app without a window for rendering the environment
     // #[arg(long, group = "display")]
