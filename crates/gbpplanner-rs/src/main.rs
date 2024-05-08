@@ -28,6 +28,8 @@ pub(crate) mod macros;
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
+use std::path::Path;
+
 use bevy::{
     asset::AssetMetaCheck,
     prelude::*,
@@ -43,6 +45,7 @@ use colored::Colorize;
 // use config::{environment::EnvironmentType, Environment};
 use gbp_environment::{Environment, EnvironmentType};
 use gbpplanner_rs::AppState;
+use itertools::Itertools;
 
 // use iyes_perf_ui::prelude::*;
 
@@ -205,6 +208,33 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    if cli.list_scenarios {
+        let scenario_dir = Path::new("./config/simulations");
+        assert!(scenario_dir.exists());
+        let mut directories = Vec::new();
+        let entries = scenario_dir.read_dir()?; // .sort_by(|a, b| a.file_name().cmp(&b.file_name()));
+                                                //
+        for entry in entries {
+            let entry = entry?.path();
+            if entry.is_dir() {
+                directories.push(entry.to_string_lossy().to_string());
+            }
+        }
+
+        // sort directory names, to match order in simulation picker
+        directories.sort();
+        for name in directories {
+            let basename = Path::new(&name).file_name().unwrap().to_string_lossy();
+            if atty::is(atty::Stream::Stdout) {
+                println!("{} {}", basename.green().bold(), name);
+            } else {
+                println!("{} {}", basename, name);
+            }
+        }
+
+        return Ok(());
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     {
         if let Some(ref working_dir) = cli.working_dir {
@@ -318,32 +348,35 @@ fn main() -> anyhow::Result<()> {
     // app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
     let hz = 60.0;
     app.insert_resource(Time::<Fixed>::from_hz(hz))
+        // bevy builtin plugins
         .add_plugins(DefaultPlugins
             .set(window_plugin)
             // .set(log_plugin)
         )
         // third-party plugins
-        .add_plugins(bevy_egui::EguiPlugin)
+        .add_plugins((bevy_egui::EguiPlugin,
+            bevy_mod_picking::DefaultPickingPlugins,
+
+
+        ))
         // TODO: use
         // .add_plugins(EntropyPlugin::<WyRand>::default())
 
         // our plugins
-        .add_plugins(SimulationLoaderPlugin::default())
         .add_plugins((
-            DefaultPickingPlugins,
-            PausePlayPlugin::default(),
-            ThemePlugin,       // Custom
-            AssetLoaderPlugin, // Custom
-            EnvironmentPlugin, // Custom
-            MovementPlugin,    // Custom
-            InputPlugin,       // Custom
-            EguiInterfacePlugin, // Custom
-            PlannerPlugin,
-            NotifyPlugin::default(),
+            simulation_loader::SimulationLoaderPlugin::default(),
+            pause_play::PausePlayPlugin::default(),
+            theme::ThemePlugin,
+            asset_loader::AssetLoaderPlugin,
+            environment::EnvironmentPlugin,
+            movement::MovementPlugin,
+            input::InputPlugin,
+            ui::EguiInterfacePlugin,
+            planner::PlannerPlugin,
+            bevy_notify::NotifyPlugin::default(),
             export::ExportPlugin::default(),
-            // PrngPlugin,
         ))
-        .add_plugins(ToggleFullscreenPlugin::default())
+        .add_plugins(bevy_fullscreen::ToggleFullscreenPlugin::default())
         .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));
 
     app.run();
@@ -371,34 +404,3 @@ fn end_simulation(config: Res<Config>) {
     );
     // std::process::exit(0);
 }
-
-// fn spawn_perf_ui(mut commands: Commands) {
-//     commands.spawn(PerfUiCompleteBundle::default());
-// }
-
-// /// Makes the window visible after a few frames has been rendered.
-// /// This is a **hack** to prevent the window from flickering at startup.
-// fn make_window_visible(mut window: Query<&mut Window>, frames:
-// Res<FrameCount>) {     // The delay may be different for your app or system.
-//     if frames.0 == 3 {
-//         // At this point the gpu is ready to show the app so we can make the
-// window         // visible. Alternatively, you could toggle the visibility in
-// Startup.         // It will work, but it will have one white frame before it
-// starts rendering         window.single_mut().visible = true;
-//     }
-// }
-
-// fn create_toast(mut toast_event: EventWriter<ToastEvent>, mut n:
-// Local<usize>) {     *n += 1;
-
-//     toast_event.send(ToastEvent {
-//         caption: format!("call: {}", *n),
-//         // caption: "hello".into(),
-//         options: ToastOptions {
-//             level: ToastLevel::Success,
-//             // closable: false,
-//             // show_progress_bar: false,
-//             ..Default::default()
-//         },
-//     });
-// }

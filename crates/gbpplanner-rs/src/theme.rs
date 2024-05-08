@@ -448,15 +448,9 @@ pub struct ThemePlugin;
 
 impl Plugin for ThemePlugin {
     fn build(&self, app: &mut App) {
-        // let window_theme = match dark_light::detect() {
-        //     dark_light::Mode::Dark | dark_light::Mode::Default => WindowTheme::Dark,
-        //     dark_light::Mode::Light => WindowTheme::Light,
-        // };
-
-        // info!(
-        //     "based on OS light/dark theme preference, setting window theme to: {:?}",
-        //     window_theme
-        // );
+        if !app.is_plugin_added::<bevy::window::WindowPlugin>() {
+            return;
+        }
 
         app.add_event::<CycleTheme>()
             .add_event::<ThemeChanged>()
