@@ -29,6 +29,7 @@ fn visualise_tracking_factors(
     mut gizmos: Gizmos,
     factorgraphs: Query<(&FactorGraph, &ColorAssociation)>,
     theme: Res<CatppuccinTheme>,
+    config: Res<Config>,
 ) {
     for (factorgraph, color_association) in &factorgraphs {
         for (variable, tracking_factor) in factorgraph.variable_and_their_tracking_factors() {
@@ -41,8 +42,12 @@ fn visualise_tracking_factors(
             );
 
             // line from estimated position to last measurement
-            let start = estimated_position.extend(0.0).xzy();
-            let end = last_measurement.extend(0.0).xzy();
+            let start = estimated_position
+                .extend(config.visualisation.height.objects)
+                .xzy();
+            let end = (estimated_position + last_measurement)
+                .extend(config.visualisation.height.objects)
+                .xzy();
 
             gizmos.line(start, end, color);
         }

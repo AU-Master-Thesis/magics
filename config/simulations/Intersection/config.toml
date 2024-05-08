@@ -5,7 +5,7 @@ formation_group   = "./config/simulations/Intersection/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance    = 250.0
+default-cam-distance    = 100.0
 
 [visualisation.uncertainty]
 max-radius = 2.5
@@ -16,24 +16,24 @@ objects    = 0.5
 height-map = 1.0
 
 [visualisation.draw]
-robots                             = true
+robots                             = false
 communication-graph                = false
 predicted-trajectories             = true
 waypoints                          = false
-uncertainty                        = false
+uncertainty                        = true
 paths                              = true
-generated-map                      = true
+generated-map                      = false
 height-map                         = false
 sdf                                = false
 communication-radius               = false
-obstacle-factors                   = true
+obstacle-factors                   = false
 tracking                           = true
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 robot-colliders                    = false
 environment-colliders              = false
-robot-robot-collisions             = true
-robot-environment-collisions       = true
+robot-robot-collisions             = false
+robot-environment-collisions       = false
 
 
 [gbp]
@@ -41,7 +41,7 @@ sigma-pose-fixed        = 0.000000000000001
 sigma-factor-dynamics   = 0.1
 sigma-factor-interrobot = 0.01
 sigma-factor-obstacle   = 0.01
-sigma-factor-tracking   = 0.1
+sigma-factor-tracking   = 0.01
 lookahead-multiple      = 3
 
 [gbp.iterations-per-timestep]
