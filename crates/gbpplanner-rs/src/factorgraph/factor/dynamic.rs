@@ -2,7 +2,7 @@
 
 use std::borrow::Cow;
 
-use gbp_linalg::prelude::*;
+use gbp_linalg::{prelude::*, pretty_format_matrix};
 use ndarray::{concatenate, Axis};
 
 use super::{Factor, FactorState};
@@ -86,5 +86,12 @@ impl Factor for DynamicFactor {
     #[inline(always)]
     fn neighbours(&self) -> usize {
         Self::NEIGHBORS
+    }
+}
+
+impl std::fmt::Display for DynamicFactor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "cached_jacobian:");
+        writeln!(f, "{}", pretty_format_matrix!(&self.cached_jacobian))
     }
 }

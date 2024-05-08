@@ -13,6 +13,12 @@ impl PoseFactor {
     pub const NEIGHBORS: usize = 1;
 }
 
+impl std::fmt::Display for PoseFactor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
+
 impl Factor for PoseFactor {
     #[inline(always)]
     fn name(&self) -> &'static str {

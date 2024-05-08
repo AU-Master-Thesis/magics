@@ -195,3 +195,10 @@ impl Factor for InterRobotFactor {
         Self::NEIGHBORS
     }
 }
+
+impl std::fmt::Display for InterRobotFactor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "safety_distance: {}", self.safety_distance)
+        // TODO: write more
+    }
+}

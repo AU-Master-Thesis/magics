@@ -50,8 +50,18 @@ impl Factor for VelocityFactor {
         todo!()
     }
 
-    fn jacobian(&self, _state: &FactorState, _x: &Vector<Float>) -> std::borrow::Cow<'_, Matrix<Float>> {
+    fn jacobian(
+        &self,
+        _state: &FactorState,
+        _x: &Vector<Float>,
+    ) -> std::borrow::Cow<'_, Matrix<Float>> {
         todo!()
         // std::borrow::Cow::Owned(self.first_order_jacobian(state, x.clone()))
+    }
+}
+
+impl std::fmt::Display for VelocityFactor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }

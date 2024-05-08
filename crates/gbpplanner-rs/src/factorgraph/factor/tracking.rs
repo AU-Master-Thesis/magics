@@ -141,3 +141,9 @@ impl Factor for TrackingFactor {
         Self::NEIGHBORS
     }
 }
+
+impl std::fmt::Display for TrackingFactor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "todo")
+    }
+}

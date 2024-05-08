@@ -1,19 +1,25 @@
 use super::factor::ExternalVariableId;
 
+/// Represents a factorgraph node in the graphviz output
 pub struct Node {
+    /// The index of the node
     pub index: usize,
+    /// The kind of the node
     pub kind:  NodeKind,
 }
 
 impl Node {
+    /// Returns the color of the node
     pub const fn color(&self) -> &'static str {
         self.kind.color()
     }
 
+    /// Returns the shape of the node
     pub const fn shape(&self) -> &'static str {
         self.kind.shape()
     }
 
+    /// Returns the width of the node
     pub const fn width(&self) -> f64 {
         self.kind.width()
     }

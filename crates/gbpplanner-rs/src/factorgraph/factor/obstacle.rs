@@ -213,3 +213,10 @@ impl Factor for ObstacleFactor {
         Self::NEIGHBORS
     }
 }
+
+impl std::fmt::Display for ObstacleFactor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "world_size: {}", self.world_size)
+        // writeln!(f, "")
+    }
+}

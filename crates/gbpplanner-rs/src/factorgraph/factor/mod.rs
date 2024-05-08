@@ -25,6 +25,7 @@ mod marginalise_factor_distance;
 pub(in crate::factorgraph) mod obstacle;
 pub(in crate::factorgraph) mod pose;
 pub(in crate::factorgraph) mod tracking;
+mod velocity;
 // pub(in crate::factorgraph) mod velocity;
 
 use marginalise_factor_distance::marginalise_factor_distance;
@@ -33,10 +34,15 @@ use marginalise_factor_distance::marginalise_factor_distance;
 pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 
 /// Common interface for all factors
-pub trait Factor {
+pub trait Factor: std::fmt::Display {
     // const NEIGHBORS: usize;
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
+
+    // ///
+    // fn display(&self) -> Cow<'_, str> {
+    //     self.name().into()
+    // }
 
     /// The delta for the jacobian calculation
     fn jacobian_delta(&self) -> Float;
@@ -420,6 +426,17 @@ pub enum FactorKind {
     Obstacle(ObstacleFactor),
     /// `TrackingFactor`
     Tracking(TrackingFactor),
+}
+
+impl std::fmt::Display for FactorKind {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InterRobot(f) => f.fmt(formatter),
+            Self::Dynamic(f) => f.fmt(formatter),
+            Self::Obstacle(f) => f.fmt(formatter),
+            Self::Tracking(f) => f.fmt(formatter),
+        }
+    }
 }
 
 impl Factor for FactorKind {

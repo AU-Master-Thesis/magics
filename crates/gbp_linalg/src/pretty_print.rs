@@ -80,21 +80,423 @@ fn float_color(f: f64) -> &'static str {
     }
 }
 
-/// Pretty print a matrix.
-/// Not intended to be used directly. Use the [`pretty_print_matrix!`] macro
-/// instead.
+// /// Pretty print a matrix.
+// /// Not intended to be used directly. Use the [`pretty_print_matrix!`] macro
+// /// instead.
+// ///
+// /// # Panics
+// /// - If any of the elements of the matrix cannot be converted to a `f64`
+// pub fn _pretty_print_matrix<T, M>(
+//     matrix: &M,
+//     name: Option<&str>,
+//     file: Option<&str>,
+//     line: Option<u32>,
+// ) where
+//     T: GbpFloat,
+//     M: PrettyPrintMatrix<T>,
+// {
+//     let (nrows, ncols) = matrix.shape();
+//     let (cell_width, _use_scientific_notation): (usize, bool) = {
+//         let mut max_width = 0;
+//         for i in 0..nrows {
+//             for j in 0..ncols {
+//                 let x = matrix.at(i, j);
+//                 let width = num_of_integral_digits(x.to_f64().expect("x is
+// representable as f64"))                     .unwrap_or(0)
+//                     + 1;
+//                 if width > max_width {
+//                     max_width = width;
+//                 }
+//             }
+//         }
+//         if max_width == 0 {
+//             max_width = 5; // enough for "nan" and "inf", "-inf" and "0.0"
+//         }
+//         let integral_digits_limit = 9;
+//         let use_scientific_notation = max_width > integral_digits_limit;
+//         if use_scientific_notation {
+//             max_width = integral_digits_limit;
+//         }
+//
+//         max_width += 1 + PRECISION;
+//         (max_width, use_scientific_notation)
+//     };
+//
+//     let right_padding = cell_width / 2;
+//     let total_width = ncols * cell_width + right_padding;
+//     let dims = format!("{nrows}x{ncols}");
+//     let horizontal_line = "─".repeat(total_width);
+//
+//     if let (Some(file), Some(line)) = (file, line) {
+//         println!("{file}:{YELLOW_TEXT}{line}{RESET_TEXT}");
+//     }
+//
+//     // print the top border
+//     if let Some(name) = name {
+//         // handle if name is longer than cell_columns
+//         if name.len() + dims.len() > total_width {
+//
+// println!("{CYAN_TEXT}{name}{RESET_TEXT}:{MAGENTA_TEXT}{dims}{RESET_TEXT}");
+//
+// println!("{UPPER_LEFT_CORNER}{horizontal_line}{UPPER_RIGHT_CORNER}");
+//         } else {
+//             println!(
+//                 "{}{}{}{}{}{}{}{}{}",
+//                 UPPER_LEFT_CORNER,
+//                 CYAN_TEXT,
+//                 name,
+//                 RESET_TEXT,
+//                 "─".repeat(total_width - name.len() - dims.len()),
+//                 MAGENTA_TEXT,
+//                 dims,
+//                 RESET_TEXT,
+//                 UPPER_RIGHT_CORNER
+//             );
+//         }
+//     } else {
+//         println!("{UPPER_LEFT_CORNER}{horizontal_line}{UPPER_RIGHT_CORNER}");
+//     }
+//
+//     // print each cell in the matrix
+//     for i in 0..nrows {
+//         print!("{BAR}");
+//         for j in 0..ncols {
+//             let x = matrix.at(i, j);
+//             let x = x.to_f64().expect("x is representable as f64");
+//             if x.abs() > 1e6 {
+//                 print!(
+//                     "{}{:cell_width$.precision$e}{}",
+//                     float_color(x),
+//                     x,
+//                     RESET_TEXT,
+//                     cell_width = cell_width,
+//                     precision = PRECISION
+//                 );
+//             } else {
+//                 print!(
+//                     "{}{:cell_width$.precision$}{}",
+//                     float_color(x),
+//                     x,
+//                     RESET_TEXT,
+//                     cell_width = cell_width,
+//                     precision = PRECISION
+//                 );
+//             }
+//         }
+//         println!("{}{}", " ".repeat(right_padding), BAR);
+//     }
+//     // print the bottom border
+//     println!("{LOWER_LEFT_CORNER}{horizontal_line}{LOWER_RIGHT_CORNER}");
+// }
+
+// /// Internal function to pretty print a vector
+// /// Use by the [`pretty_print_vector!`] macro
+// ///
+// /// # Panics
+// /// - If any of the elements of the matrix cannot be converted to a `f64`
+// pub fn _pretty_print_vector<T, V>(
+//     vector: &V,
+//     name: Option<&str>,
+//     file: Option<&str>,
+//     line: Option<u32>,
+// ) where
+//     T: GbpFloat,
+//     V: PrettyPrintVector<T>,
+// {
+//     let (cell_width, _use_scientific_notation): (usize, bool) = {
+//         let mut max_width = 0;
+//         for i in 0..vector.len() {
+//             let x = vector.at(i);
+//             let x = x.to_f64().expect("x is representable as f64");
+//             let width = num_of_integral_digits(x).unwrap_or(0) + 1;
+//             if width > max_width {
+//                 max_width = width;
+//             }
+//         }
+//         if max_width == 0 {
+//             max_width = 4; // enough for "nan" and "inf", "-inf" and "0.0"
+//         }
+//         let integral_digits_limit = 9;
+//         let use_scientific_notation = max_width > integral_digits_limit;
+//         if use_scientific_notation {
+//             max_width = integral_digits_limit;
+//         }
+//
+//         max_width += 1 + PRECISION;
+//         (max_width, use_scientific_notation)
+//     };
+//
+//     let right_padding = cell_width / 2;
+//     let total_width = vector.len() * cell_width + right_padding;
+//     let horizontal_line = "─".repeat(total_width);
+//     let dims = format!("{}x{}", vector.len(), 1);
+//
+//     if let (Some(file), Some(line)) = (file, line) {
+//         println!("{}:{}{}{}", file, YELLOW_TEXT, line, RESET_TEXT);
+//     }
+//
+//     if let Some(name) = name {
+//         if name.len() + dims.len() > total_width {
+//             println!(
+//                 "{}{}{}:{}{}{}",
+//                 CYAN_TEXT, name, RESET_TEXT, MAGENTA_TEXT, dims, RESET_TEXT
+//             );
+//             println!(
+//                 "{}{}{}",
+//                 UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
+//             );
+//         } else {
+//             println!(
+//                 "{}{}{}{}{}{}{}{}{}",
+//                 UPPER_LEFT_CORNER,
+//                 CYAN_TEXT,
+//                 name,
+//                 RESET_TEXT,
+//                 "─".repeat(total_width - name.len() - dims.len()),
+//                 MAGENTA_TEXT,
+//                 dims,
+//                 RESET_TEXT,
+//                 UPPER_RIGHT_CORNER
+//             );
+//         }
+//     } else {
+//         println!(
+//             "{}{}{}",
+//             UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
+//         );
+//     }
+//
+//     print!("{}", BAR);
+//
+//     for i in 0..vector.len() {
+//         let x = vector.at(i);
+//         let x = x.to_f64().expect("x is representable as f64");
+//         if x.abs() > 1e6 {
+//             print!(
+//                 "{}{:cell_width$.precision$e}{}",
+//                 float_color(x),
+//                 x,
+//                 RESET_TEXT,
+//                 cell_width = cell_width,
+//                 precision = PRECISION
+//             );
+//         } else {
+//             print!(
+//                 "{}{:cell_width$.precision$}{}",
+//                 float_color(x),
+//                 x,
+//                 RESET_TEXT,
+//                 cell_width = cell_width,
+//                 precision = PRECISION
+//             );
+//         }
+//     }
+//
+//     println!("{}{}", " ".repeat(right_padding), BAR);
+//
+//     println!("{LOWER_LEFT_CORNER}{horizontal_line}{LOWER_RIGHT_CORNER}");
+// }
+
+/// Internal function to pretty print a vector
+/// Use by the [`pretty_print_vector!`] macro
 ///
 /// # Panics
 /// - If any of the elements of the matrix cannot be converted to a `f64`
-pub fn _pretty_print_matrix<T, M>(
+#[allow(clippy::unwrap_used)]
+pub fn _pretty_format_vector<T, V>(
+    vector: &V,
+    name: Option<&str>,
+    file: Option<&str>,
+    line: Option<u32>,
+) -> String
+where
+    T: GbpFloat,
+    V: PrettyPrintVector<T>,
+{
+    use std::fmt::Write;
+    let mut text = String::new();
+
+    let (cell_width, _use_scientific_notation): (usize, bool) = {
+        let mut max_width = 0;
+        for i in 0..vector.len() {
+            let x = vector.at(i);
+            let x = x.to_f64().expect("x is representable as f64");
+            let width = num_of_integral_digits(x).unwrap_or(0) + 1;
+            if width > max_width {
+                max_width = width;
+            }
+        }
+        if max_width == 0 {
+            max_width = 4; // enough for "nan" and "inf", "-inf" and "0.0"
+        }
+        let integral_digits_limit = 9;
+        let use_scientific_notation = max_width > integral_digits_limit;
+        if use_scientific_notation {
+            max_width = integral_digits_limit;
+        }
+
+        max_width += 1 + PRECISION;
+        (max_width, use_scientific_notation)
+    };
+
+    let right_padding = cell_width / 2;
+    let total_width = vector.len() * cell_width + right_padding;
+    let horizontal_line = "─".repeat(total_width);
+    let dims = format!("{}x{}", vector.len(), 1);
+
+    if let (Some(file), Some(line)) = (file, line) {
+        writeln!(&mut text, "{}:{}{}{}", file, YELLOW_TEXT, line, RESET_TEXT).unwrap();
+    }
+
+    if let Some(name) = name {
+        if name.len() + dims.len() > total_width {
+            writeln!(
+                &mut text,
+                "{}{}{}:{}{}{}",
+                CYAN_TEXT, name, RESET_TEXT, MAGENTA_TEXT, dims, RESET_TEXT
+            )
+            .unwrap();
+
+            writeln!(
+                &mut text,
+                "{}{}{}",
+                UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
+            )
+            .unwrap();
+        } else {
+            writeln!(
+                &mut text,
+                "{}{}{}{}{}{}{}{}{}",
+                UPPER_LEFT_CORNER,
+                CYAN_TEXT,
+                name,
+                RESET_TEXT,
+                "─".repeat(total_width - name.len() - dims.len()),
+                MAGENTA_TEXT,
+                dims,
+                RESET_TEXT,
+                UPPER_RIGHT_CORNER
+            )
+            .unwrap();
+        }
+    } else {
+        writeln!(
+            &mut text,
+            "{}{}{}",
+            UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
+        )
+        .unwrap();
+    }
+
+    write!(&mut text, "{}", BAR).unwrap();
+
+    for i in 0..vector.len() {
+        let x = vector.at(i);
+        let x = x.to_f64().expect("x is representable as f64");
+        if x.abs() > 1e6 {
+            write!(
+                &mut text,
+                "{}{:cell_width$.precision$e}{}",
+                float_color(x),
+                x,
+                RESET_TEXT,
+                cell_width = cell_width,
+                precision = PRECISION
+            )
+            .unwrap();
+        } else {
+            write!(
+                &mut text,
+                "{}{:cell_width$.precision$}{}",
+                float_color(x),
+                x,
+                RESET_TEXT,
+                cell_width = cell_width,
+                precision = PRECISION
+            )
+            .unwrap();
+        }
+    }
+
+    writeln!(&mut text, "{}{}", " ".repeat(right_padding), BAR).unwrap();
+
+    writeln!(
+        &mut text,
+        "{LOWER_LEFT_CORNER}{horizontal_line}{LOWER_RIGHT_CORNER}"
+    )
+    .unwrap();
+
+    text
+}
+
+/// Extension trait that adds a [`pretty_print`] method to vectors
+#[allow(clippy::len_without_is_empty)]
+pub trait PrettyPrintVector<T: GbpFloat>: Sized {
+    /// Returns the length of the vector.
+    #[allow(clippy::len_without_is_empty)]
+    fn len(&self) -> usize;
+    /// Returns the element at index `i`.
+    fn at(&self, i: usize) -> T;
+
+    /// Pretty prints the vector.
+    #[inline(always)]
+    fn pretty_print(&self) {
+        println!("{}", _pretty_format_vector(self, None, None, None));
+        // _pretty_print_vector(self, None, None, None);
+    }
+}
+
+impl<T: GbpFloat> PrettyPrintVector<T> for Vector<T> {
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    #[inline(always)]
+    fn at(&self, i: usize) -> T {
+        self[i]
+    }
+}
+/// Extension trait that adds a [`pretty_print`] method to matrices
+pub trait PrettyPrintMatrix<T: GbpFloat>: Sized {
+    /// Returns the shape of the matrix as a tuple `(nrows, ncols)`.
+    fn shape(&self) -> (usize, usize);
+    /// Returns the element at index `(i, j)`.
+    fn at(&self, i: usize, j: usize) -> T;
+
+    /// Pretty prints the matrix.
+    #[inline(always)]
+    fn pretty_print(&self) {
+        println!("{}", _pretty_format_matrix(self, None, None, None));
+        // _pretty_print_matrix(self, None, None, None);
+    }
+}
+
+impl<T: GbpFloat> PrettyPrintMatrix<T> for Matrix<T> {
+    #[inline(always)]
+    fn shape(&self) -> (usize, usize) {
+        (self.nrows(), self.ncols())
+    }
+
+    #[inline(always)]
+    fn at(&self, i: usize, j: usize) -> T {
+        self[(i, j)]
+    }
+}
+
+#[allow(clippy::unwrap_used)]
+pub fn _pretty_format_matrix<T, M>(
     matrix: &M,
     name: Option<&str>,
     file: Option<&str>,
     line: Option<u32>,
-) where
+) -> String
+where
     T: GbpFloat,
     M: PrettyPrintMatrix<T>,
 {
+    use std::fmt::Write;
+
     let (nrows, ncols) = matrix.shape();
     let (cell_width, _use_scientific_notation): (usize, bool) = {
         let mut max_width = 0;
@@ -126,19 +528,29 @@ pub fn _pretty_print_matrix<T, M>(
     let total_width = ncols * cell_width + right_padding;
     let dims = format!("{nrows}x{ncols}");
     let horizontal_line = "─".repeat(total_width);
+    let mut text = String::new();
 
     if let (Some(file), Some(line)) = (file, line) {
-        println!("{file}:{YELLOW_TEXT}{line}{RESET_TEXT}");
+        writeln!(&mut text, "{file}:{YELLOW_TEXT}{line}{RESET_TEXT}").unwrap();
     }
 
     // print the top border
     if let Some(name) = name {
         // handle if name is longer than cell_columns
         if name.len() + dims.len() > total_width {
-            println!("{CYAN_TEXT}{name}{RESET_TEXT}:{MAGENTA_TEXT}{dims}{RESET_TEXT}");
-            println!("{UPPER_LEFT_CORNER}{horizontal_line}{UPPER_RIGHT_CORNER}");
+            writeln!(
+                &mut text,
+                "{CYAN_TEXT}{name}{RESET_TEXT}:{MAGENTA_TEXT}{dims}{RESET_TEXT}"
+            )
+            .unwrap();
+            writeln!(
+                &mut text,
+                "{UPPER_LEFT_CORNER}{horizontal_line}{UPPER_RIGHT_CORNER}"
+            )
+            .unwrap();
         } else {
-            println!(
+            writeln!(
+                &mut text,
                 "{}{}{}{}{}{}{}{}{}",
                 UPPER_LEFT_CORNER,
                 CYAN_TEXT,
@@ -149,233 +561,88 @@ pub fn _pretty_print_matrix<T, M>(
                 dims,
                 RESET_TEXT,
                 UPPER_RIGHT_CORNER
-            );
+            )
+            .unwrap();
         }
     } else {
-        println!("{UPPER_LEFT_CORNER}{horizontal_line}{UPPER_RIGHT_CORNER}");
+        writeln!(
+            &mut text,
+            "{UPPER_LEFT_CORNER}{horizontal_line}{UPPER_RIGHT_CORNER}"
+        )
+        .unwrap();
     }
 
     // print each cell in the matrix
     for i in 0..nrows {
-        print!("{BAR}");
+        write!(&mut text, "{BAR}").unwrap();
         for j in 0..ncols {
             let x = matrix.at(i, j);
             let x = x.to_f64().expect("x is representable as f64");
             if x.abs() > 1e6 {
-                print!(
+                write!(
+                    &mut text,
                     "{}{:cell_width$.precision$e}{}",
                     float_color(x),
                     x,
                     RESET_TEXT,
                     cell_width = cell_width,
                     precision = PRECISION
-                );
+                )
+                .unwrap();
             } else {
-                print!(
+                write!(
+                    &mut text,
                     "{}{:cell_width$.precision$}{}",
                     float_color(x),
                     x,
                     RESET_TEXT,
                     cell_width = cell_width,
                     precision = PRECISION
-                );
+                )
+                .unwrap();
             }
         }
-        println!("{}{}", " ".repeat(right_padding), BAR);
+        writeln!(&mut text, "{}{}", " ".repeat(right_padding), BAR).unwrap();
     }
     // print the bottom border
-    println!("{LOWER_LEFT_CORNER}{horizontal_line}{LOWER_RIGHT_CORNER}");
-}
+    writeln!(
+        &mut text,
+        "{LOWER_LEFT_CORNER}{horizontal_line}{LOWER_RIGHT_CORNER}"
+    )
+    .unwrap();
 
-/// Internal function to pretty print a vector
-/// Use by the [`pretty_print_vector!`] macro
-///
-/// # Panics
-/// - If any of the elements of the matrix cannot be converted to a `f64`
-pub fn _pretty_print_vector<T, V>(
-    vector: &V,
-    name: Option<&str>,
-    file: Option<&str>,
-    line: Option<u32>,
-) where
-    T: GbpFloat,
-    V: PrettyPrintVector<T>,
-{
-    let (cell_width, _use_scientific_notation): (usize, bool) = {
-        let mut max_width = 0;
-        for i in 0..vector.len() {
-            let x = vector.at(i);
-            let x = x.to_f64().expect("x is representable as f64");
-            let width = num_of_integral_digits(x).unwrap_or(0) + 1;
-            if width > max_width {
-                max_width = width;
-            }
-        }
-        if max_width == 0 {
-            max_width = 4; // enough for "nan" and "inf", "-inf" and "0.0"
-        }
-        let integral_digits_limit = 9;
-        let use_scientific_notation = max_width > integral_digits_limit;
-        if use_scientific_notation {
-            max_width = integral_digits_limit;
-        }
-
-        max_width += 1 + PRECISION;
-        (max_width, use_scientific_notation)
-    };
-
-    let right_padding = cell_width / 2;
-    let total_width = vector.len() * cell_width + right_padding;
-    let horizontal_line = "─".repeat(total_width);
-    let dims = format!("{}x{}", vector.len(), 1);
-
-    if let (Some(file), Some(line)) = (file, line) {
-        println!("{}:{}{}{}", file, YELLOW_TEXT, line, RESET_TEXT);
-    }
-
-    // println!(
-    //     "vector.len() = {}, total_width = {}, cell_width = {}, name.len() = {}",
-    //     vector.len(),
-    //     total_width,
-    //     cell_width,
-    //     name.map_or(0, |s| s.len())
-    // );
-
-    if let Some(name) = name {
-        if name.len() + dims.len() > total_width {
-            println!(
-                "{}{}{}:{}{}{}",
-                CYAN_TEXT, name, RESET_TEXT, MAGENTA_TEXT, dims, RESET_TEXT
-            );
-            println!(
-                "{}{}{}",
-                UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
-            );
-        } else {
-            println!(
-                "{}{}{}{}{}{}{}{}{}",
-                UPPER_LEFT_CORNER,
-                CYAN_TEXT,
-                name,
-                RESET_TEXT,
-                "─".repeat(total_width - name.len() - dims.len()),
-                MAGENTA_TEXT,
-                dims,
-                RESET_TEXT,
-                UPPER_RIGHT_CORNER
-            );
-        }
-    } else {
-        println!(
-            "{}{}{}",
-            UPPER_LEFT_CORNER, horizontal_line, UPPER_RIGHT_CORNER
-        );
-    }
-
-    print!("{}", BAR);
-
-    for i in 0..vector.len() {
-        let x = vector.at(i);
-        let x = x.to_f64().expect("x is representable as f64");
-        if x.abs() > 1e6 {
-            print!(
-                "{}{:cell_width$.precision$e}{}",
-                float_color(x),
-                x,
-                RESET_TEXT,
-                cell_width = cell_width,
-                precision = PRECISION
-            );
-        } else {
-            print!(
-                "{}{:cell_width$.precision$}{}",
-                float_color(x),
-                x,
-                RESET_TEXT,
-                cell_width = cell_width,
-                precision = PRECISION
-            );
-        }
-    }
-
-    println!("{}{}", " ".repeat(right_padding), BAR);
-
-    println!("{LOWER_LEFT_CORNER}{horizontal_line}{LOWER_RIGHT_CORNER}");
-}
-
-/// Extension trait that adds a [`pretty_print`] method to vectors
-#[allow(clippy::len_without_is_empty)]
-pub trait PrettyPrintVector<T: GbpFloat>: Sized {
-    /// Returns the length of the vector.
-    #[allow(clippy::len_without_is_empty)]
-    fn len(&self) -> usize;
-    /// Returns the element at index `i`.
-    fn at(&self, i: usize) -> T;
-
-    /// Pretty prints the vector.
-    #[inline(always)]
-    fn pretty_print(&self) {
-        _pretty_print_vector(self, None, None, None);
-    }
-}
-
-impl<T: GbpFloat> PrettyPrintVector<T> for Vector<T> {
-    #[inline(always)]
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    #[inline(always)]
-    fn at(&self, i: usize) -> T {
-        self[i]
-    }
-}
-/// Extension trait that adds a [`pretty_print`] method to matrices
-pub trait PrettyPrintMatrix<T: GbpFloat>: Sized {
-    /// Returns the shape of the matrix as a tuple `(nrows, ncols)`.
-    fn shape(&self) -> (usize, usize);
-    /// Returns the element at index `(i, j)`.
-    fn at(&self, i: usize, j: usize) -> T;
-
-    /// Pretty prints the matrix.
-    #[inline(always)]
-    fn pretty_print(&self) {
-        _pretty_print_matrix(self, None, None, None);
-    }
-}
-
-impl<T: GbpFloat> PrettyPrintMatrix<T> for Matrix<T> {
-    #[inline(always)]
-    fn shape(&self) -> (usize, usize) {
-        (self.nrows(), self.ncols())
-    }
-
-    #[inline(always)]
-    fn at(&self, i: usize, j: usize) -> T {
-        self[(i, j)]
-    }
+    text
 }
 
 /// Pretty prints a vector
 #[macro_export]
 macro_rules! pretty_print_vector {
     ($name:expr) => {
-        $crate::pretty_print::_pretty_print_vector(
-            $name,
-            Some(stringify!($name)),
-            Some(file!()),
-            Some(line!()),
+        println!(
+            "{}",
+            $crate::pretty_print::_pretty_format_vector(
+                $name,
+                Some(stringify!($name)),
+                Some(file!()),
+                Some(line!()),
+            )
         );
     };
     ($name:expr, None) => {
-        $crate::pretty_print::_pretty_print_vector($name, None, None, None);
+        println!(
+            "{}",
+            $crate::pretty_print::_pretty_format_vector($name, None, None, None)
+        );
     };
     ($name:literal, $vector:expr) => {
-        $crate::pretty_print::_pretty_print_vector(
-            $vector,
-            Some($name),
-            Some(file!()),
-            Some(line!()),
+        println!(
+            "{}",
+            $crate::pretty_print::_pretty_format_vector(
+                $vector,
+                Some($name),
+                Some(file!()),
+                Some(line!()),
+            )
         );
     };
 }
@@ -384,20 +651,79 @@ macro_rules! pretty_print_vector {
 #[macro_export]
 macro_rules! pretty_print_matrix {
     ($name:expr) => {
-        $crate::pretty_print::_pretty_print_matrix(
+        println!(
+            "{}",
+            $crate::pretty_print::_pretty_print_matrix(
+                $name,
+                Some(stringify!($name)),
+                Some(file!()),
+                Some(line!()),
+            )
+        );
+    };
+    ($name:expr, None) => {
+        println!(
+            "{}",
+            $crate::pretty_print::_pretty_format_matrix($name, None, None, None)
+        );
+    };
+
+    ($name:literal, $matrix:expr) => {
+        println!(
+            "{}",
+            $crate::pretty_print::_pretty_format_matrix(
+                $matrix,
+                Some($name),
+                Some(file!()),
+                Some(line!()),
+            )
+        );
+    };
+}
+
+#[macro_export]
+macro_rules! pretty_format_matrix {
+    ($name:expr) => {
+        $crate::pretty_print::_pretty_format_matrix(
             $name,
             Some(stringify!($name)),
             Some(file!()),
             Some(line!()),
         );
     };
+
     ($name:expr, None) => {
-        $crate::pretty_print::_pretty_print_matrix($name, None, None, None);
+        $crate::pretty_print::_pretty_format_matrix($name, None, None, None);
     };
 
     ($name:literal, $matrix:expr) => {
-        $crate::pretty_print::_pretty_print_matrix(
+        $crate::pretty_print::_pretty_format_matrix(
             $matrix,
+            Some($name),
+            Some(file!()),
+            Some(line!()),
+        );
+    };
+}
+
+#[macro_export]
+macro_rules! pretty_format_vector {
+    ($name:expr) => {
+        $crate::pretty_print::_pretty_format_vector(
+            $name,
+            Some(stringify!($name)),
+            Some(file!()),
+            Some(line!()),
+        );
+    };
+
+    ($name:expr, None) => {
+        $crate::pretty_print::_pretty_format_vector($name, None, None, None);
+    };
+
+    ($name:literal, $vector:expr) => {
+        $crate::pretty_print::_pretty_format_vector(
+            $vector,
             Some($name),
             Some(file!()),
             Some(line!()),
