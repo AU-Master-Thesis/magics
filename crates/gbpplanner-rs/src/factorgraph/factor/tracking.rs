@@ -60,7 +60,7 @@ impl Factor for TrackingFactor {
         // 1. Window pairs of rrt path
         // 1.1. Find the line defined by the two points
 
-        let lines = self
+        let (projected_point, distance, line) = self
             .tracking_path
             .windows(2)
             .map(|window| {
@@ -70,45 +70,24 @@ impl Factor for TrackingFactor {
                 let line = &p2 - &p1;
                 let normal = array![-line[1], line[0]].normalized();
 
-                (p1, p2, line, normal)
+                // (p1, p2, line, normal)
+
+                let x_pos = x.slice(s![0..2]).to_owned();
+
+                // project x_pos onto the line
+                let projected = &p1 + (&x_pos - &p1).dot(&line) / &line.dot(&line) * &line;
+                let distance = (&x_pos - &projected).euclidean_norm();
+
+                (projected, distance, line)
             })
-            .collect::<Vec<_>>();
-
-        // 2. Project the linearisation point onto all the lines
-        // 2.1. Choose the closest line and projection
-
-        let mut min_distance = Float::INFINITY;
-        // let mut projected_point = Vec2::ZERO;
-        let mut projected_point = Vector::<Float>::zeros(2);
-        let mut min_index = 0;
-
-        for (i, (p1, p2, line, normal)) in lines.iter().enumerate() {
-            let p = x.slice(s![0..2]).to_owned();
-            let v = x.slice(s![2..4]);
-
-            let p1p = &p - p1;
-            let p1p_dot_n = p1p.dot(normal);
-            let v_dot_n = v.dot(normal);
-
-            let projected = &p - p1p_dot_n * normal + v_dot_n * normal;
-
-            let distance = (&projected - p).euclidean_norm();
-
-            if distance < min_distance {
-                min_distance = distance;
-                projected_point = projected;
-                min_index = i;
-            }
-        }
-
-        // 2.2. Move the projected point X seconds into the future along the
-        // line, using the current velocity The future point is the resulting
-        // measurement
+            .min_by(|(_, a, _), (_, b, _)| a.partial_cmp(b).unwrap())
+            .unwrap();
 
         // current speed is the magnitude of the velocity x[2..4]
         let speed = x.slice(s![2..4]).euclidean_norm();
 
-        let future_point = projected_point + speed * lines[min_index].2.normalized();
+        // let future_point = projected_point + speed * lines[min_index].2.normalized();
+        let future_point = projected_point + 2.0 * line.normalized();
         self.last_measurement
             .lock()
             .unwrap()
