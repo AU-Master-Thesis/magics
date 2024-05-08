@@ -444,6 +444,11 @@ pub trait PrettyPrintVector<T: GbpFloat>: Sized {
         println!("{}", _pretty_format_vector(self, None, None, None));
         // _pretty_print_vector(self, None, None, None);
     }
+
+    /// Pretty format the vector.
+    fn pretty_format(&self) -> String {
+        _pretty_format_vector(self, None, None, None)
+    }
 }
 
 impl<T: GbpFloat> PrettyPrintVector<T> for Vector<T> {
@@ -469,6 +474,11 @@ pub trait PrettyPrintMatrix<T: GbpFloat>: Sized {
     fn pretty_print(&self) {
         println!("{}", _pretty_format_matrix(self, None, None, None));
         // _pretty_print_matrix(self, None, None, None);
+    }
+
+    /// Pretty format the matrix.
+    fn pretty_format(&self) -> String {
+        _pretty_format_matrix(self, None, None, None)
     }
 }
 
@@ -693,7 +703,11 @@ macro_rules! pretty_format_matrix {
     };
 
     ($name:expr, None) => {
-        $crate::pretty_print::_pretty_format_matrix($name, None, None, None);
+        $crate::pretty_print::_pretty_format_matrix($name, Some(stringify!($name)), None, None);
+    };
+
+    ($name:literal, $matrix:expr, None) => {
+        $crate::pretty_print::_pretty_format_matrix($matrix, Some($name), None, None);
     };
 
     ($name:literal, $matrix:expr) => {
@@ -719,6 +733,10 @@ macro_rules! pretty_format_vector {
 
     ($name:expr, None) => {
         $crate::pretty_print::_pretty_format_vector($name, None, None, None);
+    };
+
+    ($name:literal, $vector:expr, None) => {
+        $crate::pretty_print::_pretty_format_vector($vector, Some($name), None, None);
     };
 
     ($name:literal, $vector:expr) => {

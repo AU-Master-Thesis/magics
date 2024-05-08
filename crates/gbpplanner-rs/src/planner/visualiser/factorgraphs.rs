@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
-use gbp_linalg::{pretty_print_matrix, pretty_print_vector};
 use itertools::Itertools;
 
 use super::RobotTracker;
@@ -9,15 +8,14 @@ use crate::{
     asset_loader::Meshes,
     bevy_utils::run_conditions::event_exists,
     config::{Config, DrawSetting},
-    factorgraph::prelude::FactorGraph,
+    factorgraph::{factor::Factor, factorgraph::VariableIndex, prelude::FactorGraph},
     input::DrawSettingsEvent,
     planner::{
         robot::{RobotDespawned, RobotSpawned},
         RobotState,
     },
-    pretty_print_title,
     simulation_loader::{self, EndSimulation},
-    theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
 pub struct FactorGraphVisualiserPlugin;
@@ -75,8 +73,8 @@ fn remove_rendered_factorgraphs(
 #[derive(Component)]
 pub struct VariableVisualiser;
 
-#[derive(Component)]
-pub struct DynamicFactorVisualiser;
+// #[derive(Component)]
+// pub struct DynamicFactorVisualiser;
 
 #[derive(Event)]
 struct VariableClickedOn(pub Entity);
@@ -90,28 +88,49 @@ impl From<ListenerInput<Pointer<Click>>> for VariableClickedOn {
 
 fn on_variable_clicked(
     mut evr_variable_clicked_on: EventReader<VariableClickedOn>,
-    query_robottracker: Query<&RobotTracker, With<VariableVisualiser>>,
-    query_factorgraph: Query<&FactorGraph, With<RobotState>>,
+    q_robottracker: Query<&RobotTracker, With<VariableVisualiser>>,
+    q_factorgraph: Query<&FactorGraph, With<RobotState>>,
 ) {
     for VariableClickedOn(entity) in evr_variable_clicked_on.read() {
-        let Some(variable) = query_robottracker
-            .get(*entity)
-            .and_then(|tracker| {
-                query_factorgraph
-                    .get(tracker.robot_id)
-                    .map(|graph| (tracker.variable_index, graph))
-            })
-            .ok()
-            .and_then(|(variable_index, factorgraph)| factorgraph.nth_variable(variable_index))
-            .map(|(_, variable)| variable)
-        else {
+        let Ok(tracker) = q_robottracker.get(*entity) else {
             error!("the clicked variable mesh is not associated with any existing factorgraph!");
             return;
         };
 
-        pretty_print_vector!(&variable.belief.information_vector, None);
-        pretty_print_matrix!(&variable.belief.precision_matrix, None);
-        pretty_print_vector!(&variable.belief.mean, None);
+        let Ok(factorgraph) = q_factorgraph.get(tracker.robot_id) else {
+            error!("the clicked variable mesh is not associated with any existing factorgraph!");
+            return;
+        };
+
+        let Some((node_index, _)) = factorgraph.nth_variable(tracker.variable_index) else {
+            error!("the clicked variable mesh is not associated with any existing factorgraph!");
+            return;
+        };
+
+        let Some(neighbours) = factorgraph.variable_neighbours(VariableIndex(*node_index)) else {
+            error!("the clicked variable mesh is not associated with any existing factorgraph!");
+            return;
+        };
+
+        let hr = "=".repeat(80);
+        println!("variable {}", hr);
+        for (i, neighbour) in neighbours.enumerate() {
+            // println!("name: {}", neighbour.kind.name());
+            use crate::factorgraph::factor::FactorKind::{Dynamic, InterRobot, Obstacle, Tracking};
+            // println!("factor[{i}]: {}", <neighbour.kind as &dyn Factor>::name());
+            println!("factor[{i}]: {}", neighbour.kind.name());
+            match neighbour.kind {
+                InterRobot(ref interrobot) => println!("{}", interrobot),
+                Dynamic(ref dynanic) => println!("{}", dynanic),
+                Obstacle(ref obstacle) => println!("{}", obstacle),
+                Tracking(ref tracking) => println!("{}", tracking),
+            }
+
+            println!("state:");
+            println!("{}", neighbour.state);
+        }
+
+        println!("{}", hr);
     }
 }
 

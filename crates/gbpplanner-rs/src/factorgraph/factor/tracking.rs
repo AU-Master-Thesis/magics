@@ -108,7 +108,7 @@ impl Factor for TrackingFactor {
         };
 
         // invert measurement to make it 'pull' the variable towards the path
-        let measurement = x_to_projection;
+        let measurement = -x_to_projection;
 
         self.last_measurement
             .lock()
@@ -144,6 +144,6 @@ impl Factor for TrackingFactor {
 
 impl std::fmt::Display for TrackingFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "todo")
+        write!(f, "last_measurement: {:?}", self.last_measurement())
     }
 }

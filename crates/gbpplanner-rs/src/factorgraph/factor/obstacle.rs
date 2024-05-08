@@ -15,7 +15,7 @@ use ndarray::array;
 use super::{Factor, FactorState};
 use crate::simulation_loader::SdfImage;
 
-#[derive(Clone)]
+// #[derive(Clone)]
 pub struct ObstacleFactor {
     /// The signed distance field of the environment
     // obstacle_sdf:     &'static Image,
@@ -27,7 +27,8 @@ pub struct ObstacleFactor {
     world_size:       Float,
     // last_measurement: Arc<Mutex<Cell<Option<LastMeasurement>>>>,
     // last_measurement: Cell<Option<LastMeasurement>>,
-    last_measurement: Option<LastMeasurement>,
+    // last_measurement: Option<LastMeasurement>,
+    last_measurement: Mutex<Cell<LastMeasurement>>,
     // last_measurement: Arc<Cell<LastMeasurement>>,
     // last_measurement: Arc<Mutex<LastMeasurement>>,
 }
@@ -74,6 +75,10 @@ impl ObstacleFactor {
             world_size,
             last_measurement: Default::default(),
         }
+    }
+
+    pub fn last_measurement(&self) -> LastMeasurement {
+        self.last_measurement.lock().unwrap().get()
     }
 
     // / Returns the last measurement
@@ -144,6 +149,11 @@ impl Factor for ObstacleFactor {
 
         let red_channel = pixel[0];
         let hsv_value = 1.0 - Float::from(red_channel) / 255.0;
+
+        self.last_measurement.lock().unwrap().set(LastMeasurement {
+            pos:   Vec2::new(x[0] as f32, x[1] as f32),
+            value: hsv_value,
+        });
 
         // let red = self.obstacle_sdf.data[linear_index];
         // NOTE: do 1.0 - red to invert the value, as the obstacle sdf is white where
@@ -216,7 +226,7 @@ impl Factor for ObstacleFactor {
 
 impl std::fmt::Display for ObstacleFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "world_size: {}", self.world_size)
-        // writeln!(f, "")
+        writeln!(f, "world_size: {}", self.world_size)?;
+        writeln!(f, "last_measurement: {:?}", self.last_measurement())
     }
 }

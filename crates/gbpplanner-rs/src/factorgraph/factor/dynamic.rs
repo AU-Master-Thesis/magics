@@ -91,7 +91,11 @@ impl Factor for DynamicFactor {
 
 impl std::fmt::Display for DynamicFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "cached_jacobian:");
-        writeln!(f, "{}", pretty_format_matrix!(&self.cached_jacobian))
+        // writeln!(f, "cached_jacobian:");
+        writeln!(
+            f,
+            "{}",
+            pretty_format_matrix!("cached jacobian", &self.cached_jacobian)
+        )
     }
 }

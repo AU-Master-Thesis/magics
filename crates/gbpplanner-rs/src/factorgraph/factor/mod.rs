@@ -1,7 +1,7 @@
 use std::{borrow::Cow, ops::AddAssign};
 
 use bevy::math::Vec2;
-use gbp_linalg::prelude::*;
+use gbp_linalg::{prelude::*, pretty_format_matrix, pretty_format_vector};
 use ndarray::{array, s};
 use typed_floats::StrictlyPositiveFinite;
 
@@ -30,19 +30,12 @@ mod velocity;
 
 use marginalise_factor_distance::marginalise_factor_distance;
 
-// pub use crate::factorgraph::factor::interrobot::InterRobotFactorConnection;
 pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 
 /// Common interface for all factors
 pub trait Factor: std::fmt::Display {
-    // const NEIGHBORS: usize;
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
-
-    // ///
-    // fn display(&self) -> Cow<'_, str> {
-    //     self.name().into()
-    // }
 
     /// The delta for the jacobian calculation
     fn jacobian_delta(&self) -> Float;
@@ -110,7 +103,7 @@ pub struct FactorNode {
     pub state:      FactorState,
     /// Variant storing the specialized behavior of each Factor kind.
     pub kind:       FactorKind,
-    /// Mailbox for incoming message storage
+    /// ailbox for incoming message storage
     pub inbox:      MessagesToVariables,
 
     message_count: MessageCount,
@@ -563,6 +556,56 @@ impl FactorState {
     }
 }
 
+impl std::fmt::Display for FactorState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // write!(
+        //     f,
+        //     "initial_measurement:\n{}",
+        //     self.initial_measurement.pretty_format()
+        // )?;
+
+        write!(
+            f,
+            "{}",
+            pretty_format_vector!("initial measurement", &self.initial_measurement, None)
+        )?;
+
+        // write!(
+        //     f,
+        //     "measurement_precision:\n{}",
+        //     self.measurement_precision.pretty_format()
+        // )?;
+
+        write!(
+            f,
+            "{}",
+            pretty_format_matrix!("measurement precision", &self.measurement_precision, None)
+        )?;
+        write!(
+            f,
+            "{}",
+            pretty_format_vector!("linearisation point", &self.linearisation_point, None)
+        )?;
+        // write!(
+        //     f,
+        //     "linearisation_point:\n{}",
+        //     self.linearisation_point.pretty_format()
+        // )?;
+        write!(
+            f,
+            "cached_jacobian:\n{}",
+            self.cached_jacobian.pretty_format()
+        )?;
+        write!(
+            f,
+            "cached_measurement:\n{}",
+            self.cached_measurement.pretty_format()
+        )?;
+        writeln!(f, "strength: {:?}", self.strength)?;
+        writeln!(f, "initialized: {:?}", self.initialized)
+    }
+}
+
 impl FactorGraphNode for FactorNode {
     fn remove_connection_to(
         &mut self,
@@ -596,3 +639,10 @@ impl FactorGraphNode for FactorNode {
         self.message_count.reset();
     }
 }
+
+// impl std::fmt::Display for FactorNode {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "factorgraph_id: {:?}", self.factorgraph_id)?;
+//         write!(f, "node_index: {:?}", self.node_index)?;
+//     }
+// }

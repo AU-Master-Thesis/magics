@@ -11,7 +11,7 @@ use typed_floats::StrictlyPositiveFinite;
 
 use super::{
     factor::{
-        interrobot::InterRobotFactor, obstacle::ObstacleFactor, tracking::TrackingFactor,
+        interrobot::InterRobotFactor, obstacle::ObstacleFactor, tracking::TrackingFactor, Factor,
         FactorKind, FactorNode,
     },
     id::{FactorId, VariableId},
@@ -1264,6 +1264,112 @@ impl FactorGraph {
 //             .expect("a variable index points to a variable node in the
 // graph")     }
 // }
+
+/// Iterator over the neighbours of a variable in the factorgraph
+pub struct VariableNeighboursDyn<'fg> {
+    graph:      &'fg Graph,
+    neighbours: petgraph::stable_graph::Neighbors<'fg, (), IndexSize>,
+}
+
+impl<'fg> Iterator for VariableNeighboursDyn<'fg> {
+    type Item = &'fg dyn Factor;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.neighbours.next().map(|index| {
+            &self.graph[index]
+                .as_factor()
+                .expect("a variable only has factors as neighbours")
+                .kind as &dyn Factor
+        })
+    }
+}
+
+impl FactorGraph {
+    /// Returns an iterator over the factor neighbours of a variable
+    /// If the variable does not exist in the factorgraph, returns None
+    pub fn variable_neighbours_dyn(
+        &self,
+        variable_index: VariableIndex,
+    ) -> Option<VariableNeighboursDyn<'_>> {
+        let node_ix = variable_index.0;
+        self.graph.node_weight(node_ix)?;
+
+        let neighbours = self.graph.neighbors(node_ix);
+
+        Some(VariableNeighboursDyn {
+            graph: &self.graph,
+            neighbours,
+        })
+    }
+}
+
+pub struct VariableNeighbours<'fg> {
+    graph:      &'fg Graph,
+    neighbours: petgraph::stable_graph::Neighbors<'fg, (), IndexSize>,
+}
+
+impl<'fg> Iterator for VariableNeighbours<'fg> {
+    type Item = &'fg FactorNode;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.neighbours.next().map(|index| {
+            self.graph[index]
+                .as_factor()
+                .expect("a variable only has factors as neighbours")
+        })
+    }
+}
+
+impl FactorGraph {
+    /// Returns an iterator over the factor neighbours of a variable
+    /// If the variable does not exist in the factorgraph, returns None
+    pub fn variable_neighbours(
+        &self,
+        variable_index: VariableIndex,
+    ) -> Option<VariableNeighbours<'_>> {
+        let node_ix = variable_index.0;
+        self.graph.node_weight(node_ix)?;
+
+        let neighbours = self.graph.neighbors(node_ix);
+
+        Some(VariableNeighbours {
+            graph: &self.graph,
+            neighbours,
+        })
+    }
+}
+
+/// Iterator over the neighbours of a factor in the factorgraph
+pub struct FactorNeighbours<'fg> {
+    graph:      &'fg Graph,
+    neighbours: petgraph::stable_graph::Neighbors<'fg, (), IndexSize>,
+}
+
+impl<'fg> Iterator for FactorNeighbours<'fg> {
+    type Item = &'fg VariableNode;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.neighbours
+            .next()
+            .map(|index| self.graph[index].as_variable().unwrap())
+    }
+}
+
+impl FactorGraph {
+    /// Returns an iterator over the variable neighbours of a factor
+    /// If the factor does not exist in the factorgraph, returns None
+    pub fn factor_neighbours(&self, factor_index: FactorIndex) -> Option<FactorNeighbours<'_>> {
+        let node_ix = factor_index.0;
+        self.graph.node_weight(node_ix)?;
+
+        let neighbours = self.graph.neighbors(node_ix);
+
+        Some(FactorNeighbours {
+            graph: &self.graph,
+            neighbours,
+        })
+    }
+}
 
 use super::graphviz;
 
