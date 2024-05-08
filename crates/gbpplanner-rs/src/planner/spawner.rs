@@ -437,6 +437,7 @@ fn spawn_formation(
     // obstacle_sdf: Res<ObstacleSdf>,
     // image_assets: ResMut<Assets<Image>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
+    time_virtual: Res<Time<Virtual>>,
 ) {
     for event in evr_robot_formation_spawned.read() {
         let formation_group = simulation_manager
@@ -538,14 +539,8 @@ fn spawn_formation(
                     .try_into()
                     .unwrap(),
                 formation.waypoint_reached_when_intersects,
+                time_virtual.elapsed().as_secs_f64(),
             );
-
-            // let route = Route {
-            //     waypoints:       waypoints.iter().copied().collect(),
-            //     intersects_when: formation.waypoint_reached_when_intersects,
-            // };
-
-            // let waypoints: VecDeque<_> = waypoints.iter().copied().collect();
 
             let robotbundle = RobotBundle::new(
                 robot_id,

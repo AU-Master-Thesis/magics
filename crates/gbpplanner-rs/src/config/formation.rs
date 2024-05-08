@@ -390,6 +390,7 @@ impl Formation {
                         match wp.projection_strategy {
                             ProjectionStrategy::Identity => {
                                 panic!("does not make sense for a circle")
+                                // angles
                             }
                             ProjectionStrategy::Cross => {
                                 let center = world_dims.point_to_world_position(center);

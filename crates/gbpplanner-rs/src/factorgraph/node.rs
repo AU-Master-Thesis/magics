@@ -23,7 +23,7 @@ pub(in crate::factorgraph) trait FactorGraphNode {
 }
 
 /// Different variants a factorgraph node can be
-#[derive(Debug, derive_more::IsVariant)]
+#[derive(Debug, derive_more::IsVariant, strum_macros::EnumTryAs)]
 pub enum NodeKind {
     /// The node is a factor
     Factor(FactorNode),

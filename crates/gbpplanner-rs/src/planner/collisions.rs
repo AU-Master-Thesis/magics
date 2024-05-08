@@ -1,8 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use bevy::{
-    input::common_conditions::input_just_pressed, prelude::*, time::common_conditions::on_timer,
-};
+use bevy::{prelude::*, time::common_conditions::on_timer};
 use parry2d::bounding_volume::BoundingVolume;
 
 use super::{robot::Ball, RobotState};
@@ -17,8 +15,8 @@ impl RobotCollisionsPlugin {
 
 impl Plugin for RobotCollisionsPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<RobotRobotCollisions>()
-            .init_resource::<RobotEnvironmentCollisions>()
+        app.init_resource::<resources::RobotRobotCollisions>()
+            .init_resource::<resources::RobotEnvironmentCollisions>()
             .add_event::<events::RobotRobotCollision>()
             .add_event::<events::RobotEnvironmentCollision>()
             .add_systems(
@@ -44,12 +42,12 @@ impl Plugin for RobotCollisionsPlugin {
     }
 }
 
-fn clear_robot_robot_collisions(mut robot_collisions: ResMut<RobotRobotCollisions>) {
+fn clear_robot_robot_collisions(mut robot_collisions: ResMut<resources::RobotRobotCollisions>) {
     robot_collisions.clear();
 }
 
 fn update_robot_robot_collisions(
-    mut robot_collisions: ResMut<RobotRobotCollisions>,
+    mut robot_collisions: ResMut<resources::RobotRobotCollisions>,
     robots: Query<(Entity, &Transform, &Ball), With<RobotState>>,
     mut aabbs: Local<Vec<(Entity, parry2d::bounding_volume::Aabb)>>,
     mut evw_robots_collided: EventWriter<events::RobotRobotCollision>,
@@ -99,7 +97,136 @@ fn update_robot_robot_collisions(
 }
 
 pub mod resources {
-    use bevy::prelude::*;
+    // use bevy::prelude::*;
+    use super::*;
+
+    #[derive(Resource)]
+    pub struct RobotRobotCollisions {
+        inner:      HashMap<(Entity, Entity), CollisionHistory>,
+        collisions: usize,
+    }
+
+    impl RobotRobotCollisions {
+        fn new() -> Self {
+            Self {
+                inner:      HashMap::new(),
+                collisions: 0,
+            }
+        }
+
+        pub(super) fn update(
+            &mut self,
+            e1: Entity,
+            e2: Entity,
+            is_colliding: bool,
+        ) -> CollisionStatus {
+            let entry = self
+                .inner
+                .entry((e1, e2))
+                .or_insert(CollisionHistory::new());
+            let collision_status = entry.update(is_colliding);
+            if let CollisionStatus::Hit = collision_status {
+                self.collisions += 1;
+            }
+
+            collision_status
+        }
+
+        pub fn get(&self, entity: Entity) -> Option<usize> {
+            self.inner
+                .iter()
+                .filter_map(|((e1, e2), c)| {
+                    if *e1 == entity {
+                        Some(c.collisions())
+                    } else if *e2 == entity {
+                        Some(c.collisions())
+                    } else {
+                        None
+                    }
+                })
+                .sum::<usize>()
+                .into()
+        }
+
+        pub fn collisions(&self) -> usize {
+            self.collisions
+            // self.inner.values().map(|c| c.collisions()).sum::<usize>()
+        }
+
+        pub(super) fn clear(&mut self) {
+            self.inner.clear();
+        }
+    }
+
+    impl Default for RobotRobotCollisions {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    #[derive(Resource)]
+    pub struct RobotEnvironmentCollisions {
+        inner:      HashMap<(Entity, Entity), CollisionHistory>,
+        collisions: usize,
+    }
+
+    impl RobotEnvironmentCollisions {
+        fn new() -> Self {
+            Self {
+                inner:      HashMap::new(),
+                collisions: 0,
+            }
+        }
+
+        pub(super) fn update(
+            &mut self,
+            e1: Entity,
+            e2: Entity,
+            is_colliding: bool,
+        ) -> CollisionStatus {
+            let entry = self
+                .inner
+                .entry((e1, e2))
+                .or_insert(CollisionHistory::new());
+            let collision_status = entry.update(is_colliding);
+            if let CollisionStatus::Hit = collision_status {
+                self.collisions += 1;
+            }
+
+            collision_status
+        }
+
+        pub fn get(&self, entity: Entity) -> Option<usize> {
+            self.inner
+                .iter()
+                .filter_map(|((e1, e2), c)| {
+                    if *e1 == entity {
+                        Some(c.collisions())
+                    } else if *e2 == entity {
+                        Some(c.collisions())
+                    } else {
+                        None
+                    }
+                })
+                .sum::<usize>()
+                .into()
+        }
+
+        pub fn collisions(&self) -> usize {
+            self.collisions
+            // self.inner.values().map(|c| c.collisions()).sum::<usize>()
+        }
+
+        fn clear(&mut self) {
+            self.inner.clear();
+        }
+    }
+
+    impl Default for RobotEnvironmentCollisions {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
 }
 
 pub mod events {
@@ -120,69 +247,10 @@ pub mod events {
     }
 }
 
-#[derive(Resource)]
-pub struct RobotEnvironmentCollisions {
-    inner:      HashMap<(Entity, Entity), CollisionHistory>,
-    collisions: usize,
-}
-
-impl RobotEnvironmentCollisions {
-    fn new() -> Self {
-        Self {
-            inner:      HashMap::new(),
-            collisions: 0,
-        }
-    }
-
-    fn update(&mut self, e1: Entity, e2: Entity, is_colliding: bool) -> CollisionStatus {
-        let entry = self
-            .inner
-            .entry((e1, e2))
-            .or_insert(CollisionHistory::new());
-        let collision_status = entry.update(is_colliding);
-        if let CollisionStatus::Hit = collision_status {
-            self.collisions += 1;
-        }
-
-        collision_status
-    }
-
-    pub fn get(&self, entity: Entity) -> Option<usize> {
-        self.inner
-            .iter()
-            .filter_map(|((e1, e2), c)| {
-                if *e1 == entity {
-                    Some(c.collisions())
-                } else if *e2 == entity {
-                    Some(c.collisions())
-                } else {
-                    None
-                }
-            })
-            .sum::<usize>()
-            .into()
-    }
-
-    pub fn collisions(&self) -> usize {
-        self.collisions
-        // self.inner.values().map(|c| c.collisions()).sum::<usize>()
-    }
-
-    fn clear(&mut self) {
-        self.inner.clear();
-    }
-}
-
-impl Default for RobotEnvironmentCollisions {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 fn update_robot_environment_collisions(
     env_colliders: Res<crate::environment::map_generator::Colliders>,
     robots: Query<(Entity, &Transform, &Ball), With<RobotState>>,
-    mut robot_environment_collisions: ResMut<RobotEnvironmentCollisions>,
+    mut robot_environment_collisions: ResMut<resources::RobotEnvironmentCollisions>,
     mut aabbs: Local<Vec<(Entity, parry2d::bounding_volume::Aabb)>>,
     mut evw_robot_environment_collision: EventWriter<events::RobotEnvironmentCollision>,
 ) {
@@ -287,65 +355,6 @@ impl CollisionHistory {
 
     fn collisions(&self) -> usize {
         self.times
-    }
-}
-
-#[derive(Resource)]
-pub struct RobotRobotCollisions {
-    inner:      HashMap<(Entity, Entity), CollisionHistory>,
-    collisions: usize,
-}
-
-impl RobotRobotCollisions {
-    fn new() -> Self {
-        Self {
-            inner:      HashMap::new(),
-            collisions: 0,
-        }
-    }
-
-    fn update(&mut self, e1: Entity, e2: Entity, is_colliding: bool) -> CollisionStatus {
-        let entry = self
-            .inner
-            .entry((e1, e2))
-            .or_insert(CollisionHistory::new());
-        let collision_status = entry.update(is_colliding);
-        if let CollisionStatus::Hit = collision_status {
-            self.collisions += 1;
-        }
-
-        collision_status
-    }
-
-    pub fn get(&self, entity: Entity) -> Option<usize> {
-        self.inner
-            .iter()
-            .filter_map(|((e1, e2), c)| {
-                if *e1 == entity {
-                    Some(c.collisions())
-                } else if *e2 == entity {
-                    Some(c.collisions())
-                } else {
-                    None
-                }
-            })
-            .sum::<usize>()
-            .into()
-    }
-
-    pub fn collisions(&self) -> usize {
-        self.collisions
-        // self.inner.values().map(|c| c.collisions()).sum::<usize>()
-    }
-
-    fn clear(&mut self) {
-        self.inner.clear();
-    }
-}
-
-impl Default for RobotRobotCollisions {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -479,7 +488,7 @@ fn toggle_visibility_of_robot_environment_collisions(
     mut evr_draw_settings: EventReader<crate::input::DrawSettingsEvent>,
 ) {
     for event in evr_draw_settings.read() {
-        println!("draw setting event: {:?}", event);
+        // println!("draw setting event: {:?}", event);
         if matches!(
             event.setting,
             crate::config::DrawSetting::RobotEnvironmentCollisions

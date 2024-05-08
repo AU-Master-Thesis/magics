@@ -7,7 +7,7 @@ use units::sample_rate::SampleRate;
 
 use crate::{
     factorgraph::prelude::FactorGraph,
-    planner::{collisions::RobotRobotCollisions, RobotState},
+    planner::{collisions::resources::RobotRobotCollisions, RobotState},
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };
 

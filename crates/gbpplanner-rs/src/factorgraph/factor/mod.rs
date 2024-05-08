@@ -409,7 +409,7 @@ impl FactorNode {
 /// Static dispatch enum for the various factors in the factorgraph
 /// Used instead of dynamic dispatch
 #[allow(missing_docs)]
-#[derive(Debug, derive_more::IsVariant)]
+#[derive(Debug, derive_more::IsVariant, strum_macros::EnumTryAs)]
 pub enum FactorKind {
     // Pose(PoseFactor),
     /// `InterRobotFactor`
@@ -420,47 +420,6 @@ pub enum FactorKind {
     Obstacle(ObstacleFactor),
     /// `TrackingFactor`
     Tracking(TrackingFactor),
-}
-
-impl FactorKind {
-    /// Returns `Some(&InterRobotFactor)` if self is [`InterRobot`], otherwise
-    /// `None`
-    pub const fn as_inter_robot(&self) -> Option<&InterRobotFactor> {
-        if let Self::InterRobot(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
-
-    /// Returns `Some(&DynamicFactor)` if self is [`Dynamic`], otherwise `None`
-    pub const fn as_dynamic(&self) -> Option<&DynamicFactor> {
-        if let Self::Dynamic(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
-
-    /// Returns `Some(&ObstacleFactor)` if self is [`Obstacle`], otherwise
-    /// `None`
-    pub const fn as_obstacle(&self) -> Option<&ObstacleFactor> {
-        if let Self::Obstacle(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
-
-    /// Rsturns `Some(&TrackingFactor)` if self is [`Tracking`], otherwise
-    /// `None`
-    pub const fn as_tracking(&self) -> Option<&TrackingFactor> {
-        if let Self::Tracking(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
 }
 
 impl Factor for FactorKind {

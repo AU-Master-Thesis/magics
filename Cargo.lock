@@ -3481,6 +3481,8 @@ dependencies = [
  "ron",
  "serde",
  "serde_yaml",
+ "strum",
+ "strum_macros",
  "thiserror",
  "toml 0.8.12",
  "typed_floats",
