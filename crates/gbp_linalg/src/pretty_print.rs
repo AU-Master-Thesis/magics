@@ -367,6 +367,9 @@ macro_rules! pretty_print_vector {
             Some(line!()),
         );
     };
+    ($name:expr, None) => {
+        $crate::pretty_print::_pretty_print_vector($name, None, None, None);
+    };
     ($name:literal, $vector:expr) => {
         $crate::pretty_print::_pretty_print_vector(
             $vector,
@@ -388,6 +391,10 @@ macro_rules! pretty_print_matrix {
             Some(line!()),
         );
     };
+    ($name:expr, None) => {
+        $crate::pretty_print::_pretty_print_matrix($name, None, None, None);
+    };
+
     ($name:literal, $matrix:expr) => {
         $crate::pretty_print::_pretty_print_matrix(
             $matrix,

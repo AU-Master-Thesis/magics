@@ -25,13 +25,13 @@ pub struct FactorGraphVisualiserPlugin;
 impl Plugin for FactorGraphVisualiserPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<VariableClickEvent>()
+            .add_event::<VariableClickedOn>()
             .add_systems(
             Update,
             (
-                update_factorgraphs,
+                update_factorgraph_visualizers,
                 show_or_hide_factorgraphs.run_if(event_exists::<DrawSettingsEvent>),
-                draw_lines_between_variables.run_if(draw_predicted_trajectories_is_enabled),
+                draw_lines_between_variables.run_if(enabled),
                 remove_rendered_factorgraph_when_robot_despawns,
                 remove_rendered_factorgraphs.run_if(on_event::<EndSimulation>()),
                 on_variable_clicked
@@ -84,16 +84,9 @@ pub struct VariableVisualiser;
 pub struct DynamicFactorVisualiser;
 
 #[derive(Event)]
-struct VariableClickEvent(pub Entity);
+struct VariableClickedOn(pub Entity);
 
-impl VariableClickEvent {
-    #[inline]
-    pub const fn target(&self) -> Entity {
-        self.0
-    }
-}
-
-impl From<ListenerInput<Pointer<Click>>> for VariableClickEvent {
+impl From<ListenerInput<Pointer<Click>>> for VariableClickedOn {
     #[inline]
     fn from(value: ListenerInput<Pointer<Click>>) -> Self {
         Self(value.target)
@@ -101,19 +94,13 @@ impl From<ListenerInput<Pointer<Click>>> for VariableClickEvent {
 }
 
 fn on_variable_clicked(
-    mut variable_click_event: EventReader<VariableClickEvent>,
+    mut evr_variable_clicked_on: EventReader<VariableClickedOn>,
     query_robottracker: Query<&RobotTracker, With<VariableVisualiser>>,
     query_factorgraph: Query<&FactorGraph, With<RobotState>>,
 ) {
-    for VariableClickEvent(entity) in variable_click_event.read() {
+    for VariableClickedOn(entity) in evr_variable_clicked_on.read() {
         let Some(variable) = query_robottracker
             .get(*entity)
-            .inspect(|tracker| {
-                info!(
-                    "clicked variable mesh: {:?}, associated with robot: {:?}",
-                    entity, tracker
-                );
-            })
             .and_then(|tracker| {
                 query_factorgraph
                     .get(tracker.robot_id)
@@ -127,9 +114,9 @@ fn on_variable_clicked(
             return;
         };
 
-        pretty_print_vector!(&variable.belief.information_vector);
-        pretty_print_matrix!(&variable.belief.precision_matrix);
-        pretty_print_vector!(&variable.belief.mean);
+        pretty_print_vector!(&variable.belief.information_vector, None);
+        pretty_print_matrix!(&variable.belief.precision_matrix, None);
+        pretty_print_vector!(&variable.belief.mean, None);
     }
 }
 
@@ -141,7 +128,7 @@ fn on_variable_clicked(
 fn create_factorgraph_visualizer(
     mut commands: Commands,
     mut spawn_robot_event: EventReader<RobotSpawned>,
-    mut matierals: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     query: Query<(Entity, &FactorGraph, &ColorAssociation), With<RobotState>>,
     config: Res<Config>,
     // scene_assets: Res<SceneAssets>,
@@ -177,11 +164,10 @@ fn create_factorgraph_visualizer(
                 simulation_loader::Reloadable,
                 VariableVisualiser,
                 PickableBundle::default(),
-                On::<Pointer<Click>>::send_event::<VariableClickEvent>(),
+                On::<Pointer<Click>>::send_event::<VariableClickedOn>(),
                 PbrBundle {
                     mesh: meshes.variable.clone(),
-                    // material: scene_assets.materials.variable.clone(),
-                    material: matierals.add(StandardMaterial {
+                    material: materials.add(StandardMaterial {
                         base_color: Color::from_catppuccin_colour(
                             theme.get_display_colour(&color_association.name),
                         ),
@@ -197,10 +183,6 @@ fn create_factorgraph_visualizer(
                 },
             ));
         }
-
-        // for ((_, v1), (_, v2)) in factorgraph.variables().tuple_windows() {
-        //
-        // }
     }
 }
 
@@ -211,7 +193,7 @@ fn create_factorgraph_visualizer(
 /// and variables in the [`FactorGraph`] that have matching
 /// `RobotTracker.variable_id`
 #[allow(clippy::cast_possible_truncation)]
-fn update_factorgraphs(
+fn update_factorgraph_visualizers(
     mut query_tracker: Query<(&RobotTracker, &mut Transform), With<VariableVisualiser>>,
     query_factorgraph: Query<(Entity, &FactorGraph)>,
     config: Res<Config>,
@@ -267,7 +249,7 @@ fn show_or_hide_factorgraphs(
 }
 
 #[inline]
-fn draw_predicted_trajectories_is_enabled(config: Res<Config>) -> bool {
+fn enabled(config: Res<Config>) -> bool {
     config.visualisation.draw.predicted_trajectories
 }
 
@@ -285,7 +267,7 @@ fn draw_lines_between_variables(
 ) {
     // let color = Color::from_catppuccin_colour(catppuccin_theme.text());
 
-    for (entity, color_association) in query_factorgraphs.iter() {
+    for (entity, color_association) in &query_factorgraphs {
         // PERF: reuse the same vector, as all factorgraphs have the same variables
         let positions = query_variables
             .iter()
@@ -295,14 +277,12 @@ fn draw_lines_between_variables(
             .map(|(_, t)| t.translation)
             .collect::<Vec<Vec3>>();
 
+        let color =
+            Color::from_catppuccin_colour(theme.get_display_colour(&color_association.name));
         for window in positions.windows(2) {
             let start = window[0];
             let end = window[1];
-            gizmos.line(
-                start,
-                end,
-                Color::from_catppuccin_colour(theme.get_display_colour(&color_association.name)),
-            );
+            gizmos.line(start, end, color);
         }
     }
 }
