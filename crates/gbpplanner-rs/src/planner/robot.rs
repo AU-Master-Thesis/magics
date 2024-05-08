@@ -202,20 +202,36 @@ pub struct Radius(pub f32);
 /// A waypoint is a position and velocity that the robot should move to and
 /// achieve.
 #[allow(clippy::similar_names)]
-#[derive(Component, Debug)]
-pub struct Waypoints {
+#[derive(Component, Debug, derive_more::Index)]
+pub struct Route {
     // TODO: Use `StateVector` here
-    pub waypoints:       VecDeque<Vec4>,
+    #[index]
+    waypoints: Vec<StateVector>,
+    target_index: usize,
     pub intersects_when: WaypointReachedWhenIntersects,
 }
 
 #[derive(Component, Debug)]
 pub struct InitialPose(pub Vec4);
 
-impl Waypoints {
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.waypoints.is_empty()
+impl Route {
+    pub fn new(
+        waypoints: min_len_vec::TwoOrMore<StateVector>,
+        intersects_when: WaypointReachedWhenIntersects,
+    ) -> Self {
+        Self {
+            waypoints: waypoints.into(),
+            target_index: 1, // skip first waypoint, as it is the initial pose
+            intersects_when,
+        }
+    }
+
+    pub fn next_waypoint(&self) -> Option<&StateVector> {
+        self.waypoints.get(self.target_index)
+    }
+
+    pub fn advance(&mut self) {
+        self.target_index += 1;
     }
 
     #[inline]
@@ -224,13 +240,25 @@ impl Waypoints {
     }
 
     #[inline]
-    pub fn front(&self) -> Option<&Vec4> {
-        self.waypoints.front()
+    pub fn waypoints(&self) -> &[StateVector] {
+        &self.waypoints
     }
 
     #[inline]
-    pub fn pop_front(&mut self) -> Option<Vec4> {
-        self.waypoints.pop_front()
+    pub fn first(&self) -> &StateVector {
+        // waypoints are guaranteed to have at least two elements
+        &self.waypoints[0]
+    }
+
+    #[inline]
+    pub fn last(&self) -> &StateVector {
+        // waypoints are guaranteed to have at least two elements
+        &self.waypoints[self.waypoints.len() - 1]
+    }
+
+    #[inline]
+    pub fn completed(&self) -> bool {
+        self.target_index >= self.waypoints.len()
     }
 }
 
@@ -252,14 +280,10 @@ impl RadioAntenna {
 pub struct RobotState {
     /// List of robot ids that are within the communication radius of this
     /// robot. called `neighbours_` in **gbpplanner**.
-    // ids_of_robots_within_comms_range: Vec<RobotId>,
     pub ids_of_robots_within_comms_range: BTreeSet<RobotId>,
     /// List of robot ids that are currently connected via inter-robot factors
     /// to this robot called `connected_r_ids_` in **gbpplanner**.
     pub ids_of_robots_connected_with:     BTreeSet<RobotId>,
-    // pub ids_of_robots_connected_with: Vec<RobotId>,
-    // / Flag for whether this factorgraph/robot communicates with other robots
-    // pub interrobot_comms_active: bool,
 }
 
 impl RobotState {
@@ -269,7 +293,6 @@ impl RobotState {
         Self {
             ids_of_robots_within_comms_range: BTreeSet::new(),
             ids_of_robots_connected_with:     BTreeSet::new(),
-            // interrobot_comms_active: true,
         }
     }
 }
@@ -302,7 +325,7 @@ pub struct RobotBundle {
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A `VecDeque` is used to allow for efficient `pop_front` operations, and
     /// `push_back` operations.
-    pub waypoints: Waypoints,
+    pub route: Route,
 
     /// Initial sate
     pub initial_state: StateVector,
@@ -317,18 +340,42 @@ pub struct RobotBundle {
 
 /// State vector of a robot
 /// [x, y, x', y']
-#[derive(Component, Debug, Clone, Copy, derive_more::Into, derive_more::Add)]
-pub struct StateVector(bevy::math::Vec4);
+#[derive(
+    Component,
+    Debug,
+    Clone,
+    Copy,
+    derive_more::Into,
+    derive_more::From,
+    derive_more::Add,
+    derive_more::Sub,
+)]
+pub struct StateVector(pub bevy::math::Vec4);
 
 impl StateVector {
+    /// Access the position vector of the robot state
     pub fn position(&self) -> Vec2 {
         self.0.xy()
     }
 
+    /// Access the velocity vector of the robot state
     pub fn velocity(&self) -> Vec2 {
         self.0.zw()
     }
 
+    /// Update the position vector of the robot state
+    pub fn update_position(&mut self, position: Vec2) {
+        self.0.x = position.x;
+        self.0.y = position.y;
+    }
+
+    /// Update the velocity vector of the robot state
+    pub fn update_velocity(&mut self, velocity: Vec2) {
+        self.0.z = velocity.x;
+        self.0.w = velocity.y;
+    }
+
+    /// Create a new `StateVector`
     #[must_use]
     pub const fn new(state: Vec4) -> Self {
         Self(state)
@@ -348,38 +395,38 @@ impl RobotBundle {
     pub fn new(
         robot_id: RobotId,
         initial_state: StateVector,
-        // waypoints: VecDeque<Vec4>,
-        // initial_pose: &Vec4,
-        waypoints: Waypoints,
+        route: Route,
         variable_timesteps: &[u32],
         config: &Config,
         radius: f32,
-        // obstacle_sdf: &'static Image,
-        // obstacle_sdf: &Image,
         sdf: &SdfImage,
-        // obstacle_sdf: Handle<Image>,
         use_tracking: bool,
-    ) -> Result<Self, RobotInitError> {
-        if waypoints.is_empty() {
-            return Err(RobotInitError::NoWaypoints);
-        }
+    ) -> Self {
+        // if variable_timesteps.is_empty() {
+        //     return Err(RobotInitError::NoVariableTimesteps);
+        // }
 
-        if variable_timesteps.is_empty() {
-            return Err(RobotInitError::NoVariableTimesteps);
-        }
+        assert!(
+            !variable_timesteps.is_empty(),
+            "Variable timesteps cannot be empty"
+        );
 
-        let start: Vec4 = Vec4::from(initial_state);
+        let start: Vec4 = route.first().to_owned().into();
+
+        // let start: Vec4 = Vec4::from(initial_state);
         // let start = waypoints
         //     .pop_front()
         //     .expect("Waypoints has at least one element");
 
-        let goal = waypoints
-            .front()
-            .expect("Waypoints has at least one element");
+        // let goal
+        let next_waypoint: Vec4 = route[1].into();
+        // .next()
+        // .expect("the route consists of at least two waypoints");
+        // let goal = route.front().expect("Waypoints has at least one element");
 
         // Initialise the horizon in the direction of the goal, at a distance T_HORIZON
         // * MAX_SPEED from the start.
-        let start2goal: Vec4 = *goal - start;
+        let start2goal: Vec4 = next_waypoint - start;
 
         let horizon = start
             + f32::min(
@@ -464,9 +511,7 @@ impl RobotBundle {
                 factorgraph.id(),
                 Float::from(config.gbp.sigma_factor_obstacle),
                 array![0.0],
-                // obstacle_sdf.clone(),
                 sdf.clone(),
-                // obstacle_sdf.clone_value(),
                 Float::from(config.simulation.world_size.get()),
             );
 
@@ -478,8 +523,8 @@ impl RobotBundle {
             );
         }
 
-        let waypoints_with_init =
-            std::iter::once(&initial_state.0).chain(waypoints.waypoints.iter());
+        // let waypoints_with_init =
+        // std::iter::once(&initial_state.0).chain(route.waypoints.iter());
 
         // Create Tracking factors for all variables, excluding the start
         if use_tracking {
@@ -488,10 +533,15 @@ impl RobotBundle {
                     factorgraph.id(),
                     Float::from(config.gbp.sigma_factor_tracking),
                     Vector::<Float>::zeros(2),
-                    waypoints_with_init
-                        .clone()
-                        .map(|waypoint| Vec2::new(waypoint.x, waypoint.y))
+                    route
+                        .waypoints()
+                        .iter()
+                        .map(|wp| wp.position())
                         .collect::<Vec<Vec2>>(),
+                    // waypoints_with_init
+                    //     .clone()
+                    //     .map(|waypoint| Vec2::new(waypoint.x, waypoint.y))
+                    //     .collect::<Vec<Vec2>>(),
                 );
 
                 let factor_node_index = factorgraph.add_factor(tracking_factor);
@@ -512,18 +562,16 @@ impl RobotBundle {
         // waypoints.waypoints = waypoints_with_init.map(|it|
         // *it).collect::<VecDeque<_>>();
 
-        Ok(Self {
+        Self {
             factorgraph,
-            // radius: Radius(config.robot.radius.get()),
             radius: Radius(radius),
-            // ball: Ball(parry2d::shape::Ball::new(config.robot.radius.get())),
             ball: Ball(parry2d::shape::Ball::new(radius)),
             antenna: RadioAntenna::new(config.robot.communication.radius.get(), true),
             state: RobotState::new(),
-            waypoints,
+            route,
             initial_state,
             finished_path: FinishedPath::default(),
-        })
+        }
     }
 }
 
@@ -1168,7 +1216,7 @@ fn update_prior_of_horizon_state(
         (
             Entity,
             &mut FactorGraph,
-            &mut Waypoints,
+            &mut Route,
             &mut FinishedPath,
             &Radius,
         ),
@@ -1177,23 +1225,28 @@ fn update_prior_of_horizon_state(
     mut evw_robot_despawned: EventWriter<RobotDespawned>,
     mut evw_robot_finalized_path: EventWriter<RobotFinishedPath>,
     mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
+    mut all_messages_to_external_factors: Local<Vec<VariableToFactorMessage>>,
 ) {
     // let t_start = std::time::Instant::now();
+
+    // PERF: we reuse the same vector between system calls
+    all_messages_to_external_factors.clear();
 
     let delta_t = Float::from(time.delta_seconds());
     // let robot_radius = config.robot.radius.get();
     // let robot_radius_squared = config.robot.radius.get().powi(2);
     let max_speed = Float::from(config.robot.max_speed.get());
 
-    let mut all_messages_to_external_factors = Vec::new();
+    // let mut all_messages_to_external_factors = Vec::new();
+
     let mut robots_to_despawn = Vec::new();
 
-    for (robot_id, mut factorgraph, mut waypoints, mut finished_path, radius) in &mut query {
+    for (robot_id, mut factorgraph, mut route, mut finished_path, radius) in &mut query {
         if finished_path.0 {
             continue;
         }
 
-        let Some(current_waypoint) = waypoints.front() else {
+        let Some(next_waypoint) = route.next_waypoint() else {
             // no more waypoints for the robot to move to
             finished_path.0 = true;
             robots_to_despawn.push(robot_id);
@@ -1205,7 +1258,7 @@ fn update_prior_of_horizon_state(
         // 1. update the mean of the horizon variable
         // 2. find the variable configured to use for the waypoint intersection check
         let reached_waypoint = {
-            let variable = match waypoints.intersects_when {
+            let variable = match route.intersects_when {
                 WaypointReachedWhenIntersects::Current => factorgraph.first_variable(),
                 WaypointReachedWhenIntersects::Horizon => factorgraph.last_variable(),
                 WaypointReachedWhenIntersects::Variable(ix) => factorgraph.nth_variable(ix.into()),
@@ -1215,7 +1268,7 @@ fn update_prior_of_horizon_state(
 
             let estimated_pos = variable.estimated_position_vec2();
             // Use square distance comparison to avoid sqrt computation
-            let dist2waypoint = estimated_pos.distance_squared(current_waypoint.xy());
+            let dist2waypoint = estimated_pos.distance_squared(next_waypoint.position());
             dist2waypoint < robot_radius_squared
         };
 
@@ -1223,12 +1276,14 @@ fn update_prior_of_horizon_state(
             .last_variable_mut()
             .expect("factorgraph has a horizon variable");
         let estimated_position = horizon_variable.belief.mean.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
-        let current_waypoint = array![
-            Float::from(current_waypoint.x),
-            Float::from(current_waypoint.y)
+        let next_waypoint_pos = array![
+            Float::from(next_waypoint.position().x),
+            Float::from(next_waypoint.position().y)
         ];
+        // let current_waypoint = array![Float::from(next_waypoint.x),
+        // Float::from(next_waypoint.y)];
 
-        let horizon2waypoint = current_waypoint - estimated_position;
+        let horizon2waypoint = next_waypoint_pos - estimated_position;
         let horizon2goal_dist = horizon2waypoint.euclidean_norm();
 
         let new_velocity = Float::min(max_speed, horizon2goal_dist) * horizon2waypoint.normalized();
@@ -1244,8 +1299,9 @@ fn update_prior_of_horizon_state(
             factorgraph.change_prior_of_variable(variable_index, new_mean);
         all_messages_to_external_factors.extend(messages_to_external_factors);
 
-        if reached_waypoint && !waypoints.is_empty() {
-            waypoints.pop_front();
+        if reached_waypoint && !route.completed() {
+            route.advance();
+            // route.pop_front();
             evw_robot_reached_waypoint.send(RobotReachedWaypoint {
                 robot_id,
                 waypoint_index: 0,
@@ -1253,24 +1309,8 @@ fn update_prior_of_horizon_state(
         }
     }
 
-    // if all_messages_to_external_factors.len() >= 3 {
-    //     error!(
-    //         "all_messages_to_external_factors.len() = {} >= 3",
-    //         all_messages_to_external_factors.len()
-    //     );
-
-    //     error!(
-    //         "payload size of first message is, {}",
-    //         all_messages_to_external_factors
-    //             .first()
-    //             .expect("whatever")
-    //             .message
-    //             .size_of_payload()
-    //     );
-    // }
-
     // Send messages to external factors
-    for message in all_messages_to_external_factors {
+    for message in all_messages_to_external_factors.iter() {
         let (_, mut external_factorgraph, _, _, _) = query
             .get_mut(message.to.factorgraph_id)
             .expect("the factorgraph of the receiving factor exists in the world");
@@ -1288,13 +1328,6 @@ fn update_prior_of_horizon_state(
             evw_robot_despawned.send_batch(robots_to_despawn.into_iter().map(RobotDespawned));
         }
     }
-
-    // let t_end = std::time::Instant::now();
-    //
-    // error!(
-    //     "Planner iteration took {} microseconds",
-    //     t_end.duration_since(t_start).as_micros()
-    // );
 }
 
 /// Called `Robot::updateCurrent` in **gbpplanner**

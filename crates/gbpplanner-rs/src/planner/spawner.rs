@@ -20,7 +20,7 @@ use crate::{
     },
     environment::FollowCameraMe,
     pause_play::PausePlay,
-    planner::robot::{RobotBundle, StateVector, Waypoints},
+    planner::robot::{RobotBundle, Route, StateVector},
     simulation_loader::{
         self, EndSimulation, LoadSimulation, ReloadSimulation, Sdf, SimulationManager,
     },
@@ -439,14 +439,6 @@ fn spawn_formation(
     mut mesh_assets: ResMut<Assets<Mesh>>,
 ) {
     for event in evr_robot_formation_spawned.read() {
-        // only continue if the image has been loaded
-        // let Some(image) = image_assets.get(&obstacles.sdf) else {
-        //     error!("obstacle sdf not loaded yet");
-        //     return;
-        // };
-
-        // let _ = OBSTACLE_IMAGE.get_or_init(|| image.clone());
-
         let formation_group = simulation_manager
             .active_formation_group()
             .expect("there is an active formation group");
@@ -516,23 +508,17 @@ fn spawn_formation(
             })
             .collect();
 
-        // dbg!(&initial_pose_for_each_robot);
-        // dbg!(&waypoint_poses_for_each_robot);
-
         for (i, initial_pose) in initial_pose_for_each_robot.iter().enumerate() {
             let waypoints: Vec<Vec4> = waypoint_poses_for_each_robot
                 .iter()
                 .map(|wps| wps[i])
                 .collect();
-            // }
-            // for (initial_pose, waypoints) in initial_pose_for_each_robot
-            //     .iter()
-            //     .zip(waypoint_poses_for_each_robot.iter())
-            // {
-            info!(
+            trace!(
                 "initial pose: {:?}, waypoints: {:?}",
-                initial_pose, waypoints
+                initial_pose,
+                waypoints
             );
+
             let initial_direction = initial_pose.yz().extend(0.0);
             let initial_translation = Vec3::new(initial_pose.x, 0.5, initial_pose.y);
 
@@ -543,27 +529,38 @@ fn spawn_formation(
                 position:  pose.xy(),
             }));
 
-            let waypoints: Waypoints = Waypoints {
-                waypoints:       waypoints.iter().copied().collect(),
-                intersects_when: formation.waypoint_reached_when_intersects,
-            };
+            let route = Route::new(
+                std::iter::once(initial_pose)
+                    .chain(waypoints.iter())
+                    .copied()
+                    .map_into::<StateVector>()
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .unwrap(),
+                formation.waypoint_reached_when_intersects,
+            );
+
+            // let route = Route {
+            //     waypoints:       waypoints.iter().copied().collect(),
+            //     intersects_when: formation.waypoint_reached_when_intersects,
+            // };
 
             // let waypoints: VecDeque<_> = waypoints.iter().copied().collect();
 
             let robotbundle = RobotBundle::new(
                 robot_id,
                 StateVector::new(*initial_pose),
-                waypoints,
+                route,
                 variable_timesteps.as_slice(),
                 &config,
                 radii[i],
                 &sdf.0,
                 matches!(formation.planning_strategy, PlanningStrategy::RrtStar),
-            )
-            .expect(
-                "Possible `RobotInitError`s should be avoided due to the formation input being \
-                 validated.",
             );
+            // .expect(
+            //     "Possible `RobotInitError`s should be avoided due to the formation input
+            // being \      validated.",
+            // );
 
             let initial_visibility = if config.visualisation.draw.robots {
                 Visibility::Visible
@@ -623,15 +620,9 @@ fn spawn_formation(
     }
 }
 
+// TODO: move into another module
 #[derive(Event)]
 pub struct RobotClickedOn(pub Entity);
-
-impl RobotClickedOn {
-    // #[inline]
-    // pub const fn target(&self) -> Entity {
-    //     self.0
-    // }
-}
 
 impl From<ListenerInput<Pointer<Click>>> for RobotClickedOn {
     fn from(value: ListenerInput<Pointer<Click>>) -> Self {

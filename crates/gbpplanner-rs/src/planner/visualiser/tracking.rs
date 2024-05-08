@@ -7,7 +7,7 @@ use itertools::Itertools;
 use crate::{
     config::Config,
     factorgraph::prelude::FactorGraph,
-    planner::robot::{StateVector, Waypoints},
+    planner::robot::{Route, StateVector},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
@@ -51,17 +51,16 @@ fn visualise_tracking_factors(
 
 fn visualise_tracking_paths(
     mut gizmos: Gizmos,
-    factorgraphs: Query<(&FactorGraph, &ColorAssociation, &Waypoints, &StateVector)>,
+    factorgraphs: Query<(&FactorGraph, &ColorAssociation, &Route, &StateVector)>,
     theme: Res<CatppuccinTheme>,
 ) {
-    for (factorgraph, color_association, waypoints, initial_state) in &factorgraphs {
+    for (factorgraph, color_association, route, initial_state) in &factorgraphs {
         let color = Color::from_catppuccin_colour_with_alpha(
             theme.get_display_colour(&color_association.name),
             0.25,
         );
 
-        let points = std::iter::once(initial_state.position())
-            .chain(waypoints.waypoints.iter().map(|waypoint| waypoint.xy()));
+        let points = route.waypoints().iter().map(|waypoint| waypoint.position());
 
         points.tuple_windows().for_each(|(start, end)| {
             let start = start.extend(0.0).xzy();
