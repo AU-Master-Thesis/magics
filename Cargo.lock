@@ -1324,6 +1324,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_debugdump"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d39eb6372d6af22b209d68c10e3b742938b450117281387c94ce3f9f51902b76"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_render",
+ "bevy_utils",
+ "once_cell",
+ "petgraph",
+ "pretty-type-name",
+]
+
+[[package]]
 name = "bevy_mod_picking"
 version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3481,6 +3496,8 @@ dependencies = [
  "ron",
  "serde",
  "serde_yaml",
+ "strum",
+ "strum_macros",
  "thiserror",
  "toml 0.8.12",
  "typed_floats",
@@ -3545,6 +3562,7 @@ dependencies = [
  "bevy_file_dialog",
  "bevy_fullscreen",
  "bevy_infinite_grid",
+ "bevy_mod_debugdump",
  "bevy_mod_picking",
  "bevy_more_shapes",
  "bevy_notify",

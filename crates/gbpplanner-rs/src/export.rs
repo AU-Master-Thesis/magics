@@ -5,8 +5,10 @@ use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 use crate::{
     config::Config,
     factorgraph::prelude::FactorGraph,
-    planner::{self, robot::Radius},
-    simulation_loader::SimulationManager,
+    planner::{
+        self,
+        robot::{Radius, Route},
+    },
 };
 
 #[derive(Default)]
@@ -14,7 +16,6 @@ pub struct ExportPlugin;
 
 impl Plugin for ExportPlugin {
     fn build(&self, app: &mut App) {
-        println!("export plugin loaded");
         app.add_event::<Export>().add_systems(
             Update,
             (
@@ -52,6 +53,29 @@ struct RobotData {
     velocities: Vec<[f32; 2]>,
     collisions: CollisionData,
     messages:   MessageData,
+    route:      RouteData,
+}
+
+#[derive(serde::Serialize)]
+struct RouteData {
+    waypoints:   Vec<[f32; 2]>,
+    started_at:  f64,
+    finished_at: f64,
+    duration:    f64,
+}
+
+impl RouteData {
+    fn new(waypoints: Vec<[f32; 2]>, started_at: f64, finished_at: f64) -> Self {
+        assert!(waypoints.len() >= 2);
+        assert!(finished_at > started_at);
+        let duration = finished_at - started_at;
+        Self {
+            waypoints,
+            started_at,
+            finished_at,
+            duration,
+        }
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -99,9 +123,10 @@ fn export(
         &planner::tracking::PositionTracker,
         &planner::tracking::VelocityTracker,
         &Radius,
+        &Route,
     )>,
-    robot_collisions: Res<crate::planner::collisions::RobotRobotCollisions>,
-    environment_collisions: Res<crate::planner::collisions::RobotEnvironmentCollisions>,
+    robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
+    environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
     sim_manager: Res<crate::simulation_loader::SimulationManager>,
     config: Res<Config>,
     time_virtual: Res<Time<Virtual>>,
@@ -121,6 +146,12 @@ fn export(
     //     {
     //       "id": <string>,
     //       "radius": <float>,
+    //       "route": {
+    //         "waypoints": <json array>, [{"x": <float>, "y": <float> }],
+    //         "started_at": <float>,
+    //         "finished_at": <float>,
+    //         "duration": <float>
+    //       },
     //       "positions": <json array>, [{"x": <float>, "y": <float>, "timestamp":
     // <float> } ], ]       "velocities": <json array>, [{"x": <float>, "y":
     // <float>, "timestamp": <float> } ], ]       "collisions": {
@@ -145,11 +176,13 @@ fn export(
     for event in evr_export.read() {
         let environment = sim_manager.active_name().unwrap_or_default();
         // let makespan = -1.0; // Placeholder, replace with actual makespan calculation
+        // FIXME: compute as the duration from when the first robot spawned, to the last
+        // robot finished its route
         let makespan = time_virtual.elapsed_seconds() as f64;
 
         let robots: HashMap<_, _> = q_robots
             .iter()
-            .map(|(entity, graph, positions, velocities, radius)| {
+            .map(|(entity, graph, positions, velocities, radius, route)| {
                 // let positions: Vec<[f32; 2]> = positions.positions().map(|pos| [pos.x,
                 // pos.z]).collect();
                 let positions: Vec<[f32; 2]> = positions.positions().map(Into::into).collect();
@@ -159,11 +192,27 @@ fn export(
                 let robot_collisions = robot_collisions.get(entity).unwrap_or(0);
                 let environment_collisions = environment_collisions.get(entity).unwrap_or(0);
 
+                // let started_at = route.started_at();
+                // let finished_at = route
+                //     .finished_at()
+                //     .unwrap_or_else(|| time_virtual.elapsed_seconds_f64());
+                //
                 let id = format!("{:?}", entity);
                 let robot_data = RobotData {
                     radius: radius.0,
                     positions,
                     velocities,
+                    route: RouteData::new(
+                        route
+                            .waypoints()
+                            .iter()
+                            .map(|wp| wp.position().into())
+                            .collect(),
+                        route.started_at(),
+                        route
+                            .finished_at()
+                            .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
+                    ),
                     collisions: CollisionData {
                         robots:      robot_collisions,
                         environment: environment_collisions,

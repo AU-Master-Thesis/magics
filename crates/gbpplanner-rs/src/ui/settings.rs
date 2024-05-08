@@ -19,7 +19,7 @@ use crate::{
     environment::cursor::CursorCoordinates,
     factorgraph::prelude::FactorGraph,
     input::{screenshot::TakeScreenshot, ChangingBinding, DrawSettingsEvent, ExportGraphEvent},
-    pause_play::{PausePlay, PausedState},
+    pause_play::PausePlay,
     planner::robot::RadioAntenna,
     simulation_loader::{SimulationId, SimulationManager},
     theme::{CatppuccinTheme, CycleTheme, FromCatppuccinColourExt},
@@ -78,35 +78,35 @@ fn ui_settings_exclusive(world: &mut World) {
                 world.resource_scope(|world, catppuccin_theme: Mut<CatppuccinTheme>| {
                     world.resource_scope(|world, cursor_coordinates: Mut<CursorCoordinates>| {
                         world.resource_scope(|world, currently_changing: Mut<ChangingBinding>| {
-                            world.resource_scope(|world, pause_play: Mut<State<PausedState>>| {
-                                world.resource_scope(|world, time: Mut<Time<Virtual>>| {
-                                    world.resource_scope(|world, time_fixed: Mut<Time<Fixed>>| {
-                                        world.resource_scope(
-                                            |world, simulation_manager: Mut<SimulationManager>| {
-                                                world.resource_scope(
-                                                    |world, config_store: Mut<GizmoConfigStore>| {
-                                                        ui_settings_panel(
-                                                            egui_context.get_mut(),
-                                                            ui_state,
-                                                            config,
-                                                            occupied_screen_space,
-                                                            cursor_coordinates,
-                                                            catppuccin_theme,
-                                                            world,
-                                                            currently_changing,
-                                                            pause_play,
-                                                            time,
-                                                            time_fixed,
-                                                            config_store,
-                                                            simulation_manager,
-                                                        );
-                                                    },
-                                                );
-                                            },
-                                        );
-                                    });
+                            // world.resource_scope(|world, pause_play: Mut<State<PausedState>>| {
+                            world.resource_scope(|world, time: Mut<Time<Virtual>>| {
+                                world.resource_scope(|world, time_fixed: Mut<Time<Fixed>>| {
+                                    world.resource_scope(
+                                        |world, simulation_manager: Mut<SimulationManager>| {
+                                            world.resource_scope(
+                                                |world, config_store: Mut<GizmoConfigStore>| {
+                                                    ui_settings_panel(
+                                                        egui_context.get_mut(),
+                                                        ui_state,
+                                                        config,
+                                                        occupied_screen_space,
+                                                        cursor_coordinates,
+                                                        catppuccin_theme,
+                                                        world,
+                                                        currently_changing,
+                                                        // pause_play,
+                                                        time,
+                                                        time_fixed,
+                                                        config_store,
+                                                        simulation_manager,
+                                                    );
+                                                },
+                                            );
+                                        },
+                                    );
                                 });
                             });
+                            // });
                         });
                     });
                 });
@@ -129,7 +129,7 @@ fn ui_settings_panel(
     catppuccin_theme: Mut<CatppuccinTheme>,
     world: &mut World,
     _currently_changing: Mut<ChangingBinding>,
-    pause_state: Mut<State<PausedState>>,
+    // pause_state: Mut<State<PausedState>>,
     mut time_virtual: Mut<Time<Virtual>>,
     mut time_fixed: Mut<Time<Fixed>>,
     mut config_store: Mut<GizmoConfigStore>,
@@ -143,7 +143,7 @@ fn ui_settings_panel(
         catppuccin_theme.lavender(),
     ]);
 
-    let panel_resizable = false;
+    // let panel_resizable = false;
 
     let width = 400.0;
     let right_panel = egui::SidePanel::right("Settings Panel")

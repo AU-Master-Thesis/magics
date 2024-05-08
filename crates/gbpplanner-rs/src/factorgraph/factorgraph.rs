@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use bevy::{
     ecs::{component::Component, entity::Entity},
-    log::{debug, error, info},
+    log::{debug, info},
 };
 // use gbp_linalg::Float;
 use gbp_linalg::prelude::*;
@@ -386,7 +386,7 @@ impl FactorGraph {
             let factor = node
                 .as_factor()
                 .expect("A factor index should point to a Factor in the graph");
-            let Some(interrobot) = factor.kind.as_inter_robot() else {
+            let Some(interrobot) = factor.kind.try_as_inter_robot_ref() else {
                 continue;
             };
 
@@ -1035,7 +1035,7 @@ impl<'fg> Iterator for InterRobotFactors<'fg> {
         let &index = self.factor_indices.next()?;
         let node = &self.graph[index];
         node.as_factor()
-            .and_then(|factor| factor.kind.as_inter_robot())
+            .and_then(|factor| factor.kind.try_as_inter_robot_ref())
             .map(|interrobot| (index, interrobot))
     }
 }
@@ -1094,7 +1094,7 @@ impl<'fg> Iterator for VariableAndTheirInterRobotFactors<'fg> {
             let target = edge_ref.target();
             let Some(interrobot) = self.graph[target]
                 .as_factor()
-                .and_then(|factor| factor.kind.as_inter_robot())
+                .and_then(|factor| factor.kind.try_as_inter_robot_ref())
             else {
                 continue;
             };
@@ -1171,7 +1171,7 @@ impl<'fg> Iterator for VariableAndTheirObstacleFactors<'fg> {
             .as_factor()
             .expect("factor index points to a factor node")
             .kind
-            .as_obstacle()
+            .try_as_obstacle_ref()
             .expect("factors In VariableAndTheirObstacleFactors are obstacle factors");
 
         Some((variable, obstacle_factor))
@@ -1212,7 +1212,7 @@ impl<'fg> Iterator for VariableAndTheirTrackingFactors<'fg> {
             .as_factor()
             .expect("factor index points to a factor node")
             .kind
-            .as_tracking()
+            .try_as_tracking_ref()
             .expect("factors In VariableAndTheirTrackingFactors are tracking factors");
 
         Some((variable, tracking_factor))

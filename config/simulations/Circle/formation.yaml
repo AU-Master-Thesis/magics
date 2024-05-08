@@ -23,6 +23,12 @@ formations:
         x: 0.5
         y: 0.5
     projection-strategy: cross
+  # - shape: !circle
+  #     radius: 40.0
+  #     center:
+  #       x: 0.5
+  #       y: 0.5
+  #   projection-strategy: identity
   # waypoint-reached-when-intersects: horizon
   waypoint-reached-when-intersects: current
   # waypoint-reached-when-intersects: !variable 5

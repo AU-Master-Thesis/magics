@@ -339,7 +339,7 @@ impl Rectangle {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, strum_macros::EnumTryAs)]
 #[serde(rename_all = "kebab-case")]
 pub enum PlaceableShape {
     Circle(Circle),
@@ -428,42 +428,6 @@ impl PlaceableShape {
             Self::Triangle(triangle) => triangle.inside(point),
             Self::RegularPolygon(polygon) => polygon.inside(point),
             Self::Rectangle(rectangle) => rectangle.inside(point),
-        }
-    }
-
-    /// Get the shape as a [`Circle`] if it is a [`Circle`]
-    pub fn as_circle(&self) -> Option<&Circle> {
-        if let Self::Circle(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
-
-    /// Get the shape as a [`Triangle`] if it is a [`Triangle`]
-    pub fn as_triangle(&self) -> Option<&Triangle> {
-        if let Self::Triangle(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
-
-    /// Get the shape as a [`RegularPolygon`] if it is a [`RegularPolygon`]
-    pub fn as_regular_polygon(&self) -> Option<&RegularPolygon> {
-        if let Self::RegularPolygon(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
-
-    /// Get the shape as a [`Rectangle`] if it is a [`Rectangle`]
-    pub fn as_rectangle(&self) -> Option<&Rectangle> {
-        if let Self::Rectangle(v) = self {
-            Some(v)
-        } else {
-            None
         }
     }
 }

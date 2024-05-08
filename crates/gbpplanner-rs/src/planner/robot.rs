@@ -14,7 +14,7 @@ use ndarray::{array, concatenate, s, Axis};
 use rand::{thread_rng, Rng};
 
 use super::{
-    collisions::{RobotEnvironmentCollisions, RobotRobotCollisions},
+    collisions::resources::{RobotEnvironmentCollisions, RobotRobotCollisions},
     spawner::RobotClickedOn,
 };
 use crate::{
@@ -187,77 +187,129 @@ impl FromWorld for VariableTimesteps {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum RobotInitError {
-    #[error("No waypoints were provided")]
-    NoWaypoints,
-    #[error("No variable timesteps were provided")]
-    NoVariableTimesteps,
-}
+// #[derive(Debug, thiserror::Error)]
+// pub enum RobotInitError {
+//     #[error("No waypoints were provided")]
+//     NoWaypoints,
+//     #[error("No variable timesteps were provided")]
+//     NoVariableTimesteps,
+// }
 
 /// Component for entities with a radius, used for robots
 #[derive(Component, Debug, Deref, DerefMut)]
 pub struct Radius(pub f32);
 
-/// A waypoint is a position and velocity that the robot should move to and
-/// achieve.
+/// Represents a robotic route consisting of several waypoints that define
+/// positions and velocities the robot should achieve as it progresses along the
+/// path.
 #[allow(clippy::similar_names)]
 #[derive(Component, Debug, derive_more::Index)]
 pub struct Route {
-    // TODO: Use `StateVector` here
+    /// A list of state vectors representing waypoints.
     #[index]
     waypoints: Vec<StateVector>,
+    /// The index of the next target waypoint in the waypoints vector.
     target_index: usize,
+    /// Criteria determining when the robot is considered to have reached a
+    /// waypoint.
     pub intersects_when: WaypointReachedWhenIntersects,
+    /// The recorded time at the start of the route as a floating-point
+    /// timestamp.
+    started_at: f64,
+    /// Optional recorded time when the route was completed as a floating-point
+    /// timestamp.
+    finished_at: Option<f64>,
 }
 
-#[derive(Component, Debug)]
-pub struct InitialPose(pub Vec4);
+// /// Represents the initial pose of the robot using a four-dimensional vector.
+// #[derive(Component, Debug)]
+// pub struct InitialPose(pub Vec4);
 
 impl Route {
+    /// Creates a new route from a specified set of waypoints and initial time.
+    ///
+    /// # Arguments
+    /// * `waypoints` - A vector of `StateVector` that must contain at least two
+    ///   elements.
+    /// * `intersects_when` - Criteria to determine when a waypoint has been
+    ///   reached.
+    /// * `started_at` - The start time of the route as a floating-point
+    ///   timestamp.
     pub fn new(
         waypoints: min_len_vec::TwoOrMore<StateVector>,
         intersects_when: WaypointReachedWhenIntersects,
+        started_at: f64,
     ) -> Self {
         Self {
             waypoints: waypoints.into(),
             target_index: 1, // skip first waypoint, as it is the initial pose
             intersects_when,
+            started_at,
+            finished_at: None,
         }
     }
 
+    /// Returns a reference to the next waypoint, if available.
     pub fn next_waypoint(&self) -> Option<&StateVector> {
         self.waypoints.get(self.target_index)
     }
 
-    pub fn advance(&mut self) {
-        self.target_index += 1;
+    /// Advances to the next waypoint, updating the finished time if the route
+    /// is completed.
+    ///
+    /// # Arguments
+    /// * `elapsed` - The current time as a `std::time::Duration` since the
+    ///   start.
+    pub fn advance(&mut self, elapsed: std::time::Duration) {
+        if self.target_index < self.waypoints.len() {
+            self.target_index += 1;
+        }
+        if self.is_completed() && self.finished_at.is_none() {
+            self.finished_at = Some(elapsed.as_secs_f64() - self.started_at);
+        }
     }
 
+    /// Returns the total number of waypoints.
     #[inline]
     pub fn len(&self) -> usize {
         self.waypoints.len()
     }
 
+    /// Provides a slice of all waypoints.
     #[inline]
     pub fn waypoints(&self) -> &[StateVector] {
         &self.waypoints
     }
 
+    /// Returns the start time of the route.
+    #[inline]
+    pub fn started_at(&self) -> f64 {
+        self.started_at
+    }
+
+    /// Returns the finish time of the route, if completed.
+    #[inline]
+    pub fn finished_at(&self) -> Option<f64> {
+        self.finished_at
+    }
+
+    /// Returns a reference to the first waypoint.
     #[inline]
     pub fn first(&self) -> &StateVector {
         // waypoints are guaranteed to have at least two elements
         &self.waypoints[0]
     }
 
+    /// Returns a reference to the last waypoint.
     #[inline]
     pub fn last(&self) -> &StateVector {
         // waypoints are guaranteed to have at least two elements
         &self.waypoints[self.waypoints.len() - 1]
     }
 
+    /// Checks whether all waypoints have been reached.
     #[inline]
-    pub fn completed(&self) -> bool {
+    pub fn is_completed(&self) -> bool {
         self.target_index >= self.waypoints.len()
     }
 }
@@ -304,7 +356,6 @@ impl Default for RobotState {
 }
 
 // TODO: change to collider
-
 #[derive(Debug, Component, Deref)]
 pub struct Ball(parry2d::shape::Ball);
 
@@ -402,10 +453,6 @@ impl RobotBundle {
         sdf: &SdfImage,
         use_tracking: bool,
     ) -> Self {
-        // if variable_timesteps.is_empty() {
-        //     return Err(RobotInitError::NoVariableTimesteps);
-        // }
-
         assert!(
             !variable_timesteps.is_empty(),
             "Variable timesteps cannot be empty"
@@ -413,16 +460,7 @@ impl RobotBundle {
 
         let start: Vec4 = route.first().to_owned().into();
 
-        // let start: Vec4 = Vec4::from(initial_state);
-        // let start = waypoints
-        //     .pop_front()
-        //     .expect("Waypoints has at least one element");
-
-        // let goal
         let next_waypoint: Vec4 = route[1].into();
-        // .next()
-        // .expect("the route consists of at least two waypoints");
-        // let goal = route.front().expect("Waypoints has at least one element");
 
         // Initialise the horizon in the direction of the goal, at a distance T_HORIZON
         // * MAX_SPEED from the start.
@@ -525,9 +563,6 @@ impl RobotBundle {
             );
         }
 
-        // let waypoints_with_init =
-        // std::iter::once(&initial_state.0).chain(route.waypoints.iter());
-
         // Create Tracking factors for all variables, excluding the start
         if use_tracking {
             for i in 1..variable_timesteps.len() {
@@ -554,11 +589,6 @@ impl RobotBundle {
         // FIXME: use global rng source/ or resource
         // let mut rng = rand::thread_rng();
         // let radius = rng.gen_range(config.robot.radius.range());
-
-        // let ball = parry2d::shape::Ball::new(radius);
-
-        // waypoints.waypoints = waypoints_with_init.map(|it|
-        // *it).collect::<VecDeque<_>>();
 
         Self {
             factorgraph,
@@ -1246,8 +1276,10 @@ fn update_prior_of_horizon_state(
 
         let Some(next_waypoint) = route.next_waypoint() else {
             // no more waypoints for the robot to move to
+            println!("robot {:?} finished at {:?}", robot_id, route.finished_at());
             finished_path.0 = true;
             robots_to_despawn.push(robot_id);
+            // route.finished_after(time.elapsed());
             continue;
         };
 
@@ -1270,10 +1302,11 @@ fn update_prior_of_horizon_state(
             dist2waypoint < robot_radius_squared
         };
 
-        let (variable_index, horizon_variable) = factorgraph
+        let (horizon_variable_index, horizon_variable) = factorgraph
             .last_variable_mut()
             .expect("factorgraph has a horizon variable");
         let estimated_position = horizon_variable.belief.mean.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
+                                                                              //
         let next_waypoint_pos = array![
             Float::from(next_waypoint.position().x),
             Float::from(next_waypoint.position().y)
@@ -1294,11 +1327,11 @@ fn update_prior_of_horizon_state(
         horizon_variable.belief.mean.clone_from(&new_mean);
 
         let messages_to_external_factors =
-            factorgraph.change_prior_of_variable(variable_index, new_mean);
+            factorgraph.change_prior_of_variable(horizon_variable_index, new_mean);
         all_messages_to_external_factors.extend(messages_to_external_factors);
 
-        if reached_waypoint && !route.completed() {
-            route.advance();
+        if reached_waypoint && !route.is_completed() {
+            route.advance(time.elapsed());
             // route.pop_front();
             evw_robot_reached_waypoint.send(RobotReachedWaypoint {
                 robot_id,

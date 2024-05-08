@@ -51,6 +51,9 @@ pub struct Cli {
     #[arg(short, long, group = "dump")]
     pub list_scenarios: bool,
 
+    #[arg(long, value_name = "SCHEDULE_GRAPH", group = "dump")]
+    pub schedule_graph: Option<BevySchedule>,
+
     /// Initial scenario to load
     /// If not specified, the first scenario in lexiographical order is loaded
     /// from the simulations directory
@@ -126,4 +129,16 @@ pub fn parse_arguments() -> Cli {
     let mut cli = Cli::parse();
     cli.default = true;
     cli
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum BevySchedule {
+    PreStartup,
+    Startup,
+    PostStartup,
+    PreUpdate,
+    Update,
+    PostUpdate,
+    FixedUpdate,
+    Last,
 }
