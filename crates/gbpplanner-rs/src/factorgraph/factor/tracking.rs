@@ -63,14 +63,31 @@ impl Factor for TrackingFactor {
         let (projected_point, distance, line) = self
             .tracking_path
             .windows(2)
+            // .filter(|window| {
+            //     let p2 = array![window[1].x as Float, window[1].y as Float];
+
+            //     // if x_pos is within some radius of p2, don't consider this line
+            //     let x_pos = x.slice(s![0..2]).to_owned();
+            //     let distance = (&x_pos - &p2).euclidean_norm();
+
+            //     // if distance is greater than 1.0, consider this line
+            //     let outside_radius_from_p2 = distance > 1.0;
+
+            //     // filter out if on other side of p2
+            //     let p1 = array![window[0].x as Float, window[0].y as Float];
+            //     let p1_to_p2 = &p2 - &p1;
+            //     let p2_to_x = &x_pos - &p2;
+
+            //     // if the cross product is negative, then the point is on the other side
+            //     let between_p1_p2 = p1_to_p2.cross(&p2_to_x) < 0.0;
+
+            //     outside_radius_from_p2 && between_p1_p2
+            // })
             .map(|window| {
                 let p2 = array![window[1].x as Float, window[1].y as Float];
                 let p1 = array![window[0].x as Float, window[0].y as Float];
 
                 let line = &p2 - &p1;
-                let normal = array![-line[1], line[0]].normalized();
-
-                // (p1, p2, line, normal)
 
                 let x_pos = x.slice(s![0..2]).to_owned();
 
@@ -78,13 +95,25 @@ impl Factor for TrackingFactor {
                 let projected = &p1 + (&x_pos - &p1).dot(&line) / &line.dot(&line) * &line;
                 let distance = (&x_pos - &projected).euclidean_norm();
 
-                (projected, distance, line)
+                (projected, distance, line, p2)
             })
-            .min_by(|(_, a, _), (_, b, _)| a.partial_cmp(b).unwrap())
-            .unwrap();
+            .filter(|(projected, distance, line, p2)| {
+                let dir_projected_to_p2 = (p2 - projected).normalized();
+                let dir_line = line.normalized();
+
+                let line_projected = line + dir_projected_to_p2;
+                let squared_line_length = dir_projected_to_p2.l2_norm();
+
+                let projected_is_between_p1_p2 = line_projected.l2_norm() < line.l2_norm();
+                let projected_is_outside_radius_of_p2 = squared_line_length > 2.0f64.powi(2);
+
+                projected_is_between_p1_p2 && projected_is_outside_radius_of_p2
+            })
+            .min_by(|(_, a, _, _), (_, b, _, _)| a.partial_cmp(b).unwrap())
+            .expect("There should be some line to consider");
 
         // current speed is the magnitude of the velocity x[2..4]
-        let speed = x.slice(s![2..4]).euclidean_norm();
+        // let speed = x.slice(s![2..4]).euclidean_norm();
 
         // let future_point = projected_point + speed * lines[min_index].2.normalized();
         let future_point = projected_point + 2.0 * line.normalized();
