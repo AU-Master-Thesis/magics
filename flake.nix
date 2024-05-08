@@ -59,6 +59,7 @@
         cargo-wizard
         cargo-pgo
         cargo-flamegraph
+        cargo-license
         # cargo-tree
 
         #   # cargo-profiler

@@ -1371,6 +1371,35 @@ impl FactorGraph {
     }
 }
 
+/// Iterator over the factors in the factorgraph
+pub struct FactorsDyn<'fg> {
+    graph: &'fg Graph,
+    iter:  std::slice::Iter<'fg, NodeIndex>,
+}
+
+impl<'fg> Iterator for FactorsDyn<'fg> {
+    type Item = &'fg dyn Factor;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|index| {
+            &self.graph[*index]
+                .as_factor()
+                .expect("factor indices only point to factors")
+                .kind as &dyn Factor
+        })
+    }
+}
+
+impl FactorGraph {
+    /// Returns an iterator over the factors in the factorgraph
+    pub fn factors_dyn(&self) -> FactorsDyn<'_> {
+        FactorsDyn {
+            graph: &self.graph,
+            iter:  self.factor_indices.iter(),
+        }
+    }
+}
+
 use super::graphviz;
 
 impl graphviz::Graph for FactorGraph {
