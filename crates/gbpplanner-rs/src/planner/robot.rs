@@ -441,6 +441,7 @@ impl RobotBundle {
         let n_variables = variable_timesteps.len();
         let mut variable_node_indices = Vec::with_capacity(n_variables);
 
+        let mut init_variable_means = Vec::<Vector<Float>>::with_capacity(n_variables);
         for (i, &variable_timestep) in variable_timesteps.iter().enumerate() {
             // Set initial mean and covariance of variable interpolated between start and
             // horizon
@@ -468,6 +469,7 @@ impl RobotBundle {
                 Float::from(mean.z),
                 Float::from(mean.w)
             ];
+            init_variable_means.push(mean.slice(s![..2]).to_owned());
 
             let variable = VariableNode::new(factorgraph.id(), mean, precision_matrix, DOFS);
             let variable_index = factorgraph.add_variable(variable);
@@ -503,7 +505,7 @@ impl RobotBundle {
             );
         }
 
-        // Create Obstacle & Tracking factors for all variables excluding start,
+        // Create Obstacle factors for all variables excluding start,
         // excluding horizon
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
@@ -532,16 +534,12 @@ impl RobotBundle {
                 let tracking_factor = FactorNode::new_tracking_factor(
                     factorgraph.id(),
                     Float::from(config.gbp.sigma_factor_tracking),
-                    Vector::<Float>::zeros(2),
+                    init_variable_means[i].clone(),
                     route
                         .waypoints()
                         .iter()
                         .map(|wp| wp.position())
                         .collect::<Vec<Vec2>>(),
-                    // waypoints_with_init
-                    //     .clone()
-                    //     .map(|waypoint| Vec2::new(waypoint.x, waypoint.y))
-                    //     .collect::<Vec<Vec2>>(),
                 );
 
                 let factor_node_index = factorgraph.add_factor(tracking_factor);

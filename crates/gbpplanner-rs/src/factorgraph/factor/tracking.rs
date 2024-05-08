@@ -60,7 +60,7 @@ impl Factor for TrackingFactor {
         // 1. Window pairs of rrt path
         // 1.1. Find the line defined by the two points
 
-        let (projected_point, _, line, _) = self
+        let (projected_point, _, _, _) = self
             .tracking_path
             .windows(2)
             .map(|window| {
@@ -80,9 +80,10 @@ impl Factor for TrackingFactor {
             .filter(|(projected, _, line, p1)| {
                 let p1_to_projected_l2 = (projected - p1).l2_norm();
                 let p1_to_p2_l2 = line.l2_norm();
+                let p2_to_projected_l2 = (projected - line).l2_norm();
 
                 let projected_is_between_p1_p2 = p1_to_projected_l2 < p1_to_p2_l2;
-                let projected_is_outside_radius_of_p2 = p1_to_p2_l2 > 2.0f64.powi(2);
+                let projected_is_outside_radius_of_p2 = p2_to_projected_l2 > 2.0f64.powi(2);
 
                 projected_is_between_p1_p2 && projected_is_outside_radius_of_p2
             })
@@ -93,12 +94,27 @@ impl Factor for TrackingFactor {
         // let speed = x.slice(s![2..4]).euclidean_norm();
 
         // let future_point = projected_point + speed * lines[min_index].2.normalized();
-        let future_point = projected_point + 2.0 * line.normalized();
+        // let future_point = projected_point + 2.0 * line.normalized();
+        // let future_point = array![projected_point[1], projected_point[0]];
+
+        let max_length = 2.0;
+
+        let x_to_projection = projected_point - x.slice(s![0..2]).to_owned();
+        // clamp the distance to the max length
+        let x_to_projection = if x_to_projection.euclidean_norm() > max_length {
+            x_to_projection.normalized() * max_length
+        } else {
+            x_to_projection
+        };
+
+        // invert measurement to make it 'pull' the variable towards the path
+        let measurement = x_to_projection;
+
         self.last_measurement
             .lock()
             .unwrap()
-            .set(Vec2::new(future_point[0] as f32, future_point[1] as f32));
-        future_point
+            .set(Vec2::new(measurement[0] as f32, measurement[1] as f32));
+        measurement
     }
 
     #[inline(always)]
