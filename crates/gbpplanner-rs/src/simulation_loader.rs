@@ -55,7 +55,17 @@ type Simulations = BTreeMap<String, Simulation>;
 
 const SIMULATIONS_DIR: &'static str = "./config/simulations";
 
-impl SimulationLoaderPlugin {}
+impl SimulationLoaderPlugin {
+    pub fn new(show_toasts: bool, initial_simulation: Option<String>) -> Self {
+        Self {
+            show_toasts,
+            initial_simulation: initial_simulation
+                .map_or(InitialSimulation::FirstFoundInFolder, |name| {
+                    InitialSimulation::Name(name)
+                }),
+        }
+    }
+}
 
 impl Plugin for SimulationLoaderPlugin {
     fn build(&self, app: &mut App) {

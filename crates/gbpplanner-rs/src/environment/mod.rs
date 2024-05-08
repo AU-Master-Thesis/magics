@@ -15,6 +15,7 @@ pub use map_generator::ObstacleMarker;
 use self::map_generator::GenMapPlugin;
 // pub use self::map_generator::TileCoordinates;
 
+#[derive(Default)]
 pub struct EnvironmentPlugin;
 
 impl bevy::app::Plugin for EnvironmentPlugin {
