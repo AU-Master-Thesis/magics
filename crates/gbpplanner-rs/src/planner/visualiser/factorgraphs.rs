@@ -48,11 +48,6 @@ fn remove_rendered_factorgraph_when_robot_despawns(
     mut despawn_robot_event: EventReader<RobotDespawned>,
 ) {
     for RobotDespawned(robot_id) in despawn_robot_event.read() {
-        // info!(
-        //     "received DespawnRobotEvent({:?}), despawning the robots factorgraph
-        // visualizer \      entities",
-        //     robot_id
-        // );
         for (entity, tracker) in query.iter() {
             if tracker.robot_id == *robot_id {
                 if let Some(mut entitycommands) = commands.get_entity(entity) {
