@@ -16,7 +16,6 @@ pub struct ExportPlugin;
 
 impl Plugin for ExportPlugin {
     fn build(&self, app: &mut App) {
-        println!("export plugin loaded");
         app.add_event::<Export>().add_systems(
             Update,
             (

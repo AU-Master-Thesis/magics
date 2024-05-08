@@ -298,7 +298,7 @@ fn main() -> anyhow::Result<()> {
     // let mut rng =
     // rand_chacha::ChaCha8Rng::seed_from_u64(config.simulation.random_seed);
 
-    println!("initial window mode: {:?}", window_mode);
+    eprintln!("initial window mode: {:?}", window_mode);
 
     let window_plugin = if cfg!(target_arch = "wasm32") {
         WindowPlugin {
@@ -329,7 +329,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     let verbosity = cli.verbosity();
-    println!("verbosity level: {:?}", verbosity);
+    eprintln!("verbosity level: {:?}", verbosity);
 
     // bevy app
     let mut app = App::new();
@@ -392,6 +392,37 @@ fn main() -> anyhow::Result<()> {
         ))
         .add_plugins(bevy_fullscreen::ToggleFullscreenPlugin::default())
         .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));
+
+    if let Some(schedule) = cli.schedule_graph {
+        match schedule {
+            cli::BevySchedule::PreStartup => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, PreStartup);
+            }
+            cli::BevySchedule::Startup => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, Startup);
+            }
+            cli::BevySchedule::PostStartup => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, PostStartup);
+            }
+            cli::BevySchedule::PreUpdate => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, PreUpdate);
+            }
+            cli::BevySchedule::Update => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, Update);
+            }
+            cli::BevySchedule::PostUpdate => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, PostUpdate);
+            }
+            cli::BevySchedule::FixedUpdate => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, FixedUpdate);
+            }
+            cli::BevySchedule::Last => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, Last);
+            }
+        }
+
+        return Ok(());
+    }
 
     app.run();
 
