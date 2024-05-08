@@ -16,7 +16,7 @@ objects    = 0.5
 height-map = 1.0
 
 [visualisation.draw]
-robots                             = true
+robots                             = false
 communication-graph                = false
 predicted-trajectories             = true
 waypoints                          = false

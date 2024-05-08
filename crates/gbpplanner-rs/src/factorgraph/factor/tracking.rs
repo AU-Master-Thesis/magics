@@ -60,29 +60,9 @@ impl Factor for TrackingFactor {
         // 1. Window pairs of rrt path
         // 1.1. Find the line defined by the two points
 
-        let (projected_point, distance, line) = self
+        let (projected_point, _, line, _) = self
             .tracking_path
             .windows(2)
-            // .filter(|window| {
-            //     let p2 = array![window[1].x as Float, window[1].y as Float];
-
-            //     // if x_pos is within some radius of p2, don't consider this line
-            //     let x_pos = x.slice(s![0..2]).to_owned();
-            //     let distance = (&x_pos - &p2).euclidean_norm();
-
-            //     // if distance is greater than 1.0, consider this line
-            //     let outside_radius_from_p2 = distance > 1.0;
-
-            //     // filter out if on other side of p2
-            //     let p1 = array![window[0].x as Float, window[0].y as Float];
-            //     let p1_to_p2 = &p2 - &p1;
-            //     let p2_to_x = &x_pos - &p2;
-
-            //     // if the cross product is negative, then the point is on the other side
-            //     let between_p1_p2 = p1_to_p2.cross(&p2_to_x) < 0.0;
-
-            //     outside_radius_from_p2 && between_p1_p2
-            // })
             .map(|window| {
                 let p2 = array![window[1].x as Float, window[1].y as Float];
                 let p1 = array![window[0].x as Float, window[0].y as Float];
@@ -95,17 +75,14 @@ impl Factor for TrackingFactor {
                 let projected = &p1 + (&x_pos - &p1).dot(&line) / &line.dot(&line) * &line;
                 let distance = (&x_pos - &projected).euclidean_norm();
 
-                (projected, distance, line, p2)
+                (projected, distance, line, p1)
             })
-            .filter(|(projected, distance, line, p2)| {
-                let dir_projected_to_p2 = (p2 - projected).normalized();
-                let dir_line = line.normalized();
+            .filter(|(projected, _, line, p1)| {
+                let p1_to_projected_l2 = (projected - p1).l2_norm();
+                let p1_to_p2_l2 = line.l2_norm();
 
-                let line_projected = line + dir_projected_to_p2;
-                let squared_line_length = dir_projected_to_p2.l2_norm();
-
-                let projected_is_between_p1_p2 = line_projected.l2_norm() < line.l2_norm();
-                let projected_is_outside_radius_of_p2 = squared_line_length > 2.0f64.powi(2);
+                let projected_is_between_p1_p2 = p1_to_projected_l2 < p1_to_p2_l2;
+                let projected_is_outside_radius_of_p2 = p1_to_p2_l2 > 2.0f64.powi(2);
 
                 projected_is_between_p1_p2 && projected_is_outside_radius_of_p2
             })
