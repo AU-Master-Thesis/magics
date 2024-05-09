@@ -230,7 +230,8 @@ fn ui_settings_panel(
                         // otherwise it would be imposssible to drag the slider while the ui is
                         // scaling
                         #[allow(clippy::cast_precision_loss)]
-                        if slider_response.drag_released() || slider_response.lost_focus() {
+                        // if slider_response.drag_released() || slider_response.lost_focus() {
+                        if slider_response.changed() {
                             world.send_event::<ScaleUi>(ScaleUi::Set(
                                 ui_state.scale_percent as f32 / 100.0,
                             ));
@@ -295,7 +296,29 @@ fn ui_settings_panel(
                             }
                             ui.end_row();
 
+
+
                             ui.label("Schedule");
+                            ui.vertical_centered_justified(|ui| {
+                                let current: &'static str = config.gbp.iteration_schedule.schedule.into();
+                                ui.menu_button(current, |ui| {
+                                    for schedule in crate::config::GbpIterationScheduleKind::iter() {
+                                        ui.vertical_centered_justified(|ui| {
+                                            let text: &'static str = schedule.into();
+                                            if ui.button(text).clicked() {
+                                                let new_schedule = schedule.into();
+                                                config.gbp.iteration_schedule.schedule = new_schedule;
+                                                world.send_event::<crate::planner::robot::GbpScheduleChanged>(config.gbp.iteration_schedule.into());
+                                                // ui_state.scale_type = scale;
+                                                // world.send_event::<UiScaleEvent>(UiScaleEvent);
+                                                // scale_event.send(UiScaleEvent);
+                                                ui.close_menu();
+                                            }
+                                        });
+                                    }
+                                })
+                            });
+
                             ui.end_row();
                         });
 

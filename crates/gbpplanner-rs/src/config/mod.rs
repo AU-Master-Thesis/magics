@@ -123,7 +123,7 @@ pub struct VisualisationSection {
     pub uncertainty: UncertaintySection,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum_macros::EnumString)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum_macros::EnumIter, strum_macros::EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum DrawSetting {
     CommunicationGraph,
@@ -284,7 +284,17 @@ impl Default for SimulationSection {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+    strum_macros::EnumIter,
+    strum_macros::IntoStaticStr,
+    strum_macros::Display,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum GbpIterationScheduleKind {
     #[default]

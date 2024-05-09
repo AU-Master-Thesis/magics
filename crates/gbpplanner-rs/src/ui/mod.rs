@@ -228,7 +228,7 @@ pub struct UiState {
     pub top_panel_visible: bool,
     /// Whether the bottom panel is open
     pub bottom_panel_visible: bool,
-    /// Wheter the metrics window is open
+    /// Whether the metrics window is open
     pub metrics_window_visible: bool,
     /// The type of UI scaling to use
     pub scale_type: UiScaleType,

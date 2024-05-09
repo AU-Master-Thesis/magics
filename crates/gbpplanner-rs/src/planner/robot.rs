@@ -49,8 +49,9 @@ impl Plugin for RobotPlugin {
             .add_event::<RobotDespawned>()
             .add_event::<RobotFinishedPath>()
             .add_event::<RobotReachedWaypoint>()
+            .add_event::<GbpScheduleChanged>()
             .add_systems(PreUpdate, start_manual_step.run_if(virtual_time_is_paused))
-            .add_systems(Update, on_robot_clicked)
+            .add_systems(Update, (on_robot_clicked, on_gbp_schedule_changed))
             .add_systems(
                 FixedUpdate,
                 // Update,
@@ -74,6 +75,15 @@ impl Plugin for RobotPlugin {
                     .chain()
                     .run_if(not(virtual_time_is_paused)),
             );
+    }
+}
+
+#[derive(Event)]
+pub struct GbpScheduleChanged(pub GbpIterationSchedule);
+
+impl From<crate::config::GbpIterationSchedule> for GbpScheduleChanged {
+    fn from(schedule: crate::config::GbpIterationSchedule) -> Self {
+        Self(GbpIterationSchedule(schedule))
     }
 }
 
@@ -366,7 +376,7 @@ pub struct Ball(parry2d::shape::Ball);
 //     pub schedule: Arc<dyn gbp_schedule::GbpSchedule>,
 // }
 
-#[derive(Component, Resource)]
+#[derive(Clone, Copy, Debug, Component, Resource, derive_more::Into, derive_more::From)]
 pub struct GbpIterationSchedule(pub crate::config::GbpIterationSchedule);
 
 // {
@@ -1754,5 +1764,21 @@ fn on_robot_clicked(
         );
         println!("    {}: {:.4} m^2", "volume".cyan(), aabb.volume());
         println!("");
+    }
+}
+
+fn on_gbp_schedule_changed(
+    mut evr_gbp_schedule_changed: EventReader<GbpScheduleChanged>,
+    mut q_robots: Query<(Entity, &mut GbpIterationSchedule)>,
+) {
+    for GbpScheduleChanged(new_schedule) in evr_gbp_schedule_changed.read() {
+        for (entity, mut schedule) in q_robots.iter_mut() {
+            *schedule = *new_schedule;
+            info!(
+                "changed gbp-schedule to: {:?} of entity {:?}",
+                new_schedule, entity
+            );
+            // *schedule = GbpIterationSchedule(*new_schedule.into());
+        }
     }
 }
