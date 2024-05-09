@@ -299,9 +299,13 @@ impl Default for SimulationSection {
 pub enum GbpIterationScheduleKind {
     #[default]
     Centered,
+    #[strum(serialize = "soon as possible")]
     SoonAsPossible,
+    #[strum(serialize = "late as possible")]
     LateAsPossible,
+    #[strum(serialize = "interleave evenly")]
     InterleaveEvenly,
+    #[strum(serialize = "half beginning half end")]
     HalfBeginningHalfEnd,
 }
 

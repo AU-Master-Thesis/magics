@@ -2,12 +2,13 @@ use std::time::Duration;
 
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{
-    egui::{self, Color32, Context, RichText},
+    egui::{self, Color32, Context, RichText, Stroke},
     EguiContext, EguiContexts,
 };
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
 use catppuccin::Colour;
 use gbp_linalg::Float;
+use gbp_schedule::GbpScheduleTimestep;
 use repeating_array::RepeatingArray;
 use smol_str::SmolStr;
 use struct_iterable::Iterable;
@@ -297,6 +298,66 @@ fn ui_settings_panel(
                             ui.end_row();
 
 
+                            {
+                                // let pos = ui.cur
+                                let n = config.gbp.iteration_schedule.internal.max(config.gbp.iteration_schedule.external);
+
+                                let schedule_config = gbp_schedule::GbpScheduleConfig {
+                                    internal: config.gbp.iteration_schedule.internal as u8,
+                                    external: config.gbp.iteration_schedule.external as u8,
+                                };
+                                  let size = ui.available_size();
+                                let max_rect = ui.max_rect();
+                                dbg!((&max_rect, &size));
+
+                                let rect = ui.clip_rect();
+                                let painter = ui.painter();
+                                // let painter = ui.painter_at(max_rect);
+                                let schedule = config.gbp.iteration_schedule.schedule.get_schedule(schedule_config);
+
+                                let margin = 10.0;
+                                let max_x = max_rect.width() - 2.0 * margin;
+                                let inbetween_padding_percentage = 0.2;
+                                let cell_width = max_x * (1.0 - inbetween_padding_percentage) / n as f32;
+                                let inbetween_width = if n == 1 { 0.0 } else { max_x * inbetween_padding_percentage / (n - 1) as f32 };
+                                let line_gap = 5.0;
+                                let line_height = 5.0;
+                                // let start_x = rect.left();
+                                let start_x = max_rect.left() + margin;
+                                let mut x = start_x;
+                                let start_y = ui.cursor().top() + margin;
+                                // let start_y = rect.top() + margin;
+                                // let start_y = margin;
+                                let mut y = start_y;
+                                let stroke_width = 2.0;
+
+                                // dbg!((max_x, inbetween_padding_percentage, cell_width, inbetween_width, line_gap, line_height, margin, x, start_y, y, stroke_width));
+
+                                for GbpScheduleTimestep { internal, external} in schedule {
+                                    let internal_color = if internal { Color32::GREEN } else { Color32::GRAY };
+                                    let external_color = if external { Color32::RED } else { Color32::GRAY };
+                                    // println!("internal: {}, external: {}", internal, external);
+
+                                    let start_pos = egui::Pos2::new(x, y);
+                                    let end_pos = egui::Pos2::new(x + cell_width, y);
+                                    painter.line_segment(
+                                        [start_pos, end_pos],    // points
+                                        egui::Stroke::new(stroke_width, internal_color), // stroke (width and color)
+                                    );
+                                    y += line_height + line_gap;
+                                    let start_pos = egui::Pos2::new(x, y);
+                                    let end_pos = egui::Pos2::new(x + cell_width, y);
+                                    painter.line_segment(
+                                        [start_pos, end_pos],    // points
+                                        egui::Stroke::new(stroke_width, external_color), // stroke (width and color)
+                                    );
+
+                                    x += cell_width + inbetween_width;
+                                    y = start_y;
+                                }
+
+                                ui.add_space(10.0);
+                            }
 
                             ui.label("Schedule");
                             ui.vertical_centered_justified(|ui| {
@@ -309,9 +370,6 @@ fn ui_settings_panel(
                                                 let new_schedule = schedule.into();
                                                 config.gbp.iteration_schedule.schedule = new_schedule;
                                                 world.send_event::<crate::planner::robot::GbpScheduleChanged>(config.gbp.iteration_schedule.into());
-                                                // ui_state.scale_type = scale;
-                                                // world.send_event::<UiScaleEvent>(UiScaleEvent);
-                                                // scale_event.send(UiScaleEvent);
                                                 ui.close_menu();
                                             }
                                         });

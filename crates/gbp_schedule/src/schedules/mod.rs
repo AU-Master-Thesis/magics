@@ -58,14 +58,14 @@ pub use soon_as_possible::*;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct GbpScheduleTimestep {
-    internal: bool,
-    external: bool,
+    pub internal: bool,
+    pub external: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct GbpScheduleConfig {
-    internal: u8,
-    external: u8,
+    pub internal: u8,
+    pub external: u8,
 }
 
 impl GbpScheduleConfig {
