@@ -1,7 +1,10 @@
 use std::{collections::HashMap, time::Duration};
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
-use parry2d::bounding_volume::BoundingVolume;
+use parry2d::{
+    bounding_volume::BoundingVolume,
+    na::{Complex, Isometry, Unit},
+};
 
 use super::{robot::Ball, RobotState};
 use crate::simulation_loader::{LoadSimulation, ReloadSimulation};
@@ -49,14 +52,23 @@ fn clear_robot_robot_collisions(mut robot_collisions: ResMut<resources::RobotRob
 fn update_robot_robot_collisions(
     mut robot_collisions: ResMut<resources::RobotRobotCollisions>,
     robots: Query<(Entity, &Transform, &Ball), With<RobotState>>,
-    mut aabbs: Local<Vec<(Entity, parry2d::bounding_volume::Aabb)>>,
+    // PERF: store bounding spheres in a Local<> vec to reuse the allocation between system calls
+    mut aabbs: Local<
+        Vec<(
+            Entity,
+            Isometry<f32, Unit<Complex<f32>>, 2>,
+            parry2d::bounding_volume::BoundingSphere,
+        )>,
+    >,
     mut evw_robots_collided: EventWriter<events::RobotRobotCollision>,
 ) {
     aabbs.clear();
 
     let iter = robots.iter().map(|(entity, tf, ball)| {
         let position = parry2d::na::Isometry2::translation(tf.translation.x, tf.translation.z); // bevy uses xzy coordinates
-        (entity, ball.aabb(&position))
+        let bounding_volume = ball.bounding_sphere(&position);
+        (entity, position, bounding_volume)
+        // (entity, ball.aabb(&position))
     });
 
     aabbs.extend(iter);
@@ -70,16 +82,24 @@ fn update_robot_robot_collisions(
         seq::upper_triangular_exclude_diagonal(aabbs.len().try_into().expect("more than one robot"))
             .expect("more than one robot")
     {
-        let is_colliding = aabbs[r].1.intersects(&aabbs[c].1);
+        let is_colliding = aabbs[r].2.intersects(&aabbs[c].2);
         // aabbs[r].1.intersection()
         let collision_status = robot_collisions.update(aabbs[r].0, aabbs[c].0, is_colliding);
 
         match collision_status {
             CollisionStatus::Hit => {
-                let intersection = aabbs[r]
-                    .1
-                    .intersection(&aabbs[c].1)
+                let r_ball = robots.get(aabbs[r].0).unwrap().2;
+                let c_ball = robots.get(aabbs[c].0).unwrap().2;
+                let r_aabb = r_ball.aabb(&aabbs[r].1);
+                let c_aabb = c_ball.aabb(&aabbs[c].1);
+                let intersection = r_aabb
+                    .intersection(&c_aabb)
                     .expect("the robots just hit each other, so they intersect");
+
+                // let intersection = aabbs[r]
+                //     .1
+                //     .intersection(&aabbs[c].1)
+                //     .expect("the robots just hit each other, so they intersect");
 
                 println!(
                     "send robot collided event with intersection: {:?}",

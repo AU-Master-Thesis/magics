@@ -29,21 +29,25 @@ mod robot_colliders {
 
     pub(super) fn render(mut gizmos: Gizmos, q: Query<(&Transform, &Ball), With<RobotState>>) {
         for (transform, ball) in &q {
-            // gizmos.sphere(transform.translation, Quat::IDENTITY, ball.radius,
-            // Color::YELLOW);
+            // let position = parry2d::na::Isometry2::translation(
+            //     transform.translation.x,
+            //     transform.translation.y,
+            // );
+            // let aabb = ball.aabb(&position);
+            // let half_extents = aabb.half_extents();
+            // let aabb = Transform {
+            //     translation: transform.translation,
+            //     scale: Vec3::new(half_extents.x * 2.0, 1.0, half_extents.y * 2.0),
+            //     ..Default::default()
+            // };
+            // gizmos.cuboid(aabb, Color::RED);
 
-            let position = parry2d::na::Isometry2::translation(
-                transform.translation.x,
-                transform.translation.y,
+            gizmos.sphere(
+                transform.translation,
+                Quat::IDENTITY,
+                ball.radius,
+                Color::RED,
             );
-            let aabb = ball.aabb(&position);
-            let half_extents = aabb.half_extents();
-            let aabb = Transform {
-                translation: transform.translation,
-                scale: Vec3::new(half_extents.x * 2.0, 1.0, half_extents.y * 2.0),
-                ..Default::default()
-            };
-            gizmos.cuboid(aabb, Color::RED);
         }
     }
 }
