@@ -231,8 +231,8 @@ fn ui_settings_panel(
                         // otherwise it would be imposssible to drag the slider while the ui is
                         // scaling
                         #[allow(clippy::cast_precision_loss)]
-                        // if slider_response.drag_released() || slider_response.lost_focus() {
-                        if slider_response.changed() {
+                        if slider_response.drag_released() || slider_response.lost_focus() {
+                        // if slider_response.changed() {
                             world.send_event::<ScaleUi>(ScaleUi::Set(
                                 ui_state.scale_percent as f32 / 100.0,
                             ));
@@ -296,8 +296,10 @@ fn ui_settings_panel(
                                 }
                             }
                             ui.end_row();
+                        });
 
 
+                        // TODO: very ugly, but it works
                             {
                                 // let pos = ui.cur
                                 let n = config.gbp.iteration_schedule.internal.max(config.gbp.iteration_schedule.external);
@@ -306,11 +308,14 @@ fn ui_settings_panel(
                                     internal: config.gbp.iteration_schedule.internal as u8,
                                     external: config.gbp.iteration_schedule.external as u8,
                                 };
-                                  let size = ui.available_size();
+                              // let size = ui.available_size();
                                 let max_rect = ui.max_rect();
-                                dbg!((&max_rect, &size));
+                                // dbg!((&max_rect, &size));
 
-                                let rect = ui.clip_rect();
+                                // let painter_rect = egui::Rect {min: egui::Pos2::new(max_rect.left(), ui.cursor().top()), max: egui::Pos2::new(max_rect.right(), ui.cursor().top() + 30.0)};
+                                // let (response, painter) = ui.allocate_painter(painter_rect, egui::Sense::hover());
+
+                                // let clip_rect = ui.clip_rect();
                                 let painter = ui.painter();
                                 // let painter = ui.painter_at(max_rect);
                                 let schedule = config.gbp.iteration_schedule.schedule.get_schedule(schedule_config);
@@ -356,9 +361,15 @@ fn ui_settings_panel(
                                     y = start_y;
                                 }
 
-                                ui.add_space(10.0);
+                                // ui.add_space(100.0);
+                                ui.add_visible(false, egui::Label::new("ghost"));
+                                // ui.end_row();
+                                // ui.add_space(100.0);
                             }
 
+                        ui.add_space(20.0);
+
+                        custom::grid("select_gbp_schedule_grid", 2).show(ui, |ui| {
                             ui.label("Schedule");
                             ui.vertical_centered_justified(|ui| {
                                 let current: &'static str = config.gbp.iteration_schedule.schedule.into();

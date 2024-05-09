@@ -45,8 +45,8 @@ lookahead-multiple      = 3
 # iterations-per-timestep = 10
 [gbp.iteration-schedule]
 internal = 10
-external = 10
-schedule = "interleave-evenly"
+external = 5
+schedule = "centered"
 
 [robot]
 planning-horizon                       = 5.0
