@@ -65,7 +65,7 @@ impl Plugin for RobotPlugin {
                     iterate_gbp,
                     // update_prior_of_horizon_state_v2,
                     update_prior_of_horizon_state,
-                    update_prior_of_current_state_v2,
+                    update_prior_of_current_state_v3,
                     // update_prior_of_current_state,
                     despawn_robots,
                     finish_manual_step.run_if(ManualModeState::enabled),
@@ -97,12 +97,11 @@ pub struct RobotReachedWaypoint {
 
 fn despawn_robots(
     mut commands: Commands,
-    // TODO: change query
-    mut query: Query<(Entity, &mut FactorGraph, &mut RobotState)>,
-    mut despawn_robot_event: EventReader<RobotDespawned>,
+    mut query: Query<&mut FactorGraph>,
+    mut evr_robot_despawned: EventReader<RobotDespawned>,
 ) {
-    for RobotDespawned(robot_id) in despawn_robot_event.read() {
-        for (_, mut factorgraph, _) in &mut query {
+    for RobotDespawned(robot_id) in evr_robot_despawned.read() {
+        for mut factorgraph in &mut query {
             let _ = factorgraph.remove_connection_to(*robot_id);
         }
 
@@ -1253,19 +1252,14 @@ fn update_prior_of_horizon_state(
     mut evw_robot_despawned: EventWriter<RobotDespawned>,
     mut evw_robot_finalized_path: EventWriter<RobotFinishedPath>,
     mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
+    // PERF: we reuse the same vector between system calls
+    // the vector is cleared between calls, by calling .drain(..) at the end of every call
     mut all_messages_to_external_factors: Local<Vec<VariableToFactorMessage>>,
 ) {
-    // let t_start = std::time::Instant::now();
-
-    // PERF: we reuse the same vector between system calls
-    all_messages_to_external_factors.clear();
+    // all_messages_to_external_factors.clear();
 
     let delta_t = Float::from(time.delta_seconds());
-    // let robot_radius = config.robot.radius.get();
-    // let robot_radius_squared = config.robot.radius.get().powi(2);
     let max_speed = Float::from(config.robot.max_speed.get());
-
-    // let mut all_messages_to_external_factors = Vec::new();
 
     let mut robots_to_despawn = Vec::new();
 
@@ -1276,10 +1270,9 @@ fn update_prior_of_horizon_state(
 
         let Some(next_waypoint) = route.next_waypoint() else {
             // no more waypoints for the robot to move to
-            println!("robot {:?} finished at {:?}", robot_id, route.finished_at());
+            info!("robot {:?} finished at {:?}", robot_id, route.finished_at());
             finished_path.0 = true;
             robots_to_despawn.push(robot_id);
-            // route.finished_after(time.elapsed());
             continue;
         };
 
@@ -1306,13 +1299,11 @@ fn update_prior_of_horizon_state(
             .last_variable_mut()
             .expect("factorgraph has a horizon variable");
         let estimated_position = horizon_variable.belief.mean.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
-                                                                              //
+
         let next_waypoint_pos = array![
             Float::from(next_waypoint.position().x),
             Float::from(next_waypoint.position().y)
         ];
-        // let current_waypoint = array![Float::from(next_waypoint.x),
-        // Float::from(next_waypoint.y)];
 
         let horizon2waypoint = next_waypoint_pos - estimated_position;
         let horizon2goal_dist = horizon2waypoint.euclidean_norm();
@@ -1332,7 +1323,6 @@ fn update_prior_of_horizon_state(
 
         if reached_waypoint && !route.is_completed() {
             route.advance(time.elapsed());
-            // route.pop_front();
             evw_robot_reached_waypoint.send(RobotReachedWaypoint {
                 robot_id,
                 waypoint_index: 0,
@@ -1341,14 +1331,13 @@ fn update_prior_of_horizon_state(
     }
 
     // Send messages to external factors
-    for message in all_messages_to_external_factors.iter() {
+    for message in all_messages_to_external_factors.drain(..) {
         let (_, mut external_factorgraph, _, _, _) = query
             .get_mut(message.to.factorgraph_id)
             .expect("the factorgraph of the receiving factor exists in the world");
 
         if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
-            // PERF: avoid the clone here
-            factor.receive_message_from(message.from, message.message.clone());
+            factor.receive_message_from(message.from, message.message);
         }
     }
 
@@ -1362,18 +1351,84 @@ fn update_prior_of_horizon_state(
 }
 
 /// Called `Robot::updateCurrent` in **gbpplanner**
-fn update_prior_of_current_state_v2(
-    mut query: Query<(Entity, &mut FactorGraph, &mut Transform), With<RobotState>>,
+fn update_prior_of_current_state_v3(
+    mut query: Query<(&mut FactorGraph, &mut Transform), With<RobotState>>,
     config: Res<Config>,
     time_fixed: Res<Time<Fixed>>,
 ) {
-    let scale = time_fixed.delta_seconds() / config.simulation.t0.get();
+    let time_scale = time_fixed.delta_seconds() / config.simulation.t0.get();
 
-    let messages_to_external_factors: Arc<Mutex<Vec<VariableToFactorMessage>>> = Arc::default();
+    let mut messages_to_external_factors: Vec<FactorToVariableMessage> = vec![];
+
+    for (mut factorgraph, mut transform) in &mut query {
+        let (current_variable_index, current_variable) = factorgraph
+            .nth_variable(0)
+            .expect("factorgraph should have a current variable");
+        let (_, next_variable) = factorgraph
+            .nth_variable(1)
+            .expect("factorgraph should have a next variable");
+
+        let change_in_state =
+            Float::from(time_scale) * (&next_variable.belief.mean - &current_variable.belief.mean);
+        let mean_updated = &current_variable.belief.mean + &change_in_state;
+
+        let external_factor_messages =
+            factorgraph.change_prior_of_variable(current_variable_index, mean_updated);
+        assert!(
+            external_factor_messages.is_empty(),
+            "the current variable is not connected to any external factors"
+        );
+        // messages_to_external_factors.extend(external_factor_messages);
+
+        #[allow(clippy::cast_possible_truncation)]
+        // bevy uses xzy coordinates, so the y component is put at the z coordinate
+        let position_increment =
+            Vec3::new(change_in_state[0] as f32, 0.0, change_in_state[1] as f32);
+
+        transform.translation += position_increment;
+    }
+
+    // if !messages_to_external_factors.is_empty() {
+    //     error!(
+    //         "current prior sending messages to {:?}",
+    //         messages_to_external_factors
+    //     );
+    // }
+    //
+    // // let guard = messages_to_external_factors.lock().unwrap();
+    // // messages_to_external_factors.dra
+    // for message in messages_to_external_factors.drain(..) {
+    //     let (mut external_factorgraph, _) = query
+    //         .get_mut(message.to.factorgraph_id)
+    //         .expect("the factorgraph of the receiving factor exists in the
+    // world");
+    //
+    //     if let Some(factor) =
+    // external_factorgraph.get_factor_mut(message.to.factor_index) {
+    //         error!("current prior sending message to {:?}", message.to);
+    //         factor.receive_message_from(message.from, message.message);
+    //     }
+    // }
+}
+
+/// Called `Robot::updateCurrent` in **gbpplanner**
+fn update_prior_of_current_state_v2(
+    mut query: Query<(&mut FactorGraph, &mut Transform), With<RobotState>>,
+    config: Res<Config>,
+    time_fixed: Res<Time<Fixed>>,
+    messages_to_external_factors: Local<Mutex<Vec<VariableToFactorMessage>>>,
+) {
+    let time_scale = time_fixed.delta_seconds() / config.simulation.t0.get();
+    messages_to_external_factors.lock().unwrap().clear();
+
+    // let messages_to_external_factors: Arc<Mutex<Vec<VariableToFactorMessage>>> =
+    // Arc::default();
+    // let messages_to_external_factors: Mutex<Vec<VariableToFactorMessage>> =
+    // Default::default();
 
     query
         .par_iter_mut()
-        .for_each(|(_, mut factorgraph, mut transform)| {
+        .for_each(|(mut factorgraph, mut transform)| {
             let (current_variable_index, current_variable) = factorgraph
                 .nth_variable(0)
                 .expect("factorgraph should have a current variable");
@@ -1381,9 +1436,9 @@ fn update_prior_of_current_state_v2(
                 .nth_variable(1)
                 .expect("factorgraph should have a next variable");
 
-            let change_in_position =
-                Float::from(scale) * (&next_variable.belief.mean - &current_variable.belief.mean);
-            let mean_updated = &current_variable.belief.mean + &change_in_position;
+            let change_in_state = Float::from(time_scale)
+                * (&next_variable.belief.mean - &current_variable.belief.mean);
+            let mean_updated = &current_variable.belief.mean + &change_in_state;
 
             let external_factor_messages =
                 factorgraph.change_prior_of_variable(current_variable_index, mean_updated);
@@ -1392,51 +1447,25 @@ fn update_prior_of_current_state_v2(
             guard.extend(external_factor_messages);
 
             #[allow(clippy::cast_possible_truncation)]
-            let increment = Vec3::new(
-                change_in_position[0] as f32,
-                0.0,
-                change_in_position[1] as f32,
-            );
+            // bevy uses xzy coordinates, so the y component is put at the z coordinate
+            let position_increment =
+                Vec3::new(change_in_state[0] as f32, 0.0, change_in_state[1] as f32);
 
-            transform.translation += increment;
+            transform.translation += position_increment;
         });
 
     let guard = messages_to_external_factors.lock().unwrap();
     for message in guard.iter() {
-        let (_, mut external_factorgraph, _) = query
+        let (mut external_factorgraph, _) = query
             .get_mut(message.to.factorgraph_id)
             .expect("the factorgraph of the receiving factor exists in the world");
 
         if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
             // PERF: avoid the clone here
+            error!("current prior sending message to {:?}", message.to);
             factor.receive_message_from(message.from, message.message.clone());
         }
     }
-
-    // for (mut factorgraph, mut transform) in &mut query {
-    //     let (current_variable_index, current_variable) = factorgraph
-    //         .nth_variable(0)
-    //         .expect("factorgraph should have a current variable");
-    //     let (_, next_variable) = factorgraph
-    //         .nth_variable(1)
-    //         .expect("factorgraph should have a next variable");
-    //     // let mean_of_current_variable = &current_variable.belief.mean;
-
-    //     let change_in_position = Float::from(scale) *
-    // (&next_variable.belief.mean - &current_variable.belief.mean);     let
-    // mean_updated = &current_variable.belief.mean + &change_in_position;
-
-    //     // factorgraph.change_prior_of_variable(current_variable_index,
-    //     // mean_of_current_variable + &change_in_position);
-    //     factorgraph.change_prior_of_variable(current_variable_index,
-    // mean_updated);
-
-    //     #[allow(clippy::cast_possible_truncation)]
-    //     let increment = Vec3::new(change_in_position[0] as f32, 0.0,
-    // change_in_position[1] as f32);
-
-    //     transform.translation += increment;
-    // }
 }
 
 /// Called `Robot::updateCurrent` in **gbpplanner**
@@ -1455,27 +1484,27 @@ fn update_prior_of_current_state(
             .nth_variable(1)
             .expect("factorgraph should have a next variable");
         let mean_of_current_variable = current_variable.belief.mean.clone();
-        let change_in_position =
+        let change_in_state =
             Float::from(scale) * (&next_variable.belief.mean - &mean_of_current_variable);
 
-        factorgraph.change_prior_of_variable(
+        let messages = factorgraph.change_prior_of_variable(
             current_variable_index,
-            &mean_of_current_variable + &change_in_position,
+            &mean_of_current_variable + &change_in_state,
         );
+
+        if !messages.is_empty() {
+            error!(
+                "{} messages from update_prior_of_current_state:",
+                messages.len()
+            );
+            // continue;
+        }
 
         #[allow(clippy::cast_possible_truncation)]
-        let increment = Vec3::new(
-            change_in_position[0] as f32,
-            0.0,
-            change_in_position[1] as f32,
-        );
+        let position_increment =
+            Vec3::new(change_in_state[0] as f32, 0.0, change_in_state[1] as f32);
 
-        // dbg!((&increment, scale));
-        // pretty_print_subtitle!("CURRENT STATE UPDATE");
-        // pretty_print_vector!(&array![increment.x, increment.y, increment.z]);
-        // println!("scale = {:?}", scale);
-
-        transform.translation += increment;
+        transform.translation += position_increment;
     }
 }
 
