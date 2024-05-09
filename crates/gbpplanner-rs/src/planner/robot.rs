@@ -64,7 +64,8 @@ impl Plugin for RobotPlugin {
                     // iterate_gbp_external,
                     // iterate_gbp_internal_sync,
                     // iterate_gbp_external_sync,
-                    iterate_gbp,
+                    // iterate_gbp,
+                    iterate_gbp_v2,
                     // update_prior_of_horizon_state_v2,
                     update_prior_of_horizon_state,
                     update_prior_of_current_state_v3,
@@ -378,6 +379,16 @@ pub struct Ball(parry2d::shape::Ball);
 
 #[derive(Clone, Copy, Debug, Component, Resource, derive_more::Into, derive_more::From)]
 pub struct GbpIterationSchedule(pub crate::config::GbpIterationSchedule);
+
+impl GbpIterationSchedule {
+    pub fn schedule(&self) -> Box<dyn gbp_schedule::GbpScheduleIter> {
+        let config = gbp_schedule::GbpScheduleConfig {
+            internal: self.0.internal as u8,
+            external: self.0.external as u8,
+        };
+        self.0.schedule.get_schedule(config)
+    }
+}
 
 // {
 //     kind:       crate::config::GbpIterationScheduleKind,
@@ -1071,15 +1082,72 @@ fn iterate_gbp_external_sync(
 }
 
 fn iterate_gbp_v2(
-    mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
+    mut query: Query<(Entity, &mut FactorGraph, &GbpIterationSchedule), With<RobotState>>,
     config: Res<Config>,
 ) {
+    let schedule_config = gbp_schedule::GbpScheduleConfig {
+        internal: config.gbp.iteration_schedule.internal as u8,
+        external: config.gbp.iteration_schedule.external as u8,
+    };
+    let schedule = config
+        .gbp
+        .iteration_schedule
+        .schedule
+        .get_schedule(schedule_config);
+
+    for gbp_schedule::GbpScheduleTimestep { internal, external } in schedule {
+        if internal {
+            query.par_iter_mut().for_each(|(_, mut factorgraph, _)| {
+                factorgraph.internal_factor_iteration();
+                factorgraph.internal_variable_iteration();
+            });
+        }
+
+        if external {
+            let mut messages_to_external_variables = vec![];
+            for (_, mut factorgraph, _) in query.iter_mut() {
+                messages_to_external_variables
+                    .extend(factorgraph.external_factor_iteration().drain(..));
+            }
+
+            // Send messages to external variables
+            for message in messages_to_external_variables.into_iter() {
+                let (_, mut external_factorgraph, _) =
+                    query.get_mut(message.to.factorgraph_id).expect(
+                        "the factorgraph_id of the receiving variable should exist in the world",
+                    );
+                if let Some(variable) =
+                    external_factorgraph.get_variable_mut(message.to.variable_index)
+                {
+                    variable.receive_message_from(message.from, message.message);
+                }
+            }
+
+            let mut messages_to_external_factors = vec![];
+            for (_, mut factorgraph, _) in query.iter_mut() {
+                messages_to_external_factors
+                    .extend(factorgraph.external_variable_iteration().drain(..));
+            }
+
+            // Send messages to external factors
+            for message in messages_to_external_factors.into_iter() {
+                let (_, mut external_factorgraph, _) = query
+                    .get_mut(message.to.factorgraph_id)
+                    .expect("the factorgraph_id of the receiving factor should exist in the world");
+                if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
+                    factor.receive_message_from(message.from, message.message);
+                }
+            }
+        }
+    }
 }
 
 fn iterate_gbp(
     mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
     config: Res<Config>,
 ) {
+    // let mut  messages_to_external_variables = vec![];
+
     for _ in 0..config.gbp.iteration_schedule.internal {
         // pretty_print_title!(format!("GBP iteration: {}", i + 1));
         // ╭────────────────────────────────────────────────────────────────────────────────────────
@@ -1090,14 +1158,14 @@ fn iterate_gbp(
             .collect::<Vec<_>>();
 
         // Send messages to external variables
-        for message in messages_to_external_variables.iter().flatten() {
+        for message in messages_to_external_variables.into_iter().flatten() {
             let (_, mut external_factorgraph) = query
                 .get_mut(message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving variable should exist in the world");
 
             if let Some(variable) = external_factorgraph.get_variable_mut(message.to.variable_index)
             {
-                variable.receive_message_from(message.from, message.message.clone());
+                variable.receive_message_from(message.from, message.message);
             } else {
                 error!(
                     "variablegraph {:?} has no variable with index {:?}",
@@ -1114,13 +1182,13 @@ fn iterate_gbp(
             .collect::<Vec<_>>();
 
         // Send messages to external factors
-        for message in messages_to_external_factors.iter().flatten() {
+        for message in messages_to_external_factors.into_iter().flatten() {
             let (_, mut external_factorgraph) = query
                 .get_mut(message.to.factorgraph_id)
                 .expect("the factorgraph_id of the receiving factor should exist in the world");
 
             if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
-                factor.receive_message_from(message.from, message.message.clone());
+                factor.receive_message_from(message.from, message.message);
             }
         }
     }
@@ -1297,7 +1365,7 @@ pub struct FinishedPath(pub bool);
 /// Called `Robot::updateHorizon` in **gbpplanner**
 fn update_prior_of_horizon_state(
     config: Res<Config>,
-    time: Res<Time>,
+    time_virtual: Res<Time<Virtual>>,
     mut query: Query<
         (
             Entity,
@@ -1315,7 +1383,7 @@ fn update_prior_of_horizon_state(
     // the vector is cleared between calls, by calling .drain(..) at the end of every call
     mut all_messages_to_external_factors: Local<Vec<VariableToFactorMessage>>,
 ) {
-    let delta_t = Float::from(time.delta_seconds());
+    let delta_t = Float::from(time_virtual.delta_seconds());
     let max_speed = Float::from(config.robot.max_speed.get());
 
     let mut robots_to_despawn = Vec::new();
@@ -1379,7 +1447,7 @@ fn update_prior_of_horizon_state(
         all_messages_to_external_factors.extend(messages_to_external_factors);
 
         if reached_waypoint && !route.is_completed() {
-            route.advance(time.elapsed());
+            route.advance(time_virtual.elapsed());
             evw_robot_reached_waypoint.send(RobotReachedWaypoint {
                 robot_id,
                 waypoint_index: 0,

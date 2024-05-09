@@ -45,7 +45,7 @@ lookahead-multiple      = 3
 # iterations-per-timestep = 10
 [gbp.iteration-schedule]
 internal = 10
-external = 5
+external = 1
 schedule = "centered"
 
 [robot]
@@ -53,7 +53,7 @@ planning-horizon                       = 5.0
 max-speed                              = 4.0
 dofs                                   = 4
 symmetric-factors                      = true
-inter-robot-safety-distance-multiplier = 2.2
+inter-robot-safety-distance-multiplier = 5.2
 # radius            = 1.0
 
 [robot.radius]

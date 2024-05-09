@@ -654,50 +654,58 @@ impl FactorGraph {
     }
 
     pub fn internal_factor_iteration(&mut self) {
-        // TODO: create InternalFactors<'a> iterator
-        // for ix in self
-        //     .dynamic_factor_indices
-        //     .iter()
-        //     .chain(self.obstacle_factor_indices.iter())
-
-        // internal_factor_iteration_inner!(self.dynamic_factor_indices);
-        // internal_factor_iteration_inner!(self.obstacle_factor_indices);
-
-        for i in 0..self.dynamic_factor_indices.len() {
-            let ix = self.dynamic_factor_indices[i];
+        for i in 0..self.factor_indices.len() {
+            let ix = self.factor_indices[i];
             let node = &mut self.graph[ix];
             let factor = node.factor_mut();
+            // Ignore if interrobot factor
+            if let FactorKind::InterRobot(_) = factor.kind {
+                continue;
+            }
+
             let variable_messages = factor.update();
             let factor_id = FactorId::new(self.id, FactorIndex(ix));
 
             for (variable_id, message) in variable_messages {
-                debug_assert_eq!(
-                    variable_id.factorgraph_id, self.id,
-                    "non interrobot factors can only have variable neighbours
-        in the same graph"
-                );
                 let variable = self.variable_mut(variable_id.variable_index);
                 variable.receive_message_from(factor_id, message);
             }
         }
-
-        for i in 0..self.obstacle_factor_indices.len() {
-            let ix = self.obstacle_factor_indices[i];
-            let node = &mut self.graph[ix];
-            let factor = node.factor_mut();
-            let variable_messages = factor.update();
-            let factor_id = FactorId::new(self.id, FactorIndex(ix));
-
-            for (variable_id, message) in variable_messages {
-                debug_assert_eq!(
-                    variable_id.factorgraph_id, self.id,
-                    "non interrobot factors can only have variable neighbours
-        in the same graph"
-                );
-                let variable = self.variable_mut(variable_id.variable_index);
-                variable.receive_message_from(factor_id, message);
-            }
-        }
+        // for i in 0..self.dynamic_factor_indices.len() {
+        //     let ix = self.dynamic_factor_indices[i];
+        //     let node = &mut self.graph[ix];
+        //     let factor = node.factor_mut();
+        //     let variable_messages = factor.update();
+        //     let factor_id = FactorId::new(self.id, FactorIndex(ix));
+        //
+        //     for (variable_id, message) in variable_messages {
+        //         debug_assert_eq!(
+        //             variable_id.factorgraph_id, self.id,
+        //             "non interrobot factors can only have variable neighbours
+        // in the same graph"
+        //         );
+        //         let variable = self.variable_mut(variable_id.variable_index);
+        //         variable.receive_message_from(factor_id, message);
+        //     }
+        // }
+        //
+        // for i in 0..self.obstacle_factor_indices.len() {
+        //     let ix = self.obstacle_factor_indices[i];
+        //     let node = &mut self.graph[ix];
+        //     let factor = node.factor_mut();
+        //     let variable_messages = factor.update();
+        //     let factor_id = FactorId::new(self.id, FactorIndex(ix));
+        //
+        //     for (variable_id, message) in variable_messages {
+        //         debug_assert_eq!(
+        //             variable_id.factorgraph_id, self.id,
+        //             "non interrobot factors can only have variable neighbours
+        // in the same graph"
+        //         );
+        //         let variable = self.variable_mut(variable_id.variable_index);
+        //         variable.receive_message_from(factor_id, message);
+        //     }
+        // }
     }
 
     #[must_use]
@@ -727,8 +735,9 @@ impl FactorGraph {
             for (variable_id, message) in variable_messages {
                 let in_internal_graph = variable_id.factorgraph_id == self.id;
                 if in_internal_graph {
-                    let variable = self.variable_mut(variable_id.variable_index);
-                    variable.receive_message_from(factor_id, message);
+                    // let variable =
+                    // self.variable_mut(variable_id.variable_index);
+                    // variable.receive_message_from(factor_id, message);
                 } else {
                     messages_to_external_variables.push(FactorToVariableMessage {
                         from: factor_id,
@@ -753,6 +762,7 @@ impl FactorGraph {
             for (factor_id, message) in factor_messages {
                 let in_internal_graph = factor_id.factorgraph_id == self.id;
                 if !in_internal_graph {
+                    // TODO: should not happen
                     continue;
                 }
                 let factor = self.graph[factor_id.factor_index.0]
@@ -767,8 +777,35 @@ impl FactorGraph {
     // TODO(kpbaks): does this method even make sense?
     #[must_use]
     pub fn external_variable_iteration(&mut self) -> Vec<VariableToFactorMessage> {
-        vec![]
-        // todo!()
+        let mut messages_to_external_factors: Vec<VariableToFactorMessage> = Vec::new();
+        for &ix in &self.variable_indices {
+            let node = &mut self.graph[ix];
+            let variable = node.variable_mut();
+            let variable_index = VariableIndex(ix);
+            let variable_id = VariableId::new(self.id, variable_index);
+            // TODO: do internal only
+            let factor_messages = variable.update_belief_and_create_factor_responses();
+
+            for (factor_id, message) in factor_messages {
+                let in_internal_graph = factor_id.factorgraph_id == self.id;
+                if !in_internal_graph {
+                    messages_to_external_factors.push(VariableToFactorMessage {
+                        from: variable_id,
+                        to: factor_id,
+                        message,
+                    });
+                    // // TODO: should not happen
+                    // continue;
+                }
+                // let factor = self.graph[factor_id.factor_index.0]
+                //     .as_factor_mut()
+                //     .expect("a factor only has variables as neighbours");
+                //
+                // factor.receive_message_from(variable_id, message);
+            }
+        }
+
+        messages_to_external_factors
     }
 
     /// Aggregate and marginalise over all adjacent variables, and send.
