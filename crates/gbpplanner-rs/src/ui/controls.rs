@@ -12,7 +12,7 @@ use leafwing_input_manager::{
 };
 use strum::IntoEnumIterator;
 
-use super::{custom, OccupiedScreenSpace, ToDisplayString, UiState};
+use super::{custom, OccupiedScreenSpace, ToUiString, UiState};
 use crate::{
     config::Config,
     input::{
@@ -258,7 +258,7 @@ fn ui_controls_panel(
                                                     for r in 0..2 {
                                                         let button_content = inner_action.1.get(r).map_or_else(
                                                             String::new,
-                                                            super::decoration::ToDisplayString::to_display_string,
+                                                            super::decoration::ToUiString::to_display_string,
                                                         );
 
                                                         row.col(|col| {
@@ -334,7 +334,7 @@ fn ui_controls_panel(
                                                     for r in 0..2 {
                                                         let button_content = inner_action.1.get(r).map_or_else(
                                                             String::new,
-                                                            super::decoration::ToDisplayString::to_display_string,
+                                                            super::decoration::ToUiString::to_display_string,
                                                         );
 
                                                         row.col(|col| {
@@ -408,7 +408,7 @@ fn ui_controls_panel(
                                                     for r in 0..2 {
                                                         let button_content = inner_action.1.get(r).map_or_else(
                                                             String::new,
-                                                            super::decoration::ToDisplayString::to_display_string,
+                                                            super::decoration::ToUiString::to_display_string,
                                                         );
 
                                                         row.col(|col| {
@@ -484,7 +484,7 @@ fn ui_controls_panel(
                                                     for r in 0..2 {
                                                         let button_content = inner_action.1.get(r).map_or_else(
                                                             String::new,
-                                                            super::decoration::ToDisplayString::to_display_string,
+                                                            super::decoration::ToUiString::to_display_string,
                                                         );
 
                                                         // |(i, x)| {

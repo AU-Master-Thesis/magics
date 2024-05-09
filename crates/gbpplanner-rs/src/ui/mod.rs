@@ -15,7 +15,7 @@ use bevy_egui::{
     EguiContexts,
 };
 // use bevy_touchpad::TwoFingerSwipe;
-pub use decoration::ToDisplayString;
+pub use decoration::ToUiString;
 use strum_macros::EnumIter;
 
 use self::{
@@ -175,7 +175,7 @@ pub enum UiScaleType {
     Window,
 }
 
-impl ToDisplayString for UiScaleType {
+impl ToUiString for UiScaleType {
     fn to_display_string(&self) -> String {
         match self {
             Self::None => "None".to_string(),

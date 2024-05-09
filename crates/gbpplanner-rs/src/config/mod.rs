@@ -6,9 +6,13 @@ pub mod reader;
 
 use std::{num::NonZeroUsize, ops::RangeInclusive};
 
-use bevy::{ecs::system::Resource, reflect::Reflect};
+use bevy::{
+    ecs::{component::Component, system::Resource},
+    reflect::Reflect,
+};
 // pub use environment::{Environment, EnvironmentType};
 pub use formation::FormationGroup;
+use gbp_schedule::GbpSchedule;
 pub use reader::read_config;
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
@@ -111,8 +115,11 @@ impl Default for ManualSection {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct VisualisationSection {
+    #[serde(default)]
     pub height: HeightSection,
+    #[serde(default)]
     pub draw: DrawSection,
+    #[serde(default)]
     pub uncertainty: UncertaintySection,
 }
 
@@ -277,9 +284,9 @@ impl Default for SimulationSection {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum GbpSchedule {
+pub enum GbpIterationScheduleKind {
     #[default]
     Centered,
     SoonAsPossible,
@@ -288,38 +295,52 @@ pub enum GbpSchedule {
     HalfBeginningHalfEnd,
 }
 
-// impl GbpSchedule {
-//     pub fn get_schedule(&self) -> impl gbp_schedule::GbpSchedule {
-//         match self {
-//             GbpSchedule::Centered => gbp_schedule::Centered,
-//             GbpSchedule::SoonAsPossible => gbp_schedule::SoonAsPossible,
-//             GbpSchedule::LateAsPossible => gbp_schedule::LateAsPossible,
-//             GbpSchedule::InterleaveEvenly => gbp_schedule::InterleaveEvenly,
-//             GbpSchedule::HalfBeginningHalfEnd =>
-// gbp_schedule::HalfBeginningHalfEnd,         }
-//     }
-// }
+impl GbpIterationScheduleKind {
+    pub fn get_schedule(
+        &self,
+        config: gbp_schedule::GbpScheduleConfig,
+    ) -> Box<dyn gbp_schedule::GbpScheduleIter> {
+        match self {
+            GbpIterationScheduleKind::Centered => {
+                Box::new(gbp_schedule::Centered::schedule(config))
+            }
+            GbpIterationScheduleKind::InterleaveEvenly => {
+                Box::new(gbp_schedule::InterleaveEvenly::schedule(config))
+            }
+            GbpIterationScheduleKind::SoonAsPossible => {
+                Box::new(gbp_schedule::SoonAsPossible::schedule(config))
+            }
+            GbpIterationScheduleKind::LateAsPossible => {
+                Box::new(gbp_schedule::LateAsPossible::schedule(config))
+            }
+            GbpIterationScheduleKind::HalfBeginningHalfEnd => {
+                Box::new(gbp_schedule::HalfBeginningHalfEnd::schedule(config))
+            }
+        }
+    }
+}
 
 /// Configuration for how many iterations to run different parts of the GBP
 /// algorithm per timestep
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct GbpIterationsPerTimestepSection {
+pub struct GbpIterationSchedule {
     /// Internal iteration i.e. Variables, and factors excluding interrobot
     /// factors
     pub internal: usize,
     /// External iteration i.e. message passing between interrobot factors and
     /// connected external factors
     pub external: usize,
-    // pub schedule: GbpSchedule,
+    pub schedule: GbpIterationScheduleKind,
 }
 
-impl Default for GbpIterationsPerTimestepSection {
+impl Default for GbpIterationSchedule {
     fn default() -> Self {
         let n = 10;
         Self {
             internal: n,
             external: n,
+            schedule: GbpIterationScheduleKind::default(),
             // schedule: GbpSchedule::default(),
         }
     }
@@ -345,7 +366,7 @@ pub struct GbpSection {
     pub lookahead_multiple: usize,
     /// Number of iterations of GBP per timestep
     // pub iterations_per_timestep: usize,
-    pub iterations_per_timestep: GbpIterationsPerTimestepSection,
+    pub iteration_schedule: GbpIterationSchedule,
 }
 
 impl Default for GbpSection {
@@ -358,7 +379,7 @@ impl Default for GbpSection {
             sigma_factor_tracking: 0.1,
             lookahead_multiple: 3,
             // iterations_per_timestep: 10,
-            iterations_per_timestep: Default::default(),
+            iteration_schedule: Default::default(),
         }
     }
 }
@@ -545,10 +566,12 @@ pub struct Config {
     pub formation_group: String,
     /// **Visualisation section:**
     /// Contains parameters for which elements of the GBP and simulation to draw
+    #[serde(default)]
     pub visualisation: VisualisationSection,
     /// **Interaction section:**
     /// Contains parameters for the interaction with the simulation
     /// and the initial scene setup
+    #[serde(default)]
     pub interaction: InteractionSection,
     /// **GBP section:**
     /// Contains parameters for the GBP algorithm such as sigma values and
@@ -561,16 +584,20 @@ pub struct Config {
     /// **Simulation section:**
     /// Contains parameters for the simulation such as timestep, max time, and
     /// world size
+    #[serde(default)]
     pub simulation: SimulationSection,
     /// **RRT section:**
     /// Contains parameters for the RRT algorithm such as max iterations, step
     /// size and smoothing parameters
+    #[serde(default)]
     pub rrt: RRTSection,
     /// **Graphviz section:**
     /// Contains parameters for how to export to graphviz
+    #[serde(default)]
     pub graphviz: GraphvizSection,
     /// **Manual section:**
     /// Contains parameters for manual time-stepping
+    #[serde(default)]
     pub manual: ManualSection,
 }
 

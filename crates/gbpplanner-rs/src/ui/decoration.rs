@@ -14,7 +14,7 @@ use leafwing_input_manager::{
 };
 
 /// Convert to a `String` suitable for displaying
-pub trait ToDisplayString {
+pub trait ToUiString {
     fn to_display_string(&self) -> String;
 }
 
@@ -24,7 +24,7 @@ pub trait ToDisplayString {
 //     }
 // }
 
-impl ToDisplayString for UserInput {
+impl ToUiString for UserInput {
     fn to_display_string(&self) -> String {
         match self {
             Self::Single(input) => input.to_display_string(),
@@ -32,14 +32,14 @@ impl ToDisplayString for UserInput {
             Self::VirtualAxis(virtual_axis) => virtual_axis.to_display_string(),
             Self::Chord(chord) => chord
                 .iter()
-                .map(ToDisplayString::to_display_string)
+                .map(ToUiString::to_display_string)
                 .collect::<Vec<String>>()
                 .join(" + "),
         }
     }
 }
 
-impl ToDisplayString for VirtualDPad {
+impl ToUiString for VirtualDPad {
     fn to_display_string(&self) -> String {
         format!(
             "{}{}{}{}",
@@ -51,7 +51,7 @@ impl ToDisplayString for VirtualDPad {
     }
 }
 
-impl ToDisplayString for VirtualAxis {
+impl ToUiString for VirtualAxis {
     fn to_display_string(&self) -> String {
         format!(
             "{}{}",
@@ -61,7 +61,7 @@ impl ToDisplayString for VirtualAxis {
     }
 }
 
-impl ToDisplayString for InputKind {
+impl ToUiString for InputKind {
     fn to_display_string(&self) -> String {
         match self {
             Self::GamepadButton(gamepad_button) => gamepad_button.to_display_string(),
@@ -78,7 +78,7 @@ impl ToDisplayString for InputKind {
     }
 }
 
-impl ToDisplayString for MouseMotionDirection {
+impl ToUiString for MouseMotionDirection {
     fn to_display_string(&self) -> String {
         match self {
             Self::Up => "󰍽 ↑".to_string(),
@@ -89,7 +89,7 @@ impl ToDisplayString for MouseMotionDirection {
     }
 }
 
-impl ToDisplayString for MouseWheelDirection {
+impl ToUiString for MouseWheelDirection {
     fn to_display_string(&self) -> String {
         match self {
             Self::Up => "󰍽󰠳 ↑".to_string(),    // Mouse Wheel Up
@@ -100,7 +100,7 @@ impl ToDisplayString for MouseWheelDirection {
     }
 }
 
-impl ToDisplayString for MouseButton {
+impl ToUiString for MouseButton {
     fn to_display_string(&self) -> String {
         match self {
             Self::Left => "LMB".to_string(),
@@ -113,7 +113,7 @@ impl ToDisplayString for MouseButton {
     }
 }
 
-impl ToDisplayString for Modifier {
+impl ToUiString for Modifier {
     fn to_display_string(&self) -> String {
         match self {
             Self::Alt => "Alt".to_string(),
@@ -124,7 +124,7 @@ impl ToDisplayString for Modifier {
     }
 }
 
-impl ToDisplayString for KeyCode {
+impl ToUiString for KeyCode {
     fn to_display_string(&self) -> String {
         match self {
             Self::Digit0 => "0".to_string(),
@@ -177,7 +177,7 @@ impl ToDisplayString for KeyCode {
     }
 }
 
-impl ToDisplayString for DualAxis {
+impl ToUiString for DualAxis {
     fn to_display_string(&self) -> String {
         match (self.x.axis_type, self.y.axis_type) {
             (
@@ -197,7 +197,7 @@ impl ToDisplayString for DualAxis {
     }
 }
 
-impl ToDisplayString for GamepadButtonType {
+impl ToUiString for GamepadButtonType {
     fn to_display_string(&self) -> String {
         match self {
             Self::South => "󰸴".to_string(), // Cross/A
@@ -225,7 +225,7 @@ impl ToDisplayString for GamepadButtonType {
     }
 }
 
-impl ToDisplayString for SingleAxis {
+impl ToUiString for SingleAxis {
     fn to_display_string(&self) -> String {
         match self.axis_type {
             AxisType::Gamepad(gamepad_axis) => gamepad_axis.to_display_string(),
@@ -237,7 +237,7 @@ impl ToDisplayString for SingleAxis {
     }
 }
 
-impl ToDisplayString for GamepadAxisType {
+impl ToUiString for GamepadAxisType {
     fn to_display_string(&self) -> String {
         match self {
             Self::LeftStickX => "L3 󰹳".to_string(), // Left Stick Axis X Ⓛ
@@ -252,7 +252,7 @@ impl ToDisplayString for GamepadAxisType {
     }
 }
 
-impl ToDisplayString for MouseWheelAxisType {
+impl ToUiString for MouseWheelAxisType {
     fn to_display_string(&self) -> String {
         match self {
             Self::X => "󰍽󰠳 󰹳".to_string(), // Mouse Wheel Axis X (Horizontal)
@@ -261,7 +261,7 @@ impl ToDisplayString for MouseWheelAxisType {
     }
 }
 
-impl ToDisplayString for MouseMotionAxisType {
+impl ToUiString for MouseMotionAxisType {
     fn to_display_string(&self) -> String {
         match self {
             Self::X => "󰍽 󰹳".to_string(), // Mouse Wheel Axis X (Horizontal)

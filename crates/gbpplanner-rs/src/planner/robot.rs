@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashMap, VecDeque},
+    collections::{BTreeSet, HashMap},
     num::NonZeroUsize,
     sync::{Arc, Mutex},
 };
@@ -37,12 +37,13 @@ pub type RobotId = Entity;
 
 pub struct RobotPlugin;
 
-#[derive(Debug, SystemSet, PartialEq, Eq, Hash, Clone, Copy)]
-struct GbpSystemSet;
+// #[derive(Debug, SystemSet, PartialEq, Eq, Hash, Clone, Copy)]
+// struct GbpSystemSet;
 
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<VariableTimesteps>()
+            .init_resource::<GbpIterationSchedule>()
             .insert_state(ManualModeState::Disabled)
             .add_event::<RobotSpawned>()
             .add_event::<RobotDespawned>()
@@ -358,11 +359,57 @@ impl Default for RobotState {
 #[derive(Debug, Component, Deref)]
 pub struct Ball(parry2d::shape::Ball);
 
-#[derive(Bundle, Debug)]
+// #[derive(Component)]
+// pub struct GbpIterationSchedule {
+//     pub external_iterations: u32,
+//     pub internal_iterations: u32,
+//     pub schedule: Arc<dyn gbp_schedule::GbpSchedule>,
+// }
+
+#[derive(Component, Resource)]
+pub struct GbpIterationSchedule(pub crate::config::GbpIterationSchedule);
+
+// {
+//     kind:       crate::config::GbpIterationScheduleKind,
+//     iterations: crate::config::GbpIterationSchedule,
+// }
+
+// #[derive(Component, Resource)]
+// pub struct GbpIterationSchedule {
+//     kind:       crate::config::GbpIterationScheduleKind,
+//     iterations: crate::config::GbpIterationSchedule,
+// }
+
+impl FromWorld for GbpIterationSchedule {
+    fn from_world(world: &mut World) -> Self {
+        if let Some(config) = world.get_resource::<Config>() {
+            Self(config.gbp.iteration_schedule)
+        } else {
+            Self(crate::config::GbpIterationSchedule::default())
+        }
+    }
+}
+
+// impl Default for GbpIterationSchedule {
+//     fn default() -> Self {
+//         Self {
+//             kind:
+// crate::config::GbpIterationScheduleKind::SoonAsPossible,
+// iterations: crate::config::GbpIterationsPerTimestep {
+// internal: 10,                 external: 10,
+//             },
+//         }
+//     }
+// }
+
+#[derive(Bundle)]
 pub struct RobotBundle {
     /// The factor graph that the robot is part of, and uses to perform GBP
     /// message passing.
     pub factorgraph: FactorGraph,
+    /// The schedule that the robot uses to run internal and external GBP
+    /// iterations
+    pub gbp_iteration_schedule: GbpIterationSchedule,
     /// Radius of the robot.
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
@@ -598,6 +645,8 @@ impl RobotBundle {
             route,
             initial_state,
             finished_path: FinishedPath::default(),
+            // gbp_iteration_schedule: GbpIterationSchedule::default(),
+            gbp_iteration_schedule: GbpIterationSchedule(config.gbp.iteration_schedule),
         }
     }
 }
@@ -854,7 +903,7 @@ fn update_failed_comms(mut antennas: Query<&mut RadioAntenna>, config: Res<Confi
 
 fn iterate_gbp_internal(mut query: Query<&mut FactorGraph, With<RobotState>>, config: Res<Config>) {
     query.par_iter_mut().for_each(|mut factorgraph| {
-        for _ in 0..config.gbp.iterations_per_timestep.internal {
+        for _ in 0..config.gbp.iteration_schedule.internal {
             factorgraph.internal_factor_iteration();
             factorgraph.internal_variable_iteration();
         }
@@ -866,7 +915,7 @@ fn iterate_gbp_internal_sync(
     config: Res<Config>,
 ) {
     for mut factorgraph in &mut query {
-        for _ in 0..config.gbp.iterations_per_timestep.internal {
+        for _ in 0..config.gbp.iteration_schedule.internal {
             factorgraph.internal_factor_iteration();
             factorgraph.internal_variable_iteration();
         }
@@ -882,7 +931,7 @@ fn iterate_gbp_external(
         Default::default();
     let messages_to_external_factors: Arc<Mutex<Vec<VariableToFactorMessage>>> = Default::default();
 
-    for _ in 0..config.gbp.iterations_per_timestep.external {
+    for _ in 0..config.gbp.iteration_schedule.external {
         query
             .par_iter_mut()
             .for_each(|(_, mut factorgraph, state, antenna)| {
@@ -947,7 +996,7 @@ fn iterate_gbp_external_sync(
     let mut messages_to_external_variables: Vec<FactorToVariableMessage> = Default::default();
     let mut messages_to_external_factors: Vec<VariableToFactorMessage> = Default::default();
 
-    for _ in 0..config.gbp.iterations_per_timestep.external {
+    for _ in 0..config.gbp.iteration_schedule.external {
         for (_, mut factorgraph, state, antenna) in &mut query {
             // if !state.interrobot_comms_active {
             if !antenna.active {
@@ -1021,7 +1070,7 @@ fn iterate_gbp(
     mut query: Query<(Entity, &mut FactorGraph), With<RobotState>>,
     config: Res<Config>,
 ) {
-    for _ in 0..config.gbp.iterations_per_timestep.internal {
+    for _ in 0..config.gbp.iteration_schedule.internal {
         // pretty_print_title!(format!("GBP iteration: {}", i + 1));
         // ╭────────────────────────────────────────────────────────────────────────────────────────
         // │ Factor iteration

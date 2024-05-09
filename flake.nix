@@ -109,10 +109,10 @@
 
               nodejs
               just
-              typos
+              typos # spell checker
               freetype
               fontconfig
-              act
+              act # run github actions local in a docker container
               trunk # rust wasm bundler
               wasm-bindgen-cli
               # binaryen # wasm-opt
@@ -121,15 +121,13 @@
               d2
               graphviz
               dot-language-server
-              openblas
+              blas
+              # openblas
               openssl
               # lapack
               gcc
               gfortran
               zlib
-              #
-              # python3Packages.matplotlib
-              # python3Packages.ipykernel
               gh
             ]
             ++ bevy-deps

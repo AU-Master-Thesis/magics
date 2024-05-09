@@ -88,6 +88,7 @@ fn update_robot_robot_collisions(
 
         match collision_status {
             CollisionStatus::Hit => {
+                // ehh...
                 let r_ball = robots.get(aabbs[r].0).unwrap().2;
                 let c_ball = robots.get(aabbs[c].0).unwrap().2;
                 let r_aabb = r_ball.aabb(&aabbs[r].1);

@@ -16,7 +16,7 @@ use screenshot::ScreenshotPlugin;
 pub use ui::UiAction;
 
 use self::{camera::CameraInputPlugin, general::GeneralInputPlugin, ui::UiInputPlugin};
-use crate::ui::ToDisplayString;
+use crate::ui::ToUiString;
 
 /// Enumeration to collect the different kinds of input bindings
 #[derive(Debug, EnumIter)]
@@ -46,7 +46,7 @@ impl Display for InputAction {
     }
 }
 
-impl ToDisplayString for InputAction {
+impl ToUiString for InputAction {
     fn to_display_string(&self) -> String {
         match self {
             Self::Camera(action) => action.to_display_string(),
@@ -58,7 +58,7 @@ impl ToDisplayString for InputAction {
     }
 }
 
-impl ToDisplayString for CameraAction {
+impl ToUiString for CameraAction {
     fn to_display_string(&self) -> String {
         match self {
             Self::Move => "Move Camera".to_string(),
@@ -72,7 +72,7 @@ impl ToDisplayString for CameraAction {
     }
 }
 
-impl ToDisplayString for GeneralAction {
+impl ToUiString for GeneralAction {
     fn to_display_string(&self) -> String {
         match self {
             Self::CycleTheme => "Toggle Theme".to_string(),
@@ -84,7 +84,7 @@ impl ToDisplayString for GeneralAction {
     }
 }
 
-impl ToDisplayString for MoveableObjectAction {
+impl ToUiString for MoveableObjectAction {
     fn to_display_string(&self) -> String {
         match self {
             Self::Move => "Move Object".to_string(),
@@ -96,7 +96,7 @@ impl ToDisplayString for MoveableObjectAction {
     }
 }
 
-impl ToDisplayString for UiAction {
+impl ToUiString for UiAction {
     fn to_display_string(&self) -> String {
         self.to_string()
         // match self {

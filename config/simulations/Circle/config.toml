@@ -43,7 +43,7 @@ sigma-factor-obstacle   = 0.01
 sigma-factor-tracking   = 0.1
 lookahead-multiple      = 3
 # iterations-per-timestep = 10
-[gbp.iterations-per-timestep]
+[gbp.iteration-schedule]
 internal = 10
 external = 10
 schedule = "interleave-evenly"
@@ -85,13 +85,13 @@ neighbourhood-radius = 10.0
 max-iterations = 500
 step-size      = 0.5
 
-[graphviz.interrobot.edge]
-style = "dashed"
-len   = 8.0
-color = "red"
-
-[graphviz]
-export-location = "./assets/export/"
-
-[manual]
-timesteps-per-step = 1
+# [graphviz.interrobot.edge]
+# style = "dashed"
+# len   = 8.0
+# color = "red"
+#
+# [graphviz]
+# export-location = "./assets/export/"
+#
+# [manual]
+# timesteps-per-step = 1

@@ -13,7 +13,7 @@ use smol_str::SmolStr;
 use struct_iterable::Iterable;
 use strum::IntoEnumIterator;
 
-use super::{custom, scale::ScaleUi, OccupiedScreenSpace, ToDisplayString, UiScaleType, UiState};
+use super::{custom, scale::ScaleUi, OccupiedScreenSpace, ToUiString, UiScaleType, UiState};
 use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
@@ -26,31 +26,22 @@ use crate::{
 };
 
 /// **Bevy** `Plugin` to add the settings panel to the UI
+#[derive(Default)]
 pub struct SettingsPanelPlugin;
 
 impl Plugin for SettingsPanelPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (install_egui_image_loaders,))
-            .add_systems(
-                Update,
-                (
-                    ui_settings_exclusive,
-                    // ui_settings_exclusive.run_if(show_right_panel),
-                ),
-            )
+            .add_systems(Update, (ui_settings_exclusive,))
             .add_plugins(DefaultInspectorConfigPlugin);
     }
 }
-
-// fn show_right_panel(ui: Res<UiState>) -> bool {
-//     ui.right_panel_visible
-// }
 
 fn install_egui_image_loaders(mut egui_ctx: EguiContexts) {
     egui_extras::install_image_loaders(egui_ctx.ctx_mut());
 }
 
-impl ToDisplayString for catppuccin::Flavour {
+impl ToUiString for catppuccin::Flavour {
     fn to_display_string(&self) -> String {
         match self {
             Self::Frappe => "Frappe".to_string(),
@@ -270,7 +261,7 @@ fn ui_settings_panel(
 
                         custom::grid("iterations_per_timestep_grid", 2).show(ui, |ui| {
                             ui.label("Internal");
-                            let mut text = config.gbp.iterations_per_timestep.internal.to_string();
+                            let mut text = config.gbp.iteration_schedule.internal.to_string();
 
                             let te_output = egui::TextEdit::singleline(&mut text)
                                 .char_limit(3)
@@ -280,7 +271,7 @@ fn ui_settings_panel(
                             // if te_output.response.lost_focus() && te_output.response.changed() {
                             if  te_output.response.changed() {
                                 if let Ok(x) = text.parse::<usize>() {
-                                    config.gbp.iterations_per_timestep.internal = x;
+                                    config.gbp.iteration_schedule.internal = x;
                                 } else {
                                     error!("failed to parse {} as usize", text);
                                 }
@@ -288,7 +279,7 @@ fn ui_settings_panel(
                             ui.end_row();
 
                             ui.label("External");
-                            let mut text = config.gbp.iterations_per_timestep.external.to_string();
+                            let mut text = config.gbp.iteration_schedule.external.to_string();
                             let te_output = egui::TextEdit::singleline(&mut text)
                                 .char_limit(3)
                                 .interactive(time_virtual.is_paused())
@@ -297,12 +288,14 @@ fn ui_settings_panel(
 
                             if  te_output.response.changed() {
                                 if let Ok(x) = text.parse::<usize>() {
-                                    config.gbp.iterations_per_timestep.external = x;
+                                    config.gbp.iteration_schedule.external = x;
                                 } else {
                                     error!("failed to parse {} as usize", text);
                                 }
                             }
+                            ui.end_row();
 
+                            ui.label("Schedule");
                             ui.end_row();
                         });
 

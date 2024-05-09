@@ -235,8 +235,8 @@ fn export(
 
         let gbp = GbpData {
             iterations: GbpIterationData {
-                internal: config.gbp.iterations_per_timestep.internal,
-                external: config.gbp.iterations_per_timestep.external,
+                internal: config.gbp.iteration_schedule.internal,
+                external: config.gbp.iteration_schedule.external,
             },
         };
 
