@@ -85,13 +85,19 @@ neighbourhood-radius = 10.0
 max-iterations = 500
 step-size      = 0.5
 
-[graphviz.interrobot.edge]
+[graphviz]
+export-location = "./assets/export/"
+
+[graphviz.interrobot.active]
 style = "dashed"
 len   = 8.0
 color = "red"
 
-[graphviz]
-export-location = "./assets/export/"
+[graphviz.interrobot.inactive]
+style = "dashed"
+len   = 8.0
+color = "gray"
+
 
 [manual]
 timesteps-per-step = 1

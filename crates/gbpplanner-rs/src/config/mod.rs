@@ -40,25 +40,37 @@ pub struct GraphvizEdgeAttributes {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct GraphvizInterrbotSection {
-    pub edge: GraphvizEdgeAttributes,
+pub struct GraphvizInterrobotSection {
+    pub active:   GraphvizEdgeAttributes,
+    pub inactive: GraphvizEdgeAttributes,
+    // pub edge: GraphvizEdgeAttributes,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizSection {
-    pub interrobot:      GraphvizInterrbotSection,
+    pub interrobot:      GraphvizInterrobotSection,
+    #[serde(default = "default_export_location")]
     pub export_location: String,
+}
+
+fn default_export_location() -> String {
+    "./assets/export".to_string()
 }
 
 impl Default for GraphvizSection {
     fn default() -> Self {
         Self {
-            interrobot:      GraphvizInterrbotSection {
-                edge: GraphvizEdgeAttributes {
+            interrobot:      GraphvizInterrobotSection {
+                active:   GraphvizEdgeAttributes {
                     style: "solid".to_string(),
                     len:   8.0,
                     color: "red".to_string(),
+                },
+                inactive: GraphvizEdgeAttributes {
+                    style: "dashed".to_string(),
+                    len:   4.0,
+                    color: "black".to_string(),
                 },
             },
             export_location: "./assets/".to_string(),

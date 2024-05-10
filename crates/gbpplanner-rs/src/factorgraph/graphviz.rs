@@ -26,8 +26,14 @@ impl Node {
 }
 
 pub enum NodeKind {
-    Variable { x: f64, y: f64 },
-    InterRobotFactor(ExternalVariableId),
+    Variable {
+        x: f64,
+        y: f64,
+    },
+    InterRobotFactor {
+        active: bool,
+        external_variable_id: ExternalVariableId,
+    },
     // InterRobotFactor {
     //     /// The id of the robot the interrobot factor is connected to
     //     other_robot_id: RobotId,
@@ -45,8 +51,7 @@ impl NodeKind {
             Self::Variable { .. } => "#eff1f5",         // latte base (white)
             Self::InterRobotFactor { .. } => "#a6da95", // green
             Self::DynamicFactor => "#8aadf4",           // blue
-            // Self::ObstacleFactor => "#c6a0f6",          // mauve (purple)
-            Self::ObstacleFactor => "#ee99a0", // mauve (purple)
+            Self::ObstacleFactor => "#ee99a0",          // mauve (purple)
             // Self::PoseFactor => "#c6aof6",     // maroon (red)
             Self::TrackingFactor => "#f4a15a", // orange
         }
@@ -72,6 +77,6 @@ pub struct Edge {
     pub to:   usize,
 }
 
-pub trait Graph {
-    fn export_data(&self) -> (Vec<Node>, Vec<Edge>);
+pub trait ExportGraph {
+    fn export_graph(&self) -> (Vec<Node>, Vec<Edge>);
 }

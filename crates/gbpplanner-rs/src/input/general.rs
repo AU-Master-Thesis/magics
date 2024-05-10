@@ -15,11 +15,11 @@ use crate::{
     bevy_utils::run_conditions::event_exists,
     config::{Config, DrawSetting},
     factorgraph::{
-        graphviz::{Graph, NodeKind},
+        graphviz::{ExportGraph, NodeKind},
         prelude::FactorGraph,
     },
     pause_play::PausePlay,
-    planner::{RobotId, RobotState},
+    planner::{robot::RadioAntenna, RobotId, RobotState},
     theme::CatppuccinTheme,
 };
 
@@ -183,7 +183,7 @@ fn bind_general_input(mut commands: Commands) {
 }
 
 fn export_factorgraphs_as_graphviz(
-    query: Query<(Entity, &FactorGraph), With<RobotState>>,
+    query: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
     config: &Config,
 ) -> Option<String> {
     if query.is_empty() {
@@ -210,10 +210,12 @@ fn export_factorgraphs_as_graphviz(
     // A hashmap used to keep track of which variable in another robots factorgraph,
     // is connected to a interrobot factor in the current robots factorgraph.
     let mut all_external_connections =
-        HashMap::<RobotId, HashMap<usize, (RobotId, usize)>>::with_capacity(query.iter().len());
+        HashMap::<RobotId, HashMap<usize, (RobotId, usize, bool)>>::with_capacity(
+            query.iter().len(),
+        );
 
-    for (robot_id, factorgraph) in query.iter() {
-        let (nodes, edges) = factorgraph.export_data();
+    for (robot_id, factorgraph, antenna) in query.iter() {
+        let (nodes, edges) = factorgraph.export_graph();
 
         // append_line_to_output(&format!(r#"  subgraph "cluster_{:?}" {{"#, robot_id));
         append_line_to_output(&format!(r#"  subgraph "{:?}" {{"#, robot_id));
@@ -258,14 +260,18 @@ fn export_factorgraphs_as_graphviz(
             append_line_to_output(&line);
         }
 
-        let external_connections: HashMap<usize, (RobotId, usize)> = nodes
+        let external_connections: HashMap<usize, (RobotId, usize, bool)> = nodes
             .into_iter()
             .filter_map(|node| match node.kind {
-                NodeKind::InterRobotFactor(external_variable) => Some((
+                NodeKind::InterRobotFactor {
+                    active,
+                    external_variable_id,
+                } => Some((
                     node.index,
                     (
-                        external_variable.factorgraph_id,
-                        external_variable.variable_index.index(),
+                        external_variable_id.factorgraph_id,
+                        external_variable_id.variable_index.index(),
+                        antenna.active,
                         // connection.id_of_robot_connected_with,
                         // connection
                         //     .index_of_connected_variable_in_other_robots_factorgraph
@@ -281,17 +287,29 @@ fn export_factorgraphs_as_graphviz(
 
     // Add edges between interrobot factors and the variable they are connected to
     // in another robots graph
-    for (from_robot_id, from_connections) in &all_external_connections {
-        for (from_factor, (to_robot_id, to_variable_index)) in from_connections {
+    for (from_robot_id, from_connections) in all_external_connections {
+        for (from_factor, (to_robot_id, to_variable_index, active)) in from_connections {
             append_line_to_output(&format!(
                 r#" "{:?}_{:?}" -- "{:?}_{:?}" [len={}, style={}, color="{}"]"#,
                 from_robot_id,
                 from_factor,
                 to_robot_id,
                 to_variable_index,
-                config.graphviz.interrobot.edge.len,
-                config.graphviz.interrobot.edge.style,
-                config.graphviz.interrobot.edge.color,
+                if active {
+                    config.graphviz.interrobot.active.len
+                } else {
+                    config.graphviz.interrobot.inactive.len
+                },
+                if active {
+                    &config.graphviz.interrobot.active.style
+                } else {
+                    &config.graphviz.interrobot.inactive.style
+                },
+                if active {
+                    &config.graphviz.interrobot.active.color
+                } else {
+                    &config.graphviz.interrobot.inactive.color
+                }
             ));
         }
     }
@@ -318,7 +336,7 @@ fn cycle_theme(
 
 fn export_graph_on_event(
     mut evr_export_factorgraph_as_graphviz: EventReader<ExportFactorGraphAsGraphviz>,
-    query: Query<(Entity, &FactorGraph), With<RobotState>>,
+    query: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
     config: Res<Config>,
     evw_export_graph_finished: EventWriter<ExportFactorGraphAsGraphvizFinished>,
 ) {
@@ -345,7 +363,7 @@ pub enum ExportFactorGraphAsGraphvizFinished {
 }
 
 fn handle_export_graph(
-    q: Query<(Entity, &FactorGraph), With<RobotState>>,
+    q: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
     config: &Config,
     mut export_graph_finished_event: EventWriter<ExportFactorGraphAsGraphvizFinished>,
     // mut toast_event: EventWriter<ToastEvent>,
@@ -484,7 +502,7 @@ fn quit_application_system(
 fn general_actions_system(
     mut theme_event: EventWriter<CycleTheme>,
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
-    query_graphs: Query<(Entity, &FactorGraph), With<RobotState>>,
+    query_graphs: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
     config: Res<Config>,
     currently_changing: Res<ChangingBinding>,
     catppuccin_theme: Res<CatppuccinTheme>,
