@@ -1,4 +1,4 @@
-use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIter};
+use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIterator};
 
 pub struct SoonAsPossible;
 
@@ -48,10 +48,10 @@ impl std::iter::Iterator for SoonAsPossibleIter {
     }
 }
 
-impl GbpScheduleIter for SoonAsPossibleIter {}
+impl GbpScheduleIterator for SoonAsPossibleIter {}
 
 impl GbpSchedule for SoonAsPossible {
-    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIter {
+    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIterator {
         SoonAsPossibleIter::new(config)
     }
 }

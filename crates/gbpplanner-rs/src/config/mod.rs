@@ -316,7 +316,7 @@ impl GbpIterationScheduleKind {
     pub fn get(
         &self,
         config: gbp_schedule::GbpScheduleConfig,
-    ) -> Box<dyn gbp_schedule::GbpScheduleIter> {
+    ) -> Box<dyn gbp_schedule::GbpScheduleIterator> {
         match self {
             GbpIterationScheduleKind::Centered => {
                 Box::new(gbp_schedule::Centered::schedule(config))

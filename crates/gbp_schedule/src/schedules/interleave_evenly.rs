@@ -1,19 +1,8 @@
-use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIter};
+use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIterator};
 
 pub struct InterleaveEvenly;
 
 mod private {
-    pub struct InterleaveEvenlyIter {
-        seq:   Vec<bool>,
-        index: usize,
-        max:   u8, /* n: u8,
-                    * max: u8,
-                    * current: f32,
-                    * increment: f32,
-                    * index: u8,
-                    * zero: bool, */
-    }
-
     const fn odd(n: u8) -> bool {
         // n & 0b1 == 1
         n % 2 == 1
@@ -23,103 +12,98 @@ mod private {
         n % 2 == 0
     }
 
-    enum OddEven {
-        Odd,
-        Even,
+    const fn divides(n: u8, d: u8) -> bool {
+        n % d == 0
     }
 
-    impl OddEven {
-        const fn new(n: u8) -> Self {
-            if n % 2 == 0 {
-                Self::Even
-            } else {
-                Self::Odd
-            }
-        }
+    // enum OddEven {
+    //     Odd,
+    //     Even,
+    // }
+    //
+    // impl OddEven {
+    //     const fn new(n: u8) -> Self {
+    //         if n % 2 == 0 {
+    //             Self::Even
+    //         } else {
+    //             Self::Odd
+    //         }
+    //     }
+    // }
+
+    pub(super) struct InterleaveEvenlyIter {
+        seq:   Vec<bool>,
+        index: usize,
+        max:   u8,
     }
 
     impl InterleaveEvenlyIter {
         fn recurse(slice: &mut [bool], n: u8) {
-            use OddEven::{Even, Odd};
             let max = slice.len() as u8;
-            let diff = max - n;
+            // let diff = max - n;
             let half = (max / 2) as usize;
 
             if n == max {
-                for i in 0..slice.len() {
-                    slice[i] = true;
-                }
-                return;
-            }
+                slice.fill(true);
+            } else if n == 0 {
+                slice.fill(false);
+            } else {
+                if odd(n) && odd(max) {
+                    if divides(max, n) {
+                        let times_divided = max / n;
+                        // Example max = 9, n = 3
+                        // times_divided = 3
+                        // seq = [true, false, false, true, false, false,
+                        // true, false, false]
+                        let mut iter = std::iter::once(true)
+                            .chain(std::iter::repeat(false).take(times_divided as usize - 1))
+                            .cycle();
+                        slice.fill_with(|| iter.next().unwrap());
+                    } else {
+                        let n = n / 2;
 
-            if n == 0 {
-                for i in 0..slice.len() {
-                    slice[i] = false;
+                        Self::recurse(&mut slice[0..half], n);
+                        slice[half] = true;
+                        Self::recurse(&mut slice[half + 1..], n);
+                        slice[half + 1..].reverse();
+                    }
+                } else if even(n) && odd(max) {
+                    let n = n / 2;
+                    Self::recurse(&mut slice[0..half], n);
+                    slice[0..half].reverse();
+                    slice[half] = false;
+                    Self::recurse(&mut slice[half + 1..], n);
+                } else if even(n) && even(max) {
+                    if divides(max, n) {
+                        let times_divided = max / n;
+                        // Example max = 8, n = 4
+                        // times_divided = 2
+                        // seq = [true, false, true, false, true, false, true, false]
+                        let mut iter = std::iter::once(true)
+                            .chain(std::iter::repeat(false).take(times_divided as usize - 1))
+                            .cycle();
+                        slice.fill_with(|| iter.next().unwrap());
+                    } else {
+                        let n = n / 2;
+                        Self::recurse(&mut slice[0..half], n);
+                        Self::recurse(&mut slice[half..], n);
+                    }
+                } else {
+                    // odd(n) && even(max)
+                    // Example max = 8, n = 3
+                    let n = n / 2;
+                    Self::recurse(&mut slice[0..half], n + 1);
+                    slice[0..half].reverse();
+                    Self::recurse(&mut slice[half..], n);
                 }
-                return;
-            }
-
-            match (OddEven::new(n), OddEven::new(max), OddEven::new(diff)) {
-                // 5, 7, 2
-                (Odd, Odd, Even) => {
-                    slice[half] = true;
-                    let lower = n / 2;
-                    let upper = lower;
-                    assert_eq!(lower + upper, n - 1);
-
-                    Self::recurse(&mut slice[0..half], lower);
-                    Self::recurse(&mut slice[half..], upper);
-                }
-                // 4, 6, 2
-                (Even, Even, Even) => {
-                    let lower = n / 2;
-                    let upper = lower;
-                    assert_eq!(lower + upper, n);
-
-                    Self::recurse(&mut slice[0..half], lower);
-                    Self::recurse(&mut slice[half..], upper);
-                }
-                // 6, 7, 1
-                (Even, Odd, Odd) => {
-                    let lower = n / 2;
-                    let upper = lower;
-                    assert_eq!(lower + upper, n);
-
-                    Self::recurse(&mut slice[0..half], lower);
-                    Self::recurse(&mut slice[(half + 1)..], upper);
-                }
-                // 7, 8, 1
-                (Odd, Even, Odd) => {
-                    let lower = n / 2;
-                    let upper = n - lower;
-                    assert_eq!(lower + upper, n);
-
-                    Self::recurse(&mut slice[0..half], lower);
-                    Self::recurse(&mut slice[half..], upper);
-                }
-                _ => unreachable!(),
             }
         }
 
         pub fn new(n: u8, max: u8) -> Self {
             assert!(n <= max, "n must be less than or equal to max");
-            let diff = max - n;
 
-            let seq: Vec<bool> = if diff == max {
-                vec![false; max as usize]
-            } else if diff == 0 {
-                vec![true; max as usize]
-            } else {
-                let mut seq = vec![true; max as usize];
-                Self::recurse(&mut seq, n);
-                dbg!(&seq);
-
-                assert_eq!(seq.iter().filter(|&b| *b).count(), n as usize);
-
-                seq
-            };
-
-            assert_eq!(seq.len(), max as usize);
+            let mut seq = vec![false; max as usize];
+            Self::recurse(&mut seq, n);
 
             Self { seq, index: 0, max }
         }
@@ -128,63 +112,14 @@ mod private {
     impl Iterator for InterleaveEvenlyIter {
         type Item = bool;
 
-        // fn next(&mut self) -> Option<Self::Item> {
-        //     if self.index > self.max {
-        //         return None;
-        //     }
-
-        //     if self.zero {
-        //         return Some(false);
-        //     }
-
-        //     let on = if self.current < self.index as f32 {
-        //         self.current += self.increment;
-        //         true
-        //     } else {
-        //         false
-        //     };
-
-        //     self.index += 1;
-
-        //     Some(on)
-        // }
-
         fn next(&mut self) -> Option<Self::Item> {
-            if let Some(item) = self.seq.get(self.index) {
+            if let Some(item) = self.seq.get(self.index).copied() {
                 self.index += 1;
-                Some(*item)
+                Some(item)
             } else {
                 None
             }
         }
-
-        // fn next(&mut self) -> Option<Self::Item> {
-        //     if self.index >= self.max {
-        //         return None;
-        //     }
-
-        //     let half_diff = (self.max - self.n) / 2;
-        //     let start = half_diff;
-        //     let end = start + self.n - 1;
-
-        //     // Determine the value based on the index
-        //     let result = if self.index >= start && self.index <= end {
-        //         // Within the range of 'n' values, we alternate starting from the
-        // first true         // index
-        //         (self.index - start) % 2 == 0
-        //     } else {
-        //         // Outside the range, we invert the alternating pattern based on the
-        // distance         // from the start/end
-        //         if self.index < start {
-        //             (start - self.index) % 2 == 1
-        //         } else {
-        //             (self.index - end) % 2 == 1
-        //         }
-        //     };
-
-        //     self.index += 1;
-        //     Some(result)
-        // }
     }
 }
 
@@ -214,10 +149,10 @@ impl Iterator for InterleaveEvenlyIter {
 
 impl ExactSizeIterator for InterleaveEvenlyIter {}
 
-impl GbpScheduleIter for InterleaveEvenlyIter {}
+impl GbpScheduleIterator for InterleaveEvenlyIter {}
 
 impl GbpSchedule for InterleaveEvenly {
-    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIter {
+    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIterator {
         InterleaveEvenlyIter::new(config)
     }
 }

@@ -381,7 +381,7 @@ pub struct Ball(parry2d::shape::Ball);
 pub struct GbpIterationSchedule(pub crate::config::GbpIterationSchedule);
 
 impl GbpIterationSchedule {
-    pub fn schedule(&self) -> Box<dyn gbp_schedule::GbpScheduleIter> {
+    pub fn schedule(&self) -> Box<dyn gbp_schedule::GbpScheduleIterator> {
         let config = gbp_schedule::GbpScheduleConfig {
             internal: self.0.internal as u8,
             external: self.0.external as u8,

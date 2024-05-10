@@ -1,4 +1,4 @@
-use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIter};
+use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIterator};
 
 pub struct Centered;
 
@@ -77,10 +77,10 @@ impl Iterator for CenteredIter {
 
 impl ExactSizeIterator for CenteredIter {}
 
-impl GbpScheduleIter for CenteredIter {}
+impl GbpScheduleIterator for CenteredIter {}
 
 impl GbpSchedule for Centered {
-    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIter {
+    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIterator {
         CenteredIter::new(config)
     }
 }

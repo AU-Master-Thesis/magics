@@ -1,4 +1,4 @@
-use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIter};
+use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIterator};
 
 pub struct HalfBeginningHalfEnd;
 
@@ -78,10 +78,10 @@ impl Iterator for HalfBeginningHalfEndIter {
     }
 }
 
-impl GbpScheduleIter for HalfBeginningHalfEndIter {}
+impl GbpScheduleIterator for HalfBeginningHalfEndIter {}
 
 impl GbpSchedule for HalfBeginningHalfEnd {
-    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIter {
+    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIterator {
         HalfBeginningHalfEndIter::new(config)
     }
 }

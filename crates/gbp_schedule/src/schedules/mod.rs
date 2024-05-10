@@ -74,10 +74,10 @@ impl GbpScheduleConfig {
     }
 }
 
-pub trait GbpScheduleIter: std::iter::Iterator<Item = GbpScheduleAtTimestep> {}
+pub trait GbpScheduleIterator: std::iter::Iterator<Item = GbpScheduleAtTimestep> {}
 
 pub trait GbpSchedule {
     // fn schedule(times: &[NonZeroUsize]) -> impl GbpScheduleIter;
     // fn schedule(times: &[usize]) -> impl GbpScheduleIter<'_>;
-    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIter;
+    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIterator;
 }
