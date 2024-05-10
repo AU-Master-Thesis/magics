@@ -44,7 +44,7 @@ impl Plugin for MapPlugin {
                     // obstacles.run_if(environment_png_is_loaded),
                     obstacles.run_if(resource_changed::<Obstacles>),
                     // obstacles.run_if(on_event::<LoadSimulation>()),
-                    show_or_hide_height_map,
+                    // show_or_hide_height_map,
                     show_or_hide_flat_map,
                 )
             );
@@ -417,16 +417,16 @@ fn obstacles(
         ..default()
     });
 
-    let visibility = if config.visualisation.draw.height_map {
-        Visibility::Visible
-    } else {
-        Visibility::Hidden
-    };
-
+    // let visibility = if config.visualisation.draw.height_map {
+    //     Visibility::Visible
+    // } else {
+    //     Visibility::Hidden
+    // };
+    //
     commands.spawn((simulation_loader::Reloadable, HeightMap, PbrBundle {
         mesh: mesh_assets.add(mesh),
         material: material_handle,
-        visibility,
+        // visibility,
         ..default()
     }));
 
@@ -438,23 +438,23 @@ fn obstacles(
 #[derive(Component)]
 pub struct HeightMap;
 
-/// **Bevy** [`Update`] system
-/// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting ==
-/// DrawSetting::height_map` the boolean `DrawSettingEvent.value` will be used
-/// to set the visibility of the [`HeightMap`] entities
-fn show_or_hide_height_map(
-    mut query: Query<&mut Visibility, With<HeightMap>>,
-    mut evr_draw_settings: EventReader<DrawSettingsEvent>,
-) {
-    for event in evr_draw_settings.read() {
-        if matches!(event.setting, config::DrawSetting::HeightMap) {
-            for mut visibility in &mut query {
-                if event.draw {
-                    *visibility = Visibility::Visible;
-                } else {
-                    *visibility = Visibility::Hidden;
-                }
-            }
-        }
-    }
-}
+// /// **Bevy** [`Update`] system
+// /// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting ==
+// /// DrawSetting::height_map` the boolean `DrawSettingEvent.value` will be
+// used /// to set the visibility of the [`HeightMap`] entities
+// fn show_or_hide_height_map(
+//     mut query: Query<&mut Visibility, With<HeightMap>>,
+//     mut evr_draw_settings: EventReader<DrawSettingsEvent>,
+// ) {
+//     for event in evr_draw_settings.read() {
+//         if matches!(event.setting, config::DrawSetting::HeightMap) {
+//             for mut visibility in &mut query {
+//                 if event.draw {
+//                     *visibility = Visibility::Visible;
+//                 } else {
+//                     *visibility = Visibility::Hidden;
+//                 }
+//             }
+//         }
+//     }
+// }
