@@ -10,6 +10,7 @@ use bevy::{
 };
 use derive_more::Index;
 use gbp_linalg::prelude::*;
+use gbp_schedule::GbpSchedule;
 use ndarray::{array, concatenate, s, Axis};
 use rand::{thread_rng, Rng};
 
@@ -1369,6 +1370,7 @@ fn update_prior_of_horizon_state(
             &mut Route,
             &mut FinishedPath,
             &Radius,
+            // &GbpIterationSchedule,
         ),
         With<RobotState>,
     >,
@@ -1396,6 +1398,10 @@ fn update_prior_of_horizon_state(
             robots_to_despawn.push(robot_id);
             continue;
         };
+
+        if config.gbp.iteration_schedule.internal == 0 {
+            continue;
+        }
 
         let robot_radius_squared = radius.0.powi(2);
 
