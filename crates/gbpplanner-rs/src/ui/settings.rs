@@ -301,14 +301,13 @@ fn ui_settings_panel(
 
                         // TODO: very ugly, but it works
                             {
-                                // let pos = ui.cur
                                 let n = config.gbp.iteration_schedule.internal.max(config.gbp.iteration_schedule.external);
 
                                 let schedule_config = gbp_schedule::GbpScheduleConfig {
                                     internal: config.gbp.iteration_schedule.internal as u8,
                                     external: config.gbp.iteration_schedule.external as u8,
                                 };
-                              // let size = ui.available_size();
+                                // let size = ui.available_size();
                                 let max_rect = ui.max_rect();
                                 // dbg!((&max_rect, &size));
 
@@ -322,9 +321,18 @@ fn ui_settings_panel(
 
                                 let margin = 10.0;
                                 let max_x = max_rect.width() - 2.0 * margin;
+                                let inbetween_padding_max = 20.0;
+                                let inbetween_padding_default_percentage = 0.2;
+                                // FIXME: handle case with n = 2, 3
                                 let inbetween_padding_percentage = 0.2;
-                                let cell_width = max_x * (1.0 - inbetween_padding_percentage) / n as f32;
-                                let inbetween_width = if n == 1 { 0.0 } else { max_x * inbetween_padding_percentage / (n - 1) as f32 };
+                                // let inbetween_padding_percentage = if max_x * inbetween_padding_default_percentage < inbetween_padding_max {
+                                //     max_x * inbetween_padding_default_percentage
+                                // } else {
+                                //         in
+                                //     }
+
+                                let cell_width = if n <= 1 { max_x } else { max_x * (1.0 - inbetween_padding_percentage) / n as f32 };
+                                let inbetween_width = if n <= 1 { 0.0 } else { max_x * inbetween_padding_percentage / (n - 1) as f32 };
                                 let line_gap = 5.0;
                                 let line_height = 5.0;
                                 // let start_x = rect.left();

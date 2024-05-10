@@ -137,6 +137,7 @@ pub enum DrawSetting {
     CommunicationRadius,
     Robots,
     ObstacleFactors,
+    Tracking,
     #[strum(serialize = "interrobot_factors")]
     InterRobotFactors,
     #[strum(serialize = "interrobot_factors_safety_distance")]
@@ -200,7 +201,7 @@ impl Default for DrawSection {
 impl DrawSection {
     pub fn to_display_string(name: &str) -> &'static str {
         match name {
-            "communication_graph" => "Communication",
+            "communication_graph" => "Communication Graph",
             "predicted_trajectories" => "Trajectories",
             "waypoints" => "Waypoints",
             "uncertainty" => "Uncertainty",
@@ -210,6 +211,7 @@ impl DrawSection {
             "sdf" => "SDF",
             "communication_radius" => "Communication Radius",
             "robots" => "Robots",
+            "tracking" => "Tracking",
             "obstacle_factors" => "Obstacle Factors",
             "interrobot_factors" => "InterRobot Factors",
             "interrobot_factors_safety_distance" => "InterRobot Safety Distance",

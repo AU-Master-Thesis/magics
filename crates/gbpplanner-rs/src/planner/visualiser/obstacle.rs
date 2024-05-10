@@ -5,6 +5,7 @@ use bevy::prelude::*;
 
 use crate::{config::Config, factorgraph::prelude::FactorGraph};
 
+#[derive(Default)]
 pub struct ObstacleFactorVisualizerPlugin;
 
 impl Plugin for ObstacleFactorVisualizerPlugin {
@@ -14,6 +15,49 @@ impl Plugin for ObstacleFactorVisualizerPlugin {
             visualize_obstacle_factors.run_if(enabled),
             // visualize_obstacle_factors.run_if(on_timer(std::time::Duration::from_millis(500))),
         );
+    }
+}
+
+// #[derive(Clone, Copy, Event, PartialEq, Eq)]
+// pub enum ChangeBooleanSetting<T> {
+//     On,
+//     Off,
+//     Toggle,
+// }
+
+// // fn system(ev: EventReader<ChangeBooleanSetting<Visual<ObstacleFactor>>>)
+// {} fn system(ev: EventReader<events::ChangeBooleanSetting>) {}
+
+// pub struct Visual<T>;
+// pub struct ObstacleFactor;
+
+// pub mod events {
+//     use bevy::prelude::*;
+
+//     pub type ChangeBooleanSetting =
+//         super::ChangeBooleanSetting<super::Visual<super::ObstacleFactor>>;
+
+//     fn handle_event() {}
+// }
+
+mod resources {
+    use bevy::prelude::*;
+
+    #[derive(Resource)]
+    struct Settings {
+        enabled: bool,
+    }
+
+    impl FromWorld for Settings {
+        fn from_world(world: &mut World) -> Self {
+            if let Some(config) = world.get_resource::<crate::config::Config>() {
+                Self {
+                    enabled: config.visualisation.draw.obstacle_factors,
+                }
+            } else {
+                Self { enabled: false }
+            }
+        }
     }
 }
 
@@ -28,28 +72,30 @@ impl Plugin for ObstacleFactorVisualizerPlugin {
 /// b = 0
 fn visualize_obstacle_factors(mut gizmos: Gizmos, factorgraphs: Query<&FactorGraph>) {
     for factorgraph in &factorgraphs {
-        // for (variable, obstacle_factor) in
-        // factorgraph.variable_and_their_obstacle_factors() {
-        //     let estimated_position = variable.estimated_position_vec2();
-        //     let Some(last_measurement) = obstacle_factor.last_measurement()
-        // else {         continue;
-        //     };
-        //     let mut v: f32 = last_measurement.value as f32 * 1e2;
-        //     v = v.max(0.0).min(1.0); // clamp to [0, 1]
+        for (variable, obstacle_factor) in factorgraph.variable_and_their_obstacle_factors() {
+            let estimated_position = variable.estimated_position_vec2();
+            let last_measurement = obstacle_factor.last_measurement();
 
-        //     let r = 1.0 * v;
-        //     let g = 1.0 - r;
-        //     let color = Color::rgb(r, g, 0.0);
+            // let Some(last_measurement) = obstacle_factor.last_measurement() else {
+            //     continue;
+            // };
 
-        //     let height = 0.5f32;
-        //     let scale: f32 = 1.1;
-        //     // [x, y]
-        //     // [x, y, 0]
-        //     // [x, 0, y]
-        //     let start = estimated_position.extend(height).xzy();
-        //     let end = scale * last_measurement.pos.extend(height).xzy();
-        //     gizmos.line(start, end, color)
-        // }
+            // let scale = 1e2;
+            let v: f32 = (last_measurement.value as f32 * 1e2).clamp(0.0, 1.0);
+
+            let red = 1.0 * v;
+            let green = 1.0 - red;
+            let color = Color::rgb(red, green, 0.0);
+
+            let height = 0.5f32;
+            let scale: f32 = 1.1;
+            // [x, y]
+            // [x, y, 0]
+            // [x, 0, y]
+            let start = estimated_position.extend(height).xzy();
+            let end = scale * last_measurement.pos.extend(height).xzy();
+            gizmos.line(start, end, color);
+        }
     }
 }
 
