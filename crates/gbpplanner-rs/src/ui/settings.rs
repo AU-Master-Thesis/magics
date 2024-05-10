@@ -118,7 +118,7 @@ fn ui_settings_panel(
     mut config: Mut<Config>,
     mut occupied_screen_space: Mut<OccupiedScreenSpace>,
     cursor_coordinates: Mut<CursorCoordinates>,
-    catppuccin_theme: Mut<CatppuccinTheme>,
+    theme: Mut<CatppuccinTheme>,
     world: &mut World,
     _currently_changing: Mut<ChangingBinding>,
     // pause_state: Mut<State<PausedState>>,
@@ -128,11 +128,11 @@ fn ui_settings_panel(
     mut simulation_manager: Mut<SimulationManager>,
 ) {
     let mut title_colors = TitleColors::new([
-        catppuccin_theme.green(),
-        catppuccin_theme.blue(),
-        catppuccin_theme.mauve(),
-        catppuccin_theme.maroon(),
-        catppuccin_theme.lavender(),
+        theme.green(),
+        theme.blue(),
+        theme.mauve(),
+        theme.maroon(),
+        theme.lavender(),
     ]);
 
     // let panel_resizable = false;
@@ -165,7 +165,7 @@ fn ui_settings_panel(
                         // THEME SELECTOR
                         ui.label("Theme");
                         ui.vertical_centered_justified(|ui| {
-                            ui.menu_button(catppuccin_theme.flavour.to_display_string(), |ui| {
+                            ui.menu_button(theme.flavour.to_display_string(), |ui| {
                                 for flavour in &[
                                     catppuccin::Flavour::Frappe,
                                     catppuccin::Flavour::Latte,
@@ -345,10 +345,13 @@ fn ui_settings_panel(
                                 let stroke_width = 2.0;
 
                                 // dbg!((max_x, inbetween_padding_percentage, cell_width, inbetween_width, line_gap, line_height, margin, x, start_y, y, stroke_width));
-
+                                
+                                let color_off = Color32::from_catppuccin_colour(theme.surface0());
+                                let color_internal = Color32::from_catppuccin_colour(theme.green());
+                                let color_external = Color32::from_catppuccin_colour(theme.maroon());
                                 for GbpScheduleTimestep { internal, external} in schedule {
-                                    let internal_color = if internal { Color32::GREEN } else { Color32::GRAY };
-                                    let external_color = if external { Color32::RED } else { Color32::GRAY };
+                                    let internal_color = if internal { color_internal } else { color_off };
+                                    let external_color = if external { color_external } else { color_off };
                                     // println!("internal: {}, external: {}", internal, external);
 
                                     let start_pos = egui::Pos2::new(x, y);

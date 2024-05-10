@@ -636,7 +636,8 @@ impl RobotBundle {
                 let tracking_factor = FactorNode::new_tracking_factor(
                     factorgraph.id(),
                     Float::from(config.gbp.sigma_factor_tracking),
-                    init_variable_means[i].clone(),
+                    // init_variable_means[i].clone(),
+                    array![0.0],
                     route
                         .waypoints()
                         .iter()

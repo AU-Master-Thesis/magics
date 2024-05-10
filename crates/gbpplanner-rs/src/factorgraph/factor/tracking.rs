@@ -18,7 +18,22 @@ pub struct TrackingFactor {
     tracking_path: Vec<Vec2>,
 
     /// Most recent measurement
-    last_measurement: Mutex<Cell<Vec2>>,
+    last_measurement: Mutex<Cell<LastMeasurement>>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct LastMeasurement {
+    pub pos:   bevy::math::Vec2,
+    pub value: Float,
+}
+
+impl Default for LastMeasurement {
+    fn default() -> Self {
+        Self {
+            pos:   Vec2::ZERO,
+            value: 0.0,
+        }
+    }
 }
 
 impl TrackingFactor {
@@ -33,12 +48,13 @@ impl TrackingFactor {
         );
         Self {
             tracking_path,
-            last_measurement: Mutex::new(Cell::new(Vec2::ZERO)),
+            // last_measurement: Mutex::new(Cell::new(Vec2::ZERO)),
+            last_measurement: Default::default(),
         }
     }
 
     /// Get the last measurement
-    pub fn last_measurement(&self) -> Vec2 {
+    pub fn last_measurement(&self) -> LastMeasurement {
         self.last_measurement.lock().unwrap().get()
     }
 }
@@ -99,22 +115,27 @@ impl Factor for TrackingFactor {
 
         let max_length = 2.0;
 
-        let x_to_projection = projected_point - x.slice(s![0..2]).to_owned();
+        let x_to_projection = &projected_point - x.slice(s![0..2]).to_owned();
         // clamp the distance to the max length
         let x_to_projection = if x_to_projection.euclidean_norm() > max_length {
-            x_to_projection.normalized() * max_length
+            (x_to_projection.normalized() * max_length).normalized()
         } else {
-            x_to_projection
+            x_to_projection.normalized()
         };
 
         // invert measurement to make it 'pull' the variable towards the path
-        let measurement = -x_to_projection;
+        let measurement = -x_to_projection.euclidean_norm();
 
-        self.last_measurement
-            .lock()
-            .unwrap()
-            .set(Vec2::new(measurement[0] as f32, measurement[1] as f32));
-        measurement
+        // self.last_measurement
+        //     .lock()
+        //     .unwrap()
+        //     .set(Vec2::new(measurement[0] as f32, measurement[1] as f32));
+        self.last_measurement.lock().unwrap().set(LastMeasurement {
+            pos:   Vec2::new(projected_point[0] as f32, projected_point[1] as f32),
+            value: measurement,
+        });
+
+        array![measurement]
     }
 
     #[inline(always)]

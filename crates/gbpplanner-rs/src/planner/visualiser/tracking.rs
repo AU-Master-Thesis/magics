@@ -31,21 +31,26 @@ fn visualise_tracking_factors(
     theme: Res<CatppuccinTheme>,
     config: Res<Config>,
 ) {
+    let gradient = theme.gradient(theme.green(), theme.red());
     for (factorgraph, color_association) in &factorgraphs {
         for (variable, tracking_factor) in factorgraph.variable_and_their_tracking_factors() {
+            // info!("BOB");
             let last_measurement = tracking_factor.last_measurement();
             let estimated_position = variable.estimated_position_vec2();
 
-            let color = Color::from_catppuccin_colour_with_alpha(
-                theme.get_display_colour(&color_association.name),
-                0.5,
-            );
+            // let color = Color::from_catppuccin_colour_with_alpha(
+            //     theme.get_display_colour(&color_association.name),
+            //     0.5,
+            // );
+            let color = gradient.at(1.0 - last_measurement.value);
+            let color = Color::rgba(color.r, color.g, color.b, color.a);
 
             // line from estimated position to last measurement
             let start = estimated_position
                 .extend(config.visualisation.height.objects)
                 .xzy();
-            let end = (estimated_position + last_measurement)
+            let end = last_measurement
+                .pos
                 .extend(config.visualisation.height.objects)
                 .xzy();
 
