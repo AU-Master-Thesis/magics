@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{path::Path, time::Duration};
 
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{
@@ -6,6 +6,7 @@ use bevy_egui::{
     EguiContext, EguiContexts,
 };
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
+use bevy_notify::ToastEvent;
 use catppuccin::Colour;
 use gbp_linalg::Float;
 use gbp_schedule::GbpScheduleAtTimestep;
@@ -19,7 +20,9 @@ use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
     factorgraph::prelude::FactorGraph,
-    input::{screenshot::TakeScreenshot, ChangingBinding, DrawSettingsEvent, ExportGraphEvent},
+    input::{
+        screenshot::TakeScreenshot, ChangingBinding, DrawSettingsEvent, ExportFactorGraphAsGraphviz,
+    },
     pause_play::PausePlay,
     planner::robot::RadioAntenna,
     simulation_loader::{SimulationId, SimulationManager},
@@ -757,30 +760,23 @@ fn ui_settings_panel(
                         ui.label("Graphviz");
                         custom::fill_x(ui, |ui| {
                             if ui.button("Export").clicked() {
-                                world.send_event::<ExportGraphEvent>(ExportGraphEvent);
+                                world.send_event::<ExportFactorGraphAsGraphviz>(ExportFactorGraphAsGraphviz);
                             }
                         });
                         custom::fill_x(ui, |ui| {
                             if ui.button("Open").clicked() {
-                                // #[cfg(not(target_os =
-                                // "wasm32-unknown-unknown"))]
-                                // let _ = open::that(&png_output_path).
-                                // inspect_err(|e| {
-                                //     // TODO: show a popup with the error
-                                //     // create a notification system, that can
-                                // be send events with
-                                //     // notifications to show
 
-                                //     // let popup_id =
-                                // ui.make_persistent_id("my_unique_id");
-                                //     // let above = egui::AboveOrBelow::Above;
-                                //     // egui::popup_above_or_below_widget(ui,
-                                // popup_id,
-                                //     // widget_response, above_or_below,
-                                // add_contents)
-                                //     error!("failed to open ./{:?}: {e}",
-                                // png_output_path)
-                                // });
+                                if cfg!(target_arch = "wasm32") {
+                                    world.send_event::<ToastEvent>(ToastEvent::warning("Not supported on wasm32"));
+                                } else {
+                                    let png_output_path = Path::new("factorgraphs.png");
+
+                                    if !png_output_path.exists() {
+                                        world.send_event::<ToastEvent>(ToastEvent::warning("No factorgraph has been exported yet"));
+                                    } else {
+                                        let _ = open::that(png_output_path);
+                                    }
+                                }
                             }
                         });
                     });

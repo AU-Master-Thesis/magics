@@ -1,4 +1,4 @@
-use std::{collections::HashMap, marker::PhantomData};
+use std::collections::HashMap;
 
 use bevy::{app::AppExit, prelude::*, tasks::IoTaskPool};
 use bevy_notify::prelude::*;
@@ -35,10 +35,10 @@ impl Plugin for GeneralInputPlugin {
         }
 
         app.add_event::<EnvironmentEvent>()
-            .add_event::<ExportGraphEvent>()
+            .add_event::<ExportFactorGraphAsGraphviz>()
             .add_event::<DrawSettingsEvent>()
             .add_event::<QuitApplication>()
-            .add_event::<ExportGraphFinishedEvent>()
+            .add_event::<ExportFactorGraphAsGraphvizFinished>()
             .add_plugins(InputManagerPlugin::<GeneralAction>::default())
             .add_systems(PostStartup, bind_general_input)
             .add_systems(
@@ -46,9 +46,10 @@ impl Plugin for GeneralInputPlugin {
                 (
                     general_actions_system,
                     pause_play_simulation.run_if(event_exists::<PausePlay>),
-                    export_graph_on_event.run_if(on_event::<ExportGraphEvent>()),
+                    export_graph_on_event.run_if(on_event::<ExportFactorGraphAsGraphviz>()),
                     export_graph_finished_system.run_if(
-                        event_exists::<ToastEvent>.and_then(on_event::<ExportGraphFinishedEvent>()),
+                        event_exists::<ToastEvent>
+                            .and_then(on_event::<ExportFactorGraphAsGraphvizFinished>()),
                     ),
                     screenshot,
                     quit_application_system,
@@ -65,7 +66,7 @@ pub struct EnvironmentEvent;
 /// Simple **Bevy** trigger `Event`
 /// Write to this event whenever you want to export the graph to a `.dot` file
 #[derive(Event, Debug, Copy, Clone)]
-pub struct ExportGraphEvent;
+pub struct ExportFactorGraphAsGraphviz;
 
 /// **Bevy** `Event` for the draw settings
 /// This event is triggered when a draw setting is toggled
@@ -187,6 +188,7 @@ fn export_factorgraphs_as_graphviz(
 ) -> Option<String> {
     if query.is_empty() {
         // There are no factorgraph in the scene/world
+        warn!("There are no factorgraphs in the scene/world");
         return None;
     }
 
@@ -315,17 +317,16 @@ fn cycle_theme(
 }
 
 fn export_graph_on_event(
-    mut theme_event_reader: EventReader<ExportGraphEvent>,
+    mut evr_export_factorgraph_as_graphviz: EventReader<ExportFactorGraphAsGraphviz>,
     query: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: Res<Config>,
-    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
-    // toast_event: EventWriter<ToastEvent>,
+    evw_export_graph_finished: EventWriter<ExportFactorGraphAsGraphvizFinished>,
 ) {
-    if theme_event_reader.read().next().is_some() {
+    if evr_export_factorgraph_as_graphviz.read().next().is_some() {
         if let Err(e) = handle_export_graph(
             query,
             config.as_ref(),
-            export_graph_finished_event,
+            evw_export_graph_finished,
             // toast_event,
         ) {
             error!("failed to export factorgraphs with error: {:?}", e);
@@ -336,7 +337,7 @@ fn export_graph_on_event(
 /// **Bevy** [`Event`] for when the export graph is finished
 /// Can either succeed or fail with a message
 #[derive(Event, Debug)]
-pub enum ExportGraphFinishedEvent {
+pub enum ExportFactorGraphAsGraphvizFinished {
     /// The export was successful with a message
     Success(String),
     /// The export failed with a message
@@ -346,7 +347,7 @@ pub enum ExportGraphFinishedEvent {
 fn handle_export_graph(
     q: Query<(Entity, &FactorGraph), With<RobotState>>,
     config: &Config,
-    mut export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    mut export_graph_finished_event: EventWriter<ExportFactorGraphAsGraphvizFinished>,
     // mut toast_event: EventWriter<ToastEvent>,
 ) -> std::io::Result<()> {
     if cfg!(target_arch = "wasm32") {
@@ -361,7 +362,7 @@ fn handle_export_graph(
         // toast_event.send(ToastEvent::warning(
         //     "There are no factorgraphs in the world".to_string(),
         // ));
-        export_graph_finished_event.send(ExportGraphFinishedEvent::Failure(
+        export_graph_finished_event.send(ExportFactorGraphAsGraphvizFinished::Failure(
             "There are no factorgraphs in the world".to_string(),
         ));
 
@@ -381,7 +382,7 @@ fn handle_export_graph(
     //     "exporting all factorgraphs to ./{:#?}",
     //     dot_output_path
     // )));
-    export_graph_finished_event.send(ExportGraphFinishedEvent::Success(
+    export_graph_finished_event.send(ExportFactorGraphAsGraphvizFinished::Success(
         dot_output_path.to_string_lossy().to_string(),
     ));
 
@@ -444,18 +445,18 @@ fn handle_export_graph(
 /// **Bevy** [`Update`] system, to send a Toast when factorgraph export is
 /// finished
 fn export_graph_finished_system(
-    mut export_graph_finished_reader: EventReader<ExportGraphFinishedEvent>,
+    mut export_graph_finished_reader: EventReader<ExportFactorGraphAsGraphvizFinished>,
     mut toast_event: EventWriter<ToastEvent>,
 ) {
     for event in export_graph_finished_reader.read() {
         match event {
-            ExportGraphFinishedEvent::Success(path) => {
+            ExportFactorGraphAsGraphvizFinished::Success(path) => {
                 toast_event.send(ToastEvent::info(format!(
                     "successfully exported factorgraphs to ./{:#?}",
                     path
                 )));
             }
-            ExportGraphFinishedEvent::Failure(path) => {
+            ExportFactorGraphAsGraphvizFinished::Failure(path) => {
                 toast_event.send(ToastEvent::error(format!(
                     "failed to export factorgraphs to ./{:#?}",
                     path
@@ -489,7 +490,7 @@ fn general_actions_system(
     catppuccin_theme: Res<CatppuccinTheme>,
     // mut app_exit_event: EventWriter<AppExit>,
     mut quit_application_event: EventWriter<QuitApplication>,
-    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    export_graph_finished_event: EventWriter<ExportFactorGraphAsGraphvizFinished>,
     // mut pause_play_event: EventWriter<PausePlay>,
     // toast_event: EventWriter<ToastEvent>,
 ) {
