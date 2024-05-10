@@ -352,14 +352,14 @@ fn ui_settings_panel(
 
                                 for GbpScheduleAtTimestep { internal, external } in schedule {
                                     let internal_color = if internal {
-                                        Color32::from_catppuccin_colour(catppuccin_theme.sky())
+                                        Color32::from_catppuccin_colour(theme.sky())
                                     } else {
-                                        Color32::from_catppuccin_colour(catppuccin_theme.overlay0())
+                                        Color32::from_catppuccin_colour(theme.overlay0())
                                     };
                                     let external_color = if external {
-                                        Color32::from_catppuccin_colour(catppuccin_theme.maroon())
+                                        Color32::from_catppuccin_colour(theme.maroon())
                                     } else {
-                                        Color32::from_catppuccin_colour(catppuccin_theme.overlay0())
+                                        Color32::from_catppuccin_colour(theme.overlay0())
                                     };
                                     // let external_color = if external { Color32::RED } else { Color32::GRAY };
 

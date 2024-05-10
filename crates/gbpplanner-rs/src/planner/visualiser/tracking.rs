@@ -43,7 +43,12 @@ fn visualise_tracking_factors(
             //     0.5,
             // );
             let color = gradient.at(1.0 - last_measurement.value);
-            let color = Color::rgba(color.r, color.g, color.b, color.a);
+            let color = Color::rgba(
+                color.r as f32,
+                color.g as f32,
+                color.b as f32,
+                color.a as f32,
+            );
 
             // line from estimated position to last measurement
             let start = estimated_position
