@@ -51,6 +51,7 @@ impl Percentage {
     /// If the input value is 2.3, the output should be 2.3 % 1 = 0.3.
     /// Illegal to give negative values.
     pub fn new(value: f32) -> Self {
+        // println!("Value: {}", value);
         assert!(value >= 0.0);
         assert!(value <= 1.0);
         Self(value)
@@ -174,8 +175,8 @@ pub fn env_to_image(
     for y in 0..image.height() {
         for x in 0..image.width() {
             let pixel_coords = PixelCoords { x, y };
-            let tile_coords = image_to_tile_coords(pixel_coords.clone(), resolution);
-            let tile_dimensions = image_to_tile_units(pixel_coords.clone(), resolution, tile_size);
+            let tile_coords = image_to_tile_coords(pixel_coords, resolution);
+            let tile_dimensions = image_to_tile_units(pixel_coords, resolution, tile_size);
             let percentage_coords = tile_units_to_percentage(tile_dimensions, tile_size);
 
             if let Some(tile) = env.tiles.grid.get_tile(tile_coords.y, tile_coords.x) {
@@ -277,7 +278,7 @@ impl From<PercentageCoords> for Vec2 {
 }
 
 /// Given tile coordinates, and coordinate in tile percentage, return whether
-/// the coordinate is whithin a placeable obstacle placed in that tile.
+/// the coordinate is within a placeable obstacle placed in that tile.
 fn is_placeable_obstacle(
     env: &Environment,
     tile_coords: TileCoords,
@@ -326,7 +327,7 @@ fn is_placeable_obstacle(
 }
 
 /// Given tile coordinates, and coordinate in tile percentage, return whether
-/// the coordinate is whithin and obstacle.
+/// the coordinate is within and obstacle.
 fn is_tile_obstacle(
     // env: Environment,
     // tile: TileCoordinates,

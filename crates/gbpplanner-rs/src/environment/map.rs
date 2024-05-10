@@ -8,6 +8,7 @@ use bevy::{
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
+use gbp_environment::Environment;
 
 use crate::{
     asset_loader::{Meshes, Obstacles},
@@ -109,8 +110,10 @@ fn spawn_sdf_map_representation(
     // obstacles: Res<Obstacles>,
     sdf: Res<Sdf>,
     meshes: Res<Meshes>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
     // mesh_assets: Res<Assets<Mesh>>,
     config: Res<Config>,
+    environment: Res<gbp_environment::Environment>,
     existing_sdf_map_representation: Query<Entity, With<SdfMapRepresentation>>,
 ) {
     if let Ok(entity) = existing_sdf_map_representation.get_single() {
@@ -159,9 +162,14 @@ fn spawn_sdf_map_representation(
         Visibility::Hidden
     };
 
-    // Spawn an entity with the mesh and material, and position it in 3D space
-    // TODO: generate based on sim config
-    let mesh = meshes.plane.clone();
+    let (nrows, ncols) = environment.tiles.grid.shape();
+    let tile_size = environment.tiles.settings.tile_size;
+    let (width, height) = (nrows as f32 * tile_size, ncols as f32 * tile_size);
+    // let mesh = meshes.plane.clone();
+    let rectangle = bevy::math::primitives::Rectangle::new(height, width);
+    let mesh = mesh_assets.add(Mesh::from(rectangle));
+
+    // plane:    meshes.add(Mesh::from(Rectangle::new(100.0f32, 100.0f32))),
     commands.spawn((SdfMapRepresentation, PbrBundle {
         mesh,
         material,

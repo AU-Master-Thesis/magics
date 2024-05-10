@@ -3,6 +3,9 @@ tiles:
   - █
   settings:
     tile-size: 100.0
-    path-width: 0.0
+    path-width: 0.1
     obstacle-height: 1.0
+    sdf:
+      expansion: 0.1
+      blur: 0.01
 obstacles:
