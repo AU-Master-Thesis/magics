@@ -56,6 +56,12 @@ impl TileGrid {
         self.0[0].chars().count()
     }
 
+    /// Returns the shape of the tilegrid (rows, cols)
+    #[inline]
+    pub fn shape(&self) -> (usize, usize) {
+        (self.nrows(), self.ncols())
+    }
+
     /// Returns the tile at the given coordinates
     pub fn get_tile(&self, row: usize, col: usize) -> Option<char> {
         self.0.get(row).and_then(|r| r.chars().nth(col))
@@ -494,9 +500,27 @@ impl Obstacles {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileSettings {
-    pub tile_size:       f32,
-    pub path_width:      f32,
+    pub tile_size: f32,
+    pub path_width: f32,
     pub obstacle_height: f32,
+    #[serde(default)]
+    pub sdf: SdfSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct SdfSettings {
+    pub expansion: f32,
+    pub blur:      f32,
+}
+
+impl Default for SdfSettings {
+    fn default() -> Self {
+        Self {
+            expansion: 0.1,
+            blur:      0.05,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -513,9 +537,10 @@ impl Tiles {
         Self {
             grid:     TileGrid::new(vec!["█"]),
             settings: TileSettings {
-                tile_size:       0.0,
-                path_width:      0.0,
+                tile_size: 0.0,
+                path_width: 0.0,
                 obstacle_height: 0.0,
+                sdf: SdfSettings::default(),
             },
         }
     }
@@ -654,6 +679,7 @@ impl Environment {
                     tile_size,
                     path_width,
                     obstacle_height,
+                    sdf: SdfSettings::default(),
                 },
             },
             obstacles: Obstacles::empty(),
@@ -666,9 +692,10 @@ impl Environment {
             tiles:     Tiles {
                 grid:     TileGrid::new(vec!["┼"]),
                 settings: TileSettings {
-                    tile_size:       100.0,
-                    path_width:      0.1325,
+                    tile_size: 100.0,
+                    path_width: 0.1325,
                     obstacle_height: 1.0,
+                    sdf: SdfSettings::default(),
                 },
             },
             obstacles: Obstacles::empty(),
@@ -689,6 +716,7 @@ impl Environment {
                     tile_size: 50.0,
                     path_width: 0.1325,
                     obstacle_height: 1.0,
+                    sdf: SdfSettings::default(),
                 }
             },
             obstacles: Obstacles::empty(),
@@ -711,6 +739,7 @@ impl Environment {
                     tile_size: 25.0,
                     path_width: 0.4,
                     obstacle_height: 1.0,
+                    sdf: SdfSettings::default(),
                 },
             },
             obstacles: Obstacles::empty(),
@@ -745,6 +774,7 @@ impl Environment {
                     tile_size: 10.0,
                     path_width: 0.75,
                     obstacle_height: 1.0,
+                    sdf: SdfSettings::default(),
                 },
             },
             obstacles: Obstacles::empty(),
@@ -766,6 +796,7 @@ impl Environment {
                     tile_size: 50.0,
                     path_width: 0.1325,
                     obstacle_height: 1.0,
+                    sdf: SdfSettings::default(),
                 },
             },
             obstacles: Obstacles::empty(),

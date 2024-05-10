@@ -1,4 +1,4 @@
-use crate::{GbpSchedule, GbpScheduleConfig, GbpScheduleIter, GbpScheduleTimestep};
+use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIterator};
 
 pub struct Centered;
 
@@ -22,6 +22,10 @@ mod private {
         fn next(&mut self) -> Option<Self::Item> {
             if self.index >= self.max {
                 return None;
+            }
+            if self.n == 0 && self.max == 1 {
+                self.index += 1;
+                return Some(false);
             }
 
             let mid_point = self.max / 2;
@@ -66,21 +70,21 @@ impl CenteredIter {
 }
 
 impl Iterator for CenteredIter {
-    type Item = GbpScheduleTimestep;
+    type Item = GbpScheduleAtTimestep;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|(internal, external)| GbpScheduleTimestep { internal, external })
+            .map(|(internal, external)| GbpScheduleAtTimestep { internal, external })
     }
 }
 
 impl ExactSizeIterator for CenteredIter {}
 
-impl GbpScheduleIter for CenteredIter {}
+impl GbpScheduleIterator for CenteredIter {}
 
 impl GbpSchedule for Centered {
-    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIter {
+    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIterator {
         CenteredIter::new(config)
     }
 }
@@ -89,8 +93,8 @@ impl GbpSchedule for Centered {
 mod tests {
     use super::*;
 
-    const fn ts(internal: bool, external: bool) -> GbpScheduleTimestep {
-        GbpScheduleTimestep { internal, external }
+    const fn ts(internal: bool, external: bool) -> GbpScheduleAtTimestep {
+        GbpScheduleAtTimestep { internal, external }
     }
 
     #[test]
@@ -159,9 +163,27 @@ mod tests {
     fn internal_zero_external_not() {
         let config = GbpScheduleConfig {
             internal: 0,
+            external: 1,
+        };
+        let mut schedule = Centered::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), None);
+
+        let config = GbpScheduleConfig {
+            internal: 0,
             external: 2,
         };
         let mut schedule = Centered::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), None);
+
+        let config = GbpScheduleConfig {
+            internal: 0,
+            external: 3,
+        };
+        let mut schedule = Centered::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(false, true)));
         assert_eq!(schedule.next(), Some(ts(false, true)));
         assert_eq!(schedule.next(), Some(ts(false, true)));
         assert_eq!(schedule.next(), None);
@@ -170,10 +192,28 @@ mod tests {
     #[test]
     fn external_zero_internal_not() {
         let config = GbpScheduleConfig {
+            internal: 1,
+            external: 0,
+        };
+        let mut schedule = Centered::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(true, false)));
+        assert_eq!(schedule.next(), None);
+
+        let config = GbpScheduleConfig {
             internal: 2,
             external: 0,
         };
         let mut schedule = Centered::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(true, false)));
+        assert_eq!(schedule.next(), Some(ts(true, false)));
+        assert_eq!(schedule.next(), None);
+
+        let config = GbpScheduleConfig {
+            internal: 3,
+            external: 0,
+        };
+        let mut schedule = Centered::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(true, false)));
         assert_eq!(schedule.next(), Some(ts(true, false)));
         assert_eq!(schedule.next(), Some(ts(true, false)));
         assert_eq!(schedule.next(), None);

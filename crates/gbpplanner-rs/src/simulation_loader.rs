@@ -75,6 +75,10 @@ impl Plugin for SimulationLoaderPlugin {
         let simulations: BTreeMap<_, _> = reader
             .map(|dir| {
                 let dir = dir.unwrap();
+                let name = dir
+                    .file_name()
+                    .into_string()
+                    .expect("failed to parse simulation name");
                 let config_path = dir.path().join("config.toml");
                 let config = Config::from_file(config_path).unwrap();
                 let environment_path = dir.path().join("environment.yaml");
@@ -82,11 +86,22 @@ impl Plugin for SimulationLoaderPlugin {
                 let formation_path = dir.path().join("formation.yaml");
                 let formation = FormationGroup::from_yaml_file(formation_path).unwrap();
 
-                let sdf_path = PathBuf::new()
-                    .join("crates/gbpplanner-rs/assets/imgs/obstacles")
-                    .join(format!("{}.sdf.png", config.environment_image));
-                info!("sdf_path: {sdf_path:?}");
-                let sdf_image_buffer = image::io::Reader::open(sdf_path).unwrap().decode().unwrap();
+                println!("name: {name:?}");
+                let sdf_image_buffer = env_to_png::env_to_sdf_image(
+                    &environment,
+                    // env_to_png::PixelsPerTile::new(200),
+                    env_to_png::PixelsPerTile::new(environment.tiles.settings.tile_size as u32),
+                    env_to_png::Percentage::new(environment.tiles.settings.sdf.expansion),
+                    env_to_png::Percentage::new(environment.tiles.settings.sdf.blur),
+                )
+                .expect("it all just works");
+
+                // let sdf_path = PathBuf::new()
+                //     .join("crates/gbpplanner-rs/assets/imgs/obstacles")
+                //     .join(format!("{}.sdf.png", config.environment_image));
+                // info!("sdf_path: {sdf_path:?}");
+                // let sdf_image_buffer =
+                // image::io::Reader::open(sdf_path).unwrap().decode().unwrap();
                 // println!(
                 //     "sdf_image_buffer: {:?} channels: {:?}",
                 //     sdf_image_buffer.dimensions(),
@@ -97,11 +112,6 @@ impl Plugin for SimulationLoaderPlugin {
                     .join("crates/gbpplanner-rs/assets/imgs/obstacles")
                     .join(format!("{}.png", config.environment_image));
                 let raw_image_buffer = image::io::Reader::open(raw_path).unwrap().decode().unwrap();
-
-                let name = dir
-                    .file_name()
-                    .into_string()
-                    .expect("failed to parse simulation name");
 
                 let simulation = Simulation {
                     name: name.clone(),

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{path::Path, time::Duration};
 
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{
@@ -6,9 +6,10 @@ use bevy_egui::{
     EguiContext, EguiContexts,
 };
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
+use bevy_notify::ToastEvent;
 use catppuccin::Colour;
 use gbp_linalg::Float;
-use gbp_schedule::GbpScheduleTimestep;
+use gbp_schedule::GbpScheduleAtTimestep;
 use repeating_array::RepeatingArray;
 use smol_str::SmolStr;
 use struct_iterable::Iterable;
@@ -19,7 +20,9 @@ use crate::{
     config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
     factorgraph::prelude::FactorGraph,
-    input::{screenshot::TakeScreenshot, ChangingBinding, DrawSettingsEvent, ExportGraphEvent},
+    input::{
+        screenshot::TakeScreenshot, ChangingBinding, DrawSettingsEvent, ExportFactorGraphAsGraphviz,
+    },
     pause_play::PausePlay,
     planner::robot::RadioAntenna,
     simulation_loader::{SimulationId, SimulationManager},
@@ -274,7 +277,10 @@ fn ui_settings_panel(
                             if  te_output.response.changed() {
                                 if let Ok(x) = text.parse::<usize>() {
                                     config.gbp.iteration_schedule.internal = x;
-                                } else {
+                                } else if text.is_empty() {
+                                    config.gbp.iteration_schedule.internal = 0;
+                                }
+                                else {
                                     error!("failed to parse {} as usize", text);
                                 }
                             }
@@ -291,6 +297,8 @@ fn ui_settings_panel(
                             if  te_output.response.changed() {
                                 if let Ok(x) = text.parse::<usize>() {
                                     config.gbp.iteration_schedule.external = x;
+                                } else if text.is_empty() {
+                                    config.gbp.iteration_schedule.external = 0;
                                 } else {
                                     error!("failed to parse {} as usize", text);
                                 }
@@ -317,55 +325,57 @@ fn ui_settings_panel(
                                 // let clip_rect = ui.clip_rect();
                                 let painter = ui.painter();
                                 // let painter = ui.painter_at(max_rect);
-                                let schedule = config.gbp.iteration_schedule.schedule.get_schedule(schedule_config);
+                                let schedule = config.gbp.iteration_schedule.schedule.get(schedule_config);
 
                                 let margin = 10.0;
-                                let max_x = max_rect.width() - 2.0 * margin;
-                                let inbetween_padding_max = 20.0;
-                                let inbetween_padding_default_percentage = 0.2;
-                                // FIXME: handle case with n = 2, 3
-                                let inbetween_padding_percentage = 0.2;
-                                // let inbetween_padding_percentage = if max_x * inbetween_padding_default_percentage < inbetween_padding_max {
-                                //     max_x * inbetween_padding_default_percentage
-                                // } else {
-                                //         in
-                                //     }
-
-                                let cell_width = if n <= 1 { max_x } else { max_x * (1.0 - inbetween_padding_percentage) / n as f32 };
-                                let inbetween_width = if n <= 1 { 0.0 } else { max_x * inbetween_padding_percentage / (n - 1) as f32 };
+                                let stroke_width = 2.0;
                                 let line_gap = 5.0;
                                 let line_height = 5.0;
-                                // let start_x = rect.left();
-                                let start_x = max_rect.left() + margin;
-                                let mut x = start_x;
-                                let start_y = ui.cursor().top() + margin;
-                                // let start_y = rect.top() + margin;
-                                // let start_y = margin;
-                                let mut y = start_y;
-                                let stroke_width = 2.0;
 
-                                // dbg!((max_x, inbetween_padding_percentage, cell_width, inbetween_width, line_gap, line_height, margin, x, start_y, y, stroke_width));
-                                
-                                let color_off = Color32::from_catppuccin_colour(theme.surface0());
-                                let color_internal = Color32::from_catppuccin_colour(theme.green());
-                                let color_external = Color32::from_catppuccin_colour(theme.maroon());
-                                for GbpScheduleTimestep { internal, external} in schedule {
-                                    let internal_color = if internal { color_internal } else { color_off };
-                                    let external_color = if external { color_external } else { color_off };
-                                    // println!("internal: {}, external: {}", internal, external);
+                                let max_x = max_rect.width() - 2.0 * margin;
+
+                                let inbetween_width_max = 10.0;
+                                let inbetween_width_percentage = 0.2;
+
+                                let mut cell_width = if n <= 1 { max_x } else { max_x * (1.0 - inbetween_width_percentage) / n as f32 };
+                                let mut inbetween_width = if n <= 1 { 0.0 } else { max_x * inbetween_width_percentage / (n - 1) as f32 };
+                                if inbetween_width > inbetween_width_max {
+                                    inbetween_width = inbetween_width_max;
+                                    cell_width = (max_x - (inbetween_width * (n - 1) as f32)) / n as f32;
+                                }
+
+                                let start_x = max_rect.left() + margin;
+                                let start_y = ui.cursor().top() + margin;
+
+                                let mut x = start_x;
+                                let mut y = start_y;
+
+                                for GbpScheduleAtTimestep { internal, external } in schedule {
+                                    let internal_color = if internal {
+                                        Color32::from_catppuccin_colour(catppuccin_theme.sky())
+                                    } else {
+                                        Color32::from_catppuccin_colour(catppuccin_theme.overlay0())
+                                    };
+                                    let external_color = if external {
+                                        Color32::from_catppuccin_colour(catppuccin_theme.maroon())
+                                    } else {
+                                        Color32::from_catppuccin_colour(catppuccin_theme.overlay0())
+                                    };
+                                    // let external_color = if external { Color32::RED } else { Color32::GRAY };
 
                                     let start_pos = egui::Pos2::new(x, y);
                                     let end_pos = egui::Pos2::new(x + cell_width, y);
                                     painter.line_segment(
-                                        [start_pos, end_pos],    // points
-                                        egui::Stroke::new(stroke_width, internal_color), // stroke (width and color)
+                                        [start_pos, end_pos],
+                                        egui::Stroke::new(stroke_width, internal_color),
                                     );
                                     y += line_height + line_gap;
+
                                     let start_pos = egui::Pos2::new(x, y);
                                     let end_pos = egui::Pos2::new(x + cell_width, y);
                                     painter.line_segment(
-                                        [start_pos, end_pos],    // points
-                                        egui::Stroke::new(stroke_width, external_color), // stroke (width and color)
+                                        [start_pos, end_pos],
+                                        egui::Stroke::new(stroke_width, external_color),
                                     );
 
                                     x += cell_width + inbetween_width;
@@ -755,30 +765,23 @@ fn ui_settings_panel(
                         ui.label("Graphviz");
                         custom::fill_x(ui, |ui| {
                             if ui.button("Export").clicked() {
-                                world.send_event::<ExportGraphEvent>(ExportGraphEvent);
+                                world.send_event::<ExportFactorGraphAsGraphviz>(ExportFactorGraphAsGraphviz);
                             }
                         });
                         custom::fill_x(ui, |ui| {
                             if ui.button("Open").clicked() {
-                                // #[cfg(not(target_os =
-                                // "wasm32-unknown-unknown"))]
-                                // let _ = open::that(&png_output_path).
-                                // inspect_err(|e| {
-                                //     // TODO: show a popup with the error
-                                //     // create a notification system, that can
-                                // be send events with
-                                //     // notifications to show
 
-                                //     // let popup_id =
-                                // ui.make_persistent_id("my_unique_id");
-                                //     // let above = egui::AboveOrBelow::Above;
-                                //     // egui::popup_above_or_below_widget(ui,
-                                // popup_id,
-                                //     // widget_response, above_or_below,
-                                // add_contents)
-                                //     error!("failed to open ./{:?}: {e}",
-                                // png_output_path)
-                                // });
+                                if cfg!(target_arch = "wasm32") {
+                                    world.send_event::<ToastEvent>(ToastEvent::warning("Not supported on wasm32"));
+                                } else {
+                                    let png_output_path = Path::new("factorgraphs.png");
+
+                                    if !png_output_path.exists() {
+                                        world.send_event::<ToastEvent>(ToastEvent::warning("No factorgraph has been exported yet"));
+                                    } else {
+                                        let _ = open::that(png_output_path);
+                                    }
+                                }
                             }
                         });
                     });

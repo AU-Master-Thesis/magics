@@ -44,8 +44,8 @@ sigma-factor-tracking   = 0.1
 lookahead-multiple      = 3
 # iterations-per-timestep = 10
 [gbp.iteration-schedule]
-internal = 10
-external = 1
+internal = 0
+external = 0
 schedule = "centered"
 
 [robot]
@@ -95,3 +95,14 @@ step-size      = 0.5
 #
 # [manual]
 # timesteps-per-step = 1
+
+
+[graphviz.interrobot.active]
+style = "dashed"
+len   = 8.0
+color = "red"
+
+[graphviz.interrobot.inactive]
+style = "dashed"
+len   = 8.0
+color = "gray"

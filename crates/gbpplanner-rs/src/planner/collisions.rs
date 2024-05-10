@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::{collections::HashMap, ops::Deref, time::Duration};
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
 use parry2d::{
@@ -272,52 +272,66 @@ fn update_robot_environment_collisions(
     env_colliders: Res<crate::environment::map_generator::Colliders>,
     robots: Query<(Entity, &Transform, &Ball), With<RobotState>>,
     mut robot_environment_collisions: ResMut<resources::RobotEnvironmentCollisions>,
-    mut aabbs: Local<Vec<(Entity, parry2d::bounding_volume::Aabb)>>,
+    mut aabbs: Local<
+        Vec<(
+            Entity,
+            Isometry<f32, Unit<Complex<f32>>, 2>,
+            parry2d::bounding_volume::BoundingSphere,
+        )>,
+    >,
     mut evw_robot_environment_collision: EventWriter<events::RobotEnvironmentCollision>,
 ) {
-    aabbs.clear();
-
-    let iter = robots.iter().map(|(entity, tf, ball)| {
-        let position = parry2d::na::Isometry2::translation(tf.translation.x, tf.translation.z); // bevy uses xzy coordinates
-        (entity, ball.aabb(&position))
-    });
-
-    aabbs.extend(iter);
-
-    if aabbs.is_empty() {
-        // No collisions if there are no robots
-        return;
-    }
+    // aabbs.clear();
+    //
+    // let iter = robots.iter().map(|(entity, tf, ball)| {
+    //     let position = parry2d::na::Isometry2::translation(tf.translation.x,
+    // tf.translation.z); // bevy uses xzy coordinates
+    // // (entity, ball.aabb(&position))     (entity, position,
+    // ball.bounding_sphere(&position)) });
+    //
+    // aabbs.extend(iter);
+    //
+    // if aabbs.is_empty() {
+    //     // No collisions if there are no robots
+    //     return;
+    // }
 
     // println!("#env colliders: {}", env_colliders.len());
 
     // check every robot aabb against every environment aabb
-    for (robot_id, robot_aabb) in &aabbs {
-        // for (j, (env_isometry, env_shape)) in env_colliders.iter().enumerate() {
-        for collider in env_colliders.iter() {
-            // for (j, (env_isometry, env_shape)) in env_colliders.iter().enumerate() {
-            let env_aabb = collider.aabb();
-            // println!("env aabb {:?}", &env_aabb);
-            let is_colliding = robot_aabb.intersects(&env_aabb);
-            let env_mesh_id = collider
+
+    for (robot_id, tf, ball) in &robots {
+        let robot_pos = parry2d::na::Isometry2::translation(tf.translation.x, tf.translation.z);
+
+        for env_collider in env_colliders.iter() {
+            let is_colliding: bool = parry2d::query::intersection_test(
+                &env_collider.isometry,
+                env_collider.shape.as_ref(),
+                &robot_pos,
+                ball.deref(),
+            )
+            .expect("used shapes are supported");
+            let env_mesh_id = env_collider
                 .associated_mesh
                 .expect("Environment collider should have an associated mesh.");
-
             let collision_status =
-                robot_environment_collisions.update(*robot_id, env_mesh_id, is_colliding);
+                robot_environment_collisions.update(robot_id, env_mesh_id, is_colliding);
+
             match collision_status {
                 CollisionStatus::Hit => {
+                    let robot_aabb = ball.aabb(&robot_pos);
+                    let env_aabb = env_collider.aabb();
                     let intersection = robot_aabb.intersection(&env_aabb).unwrap();
                     evw_robot_environment_collision.send(events::RobotEnvironmentCollision {
-                        robot: *robot_id,
+                        robot: robot_id,
                         obstacle: env_mesh_id,
                         intersection,
                     });
 
-                    println!(
-                        "sent robot collided with environment collision event with intersection: \
+                    warn!(
+                        "robot {:?} collided with environment collision event with intersection: \
                          {:?}",
-                        &intersection
+                        &robot_id, &intersection
                     );
                 }
                 _ => {}

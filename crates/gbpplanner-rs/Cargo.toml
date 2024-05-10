@@ -44,8 +44,8 @@ seq                     = { path = "../seq" }
 interleave_evenly       = { path = "../interleave_evenly" }
 gbp_schedule            = { path = "../gbp_schedule" }
 
-glob = "0.3.1"
-better-panic = "0.3.0"
+glob           = "0.3.1"
+better-panic   = "0.3.0"
 bevy.workspace = true
 
 bevy-inspector-egui = "0.23.2"
@@ -86,7 +86,8 @@ parry2d = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/be
 
 bevy_asset_loader = "0.20.0"
 
-bevy_file_dialog = "0.5.0"
+bevy_mod_debugdump = "0.10.0"
+# bevy_file_dialog   = "0.5.0"
 # bevy-notify      = "0.2.0"
 
 
@@ -104,33 +105,34 @@ clap.workspace = true
 clap_complete = "4.5.2"
 
 # color-eyre = "0.6.2"
-rand            = "0.8.5"
-itertools       = "0.12.1"
-petgraph        = "0.6.4"
-ndarray         = "0.15.6"
-ndarray-inverse = "0.1.9"
-num-traits      = "0.2.18"
-ron.workspace   = true
-strum           = "0.26.1"
-strum_macros    = "0.26.1"
+rand      = "0.8.5"
+itertools = "0.12.1"
+petgraph  = "0.6.4"
+# ndarray         = "0.15.6"
+ndarray.workspace = true
+ndarray-inverse   = "0.1.9"
+num-traits        = "0.2.18"
+ron.workspace     = true
+strum             = "0.26.1"
+strum_macros      = "0.26.1"
 
 
 tap = "1.0.1"
 
 typed_floats.workspace = true
 
-ringbuf          = "0.3.3"
-bevy_dev_console = { git = "https://github.com/doonv/bevy_dev_console.git", version = "0.1.0" }
-termsize         = "0.1.6"
+ringbuf               = "0.3.3"
+bevy_dev_console      = { git = "https://github.com/doonv/bevy_dev_console.git", version = "0.1.0" }
+termsize              = "0.1.6"
 derive_more.workspace = true
-paste            = "1.0.14"
-egui_plot        = "0.26"
-egui_graphs      = "0.19.0"
-serde_yaml.workspace = true
-rrt              = { git = "https://github.com/AU-Master-Thesis/rrt", branch = "main" }
-colored          = "2.1.0"
-directories      = "5.0.1"
-chrono           = "0.4.37"
+paste                 = "1.0.14"
+egui_plot             = "0.26"
+egui_graphs           = "0.19.0"
+serde_yaml.workspace  = true
+rrt                   = { git = "https://github.com/AU-Master-Thesis/rrt", branch = "main" }
+colored               = "2.1.0"
+directories           = "5.0.1"
+chrono                = "0.4.37"
 # parry3d = "0.13.7"
 
 
@@ -154,16 +156,11 @@ indexmap      = "2.2.6"
 colored-diff  = "0.2.3"
 serde_json    = "1.0.116"
 colorgrad     = "0.6.2"
-bevy_mod_debugdump = "0.10.0"
-
+open = "5.1.0"
 
 # TODO: change to not wasm
 [target.'cfg(linux)'.dependencies]
 open = "5.1.0"
-
-
-# [feature.]
-
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"

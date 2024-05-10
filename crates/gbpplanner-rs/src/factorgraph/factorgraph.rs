@@ -1439,8 +1439,8 @@ impl FactorGraph {
 
 use super::graphviz;
 
-impl graphviz::Graph for FactorGraph {
-    fn export_data(&self) -> (Vec<super::graphviz::Node>, Vec<super::graphviz::Edge>) {
+impl graphviz::ExportGraph for FactorGraph {
+    fn export_graph(&self) -> (Vec<super::graphviz::Node>, Vec<super::graphviz::Edge>) {
         let nodes = self
             .graph
             .node_indices()
@@ -1452,15 +1452,15 @@ impl graphviz::Graph for FactorGraph {
                         NodeKind::Factor(factor) => match factor.kind {
                             FactorKind::Dynamic(_) => graphviz::NodeKind::DynamicFactor,
                             FactorKind::Obstacle(_) => graphviz::NodeKind::ObstacleFactor,
-                            // FactorKind::Pose(_) => graphviz::NodeKind::PoseFactor,
                             FactorKind::InterRobot(ref inner) => {
-                                graphviz::NodeKind::InterRobotFactor(inner.external_variable)
+                                graphviz::NodeKind::InterRobotFactor {
+                                    active: true,
+                                    external_variable_id: inner.external_variable,
+                                }
                             }
                             FactorKind::Tracking(_) => graphviz::NodeKind::TrackingFactor,
                         },
                         NodeKind::Variable(variable) => {
-                            // let mean = variable.belief.mean();
-                            // let mean = &variable.mu;
                             let [x, y] = variable.estimated_position();
                             graphviz::NodeKind::Variable { x, y }
                         }

@@ -10,7 +10,7 @@ pub mod screenshot;
 pub mod ui;
 
 pub use camera::{CameraAction, CameraSensitivity};
-pub use general::{DrawSettingsEvent, ExportGraphEvent, GeneralAction};
+pub use general::{DrawSettingsEvent, ExportFactorGraphAsGraphviz, GeneralAction};
 pub use moveable_object::{MoveableObjectAction, MoveableObjectSensitivity};
 use screenshot::ScreenshotPlugin;
 pub use ui::UiAction;

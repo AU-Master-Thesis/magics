@@ -24,7 +24,7 @@ uncertainty                        = false
 paths                              = true
 generated-map                      = true
 height-map                         = false
-sdf                                = false
+sdf                                = true
 communication-radius               = false
 obstacle-factors                   = false
 tracking                           = false
@@ -84,10 +84,16 @@ neighbourhood-radius = 8.0
 max-iterations = 500
 step-size      = 0.5
 
-[graphviz.interrobot.edge]
+
+[graphviz.interrobot.active]
 style = "dashed"
 len   = 8.0
 color = "red"
+
+[graphviz.interrobot.inactive]
+style = "dashed"
+len   = 8.0
+color = "gray"
 
 [graphviz]
 export-location = "./assets/export/"

@@ -10,6 +10,7 @@ use bevy::{
 };
 use derive_more::Index;
 use gbp_linalg::prelude::*;
+use gbp_schedule::GbpSchedule;
 use ndarray::{array, concatenate, s, Axis};
 use rand::{thread_rng, Rng};
 
@@ -381,12 +382,12 @@ pub struct Ball(parry2d::shape::Ball);
 pub struct GbpIterationSchedule(pub crate::config::GbpIterationSchedule);
 
 impl GbpIterationSchedule {
-    pub fn schedule(&self) -> Box<dyn gbp_schedule::GbpScheduleIter> {
+    pub fn schedule(&self) -> Box<dyn gbp_schedule::GbpScheduleIterator> {
         let config = gbp_schedule::GbpScheduleConfig {
             internal: self.0.internal as u8,
             external: self.0.external as u8,
         };
-        self.0.schedule.get_schedule(config)
+        self.0.schedule.get(config)
     }
 }
 
@@ -1090,13 +1091,9 @@ fn iterate_gbp_v2(
         internal: config.gbp.iteration_schedule.internal as u8,
         external: config.gbp.iteration_schedule.external as u8,
     };
-    let schedule = config
-        .gbp
-        .iteration_schedule
-        .schedule
-        .get_schedule(schedule_config);
+    let schedule = config.gbp.iteration_schedule.schedule.get(schedule_config);
 
-    for gbp_schedule::GbpScheduleTimestep { internal, external } in schedule {
+    for gbp_schedule::GbpScheduleAtTimestep { internal, external } in schedule {
         if internal {
             query.par_iter_mut().for_each(|(_, mut factorgraph, _)| {
                 factorgraph.internal_factor_iteration();
@@ -1374,6 +1371,7 @@ fn update_prior_of_horizon_state(
             &mut Route,
             &mut FinishedPath,
             &Radius,
+            // &GbpIterationSchedule,
         ),
         With<RobotState>,
     >,
@@ -1401,6 +1399,10 @@ fn update_prior_of_horizon_state(
             robots_to_despawn.push(robot_id);
             continue;
         };
+
+        if config.gbp.iteration_schedule.internal == 0 {
+            continue;
+        }
 
         let robot_radius_squared = radius.0.powi(2);
 

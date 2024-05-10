@@ -1,4 +1,4 @@
-use std::{collections::HashMap, marker::PhantomData};
+use std::collections::HashMap;
 
 use bevy::{app::AppExit, prelude::*, tasks::IoTaskPool};
 use bevy_notify::prelude::*;
@@ -15,11 +15,11 @@ use crate::{
     bevy_utils::run_conditions::event_exists,
     config::{Config, DrawSetting},
     factorgraph::{
-        graphviz::{Graph, NodeKind},
+        graphviz::{ExportGraph, NodeKind},
         prelude::FactorGraph,
     },
     pause_play::PausePlay,
-    planner::{RobotId, RobotState},
+    planner::{robot::RadioAntenna, RobotId, RobotState},
     theme::CatppuccinTheme,
 };
 
@@ -35,10 +35,10 @@ impl Plugin for GeneralInputPlugin {
         }
 
         app.add_event::<EnvironmentEvent>()
-            .add_event::<ExportGraphEvent>()
+            .add_event::<ExportFactorGraphAsGraphviz>()
             .add_event::<DrawSettingsEvent>()
             .add_event::<QuitApplication>()
-            .add_event::<ExportGraphFinishedEvent>()
+            .add_event::<ExportFactorGraphAsGraphvizFinished>()
             .add_plugins(InputManagerPlugin::<GeneralAction>::default())
             .add_systems(PostStartup, bind_general_input)
             .add_systems(
@@ -46,9 +46,10 @@ impl Plugin for GeneralInputPlugin {
                 (
                     general_actions_system,
                     pause_play_simulation.run_if(event_exists::<PausePlay>),
-                    export_graph_on_event.run_if(on_event::<ExportGraphEvent>()),
+                    export_graph_on_event.run_if(on_event::<ExportFactorGraphAsGraphviz>()),
                     export_graph_finished_system.run_if(
-                        event_exists::<ToastEvent>.and_then(on_event::<ExportGraphFinishedEvent>()),
+                        event_exists::<ToastEvent>
+                            .and_then(on_event::<ExportFactorGraphAsGraphvizFinished>()),
                     ),
                     screenshot,
                     quit_application_system,
@@ -65,7 +66,7 @@ pub struct EnvironmentEvent;
 /// Simple **Bevy** trigger `Event`
 /// Write to this event whenever you want to export the graph to a `.dot` file
 #[derive(Event, Debug, Copy, Clone)]
-pub struct ExportGraphEvent;
+pub struct ExportFactorGraphAsGraphviz;
 
 /// **Bevy** `Event` for the draw settings
 /// This event is triggered when a draw setting is toggled
@@ -182,11 +183,12 @@ fn bind_general_input(mut commands: Commands) {
 }
 
 fn export_factorgraphs_as_graphviz(
-    query: Query<(Entity, &FactorGraph), With<RobotState>>,
+    query: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
     config: &Config,
 ) -> Option<String> {
     if query.is_empty() {
         // There are no factorgraph in the scene/world
+        warn!("There are no factorgraphs in the scene/world");
         return None;
     }
 
@@ -208,10 +210,12 @@ fn export_factorgraphs_as_graphviz(
     // A hashmap used to keep track of which variable in another robots factorgraph,
     // is connected to a interrobot factor in the current robots factorgraph.
     let mut all_external_connections =
-        HashMap::<RobotId, HashMap<usize, (RobotId, usize)>>::with_capacity(query.iter().len());
+        HashMap::<RobotId, HashMap<usize, (RobotId, usize, bool)>>::with_capacity(
+            query.iter().len(),
+        );
 
-    for (robot_id, factorgraph) in query.iter() {
-        let (nodes, edges) = factorgraph.export_data();
+    for (robot_id, factorgraph, antenna) in query.iter() {
+        let (nodes, edges) = factorgraph.export_graph();
 
         // append_line_to_output(&format!(r#"  subgraph "cluster_{:?}" {{"#, robot_id));
         append_line_to_output(&format!(r#"  subgraph "{:?}" {{"#, robot_id));
@@ -256,14 +260,18 @@ fn export_factorgraphs_as_graphviz(
             append_line_to_output(&line);
         }
 
-        let external_connections: HashMap<usize, (RobotId, usize)> = nodes
+        let external_connections: HashMap<usize, (RobotId, usize, bool)> = nodes
             .into_iter()
             .filter_map(|node| match node.kind {
-                NodeKind::InterRobotFactor(external_variable) => Some((
+                NodeKind::InterRobotFactor {
+                    active,
+                    external_variable_id,
+                } => Some((
                     node.index,
                     (
-                        external_variable.factorgraph_id,
-                        external_variable.variable_index.index(),
+                        external_variable_id.factorgraph_id,
+                        external_variable_id.variable_index.index(),
+                        antenna.active,
                         // connection.id_of_robot_connected_with,
                         // connection
                         //     .index_of_connected_variable_in_other_robots_factorgraph
@@ -279,17 +287,29 @@ fn export_factorgraphs_as_graphviz(
 
     // Add edges between interrobot factors and the variable they are connected to
     // in another robots graph
-    for (from_robot_id, from_connections) in &all_external_connections {
-        for (from_factor, (to_robot_id, to_variable_index)) in from_connections {
+    for (from_robot_id, from_connections) in all_external_connections {
+        for (from_factor, (to_robot_id, to_variable_index, active)) in from_connections {
             append_line_to_output(&format!(
                 r#" "{:?}_{:?}" -- "{:?}_{:?}" [len={}, style={}, color="{}"]"#,
                 from_robot_id,
                 from_factor,
                 to_robot_id,
                 to_variable_index,
-                config.graphviz.interrobot.edge.len,
-                config.graphviz.interrobot.edge.style,
-                config.graphviz.interrobot.edge.color,
+                if active {
+                    config.graphviz.interrobot.active.len
+                } else {
+                    config.graphviz.interrobot.inactive.len
+                },
+                if active {
+                    &config.graphviz.interrobot.active.style
+                } else {
+                    &config.graphviz.interrobot.inactive.style
+                },
+                if active {
+                    &config.graphviz.interrobot.active.color
+                } else {
+                    &config.graphviz.interrobot.inactive.color
+                }
             ));
         }
     }
@@ -315,17 +335,16 @@ fn cycle_theme(
 }
 
 fn export_graph_on_event(
-    mut theme_event_reader: EventReader<ExportGraphEvent>,
-    query: Query<(Entity, &FactorGraph), With<RobotState>>,
+    mut evr_export_factorgraph_as_graphviz: EventReader<ExportFactorGraphAsGraphviz>,
+    query: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
     config: Res<Config>,
-    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
-    // toast_event: EventWriter<ToastEvent>,
+    evw_export_graph_finished: EventWriter<ExportFactorGraphAsGraphvizFinished>,
 ) {
-    if theme_event_reader.read().next().is_some() {
+    if evr_export_factorgraph_as_graphviz.read().next().is_some() {
         if let Err(e) = handle_export_graph(
             query,
             config.as_ref(),
-            export_graph_finished_event,
+            evw_export_graph_finished,
             // toast_event,
         ) {
             error!("failed to export factorgraphs with error: {:?}", e);
@@ -336,7 +355,7 @@ fn export_graph_on_event(
 /// **Bevy** [`Event`] for when the export graph is finished
 /// Can either succeed or fail with a message
 #[derive(Event, Debug)]
-pub enum ExportGraphFinishedEvent {
+pub enum ExportFactorGraphAsGraphvizFinished {
     /// The export was successful with a message
     Success(String),
     /// The export failed with a message
@@ -344,9 +363,9 @@ pub enum ExportGraphFinishedEvent {
 }
 
 fn handle_export_graph(
-    q: Query<(Entity, &FactorGraph), With<RobotState>>,
+    q: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
     config: &Config,
-    mut export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    mut export_graph_finished_event: EventWriter<ExportFactorGraphAsGraphvizFinished>,
     // mut toast_event: EventWriter<ToastEvent>,
 ) -> std::io::Result<()> {
     if cfg!(target_arch = "wasm32") {
@@ -361,7 +380,7 @@ fn handle_export_graph(
         // toast_event.send(ToastEvent::warning(
         //     "There are no factorgraphs in the world".to_string(),
         // ));
-        export_graph_finished_event.send(ExportGraphFinishedEvent::Failure(
+        export_graph_finished_event.send(ExportFactorGraphAsGraphvizFinished::Failure(
             "There are no factorgraphs in the world".to_string(),
         ));
 
@@ -381,7 +400,7 @@ fn handle_export_graph(
     //     "exporting all factorgraphs to ./{:#?}",
     //     dot_output_path
     // )));
-    export_graph_finished_event.send(ExportGraphFinishedEvent::Success(
+    export_graph_finished_event.send(ExportFactorGraphAsGraphvizFinished::Success(
         dot_output_path.to_string_lossy().to_string(),
     ));
 
@@ -444,18 +463,18 @@ fn handle_export_graph(
 /// **Bevy** [`Update`] system, to send a Toast when factorgraph export is
 /// finished
 fn export_graph_finished_system(
-    mut export_graph_finished_reader: EventReader<ExportGraphFinishedEvent>,
+    mut export_graph_finished_reader: EventReader<ExportFactorGraphAsGraphvizFinished>,
     mut toast_event: EventWriter<ToastEvent>,
 ) {
     for event in export_graph_finished_reader.read() {
         match event {
-            ExportGraphFinishedEvent::Success(path) => {
+            ExportFactorGraphAsGraphvizFinished::Success(path) => {
                 toast_event.send(ToastEvent::info(format!(
                     "successfully exported factorgraphs to ./{:#?}",
                     path
                 )));
             }
-            ExportGraphFinishedEvent::Failure(path) => {
+            ExportFactorGraphAsGraphvizFinished::Failure(path) => {
                 toast_event.send(ToastEvent::error(format!(
                     "failed to export factorgraphs to ./{:#?}",
                     path
@@ -483,13 +502,13 @@ fn quit_application_system(
 fn general_actions_system(
     mut theme_event: EventWriter<CycleTheme>,
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
-    query_graphs: Query<(Entity, &FactorGraph), With<RobotState>>,
+    query_graphs: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
     config: Res<Config>,
     currently_changing: Res<ChangingBinding>,
     catppuccin_theme: Res<CatppuccinTheme>,
     // mut app_exit_event: EventWriter<AppExit>,
     mut quit_application_event: EventWriter<QuitApplication>,
-    export_graph_finished_event: EventWriter<ExportGraphFinishedEvent>,
+    export_graph_finished_event: EventWriter<ExportFactorGraphAsGraphvizFinished>,
     // mut pause_play_event: EventWriter<PausePlay>,
     // toast_event: EventWriter<ToastEvent>,
 ) {

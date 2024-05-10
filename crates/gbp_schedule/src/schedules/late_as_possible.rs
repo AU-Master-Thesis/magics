@@ -1,4 +1,4 @@
-use crate::{GbpSchedule, GbpScheduleConfig, GbpScheduleIter, GbpScheduleTimestep};
+use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIterator};
 
 pub struct LateAsPossible;
 
@@ -38,11 +38,11 @@ impl LateAsPossibleIter {
 }
 
 impl std::iter::Iterator for LateAsPossibleIter {
-    type Item = GbpScheduleTimestep;
+    type Item = GbpScheduleAtTimestep;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.i < self.max {
-            let ts = Some(GbpScheduleTimestep {
+            let ts = Some(GbpScheduleAtTimestep {
                 internal: self.internal.unwrap_or(self.i >= self.config.internal),
                 external: self.external.unwrap_or(self.i >= self.config.external),
             });
@@ -54,10 +54,10 @@ impl std::iter::Iterator for LateAsPossibleIter {
     }
 }
 
-impl GbpScheduleIter for LateAsPossibleIter {}
+impl GbpScheduleIterator for LateAsPossibleIter {}
 
 impl GbpSchedule for LateAsPossible {
-    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIter {
+    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIterator {
         LateAsPossibleIter::new(config)
     }
 }
@@ -66,8 +66,8 @@ impl GbpSchedule for LateAsPossible {
 mod tests {
     use super::*;
 
-    const fn ts(internal: bool, external: bool) -> GbpScheduleTimestep {
-        GbpScheduleTimestep { internal, external }
+    const fn ts(internal: bool, external: bool) -> GbpScheduleAtTimestep {
+        GbpScheduleAtTimestep { internal, external }
     }
 
     #[test]

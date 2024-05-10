@@ -40,25 +40,37 @@ pub struct GraphvizEdgeAttributes {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct GraphvizInterrbotSection {
-    pub edge: GraphvizEdgeAttributes,
+pub struct GraphvizInterrobotSection {
+    pub active:   GraphvizEdgeAttributes,
+    pub inactive: GraphvizEdgeAttributes,
+    // pub edge: GraphvizEdgeAttributes,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizSection {
-    pub interrobot:      GraphvizInterrbotSection,
+    pub interrobot:      GraphvizInterrobotSection,
+    #[serde(default = "default_export_location")]
     pub export_location: String,
+}
+
+fn default_export_location() -> String {
+    "./assets/export".to_string()
 }
 
 impl Default for GraphvizSection {
     fn default() -> Self {
         Self {
-            interrobot:      GraphvizInterrbotSection {
-                edge: GraphvizEdgeAttributes {
+            interrobot:      GraphvizInterrobotSection {
+                active:   GraphvizEdgeAttributes {
                     style: "solid".to_string(),
                     len:   8.0,
                     color: "red".to_string(),
+                },
+                inactive: GraphvizEdgeAttributes {
+                    style: "dashed".to_string(),
+                    len:   4.0,
+                    color: "black".to_string(),
                 },
             },
             export_location: "./assets/".to_string(),
@@ -132,7 +144,7 @@ pub enum DrawSetting {
     Uncertainty,
     Paths,
     GeneratedMap,
-    HeightMap,
+    // HeightMap,
     Sdf,
     CommunicationRadius,
     Robots,
@@ -165,7 +177,7 @@ pub struct DrawSection {
     pub interrobot_factors: bool,
     pub interrobot_factors_safety_distance: bool,
     pub generated_map: bool,
-    pub height_map: bool,
+    // pub height_map: bool,
     pub sdf: bool,
     pub robot_colliders: bool,
     pub environment_colliders: bool,
@@ -183,7 +195,7 @@ impl Default for DrawSection {
             uncertainty: false,
             paths: true,
             generated_map: true,
-            height_map: false,
+            // height_map: false,
             sdf: false,
             communication_radius: false,
             obstacle_factors: false,
@@ -207,7 +219,7 @@ impl DrawSection {
             "uncertainty" => "Uncertainty",
             "paths" => "Paths",
             "generated_map" => "Generated Map",
-            "height_map" => "Height Map",
+            // "height_map" => "Height Map",
             "sdf" => "SDF",
             "communication_radius" => "Communication Radius",
             "robots" => "Robots",
@@ -300,6 +312,7 @@ impl Default for SimulationSection {
 #[serde(rename_all = "kebab-case")]
 pub enum GbpIterationScheduleKind {
     #[default]
+    #[strum(serialize = "centered")]
     Centered,
     #[strum(serialize = "soon as possible")]
     SoonAsPossible,
@@ -312,10 +325,10 @@ pub enum GbpIterationScheduleKind {
 }
 
 impl GbpIterationScheduleKind {
-    pub fn get_schedule(
+    pub fn get(
         &self,
         config: gbp_schedule::GbpScheduleConfig,
-    ) -> Box<dyn gbp_schedule::GbpScheduleIter> {
+    ) -> Box<dyn gbp_schedule::GbpScheduleIterator> {
         match self {
             GbpIterationScheduleKind::Centered => {
                 Box::new(gbp_schedule::Centered::schedule(config))
