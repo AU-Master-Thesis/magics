@@ -285,17 +285,17 @@ mod tests {
             external: 7,
         };
         let mut schedule = InterleaveEvenly::schedule(config);
-        println!("{:?}", schedule.collect::<Vec<_>>());
-        assert!(false);
+        // println!("{:?}", schedule.collect::<Vec<_>>());
+        // assert!(false);
 
-        // assert_eq!(schedule.next(), Some(ts(true, true)));
-        // assert_eq!(schedule.next(), Some(ts(true, true)));
-        // assert_eq!(schedule.next(), Some(ts(true, true)));
-        // assert_eq!(schedule.next(), Some(ts(false, true)));
-        // assert_eq!(schedule.next(), Some(ts(true, true)));
-        // assert_eq!(schedule.next(), Some(ts(true, true)));
-        // assert_eq!(schedule.next(), Some(ts(true, true)));
-        // assert_eq!(schedule.next(), None);
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), None);
     }
 
     // #[test]

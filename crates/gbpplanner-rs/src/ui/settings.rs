@@ -277,7 +277,10 @@ fn ui_settings_panel(
                             if  te_output.response.changed() {
                                 if let Ok(x) = text.parse::<usize>() {
                                     config.gbp.iteration_schedule.internal = x;
-                                } else {
+                                } else if text.is_empty() {
+                                    config.gbp.iteration_schedule.internal = 0;
+                                }
+                                else {
                                     error!("failed to parse {} as usize", text);
                                 }
                             }
@@ -294,6 +297,8 @@ fn ui_settings_panel(
                             if  te_output.response.changed() {
                                 if let Ok(x) = text.parse::<usize>() {
                                     config.gbp.iteration_schedule.external = x;
+                                } else if text.is_empty() {
+                                    config.gbp.iteration_schedule.external = 0;
                                 } else {
                                     error!("failed to parse {} as usize", text);
                                 }
