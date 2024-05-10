@@ -1,4 +1,4 @@
-use crate::{GbpSchedule, GbpScheduleConfig, GbpScheduleIter, GbpScheduleTimestep};
+use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIter};
 
 pub struct SoonAsPossible;
 
@@ -24,11 +24,11 @@ impl SoonAsPossibleIter {
 }
 
 impl std::iter::Iterator for SoonAsPossibleIter {
-    type Item = GbpScheduleTimestep;
+    type Item = GbpScheduleAtTimestep;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.i < self.max {
-            let mut ts = GbpScheduleTimestep::default();
+            let mut ts = GbpScheduleAtTimestep::default();
             if self.internal < self.config.internal {
                 ts.internal = true;
                 self.internal += 1;
@@ -60,8 +60,8 @@ impl GbpSchedule for SoonAsPossible {
 mod tests {
     use super::*;
 
-    const fn ts(internal: bool, external: bool) -> GbpScheduleTimestep {
-        GbpScheduleTimestep { internal, external }
+    const fn ts(internal: bool, external: bool) -> GbpScheduleAtTimestep {
+        GbpScheduleAtTimestep { internal, external }
     }
 
     #[test]

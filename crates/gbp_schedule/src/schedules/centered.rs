@@ -1,4 +1,4 @@
-use crate::{GbpSchedule, GbpScheduleConfig, GbpScheduleIter, GbpScheduleTimestep};
+use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIter};
 
 pub struct Centered;
 
@@ -66,12 +66,12 @@ impl CenteredIter {
 }
 
 impl Iterator for CenteredIter {
-    type Item = GbpScheduleTimestep;
+    type Item = GbpScheduleAtTimestep;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|(internal, external)| GbpScheduleTimestep { internal, external })
+            .map(|(internal, external)| GbpScheduleAtTimestep { internal, external })
     }
 }
 
@@ -89,8 +89,8 @@ impl GbpSchedule for Centered {
 mod tests {
     use super::*;
 
-    const fn ts(internal: bool, external: bool) -> GbpScheduleTimestep {
-        GbpScheduleTimestep { internal, external }
+    const fn ts(internal: bool, external: bool) -> GbpScheduleAtTimestep {
+        GbpScheduleAtTimestep { internal, external }
     }
 
     #[test]

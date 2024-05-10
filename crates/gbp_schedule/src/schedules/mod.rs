@@ -57,7 +57,7 @@ pub use soon_as_possible::*;
 // pub trait GbpScheduleIter<'a>: std::iter::Iterator<Item = u64> {}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct GbpScheduleTimestep {
+pub struct GbpScheduleAtTimestep {
     pub internal: bool,
     pub external: bool,
 }
@@ -74,7 +74,7 @@ impl GbpScheduleConfig {
     }
 }
 
-pub trait GbpScheduleIter: std::iter::Iterator<Item = GbpScheduleTimestep> {}
+pub trait GbpScheduleIter: std::iter::Iterator<Item = GbpScheduleAtTimestep> {}
 
 pub trait GbpSchedule {
     // fn schedule(times: &[NonZeroUsize]) -> impl GbpScheduleIter;

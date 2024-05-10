@@ -300,6 +300,7 @@ impl Default for SimulationSection {
 #[serde(rename_all = "kebab-case")]
 pub enum GbpIterationScheduleKind {
     #[default]
+    #[strum(serialize = "centered")]
     Centered,
     #[strum(serialize = "soon as possible")]
     SoonAsPossible,
@@ -312,7 +313,7 @@ pub enum GbpIterationScheduleKind {
 }
 
 impl GbpIterationScheduleKind {
-    pub fn get_schedule(
+    pub fn get(
         &self,
         config: gbp_schedule::GbpScheduleConfig,
     ) -> Box<dyn gbp_schedule::GbpScheduleIter> {

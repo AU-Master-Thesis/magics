@@ -1,4 +1,4 @@
-use crate::{GbpSchedule, GbpScheduleConfig, GbpScheduleIter, GbpScheduleTimestep};
+use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIter};
 
 pub struct HalfBeginningHalfEnd;
 
@@ -63,12 +63,12 @@ impl HalfBeginningHalfEndIter {
 }
 
 impl Iterator for HalfBeginningHalfEndIter {
-    type Item = GbpScheduleTimestep;
+    type Item = GbpScheduleAtTimestep;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|(internal, external)| GbpScheduleTimestep { internal, external })
+            .map(|(internal, external)| GbpScheduleAtTimestep { internal, external })
         // match self.iter.next() {
         //     // match (self.internal.next(), self.external.next()) {
         //     None => None,
@@ -90,8 +90,8 @@ impl GbpSchedule for HalfBeginningHalfEnd {
 mod tests {
     use super::*;
 
-    const fn ts(internal: bool, external: bool) -> GbpScheduleTimestep {
-        GbpScheduleTimestep { internal, external }
+    const fn ts(internal: bool, external: bool) -> GbpScheduleAtTimestep {
+        GbpScheduleAtTimestep { internal, external }
     }
 
     #[test]
