@@ -138,7 +138,7 @@ fn movement_actions(
         || currently_changing.is_changing()
         || action_block.is_blocked()
     {
-        velocity.value = Vec3::ZERO;
+        velocity.0 = Vec3::ZERO;
         angular_velocity.value = Vec3::ZERO;
         return;
     }
@@ -155,11 +155,10 @@ fn movement_actions(
             .clamped_axis_pair(&MoveableObjectAction::Move)
             .map(|axis| axis.xy().normalize_or_zero())
         {
-            velocity.value =
-                Vec3::new(-action.x, 0.0, action.y) * scale * sensitivity.move_sensitivity;
+            velocity.0 = Vec3::new(-action.x, 0.0, action.y) * scale * sensitivity.move_sensitivity;
         }
     } else {
-        velocity.value = Vec3::ZERO;
+        velocity.0 = Vec3::ZERO;
     }
 
     // When the default input for `MoveableObjectAction::Boost` is pressed, print

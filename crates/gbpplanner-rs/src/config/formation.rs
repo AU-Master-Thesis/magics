@@ -360,7 +360,7 @@ impl Formation {
                     InitialPlacementStrategy::Random { attempts } => {
                         // TODO: check if it even makes sense to iterate
                         // if B * n > 2 * math.pi * A:
-                        let mut rng = thread_rng();
+                        // let mut rng = thread_rng();
                         todo!()
 
                         // randomly_place_nonoverlapping_circles_along_circle_perimeter(

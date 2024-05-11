@@ -7,34 +7,30 @@ use crate::{
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };
 
-const CAMERA_UP: Vec3 = Vec3::NEG_Y;
+// const CAMERA_UP: Vec3 = Vec3::NEG_Y;
+const CAMERA_UP: Vec3 = Vec3::Y;
 const CAMERA_INITIAL_TARGET: Vec3 = Vec3::ZERO;
 
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ResetCamera>()
+        app.add_event::<events::ResetCamera>()
             .init_state::<CameraMovement>()
             .init_resource::<CameraSettings>()
             .add_systems(Startup, spawn_main_camera)
-            // .add_systems(Update, spawn_main_cmaer)
-            // .add_systems(Update)
             .add_systems(
                 Update,
                 (
-                    reset_main_camera.run_if(on_event::<ResetCamera>()),
-                    // reset_main_camera.run_if(on_event::<ReloadSimulation>()),
-                    // activate_main_camera.run_if(on_event::<ReloadSimulation>()),
-                    // activate_main_camera
-                    //     .after(reset_main_camera)
-                    //     .run_if(on_event::<ReloadSimulation>()),
-                    (reset_main_camera, activate_main_camera).chain().run_if(
-                        on_event::<ReloadSimulation>().or_else(on_event::<LoadSimulation>()),
-                    ),
-                    // (reset_main_camera, activate_main_camera)
-                    //     .chain()
-                    //     .run_if(on_event::<LoadSimulation>()),
+                    reset_main_camera.run_if(on_event::<events::ResetCamera>()),
+                    (
+                        // reset_main_camera,
+                        activate_main_camera
+                    )
+                        .chain()
+                        .run_if(
+                            on_event::<ReloadSimulation>().or_else(on_event::<LoadSimulation>()),
+                        ),
                 ),
             );
     }
@@ -97,13 +93,34 @@ impl Default for CameraSettings {
     }
 }
 
-/// **Bevy** [`Event`] to reset the main camera's position and rotation
-#[derive(Debug, Event)]
-pub struct ResetCamera;
+pub mod events {
+    use bevy::ecs::event::Event;
+
+    /// **Bevy** [`Event`] to reset the main camera's position and rotation
+    #[derive(Event)]
+    pub struct ResetCamera;
+}
 
 /// **Bevy** [`Component`] for the main camera
 #[derive(Component, Debug)]
 pub struct MainCamera;
+
+impl MainCamera {
+    // pub const INITIALTRANSFORM: Transform = Transform {
+    //     translation: Vec3::Y * -Self::INITINAL_DISTANCE,
+    //     ..Default::default()
+    // }
+    // .looking_at(Vec3::ZERO, Vec3::Z);
+    pub const INITINAL_DISTANCE: f32 = 250.0;
+
+    pub fn initinal_transform() -> Transform {
+        Transform {
+            translation: Vec3::Y * -Self::INITINAL_DISTANCE,
+            ..Default::default()
+        }
+        .looking_at(Vec3::ZERO, Vec3::Z)
+    }
+}
 
 /// **Bevy** [`State`] representing the main camera's movement mode
 /// Enables the camera to `Pan` and `Orbit`
@@ -114,16 +131,40 @@ pub enum CameraMovement {
     Orbit,
 }
 
+impl CameraMovement {
+    pub fn cycle(&mut self) {
+        *self = match self {
+            CameraMovement::Pan => CameraMovement::Orbit,
+            CameraMovement::Orbit => CameraMovement::Pan,
+        }
+    }
+
+    pub fn next(&self) -> Self {
+        match self {
+            CameraMovement::Pan => CameraMovement::Orbit,
+            CameraMovement::Orbit => CameraMovement::Pan,
+        }
+    }
+}
+
 /// **Bevy** [`Startup`] system to spawn the main camera
 // fn spawn_main_camera(mut commands: Commands, config: Res<Config>) {
 fn spawn_main_camera(mut commands: Commands) {
-    let default_cam_distance = 250.0;
-    let transform = Transform::from_xyz(0.0, default_cam_distance, 0.0)
-        .looking_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
+    // let default_cam_distance = 250.0;
+    // let transform = Transform {
+    //     translation: Vec3::Y * -default_cam_distance,
+    //     ..Default::default()
+    // }
+    // .looking_at(Vec3::ZERO, Vec3::Z);
+    // let transform = Transform::from_xyz(0.0, default_cam_distance, 0.0)
+    //     .looking_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
+
+    // transform.forward()
 
     commands.spawn((
         Camera3dBundle {
-            transform,
+            transform: MainCamera::initinal_transform(),
+            // transform,
             ..default()
         },
         LinearMovementBundle::default(),
@@ -141,13 +182,14 @@ fn reset_main_camera(
     mut cam_settings: ResMut<CameraSettings>,
     config: Res<Config>,
 ) {
-    next_camera_movement.set(CameraMovement::Pan);
+    next_camera_movement.set(CameraMovement::default());
     cam_settings.reset_distance(Some(config.interaction.default_cam_distance));
 
     let (mut transform, mut orbit) = main_camera.single_mut();
 
-    transform.translation = cam_settings.start_pos;
-    transform.look_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
+    *transform = MainCamera::initinal_transform();
+    // transform.translation = cam_settings.start_pos;
+    // transform.look_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
     orbit.origin = Vec3::ZERO;
 }
 

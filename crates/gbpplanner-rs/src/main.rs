@@ -389,6 +389,7 @@ fn main() -> anyhow::Result<()> {
             export::ExportPlugin::default(),
             bevy_fullscreen::ToggleFullscreenPlugin::default()
         ))
+        .add_systems(Update, draw_coordinate_system)
         .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));
 
     if let Some(schedule) = cli.schedule_graph {
@@ -446,4 +447,11 @@ fn end_simulation(config: Res<Config>) {
         config.simulation.max_time.get()
     );
     // std::process::exit(0);
+}
+
+fn draw_coordinate_system(mut gizmos: Gizmos) {
+    let length = 100.0;
+    gizmos.arrow(Vec3::ZERO, Vec3::new(1.0 * length, 0., 0.), Color::RED);
+    gizmos.arrow(Vec3::ZERO, Vec3::new(0.0, 1.0 * length, 0.), Color::GREEN);
+    gizmos.arrow(Vec3::ZERO, Vec3::new(0., 0., 1.0 * length), Color::BLUE);
 }

@@ -1,15 +1,16 @@
 use bevy::prelude::*;
 
-#[derive(Component, Debug)]
-pub struct Velocity {
-    pub value: Vec3,
-}
+#[derive(Component, Debug, Deref, DerefMut)]
+pub struct Velocity(pub Vec3);
+// pub struct Velocity {
+//     pub value: Vec3,
+// }
 
-impl Velocity {
-    pub const fn new(value: Vec3) -> Self {
-        Self { value }
-    }
-}
+// impl Velocity {
+//     pub const fn new(value: Vec3) -> Self {
+//         Self { value }
+//     }
+// }
 
 #[derive(Component, Debug)]
 pub struct Acceleration {
@@ -67,7 +68,7 @@ pub struct LinearMovementBundle {
 impl Default for LinearMovementBundle {
     fn default() -> Self {
         Self {
-            velocity:     Velocity::new(Vec3::ZERO),
+            velocity:     Velocity(Vec3::ZERO),
             acceleration: Acceleration::new(Vec3::ZERO),
         }
     }
@@ -147,7 +148,7 @@ impl Plugin for MovementPlugin {
 
 fn update_velocity(mut query: Query<(&Acceleration, &mut Velocity)>, time: Res<Time<Real>>) {
     for (acceleration, mut velocity) in &mut query {
-        velocity.value += acceleration.value * time.delta_seconds();
+        velocity.0 += acceleration.value * time.delta_seconds();
     }
 }
 
@@ -157,10 +158,10 @@ fn update_position(
     time: Res<Time<Real>>,
 ) {
     for (velocity, mut transform) in &mut query {
-        if velocity.value.abs_diff_eq(Vec3::ZERO, f32::EPSILON) {
+        if velocity.abs_diff_eq(Vec3::ZERO, f32::EPSILON) {
             continue;
         }
-        transform.translation += velocity.value * time.delta_seconds();
+        transform.translation += velocity.0 * time.delta_seconds();
     }
 }
 
@@ -170,12 +171,12 @@ fn update_position_local(
     time: Res<Time<Real>>,
 ) {
     for (velocity, mut transform) in &mut query {
-        if velocity.value.abs_diff_eq(Vec3::ZERO, f32::EPSILON) {
+        if velocity.abs_diff_eq(Vec3::ZERO, f32::EPSILON) {
             continue;
         }
-        let mutation = transform.local_x() * velocity.value.x
-            + transform.local_z() * velocity.value.z
-            + transform.local_y() * velocity.value.y;
+        let mutation = transform.local_x() * velocity.x
+            + transform.local_z() * velocity.z
+            + transform.local_y() * velocity.y;
 
         transform.translation += mutation * time.delta_seconds();
     }
@@ -187,7 +188,7 @@ fn update_position_local_orbit(
 ) {
     // translate both the orbit.origin point and the transform
     for (mut orbit, velocity, mut transform) in &mut query {
-        if velocity.value.abs_diff_eq(Vec3::ZERO, f32::EPSILON) {
+        if velocity.abs_diff_eq(Vec3::ZERO, f32::EPSILON) {
             continue;
         }
 
@@ -202,16 +203,15 @@ fn update_position_local_orbit(
 
         // info!("velocity.value.y {:?}", velocity.value.y);
 
-        let from_local_translation = (transform.left() * velocity.value.x
-            + z_direction * velocity.value.z)
-            * time.delta_seconds();
+        let from_local_translation =
+            (transform.left() * velocity.x + z_direction * velocity.z) * time.delta_seconds();
 
         // info!("from_local_translation.y {:?}", from_local_translation.y);
 
         let zoom_direction = transform.forward();
 
         transform.translation +=
-            from_local_translation + zoom_direction * velocity.value.y * time.delta_seconds();
+            from_local_translation + zoom_direction * velocity.y * time.delta_seconds();
         orbit.origin += from_local_translation;
     }
 }

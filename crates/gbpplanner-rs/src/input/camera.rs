@@ -14,7 +14,7 @@ use super::{
     ChangingBinding,
 };
 use crate::{
-    environment::camera::{CameraSettings, ResetCamera},
+    environment::camera::{events::ResetCamera, CameraSettings},
     movement::MovementPlugin,
     ui::ActionBlock,
 };
@@ -56,7 +56,19 @@ impl Default for CameraSensitivity {
     }
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, EnumIter, Default)]
+#[derive(
+    Actionlike,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    Debug,
+    Reflect,
+    EnumIter,
+    Default,
+    strum_macros::IntoStaticStr,
+)]
 pub enum CameraAction {
     #[default]
     Move,
@@ -195,10 +207,6 @@ fn camera_actions(
         }
     }
 
-    // if !*control_key_pressed {
-    //     return;
-    // }
-
     if let Ok((action_state, mut velocity, mut angular_velocity, orbit, transform, camera)) =
         query.get_single_mut()
     {
@@ -208,7 +216,7 @@ fn camera_actions(
         if currently_changing.on_cooldown() || currently_changing.is_changing() || is_action_blocked
         {
             // info!("Camera actions are blocked");
-            velocity.value = Vec3::ZERO;
+            velocity.0 = Vec3::ZERO;
             angular_velocity.value = Vec3::ZERO;
             return;
         }
@@ -299,32 +307,34 @@ fn camera_actions(
         }
 
         if !*control_key_pressed {
-            if action_state.pressed(&CameraAction::ZoomIn) {
-                // info!("Zooming in");
-                tmp_velocity.y = -camera_settings.speed * camera_distance / 10.0;
+            tmp_velocity.y = if action_state.pressed(&CameraAction::ZoomIn) {
+                -camera_settings.speed * camera_distance / 10.0
             } else if action_state.pressed(&CameraAction::ZoomOut) {
-                // info!("Zooming out");
-                tmp_velocity.y = camera_settings.speed * camera_distance / 10.0;
+                camera_settings.speed * camera_distance / 10.0
             } else {
-                tmp_velocity.y = 0.0;
+                0.0
             }
         }
 
-        velocity.value = tmp_velocity;
+        velocity.0 = tmp_velocity;
         angular_velocity.value = tmp_angular_velocity;
 
         // Handling state changes
         if action_state.just_pressed(&CameraAction::ToggleMovementMode) {
-            next_state.set(match state.get() {
-                CameraMovement::Pan => {
-                    info!("Toggling camera mode: Linear -> Orbit");
-                    CameraMovement::Orbit
-                }
-                CameraMovement::Orbit => {
-                    info!("Toggling camera mode: Orbit -> Linear");
-                    CameraMovement::Pan
-                }
-            });
+            let current = state.get();
+            let next = current.next();
+            next_state.set(next);
+
+            // next_state.set(match state.get() {
+            //     CameraMovement::Pan => {
+            //         info!("Toggling camera mode: Linear -> Orbit");
+            //         CameraMovement::Orbit
+            //     }
+            //     CameraMovement::Orbit => {
+            //         info!("Toggling camera mode: Orbit -> Linear");
+            //         CameraMovement::Pan
+            //     }
+            // });
         }
     }
 }

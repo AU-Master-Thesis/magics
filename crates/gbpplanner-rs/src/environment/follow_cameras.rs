@@ -163,7 +163,7 @@ impl FollowCameraBundle {
         Self {
             settings: FollowCameraSettings::new(entity).with_offset(offset),
             movement: OrbitMovementBundle::default(),
-            velocity: Velocity::new(Vec3::ZERO),
+            velocity: Velocity(Vec3::ZERO),
             camera: Camera3dBundle {
                 // transform: Transform::from_translation(target_transform.translation + offset)
                 //     .looking_at(target_transform.translation, up_direction.into()),
