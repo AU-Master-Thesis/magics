@@ -63,9 +63,6 @@ fn remove_rendered_factorgraphs(
     for entity in &query {
         info!("despawning factorgraph visualiser: {:?}", entity);
         commands.entity(entity).despawn();
-        // if let Some(mut entitycommands) = commands.get_entity(entity) {
-        //     entitycommands.despawn();
-        // }
     }
 }
 
@@ -162,7 +159,7 @@ fn create_factorgraph_visualizer(
         for (i, (index, variable)) in factorgraph.variables().enumerate() {
             let [x, y] = variable.estimated_position();
             #[allow(clippy::cast_possible_truncation)]
-            let transform = Vec3::new(x as f32, config.visualisation.height.objects, y as f32);
+            let transform = Vec3::new(x as f32, -config.visualisation.height.objects, y as f32);
             let robottracker = RobotTracker {
                 robot_id: *robot_id,
                 variable_index: index.index(),
@@ -235,7 +232,7 @@ fn update_factorgraph_visualizers(
                 // else update the transform
                 let [x, y] = v.estimated_position();
                 transform.translation =
-                    Vec3::new(x as f32, config.visualisation.height.objects, y as f32);
+                    Vec3::new(x as f32, -config.visualisation.height.objects, y as f32);
             }
         }
     }

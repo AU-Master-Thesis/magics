@@ -8,7 +8,7 @@ use std::{num::NonZeroUsize, ops::RangeInclusive};
 
 use bevy::{
     ecs::{component::Component, system::Resource},
-    reflect::Reflect,
+    reflect::{GetField, Reflect},
 };
 // pub use environment::{Environment, EnvironmentType};
 pub use formation::FormationGroup;
@@ -162,7 +162,7 @@ pub enum DrawSetting {
 
 // TODO: store in a bitset
 #[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, serde::Serialize, serde::Deserialize, Iterable, Reflect, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Iterable, Reflect, Clone, Copy)]
 #[serde(rename_all = "kebab-case")]
 pub struct DrawSection {
     pub robots: bool,
@@ -233,6 +233,85 @@ impl DrawSection {
             "robot_environment_collisions" => "Robot-Environment Collisions",
             _ => "Unknown",
         }
+    }
+
+    pub fn all_disabled() -> Self {
+        Self {
+            communication_graph: false,
+            predicted_trajectories: false,
+            waypoints: false,
+            uncertainty: false,
+            paths: false,
+            generated_map: false,
+            // height_map: false,
+            sdf: false,
+            communication_radius: false,
+            robots: false,
+            tracking: false,
+            obstacle_factors: false,
+            interrobot_factors: false,
+            interrobot_factors_safety_distance: false,
+            robot_colliders: false,
+            environment_colliders: false,
+            robot_robot_collisions: false,
+            robot_environment_collisions: false,
+        }
+    }
+
+    pub fn all_enabled() -> Self {
+        Self {
+            communication_graph: true,
+            predicted_trajectories: true,
+            waypoints: true,
+            uncertainty: true,
+            paths: true,
+            generated_map: true,
+            // height_map: true,
+            sdf: true,
+            communication_radius: true,
+            robots: true,
+            tracking: true,
+            obstacle_factors: true,
+            interrobot_factors: true,
+            interrobot_factors_safety_distance: true,
+            robot_colliders: true,
+            environment_colliders: true,
+            robot_robot_collisions: true,
+            robot_environment_collisions: true,
+        }
+    }
+
+    pub fn flip_all(&mut self) {
+        let copy = *self;
+
+        copy.iter().for_each(|(name, value)| {
+            // if let Some(value) = value.downcast_ref::<bool>() {
+            if let Some(field) = self.get_field_mut::<bool>(name) {
+                *field = !*field;
+            }
+            // *value = !*value;
+            // }
+        });
+        // self.communication_graph = !self.communication_graph;
+        // self.predicted_trajectories = !self.predicted_trajectories;
+        // self.waypoints = !self.waypoints;
+        // self.uncertainty = !self.uncertainty;
+        // self.paths = !self.paths;
+        // self.generated_map = !self.generated_map;
+        // // self.height_map = !self.height_map;
+        // self.sdf = !self.sdf;
+        // self.communication_radius = !self.communication_radius;
+        // self.robots = !self.robots;
+        // self.tracking = !self.tracking;
+        // self.obstacle_factors = !self.obstacle_factors;
+        // self.interrobot_factors = !self.interrobot_factors;
+        // self.interrobot_factors_safety_distance =
+        // !self.interrobot_factors_safety_distance;
+        // self.robot_colliders = !self.robot_colliders;
+        // self.environment_colliders = !self.environment_colliders;
+        // self.robot_robot_collisions = !self.robot_robot_collisions;
+        // self.robot_environment_collisions =
+        // !self.robot_environment_collisions;
     }
 }
 

@@ -13,14 +13,10 @@ use serde::{Deserialize, Serialize};
 use crate::{
     asset_loader::Materials,
     bevy_utils::run_conditions::event_exists,
-    // config::{environment::PlaceableShape, Config, DrawSetting, Environment},
     config::{Config, DrawSetting},
     input::DrawSettingsEvent,
     simulation_loader::LoadSimulation,
 };
-
-// static COLLIDERS: once_cell::sync::Lazy<std::sync::RwLock<Colliders>> =
-//     once_cell::sync::Lazy::new(std::sync::RwLock::default);
 
 pub struct GenMapPlugin;
 
@@ -143,7 +139,7 @@ fn build_obstacles(
 ) {
     let tile_grid = &env_config.tiles.grid;
     let tile_size = env_config.tile_size();
-    let obstacle_height = env_config.obstacle_height();
+    let obstacle_height = -env_config.obstacle_height();
 
     let grid_offset_x = tile_grid.ncols() as f32 / 2.0 - 0.5;
     let grid_offset_z = tile_grid.nrows() as f32 / 2.0 - 0.5;
@@ -197,11 +193,17 @@ fn build_obstacles(
                 height,
                 mid_point,
             }) => {
+                // dbg!((
+                //     "Triangle",
+                //     translation.y.get() as f32,
+                //     tile_size,
+                //     -offset_z,
+                //     pos_offset
+                //));
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
-                    // obstacle_height / 2.0,
-                    0.0,
-                    (translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
+                    obstacle_height / 2.0,
+                    -((translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset),
                 );
 
                 // Example triangle
@@ -233,28 +235,41 @@ fn build_obstacles(
                     ),
                 ];
 
+                println!("bottom-left = {:?}", center.xz() + points[0]);
+                println!("bottom-right = {:?}", center.xz() + points[1]);
+                println!("top = {:?}", center.xz() + points[2]);
+
                 info!(
                     "Spawning triangle: base_length = {}, height = {}, at {:?}",
                     base_length, height, center
                 );
 
                 let mesh = meshes.add(
-                    Mesh::try_from(bevy_more_shapes::Prism::new(obstacle_height, points))
+                    Mesh::try_from(bevy_more_shapes::Prism::new(-obstacle_height, points))
                         .expect("Failed to create triangle mesh"),
                 );
 
                 let rotation = Quat::from_rotation_y(
-                    std::f32::consts::FRAC_PI_2 + obstacle.rotation.as_radians() as f32,
+                    // std::f32::consts::FRAC_PI_2
+                    (std::f32::consts::FRAC_PI_2 + obstacle.rotation.as_radians() as f32),
                 );
                 let transform = Transform::from_translation(center).with_rotation(rotation);
+                // let transform = Transform::from_translation(center);
 
                 Some((mesh, transform))
             }
             PlaceableShape::RegularPolygon(RegularPolygon { sides, side_length }) => {
+                // dbg!((
+                //     "RegularPolygon",
+                //     translation.y.get() as f32,
+                //     tile_size,
+                //     -offset_z,
+                //     pos_offset
+                // ));
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
-                    (translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
+                    -((translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset),
                 );
 
                 info!(
@@ -263,7 +278,7 @@ fn build_obstacles(
                 );
 
                 let mesh = meshes.add(Mesh::from(bevy_more_shapes::Cylinder {
-                    height: obstacle_height,
+                    height: -obstacle_height,
                     radius_bottom: side_length.get() as f32 * tile_size / 2.0,
                     radius_top: side_length.get() as f32 * tile_size / 2.0,
                     radial_segments: sides as u32,
@@ -284,10 +299,19 @@ fn build_obstacles(
                 Some((mesh, transform))
             }
             PlaceableShape::Rectangle(Rectangle { width, height }) => {
+                // dbg!((
+                //     "Rectangle",
+                //     translation.y.get() as f32,
+                //     tile_size,
+                //     -offset_z,
+                //     pos_offset,
+                //     width,
+                //     height,
+                // ));
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
-                    (translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
+                    -((translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset),
                 );
 
                 info!(
@@ -301,8 +325,9 @@ fn build_obstacles(
                     width.get() as f32 * tile_size / 2.0,
                 ));
 
-                let rotation = Quat::from_rotation_y(obstacle.rotation.as_radians() as f32);
-                let transform = Transform::from_translation(center).with_rotation(rotation);
+                // let rotation = Quat::from_rotation_y(obstacle.rotation.as_radians() as f32);
+                // let transform = Transform::from_translation(center).with_rotation(rotation);
+                let transform = Transform::from_translation(center);
 
                 Some((mesh, transform))
             }
@@ -324,7 +349,8 @@ fn build_obstacles(
                     },
                     ..Default::default()
                 },
-                ObstacleMarker
+                ObstacleMarker,
+                bevy_mod_picking::PickableBundle::default(),
             ));
         });
 
@@ -370,7 +396,7 @@ fn build_tile_grid(
     let tile_grid = &env_config.tiles.grid;
 
     let obstacle_height = env_config.obstacle_height();
-    let obstacle_y = obstacle_height / 2.0;
+    let obstacle_y = -obstacle_height / 2.0;
 
     let tile_size = env_config.tile_size();
 
@@ -380,7 +406,7 @@ fn build_tile_grid(
     // offset caused by the size of the grid
     // - this centers the map
     let grid_offset_x = tile_grid.ncols() as f32 / 2.0 - 0.5;
-    let grid_offset_z = tile_grid.nrows() as f32 / 2.0 - 0.5;
+    let grid_offset_z = -(tile_grid.nrows() as f32 / 2.0 - 0.5);
 
     let pos_offset = path_width.mul_add(tile_size, base_dim) / 2.0;
 
@@ -389,14 +415,14 @@ fn build_tile_grid(
             // offset of the individual tile in the grid
             // used in all match cases
             let tile_offset_x = x as f32;
-            let tile_offset_z = y as f32;
+            let tile_offset_z = -(y as f32);
 
             // total offset caused by grid and tile
             let offset_x = (tile_offset_x - grid_offset_x) * tile_size;
             let offset_z = (tile_offset_z - grid_offset_z) * tile_size;
             // Vec<(Handle<Mesh>, Transform, parry2d::shape::Cuboid)>
             if let Some(obstacle_information) = match tile {
-                '─' => {
+                '─' | '-' => {
                     // Horizontal straight path
                     // - 2 equal-sized larger cuboid on either side, spanning the entire width of
                     //   the tile
@@ -429,7 +455,7 @@ fn build_tile_grid(
                         ),
                     ])
                 }
-                '│' => {
+                '│' | '|' => {
                     // Vertical straight path
                     // - 2 equal-sized larger cuboid on either side, spanning the entire height of
                     //   the tile
@@ -679,7 +705,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
                                 obstacle_y,
-                                offset_z + pos_offset,
+                                offset_z - pos_offset,
                             )),
                         ),
                         (
@@ -699,7 +725,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x,
                                 obstacle_y,
-                                offset_z - pos_offset,
+                                offset_z + pos_offset,
                             )),
                         ),
                     ])
@@ -723,7 +749,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
                                 obstacle_y,
-                                offset_z + pos_offset,
+                                offset_z - pos_offset,
                             )),
                         ),
                         (
@@ -743,7 +769,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x,
                                 obstacle_y,
-                                offset_z - pos_offset,
+                                offset_z + pos_offset,
                             )),
                         ),
                     ])
@@ -768,7 +794,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
                                 obstacle_y,
-                                offset_z - pos_offset,
+                                offset_z + pos_offset,
                             )),
                         ),
                         (
@@ -788,7 +814,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x,
                                 obstacle_y,
-                                offset_z + pos_offset,
+                                offset_z - pos_offset,
                             )),
                         ),
                     ])
@@ -813,7 +839,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
                                 obstacle_y,
-                                offset_z - pos_offset,
+                                offset_z + pos_offset,
                             )),
                         ),
                         (
@@ -833,7 +859,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x,
                                 obstacle_y,
-                                offset_z + pos_offset,
+                                offset_z - pos_offset,
                             )),
                         ),
                     ])
@@ -854,7 +880,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
                                 obstacle_y,
-                                offset_z + pos_offset,
+                                offset_z - pos_offset,
                             )),
                         ),
                         (
@@ -864,7 +890,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
                                 obstacle_y,
-                                offset_z + pos_offset,
+                                offset_z - pos_offset,
                             )),
                         ),
                         (
@@ -874,7 +900,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x,
                                 obstacle_y,
-                                offset_z - pos_offset,
+                                offset_z + pos_offset,
                             )),
                         ),
                     ])
@@ -895,7 +921,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x - pos_offset,
                                 obstacle_y,
-                                offset_z - pos_offset,
+                                offset_z + pos_offset,
                             )),
                         ),
                         (
@@ -905,7 +931,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x + pos_offset,
                                 obstacle_y,
-                                offset_z - pos_offset,
+                                offset_z + pos_offset,
                             )),
                         ),
                         (
@@ -915,7 +941,7 @@ fn build_tile_grid(
                             Transform::from_translation(Vec3::new(
                                 offset_x,
                                 obstacle_y,
-                                offset_z + pos_offset,
+                                offset_z - pos_offset,
                             )),
                         ),
                     ])
@@ -1080,6 +1106,7 @@ fn build_tile_grid(
                             },
                             TileCoordinates::new(x, y),
                             ObstacleMarker,
+                            bevy_mod_picking::PickableBundle::default(),
                         ))
                         .id();
 

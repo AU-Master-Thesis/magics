@@ -70,7 +70,13 @@ mod resources {
 /// r = 255 * (1 - value)
 /// g = 255 * value
 /// b = 0
-fn visualize_obstacle_factors(mut gizmos: Gizmos, factorgraphs: Query<&FactorGraph>) {
+fn visualize_obstacle_factors(
+    mut gizmos: Gizmos,
+    factorgraphs: Query<&FactorGraph>,
+    config: Res<Config>,
+) {
+    let height = -config.visualisation.height.objects;
+
     for factorgraph in &factorgraphs {
         for (variable, obstacle_factor) in factorgraph.variable_and_their_obstacle_factors() {
             let estimated_position = variable.estimated_position_vec2();
@@ -87,7 +93,7 @@ fn visualize_obstacle_factors(mut gizmos: Gizmos, factorgraphs: Query<&FactorGra
             let green = 1.0 - red;
             let color = Color::rgb(red, green, 0.0);
 
-            let height = 0.5f32;
+            // let height = 0.5f32;
             let scale: f32 = 1.1;
             // [x, y]
             // [x, y, 0]

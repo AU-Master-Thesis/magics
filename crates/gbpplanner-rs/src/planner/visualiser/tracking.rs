@@ -52,11 +52,11 @@ fn visualise_tracking_factors(
 
             // line from estimated position to last measurement
             let start = estimated_position
-                .extend(config.visualisation.height.objects)
+                .extend(-config.visualisation.height.objects)
                 .xzy();
             let end = last_measurement
                 .pos
-                .extend(config.visualisation.height.objects)
+                .extend(-config.visualisation.height.objects)
                 .xzy();
 
             gizmos.line(start, end, color);

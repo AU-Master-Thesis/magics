@@ -560,6 +560,55 @@ fn ui_settings_panel(
                             title_colors.next_or_first(),
                         )),
                     );
+
+                    custom::grid("draw_special_grid", 3).show(ui, |ui| {
+
+                        custom::fill_x(ui, |ui| {
+                    if ui.button("None").clicked() {
+                        let events = config.visualisation.draw
+                            .iter()
+                            .filter_map(|(name, _value)| name.parse::<DrawSetting>().ok())
+                            .map(|setting| DrawSettingsEvent {setting, draw: false} );
+                        world.send_event_batch(events);
+
+                        config.visualisation.draw = DrawSection::all_disabled();
+                    }
+
+                        });
+
+                        custom::fill_x(ui, |ui| {
+                    if ui.button("All").clicked() {
+                        let events = config.visualisation.draw
+                            .iter()
+                            .filter_map(|(name, _value)| name.parse::<DrawSetting>().ok())
+                            .map(|setting| DrawSettingsEvent {setting, draw: true} );
+                        world.send_event_batch(events);
+
+                        config.visualisation.draw = DrawSection::all_enabled();
+                    }
+                        });
+
+                        custom::fill_x(ui, |ui| {
+                    if ui.button("Flip").clicked() {
+                        let events = config.visualisation.draw
+                            .iter()
+                            .filter_map(|(name, value)|{
+                                if let (Ok(setting), Some(value)) = (name.parse::<DrawSetting>(), value.downcast_ref::<bool>()) {
+                                    Some(DrawSettingsEvent {setting, draw: !value })
+                                } else {
+                                    None
+                                }
+                            });
+                        world.send_event_batch(events);
+
+                        config.visualisation.draw.flip_all();
+                    }
+                        });
+
+                        ui.end_row();
+
+                    });
+
                     // egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
                     custom::grid("draw_grid", 2).show(ui, |ui| {
                         // CONFIG DRAW SECTION

@@ -423,7 +423,7 @@ fn render_robot_robot_collisions(
         // aabb.mins.y) / 2.0;
         let cuboid = Cuboid::from_size(Vec3::new(
             aabb.maxs.x - aabb.mins.x,
-            2.0,
+            -2.0,
             aabb.maxs.y - aabb.mins.y,
         ));
 

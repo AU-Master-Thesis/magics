@@ -106,12 +106,9 @@ fn spawn_sdf_map_representation(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut image_assets: ResMut<Assets<Image>>,
-    // scene_assets: Res<SceneAssets>,
-    // obstacles: Res<Obstacles>,
     sdf: Res<Sdf>,
     meshes: Res<Meshes>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
-    // mesh_assets: Res<Assets<Mesh>>,
     config: Res<Config>,
     environment: Res<gbp_environment::Environment>,
     existing_sdf_map_representation: Query<Entity, With<SdfMapRepresentation>>,
@@ -142,15 +139,8 @@ fn spawn_sdf_map_representation(
         TextureFormat::Rgba8Unorm,
         RenderAssetUsages::RENDER_WORLD,
     );
+
     let image_handle = image_assets.add(image);
-
-    // if let Ok(mut existing_image_handle) =
-    // existing_sdf_map_representation.get_single_mut() {     // update the
-    // texture of the existing mesh     *existing_image_handle = image_handle;
-    //     info!("changed sdf map representation");
-    // }
-
-    // TODO: cache material handle, in a hash name by the sim name
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(image_handle),
         ..default()
@@ -165,89 +155,19 @@ fn spawn_sdf_map_representation(
     let (nrows, ncols) = environment.tiles.grid.shape();
     let tile_size = environment.tiles.settings.tile_size;
     let (width, height) = (nrows as f32 * tile_size, ncols as f32 * tile_size);
-    // let mesh = meshes.plane.clone();
     let rectangle = bevy::math::primitives::Rectangle::new(height, width);
     let mesh = mesh_assets.add(Mesh::from(rectangle));
 
-    // plane:    meshes.add(Mesh::from(Rectangle::new(100.0f32, 100.0f32))),
     commands.spawn((SdfMapRepresentation, PbrBundle {
         mesh,
         material,
         visibility,
-        transform: Transform::from_xyz(0.0, -0.1, 0.0)
-            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        transform: Transform::from_xyz(0.0, 0.1, 0.0)
+            .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
         ..default()
     }));
     info!("spawned sdf map representation");
 }
-
-// /// Makes a simple quad plane to show the map png.
-// fn spawn_sdf_map_representation(
-//     mut commands: Commands,
-//     mut materials: ResMut<Assets<StandardMaterial>>,
-//     mut image_assets: ResMut<Assets<Image>>,
-//     // scene_assets: Res<SceneAssets>,
-//     // obstacles: Res<Obstacles>,
-//     sdf: Res<Sdf>,
-//     meshes: Res<Meshes>,
-//     // mesh_assets: Res<Assets<Mesh>>,
-//     config: Res<Config>,
-//     mut existing_sdf_map_representation: Query<&mut Handle<Image>,
-// With<SdfMapRepresentation>>, ) {
-//     let width = sdf.0.width();
-//     let height = sdf.0.height();
-//     let mut rgba_buffer = vec![255u8; width as usize * height as usize * 4];
-//     let input = sdf.0.as_raw();
-//     let mut i = 0;
-//     for chunk in input.chunks(3) {
-//         rgba_buffer[i..i + 3].copy_from_slice(&chunk[0..3]);
-//         i += 4;
-//     }
-//
-//     let image = bevy::render::texture::Image::new(
-//         Extent3d {
-//             width,
-//             height,
-//             depth_or_array_layers: 1,
-//         },
-//         TextureDimension::D2,
-//         rgba_buffer,
-//         TextureFormat::Rgba8Unorm,
-//         RenderAssetUsages::RENDER_WORLD,
-//     );
-//     let image_handle = image_assets.add(image);
-//
-//     if let Ok(mut existing_image_handle) =
-// existing_sdf_map_representation.get_single_mut() {         // update the
-// texture of the existing mesh         *existing_image_handle = image_handle;
-//         info!("changed sdf map representation");
-//     } else {
-//         let material = materials.add(StandardMaterial {
-//             base_color_texture: Some(image_handle),
-//             ..default()
-//         });
-//
-//         let visibility = if config.visualisation.draw.sdf {
-//             Visibility::Visible
-//         } else {
-//             Visibility::Hidden
-//         };
-//
-//         // Spawn an entity with the mesh and material, and position it in 3D
-// space         // TODO: generate based on sim config
-//         let mesh = meshes.plane.clone();
-//         commands.spawn((SdfMapRepresentation, PbrBundle {
-//             mesh,
-//             material,
-//             visibility,
-//             transform: Transform::from_xyz(0.0, -0.1, 0.0)
-//
-// .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-//             ..default()
-//         }));
-//         info!("spawned sdf map representation");
-//     }
-// }
 
 /// **Bevy** [`Update`] system
 /// Reads [`DrawSettingEvent`], where if `DrawSettingEvent.setting ==
@@ -333,8 +253,6 @@ fn obstacles(
 
     let width = image.texture_descriptor.size.width as usize;
     let height = image.texture_descriptor.size.height as usize;
-    // let bytes_per_pixel = image.texture_descriptor.format.block_dimensions().0 as
-    // usize;
     let channels = 4;
 
     let vertices_count = width * height;
@@ -342,27 +260,12 @@ fn obstacles(
     let extent = config.simulation.world_size.get();
     let intensity = config.visualisation.height.height_map;
 
-    // info!("image.texture_descriptor.size.width: {}", width);
-    // info!("image.texture_descriptor.size.height: {}", height);
-    // info!("image.data.len(): {}", image.data.len());
-    // info!("bytes_per_pixel: {}", bytes_per_pixel);
-    // info!(
-    //     "image.data.len() / bytes_per_pixel: {}",
-    //     image.data.len() / bytes_per_pixel
-    // );
-    // info!("vertices_count: {}", vertices_count);
-    // info!("triangle_count: {}", triangle_count);
-
     let mut heightmap = Vec::<f32>::with_capacity(vertices_count);
     for w in 0..width {
         for h in 0..height {
-            // heightmap.push((w + h) as f32);
-            // heightmap.push(0.0);
             heightmap.push(1.0 - f32::from(image.data[(w * height + h) * channels]) / 255.0);
         }
     }
-
-    // info!("heightmap.len(): {}", heightmap.len());
 
     // Defining vertices.
     let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);

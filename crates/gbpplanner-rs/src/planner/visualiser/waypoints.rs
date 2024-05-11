@@ -75,7 +75,7 @@ fn create_waypoint_visualizer(
     for event in evr_waypoint_created.read() {
         let transform = Transform::from_translation(Vec3::new(
             event.position.x,
-            config.visualisation.height.objects,
+            -config.visualisation.height.objects,
             event.position.y,
         ));
 

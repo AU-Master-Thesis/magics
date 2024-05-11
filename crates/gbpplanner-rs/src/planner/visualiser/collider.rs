@@ -53,6 +53,8 @@ mod robot_colliders {
 }
 
 mod environment_colliders {
+    use gbp_environment::Environment;
+
     use super::*;
     pub(super) fn enabled(config: Res<Config>) -> bool {
         config.visualisation.draw.environment_colliders
@@ -61,18 +63,22 @@ mod environment_colliders {
     pub(super) fn render(
         mut gizmos: Gizmos,
         env_colliders: Res<crate::environment::map_generator::Colliders>,
-        config: Res<Config>,
+        // config: Res<Config>,
+        env_config: Res<Environment>,
     ) {
-        let height = config.visualisation.height.objects;
+        // let height = config.visualisation.height.objects;
+        let height = -env_config.tiles.settings.obstacle_height;
+
         for collider in env_colliders.iter() {
             let aabb = collider.aabb();
             let center = aabb.center();
+            // let height
 
-            let translation = Vec3::new(center.x, height, center.y);
+            let translation = Vec3::new(center.x, height / 2.0, center.y);
             let half_extents = aabb.half_extents();
             let aabb = Transform {
                 translation,
-                scale: Vec3::new(half_extents.x * 2.0, 1.0, half_extents.y * 2.0),
+                scale: Vec3::new(half_extents.x * 2.0, height, half_extents.y * 2.0),
                 ..Default::default()
             };
             gizmos.cuboid(aabb, Color::ORANGE_RED);

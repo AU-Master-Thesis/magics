@@ -526,7 +526,8 @@ fn spawn_formation(
             );
 
             let initial_direction = initial_pose.yz().extend(0.0);
-            let initial_translation = Vec3::new(initial_pose.x, 0.5, initial_pose.y);
+            let initial_translation = Vec3::new(initial_pose.x, -1.5, initial_pose.y);
+            // let initial_translation = Vec3::new(initial_pose.x, -5.5, initial_pose.y);
 
             let mut entity = commands.spawn_empty();
             let robot_id = entity.id();

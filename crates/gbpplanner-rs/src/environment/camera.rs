@@ -8,7 +8,7 @@ use crate::{
 };
 
 // const CAMERA_UP: Vec3 = Vec3::NEG_Y;
-const CAMERA_UP: Vec3 = Vec3::Y;
+const CAMERA_UP: Vec3 = Vec3::Z;
 const CAMERA_INITIAL_TARGET: Vec3 = Vec3::ZERO;
 
 pub struct CameraPlugin;
@@ -35,27 +35,6 @@ impl Plugin for CameraPlugin {
             );
     }
 }
-
-// fn init_cam_settings(mut commands: Commands, config: Res<Config>) {
-//     commands.insert_resource(CameraSettings {
-//         speed: config.interaction.default_cam_distance / 10.0,
-//         angular_speed: 2.0,
-//         start_pos: Vec3::new(0.0, config.interaction.default_cam_distance,
-// 0.0),     });
-// }
-
-// impl FromWorld for CameraSettings {
-//     fn from_world(world: &mut World) -> Self {
-//         let config = world
-//             .get_resource::<Config>()
-//             .expect("Config resource is available in the ecs world");
-//         CameraSettings {
-//             speed: config.interaction.default_cam_distance / 10.0,
-//             angular_speed: 2.0,
-//             start_pos: Vec3::new(0.0,
-// config.interaction.default_cam_distance, 0.0),         }
-//     }
-// }
 
 /// **Bevy** [`Resource`] for the main camera's settings
 /// Is initialised partially from the [`Config`] resource, otherwise with some
@@ -106,16 +85,12 @@ pub mod events {
 pub struct MainCamera;
 
 impl MainCamera {
-    // pub const INITIALTRANSFORM: Transform = Transform {
-    //     translation: Vec3::Y * -Self::INITINAL_DISTANCE,
-    //     ..Default::default()
-    // }
-    // .looking_at(Vec3::ZERO, Vec3::Z);
-    pub const INITINAL_DISTANCE: f32 = 250.0;
+    // pub const INITINAL_DISTANCE: f32 = 250.0;
 
     pub fn initinal_transform() -> Transform {
         Transform {
-            translation: Vec3::Y * -Self::INITINAL_DISTANCE,
+            // translation: Vec3::Y * -Self::INITINAL_DISTANCE,
+            translation: Vec3::Y * -DEFAULT_CAMERA_DISTANCE,
             ..Default::default()
         }
         .looking_at(Vec3::ZERO, Vec3::Z)
@@ -150,17 +125,6 @@ impl CameraMovement {
 /// **Bevy** [`Startup`] system to spawn the main camera
 // fn spawn_main_camera(mut commands: Commands, config: Res<Config>) {
 fn spawn_main_camera(mut commands: Commands) {
-    // let default_cam_distance = 250.0;
-    // let transform = Transform {
-    //     translation: Vec3::Y * -default_cam_distance,
-    //     ..Default::default()
-    // }
-    // .looking_at(Vec3::ZERO, Vec3::Z);
-    // let transform = Transform::from_xyz(0.0, default_cam_distance, 0.0)
-    //     .looking_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
-
-    // transform.forward()
-
     commands.spawn((
         Camera3dBundle {
             transform: MainCamera::initinal_transform(),
@@ -188,8 +152,6 @@ fn reset_main_camera(
     let (mut transform, mut orbit) = main_camera.single_mut();
 
     *transform = MainCamera::initinal_transform();
-    // transform.translation = cam_settings.start_pos;
-    // transform.look_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
     orbit.origin = Vec3::ZERO;
 }
 

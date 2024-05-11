@@ -1,7 +1,7 @@
 # environment = "junction"
-environment_image = "empty"
-environment       = "./config/simulations/ClearCircle/environment.yaml"
-formation_group   = "./config/simulations/ClearCircle/formation.ron"
+environment_image = "circle_cluttered"
+environment       = "./config/simulations/Circle/environment.yaml"
+formation_group   = "./config/simulations/Circle/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
@@ -16,41 +16,43 @@ objects    = 0.5
 height-map = 1.0
 
 [visualisation.draw]
-robots                             = true
-communication-graph                = false
-predicted-trajectories             = true
-waypoints                          = false
-uncertainty                        = false
-paths                              = true
-generated-map                      = true
-height-map                         = false
-sdf                                = false
+robots                 = true
+communication-graph    = false
+predicted-trajectories = true
+waypoints              = false
+uncertainty            = false
+paths                  = true
+generated-map          = true
+# height-map                         = false
+sdf                                = true
 communication-radius               = false
 obstacle-factors                   = false
 tracking                           = false
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 robot-colliders                    = false
-environment-colliders              = false
+environment-colliders              = true
 robot-robot-collisions             = true
 robot-environment-collisions       = true
 
 [gbp]
-sigma-pose-fixed        = 0.000000000000001
-sigma-factor-dynamics   = 0.1
-sigma-factor-interrobot = 0.01
-sigma-factor-obstacle   = 0.01
+# sigma-pose-fixed        = 0.000000000000001
+sigma-pose-fixed        = 1e-15
+sigma-factor-dynamics   = 1.0
+sigma-factor-interrobot = 0.005
+sigma-factor-obstacle   = 0.005
 sigma-factor-tracking   = 0.1
 # iterations-per-timestep = 10
 lookahead-multiple = 3
+
 [gbp.iteration-schedule]
-internal = 10
+internal = 50
 external = 10
 schedule = "interleave-evenly"
 
 [robot]
 planning-horizon                       = 5.0
-max-speed                              = 4.0
+max-speed                              = 15.0
 dofs                                   = 4
 symmetric-factors                      = true
 inter-robot-safety-distance-multiplier = 2.2
@@ -60,11 +62,11 @@ min = 2.0
 max = 3.0
 
 [robot.communication]
-radius       = 40.0
+radius       = 50.0
 failure-rate = 0.0
 
 [simulation]
-t0                                        = 0.25
+t0                                        = 0.1
 max-time                                  = 10000.0
 time-scale                                = 1.0
 manual-step-factor                        = 1

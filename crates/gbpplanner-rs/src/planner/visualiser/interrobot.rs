@@ -28,6 +28,9 @@ fn visualize_interrobot_factors(
     q: Query<(&FactorGraph, &RadioAntenna)>,
     config: Res<Config>,
 ) {
+    // let height = 0.5f32;
+    let height = -config.visualisation.height.objects;
+
     for (factorgraph, antenna) in &q {
         for (variable, interrobot) in factorgraph.variable_and_inter_robot_factors() {
             let estimated_position = variable.estimated_position_vec2();
@@ -64,8 +67,6 @@ fn visualize_interrobot_factors(
                 // greyed out to indicate that the connection is not active/used
                 (Color::GRAY, Color::GRAY)
             };
-
-            let height = 0.5f32;
 
             if config.visualisation.draw.interrobot_factors {
                 let offset = 0.15; // 0.3 / 2.0;
