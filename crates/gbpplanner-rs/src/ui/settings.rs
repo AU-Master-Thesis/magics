@@ -327,12 +327,13 @@ fn ui_settings_panel(
                                 // let painter = ui.painter_at(max_rect);
                                 let schedule = config.gbp.iteration_schedule.schedule.get(schedule_config);
 
-                                let margin = 10.0;
+                                let margin_x = 5.0;
+                                let margin_y = 10.0;
                                 let stroke_width = 2.0;
                                 let line_gap = 5.0;
                                 let line_height = 5.0;
 
-                                let max_x = max_rect.width() - 2.0 * margin;
+                                let max_x = max_rect.width() - 2.0 * margin_x;
 
                                 let inbetween_width_max = 10.0;
                                 let inbetween_width_percentage = 0.2;
@@ -344,8 +345,8 @@ fn ui_settings_panel(
                                     cell_width = (max_x - (inbetween_width * (n - 1) as f32)) / n as f32;
                                 }
 
-                                let start_x = max_rect.left() + margin;
-                                let start_y = ui.cursor().top() + margin;
+                                let start_x = max_rect.left() + margin_x;
+                                let start_y = ui.cursor().top() + margin_y;
 
                                 let mut x = start_x;
                                 let mut y = start_y;

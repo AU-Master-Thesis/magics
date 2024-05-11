@@ -367,13 +367,11 @@ fn main() -> anyhow::Result<()> {
             // .set(log_plugin)
         )
         // third-party plugins
-        .add_plugins((bevy_egui::EguiPlugin,
+        .add_plugins((
+            bevy_egui::EguiPlugin,
             bevy_mod_picking::DefaultPickingPlugins,
-
-
+            bevy_rand::prelude::EntropyPlugin::<bevy_prng::WyRand>::default()
         ))
-        // TODO: use
-        // .add_plugins(EntropyPlugin::<WyRand>::default())
 
         // our plugins
         .add_plugins((
@@ -389,8 +387,8 @@ fn main() -> anyhow::Result<()> {
             planner::PlannerPlugin,
             bevy_notify::NotifyPlugin::default(),
             export::ExportPlugin::default(),
+            bevy_fullscreen::ToggleFullscreenPlugin::default()
         ))
-        .add_plugins(bevy_fullscreen::ToggleFullscreenPlugin::default())
         .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));
 
     if let Some(schedule) = cli.schedule_graph {

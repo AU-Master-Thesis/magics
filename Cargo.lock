@@ -1507,9 +1507,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_prng"
-version = "0.5.2"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "363f01df619fde5ee1d20573c9df9522d9194efdd4d5f792919f9738cb686765"
+checksum = "08497116068623556e67e59b0204f5d9d8e7a2d4fd378f87c9c798f7af93f236"
 dependencies = [
  "bevy",
  "rand_chacha",
@@ -1529,9 +1529,9 @@ checksum = "8050e2869fe341db6874203b5a01ff12673807a2c7c80cb829f6c7bea6997268"
 
 [[package]]
 name = "bevy_rand"
-version = "0.5.2"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e9cb3711c9ca8a2572c4544befda9a14893884842668bcecc82b84a7b51b730"
+checksum = "c98c3be37468a6008cf0bb392e3decff0fc062898570b0ea4543fa6e9355bf7a"
 dependencies = [
  "bevy",
  "bevy_prng",
@@ -3496,7 +3496,6 @@ dependencies = [
  "bevy_dev",
  "bevy_dev_console",
  "bevy_egui 0.26.0",
- "bevy_eventlistener",
  "bevy_fullscreen",
  "bevy_infinite_grid",
  "bevy_mod_debugdump",
@@ -8039,9 +8038,9 @@ dependencies = [
 
 [[package]]
 name = "wyrand"
-version = "0.1.6"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f3ee2fb243e75b43652f8b5ef347547bc82f10513dd7dacde806eb59d5ac5e7"
+checksum = "7dadc56f0dc130aa22c0d2fe303ccee3a2ad429c87d257642e96017920c66ed0"
 dependencies = [
  "rand_core",
  "serde",

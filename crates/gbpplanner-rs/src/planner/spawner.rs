@@ -1,4 +1,4 @@
-use std::{num::NonZeroUsize, time::Duration};
+use std::{num::NonZeroUsize, ops::DerefMut, time::Duration};
 
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
@@ -436,6 +436,7 @@ fn spawn_formation(
     sdf: Res<Sdf>,
     // obstacle_sdf: Res<ObstacleSdf>,
     // image_assets: ResMut<Assets<Image>>,
+    mut prng: ResMut<bevy_rand::prelude::GlobalEntropy<bevy_prng::WyRand>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     time_virtual: Res<Time<Virtual>>,
 ) {
@@ -447,24 +448,28 @@ fn spawn_formation(
         let formation = &formation_group.formations[event.formation_group_index];
 
         // TODO: check this gets reloaded correctly
+        // FIXME: use data from environment
         let world_dims = WorldDimensions::new(
             config.simulation.world_size.get().into(),
             config.simulation.world_size.get().into(),
         );
 
         // TODO: use random resource/component for reproducibility
-        let mut rng = rand::thread_rng();
+        // let mut rng = rand::thread_rng();
         let max_placement_attempts = NonZeroUsize::new(1000).expect("1000 is not zero");
 
         let radii = (0..formation.robots.get())
-            .map(|_| rng.gen_range(config.robot.radius.range()))
+            .map(|_| prng.gen_range(config.robot.radius.range()))
             .collect::<Vec<_>>();
 
         let Some((initial_position_for_each_robot, waypoint_positions_for_each_robot)) = formation
             .as_positions(
-                world_dims, &radii, // config.robot.radius,
-                // max_placement_attempts,
-                &mut rng,
+                world_dims,
+                &radii, /* config.robot.radius,
+                         * max_placement_attempts,
+                         * &mut prng.rng as &mut dyn Rng,
+                         * prng as &mut dyn Rng, */
+                prng.deref_mut(),
             )
         else {
             error!(
@@ -563,13 +568,9 @@ fn spawn_formation(
                 Visibility::Hidden
             };
 
-            // TODO: Make this depend on random seed
-            // let random_color = theme.into_display_iter().choose(&mut
-            // thread_rng()).expect(     "Choosing random colour from an
-            // iterator that is hard-coded with values should be \      ok.",
-            // );
             let random_color = DisplayColour::iter()
-                .choose(&mut thread_rng())
+                // .choose(&mut thread_rng())
+                .choose(prng.deref_mut())
                 .expect("there is more than 0 colors");
 
             let material = materials.add(StandardMaterial {

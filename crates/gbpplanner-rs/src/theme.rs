@@ -12,8 +12,6 @@ use bevy_egui::{
 };
 use bevy_infinite_grid::InfiniteGridSettings;
 use catppuccin::{Colour, Flavour, FlavourColours};
-// use colorgrad::{BlendMode, Color, CustomGradient};
-use strum_macros::EnumIter;
 
 use crate::{
     environment,
@@ -70,7 +68,7 @@ impl FromWorld for CatppuccinTheme {
     }
 }
 
-#[derive(EnumIter, Debug, Clone, Copy)]
+#[derive(strum_macros::EnumIter, Debug, Clone, Copy)]
 pub enum DisplayColour {
     Rosewater,
     Flamingo,

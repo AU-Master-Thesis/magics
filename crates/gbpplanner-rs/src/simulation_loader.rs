@@ -10,15 +10,18 @@ use bevy::{
 };
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use gbp_environment::Environment;
-use image::GenericImageView;
 use smol_str::SmolStr;
 
 use crate::config::{Config, FormationGroup};
 
+/// Which simulation to load initially
 #[derive(Debug, Default)]
 pub enum InitialSimulation {
+    /// Use the first simulation found in the `config/simulations` folder
+    /// Ordered lexiographically
     #[default]
     FirstFoundInFolder,
+    /// Use the simulation with the given name
     Name(String),
 }
 
@@ -662,6 +665,7 @@ fn handle_requests(
     mut environment: ResMut<Environment>,
     mut sdf: ResMut<Sdf>,
     mut raw: ResMut<Raw>,
+    mut rng: ResMut<bevy_rand::prelude::GlobalEntropy<bevy_prng::WyRand>>,
     reloadable_entities: Query<Entity, With<Reloadable>>,
 ) {
     let Some(request) = simulation_manager.requests.pop_front() else {
@@ -709,6 +713,8 @@ fn handle_requests(
             *environment = simulation_manager.simulations[id.0].environment.clone();
             *sdf = simulation_manager.simulations[id.0].sdf.clone();
             *raw = simulation_manager.simulations[id.0].raw.clone();
+            let seed: [u8; 8] = config.simulation.prng_seed.to_le_bytes();
+            rng.reseed(seed);
 
             evw_load_simulation.send(LoadSimulation(id));
             info!("sent load simulation event with id: {}", id.0);
@@ -747,6 +753,9 @@ fn handle_requests(
                         ..Default::default()
                     },
                 });
+
+                let seed: [u8; 8] = config.simulation.prng_seed.to_le_bytes();
+                rng.reseed(seed);
                 // evw_toast.send(ToastEvent::info("reloaded simulation"));
             }
             None => {

@@ -8,6 +8,8 @@ use bevy::{
     input::{keyboard::KeyboardInput, ButtonState},
     prelude::*,
 };
+use bevy_prng::WyRand;
+use bevy_rand::prelude::{EntropyComponent, ForkableRng, GlobalEntropy};
 use derive_more::Index;
 use gbp_linalg::prelude::*;
 use gbp_schedule::GbpSchedule;
@@ -914,11 +916,19 @@ fn create_interrobot_factors(
 /// any other robot. The probability of failure is set by the user in the config
 /// file. `config.robot.communication.failure_rate`
 /// Called `Simulator::setCommsFailure` in **gbpplanner**
-fn update_failed_comms(mut antennas: Query<&mut RadioAntenna>, config: Res<Config>) {
+fn update_failed_comms(
+    mut antennas: Query<&mut RadioAntenna>,
+    config: Res<Config>,
+    mut prng: ResMut<GlobalEntropy<WyRand>>,
+) {
     // fn update_failed_comms(mut query: Query<&mut RobotState>, config:
     // Res<Config>) {
     for mut antenna in &mut antennas {
-        antenna.active = config.robot.communication.failure_rate < rand::random::<f32>();
+        // prng.reseed(seed)
+
+        // antenna.active = config.robot.communication.failure_rate <
+        // rand::random::<f32>();
+        antenna.active = prng.gen_bool(config.robot.communication.failure_rate.into());
         // state.interrobot_comms_active =
         // config.robot.communication.failure_rate < rand::random::<f32>();
     }

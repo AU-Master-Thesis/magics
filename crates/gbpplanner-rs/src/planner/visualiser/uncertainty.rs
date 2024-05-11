@@ -1,17 +1,15 @@
 #![warn(missing_docs)]
 use bevy::prelude::*;
 
-// use gbp_linalg::pretty_print_matrix;
 use super::{RobotTracker, Z_FIGHTING_OFFSET};
 use crate::{
-    // asset_loader::SceneAssets,
     asset_loader::Materials,
     bevy_utils::run_conditions::event_exists,
     config::Config,
     factorgraph::prelude::FactorGraph,
     input::DrawSettingsEvent,
-    simulation_loader::{self, EndSimulation, ReloadSimulation},
-    theme::{self, CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
+    simulation_loader,
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
 /// Plugin that adds the functionality to visualise the position uncertainty of
@@ -30,6 +28,7 @@ impl Plugin for UncertaintyVisualiserPlugin {
                     show_or_hide_uncertainty.run_if(event_exists::<DrawSettingsEvent>),
                     // show_or_hide_uncertainty.run_if(event_exists::<DrawSetting<Uncertainty>>),
                     update_uncertainty.run_if(uncertainty_visualizer_enabled),
+                    // update_velocity_uncertainty,
                     // remove_all_uncertainty_visualisers.run_if(on_event::<ReloadSimulation>()),
                     // remove_all_uncertainty_visualisers.run_if(on_event::<EndSimulation>()),
                 ),
@@ -133,7 +132,6 @@ fn init_uncertainty(
                     config.visualisation.uncertainty.max_radius
                 } else {
                     a as f32
-                    // covariance.diag()[0] as f32
                 },
                 // pick `y` from the covariance diagonal, but cap it at 10.0
                 if half_minor_axis > 20.0 {
@@ -141,18 +139,12 @@ fn init_uncertainty(
                     config.visualisation.uncertainty.max_radius
                 } else {
                     c as f32
-                    // covariance.diag()[1] as f32
                 },
             ));
 
             let mut transform = Transform::from_translation(transform)
                 .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
             transform.rotate_y(angle);
-
-            // error!(
-            //     "{:?}: Initialising uncertainty at {:?}, with covariance {:?}",
-            //     entity, transform, covariance
-            // );
 
             let material = if attenable {
                 // scene_assets.materials.uncertainty.clone()
@@ -322,5 +314,31 @@ fn remove_all_uncertainty_visualisers(
 ) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+fn update_velocity_uncertainty(mut gizmos: Gizmos, q: Query<&FactorGraph>) {
+    for fgraph in &q {
+        for (_, v) in fgraph.variables() {
+            // let mean = v.belief.mean.view();
+            // covariance matrix
+            // [[_, _, _, _],
+            //  [_, _, _, _],
+            //  [_, _, x, _],
+            //  [_, _, _, y]]
+            let covariance = v.belief.covariance_matrix.view();
+
+            // Draw a velocity vector
+            let pos = v.estimated_position_vec2();
+            let vx = covariance[(2, 2)] * 300.0;
+            let vy = covariance[(3, 3)] * 300.0;
+
+            // dbg!(&covariance);
+
+            let start = Vec3::new(pos.x, 0.0, pos.y);
+            let end = Vec3::new(pos.x + vx as f32, 0.0, pos.y + vy as f32);
+            // dbg!((&start, &end));
+            gizmos.arrow(start, end, Color::RED);
+        }
     }
 }

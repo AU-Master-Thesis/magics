@@ -44,7 +44,7 @@ sigma-factor-tracking   = 0.1
 lookahead-multiple      = 3
 # iterations-per-timestep = 10
 [gbp.iteration-schedule]
-internal = 0
+internal = 5
 external = 0
 schedule = "centered"
 
@@ -57,8 +57,8 @@ inter-robot-safety-distance-multiplier = 5.2
 # radius            = 1.0
 
 [robot.radius]
-min = 1.0
-max = 2.0
+min = 2.0
+max = 3.0
 
 [robot.communication]
 radius       = 10.0
