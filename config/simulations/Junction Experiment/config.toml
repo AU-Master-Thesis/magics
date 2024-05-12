@@ -61,11 +61,10 @@ min = 2.0
 max = 2.0
 
 [robot.communication]
-radius       = 10.0
+radius       = 20.0
 failure-rate = 0.0
 
 [simulation]
-t0                                        = 0.25
 max-time                                  = 10000.0
 time-scale                                = 1.0
 manual-step-factor                        = 1

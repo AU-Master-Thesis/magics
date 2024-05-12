@@ -12,10 +12,7 @@ use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use gbp_environment::Environment;
 use smol_str::SmolStr;
 
-use crate::{
-    config::{Config, FormationGroup},
-    planner::robot::VariableTimesteps,
-};
+use crate::config::{Config, FormationGroup};
 
 /// Which simulation to load initially
 #[derive(Debug, Default)]
@@ -520,7 +517,7 @@ fn handle_requests(
     mut time_fixed: ResMut<Time<Fixed>>,
     // time_real: Res<Time<Real>>,
     mut config: ResMut<Config>,
-    mut variable_timesteps: ResMut<VariableTimesteps>,
+    // mut variable_timesteps: ResMut<VariableTimesteps>,
     mut environment: ResMut<Environment>,
     mut sdf: ResMut<Sdf>,
     mut raw: ResMut<Raw>,
@@ -576,7 +573,7 @@ fn handle_requests(
             *environment = simulation_manager.simulations[id.0].environment.clone();
             *sdf = simulation_manager.simulations[id.0].sdf.clone();
             *raw = simulation_manager.simulations[id.0].raw.clone();
-            *variable_timesteps = VariableTimesteps::from(config.as_ref());
+            // *variable_timesteps = VariableTimesteps::from(config.as_ref());
             let seed: [u8; 8] = config.simulation.prng_seed.to_le_bytes();
             rng.reseed(seed);
 

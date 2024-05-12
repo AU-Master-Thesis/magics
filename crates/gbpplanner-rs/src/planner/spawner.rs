@@ -4,11 +4,11 @@ use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_notify::ToastEvent;
 use itertools::Itertools;
-use rand::{seq::IteratorRandom, thread_rng, Rng};
+use rand::{seq::IteratorRandom, Rng};
 use strum::IntoEnumIterator;
 
 use super::{
-    robot::{RobotFinishedRoute, RobotSpawned, VariableTimesteps},
+    robot::{RobotFinishedRoute, RobotSpawned},
     RobotId,
 };
 use crate::{
@@ -420,7 +420,7 @@ fn spawn_formation(
     theme: Res<CatppuccinTheme>,
     // formation_group: Res<FormationGroup>,
     simulation_manager: Res<SimulationManager>,
-    variable_timesteps: Res<VariableTimesteps>,
+    // variable_timesteps: Res<VariableTimesteps>,
     // scene_assets: Res<SceneAssets>,
     meshes: Res<Meshes>,
     // obstacles: Res<Obstacles>,
@@ -542,11 +542,11 @@ fn spawn_formation(
             // let lookahead_horizon = (5.0 / 0.25) as u32;
             // let lookahead_multiple = 3;
 
-            // let lookahead_horizon: u32 =
-            // (config.robot.planning_horizon.get() / config.simulation.t0.get()) as u32;
-            // let lookahead_multiple = config.gbp.lookahead_multiple as u32;
-            // let variable_timesteps = get_variable_timesteps(lookahead_horizon,
-            // lookahead_multiple);
+            let t0: f32 = radii[i] / 2.0 / config.robot.max_speed.get();
+
+            let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / t0) as u32;
+            let lookahead_multiple = config.gbp.lookahead_multiple as u32;
+            let variable_timesteps = get_variable_timesteps(lookahead_horizon, lookahead_multiple);
 
             let robotbundle = RobotBundle::new(
                 robot_id,

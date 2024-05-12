@@ -344,10 +344,9 @@ impl DrawSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SimulationSection {
-    /// Time between current state and next state of planned path
-    /// SI unit: s
-    pub t0: PositiveFinite<f32>,
-
+    // /// Time between current state and next state of planned path
+    // /// SI unit: s
+    // pub t0: PositiveFinite<f32>,
     /// Maximum time after which the simulation will terminate
     /// SI unit: s
     pub max_time: StrictlyPositiveFinite<f32>,
@@ -385,7 +384,7 @@ pub struct SimulationSection {
 impl Default for SimulationSection {
     fn default() -> Self {
         Self {
-            t0: 0.25.try_into().expect("0.0 >= 0.0"),
+            // t0: 0.25.try_into().expect("0.0 >= 0.0"),
             max_time: 10000.0.try_into().expect("10000.0 > 0.0"),
             time_scale: 1.0.try_into().expect("1.0 > 0.0"),
             manual_step_factor: 1,

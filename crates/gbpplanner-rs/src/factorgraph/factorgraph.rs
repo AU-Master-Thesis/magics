@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::{Range, RangeBounds};
 
 use bevy::{
     ecs::{component::Component, entity::Entity},
@@ -434,28 +434,43 @@ impl FactorGraph {
         }
     }
 
-    /// Return an ordered interval of variables indices.
-    /// The indices are ordered by the order in which they are inserted into the
-    /// factorgraph. Returns `None`, if the end of the  **range** exceeds
-    /// the number of variables in the factorgraph.
-    pub fn variable_indices_ordered_by_creation(
-        &self,
-        range: Range<usize>,
-    ) -> Option<Vec<NodeIndex>> {
-        let within_range = range.end <= self.variable_indices.len();
-        if within_range {
-            Some(
-                self.variable_indices
-                    .iter()
-                    .skip(range.start)
-                    .take(range.end - range.start)
-                    .copied()
-                    .collect::<Vec<_>>(),
-            )
-        } else {
-            None
-        }
+    pub fn variable_indices_ordered_by_creation(&self) -> impl Iterator<Item = NodeIndex> + '_ {
+        self.variable_indices.iter().copied()
     }
+
+    // /// Return an ordered interval of variables indices.
+    // /// The indices are ordered by the order in which they are inserted into the
+    // /// factorgraph. Returns `None`, if the end of the  **range** exceeds
+    // /// the number of variables in the factorgraph.
+    // pub fn variable_indices_ordered_by_creation<R: RangeBounds<usize>>(
+    //     &self,
+    //     range: R, // range: Range<usize>,
+    // ) -> Option<Vec<NodeIndex>> {
+    //     let start = match range.start_bound() {
+    //         std::ops::Bound::Included(start) => *start,
+    //         std::ops::Bound::Excluded(_) => unreachable!(),
+    //         std::ops::Bound::Unbounded => 0,
+    //     };
+    //     let end = match range.end_bound() {
+    //         std::ops::Bound::Included(end) => end + 1,
+    //         std::ops::Bound::Excluded(end) => *end,
+    //         std::ops::Bound::Unbounded => self.variable_indices.len(),
+    //     };
+    //
+    //     let within_range = range.end <= self.variable_indices.len();
+    //     if within_range {
+    //         Some(
+    //             self.variable_indices
+    //                 .iter()
+    //                 .skip(range.start)
+    //                 .take(range.end - range.start)
+    //                 .copied()
+    //                 .collect::<Vec<_>>(),
+    //         )
+    //     } else {
+    //         None
+    //     }
+    // }
 
     /// Change the prior of the variable with the given index
     /// Returns the messages to send to any external factors connected to it, if

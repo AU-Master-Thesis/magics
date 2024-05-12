@@ -1,7 +1,7 @@
 formations:
 - repeat:
     every:
-      secs: 3
+      secs: 5
       nanos: 0
     times: !finite 10
   delay:
@@ -28,7 +28,7 @@ formations:
 
 - repeat:
     every:
-      secs: 2
+      secs: 4
       nanos: 0
     times: !finite 10
   delay:
@@ -55,7 +55,7 @@ formations:
 
 - repeat:
     every:
-      secs: 3
+      secs: 5
       nanos: 0
     times: !finite 10
   delay:
@@ -82,7 +82,7 @@ formations:
 
 - repeat:
     every:
-      secs: 2
+      secs: 4
       nanos: 0
     times: !finite 10
   delay:
