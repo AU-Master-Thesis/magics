@@ -158,6 +158,7 @@ pub enum DrawSetting {
     RobotRobotCollisions,
     EnvironmentColliders,
     RobotEnvironmentCollisions,
+    InfiniteGrid,
 }
 
 // TODO: store in a bitset
@@ -183,6 +184,7 @@ pub struct DrawSection {
     pub environment_colliders: bool,
     pub robot_robot_collisions: bool,
     pub robot_environment_collisions: bool,
+    pub infinite_grid: bool,
 }
 
 impl Default for DrawSection {
@@ -206,6 +208,7 @@ impl Default for DrawSection {
             environment_colliders: false,
             robot_robot_collisions: false,
             robot_environment_collisions: false,
+            infinite_grid: true,
         }
     }
 }
@@ -231,6 +234,7 @@ impl DrawSection {
             "environment_colliders" => "Environment Colliders",
             "robot_robot_collisions" => "Robot-Robot Collisions",
             "robot_environment_collisions" => "Robot-Environment Collisions",
+            "infinite_grid" => "Infinite Grid",
             _ => "Unknown",
         }
     }

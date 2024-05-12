@@ -1149,7 +1149,15 @@ fn iterate_gbp_external_sync(
 }
 
 fn iterate_gbp_v2(
-    mut query: Query<(Entity, &mut FactorGraph, &GbpIterationSchedule), With<RobotState>>,
+    mut query: Query<
+        (
+            Entity,
+            &mut FactorGraph,
+            &GbpIterationSchedule,
+            &RadioAntenna,
+        ),
+        With<RobotState>,
+    >,
     config: Res<Config>,
 ) {
     let schedule_config = gbp_schedule::GbpScheduleConfig {
@@ -1160,7 +1168,7 @@ fn iterate_gbp_v2(
 
     for gbp_schedule::GbpScheduleAtTimestep { internal, external } in schedule {
         if internal {
-            query.par_iter_mut().for_each(|(_, mut factorgraph, _)| {
+            query.par_iter_mut().for_each(|(_, mut factorgraph, _, _)| {
                 factorgraph.internal_factor_iteration();
                 factorgraph.internal_variable_iteration();
             });
@@ -1168,17 +1176,24 @@ fn iterate_gbp_v2(
 
         if external {
             let mut messages_to_external_variables = vec![];
-            for (_, mut factorgraph, _) in query.iter_mut() {
+            for (_, mut factorgraph, _, antenna) in query.iter_mut() {
+                if !antenna.active {
+                    continue;
+                }
                 messages_to_external_variables
                     .extend(factorgraph.external_factor_iteration().drain(..));
             }
 
             // Send messages to external variables
             for message in messages_to_external_variables.into_iter() {
-                let (_, mut external_factorgraph, _) =
+                let (_, mut external_factorgraph, _, antenna) =
                     query.get_mut(message.to.factorgraph_id).expect(
                         "the factorgraph_id of the receiving variable should exist in the world",
                     );
+
+                if !antenna.active {
+                    continue;
+                }
                 if let Some(variable) =
                     external_factorgraph.get_variable_mut(message.to.variable_index)
                 {
@@ -1187,16 +1202,24 @@ fn iterate_gbp_v2(
             }
 
             let mut messages_to_external_factors = vec![];
-            for (_, mut factorgraph, _) in query.iter_mut() {
+            for (_, mut factorgraph, _, antenna) in query.iter_mut() {
+                if !antenna.active {
+                    continue;
+                }
                 messages_to_external_factors
                     .extend(factorgraph.external_variable_iteration().drain(..));
             }
 
             // Send messages to external factors
             for message in messages_to_external_factors.into_iter() {
-                let (_, mut external_factorgraph, _) = query
+                let (_, mut external_factorgraph, _, antenna) = query
                     .get_mut(message.to.factorgraph_id)
                     .expect("the factorgraph_id of the receiving factor should exist in the world");
+
+                if !antenna.active {
+                    continue;
+                }
+
                 if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
                     factor.receive_message_from(message.from, message.message);
                 }

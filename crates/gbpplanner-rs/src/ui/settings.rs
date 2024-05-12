@@ -5,6 +5,7 @@ use bevy_egui::{
     egui::{self, Color32, Context, RichText},
     EguiContext, EguiContexts,
 };
+use bevy_infinite_grid::InfiniteGrid;
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
 use bevy_notify::ToastEvent;
 use catppuccin::Colour;
@@ -620,6 +621,9 @@ fn ui_settings_panel(
                         ui.end_row();
                     });
 
+                    ui.add_space(2.5);
+                    ui.separator();
+
                     // egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
                     custom::grid("draw_grid", 2).show(ui, |ui| {
                         // CONFIG DRAW SECTION
@@ -662,6 +666,11 @@ fn ui_settings_panel(
                             ui.end_row();
                         }
 
+                    });
+
+                    ui.add_space(2.5);
+                    ui.add(egui::Separator::default().shrink(20.0));
+                    custom::grid("special_draw_grid", 2).show(ui, |ui| {
                         // GIZMOS
                         let (gizmo_config, _) =
                             config_store.config_mut::<DefaultGizmoConfigGroup>();
@@ -669,7 +678,23 @@ fn ui_settings_panel(
                         custom::float_right(ui, |ui| {
                             custom::toggle_ui(ui, &mut gizmo_config.enabled);
                         });
+
+                        ui.end_row();
+
+                        // INFINITE GRID
+                        let mut query = world.query::<(&mut Visibility, &InfiniteGrid)>();
+                        if let Ok((mut visibility, infinite_grid)) = query.get_single_mut(world) {
+                            ui.label("Infinite Grid");
+                            custom::float_right(ui, |ui| {
+                                let mut visible = Visibility::Hidden != *visibility;
+                                let response = custom::toggle_ui(ui, &mut visible);
+                                if response.changed() {
+                                    *visibility = if visible { Visibility::Visible } else { Visibility::Hidden };
+                                }
+                            });
+                        }
                     });
+
 
                     custom::subheading(
                         ui,

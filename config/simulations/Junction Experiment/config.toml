@@ -34,6 +34,7 @@ robot-colliders                    = false
 environment-colliders              = false
 robot-robot-collisions             = false
 robot-environment-collisions       = false
+infinite-grid                      = true
 
 
 [gbp]
@@ -50,7 +51,7 @@ external = 10
 schedule = "interleave-evenly"
 
 [robot]
-planning-horizon                       = 5.0
+planning-horizon                       = 2.0
 max-speed                              = 15.0
 dofs                                   = 4
 symmetric-factors                      = true
@@ -68,7 +69,7 @@ failure-rate = 0.0
 max-time                                  = 10000.0
 time-scale                                = 1.0
 manual-step-factor                        = 1
-hz                                        = 30.0
+hz                                        = 10.0
 world-size                                = 100.0
 prng-seed                                 = 2
 pause-on-spawn                            = false
