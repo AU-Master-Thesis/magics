@@ -2,7 +2,7 @@ use std::{path::Path, time::Duration};
 
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_egui::{
-    egui::{self, Color32, Context, RichText, Stroke},
+    egui::{self, Color32, Context, RichText},
     EguiContext, EguiContexts,
 };
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
@@ -561,52 +561,63 @@ fn ui_settings_panel(
                         )),
                     );
 
-                    custom::grid("draw_special_grid", 3).show(ui, |ui| {
-
+                    custom::grid("draw_special_grid", 4).show(ui, |ui| {
                         custom::fill_x(ui, |ui| {
-                    if ui.button("None").clicked() {
-                        let events = config.visualisation.draw
-                            .iter()
-                            .filter_map(|(name, _value)| name.parse::<DrawSetting>().ok())
-                            .map(|setting| DrawSettingsEvent {setting, draw: false} );
-                        world.send_event_batch(events);
+                            if ui.button("None").clicked() {
+                                let events = config.visualisation.draw
+                                    .iter()
+                                    .filter_map(|(name, _value)| name.parse::<DrawSetting>().ok())
+                                    .map(|setting| DrawSettingsEvent {setting, draw: false} );
+                                world.send_event_batch(events);
 
-                        config.visualisation.draw = DrawSection::all_disabled();
-                    }
-
+                                config.visualisation.draw = DrawSection::all_disabled();
+                            }
                         });
-
                         custom::fill_x(ui, |ui| {
-                    if ui.button("All").clicked() {
-                        let events = config.visualisation.draw
-                            .iter()
-                            .filter_map(|(name, _value)| name.parse::<DrawSetting>().ok())
-                            .map(|setting| DrawSettingsEvent {setting, draw: true} );
-                        world.send_event_batch(events);
+                            if ui.button("All").clicked() {
+                                let events = config.visualisation.draw
+                                    .iter()
+                                    .filter_map(|(name, _value)| name.parse::<DrawSetting>().ok())
+                                    .map(|setting| DrawSettingsEvent {setting, draw: true} );
+                                world.send_event_batch(events);
 
-                        config.visualisation.draw = DrawSection::all_enabled();
-                    }
+                                config.visualisation.draw = DrawSection::all_enabled();
+                            }
                         });
-
                         custom::fill_x(ui, |ui| {
-                    if ui.button("Flip").clicked() {
-                        let events = config.visualisation.draw
-                            .iter()
-                            .filter_map(|(name, value)|{
-                                if let (Ok(setting), Some(value)) = (name.parse::<DrawSetting>(), value.downcast_ref::<bool>()) {
-                                    Some(DrawSettingsEvent {setting, draw: !value })
-                                } else {
-                                    None
-                                }
-                            });
-                        world.send_event_batch(events);
+                            if ui.button("Flip").clicked() {
+                                let events = config.visualisation.draw
+                                    .iter()
+                                    .filter_map(|(name, value)|{
+                                        if let (Ok(setting), Some(value)) = (name.parse::<DrawSetting>(), value.downcast_ref::<bool>()) {
+                                            Some(DrawSettingsEvent {setting, draw: !value })
+                                        } else {
+                                            None
+                                        }
+                                    });
+                                world.send_event_batch(events);
 
-                        config.visualisation.draw.flip_all();
-                    }
+                                config.visualisation.draw.flip_all();
+                            }
+                        });
+                        custom::fill_x(ui, |ui| {
+                            if ui.button("Reset").clicked() {
+                                let unmodified_draw_section = simulation_manager.active().map(|sim| &sim.config.visualisation.draw).unwrap();
+                                let events = unmodified_draw_section
+                                    .iter()
+                                    .filter_map(|(name, value)|{
+                                        if let (Ok(setting), Some(value)) = (name.parse::<DrawSetting>(), value.downcast_ref::<bool>()) {
+                                            Some(DrawSettingsEvent {setting, draw: *value })
+                                        } else {
+                                            None
+                                        }
+                                    });
+                                world.send_event_batch(events);
+                                config.visualisation.draw = *unmodified_draw_section;
+                            }
                         });
 
                         ui.end_row();
-
                     });
 
                     // egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
