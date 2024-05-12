@@ -360,8 +360,9 @@ fn main() -> anyhow::Result<()> {
 
     // TODO: load from sim loader instead
     // app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
-    let hz = 60.0;
-    app.insert_resource(Time::<Fixed>::from_hz(hz))
+    // let hz = 60.0;
+    // app.insert_resource(Time::<Fixed>::from_hz(hz))
+    app
         // bevy builtin plugins
         .add_plugins(DefaultPlugins
             .set(window_plugin)

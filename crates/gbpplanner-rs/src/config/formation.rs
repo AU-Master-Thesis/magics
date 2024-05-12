@@ -10,6 +10,7 @@ use std::{
 use bevy::{ecs::system::Resource, math::Vec2};
 use itertools::Itertools;
 use min_len_vec::{one_or_more, OneOrMore};
+use num_traits::{Saturating, SaturatingMul};
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
@@ -223,12 +224,19 @@ impl Default for Formation {
 
 impl Formation {
     pub fn robots_to_spawn(&self) -> usize {
-        // FIXME(kpbaks): handle of 1 by in repeat count
-        self.robots.get()
-            * (0 + self.repeat.map_or(0, |repeat| match repeat.times {
-                RepeatTimes::Infinite => unreachable!("ehh ..."),
-                RepeatTimes::Finite(times) => times,
-            }))
+        let times = self.repeat.map_or(1, |repeat| match repeat.times {
+            RepeatTimes::Infinite => usize::MAX,
+            RepeatTimes::Finite(times) => times,
+        });
+        self.robots.get().saturating_mul(times)
+        // self.robots.get().saturating_mul(rhs)
+        // // FIXME(kpbaks): handle of 1 by in repeat count
+        // dbg!(&self.robots);
+        // self.robots.get()
+        //     * (self.repeat.map_or(0, |repeat| match repeat.times {
+        //       RepeatTimes::Infinite => unreachable!("ehh ..."),
+        //       RepeatTimes::Finite(times) => times,
+        //     }))
     }
 
     /// Return a new `Formation` matching the used in the **gbpplanner** paper
@@ -675,7 +683,8 @@ impl FormationGroup {
         self.formations
             .iter()
             .map(Formation::robots_to_spawn)
-            .sum::<usize>()
+            .inspect(|it| println!("  {}", it))
+            .fold(0usize, |acc, it| acc.saturating_add(it))
     }
 
     pub fn circle_from_paper() -> Self {

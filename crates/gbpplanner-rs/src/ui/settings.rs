@@ -714,7 +714,7 @@ fn ui_settings_panel(
                         custom::rect_label(
                             ui,
                             format!(
-                                "{:.2} / {:.2}",
+                                "{:.2} / {:.2} s",
                                 time_virtual.elapsed_seconds(),
                                 config.simulation.max_time.get()
                             ),
@@ -725,7 +725,6 @@ fn ui_settings_panel(
                         ui.label("Δt");
                         let dt = time_fixed.delta_seconds();
                         let hz = (1.0 / dt).ceil() as u32;
-                        // custom::rect_label(ui, format!("{:.4} s = {:.4} Hz", dt, hz), None);
                         custom::rect_label(ui, format!("{:.4} s = {} Hz", dt, hz), None);
                         ui.end_row();
 
@@ -741,7 +740,6 @@ fn ui_settings_panel(
                                 .show_value(true),
                         );
                         if slider_response.drag_released() || slider_response.lost_focus() {
-                            // time.set_time_scale(config.simulation.time_scale);
                             info!("time scale changed: {}", config.simulation.time_scale);
                             time_virtual.set_relative_speed(config.simulation.time_scale.get());
                         }

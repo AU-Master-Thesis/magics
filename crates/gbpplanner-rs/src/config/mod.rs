@@ -236,55 +236,77 @@ impl DrawSection {
     }
 
     pub fn all_disabled() -> Self {
-        Self {
-            communication_graph: false,
-            predicted_trajectories: false,
-            waypoints: false,
-            uncertainty: false,
-            paths: false,
-            generated_map: false,
-            // height_map: false,
-            sdf: false,
-            communication_radius: false,
-            robots: false,
-            tracking: false,
-            obstacle_factors: false,
-            interrobot_factors: false,
-            interrobot_factors_safety_distance: false,
-            robot_colliders: false,
-            environment_colliders: false,
-            robot_robot_collisions: false,
-            robot_environment_collisions: false,
+        // Self {
+        //     communication_graph: false,
+        //     predicted_trajectories: false,
+        //     waypoints: false,
+        //     uncertainty: false,
+        //     paths: false,
+        //     generated_map: false,
+        //     // height_map: false,
+        //     sdf: false,
+        //     communication_radius: false,
+        //     robots: false,
+        //     tracking: false,
+        //     obstacle_factors: false,
+        //     interrobot_factors: false,
+        //     interrobot_factors_safety_distance: false,
+        //     robot_colliders: false,
+        //     environment_colliders: false,
+        //     robot_robot_collisions: false,
+        //     robot_environment_collisions: false,
+        // }
+
+        let mut instance = Self::default();
+        let copy = instance;
+
+        for (name, _) in copy.iter() {
+            if let Some(field) = instance.get_field_mut::<bool>(name) {
+                *field = false;
+            }
         }
+
+        instance
     }
 
     pub fn all_enabled() -> Self {
-        Self {
-            communication_graph: true,
-            predicted_trajectories: true,
-            waypoints: true,
-            uncertainty: true,
-            paths: true,
-            generated_map: true,
-            // height_map: true,
-            sdf: true,
-            communication_radius: true,
-            robots: true,
-            tracking: true,
-            obstacle_factors: true,
-            interrobot_factors: true,
-            interrobot_factors_safety_distance: true,
-            robot_colliders: true,
-            environment_colliders: true,
-            robot_robot_collisions: true,
-            robot_environment_collisions: true,
+        // Self {
+        //     communication_graph: true,
+        //     predicted_trajectories: true,
+        //     waypoints: true,
+        //     uncertainty: true,
+        //     paths: true,
+        //     generated_map: true,
+        //     // height_map: true,
+        //     sdf: true,
+        //     communication_radius: true,
+        //     robots: true,
+        //     tracking: true,
+        //     obstacle_factors: true,
+        //     interrobot_factors: true,
+        //     interrobot_factors_safety_distance: true,
+        //     robot_colliders: true,
+        //     environment_colliders: true,
+        //     robot_robot_collisions: true,
+        //     robot_environment_collisions: true,
+        // }
+
+        let mut instance = Self::default();
+        let copy = instance;
+
+        for (name, _) in copy.iter() {
+            if let Some(field) = instance.get_field_mut::<bool>(name) {
+                *field = true;
+            }
         }
+
+        instance
     }
 
     pub fn flip_all(&mut self) {
         let copy = *self;
 
-        copy.iter().for_each(|(name, value)| {
+        copy.iter().for_each(|(name, _)| {
             // if let Some(value) = value.downcast_ref::<bool>() {
             if let Some(field) = self.get_field_mut::<bool>(name) {
                 *field = !*field;

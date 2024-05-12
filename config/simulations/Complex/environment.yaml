@@ -9,7 +9,7 @@ tiles:
   - '          '
   settings:
     tile-size: 25.0
-    path-width: 0.6
+    path-width: 0.5
     obstacle-height: 1.0
     sdf:
       expansion: 0.1

@@ -8,7 +8,7 @@ use rand::{seq::IteratorRandom, thread_rng, Rng};
 use strum::IntoEnumIterator;
 
 use super::{
-    robot::{RobotFinishedPath, RobotSpawned, VariableTimesteps},
+    robot::{RobotFinishedRoute, RobotSpawned, VariableTimesteps},
     RobotId,
 };
 use crate::{
@@ -25,6 +25,7 @@ use crate::{
         self, EndSimulation, LoadSimulation, ReloadSimulation, Sdf, SimulationManager,
     },
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
+    utils::get_variable_timesteps,
 };
 
 pub struct RobotSpawnerPlugin;
@@ -74,14 +75,15 @@ pub struct AllFormationsFinished;
 fn track_score(
     mut scoreboard: ResMut<Scoreboard>,
     // mut evr_robot_despawned: EventReader<RobotDespawned>,
-    mut evr_robot_finished_path: EventReader<RobotFinishedPath>,
+    mut evr_robot_finished_route: EventReader<RobotFinishedRoute>,
     spawners: Query<&FormationSpawner>,
     mut evw_formations_finished: EventWriter<AllFormationsFinished>,
 ) {
-    for RobotFinishedPath(_) in evr_robot_finished_path.read() {
-        if scoreboard.robots_left > 0 {
-            scoreboard.robots_left -= 1;
-        }
+    for RobotFinishedRoute(_) in evr_robot_finished_route.read() {
+        scoreboard.robots_left = scoreboard.robots_left.saturating_sub(1);
+        // if scoreboard.robots_left > 0 {
+        //     scoreboard.robots_left -= 1;
+        // }
     }
 
     if scoreboard.robots_left == 0
@@ -97,18 +99,14 @@ fn notify_on_all_formations_finished(
     mut evw_toast: EventWriter<ToastEvent>,
     time_virtual: Res<Time<Virtual>>,
     time_real: Res<Time<Real>>,
-    // mut last_t_real: Local<f32>,
 ) {
     let caption = format!(
         "all formations finished after {} seconds (virtual), {} (real)",
         time_virtual.elapsed_seconds(),
         time_real.elapsed_seconds(),
-        // time_real.elapsed_seconds() - *last_t_real
     );
     let toast = ToastEvent::info(caption);
     evw_toast.send(toast);
-
-    // *last_t_real = time_real.elapsed_seconds();
 }
 
 /// run criteria if time is not paused
@@ -346,23 +344,16 @@ fn create_formation_group_spawners(
         return;
     };
 
-    // let mut robots_to_spawn = 0;
     let robots_to_spawn = formation_group.robots_to_spawn();
-    dbg!(robots_to_spawn);
+    // dbg!(&formation_group);
+    // dbg!(robots_to_spawn);
 
     for (i, formation) in formation_group.formations.iter().enumerate() {
         #[allow(clippy::option_if_let_else)] // find it more readable with a match here
-
-        // let timer = match formation.repeat {
-        //      Some(duration) => Timer::new(duration, TimerMode::Repeating),
-        //      None => Timer::from_seconds(0.1, TimerMode::Once),
-        //  };
         let repeating_timer = match formation.repeat {
             Some(repeat) => RepeatingTimer::new(repeat.every, repeat.times),
             None => RepeatingTimer::new(Duration::from_secs(0), RepeatTimes::ONCE),
         };
-
-        // let initial_delay = Timer::new(formation.delay, TimerMode::Once);
 
         info!(
             "spawning FormationSpawner[{i}] with delay {:?} and timer {:?}",
@@ -548,6 +539,15 @@ fn spawn_formation(
                 time_virtual.elapsed().as_secs_f64(),
             );
 
+            // let lookahead_horizon = (5.0 / 0.25) as u32;
+            // let lookahead_multiple = 3;
+
+            // let lookahead_horizon: u32 =
+            // (config.robot.planning_horizon.get() / config.simulation.t0.get()) as u32;
+            // let lookahead_multiple = config.gbp.lookahead_multiple as u32;
+            // let variable_timesteps = get_variable_timesteps(lookahead_horizon,
+            // lookahead_multiple);
+
             let robotbundle = RobotBundle::new(
                 robot_id,
                 StateVector::new(*initial_pose),
@@ -558,10 +558,6 @@ fn spawn_formation(
                 &sdf.0,
                 matches!(formation.planning_strategy, PlanningStrategy::RrtStar),
             );
-            // .expect(
-            //     "Possible `RobotInitError`s should be avoided due to the formation input
-            // being \      validated.",
-            // );
 
             let initial_visibility = if config.visualisation.draw.robots {
                 Visibility::Visible

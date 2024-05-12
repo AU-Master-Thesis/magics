@@ -16,21 +16,28 @@ pub struct ExportPlugin;
 
 impl Plugin for ExportPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<Export>().add_systems(
-            Update,
-            (
-                export,
-                send_default_export_event.run_if(
-                    input_just_pressed(KeyCode::F7)
-                        .or_else(on_event::<crate::planner::spawner::AllFormationsFinished>()),
+        app.add_event::<events::Export>()
+            .add_event::<events::SubmitRobotData>()
+            .init_resource::<SubmittedRobots>()
+            .add_systems(
+                Update,
+                (
+                    export,
+                    send_default_export_event.run_if(
+                        input_just_pressed(KeyCode::F7)
+                            .or_else(on_event::<crate::planner::spawner::AllFormationsFinished>()),
+                    ),
+                    submit_robot_data,
                 ),
-            ),
-        );
+            );
     }
 }
 
-fn send_default_export_event(mut evw_export: EventWriter<Export>) {
-    evw_export.send(Export::default());
+#[derive(Resource, Deref, DerefMut, Default)]
+struct SubmittedRobots(HashMap<Entity, RobotData>);
+
+fn send_default_export_event(mut evw_export: EventWriter<events::Export>) {
+    evw_export.send(events::Export::default());
 }
 
 #[derive(Debug, Clone, Default)]
@@ -40,14 +47,22 @@ pub enum ExportSaveLocation {
     Cwd,
 }
 
-#[derive(Event, Default)]
-pub struct Export {
-    pub save_at_location: ExportSaveLocation,
-    pub postfix: ExportSavePostfix,
+pub mod events {
+    use super::*;
+    #[derive(Event, Default)]
+    pub struct Export {
+        pub save_at_location: ExportSaveLocation,
+        pub postfix: ExportSavePostfix,
+    }
+
+    #[derive(Event)]
+    pub struct SubmitRobotData {
+        pub data: RobotData,
+    }
 }
 
 #[derive(serde::Serialize)]
-struct RobotData {
+pub struct RobotData {
     radius:     f32,
     positions:  Vec<[f32; 2]>,
     velocities: Vec<[f32; 2]>,
@@ -116,7 +131,7 @@ struct GbpData {
 }
 
 fn export(
-    mut evr_export: EventReader<Export>,
+    mut evr_export: EventReader<events::Export>,
     q_robots: Query<(
         Entity,
         &FactorGraph,
@@ -183,20 +198,11 @@ fn export(
         let robots: HashMap<_, _> = q_robots
             .iter()
             .map(|(entity, graph, positions, velocities, radius, route)| {
-                // let positions: Vec<[f32; 2]> = positions.positions().map(|pos| [pos.x,
-                // pos.z]).collect();
                 let positions: Vec<[f32; 2]> = positions.positions().map(Into::into).collect();
-                // let velocities: Vec<[f32; 2]> = velocities.velocities().map(|vel| [vel.x,
-                // vel.z]).collect();
                 let velocities: Vec<[f32; 2]> = velocities.velocities().map(Into::into).collect();
                 let robot_collisions = robot_collisions.get(entity).unwrap_or(0);
                 let environment_collisions = environment_collisions.get(entity).unwrap_or(0);
 
-                // let started_at = route.started_at();
-                // let finished_at = route
-                //     .finished_at()
-                //     .unwrap_or_else(|| time_virtual.elapsed_seconds_f64());
-                //
                 let id = format!("{:?}", entity);
                 let robot_data = RobotData {
                     radius: radius.0,
@@ -310,3 +316,5 @@ impl Default for ExportSavePostfix {
         }
     }
 }
+
+fn submit_robot_data(mut evr_submit_robot_data: EventReader<events::SubmitRobotData>) {}

@@ -12,7 +12,10 @@ use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use gbp_environment::Environment;
 use smol_str::SmolStr;
 
-use crate::config::{Config, FormationGroup};
+use crate::{
+    config::{Config, FormationGroup},
+    planner::robot::VariableTimesteps,
+};
 
 /// Which simulation to load initially
 #[derive(Debug, Default)]
@@ -426,152 +429,6 @@ fn reload_simulation(mut simulation_manager: ResMut<SimulationManager>) {
     simulation_manager.reload();
 }
 
-// fn reload_scene(world: &mut World, keyboard_input: Res<ButtonInput<KeyCode>>)
-// {
-// fn reload_simulation(world: &mut World) {
-//     // if !keyboard_input.any_pressed([KeyCode::F5]) {
-//     //     return;
-//     // }
-//
-//     let mut query = world.query_filtered::<Entity, With<Reloadable>>();
-//     let matching_entities = query.iter(world).collect::<Vec<Entity>>();
-//     let n_matching_entities = matching_entities.len();
-//
-//     info!("despawning reloadable entities in scene");
-//     for entity in matching_entities {
-//         world.despawn(entity);
-//     }
-//     info!(
-//         "reloadable entities in scene despawned: {}",
-//         n_matching_entities
-//     );
-//
-//     let new_virtual_clock = Time::<Virtual>::default();
-//     // let mut time = world.resource_mut::<Time<Virtual>>();
-//
-//     world.insert_resource::<Time<Virtual>>(new_virtual_clock);
-//
-//     world.send_event_default::<SimulationReloaded>();
-//
-//     // world.send_event::<ReloadSimulation>()
-//
-//     // time.pause();
-//
-//     // let time = time.bypass_change_detection();
-//     // *time = new_virtual_clock;
-//
-//     // let mut time = time.as_deref_mut();
-//
-//     // *time.as_deref_mut() = new_virtual_clock;
-//
-//     // time = new_virtual_clock;
-// }
-//
-// fn show_toast_when_simulation_reloads(mut evw_toast: EventWriter<ToastEvent>)
-// {     evw_toast.send(ToastEvent {
-//         caption: "reloaded simulation".into(),
-//         options: ToastOptions {
-//             level: ToastLevel::Success,
-//             closable: false,
-//             show_progress_bar: false,
-//             ..Default::default()
-//         },
-//     });
-// }
-//
-// fn show_toast_when_simulation_state_changes(
-//     mut evw_toast: EventWriter<ToastEvent>,
-//     state: Res<State<SimulationStates>>,
-// ) {
-//     evw_toast.send(ToastEvent {
-//         caption: "reloaded simulation".into(),
-//         options: ToastOptions {
-//             level: ToastLevel::Success,
-//             closable: false,
-//             show_progress_bar: false,
-//             ..Default::default()
-//         },
-//     });
-// }
-
-// fn reload_simulation(
-//     // mut evw_reload_simulation: EventWriter<SimulationReloaded>,
-//     // mut end_simulation: EventWriter<EndSimulation>,
-//     mut simulation_manager: ResMut<SimulationManager>,
-// ) {
-//     simulation_manager.reload();
-//     // info!("ending simulation");
-//     // end_simulation.send(EndSimulation(SimulationId(0)));
-// }
-
-// // TODO: use in app
-// #[derive(Debug, Default, States, PartialEq, Eq, Hash, Clone, Copy,
-// derive_more::IsVariant)] pub enum SimulationStates {
-//     #[default]
-//     Loading,
-//     Starting,
-//     Running,
-//     Paused,
-//     Reloading,
-//     Ended,
-//     // Finished,
-// }
-//
-// impl SimulationStates {
-//     fn transition(&mut self) {
-//         use SimulationStates::*;
-//         *self = match self {
-//             Loading => Starting,
-//             Starting => Running,
-//             Running => Running,
-//             Paused => Paused,
-//             Reloading => Loading,
-//             Ended => Ended,
-//         }
-//     }
-// }
-//
-// impl std::fmt::Display for SimulationStates {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             Self::Loading => write!(f, "Loading"),
-//             Self::Starting => write!(f, "Starting"),
-//             Self::Running => write!(f, "Running"),
-//             Self::Paused => write!(f, "Paused"),
-//             Self::Reloading => write!(f, "Reloading"),
-//             Self::Ended => write!(f, "Ended"),
-//         }
-//     }
-// }
-
-// fn load_simulation() {}
-
-// #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States)]
-// enum SimulationAssetStates {
-//     #[default]
-//     Loading,
-//     Loaded,
-// }
-
-// #[derive(serde::Deserialize, Asset, TypePath)]
-// pub struct CustomDynamicAssetCollection(HashMap<String,
-// SimulationDynamicAsset>);
-
-// impl DynamicAssetCollection for CustomDynamicAssetCollection {
-//     fn register(&self, dynamic_assets: &mut DynamicAssets) {
-//         for (key, asset) in self.0.iter() {
-//             dynamic_assets.register_asset(key, Box::new(asset.clone()));
-//         }
-//     }
-// }
-
-// #[derive(serde::Deserialize, Debug, Clone)]
-// enum SimulationDynamicAsset {
-//     Config,
-//     Environment,
-//     Formation,
-// }
-
 fn load_initial_simulation(
     // simulation_manager: Res<SimulationManager>,
     // mut evw_load_simulation: EventWriter<LoadSimulation>,
@@ -660,8 +517,10 @@ fn handle_requests(
     mut evw_end_simulation: EventWriter<EndSimulation>,
     mut evw_toast: EventWriter<ToastEvent>,
     mut time_virtual: ResMut<Time<Virtual>>,
-    mut time_real: ResMut<Time<Real>>,
+    mut time_fixed: ResMut<Time<Fixed>>,
+    // time_real: Res<Time<Real>>,
     mut config: ResMut<Config>,
+    mut variable_timesteps: ResMut<VariableTimesteps>,
     mut environment: ResMut<Environment>,
     mut sdf: ResMut<Sdf>,
     mut raw: ResMut<Raw>,
@@ -709,10 +568,15 @@ fn handle_requests(
             }
             simulation_manager.active = Some(id.0);
             // load config
+
+            // app.insert_resource(Time::<Fixed>::from_hz(hz))
+            *time_fixed = Time::<Fixed>::from_hz(config.simulation.hz);
             *config = simulation_manager.simulations[id.0].config.clone();
+            // config.simulation.t0 =
             *environment = simulation_manager.simulations[id.0].environment.clone();
             *sdf = simulation_manager.simulations[id.0].sdf.clone();
             *raw = simulation_manager.simulations[id.0].raw.clone();
+            *variable_timesteps = VariableTimesteps::from(config.as_ref());
             let seed: [u8; 8] = config.simulation.prng_seed.to_le_bytes();
             rng.reseed(seed);
 

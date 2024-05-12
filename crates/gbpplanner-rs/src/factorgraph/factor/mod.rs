@@ -258,10 +258,19 @@ impl FactorNode {
     /// Update the factor using the gbp message passing algorithm
     #[must_use]
     pub fn update(&mut self) -> MessagesToVariables {
-        debug_assert_eq!(
-            self.state.linearisation_point.len(),
-            DOFS * self.inbox.len()
-        );
+        // debug_assert_eq!(
+        //     self.state.linearisation_point.len(),
+        //     DOFS * self.inbox.len()
+        // );
+
+        // if self.state.linearisation_point.len() != DOFS * self.inbox.len() {
+        //     eprintln!(
+        //         "self.state.linearisation_point.len() = {}, DOFS * self.inbox.len() =
+        // {}",         self.state.linearisation_point.len(),
+        //         DOFS * self.inbox.len()
+        //     );
+        //     panic!("should not happen");
+        // }
 
         // // let chunks = self.state.linearisation_point.exact_chunks_mut(DOFS);
         // for chunk in

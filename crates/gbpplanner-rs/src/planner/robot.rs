@@ -50,7 +50,7 @@ impl Plugin for RobotPlugin {
             .insert_state(ManualModeState::Disabled)
             .add_event::<RobotSpawned>()
             .add_event::<RobotDespawned>()
-            .add_event::<RobotFinishedPath>()
+            .add_event::<RobotFinishedRoute>()
             .add_event::<RobotReachedWaypoint>()
             .add_event::<GbpScheduleChanged>()
             .add_systems(PreUpdate, start_manual_step.run_if(virtual_time_is_paused))
@@ -101,7 +101,7 @@ pub struct RobotDespawned(pub RobotId);
 
 /// Event emitted when a robot reached its final waypoint and finished its path
 #[derive(Debug, Event)]
-pub struct RobotFinishedPath(pub RobotId);
+pub struct RobotFinishedRoute(pub RobotId);
 
 /// Event emitted when a robot reaches a waypoint
 #[derive(Event)]
@@ -150,56 +150,84 @@ impl CreateVariableTimesteps for GbpplannerVariableTimesteps {
 
 // trait Foo: FnMut(usize) -> Vec<u32> {}
 
-/// Resource that stores the horizon timesteps sequence
-#[derive(Resource, Debug, Index)]
-pub struct VariableTimesteps {
-    #[index]
-    timesteps: Vec<u32>,
-}
+// #[derive(Component, Deref, DerefMut, derive_more::Index)]
+#[derive(Resource, Deref, DerefMut, derive_more::Index)]
+pub struct VariableTimesteps(pub Vec<u32>);
 
 impl VariableTimesteps {
-    // /// Returns the number of timesteps
+    /// Returns the number of timesteps
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 
-    // #[inline(always)]
-    // pub fn len(&self) -> usize {
-    //     self.timesteps.len()
+    // pub fn from_config(config: &Config) -> Self {
+    //     let lookahead_horizon: u32 =
+    //         (config.robot.planning_horizon.get() / config.simulation.t0.get()) as
+    // u32;     let lookahead_multiple = config.gbp.lookahead_multiple as u32;
+    //     Self(get_variable_timesteps(
+    //         lookahead_horizon,
+    //         lookahead_multiple,
+    //     ))
     // }
+}
 
-    /// Extracts a slice containing the entire vector.
-    #[inline(always)]
-    pub fn as_slice(&self) -> &[u32] {
-        self.timesteps.as_slice()
+impl From<&crate::config::Config> for VariableTimesteps {
+    fn from(config: &crate::config::Config) -> Self {
+        let lookahead_horizon: u32 =
+            (config.robot.planning_horizon.get() / config.simulation.t0.get()) as u32;
+        let lookahead_multiple = config.gbp.lookahead_multiple as u32;
+        Self(get_variable_timesteps(
+            lookahead_horizon,
+            lookahead_multiple,
+        ))
     }
 }
 
-// impl std::ops::Index<usize> for VariableTimesteps {
-//     type Output = u32;
-
-//     fn index(&self, index: usize) -> &Self::Output {
-//         &self.timesteps[index]
-//     }
-// }
-
 impl FromWorld for VariableTimesteps {
-    // TODO: refactor
     fn from_world(world: &mut World) -> Self {
-        // let config = world.resource::<Config>();
-
-        // let lookahead_horizon = config.robot.planning_horizon / config.simulation.t0;
-        let lookahead_horizon = 5.0 / 0.25;
-
-        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        // FIXME(kpbaks): read settings from config
-        Self {
-            timesteps: get_variable_timesteps(
-                // lookahead_horizon.get() as u32,
-                lookahead_horizon as u32,
-                // config.gbp.lookahead_multiple as u32,
-                3,
-            ),
+        if let Some(config) = world.get_resource::<crate::config::Config>() {
+            Self::from(config)
+        } else {
+            Self(vec![])
         }
     }
 }
+
+// /// Resource that stores the horizon timesteps sequence
+// #[derive(Resource, Debug, Index)]
+// pub struct VariableTimesteps {
+//     #[index]
+//     timesteps: Vec<u32>,
+// }
+//
+// impl VariableTimesteps {
+//     /// Extracts a slice containing the entire vector.
+//     #[inline(always)]
+//     pub fn as_slice(&self) -> &[u32] {
+//         self.timesteps.as_slice()
+//     }
+// }
+//
+// impl FromWorld for VariableTimesteps {
+//     // TODO: refactor
+//     fn from_world(world: &mut World) -> Self {
+//         // let config = world.resource::<Config>();
+//
+//         // let lookahead_horizon = config.robot.planning_horizon /
+// config.simulation.t0;         let lookahead_horizon = 5.0 / 0.25;
+//
+//         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+//         // FIXME(kpbaks): read settings from config
+//         Self {
+//             timesteps: get_variable_timesteps(
+//                 // lookahead_horizon.get() as u32,
+//                 lookahead_horizon as u32,
+//                 // config.gbp.lookahead_multiple as u32,
+//                 3,
+//             ),
+//         }
+//     }
+// }
 
 // #[derive(Debug, thiserror::Error)]
 // pub enum RobotInitError {
@@ -328,15 +356,29 @@ impl Route {
     }
 }
 
+/// Component for entities with a radio antenna
 #[derive(Component, Debug)]
 pub struct RadioAntenna {
+    /// The radius that the radio antenna can cover
     pub radius: f32,
+    /// Whether the antenna is currently active
     pub active: bool,
 }
 
 impl RadioAntenna {
+    /// Creates a new radio antenna.
     pub fn new(radius: f32, active: bool) -> Self {
         Self { radius, active }
+    }
+
+    /// Toggle the state of the antenna between on and off
+    pub fn toggle(&mut self) {
+        self.active = !self.active;
+    }
+
+    /// Check whether a given position is within the antenna's range
+    pub fn within_range(&self, position: Vec2) -> bool {
+        position.length() < self.radius
     }
 }
 
@@ -451,6 +493,7 @@ pub struct RobotBundle {
     /// Initial sate
     pub initial_state: StateVector,
 
+    // pub variable_timesteps: VariableTimesteps,
     /// Boolean component used to keep track of whether the robot has finished
     /// its path by reaching its final waypoint. This flag exists to ensure
     /// that the robot is not detected as having finished more than once.
@@ -518,6 +561,8 @@ impl RobotBundle {
         initial_state: StateVector,
         route: Route,
         variable_timesteps: &[u32],
+        // variable_timesteps: Vec<u32>,
+        // variable_timesteps: VariableTimesteps,
         config: &Config,
         radius: f32,
         sdf: &SdfImage,
@@ -584,12 +629,14 @@ impl RobotBundle {
             variable_node_indices.push(variable_index);
         }
 
+        let t0 = radius / 2.0 / config.robot.max_speed.get();
+
         // Create Dynamic factors between variables
         for i in 0..variable_timesteps.len() - 1 {
             // T0 is the timestep between the current state and the first planned state.
             #[allow(clippy::cast_precision_loss)]
-            let delta_t = config.simulation.t0.get()
-                * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
+            // let delta_t = config.simulation.t0.get()
+            let delta_t = t0 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
 
             let measurement = Vector::<Float>::zeros(config.robot.dofs.get());
 
@@ -670,6 +717,7 @@ impl RobotBundle {
             route,
             initial_state,
             finished_path: FinishedPath::default(),
+            // variable_timesteps,
             // gbp_iteration_schedule: GbpIterationSchedule::default(),
             gbp_iteration_schedule: GbpIterationSchedule(config.gbp.iteration_schedule),
         }
@@ -779,7 +827,13 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
 }
 
 fn create_interrobot_factors(
-    mut query: Query<(Entity, &mut FactorGraph, &mut RobotState, &Radius)>,
+    mut query: Query<(
+        Entity,
+        &mut FactorGraph,
+        &mut RobotState,
+        &Radius,
+        // &VariableTimesteps,
+    )>,
     config: Res<Config>,
     variable_timesteps: Res<VariableTimesteps>,
 ) {
@@ -799,7 +853,7 @@ fn create_interrobot_factors(
         })
         .collect();
 
-    let number_of_variables = variable_timesteps.timesteps.len();
+    let number_of_variables = variable_timesteps.len();
 
     let variable_indices_of_each_factorgraph: HashMap<RobotId, Vec<NodeIndex>> = query
         .iter()
@@ -826,9 +880,9 @@ fn create_interrobot_factors(
             for i in 1..number_of_variables {
                 let z = Vector::<Float>::zeros(DOFS);
                 // let eps = 0.2 * config.robot.radius.get();
-                let eps = 0.2 * radius.0;
+                // let eps = 0.2 * radius.0;
                 // let safety_radius = 2.0f32.mul_add(config.robot.radius.get(), eps);
-                let safety_radius = 2.0f32.mul_add(radius.0, eps);
+                // let safety_radius = 2.0f32.mul_add(radius.0, eps);
                 // TODO: should it be i - 1 or i?
                 let external_variable_id = ExternalVariableId::new(
                     *other_robot_id,
@@ -928,7 +982,7 @@ fn update_failed_comms(
 
         // antenna.active = config.robot.communication.failure_rate <
         // rand::random::<f32>();
-        antenna.active = prng.gen_bool(config.robot.communication.failure_rate.into());
+        antenna.active = !prng.gen_bool(config.robot.communication.failure_rate.into());
         // state.interrobot_comms_active =
         // config.robot.communication.failure_rate < rand::random::<f32>();
     }
@@ -1386,7 +1440,7 @@ fn update_prior_of_horizon_state(
         With<RobotState>,
     >,
     mut evw_robot_despawned: EventWriter<RobotDespawned>,
-    mut evw_robot_finalized_path: EventWriter<RobotFinishedPath>,
+    mut evw_robot_finalized_path: EventWriter<RobotFinishedRoute>,
     mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
     // PERF: we reuse the same vector between system calls
     // the vector is cleared between calls, by calling .drain(..) at the end of every call
@@ -1481,7 +1535,7 @@ fn update_prior_of_horizon_state(
 
     if !robots_to_despawn.is_empty() {
         evw_robot_finalized_path
-            .send_batch(robots_to_despawn.iter().copied().map(RobotFinishedPath));
+            .send_batch(robots_to_despawn.iter().copied().map(RobotFinishedRoute));
         if config.simulation.despawn_robot_when_final_waypoint_reached {
             evw_robot_despawned.send_batch(robots_to_despawn.into_iter().map(RobotDespawned));
         }
