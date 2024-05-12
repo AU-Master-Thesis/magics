@@ -640,7 +640,7 @@ impl RobotBundle {
             // let delta_t = config.simulation.t0.get()
             let delta_t = t0 * (variable_timesteps[i + 1] - variable_timesteps[i]) as f32;
 
-            let measurement = Vector::<Float>::zeros(config.robot.dofs.get());
+            let measurement = Vector::<Float>::zeros(DOFS);
 
             let dynamic_factor = FactorNode::new_dynamic_factor(
                 factorgraph.id(),
@@ -706,10 +706,6 @@ impl RobotBundle {
             }
         }
 
-        // FIXME: use global rng source/ or resource
-        // let mut rng = rand::thread_rng();
-        // let radius = rng.gen_range(config.robot.radius.range());
-
         Self {
             factorgraph,
             radius: Radius(radius),
@@ -720,8 +716,6 @@ impl RobotBundle {
             initial_state,
             finished_path: FinishedPath::default(),
             t0: T0(t0),
-            // variable_timesteps,
-            // gbp_iteration_schedule: GbpIterationSchedule::default(),
             gbp_iteration_schedule: GbpIterationSchedule(config.gbp.iteration_schedule),
         }
     }

@@ -1,7 +1,7 @@
 formations:
 - repeat:
     every:
-      secs: 5
+      secs: 3
       nanos: 0
     times: !finite 10
   delay:
@@ -19,12 +19,12 @@ formations:
       attempts: 1000
   waypoints:
   - shape: !line-segment
-    - x: 1.05
+    - x: 1.3
       y: 0.45
-    - x: 1.05
+    - x: 1.3
       y: 0.45
     projection-strategy: identity
-  waypoint-reached-when-intersects: current
+  waypoint-reached-when-intersects: horizon
 
 - repeat:
     every:
@@ -46,16 +46,16 @@ formations:
       attempts: 1000
   waypoints:
   - shape: !line-segment
-    - x: 1.05
+    - x: 1.3
       y: 0.55
-    - x: 1.05
+    - x: 1.3
       y: 0.55
     projection-strategy: identity
-  waypoint-reached-when-intersects: current
+  waypoint-reached-when-intersects: horizon
 
 - repeat:
     every:
-      secs: 5
+      secs: 3
       nanos: 0
     times: !finite 10
   delay:
@@ -74,11 +74,11 @@ formations:
   waypoints:
   - shape: !line-segment
     - x: 0.45
-      y: -0.05
+      y: -0.3
     - x: 0.45
-      y: -0.05
+      y: -0.3
     projection-strategy: identity
-  waypoint-reached-when-intersects: current
+  waypoint-reached-when-intersects: horizon
 
 - repeat:
     every:
@@ -101,8 +101,8 @@ formations:
   waypoints:
   - shape: !line-segment
     - x: 0.55
-      y: -0.05
+      y: -0.3
     - x: 0.55
-      y: -0.05
+      y: -0.3
     projection-strategy: identity
-  waypoint-reached-when-intersects: current
+  waypoint-reached-when-intersects: horizon

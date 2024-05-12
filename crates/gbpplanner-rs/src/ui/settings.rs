@@ -467,7 +467,7 @@ fn ui_settings_panel(
                                let slider_response = ui.add_enabled(
                                    time_virtual.is_paused(),
                                       egui::Slider::new(&mut safety_dist_multiplier, 1.0..=10.0)
-                                    // .suffix(" * radius")
+                                    .suffix("r")
                                     // .text(" * radius")
                                     .fixed_decimals(1)
                                     .trailing_fill(true));

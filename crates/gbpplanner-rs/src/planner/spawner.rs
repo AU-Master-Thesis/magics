@@ -417,6 +417,7 @@ fn spawn_formation(
     mut evw_waypoint_created: EventWriter<WaypointCreated>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<Config>,
+    env_config: Res<gbp_environment::Environment>,
     theme: Res<CatppuccinTheme>,
     // formation_group: Res<FormationGroup>,
     simulation_manager: Res<SimulationManager>,
@@ -440,10 +441,17 @@ fn spawn_formation(
 
         // TODO: check this gets reloaded correctly
         // FIXME: use data from environment
-        let world_dims = WorldDimensions::new(
-            config.simulation.world_size.get().into(),
-            config.simulation.world_size.get().into(),
-        );
+        // let world_dims = WorldDimensions::new(
+        //     config.simulation.world_size.get().into(),
+        //     config.simulation.world_size.get().into(),
+        // );
+
+        let world_dims = {
+            let tile_size = env_config.tiles.settings.tile_size as f64;
+            let width = tile_size * env_config.tiles.grid.ncols() as f64;
+            let height = tile_size * env_config.tiles.grid.nrows() as f64;
+            WorldDimensions::new(width, height)
+        };
 
         // TODO: use random resource/component for reproducibility
         // let mut rng = rand::thread_rng();
@@ -542,6 +550,8 @@ fn spawn_formation(
             // let lookahead_horizon = (5.0 / 0.25) as u32;
             // let lookahead_multiple = 3;
 
+            //     globals.T_HORIZON / globals.T0, globals.LOOKAHEAD_MULTIPLE);
+            // num_variables_ = variable_timesteps.size();
             let t0: f32 = radii[i] / 2.0 / config.robot.max_speed.get();
 
             let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / t0) as u32;

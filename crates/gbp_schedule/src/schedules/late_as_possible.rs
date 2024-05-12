@@ -2,38 +2,72 @@ use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIt
 
 pub struct LateAsPossible;
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct LateAsPossibleIter {
-    max: u8,
-    config: GbpScheduleConfig,
-    internal: Option<bool>,
-    external: Option<bool>,
-    i: u8,
+    // max: u8,
+    // config: GbpScheduleConfig,
+    // internal: Option<bool>,
+    // external: Option<bool>,
+    // i: u8,
+    iter: std::iter::Zip<private::LateAsPossibleIter, private::LateAsPossibleIter>,
+}
+
+mod private {
+
+    pub(super) struct LateAsPossibleIter {
+        n:     u8,
+        max:   u8,
+        index: u8,
+    }
+
+    impl LateAsPossibleIter {
+        pub fn new(n: u8, max: u8) -> Self {
+            assert!(n <= max, "n must be less than or equal to max");
+            Self { n, max, index: 0 }
+        }
+    }
+
+    impl Iterator for LateAsPossibleIter {
+        type Item = bool;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            if self.index >= self.max {
+                return None;
+            }
+
+            let result = if self.n == self.max {
+                true
+            } else if self.n == 0 {
+                false
+            } else {
+                self.index >= self.max - self.n
+            };
+
+            // let result = self.index >= self.n;
+            self.index += 1;
+            Some(result)
+        }
+    }
 }
 
 impl LateAsPossibleIter {
     pub fn new(config: GbpScheduleConfig) -> Self {
+        // use std::iter::repeat_n;
+        // let max = config.max() as usize;
         let max = config.max();
-        Self {
-            max,
-            config,
-            internal: if config.internal == max {
-                Some(true)
-            } else if config.internal == 0 {
-                Some(false)
-            } else {
-                None
-            },
-            external: if config.external == max {
-                Some(true)
-            } else if config.external == 0 {
-                Some(false)
-            } else {
-                None
-            },
-            // external: 0,
-            i: 0,
-        }
+        // let internal = if config.internal == 0 {
+        //     repeat_n(false, max)
+        // } else if config.external == max {
+        //     repeat_n(true, max)
+        // } else {
+        //     repeat_n(false, max - config.internal as usize)
+        //         .chain(repeat_n(true, config.internal as usize))
+        // };
+        let internal = private::LateAsPossibleIter::new(config.internal, max);
+        let external = private::LateAsPossibleIter::new(config.external, max);
+
+        let iter = internal.zip(external);
+        Self { iter }
     }
 }
 
@@ -41,16 +75,9 @@ impl std::iter::Iterator for LateAsPossibleIter {
     type Item = GbpScheduleAtTimestep;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.i < self.max {
-            let ts = Some(GbpScheduleAtTimestep {
-                internal: self.internal.unwrap_or(self.i >= self.config.internal),
-                external: self.external.unwrap_or(self.i >= self.config.external),
-            });
-            self.i += 1;
-            ts
-        } else {
-            None
-        }
+        self.iter
+            .next()
+            .map(|(internal, external)| GbpScheduleAtTimestep { internal, external })
     }
 }
 
@@ -99,6 +126,25 @@ mod tests {
             external: 6,
         };
         let mut schedule = LateAsPossible::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+        assert_eq!(schedule.next(), Some(ts(true, true)));
+
+        assert_eq!(schedule.next(), None);
+
+        let config = GbpScheduleConfig {
+            internal: 3,
+            external: 10,
+        };
+        let mut schedule = LateAsPossible::schedule(config);
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), Some(ts(false, true)));
+        assert_eq!(schedule.next(), Some(ts(false, true)));
         assert_eq!(schedule.next(), Some(ts(false, true)));
         assert_eq!(schedule.next(), Some(ts(false, true)));
         assert_eq!(schedule.next(), Some(ts(false, true)));
