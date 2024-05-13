@@ -43,7 +43,7 @@ pub trait DebugShape: shape::Shape + std::fmt::Debug {}
 
 impl DebugShape for shape::Cuboid {}
 
-// #[derive(Debug)]
+#[derive(Clone)]
 pub struct Collider {
     pub associated_mesh: Option<Entity>,
     pub isometry: Isometry2<f32>,
@@ -57,7 +57,7 @@ impl Collider {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone)]
 pub struct Colliders(Vec<Collider>);
 // pub struct Colliders(Vec<(Isometry2<f32>, Arc<dyn shape::Shape>)>);
 

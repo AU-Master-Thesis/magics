@@ -157,6 +157,8 @@ impl Plugin for SimulationLoaderPlugin {
         let initial_simulation_name = initial_simulation.name.clone();
 
         app
+            .add_plugins(
+                bevy_rand::prelude::EntropyPlugin::<bevy_prng::WyRand>::default())
             // .add_systems(Startup, load_initial_simulation)
             .insert_resource(config)
             .insert_resource(formation_group)

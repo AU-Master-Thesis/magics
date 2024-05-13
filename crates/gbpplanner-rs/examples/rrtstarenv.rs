@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use bevy::{
     prelude::*,
-    tasks::{AsyncComputeTaskPool, Task},
+    tasks::{futures_lite::future, AsyncComputeTaskPool, Task},
 };
 use bevy_infinite_grid::InfiniteGridSettings;
 use bevy_notify::NotifyPlugin;
@@ -27,50 +27,15 @@ use parry2d::{
 // use parry3d::shape;
 use rand::distributions::{Distribution, Uniform};
 
-const START: Vec2 = Vec2::new(-100.0 + 12.5, 62.5 - 2.0);
+const START: Vec2 = Vec2::new(-100.0 + 12.5, 62.5 - 12.5);
 const END: Vec2 = Vec2::new(100.0 - 12.5, -62.5 + 12.5);
 // const START: Vec2 = Vec2::new(0.0, 75.0 - 5.0);
 // const END: Vec2 = Vec2::new(0.0, -75.0 + 5.0);
 
 fn main() -> anyhow::Result<()> {
     better_panic::debug_install();
-
-    let cli = cli::parse_arguments();
-
-    let (config, formation, environment): (Config, FormationGroup, Environment) = if cli.default {
-        (
-            Config::default(),
-            FormationGroup::default(),
-            Environment::default(),
-        )
-    } else {
-        let config = read_config(cli.config.as_ref())?;
-        if let Some(ref inner) = cli.config {
-            println!(
-                "successfully read config from: {}",
-                inner.as_os_str().to_string_lossy()
-            );
-        }
-
-        let formation = FormationGroup::from_ron_file(&config.formation_group)?;
-        println!(
-            "successfully read formation config from: {}",
-            config.formation_group
-        );
-        let environment = Environment::from_file(&config.environment)?;
-        println!(
-            "successfully read environment config from: {}",
-            config.environment
-        );
-
-        (config, formation, environment)
-    };
-
     let mut app = App::new();
-    app.insert_resource(config)
-        .insert_resource(formation)
-        .insert_resource(environment)
-        .init_resource::<ChangingBinding>()
+    app.init_resource::<ChangingBinding>()
         .init_resource::<Path>()
         .init_resource::<RRTStarTree>()
         .add_event::<PathFoundEvent>()
@@ -93,6 +58,7 @@ fn main() -> anyhow::Result<()> {
             Startup,
             (
                 spawn_waypoints,
+                spawn_task_entity,
                 // init_path_info_text
             ),
         )
@@ -102,6 +68,7 @@ fn main() -> anyhow::Result<()> {
             (
                 trigger_rrt_event,
                 rrt_path,
+                check_pathfinding_task,
                 // update_path_length_text.run_if(on_event::<PathFoundEvent>()),
                 // update_waypoint_amount_text.run_if(on_event::<PathFoundEvent>()),
                 draw_tree_branches,
@@ -127,7 +94,7 @@ fn trigger_rrt_event(
         event_writer.send(TriggerRRTEvent);
     }
 
-    let collision_solver = CollisionProblem::new(Arc::new(&colliders));
+    // let collision_solver = CollisionProblem::new(Arc::new(&colliders));
 }
 
 /// **Bevy** [`Event`] to trigger RRT pathfinding
@@ -224,19 +191,19 @@ fn spawn_waypoints(
     mut meshes: ResMut<Assets<Mesh>>,
     theme: Res<CatppuccinTheme>,
 ) {
-    let sphere = meshes.add(Sphere::new(1.0).mesh().ico(5).unwrap());
+    let sphere = meshes.add(Sphere::new(2.0).mesh().ico(5).unwrap());
 
     commands.spawn(PbrBundle {
         mesh: sphere.clone(),
         material: materials.add(theme.blue_material()),
-        transform: Transform::from_translation(Vec3::new(START.x, 0.5, START.y)),
+        transform: Transform::from_translation(Vec3::new(START.x, -2.0, START.y)),
         ..Default::default()
     });
 
     commands.spawn(PbrBundle {
         mesh: sphere,
         material: materials.add(theme.green_material()),
-        transform: Transform::from_translation(Vec3::new(END.x, 0.5, END.y)),
+        transform: Transform::from_translation(Vec3::new(END.x, -2.0, END.y)),
         ..Default::default()
     });
 }
@@ -251,67 +218,113 @@ pub enum PathfindingError {
 #[derive(Component, Debug)]
 pub struct PathfindingTask(Task<Result<Path, PathfindingError>>);
 
+/// **Bevy** [`Component`] for attaching a pathfinding task
+#[derive(Component, Debug)]
+struct PathFinder;
+
+fn spawn_task_entity(mut commands: Commands) {
+    commands.spawn(PathFinder);
+}
+
+/// Standalone function to spawn an async task for pathfinding
+/// - Used to run path-finding tasks that may take longer than a single frame to
+///   complete
+fn spawn_pathfinding_task(
+    commands: &mut Commands,
+    start: Vec2,
+    end: Vec2,
+    rrt_params: RRTSection,
+    colliders: Colliders,
+    task_target: Entity,
+) {
+    let collision_solver =
+        CollisionProblem::new(colliders).with_collision_radius(rrt_params.collision_radius.get());
+
+    let task_pool = AsyncComputeTaskPool::get();
+
+    let task = task_pool.spawn(async move {
+        let start = [start.x as f64, start.y as f64];
+        let end = [end.x as f64, end.y as f64];
+
+        rrt::rrtstar::rrtstar(
+            &start,
+            &end,
+            |x: &[f64]| collision_solver.is_feasible(x),
+            || collision_solver.random_sample(),
+            rrt_params.step_size.get() as f64,
+            rrt_params.max_iterations.get(),
+            rrt_params.neighbourhood_radius.get() as f64,
+            false,
+        )
+        .map(|mut res| {
+            let mut path = Path::default();
+            res.get_until_root(res.vertices.len() - 1)
+                .iter()
+                .for_each(|v| {
+                    path.push(Vec3::new(v[0] as f32, 0.0, v[1] as f32));
+                });
+            path
+        })
+        .map_err(|_| PathfindingError::ReachedMaxIterations)
+    });
+
+    commands.entity(task_target).insert(PathfindingTask(task));
+}
+
 /// **Bevy** [`Update`] system to find an RRT path through the environment
 fn rrt_path(
-    mut path: ResMut<Path>,
-    mut tree: ResMut<RRTStarTree>,
-    mut next_state_path_found: ResMut<NextState<PathFindingState>>,
-    mut event_path_found_writer: EventWriter<PathFoundEvent>,
-    state_path_found: Res<State<PathFindingState>>,
+    mut commands: Commands,
+    // mut path: ResMut<Path>,
+    // mut tree: ResMut<RRTStarTree>,
+    // mut next_state_path_found: ResMut<NextState<PathFindingState>>,
+    // mut event_path_found_writer: EventWriter<PathFoundEvent>,
+    // state_path_found: Res<State<PathFindingState>>,
+    pathfinder: Query<Entity, (With<PathFinder>, Without<PathfindingTask>)>,
     colliders: Res<Colliders>,
     config: Res<Config>,
 ) {
-    // let colliders = Arc::new(colliders.into_inner().to_owned());
-    let colliders = colliders.into_inner();
+    // Do all this but with the async task spawner
 
-    if colliders.is_empty() || matches!(state_path_found.get(), PathFindingState::Found) {
-        return;
+    // if colliders.is_empty() || matches!(state_path_found.get(),
+    // PathFindingState::Found) {     return;
+    // }
+
+    for pathfinder in pathfinder.iter() {
+        spawn_pathfinding_task(
+            &mut commands,
+            START,
+            END,
+            config.rrt.clone(),
+            colliders.clone(),
+            pathfinder,
+        );
+        // next_state_path_found.set(PathFindingState::Found);
     }
+}
 
-    let collision_solver = CollisionProblem::new(Arc::new(colliders))
-    // let collision_solver = CollisionProblem::new(colliders)
-        .with_collision_radius(config.rrt.collision_radius.get());
-
-    let start = [START.x as f64, START.y as f64];
-    let end = [END.x as f64, END.y as f64];
-
-    if let Ok(mut res) = rrt::rrtstar::rrtstar(
-        &start,
-        &end,
-        |x: &[f64]| collision_solver.is_feasible(x),
-        || collision_solver.random_sample(),
-        config.rrt.step_size.get() as f64,
-        config.rrt.max_iterations.get(),
-        config.rrt.neighbourhood_radius.get() as f64,
-        false,
-    )
-    .inspect_err(|e| {
-        warn!("Failed to find path with error: {}", e);
-    }) {
-        // insert the result into the Tree resource
-        tree.0 = res;
-
-        // find closest point to end
-        let closest_index = tree
-            .0
-            .vertices
-            .iter()
-            .map(|v| Vec2::new(v.data[0] as f32, v.data[1] as f32).distance_squared(END))
-            .enumerate()
-            .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-            .map(|(i, _)| i)
-            .unwrap();
-
-        // find the path from the start to the closest point to the end
-        path.clear();
-        tree.0.get_until_root(closest_index).iter().for_each(|v| {
-            path.push(Vec3::new(v[0] as f32, 0.0, v[1] as f32));
-        });
-
-        // update state and signal event
-        next_state_path_found.set(PathFindingState::Found);
-        event_path_found_writer.send(PathFoundEvent);
-    };
+/// **Bevy** [`Update`] system to check on the pahtfinding task attached to
+/// [`PathFinder`] and update the pathfinding state
+fn check_pathfinding_task(
+    mut commands: Commands,
+    mut path: ResMut<Path>,
+    mut tasks: Query<(Entity, &mut PathfindingTask)>,
+) {
+    for (entity, mut task) in &mut tasks {
+        info!("Checking pathfinding task for entity: {:?}", entity);
+        if let Some(result) = future::block_on(future::poll_once(&mut task.0)) {
+            info!("Pathfinding task completed for entity: {:?}", entity);
+            commands.entity(entity).remove::<PathfindingTask>();
+            match result {
+                Ok(new_path) => {
+                    path.clear();
+                    path.0 = new_path.0;
+                }
+                Err(e) => {
+                    error!("Pathfinding error: {:?}", e);
+                }
+            }
+        }
+    }
 }
 
 /// **Bevy** [`Update`] system for drawing the tree's branches with gizmo
@@ -408,13 +421,13 @@ fn draw_nodes(
     }
 }
 
-struct CollisionProblem<'world> {
-    colliders: Arc<&'world Colliders>,
+struct CollisionProblem {
+    colliders: Colliders,
     collision_checker: shape::Ball,
 }
 
-impl<'world> CollisionProblem<'world> {
-    fn new(colliders: Arc<&'world Colliders>) -> Self {
+impl CollisionProblem {
+    fn new(colliders: Colliders) -> Self {
         let ball = shape::Ball::new(0.1f32);
         Self {
             colliders,
@@ -441,12 +454,14 @@ impl<'world> CollisionProblem<'world> {
         // collider.as_ref())         .expect("Correct shapes should have been
         // given."); });
 
-        for (isometry, collider) in self.colliders.iter() {
+        for collider in self.colliders.iter() {
+            let isometry = collider.isometry;
+            let shape = &collider.shape;
             intersecting = intersection_test(
                 &ball_pos,
                 &self.collision_checker,
                 &isometry,
-                collider.as_ref(),
+                shape.as_ref(),
             )
             .expect("Correct shapes should have been given.");
             if intersecting {
