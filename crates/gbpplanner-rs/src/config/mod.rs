@@ -671,19 +671,22 @@ impl Default for RRTSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SmoothingSection {
+    /// Whether to do path smoothing or not
+    pub enabled: bool,
     /// Number of iterations to smooth the path
     /// `max_iterations` must be greater than 0
     /// - Describes the amount of random samples to attempt to smooth the path
     pub max_iterations: NonZeroUsize,
     /// Idk actually but it's there
-    pub step_size:      StrictlyPositiveFinite<f32>,
+    pub step_size: StrictlyPositiveFinite<f32>,
 }
 
 impl Default for SmoothingSection {
     fn default() -> Self {
         Self {
+            enabled: true,
             max_iterations: NonZeroUsize::new(100).expect("100 > 0"),
-            step_size:      StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
+            step_size: StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
         }
     }
 }

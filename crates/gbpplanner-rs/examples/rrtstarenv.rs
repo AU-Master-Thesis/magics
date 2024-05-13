@@ -233,6 +233,7 @@ fn spawn_pathfinding_task(
     commands: &mut Commands,
     start: Vec2,
     end: Vec2,
+    smooth: bool,
     rrt_params: RRTSection,
     colliders: Colliders,
     task_target: Entity,
@@ -257,15 +258,39 @@ fn spawn_pathfinding_task(
             true,
         )
         .map(|res| {
-            let mut path = Path::default();
-            path.push(Vec3::new(end[0] as f32, 0.0, end[1] as f32));
+            // let mut path = Path::default();
+            // path.push(Vec3::new(end[0] as f32, 0.0, end[1] as f32));
             if let Some(goal_index) = res.goal_index {
-                res.get_until_root(goal_index).iter().for_each(|v| {
-                    path.push(Vec3::new(v[0] as f32, 0.0, v[1] as f32));
-                });
+                // res.get_until_root(goal_index).iter().for_each(|v| {
+                //     path.push(Vec3::new(v[0] as f32, 0.0, v[1] as f32));
+                // });
+                let resulting_path = {
+                    let mut resulting_path = std::iter::once(vec![end[0], end[1]])
+                        .chain(res.get_until_root(goal_index).into_iter())
+                        .collect::<Vec<_>>();
+                    if smooth {
+                        rrt::rrtstar::smooth_path(
+                            &mut resulting_path,
+                            |x| collision_solver.is_feasible(x),
+                            rrt_params.step_size.get() as f64,
+                            rrt_params.smoothing.max_iterations.get(),
+                        );
+                    }
+                    resulting_path
+                };
+
+                // for v in resulting_path {
+                //     path.push(Vec3::new(v[0] as f32, 0.0, v[1] as f32));
+                // }
+                Path(
+                    resulting_path
+                        .into_iter()
+                        .map(|v| Vec3::new(v[0] as f32, 0.0, v[1] as f32))
+                        .collect::<Vec<_>>(),
+                )
+            } else {
+                Path(vec![])
             }
-            info!("Pathfinding task completed with path: {:?}", path);
-            path
         })
         .map_err(|_| PathfindingError::ReachedMaxIterations)
     });
@@ -286,6 +311,7 @@ fn rrt_path(
             &mut commands,
             START,
             END,
+            config.rrt.smoothing.enabled,
             config.rrt.clone(),
             colliders.clone(),
             pathfinder,

@@ -84,6 +84,7 @@ collision-radius     = 0.1
 neighbourhood-radius = 10.0
 
 [rrt.smoothing]
+enabled        = true
 max-iterations = 500
 step-size      = 0.5
 
