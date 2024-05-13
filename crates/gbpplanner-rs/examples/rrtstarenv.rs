@@ -71,7 +71,7 @@ fn main() -> anyhow::Result<()> {
                 check_pathfinding_task,
                 // update_path_length_text.run_if(on_event::<PathFoundEvent>()),
                 // update_waypoint_amount_text.run_if(on_event::<PathFoundEvent>()),
-                draw_tree_branches,
+                draw_path,
                 draw_nodes.run_if(on_event::<PathFoundEvent>()),
             ),
         )
@@ -254,15 +254,17 @@ fn spawn_pathfinding_task(
             rrt_params.step_size.get() as f64,
             rrt_params.max_iterations.get(),
             rrt_params.neighbourhood_radius.get() as f64,
-            false,
+            true,
         )
-        .map(|mut res| {
+        .map(|res| {
             let mut path = Path::default();
-            res.get_until_root(res.vertices.len() - 1)
-                .iter()
-                .for_each(|v| {
+            path.push(Vec3::new(end[0] as f32, 0.0, end[1] as f32));
+            if let Some(goal_index) = res.goal_index {
+                res.get_until_root(goal_index).iter().for_each(|v| {
                     path.push(Vec3::new(v[0] as f32, 0.0, v[1] as f32));
                 });
+            }
+            info!("Pathfinding task completed with path: {:?}", path);
             path
         })
         .map_err(|_| PathfindingError::ReachedMaxIterations)
@@ -274,21 +276,11 @@ fn spawn_pathfinding_task(
 /// **Bevy** [`Update`] system to find an RRT path through the environment
 fn rrt_path(
     mut commands: Commands,
-    // mut path: ResMut<Path>,
-    // mut tree: ResMut<RRTStarTree>,
-    // mut next_state_path_found: ResMut<NextState<PathFindingState>>,
-    // mut event_path_found_writer: EventWriter<PathFoundEvent>,
-    // state_path_found: Res<State<PathFindingState>>,
     pathfinder: Query<Entity, (With<PathFinder>, Without<PathfindingTask>)>,
     colliders: Res<Colliders>,
     config: Res<Config>,
 ) {
     // Do all this but with the async task spawner
-
-    // if colliders.is_empty() || matches!(state_path_found.get(),
-    // PathFindingState::Found) {     return;
-    // }
-
     for pathfinder in pathfinder.iter() {
         spawn_pathfinding_task(
             &mut commands,
@@ -298,7 +290,6 @@ fn rrt_path(
             colliders.clone(),
             pathfinder,
         );
-        // next_state_path_found.set(PathFindingState::Found);
     }
 }
 
@@ -310,7 +301,6 @@ fn check_pathfinding_task(
     mut tasks: Query<(Entity, &mut PathfindingTask)>,
 ) {
     for (entity, mut task) in &mut tasks {
-        info!("Checking pathfinding task for entity: {:?}", entity);
         if let Some(result) = future::block_on(future::poll_once(&mut task.0)) {
             info!("Pathfinding task completed for entity: {:?}", entity);
             commands.entity(entity).remove::<PathfindingTask>();
@@ -329,59 +319,20 @@ fn check_pathfinding_task(
 
 /// **Bevy** [`Update`] system for drawing the tree's branches with gizmo
 /// polylines
-fn draw_tree_branches(
+fn draw_path(
     mut gizmos: Gizmos,
-    tree: Res<RRTStarTree>,
+    // tree: Res<RRTStarTree>,
     theme: Res<CatppuccinTheme>,
     path: Res<Path>,
 ) {
-    let mut count = tree.0.vertices.len();
-
-    let max_weight = tree
-        .0
-        .vertices
-        .iter()
-        .map(|v| v.weight)
-        .fold(0.0, |acc: f32, x| acc.max(x));
-
-    tree.0.vertices.iter().for_each(|v| {
-        if let Some(parent_index) = v.parent_index {
-            // gizmo line from v.data to tree.0.vertices[parent].data
-            let parent_point = &tree.0.vertices[parent_index].data;
-
-            let color = if path.contains(&Vec3::new(v.data[0] as f32, 0.0, v.data[1] as f32)) {
-                Color::from_catppuccin_colour(theme.blue())
-            } else {
-                // gradient from red to blue based on vertex weight
-                let t = v.weight / max_weight;
-                let (r, g, b, a) = theme
-                    .gradient(theme.red(), theme.green())
-                    .at(t.into())
-                    .to_linear_rgba();
-                Color::rgba_linear(r as f32, g as f32, b as f32, a as f32)
-            };
-
-            gizmos.line(
-                Vec3::new(v.data[0] as f32, 0.0, v.data[1] as f32),
-                Vec3::new(parent_point[0] as f32, 0.0, parent_point[1] as f32),
-                color,
-            );
-            count -= 1;
-        }
+    path.0.windows(2).for_each(|window| {
+        gizmos.line(
+            window[0],
+            window[1],
+            Color::from_catppuccin_colour(theme.teal()),
+        );
     });
 }
-
-// /// **Bevy** [`Update`] system for drawing the resulting path with gizmo
-// /// polylines Only runs on [`PathFoundEvent`] events
-// fn draw_path(mut gizmos: Gizmos, path: Res<Path>, theme:
-// Res<CatppuccinTheme>) {     for i in 0..path.len() - 1 {
-//         gizmos.line(
-//             path[i],
-//             path[i + 1],
-//             Color::from_catppuccin_colour(theme.green()),
-//         );
-//     }
-// }
 
 /// **Bevy** marker [`Component`] for marking waypoints
 /// Used to despawn previous waypoints when a new path is found
