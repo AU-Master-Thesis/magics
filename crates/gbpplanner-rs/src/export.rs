@@ -2,6 +2,7 @@ use std::{collections::HashMap, io::Write};
 
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 
+use self::events::TakeSnapshotOfRobot;
 use crate::{
     config::Config,
     factorgraph::prelude::FactorGraph,
@@ -9,6 +10,7 @@ use crate::{
         self,
         robot::{Radius, Route},
     },
+    simulation_loader::{LoadSimulation, ReloadSimulation},
 };
 
 #[derive(Default)]
@@ -17,8 +19,8 @@ pub struct ExportPlugin;
 impl Plugin for ExportPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<events::Export>()
-            .add_event::<events::SubmitRobotData>()
-            .init_resource::<SubmittedRobots>()
+            .add_event::<events::TakeSnapshotOfRobot>()
+            .init_resource::<resources::SnapshottedRobots>()
             .add_systems(
                 Update,
                 (
@@ -27,14 +29,21 @@ impl Plugin for ExportPlugin {
                         input_just_pressed(KeyCode::F7)
                             .or_else(on_event::<crate::planner::spawner::AllFormationsFinished>()),
                     ),
-                    submit_robot_data,
+                    await_robot_snapshot_request,
+                    clear_submitted_robots.run_if(
+                        on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>()),
+                    ),
                 ),
             );
     }
 }
 
-#[derive(Resource, Deref, DerefMut, Default)]
-struct SubmittedRobots(HashMap<Entity, RobotData>);
+mod resources {
+    use super::*;
+
+    #[derive(Resource, Deref, DerefMut, Default)]
+    pub(super) struct SnapshottedRobots(HashMap<Entity, RobotData>);
+}
 
 fn send_default_export_event(mut evw_export: EventWriter<events::Export>) {
     evw_export.send(events::Export::default());
@@ -56,9 +65,7 @@ pub mod events {
     }
 
     #[derive(Event)]
-    pub struct SubmitRobotData {
-        pub data: RobotData,
-    }
+    pub struct TakeSnapshotOfRobot(pub Entity);
 }
 
 #[derive(serde::Serialize)]
@@ -116,7 +123,7 @@ struct ExportData {
     environment: String,
     makespan: f64,
     gbp: GbpData,
-    robots: HashMap<String, RobotData>,
+    robots: HashMap<Entity, RobotData>,
 }
 
 #[derive(serde::Serialize)]
@@ -132,6 +139,7 @@ struct GbpData {
 
 fn export(
     mut evr_export: EventReader<events::Export>,
+    mut robot_snapshots: ResMut<resources::SnapshottedRobots>,
     q_robots: Query<(
         Entity,
         &FactorGraph,
@@ -194,50 +202,97 @@ fn export(
         // FIXME: compute as the duration from when the first robot spawned, to the last
         // robot finished its route
         let makespan = time_virtual.elapsed_seconds() as f64;
+        // take a snapshot of all robots, that do not already have one
 
-        let robots: HashMap<_, _> = q_robots
-            .iter()
-            .map(|(entity, graph, positions, velocities, radius, route)| {
-                let positions: Vec<[f32; 2]> = positions.positions().map(Into::into).collect();
-                let velocities: Vec<[f32; 2]> = velocities.velocities().map(Into::into).collect();
-                let robot_collisions = robot_collisions.get(entity).unwrap_or(0);
-                let environment_collisions = environment_collisions.get(entity).unwrap_or(0);
+        for (robot_entity, graph, positions, velocities, radius, route) in q_robots.iter() {
+            if robot_snapshots.contains_key(&robot_entity) {
+                continue;
+            }
+            let positions: Vec<[f32; 2]> = positions.positions().map(Into::into).collect();
+            let velocities: Vec<[f32; 2]> = velocities.velocities().map(Into::into).collect();
+            let robot_collisions = robot_collisions.get(robot_entity).unwrap_or(0);
+            let environment_collisions = environment_collisions.get(robot_entity).unwrap_or(0);
 
-                let id = format!("{:?}", entity);
-                let robot_data = RobotData {
-                    radius: radius.0,
-                    positions,
-                    velocities,
-                    route: RouteData::new(
-                        route
-                            .waypoints()
-                            .iter()
-                            .map(|wp| wp.position().into())
-                            .collect(),
-                        route.started_at(),
-                        route
-                            .finished_at()
-                            .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
-                    ),
-                    collisions: CollisionData {
-                        robots:      robot_collisions,
-                        environment: environment_collisions,
+            // let id = format!("{:?}", robot_entity);
+            let robot_data = RobotData {
+                radius: radius.0,
+                positions,
+                velocities,
+                route: RouteData::new(
+                    route
+                        .waypoints()
+                        .iter()
+                        .map(|wp| wp.position().into())
+                        .collect(),
+                    route.started_at(),
+                    route
+                        .finished_at()
+                        .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
+                ),
+                collisions: CollisionData {
+                    robots:      robot_collisions,
+                    environment: environment_collisions,
+                },
+                messages: MessageData {
+                    sent:     MessageCount {
+                        internal: graph.messages_sent().internal,
+                        external: graph.messages_sent().external,
                     },
-                    messages: MessageData {
-                        sent:     MessageCount {
-                            internal: graph.messages_sent().internal,
-                            external: graph.messages_sent().external,
-                        },
-                        received: MessageCount {
-                            internal: graph.messages_received().internal,
-                            external: graph.messages_received().external,
-                        },
+                    received: MessageCount {
+                        internal: graph.messages_received().internal,
+                        external: graph.messages_received().external,
                     },
-                };
+                },
+            };
 
-                (id, robot_data)
-            })
-            .collect();
+            robot_snapshots.insert(robot_entity, robot_data);
+        }
+        // let robots: HashMap<_, _> = q_robots
+        //     .iter()
+        //     .map(|(entity, graph, positions, velocities, radius, route)| {
+        //         let positions: Vec<[f32; 2]> =
+        // positions.positions().map(Into::into).collect();         let
+        // velocities: Vec<[f32; 2]> =
+        // velocities.velocities().map(Into::into).collect();         let
+        // robot_collisions = robot_collisions.get(entity).unwrap_or(0);
+        //         let environment_collisions =
+        // environment_collisions.get(entity).unwrap_or(0);
+        //
+        //         let id = format!("{:?}", entity);
+        //         let robot_data = RobotData {
+        //             radius: radius.0,
+        //             positions,
+        //             velocities,
+        //             route: RouteData::new(
+        //                 route
+        //                     .waypoints()
+        //                     .iter()
+        //                     .map(|wp| wp.position().into())
+        //                     .collect(),
+        //                 route.started_at(),
+        //                 route
+        //                     .finished_at()
+        //                     .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
+        //             ),
+        //             collisions: CollisionData {
+        //                 robots:      robot_collisions,
+        //                 environment: environment_collisions,
+        //             },
+        //             messages: MessageData {
+        //                 sent:     MessageCount {
+        //                     internal: graph.messages_sent().internal,
+        //                     external: graph.messages_sent().external,
+        //                 },
+        //                 received: MessageCount {
+        //                     internal: graph.messages_received().internal,
+        //                     external: graph.messages_received().external,
+        //                 },
+        //             },
+        //         };
+        //
+        //         (id, robot_data)
+        //     })
+        //     .collect();
 
         let gbp = GbpData {
             iterations: GbpIterationData {
@@ -250,7 +305,7 @@ fn export(
             environment: environment.to_string(),
             makespan,
             gbp,
-            robots,
+            robots: robot_snapshots.drain().collect(),
         };
 
         let json = serde_json::to_string_pretty(&export_data).unwrap();
@@ -317,4 +372,102 @@ impl Default for ExportSavePostfix {
     }
 }
 
-fn submit_robot_data(mut evr_submit_robot_data: EventReader<events::SubmitRobotData>) {}
+fn take_snapshot_of_robot(
+    robot_entity: Entity,
+    q_robots: &Query<(
+        &FactorGraph,
+        &planner::tracking::PositionTracker,
+        &planner::tracking::VelocityTracker,
+        &Radius,
+        &Route,
+    )>,
+    robot_collisions: &crate::planner::collisions::resources::RobotRobotCollisions,
+    environment_collisions: &crate::planner::collisions::resources::RobotEnvironmentCollisions,
+    time_virtual: &Time<Virtual>,
+) -> anyhow::Result<RobotData> {
+    let Ok((fgraph, positions, velocities, radius, route)) = q_robots.get(robot_entity) else {
+        anyhow::bail!(
+            "cannot take snapshot of non-existing robot {:?}",
+            robot_entity
+        );
+    };
+
+    let positions: Vec<[f32; 2]> = positions.positions().map(Into::into).collect();
+    let velocities: Vec<[f32; 2]> = velocities.velocities().map(Into::into).collect();
+    let robot_collisions = robot_collisions.get(robot_entity).unwrap_or(0);
+    let environment_collisions = environment_collisions.get(robot_entity).unwrap_or(0);
+
+    let robot_data = RobotData {
+        radius: radius.0,
+        positions,
+        velocities,
+        route: RouteData::new(
+            route
+                .waypoints()
+                .iter()
+                .map(|wp| wp.position().into())
+                .collect(),
+            route.started_at(),
+            route
+                .finished_at()
+                .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
+        ),
+        collisions: CollisionData {
+            robots:      robot_collisions,
+            environment: environment_collisions,
+        },
+        messages: MessageData {
+            sent:     MessageCount {
+                internal: fgraph.messages_sent().internal,
+                external: fgraph.messages_sent().external,
+            },
+            received: MessageCount {
+                internal: fgraph.messages_received().internal,
+                external: fgraph.messages_received().external,
+            },
+        },
+    };
+
+    Ok(robot_data)
+}
+
+fn await_robot_snapshot_request(
+    mut evr_submit_robot_data: EventReader<events::TakeSnapshotOfRobot>,
+    mut submitted_robots: ResMut<resources::SnapshottedRobots>,
+
+    q_robots: Query<(
+        &FactorGraph,
+        &planner::tracking::PositionTracker,
+        &planner::tracking::VelocityTracker,
+        &Radius,
+        &Route,
+    )>,
+    robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
+    environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
+    time_virtual: Res<Time<Virtual>>,
+) {
+    for TakeSnapshotOfRobot(robot_id) in evr_submit_robot_data.read() {
+        // ignore if the robot has already been submitted
+        if submitted_robots.contains_key(robot_id) {
+            continue;
+        }
+        let Ok(snapshot) = take_snapshot_of_robot(
+            *robot_id,
+            &q_robots,
+            &robot_collisions,
+            &environment_collisions,
+            &time_virtual,
+        ) else {
+            error!(
+                "failed to take snapshot of robot {:?}, reason entity does not exist",
+                robot_id
+            );
+            continue;
+        };
+        submitted_robots.insert(*robot_id, snapshot);
+    }
+}
+
+fn clear_submitted_robots(mut submitted_robots: ResMut<resources::SnapshottedRobots>) {
+    submitted_robots.clear();
+}

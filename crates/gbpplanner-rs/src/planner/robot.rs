@@ -25,6 +25,7 @@ use super::{
 use crate::{
     bevy_utils::run_conditions::time::virtual_time_is_paused,
     config::{formation::WaypointReachedWhenIntersects, Config},
+    export::events::TakeSnapshotOfRobot,
     factorgraph::{
         factor::{ExternalVariableId, FactorNode},
         factorgraph::{FactorGraph, NodeIndex, VariableIndex},
@@ -67,6 +68,7 @@ impl Plugin for RobotPlugin {
                     on_robot_clicked,
                     on_gbp_schedule_changed,
                     attach_despawn_timer_when_robot_finishes_route,
+                    request_snapshot_of_robot_when_it_finishes_its_route,
                 ),
             )
             .add_systems(
@@ -93,6 +95,15 @@ impl Plugin for RobotPlugin {
                     .chain()
                     .run_if(not(virtual_time_is_paused)),
             );
+    }
+}
+
+fn request_snapshot_of_robot_when_it_finishes_its_route(
+    mut evr_robot_finished_route: EventReader<RobotFinishedRoute>,
+    mut evw_take_snapshot_of_robot: EventWriter<TakeSnapshotOfRobot>,
+) {
+    for RobotFinishedRoute(robot_id) in evr_robot_finished_route.read() {
+        evw_take_snapshot_of_robot.send(TakeSnapshotOfRobot(*robot_id));
     }
 }
 
@@ -146,7 +157,7 @@ fn attach_despawn_timer_when_robot_finishes_route(
     mut commands: Commands,
     mut evr_robot_finished_route: EventReader<RobotFinishedRoute>,
 ) {
-    let duration = Duration::from_secs(5);
+    let duration = Duration::from_secs(2);
     for RobotFinishedRoute(robot_id) in evr_robot_finished_route.read() {
         info!(
             "attaching despawn timer to robot: {:?} with duration: {:?}",
