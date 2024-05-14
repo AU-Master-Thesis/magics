@@ -24,11 +24,13 @@ members = [
   "crates/gbp_schedule",
   "crates/env_to_png",
   "crates/gbp_environment",
-  "crates/gbp_geometry", "crates/gbp_global_planner", "crates/gbp_config",
+  "crates/gbp_geometry",
+  "crates/gbp_global_planner",
+  "crates/gbp_config",
 ]
 
 [workspace.package]
-version = "1.1.0"
+version = "1.2.0"
 edition = "2021"
 repository = "https://github.com/AU-Master-Thesis/gbp-rs"
 authors = [
@@ -78,10 +80,10 @@ bevy_prng = { version = "0.6", features = [
   "wyrand",
 ] }
 struct_iterable = "0.1.1"
-strum             = "0.26.1"
-strum_macros      = "0.26.1"
+strum = "0.26.1"
+strum_macros = "0.26.1"
 rand = "0.8.5"
-num-traits        = "0.2.18"
+num-traits = "0.2.18"
 itertools = "0.12"
 delegate = "0.12.0"
 

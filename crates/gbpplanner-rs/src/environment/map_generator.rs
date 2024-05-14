@@ -123,7 +123,7 @@ fn insert_colliders_resource(In(colliders): In<Colliders>, mut commands: Command
     clippy::cast_possible_truncation
 )]
 fn build_obstacles(
-    In(colliders): In<Colliders>,
+    In(mut colliders): In<Colliders>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     env_config: Res<Environment>,
@@ -180,7 +180,10 @@ fn build_obstacles(
                     radius, obstacle_height, transform
                 );
 
-                Some((mesh, transform))
+                let shape = parry2d::shape::Ball::new(radius);
+                let shape: Arc<dyn shape::Shape> = Arc::new(shape);
+
+                Some((mesh, transform, shape))
             }
             PlaceableShape::Triangle(Triangle {
                 base_length,
@@ -237,6 +240,11 @@ fn build_obstacles(
                     "Spawning triangle: base_length = {}, height = {}, at {:?}",
                     base_length, height, center
                 );
+                let shape = parry2d::shape::Triangle::new(
+                    points[0].to_array().into(),
+                    points[1].to_array().into(),
+                    points[2].to_array().into(),
+                );
 
                 let mesh = meshes.add(
                     Mesh::try_from(bevy_more_shapes::Prism::new(-obstacle_height, points))
@@ -250,9 +258,11 @@ fn build_obstacles(
                 let transform = Transform::from_translation(center).with_rotation(rotation);
                 // let transform = Transform::from_translation(center);
 
-                Some((mesh, transform))
+                let shape: Arc<dyn shape::Shape> = Arc::new(shape);
+
+                Some((mesh, transform, shape))
             }
-            PlaceableShape::RegularPolygon(RegularPolygon { sides, side_length }) => {
+            PlaceableShape::RegularPolygon(ref polygon @ RegularPolygon { sides, side_length }) => {
                 // dbg!((
                 //     "RegularPolygon",
                 //     translation.y.get() as f32,
@@ -290,7 +300,18 @@ fn build_obstacles(
                 );
                 let transform = Transform::from_translation(center).with_rotation(rotation);
 
-                Some((mesh, transform))
+                // let points: Vec<parry2d::math::Point<parry2d::math::Real>> = polygon
+                let points: Vec<_> = polygon
+                    .points()
+                    .iter()
+                    .map(|[x, y]| parry2d::math::Point::new(*x as f32, *y as f32))
+                    .collect();
+                let shape = parry2d::shape::ConvexPolygon::from_convex_hull(points.as_slice())
+                    .expect("polygon is always convex");
+
+                let shape: Arc<dyn shape::Shape> = Arc::new(shape);
+
+                Some((mesh, transform, shape))
             }
             PlaceableShape::Rectangle(Rectangle { width, height }) => {
                 // dbg!((
@@ -314,24 +335,52 @@ fn build_obstacles(
                 );
 
                 let mesh = meshes.add(Cuboid::new(
-                    height.get() as f32 * tile_size / 2.0,
-                    obstacle_height,
                     width.get() as f32 * tile_size / 2.0,
+                    obstacle_height,
+                    height.get() as f32 * tile_size / 2.0,
                 ));
 
                 // let rotation = Quat::from_rotation_y(obstacle.rotation.as_radians() as f32);
                 // let transform = Transform::from_translation(center).with_rotation(rotation);
                 let transform = Transform::from_translation(center);
 
-                Some((mesh, transform))
+                let mut half_extents: parry2d::na::Vector2<parry2d::math::Real> =
+                    parry2d::na::Vector2::from_vec(vec![
+                        width.get() as f32 * tile_size / 4.0,
+                        height.get() as f32 * tile_size / 4.0,
+                    ]);
+
+                // from_vec(vec![
+                //     width.get() as f32 * tile_size / 2.0,
+                //     height.get() as f32 * tile_size / 2.0,
+                // ]);
+
+                // Arc::new(Into::<shape::Cuboid>::into(*cuboid)),
+                // parry2d::na::Vector::from_slice(&[
+                //     width.get() as f32 / 2.0,
+                //     height.get() as f32 / 2.0,
+                // ]);
+                let shape = parry2d::shape::Cuboid::new(
+                    half_extents,
+                    // [
+                    //     height.get() as f32 * tile_size / 2.0,
+                    //     width.get() as f32 * tile_size / 2.0,
+                    // ]
+                    // .into(),
+                );
+
+                let shape: Arc<dyn shape::Shape> = Arc::new(shape);
+
+                Some((mesh, transform, shape))
             }
         }
     });
 
     obstacles_to_spawn
         .flatten() // filter out None
-        .for_each(|(mesh, transform)| {
-            commands.spawn((
+        .for_each(|(mesh, transform, shape)| {
+            // TODO: remember to get rotation of obstacle, i.e. for triangles
+            let entity = commands.spawn((
                 PbrBundle {
                     mesh,
                     material: materials.obstacle.clone(),
@@ -345,7 +394,16 @@ fn build_obstacles(
                 },
                 ObstacleMarker,
                 bevy_mod_picking::PickableBundle::default(),
-            ));
+            )).id();
+
+            colliders.push(
+                Some(entity),
+                Isometry2::new(parry2d::na::Vector2::new(
+                    transform.translation.x,
+                    transform.translation.z,
+                ), na::zero()),
+                shape
+            );
         });
 
     colliders
