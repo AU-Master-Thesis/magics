@@ -2,6 +2,7 @@ use std::{
     collections::{BTreeSet, HashMap},
     num::NonZeroUsize,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use bevy::{
@@ -46,9 +47,7 @@ pub struct RobotPlugin;
 
 impl Plugin for RobotPlugin {
     fn build(&self, app: &mut App) {
-        app
-            // .init_resource::<VariableTimesteps>()
-            .init_resource::<GbpIterationSchedule>()
+        app.init_resource::<GbpIterationSchedule>()
             .init_resource::<RobotNumberGenerator>()
             .insert_state(ManualModeState::Disabled)
             .add_event::<RobotSpawned>()
@@ -57,10 +56,19 @@ impl Plugin for RobotPlugin {
             .add_event::<RobotReachedWaypoint>()
             .add_event::<GbpScheduleChanged>()
             .add_systems(PreUpdate, start_manual_step.run_if(virtual_time_is_paused))
-            .add_systems(Update,
-                reset_robot_number_generator.run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>()))
+            .add_systems(
+                Update,
+                reset_robot_number_generator
+                    .run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
             )
-            .add_systems(Update, (on_robot_clicked, on_gbp_schedule_changed))
+            .add_systems(
+                Update,
+                (
+                    on_robot_clicked,
+                    on_gbp_schedule_changed,
+                    attach_despawn_timer_when_robot_finishes_route,
+                ),
+            )
             .add_systems(
                 FixedUpdate,
                 // Update,
@@ -79,7 +87,7 @@ impl Plugin for RobotPlugin {
                     update_prior_of_horizon_state,
                     update_prior_of_current_state_v3,
                     // update_prior_of_current_state,
-                    despawn_robots,
+                    // despawn_robots,
                     finish_manual_step.run_if(ManualModeState::enabled),
                 )
                     .chain()
@@ -134,6 +142,24 @@ pub struct RobotDespawned(pub RobotId);
 #[derive(Debug, Event)]
 pub struct RobotFinishedRoute(pub RobotId);
 
+fn attach_despawn_timer_when_robot_finishes_route(
+    mut commands: Commands,
+    mut evr_robot_finished_route: EventReader<RobotFinishedRoute>,
+) {
+    let duration = Duration::from_secs(5);
+    for RobotFinishedRoute(robot_id) in evr_robot_finished_route.read() {
+        info!(
+            "attaching despawn timer to robot: {:?} with duration: {:?}",
+            robot_id, duration
+        );
+        commands.spawn(
+            crate::despawn_entity_after::components::DespawnEntityAfter::<Virtual>::new(
+                *robot_id, duration,
+            ),
+        );
+    }
+}
+
 /// Event emitted when a robot reaches a waypoint
 #[derive(Event)]
 pub struct RobotReachedWaypoint {
@@ -141,28 +167,28 @@ pub struct RobotReachedWaypoint {
     pub waypoint_index: usize,
 }
 
-fn despawn_robots(
-    mut commands: Commands,
-    mut query: Query<&mut FactorGraph>,
-    mut evr_robot_despawned: EventReader<RobotDespawned>,
-) {
-    for RobotDespawned(robot_id) in evr_robot_despawned.read() {
-        for mut factorgraph in &mut query {
-            let _ = factorgraph.remove_connection_to(*robot_id);
-        }
-
-        if let Some(mut entitycommand) = commands.get_entity(*robot_id) {
-            info!("despawning robot: {:?}", entitycommand.id());
-            entitycommand.despawn();
-        } else {
-            error!(
-                "A DespawnRobotEvent event was emitted with entity id: {:?} but the entity does \
-                 not exist!",
-                robot_id
-            );
-        }
-    }
-}
+// fn despawn_robots(
+//     mut commands: Commands,
+//     mut query: Query<&mut FactorGraph>,
+//     mut evr_robot_despawned: EventReader<RobotDespawned>,
+// ) {
+//     for RobotDespawned(robot_id) in evr_robot_despawned.read() {
+//         for mut factorgraph in &mut query {
+//             let _ = factorgraph.remove_connection_to(*robot_id);
+//         }
+//
+//         if let Some(mut entitycommand) = commands.get_entity(*robot_id) {
+//             info!("despawning robot: {:?}", entitycommand.id());
+//             entitycommand.despawn();
+//         } else {
+//             error!(
+//                 "A DespawnRobotEvent event was emitted with entity id: {:?}
+// but the entity does \                  not exist!",
+//                 robot_id
+//             );
+//         }
+//     }
+// }
 
 trait CreateVariableTimesteps {
     fn create_variable_timesteps(n: NonZeroUsize) -> Vec<u32>;

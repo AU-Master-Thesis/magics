@@ -4,6 +4,7 @@ pub(crate) mod asset_loader;
 mod bevy_utils;
 pub mod cli;
 pub(crate) mod config;
+pub mod despawn_entity_after;
 mod diagnostic;
 mod environment;
 mod factorgraph;
@@ -378,6 +379,7 @@ fn main() -> anyhow::Result<()> {
         // our plugins
         .add_plugins((
             // simulation_loader::SimulationLoaderPlugin::default(),
+            despawn_entity_after::DespawnEntityAfterPlugin,
             simulation_loader::SimulationLoaderPlugin::new(true, cli.initial_scenario.clone()),
             pause_play::PausePlayPlugin::default(),
             theme::ThemePlugin,
