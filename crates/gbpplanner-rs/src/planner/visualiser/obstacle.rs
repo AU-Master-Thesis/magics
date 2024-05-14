@@ -80,7 +80,7 @@ fn visualize_obstacle_factors(
 
     for factorgraph in &factorgraphs {
         for (variable, obstacle_factor) in factorgraph.variable_and_their_obstacle_factors() {
-            let estimated_position = variable.estimated_position_vec2();
+            // let estimated_position = variable.estimated_position_vec2();
             let last_measurement = obstacle_factor.last_measurement();
 
             // let Some(last_measurement) = obstacle_factor.last_measurement() else {
@@ -95,13 +95,20 @@ fn visualize_obstacle_factors(
             let color = Color::rgb(red, green, 0.0);
 
             // let height = 0.5f32;
-            let scale: f32 = 1.1;
+            // let scale: f32 = 1.1;
             // [x, y]
             // [x, y, 0]
             // [x, 0, y]
-            let start = estimated_position.extend(height).xzy();
-            let end = scale * last_measurement.pos.extend(height).xzy();
-            gizmos.line(start, end, color);
+            // let start = estimated_position.extend(height).xzy();
+            // let end = scale * last_measurement.pos.extend(height).xzy();
+            // gizmos.line(start, end, color);
+            gizmos.circle(
+                last_measurement.pos.extend(height).xzy(),
+                Direction3d::Y,
+                // Vec3::NEG_Z.di,
+                0.5,
+                color,
+            );
         }
     }
 }

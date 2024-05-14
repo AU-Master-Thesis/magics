@@ -14,6 +14,7 @@ use derive_more::Index;
 use gbp_config::{formation::WaypointReachedWhenIntersects, Config};
 use gbp_linalg::prelude::*;
 use gbp_schedule::GbpSchedule;
+use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
 use rand::{thread_rng, Rng};
 
@@ -32,7 +33,7 @@ use crate::{
         DOFS,
     },
     pause_play::PausePlay,
-    simulation_loader::SdfImage,
+    simulation_loader::{LoadSimulation, ReloadSimulation, SdfImage},
     utils::get_variable_timesteps,
 };
 
@@ -48,6 +49,7 @@ impl Plugin for RobotPlugin {
         app
             // .init_resource::<VariableTimesteps>()
             .init_resource::<GbpIterationSchedule>()
+            .init_resource::<RobotNumberGenerator>()
             .insert_state(ManualModeState::Disabled)
             .add_event::<RobotSpawned>()
             .add_event::<RobotDespawned>()
@@ -55,6 +57,9 @@ impl Plugin for RobotPlugin {
             .add_event::<RobotReachedWaypoint>()
             .add_event::<GbpScheduleChanged>()
             .add_systems(PreUpdate, start_manual_step.run_if(virtual_time_is_paused))
+            .add_systems(Update,
+                reset_robot_number_generator.run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>()))
+            )
             .add_systems(Update, (on_robot_clicked, on_gbp_schedule_changed))
             .add_systems(
                 FixedUpdate,
@@ -81,6 +86,31 @@ impl Plugin for RobotPlugin {
                     .run_if(not(virtual_time_is_paused)),
             );
     }
+}
+
+#[derive(Resource)]
+struct RobotNumberGenerator(usize);
+
+impl Default for RobotNumberGenerator {
+    fn default() -> Self {
+        Self(1)
+    }
+}
+
+impl RobotNumberGenerator {
+    pub fn next(&mut self) -> NonZeroUsize {
+        let next = self.0;
+        self.0 += 1;
+        next.try_into().unwrap()
+    }
+
+    pub fn reset(&mut self) {
+        *self = Self::default();
+    }
+}
+
+fn reset_robot_number_generator(mut robot_number_generator: ResMut<RobotNumberGenerator>) {
+    robot_number_generator.reset();
 }
 
 #[derive(Event)]
@@ -566,6 +596,7 @@ impl RobotBundle {
         // variable_timesteps: Vec<u32>,
         // variable_timesteps: VariableTimesteps,
         config: &Config,
+        env_config: &gbp_environment::Environment,
         radius: f32,
         sdf: &SdfImage,
         use_tracking: bool,
@@ -664,6 +695,13 @@ impl RobotBundle {
 
         // Create Obstacle factors for all variables excluding start,
         // excluding horizon
+        let tile_size = env_config.tiles.settings.tile_size as f64;
+        let (nrows, ncols) = env_config.tiles.grid.shape();
+        let world_size = crate::factorgraph::factor::obstacle::WorldSize {
+            width:  tile_size * ncols as f64,
+            height: tile_size * nrows as f64,
+        };
+
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
             let obstacle_factor = FactorNode::new_obstacle_factor(
@@ -671,7 +709,12 @@ impl RobotBundle {
                 Float::from(config.gbp.sigma_factor_obstacle),
                 array![0.0],
                 sdf.clone(),
-                Float::from(config.simulation.world_size.get()),
+                world_size,
+                // crate::factorgraph::factor::obstacle::WorldSize {
+                //     width: env_config.tiles.settings.tile_size *
+                //     height: todo!(),
+                // },
+                // Float::from(config.simulation.world_size.get()),
             );
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
@@ -771,8 +814,6 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
         }
     }
 
-    // dbg!(&robots_to_delete_interrobot_factors_between);
-
     for (robot1, robot2) in robots_to_delete_interrobot_factors_between {
         // Will delete both interrobot factors as,
         // (a, b)
@@ -784,13 +825,18 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
         // etc.
         // deletes a's interrobot factor connecting to b, a -> b
         // deletes b's interrobot factor connecting to a, b -> a
-        let mut factorgraph1 = query
-            .iter_mut()
-            .find(|(id, _, _)| *id == robot1)
-            .expect("the robot1 should be in the query")
-            .1;
 
-        factorgraph1.delete_interrobot_factors_connected_to(robot2);
+        if let Ok((_, mut factorgraph1, _)) = query.get_mut(robot1) {
+            factorgraph1.delete_interrobot_factors_connected_to(robot2);
+        } else {
+            error!("Could not find robot1 in the query");
+        };
+
+        // let mut factorgraph1 = query
+        //     .iter_mut()
+        //     .find(|(id, _, _)| *id == robot1)
+        //     .expect("the robot1 should be in the query")
+        //     .1;
 
         //         match factorgraph1.delete_interrobot_factors_connected_to(robot2) {
 
@@ -807,32 +853,36 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
         //     }
         // }
 
-        let Some((_, mut factorgraph2, _)) = query
-            .iter_mut()
-            .find(|(robot_id, _, _)| *robot_id == robot2)
-        else {
+        if let Ok((_, mut factorgraph2, _)) = query.get_mut(robot2) {
+            factorgraph2.delete_interrobot_factors_connected_to(robot1);
+        } else {
             error!(
                 "attempt to delete interrobot factors between robots: {:?} and {:?} failed, \
                  reason: {:?} does not exist!",
                 robot1, robot2, robot2
             );
-            continue;
         };
 
-        factorgraph2.delete_messages_from_interrobot_factor_at(robot1);
+        // let Some((_, mut factorgraph2, _)) = query
+        //     .iter_mut()
+        //     .find(|(robot_id, _, _)| *robot_id == robot2)
+        // else {
+        //     error!(
+        //         "attempt to delete interrobot factors between robots: {:?}
+        // and {:?} failed, \          reason: {:?} does not exist!",
+        //         robot1, robot2, robot2
+        //     );
+        //     continue;
+        // };
+        //
+        // factorgraph2.delete_messages_from_interrobot_factor_at(robot1);
     }
 }
 
 fn create_interrobot_factors(
-    mut query: Query<(
-        Entity,
-        &mut FactorGraph,
-        &mut RobotState,
-        &Radius,
-        // &VariableTimesteps,
-    )>,
+    mut query: Query<(Entity, &mut FactorGraph, &mut RobotState, &Radius)>,
     config: Res<Config>,
-    // variable_timesteps: Res<VariableTimesteps>,
+    mut robot_number_gen: ResMut<RobotNumberGenerator>,
 ) {
     // a mapping between a robot and the other robots it should create a interrobot
     // factor to e.g:
@@ -856,15 +906,25 @@ fn create_interrobot_factors(
     let variable_indices_of_each_factorgraph: HashMap<RobotId, Vec<NodeIndex>> = query
         .iter()
         .map(|(robot_id, factorgraph, _, _)| {
-            // let num_variables = factorgraph.node_count().variables;
             let variable_indices = factorgraph
                 .variable_indices_ordered_by_creation()
                 .skip(1) // skip current variable
                 .collect::<Vec<_>>();
 
+            let num_variables = factorgraph.node_count().variables;
+            debug_assert_eq!(num_variables - 1, variable_indices.len());
             (robot_id, variable_indices)
         })
         .collect();
+
+    // for (robot_id, node_indices) in &variable_indices_of_each_factorgraph {
+    //     println!(
+    //         "robot: {:?}, #node_indices = {}",
+    //         robot_id,
+    //         node_indices.len()
+    //     );
+    // }
+    debug_assert!(variable_indices_of_each_factorgraph.values().all_equal());
 
     let mut external_edges_to_add = Vec::new();
 
@@ -879,7 +939,7 @@ fn create_interrobot_factors(
                 .expect("the key is in the map");
 
             for i in 1..num_variables {
-                let z = Vector::<Float>::zeros(DOFS);
+                let initial_measurement = Vector::<Float>::zeros(DOFS);
                 // let eps = 0.2 * config.robot.radius.get();
                 // let eps = 0.2 * radius.0;
                 // let safety_radius = 2.0f32.mul_add(config.robot.radius.get(), eps);
@@ -896,7 +956,7 @@ fn create_interrobot_factors(
                 let interrobot_factor = FactorNode::new_interrobot_factor(
                     factorgraph.id(),
                     Float::from(config.gbp.sigma_factor_interrobot),
-                    z,
+                    initial_measurement,
                     Float::from(radius.0).try_into().expect("> 0.0"),
                     Float::from(config.robot.inter_robot_safety_distance_multiplier.get())
                         .try_into()
@@ -905,6 +965,7 @@ fn create_interrobot_factors(
                     //     .try_into()
                     //     .expect("safe radius is positive and finite"),
                     external_variable_id,
+                    robot_number_gen.next(),
                 );
 
                 let factor_index = factorgraph.add_factor(interrobot_factor);
@@ -976,16 +1037,8 @@ fn update_failed_comms(
     config: Res<Config>,
     mut prng: ResMut<GlobalEntropy<WyRand>>,
 ) {
-    // fn update_failed_comms(mut query: Query<&mut RobotState>, config:
-    // Res<Config>) {
     for mut antenna in &mut antennas {
-        // prng.reseed(seed)
-
-        // antenna.active = config.robot.communication.failure_rate <
-        // rand::random::<f32>();
         antenna.active = !prng.gen_bool(config.robot.communication.failure_rate.into());
-        // state.interrobot_comms_active =
-        // config.robot.communication.failure_rate < rand::random::<f32>();
     }
 }
 

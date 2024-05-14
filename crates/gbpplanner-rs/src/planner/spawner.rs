@@ -507,6 +507,12 @@ fn spawn_formation(
             })
             .collect();
 
+        let min_radius = radii
+            .iter()
+            .copied()
+            .map(ordered_float::OrderedFloat)
+            .min()
+            .expect("not empty");
         for (i, initial_pose) in initial_pose_for_each_robot.iter().enumerate() {
             let waypoints: Vec<Vec4> = waypoint_poses_for_each_robot
                 .iter()
@@ -548,7 +554,14 @@ fn spawn_formation(
             // num_variables_ = variable_timesteps.size();
             let t0: f32 = radii[i] / 2.0 / config.robot.max_speed.get();
 
-            let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / t0) as u32;
+            // let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / t0) as
+            // u32;
+            let divisor: f32 = (min_radius / 2.0 / config.robot.max_speed.get()).into();
+
+            let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / divisor) as u32;
+            // let lookahead_horizon: u32 = (config.robot.planning_horizon.get()
+            //     / radii.iter().map(ordered_float::OrderedFloat).min().unwrap())
+            //     as u32;
             let lookahead_multiple = config.gbp.lookahead_multiple as u32;
             let variable_timesteps = get_variable_timesteps(lookahead_horizon, lookahead_multiple);
 
@@ -558,6 +571,7 @@ fn spawn_formation(
                 route,
                 variable_timesteps.as_slice(),
                 &config,
+                &env_config,
                 radii[i],
                 &sdf.0,
                 matches!(formation.planning_strategy, PlanningStrategy::RrtStar),

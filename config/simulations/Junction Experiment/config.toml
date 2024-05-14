@@ -34,7 +34,6 @@ robot-colliders                    = false
 environment-colliders              = false
 robot-robot-collisions             = false
 robot-environment-collisions       = false
-infinite-grid                      = true
 
 
 [gbp]
@@ -53,10 +52,8 @@ schedule = "interleave-evenly"
 [robot]
 planning-horizon                       = 2.0
 max-speed                              = 15.0
-dofs                                   = 4
-symmetric-factors                      = true
 inter-robot-safety-distance-multiplier = 2.2
-# radius            = 1.0
+
 [robot.radius]
 min = 2.0
 max = 2.0
@@ -66,11 +63,11 @@ radius       = 20.0
 failure-rate = 0.0
 
 [simulation]
-max-time                                  = 10000.0
-time-scale                                = 1.0
-manual-step-factor                        = 1
-hz                                        = 10.0
-world-size                                = 100.0
+max-time           = 10000.0
+time-scale         = 1.0
+manual-step-factor = 1
+hz                 = 10.0
+# world-size                                = 100.0
 prng-seed                                 = 2
 pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = true

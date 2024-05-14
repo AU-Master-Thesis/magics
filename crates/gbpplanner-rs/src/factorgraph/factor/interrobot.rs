@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ops::Sub};
+use std::{borrow::Cow, num::NonZeroUsize, ops::Sub};
 
 use bevy::log::info;
 use gbp_linalg::prelude::*;
@@ -42,38 +42,35 @@ pub struct InterRobotFactor {
     robot_radius: Float,
     skip: bool,
     pub external_variable: ExternalVariableId,
+    tiny_offset: Float,
+    // all_zeros_jacobian: Matrix<Float>,
 }
 
 impl InterRobotFactor {
     pub const DEFAULT_SAFETY_DISTANCE_MULTIPLIER: Float = 2.2;
     pub const NEIGHBORS: usize = 2;
+    pub const TINY_OFFSET_SCALE: f32 = 1e-6;
 
     #[must_use]
     pub fn new(
         robot_radius: StrictlyPositiveFinite<Float>,
         external_variable: ExternalVariableId,
         safety_distance_multiplier: Option<StrictlyPositiveFinite<Float>>,
+        robot_number: NonZeroUsize,
     ) -> Self {
         let robot_radius = robot_radius.get();
-        // let epsilon = 0.2 * robot_radius;
-        //
-        // Self {
-        //     safety_distance: 2.0f64.mul_add(robot_radius, epsilon),
-        //     skip: false,
-        //     external_variable,
-        // }
-
         let safety_distance_multiplier = safety_distance_multiplier
             .map_or(Self::DEFAULT_SAFETY_DISTANCE_MULTIPLIER, |x| x.get());
-        // .unwrap_or(2.2.try_into().expect("2.2 > 0.0"))
-        // .get();
         let safety_distance = safety_distance_multiplier * robot_radius;
+
+        // println!("robot_number: {}", robot_number.get());
 
         Self {
             safety_distance,
             robot_radius,
             skip: false,
             external_variable,
+            tiny_offset: Float::from(Self::TINY_OFFSET_SCALE) * robot_number.get() as f64,
         }
     }
 
@@ -83,8 +80,27 @@ impl InterRobotFactor {
         self.safety_distance
     }
 
+    /// Update the safety distance
+    /// The multiplier is multiplied by the robot radius
     pub fn update_safety_distance(&mut self, multiplier: StrictlyPositiveFinite<Float>) {
         self.safety_distance = multiplier.get() * self.robot_radius
+    }
+
+    fn diff_between_estimated_positions(
+        &self,
+        lineraisation_point: &Vector<Float>,
+    ) -> Vector<Float> {
+        let offset = DOFS / 2;
+        let mut diff_between_estimated_positions = lineraisation_point
+            .slice(s![..offset])
+            .sub(&lineraisation_point.slice(s![DOFS..DOFS + offset]));
+        for i in 0..offset {
+            // Add a tiny random offset to avoid div/0 errors
+            // x_diff[i] += 1e-6 *
+            // Float::from(self.external_variable.factorgraph_id.index());
+            diff_between_estimated_positions[i] += self.tiny_offset;
+        }
+        diff_between_estimated_positions
     }
 }
 
@@ -94,29 +110,35 @@ impl Factor for InterRobotFactor {
         "InterRobotFactor"
     }
 
-    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+    fn jacobian(
+        &self,
+        state: &FactorState,
+        lineraisation_point: &Vector<Float>,
+    ) -> Cow<'_, Matrix<Float>> {
         // PERF: reuse allocation by
         let mut jacobian = Matrix::<Float>::zeros((state.initial_measurement.len(), DOFS * 2));
+        let x_diff = self.diff_between_estimated_positions(lineraisation_point);
 
-        let x_diff = {
-            let offset = DOFS / 2;
-            let mut x_diff = x.slice(s![..offset]).sub(&x.slice(s![DOFS..DOFS + offset]));
-
-            // NOTE: In gbplanner, they weight this by the robot id, why they do this is
-            // unclear as a robot id should be unique, and not have any
-            // semantics of distance/weight.
-            for i in 0..offset {
-                // Add a tiny random offset to avoid div/0 errors
-                x_diff[i] += 1e-6 * Float::from(self.external_variable.factorgraph_id.index());
-            }
-            x_diff
-        };
+        // let x_diff = {
+        //     let offset = DOFS / 2;
+        //     let mut diff_between_estimated_positions = lineraisation_point
+        //         .slice(s![..offset])
+        //         .sub(&lineraisation_point.slice(s![DOFS..DOFS + offset]));
+        //
+        //     // NOTE: In gbplanner, they weight this by the robot id, why they do this
+        // is     // unclear as a robot id should be unique, and not have any
+        //     // semantics of distance/weight.
+        //     for i in 0..offset {
+        //         // Add a tiny random offset to avoid div/0 errors
+        //         // x_diff[i] += 1e-6 *
+        //         // Float::from(self.external_variable.factorgraph_id.index());
+        //         diff_between_estimated_positions[i] += self.tiny_offset;
+        //     }
+        //     diff_between_estimated_positions
+        // };
 
         let radius = x_diff.euclidean_norm();
         if radius <= self.safety_distance {
-            // TODO: why do we change the Jacobian if we are not outside the safety
-            // distance?
-
             // J(0, seqN(0, n_dofs_ / 2)) = -1.f / safety_distance_ / r * X_diff;
             jacobian
                 .slice_mut(s![0, ..DOFS / 2])
@@ -130,20 +152,27 @@ impl Factor for InterRobotFactor {
         Cow::Owned(jacobian)
     }
 
-    fn measure(&self, state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
-        let mut h = Vector::<Float>::zeros(state.initial_measurement.len());
-        let x_diff = {
-            let offset = DOFS / 2;
-            let mut x_diff = x.slice(s![..offset]).sub(&x.slice(s![DOFS..DOFS + offset]));
-            // NOTE: In gbplanner, they weight this by the robot id, why they do this is
-            // unclear as a robot id should be unique, and not have any
-            // semantics of distance/weight.
-            for i in 0..offset {
-                // Add a tiny random offset to avoid div/0 errors
-                x_diff[i] += 1e-6 * Float::from(self.external_variable.factorgraph_id.index());
-            }
-            x_diff
-        };
+    fn measure(&self, state: &FactorState, lineraisation_point: &Vector<Float>) -> Vector<Float> {
+        let mut measurement = Vector::<Float>::zeros(state.initial_measurement.len());
+        let x_diff = self.diff_between_estimated_positions(lineraisation_point);
+        // let x_diff = {
+        //     let offset = DOFS / 2;
+        //     let mut diff_between_estimated_positions = lineraisation_point
+        //         .slice(s![..offset])
+        //         .sub(&lineraisation_point.slice(s![DOFS..DOFS + offset]));
+        //     // NOTE: In gbplanner, they weight this by the robot id, why they do this
+        // is     // unclear as a robot id should be unique, and not have any
+        //     // semantics of distance/weight.
+        //     for i in 0..offset {
+        //         // Add a tiny random offset to avoid div/0 errors
+        //         // x_diff[i] += 1e-6 *
+        //         // Float::from(self.external_variable.factorgraph_id.index());
+        //         diff_between_estimated_positions[i] += self.tiny_offset;
+        //     }
+        //     diff_between_estimated_positions
+        // };
+
+        // let squared_distance = x_diff.mapv(|x| x * x).sum();
 
         let radius = x_diff.euclidean_norm();
         if radius <= self.safety_distance {
@@ -158,10 +187,10 @@ impl Factor for InterRobotFactor {
             // NOTE: in Eigen, indexing a matrix with a single index corresponds to indexing
             // the matrix as a flattened array in column-major order.
             // h[(0, 0)] = 1.0 * (1.0 - radius / self.safety_distance);
-            h[0] = 1.0 * (1.0 - radius / self.safety_distance);
+            measurement[0] = 1.0 * (1.0 - radius / self.safety_distance);
         }
 
-        h
+        measurement
     }
 
     #[inline(always)]
@@ -169,6 +198,8 @@ impl Factor for InterRobotFactor {
         1e-2
     }
 
+    /// Returns true if the distance between the two variables associated with
+    /// this interrobot factor is greater than the safety distance
     fn skip(&self, state: &FactorState) -> bool {
         let offset = DOFS / 2;
         // [..offset] is the position of the first variable
@@ -177,12 +208,11 @@ impl Factor for InterRobotFactor {
             .linearisation_point
             .slice(s![..offset])
             .sub(&state.linearisation_point.slice(s![DOFS..DOFS + offset]));
-        let squared_norm = difference_between_estimated_positions
+        let squared_distance = difference_between_estimated_positions
             .mapv(|x| x.powi(2))
             .sum();
 
-        let skip = squared_norm >= self.safety_distance.powi(2);
-        skip
+        squared_distance >= self.safety_distance.powi(2)
     }
 
     #[inline(always)]

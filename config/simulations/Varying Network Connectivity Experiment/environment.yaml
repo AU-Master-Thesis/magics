@@ -1,0 +1,74 @@
+tiles:
+  grid:
+  - █
+  settings:
+    tile-size: 100.0
+    path-width: 0.1
+    obstacle-height: 1.0
+    sdf:
+      expansion: 0.001
+      blur: 0.001
+obstacles:
+- shape: !regular-polygon
+    sides: 4
+    side-length: 0.0525
+  translation:
+    x: 0.625
+    y: 0.60125
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !regular-polygon
+    sides: 4
+    side-length: 0.035
+  translation:
+    x: 0.44125
+    y: 0.57125
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !regular-polygon
+    sides: 4
+    side-length: 0.0225
+  translation:
+    x: 0.4835
+    y: 0.428
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !rectangle
+    width: 0.0875
+    height: 0.035
+  translation:
+    x: 0.589
+    y: 0.3965
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !triangle
+    base-length: 0.03
+    height: 0.0415
+    mid-point: 0.575
+  translation:
+    x: 0.5575
+    y: 0.5145
+  rotation: 0.0
+  # rotation:  1.5707964
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !triangle
+    base-length: 0.012
+    height: 0.025
+    mid-point: 1.25
+  translation:
+    x: 0.38
+    y: 0.432
+  rotation: 5.225
+  tile-coordinates:
+    row: 0
+    col: 0

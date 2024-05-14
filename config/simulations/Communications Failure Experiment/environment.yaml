@@ -6,8 +6,8 @@ tiles:
     path-width: 0.1
     obstacle-height: 1.0
     sdf:
-      expansion: 0.01
-      blur: 0.01
+      expansion: 0.001
+      blur: 0.001
 obstacles:
 - shape: !regular-polygon
     sides: 4
@@ -57,6 +57,7 @@ obstacles:
     x: 0.5575
     y: 0.5145
   rotation: 0.0
+  # rotation:  1.5707964
   tile-coordinates:
     row: 0
     col: 0

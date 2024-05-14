@@ -1,15 +1,15 @@
 # environment = "junction"
 environment_image = "junction_twoway"
-environment       = "./config/simulations/Complex/environment.yaml"
-formation_group   = "./config/simulations/Complex/formation.ron"
+environment       = "./config/simulations/Intersection/environment.yaml"
+formation_group   = "./config/simulations/Intersection/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance    = 250.0
+default-cam-distance    = 100.0
 
 [visualisation.uncertainty]
 max-radius = 2.5
-scale      = 300.0
+scale      = 30.0
 
 [visualisation.height]
 objects    = 0.5
@@ -18,13 +18,13 @@ height-map = 1.0
 [visualisation.draw]
 robots                             = true
 communication-graph                = false
-predicted-trajectories             = true
-waypoints                          = false
+predicted-trajectories             = false
+waypoints                          = true
 uncertainty                        = false
 paths                              = true
 generated-map                      = true
 height-map                         = false
-sdf                                = false
+sdf                                = true
 communication-radius               = false
 obstacle-factors                   = false
 tracking                           = false
@@ -32,17 +32,18 @@ interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 robot-colliders                    = false
 environment-colliders              = false
-robot-robot-collisions             = true
-robot-environment-collisions       = true
+robot-robot-collisions             = false
+robot-environment-collisions       = false
+
 
 [gbp]
-sigma-pose-fixed        = 0.000000000000001
+sigma-pose-fixed        = 1e-15
 sigma-factor-dynamics   = 0.1
-sigma-factor-interrobot = 0.01
-sigma-factor-obstacle   = 0.01
-sigma-factor-tracking   = 0.1
-# iterations-per-timestep = 10
-lookahead-multiple = 3
+sigma-factor-interrobot = 0.001
+sigma-factor-obstacle   = 0.001
+sigma-factor-tracking   = 0.01
+lookahead-multiple      = 3
+
 [gbp.iteration-schedule]
 internal = 10
 external = 10
@@ -50,39 +51,35 @@ schedule = "interleave-evenly"
 
 [robot]
 planning-horizon                       = 5.0
-max-speed                              = 4.0
+max-speed                              = 15.0
 inter-robot-safety-distance-multiplier = 2.2
 
 [robot.radius]
-min = 2.0
-max = 3.0
+min = 1.0
+max = 1.0
 
 [robot.communication]
 radius       = 20.0
-failure-rate = 0.2
+failure-rate = 0.0
 
 [simulation]
-# t0                 = 0.25
 max-time           = 10000.0
 time-scale         = 1.0
 manual-step-factor = 1
-hz                 = 60.0
+hz                 = 10.0
 # world-size                                = 100.0
-prng-seed                                 = 0
-pause-on-spawn                            = false
-despawn-robot-when-final-waypoint-reached = false
+prng-seed                                 = 2
+pause-on-spawn                            = true
+despawn-robot-when-final-waypoint-reached = true
 
 [rrt]
-max-iterations       = 5000000
-step-size            = 5.0
-collision-radius     = 3.0
-neighbourhood-radius = 8.0
+max-iterations       = 1000000
+step-size            = 0.5
+collision-radius     = 0.1
+neighbourhood-radius = 10.0
 
-[rrt.smoothing]
-enabled        = true
-max-iterations = 500
-step-size      = 0.5
-
+[graphviz]
+export-location = "./assets/export/"
 
 [graphviz.interrobot.active]
 style = "dashed"
@@ -94,8 +91,6 @@ style = "dashed"
 len   = 8.0
 color = "gray"
 
-[graphviz]
-export-location = "./assets/export/"
 
 [manual]
 timesteps-per-step = 1

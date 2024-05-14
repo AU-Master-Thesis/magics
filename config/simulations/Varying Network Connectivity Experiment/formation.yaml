@@ -7,28 +7,22 @@ formations:
   delay:
     secs: 1
     nanos: 0
-  robots: 4
+  robots: 10
   planning-strategy: only-local
   initial-position:
     shape: !circle
-      radius: 25.0
+      radius: 50.0
       center:
         x: 0.5
         y: 0.5
     placement-strategy: equal
   waypoints:
   - shape: !circle
-      radius: 25.0
+      radius: 50.0
       center:
         x: 0.5
         y: 0.5
     projection-strategy: cross
-  # - shape: !circle
-  #     radius: 40.0
-  #     center:
-  #       x: 0.5
-  #       y: 0.5
-  #   projection-strategy: identity
   # waypoint-reached-when-intersects: horizon
   waypoint-reached-when-intersects: current
   # waypoint-reached-when-intersects: !variable 5
