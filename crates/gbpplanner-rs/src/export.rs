@@ -1,10 +1,10 @@
 use std::{collections::HashMap, io::Write};
 
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
+use gbp_config::Config;
 
 use self::events::TakeSnapshotOfRobot;
 use crate::{
-    config::Config,
     factorgraph::prelude::FactorGraph,
     planner::{
         self,

@@ -1,20 +1,18 @@
 use std::sync::Arc;
 
 use bevy::prelude::*;
+use gbp_config::{Config, DrawSetting};
 use gbp_environment::{
     Circle, Environment, PlaceableShape, Rectangle, RegularPolygon, TileCoordinates, Triangle,
 };
+use gbp_global_planner::Colliders;
 use parry2d::{
     na::{self, Isometry2, Vector2},
     shape,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::{
-    asset_loader::Materials,
-    bevy_utils::run_conditions::event_exists,
-    config::{Config, DrawSetting},
-    input::DrawSettingsEvent,
+    asset_loader::Materials, bevy_utils::run_conditions::event_exists, input::DrawSettingsEvent,
     simulation_loader::LoadSimulation,
 };
 
@@ -22,12 +20,13 @@ pub struct GenMapPlugin;
 
 impl Plugin for GenMapPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Colliders>()
+        app
+            // .init_resource::<Colliders>()
             // .add_systems(Startup, (build_tile_grid, build_obstacles))
             // .add_systems(PostStartup, create_static_colliders)
             .add_systems(
                 Update,
-                (clear_colliders, build_tile_grid, build_obstacles).chain().run_if(on_event::<LoadSimulation>()),
+                (build_tile_grid.pipe(build_obstacles.pipe(insert_colliders_resource))).chain().run_if(on_event::<LoadSimulation>()),
             )
             .add_systems(
                 Update,
@@ -39,63 +38,57 @@ impl Plugin for GenMapPlugin {
 #[derive(Debug, Component)]
 pub struct ObstacleMarker;
 
-pub trait DebugShape: shape::Shape + std::fmt::Debug {}
-
-impl DebugShape for shape::Cuboid {}
-
-#[derive(Clone)]
-pub struct Collider {
-    pub associated_mesh: Option<Entity>,
-    pub isometry: Isometry2<f32>,
-    pub shape: Arc<dyn shape::Shape>,
-}
-
-impl Collider {
-    #[inline]
-    pub fn aabb(&self) -> parry2d::bounding_volume::Aabb {
-        self.shape.compute_aabb(&self.isometry)
-    }
-}
-
-#[derive(Resource, Default, Clone)]
-pub struct Colliders(Vec<Collider>);
-// pub struct Colliders(Vec<(Isometry2<f32>, Arc<dyn shape::Shape>)>);
-
-impl Colliders {
-    pub fn push(
-        &mut self,
-        associated_mesh: Option<Entity>,
-        position: Isometry2<f32>,
-        shape: Arc<dyn shape::Shape>,
-    ) {
-        self.0.push(Collider {
-            associated_mesh,
-            isometry: position,
-            shape,
-        });
-        // self.0.push((position, shape));
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &Collider> {
-        self.0.iter()
-    }
-
-    // pub fn iter(&self) -> impl Iterator<Item = &(Isometry2<f32>, Arc<dyn
-    // shape::Shape>)> {     self.0.iter()
-    // }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
-
-// fn create_static_colliders(colliders: Res<Colliders>) {
-//     COLLIDERS.write().expect("Not poisoned pls").0 = colliders.0.clone();
+// #[derive(Clone)]
+// pub struct Collider {
+//     pub associated_mesh: Option<Entity>,
+//     pub isometry: Isometry2<f32>,
+//     pub shape: Arc<dyn shape::Shape>,
 // }
+
+// impl Collider {
+//     #[inline]
+//     pub fn aabb(&self) -> parry2d::bounding_volume::Aabb {
+//         self.shape.compute_aabb(&self.isometry)
+//     }
+// }
+
+// #[derive(Resource, Default, Clone)]
+// pub struct Colliders(Vec<Collider>);
+
+// impl Colliders {
+//     delegate! {
+//         to self.0 {
+//             #[call(iter)]
+//             pub fn iter(&self) -> impl Iterator<Item = &Collider>;
+
+//             #[call(len)]
+//             pub fn len(&self) -> usize;
+
+//             #[call(is_empty)]
+//             pub fn is_empty(&self) -> bool;
+
+//             #[call(clear)]
+//             pub fn clear(&mut self);
+//         }
+//     }
+
+//     pub fn push(
+//         &mut self,
+//         associated_mesh: Option<Entity>,
+//         position: Isometry2<f32>,
+//         shape: Arc<dyn shape::Shape>,
+//     ) {
+//         self.0.push(Collider {
+//             associated_mesh,
+//             isometry: position,
+//             shape,
+//         });
+//     }
+// }
+
+fn insert_colliders_resource(In(colliders): In<Colliders>, mut commands: Commands) {
+    commands.insert_resource(colliders);
+}
 
 /// **Bevy** [`Startup`] _system_.
 /// Takes the [`Environment`] configuration and generates all specified
@@ -130,13 +123,14 @@ impl Colliders {
     clippy::cast_possible_truncation
 )]
 fn build_obstacles(
+    In(colliders): In<Colliders>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     env_config: Res<Environment>,
     config: Res<Config>,
     // scene_assets: Res<SceneAssets>,
     materials: Res<Materials>,
-) {
+) -> Colliders {
     let tile_grid = &env_config.tiles.grid;
     let tile_size = env_config.tile_size();
     let obstacle_height = -env_config.obstacle_height();
@@ -354,8 +348,7 @@ fn build_obstacles(
             ));
         });
 
-    // exit
-    // std::process::exit(0);
+    colliders
 }
 
 /// **Bevy** [`Startup`] _system_.
@@ -382,12 +375,12 @@ fn build_obstacles(
 fn build_tile_grid(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut colliders: ResMut<Colliders>,
+    // mut colliders: ResMut<Colliders>,
     env_config: Res<Environment>,
     config: Res<Config>,
     materials: Res<Materials>,
     obstacles: Query<Entity, With<ObstacleMarker>>,
-) {
+) -> Colliders {
     for entity in &obstacles {
         commands.entity(entity).despawn();
         info!("despawn obstacle entity: {:?}", entity);
@@ -409,6 +402,8 @@ fn build_tile_grid(
     let grid_offset_z = -(tile_grid.nrows() as f32 / 2.0 - 0.5);
 
     let pos_offset = path_width.mul_add(tile_size, base_dim) / 2.0;
+
+    let mut colliders = Colliders::default();
 
     for (y, row) in tile_grid.iter().enumerate() {
         for (x, tile) in row.chars().enumerate() {
@@ -1122,6 +1117,7 @@ fn build_tile_grid(
             }
         }
     }
+    colliders
 }
 
 /// **Bevy** [`Update`] _system_.
@@ -1146,10 +1142,10 @@ fn show_or_hide_generated_map(
     }
 }
 
-/// **Bevy** system that clear all spawned obstacle colliders. Used to clear
-/// existing colliders before a new simulation is loaded.
+/// **Bevy** [`Update`] system that clear all spawned obstacle colliders. Used
+/// to clear existing colliders before a new simulation is loaded.
 fn clear_colliders(mut colliders: ResMut<Colliders>) {
-    let n_colliders = colliders.0.len();
-    colliders.0.clear();
+    let n_colliders = colliders.len();
+    colliders.clear();
     info!("{} colliders cleared", n_colliders);
 }

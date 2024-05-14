@@ -9,10 +9,9 @@ use bevy::{
     time::common_conditions::on_real_timer,
 };
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
+use gbp_config::{Config, FormationGroup};
 use gbp_environment::Environment;
 use smol_str::SmolStr;
-
-use crate::config::{Config, FormationGroup};
 
 /// Which simulation to load initially
 #[derive(Debug, Default)]

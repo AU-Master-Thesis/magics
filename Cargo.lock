@@ -2655,6 +2655,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7046468a81e6a002061c01e6a7c83139daf91b11c30e66795b13217c2d885c8b"
 
 [[package]]
+name = "delegate"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e018fccbeeb50ff26562ece792ed06659b9c2dae79ece77c4456bb10d9bf79b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.60",
+]
+
+[[package]]
 name = "deranged"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3393,6 +3404,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "gbp_config"
+version = "1.1.0"
+dependencies = [
+ "bevy",
+ "derive_more",
+ "directories",
+ "gbp_schedule",
+ "itertools",
+ "min_len_vec",
+ "num-traits",
+ "pretty_assertions",
+ "rand",
+ "ron",
+ "serde",
+ "serde_yaml",
+ "struct_iterable",
+ "strum",
+ "strum_macros",
+ "thiserror",
+ "toml 0.8.12",
+ "typed_floats",
+ "unit_interval",
+]
+
+[[package]]
 name = "gbp_environment"
 version = "1.1.0"
 dependencies = [
@@ -3422,6 +3458,21 @@ dependencies = [
  "serde",
  "typed_floats",
  "unit_interval",
+]
+
+[[package]]
+name = "gbp_global_planner"
+version = "1.1.0"
+dependencies = [
+ "bevy",
+ "bevy_prng",
+ "bevy_rand",
+ "delegate",
+ "derive_more",
+ "gbp_config",
+ "parry2d",
+ "rand",
+ "rrt",
 ]
 
 [[package]]
@@ -3486,9 +3537,9 @@ dependencies = [
  "colored",
  "colorgrad",
  "dark-light",
+ "delegate",
  "derive_more",
  "dhat",
- "directories",
  "egui_dock",
  "egui_extras",
  "egui_graphs",
@@ -3497,7 +3548,9 @@ dependencies = [
  "embed-resource 2.4.2",
  "env_to_png",
  "fastrand",
+ "gbp_config",
  "gbp_environment",
+ "gbp_global_planner",
  "gbp_linalg",
  "gbp_multivariate_normal",
  "gbp_schedule",
@@ -5924,7 +5977,7 @@ checksum = "3cd14fd5e3b777a7422cca79358c57a8f6e3a703d9ac187448d0daf220c2407f"
 [[package]]
 name = "rrt"
 version = "0.7.0"
-source = "git+https://github.com/AU-Master-Thesis/rrt?branch=main#e145ce13846fe7f949e6c10406a543ba6f49be48"
+source = "git+https://github.com/AU-Master-Thesis/rrt?branch=main#f4e99758d5575ecc2da8971584473855e2d997c6"
 dependencies = [
  "derive_more",
  "kdtree",

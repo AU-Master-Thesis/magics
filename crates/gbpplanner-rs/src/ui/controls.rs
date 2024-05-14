@@ -6,6 +6,7 @@ use bevy_egui::{
     egui::{self, Color32, Layout, RichText, Sense, Vec2},
     EguiContexts,
 };
+use gbp_config::Config;
 use leafwing_input_manager::{
     input_map::InputMap,
     user_input::{InputKind, UserInput},
@@ -14,7 +15,6 @@ use strum::IntoEnumIterator;
 
 use super::{custom, OccupiedScreenSpace, ToUiString, UiState};
 use crate::{
-    config::Config,
     input::{
         CameraAction, CameraSensitivity, ChangingBinding, GeneralAction, InputAction,
         MoveableObjectAction, MoveableObjectSensitivity, UiAction,

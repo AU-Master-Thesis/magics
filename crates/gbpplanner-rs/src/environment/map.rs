@@ -8,11 +8,11 @@ use bevy::{
 };
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
+use gbp_config::{self, Config};
 use gbp_environment::Environment;
 
 use crate::{
     asset_loader::{Meshes, Obstacles},
-    config::{self, Config},
     input::DrawSettingsEvent,
     simulation_loader::{self, Sdf},
     theme::CatppuccinTheme,
@@ -176,7 +176,7 @@ fn show_or_hide_flat_map(
     mut evr_draw_settings: EventReader<DrawSettingsEvent>,
 ) {
     for event in evr_draw_settings.read() {
-        if matches!(event.setting, config::DrawSetting::Sdf) {
+        if matches!(event.setting, gbp_config::DrawSetting::Sdf) {
             for mut visibility in &mut query {
                 if event.draw {
                     *visibility = Visibility::Visible;

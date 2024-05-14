@@ -5,7 +5,6 @@ use bevy::ecs::schedule::States;
 pub mod asset_loader;
 pub mod bevy_utils;
 pub mod cli;
-pub mod config;
 pub mod despawn_entity_after;
 pub mod diagnostic;
 pub mod environment;

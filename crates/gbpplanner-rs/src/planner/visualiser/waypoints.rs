@@ -1,11 +1,11 @@
 //! **Bevy** Plugin to visualize robot waypoints
 use bevy::prelude::*;
+use gbp_config::{Config, DrawSetting};
 
 use crate::{
     // asset_loader::SceneAssets,
     asset_loader::{Materials, Meshes},
     bevy_utils::run_conditions::event_exists,
-    config::{Config, DrawSetting},
     input::DrawSettingsEvent,
     planner::{robot::RobotReachedWaypoint, spawner::WaypointCreated, RobotId},
     simulation_loader,

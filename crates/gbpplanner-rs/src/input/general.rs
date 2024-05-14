@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use bevy::{app::AppExit, prelude::*, tasks::IoTaskPool};
 use bevy_notify::prelude::*;
+use gbp_config::{Config, DrawSetting};
 use leafwing_input_manager::prelude::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -13,7 +14,6 @@ use super::{
 };
 use crate::{
     bevy_utils::run_conditions::event_exists,
-    config::{Config, DrawSetting},
     factorgraph::{
         graphviz::{ExportGraph, NodeKind},
         prelude::FactorGraph,

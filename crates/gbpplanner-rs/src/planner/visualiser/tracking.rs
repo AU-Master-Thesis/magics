@@ -2,10 +2,10 @@
 //! Includes the trackings paths, and the tracking factors
 
 use bevy::prelude::*;
+use gbp_config::Config;
 use itertools::Itertools;
 
 use crate::{
-    config::Config,
     factorgraph::prelude::FactorGraph,
     planner::robot::{Route, StateVector},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},

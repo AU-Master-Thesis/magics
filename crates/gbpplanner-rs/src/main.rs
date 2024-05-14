@@ -3,7 +3,6 @@
 pub(crate) mod asset_loader;
 mod bevy_utils;
 pub mod cli;
-pub(crate) mod config;
 pub mod despawn_entity_after;
 mod diagnostic;
 mod environment;
@@ -38,36 +37,18 @@ use bevy::{
     prelude::*,
     window::{WindowMode, WindowResolution},
 };
-use bevy_fullscreen::ToggleFullscreenPlugin;
-// use bevy_dev_console::prelude::*;
-use bevy_mod_picking::DefaultPickingPlugins;
-use bevy_notify::prelude::*;
-use bevy_prng::WyRand;
-use bevy_rand::prelude::EntropyPlugin;
 use colored::Colorize;
-// use config::{environment::EnvironmentType, Environment};
-use gbp_environment::{Environment, EnvironmentType};
-use gbpplanner_rs::AppState;
-use itertools::Itertools;
-
 // use iyes_perf_ui::prelude::*;
 
 // use rand::{Rng, SeedableRng};
 
 // use iyes_perf_ui::prelude::*;
-use crate::{
-    asset_loader::AssetLoaderPlugin,
-    cli::DumpDefault,
-    config::{read_config, Config, FormationGroup},
-    environment::EnvironmentPlugin,
-    input::InputPlugin,
-    movement::MovementPlugin,
-    pause_play::PausePlayPlugin,
-    planner::PlannerPlugin,
-    simulation_loader::SimulationLoaderPlugin,
-    theme::ThemePlugin,
-    ui::EguiInterfacePlugin,
-};
+use gbp_config::{read_config, Config, FormationGroup};
+// use config::{environment::EnvironmentType, Environment};
+use gbp_environment::{Environment, EnvironmentType};
+use gbpplanner_rs::AppState;
+
+use crate::cli::DumpDefault;
 
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -121,7 +102,7 @@ fn main() -> anyhow::Result<()> {
         let stdout_is_a_terminal = atty::is(atty::Stream::Stdout);
         match dump {
             DumpDefault::Config => {
-                let default = config::Config::default();
+                let default = gbp_config::Config::default();
                 if stdout_is_a_terminal {
                     let toml = toml::to_string_pretty(&default)?;
                     bat::PrettyPrinter::new()
@@ -135,7 +116,7 @@ fn main() -> anyhow::Result<()> {
                 }
             }
             DumpDefault::Formation => {
-                let default = config::FormationGroup::default();
+                let default = gbp_config::FormationGroup::default();
                 let config = ron::ser::PrettyConfig::new().indentor("  ".to_string());
 
                 let yaml = serde_yaml::to_string(&default)?;

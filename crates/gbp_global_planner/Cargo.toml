@@ -1,0 +1,22 @@
+[package]
+name = "gbp_global_planner"
+edition = "2021"
+version.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+bevy.workspace = true
+rrt.workspace = true
+derive_more.workspace = true
+parry2d.workspace = true
+bevy_rand.workspace = true
+bevy_prng.workspace = true
+rand.workspace = true
+delegate.workspace = true
+gbp_config = { path = "../gbp_config" }
+
+[lints]
+workspace = true

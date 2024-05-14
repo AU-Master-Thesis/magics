@@ -9,6 +9,7 @@ use bevy_infinite_grid::InfiniteGrid;
 use bevy_inspector_egui::{bevy_inspector, DefaultInspectorConfigPlugin};
 use bevy_notify::ToastEvent;
 use catppuccin::Colour;
+use gbp_config::{Config, DrawSection, DrawSetting};
 use gbp_linalg::Float;
 use gbp_schedule::GbpScheduleAtTimestep;
 use repeating_array::RepeatingArray;
@@ -18,7 +19,6 @@ use strum::IntoEnumIterator;
 
 use super::{custom, scale::ScaleUi, OccupiedScreenSpace, ToUiString, UiScaleType, UiState};
 use crate::{
-    config::{Config, DrawSection, DrawSetting},
     environment::cursor::CursorCoordinates,
     factorgraph::prelude::FactorGraph,
     input::{
@@ -397,7 +397,7 @@ fn ui_settings_panel(
                             ui.vertical_centered_justified(|ui| {
                                 let current: &'static str = config.gbp.iteration_schedule.schedule.into();
                                 ui.menu_button(current, |ui| {
-                                    for schedule in crate::config::GbpIterationScheduleKind::iter() {
+                                    for schedule in gbp_config::GbpIterationScheduleKind::iter() {
                                         ui.vertical_centered_justified(|ui| {
                                             let text: &'static str = schedule.into();
                                             if ui.button(text).clicked() {
