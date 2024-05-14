@@ -34,7 +34,6 @@ robot-colliders                    = false
 environment-colliders              = false
 robot-robot-collisions             = false
 robot-environment-collisions       = false
-infinite-grid                      = true
 
 
 [gbp]

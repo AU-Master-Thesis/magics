@@ -158,7 +158,7 @@ pub enum DrawSetting {
     RobotRobotCollisions,
     EnvironmentColliders,
     RobotEnvironmentCollisions,
-    InfiniteGrid,
+    // InfiniteGrid,
 }
 
 // TODO: store in a bitset
@@ -184,7 +184,7 @@ pub struct DrawSection {
     pub environment_colliders: bool,
     pub robot_robot_collisions: bool,
     pub robot_environment_collisions: bool,
-    pub infinite_grid: bool,
+    // pub infinite_grid: bool,
 }
 
 impl Default for DrawSection {
@@ -208,7 +208,7 @@ impl Default for DrawSection {
             environment_colliders: false,
             robot_robot_collisions: false,
             robot_environment_collisions: false,
-            infinite_grid: true,
+            // infinite_grid: true,
         }
     }
 }
@@ -234,33 +234,12 @@ impl DrawSection {
             "environment_colliders" => "Environment Colliders",
             "robot_robot_collisions" => "Robot-Robot Collisions",
             "robot_environment_collisions" => "Robot-Environment Collisions",
-            "infinite_grid" => "Infinite Grid",
+            // "infinite_grid" => "Infinite Grid",
             _ => "Unknown",
         }
     }
 
     pub fn all_disabled() -> Self {
-        // Self {
-        //     communication_graph: false,
-        //     predicted_trajectories: false,
-        //     waypoints: false,
-        //     uncertainty: false,
-        //     paths: false,
-        //     generated_map: false,
-        //     // height_map: false,
-        //     sdf: false,
-        //     communication_radius: false,
-        //     robots: false,
-        //     tracking: false,
-        //     obstacle_factors: false,
-        //     interrobot_factors: false,
-        //     interrobot_factors_safety_distance: false,
-        //     robot_colliders: false,
-        //     environment_colliders: false,
-        //     robot_robot_collisions: false,
-        //     robot_environment_collisions: false,
-        // }
-
         let mut instance = Self::default();
         let copy = instance;
 
@@ -274,27 +253,6 @@ impl DrawSection {
     }
 
     pub fn all_enabled() -> Self {
-        // Self {
-        //     communication_graph: true,
-        //     predicted_trajectories: true,
-        //     waypoints: true,
-        //     uncertainty: true,
-        //     paths: true,
-        //     generated_map: true,
-        //     // height_map: true,
-        //     sdf: true,
-        //     communication_radius: true,
-        //     robots: true,
-        //     tracking: true,
-        //     obstacle_factors: true,
-        //     interrobot_factors: true,
-        //     interrobot_factors_safety_distance: true,
-        //     robot_colliders: true,
-        //     environment_colliders: true,
-        //     robot_robot_collisions: true,
-        //     robot_environment_collisions: true,
-        // }
-
         let mut instance = Self::default();
         let copy = instance;
 
@@ -311,33 +269,10 @@ impl DrawSection {
         let copy = *self;
 
         copy.iter().for_each(|(name, _)| {
-            // if let Some(value) = value.downcast_ref::<bool>() {
             if let Some(field) = self.get_field_mut::<bool>(name) {
                 *field = !*field;
             }
-            // *value = !*value;
-            // }
         });
-        // self.communication_graph = !self.communication_graph;
-        // self.predicted_trajectories = !self.predicted_trajectories;
-        // self.waypoints = !self.waypoints;
-        // self.uncertainty = !self.uncertainty;
-        // self.paths = !self.paths;
-        // self.generated_map = !self.generated_map;
-        // // self.height_map = !self.height_map;
-        // self.sdf = !self.sdf;
-        // self.communication_radius = !self.communication_radius;
-        // self.robots = !self.robots;
-        // self.tracking = !self.tracking;
-        // self.obstacle_factors = !self.obstacle_factors;
-        // self.interrobot_factors = !self.interrobot_factors;
-        // self.interrobot_factors_safety_distance =
-        // !self.interrobot_factors_safety_distance;
-        // self.robot_colliders = !self.robot_colliders;
-        // self.environment_colliders = !self.environment_colliders;
-        // self.robot_robot_collisions = !self.robot_robot_collisions;
-        // self.robot_environment_collisions =
-        // !self.robot_environment_collisions;
     }
 }
 
@@ -651,6 +586,7 @@ pub struct RRTSection {
     /// Neighbourhood radius for RRT*
     pub neighbourhood_radius: StrictlyPositiveFinite<f32>,
     /// The smoothing parameters
+    #[serde(default)]
     pub smoothing: SmoothingSection,
 }
 

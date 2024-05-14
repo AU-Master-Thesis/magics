@@ -34,7 +34,6 @@ robot-colliders                    = false
 environment-colliders              = true
 robot-robot-collisions             = true
 robot-environment-collisions       = true
-infinite-grid                      = true
 
 [gbp]
 # sigma-pose-fixed        = 0.000000000000001
