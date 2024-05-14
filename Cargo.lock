@@ -3542,6 +3542,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "open",
+ "ordered-float 4.2.0",
  "parry2d",
  "parry3d",
  "paste",
@@ -5166,6 +5167,15 @@ name = "ordered-float"
 version = "2.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68f19d67e5a2795c94e73e0bb1cc1a7edeb2e28efd39e2e1c9b7a40c1108b11c"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "ordered-float"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a76df7075c7d4d01fdcb46c912dd17fba5b60c78ea480b475f2b6ab6f666584e"
 dependencies = [
  "num-traits",
 ]
@@ -6922,7 +6932,7 @@ checksum = "f737ed9bcc496b67fd1e24f63c14eace0cb9216d14bca000fd5934fddc6af7f6"
 dependencies = [
  "backtrace",
  "num-traits",
- "ordered-float",
+ "ordered-float 2.10.1",
  "rand",
  "smallvec",
  "zot",

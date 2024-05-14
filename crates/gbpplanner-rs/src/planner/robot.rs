@@ -13,6 +13,7 @@ use bevy_rand::prelude::{EntropyComponent, ForkableRng, GlobalEntropy};
 use derive_more::Index;
 use gbp_linalg::prelude::*;
 use gbp_schedule::GbpSchedule;
+use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
 use rand::{thread_rng, Rng};
 
@@ -856,15 +857,25 @@ fn create_interrobot_factors(
     let variable_indices_of_each_factorgraph: HashMap<RobotId, Vec<NodeIndex>> = query
         .iter()
         .map(|(robot_id, factorgraph, _, _)| {
-            // let num_variables = factorgraph.node_count().variables;
             let variable_indices = factorgraph
                 .variable_indices_ordered_by_creation()
                 .skip(1) // skip current variable
                 .collect::<Vec<_>>();
 
+            let num_variables = factorgraph.node_count().variables;
+            debug_assert_eq!(num_variables - 1, variable_indices.len());
             (robot_id, variable_indices)
         })
         .collect();
+
+    // for (robot_id, node_indices) in &variable_indices_of_each_factorgraph {
+    //     println!(
+    //         "robot: {:?}, #node_indices = {}",
+    //         robot_id,
+    //         node_indices.len()
+    //     );
+    // }
+    debug_assert!(variable_indices_of_each_factorgraph.values().all_equal());
 
     let mut external_edges_to_add = Vec::new();
 

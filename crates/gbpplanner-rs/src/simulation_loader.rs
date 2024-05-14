@@ -82,6 +82,7 @@ impl Plugin for SimulationLoaderPlugin {
                     .file_name()
                     .into_string()
                     .expect("failed to parse simulation name");
+                println!("about to load: {name:?}");
                 let config_path = dir.path().join("config.toml");
                 let config = Config::from_file(config_path).unwrap();
                 let environment_path = dir.path().join("environment.yaml");
@@ -89,7 +90,7 @@ impl Plugin for SimulationLoaderPlugin {
                 let formation_path = dir.path().join("formation.yaml");
                 let formation = FormationGroup::from_yaml_file(formation_path).unwrap();
 
-                println!("name: {name:?}");
+                // println!("name: {name:?}");
                 let sdf_image_buffer = env_to_png::env_to_sdf_image(
                     &environment,
                     // env_to_png::PixelsPerTile::new(200),
@@ -111,10 +112,11 @@ impl Plugin for SimulationLoaderPlugin {
                 //     sdf_image_buffer.color()
                 // );
 
-                let raw_path = PathBuf::new()
-                    .join("crates/gbpplanner-rs/assets/imgs/obstacles")
-                    .join(format!("{}.png", config.environment_image));
-                let raw_image_buffer = image::io::Reader::open(raw_path).unwrap().decode().unwrap();
+                // let raw_path = PathBuf::new()
+                //     .join("crates/gbpplanner-rs/assets/imgs/obstacles")
+                //     .join(format!("{}.png", config.environment_image));
+                // let raw_image_buffer =
+                // image::io::Reader::open(raw_path).unwrap().decode().unwrap();
 
                 let simulation = Simulation {
                     name: name.clone(),
@@ -122,8 +124,10 @@ impl Plugin for SimulationLoaderPlugin {
                     environment,
                     formation_group: formation,
                     sdf: Sdf(sdf_image_buffer.into()),
-                    raw: Raw(raw_image_buffer.into()),
+                    // raw: Raw(raw_image_buffer.into()),
                 };
+
+                println!("loaded: {name:?}");
 
                 (name, simulation)
             })
@@ -152,7 +156,7 @@ impl Plugin for SimulationLoaderPlugin {
         let formation_group = initial_simulation.formation_group.clone();
         let environment = initial_simulation.environment.clone();
         let sdf = initial_simulation.sdf.clone();
-        let raw = initial_simulation.raw.clone();
+        // let raw = initial_simulation.raw.clone();
 
         let initial_simulation_name = initial_simulation.name.clone();
 
@@ -162,7 +166,7 @@ impl Plugin for SimulationLoaderPlugin {
             .insert_resource(formation_group)
             .insert_resource(environment)
             .insert_resource(sdf)
-            .insert_resource(raw)
+            // .insert_resource(raw)
             .add_event::<ReloadSimulation>()
             .add_event::<LoadSimulation>()
             .add_event::<EndSimulation>()
@@ -187,7 +191,7 @@ pub struct Simulation {
     pub formation_group: FormationGroup,
     // pub sdf: Handle<Image>,
     pub sdf: Sdf,
-    pub raw: Raw,
+    // pub raw: Raw,
 }
 
 #[derive(Debug, Resource)]
@@ -520,7 +524,7 @@ fn handle_requests(
     // mut variable_timesteps: ResMut<VariableTimesteps>,
     mut environment: ResMut<Environment>,
     mut sdf: ResMut<Sdf>,
-    mut raw: ResMut<Raw>,
+    // mut raw: ResMut<Raw>,
     mut rng: ResMut<bevy_rand::prelude::GlobalEntropy<bevy_prng::WyRand>>,
     reloadable_entities: Query<Entity, With<Reloadable>>,
 ) {
@@ -572,7 +576,7 @@ fn handle_requests(
             // config.simulation.t0 =
             *environment = simulation_manager.simulations[id.0].environment.clone();
             *sdf = simulation_manager.simulations[id.0].sdf.clone();
-            *raw = simulation_manager.simulations[id.0].raw.clone();
+            // *raw = simulation_manager.simulations[id.0].raw.clone();
             // *variable_timesteps = VariableTimesteps::from(config.as_ref());
             let seed: [u8; 8] = config.simulation.prng_seed.to_le_bytes();
             rng.reseed(seed);
