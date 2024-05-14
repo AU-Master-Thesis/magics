@@ -9,9 +9,10 @@ use bevy::{
 };
 use bevy_egui::egui;
 use egui_plot::{Line, Plot, PlotPoints};
+use gbp_config::Config;
 
 use super::UiState;
-use crate::{config::Config, diagnostic::prelude::RobotDiagnosticsPlugin};
+use crate::diagnostic::prelude::RobotDiagnosticsPlugin;
 
 pub struct MetricsPlugin {
     wait_duration: Duration,

@@ -1,7 +1,6 @@
 // pub mod environment;
 pub mod formation;
 pub mod geometry;
-
 pub mod reader;
 
 use std::{num::NonZeroUsize, ops::RangeInclusive};

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
+use gbp_config::{Config, DrawSetting};
 use itertools::Itertools;
 
 use super::RobotTracker;
@@ -7,7 +8,6 @@ use crate::{
     // asset_loader::SceneAssets,
     asset_loader::Meshes,
     bevy_utils::run_conditions::event_exists,
-    config::{Config, DrawSetting},
     factorgraph::{factor::Factor, factorgraph::VariableIndex, prelude::FactorGraph},
     input::DrawSettingsEvent,
     planner::{

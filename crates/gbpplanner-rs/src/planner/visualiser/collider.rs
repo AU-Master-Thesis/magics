@@ -1,9 +1,7 @@
 use bevy::prelude::*;
+use gbp_config::Config;
 
-use crate::{
-    config::Config,
-    planner::{robot::Ball, RobotState},
-};
+use crate::planner::{robot::Ball, RobotState};
 
 #[derive(Default)]
 pub struct ColliderVisualizerPlugin;
@@ -62,7 +60,7 @@ mod environment_colliders {
 
     pub(super) fn render(
         mut gizmos: Gizmos,
-        env_colliders: Res<crate::environment::map_generator::Colliders>,
+        env_colliders: Res<gbp_global_planner::Colliders>,
         // config: Res<Config>,
         env_config: Res<Environment>,
     ) {

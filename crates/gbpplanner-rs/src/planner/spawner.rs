@@ -3,6 +3,11 @@ use std::{num::NonZeroUsize, ops::DerefMut, time::Duration};
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_notify::ToastEvent;
+use bevy_rand::prelude::{ForkableRng, GlobalEntropy};
+use gbp_config::{
+    formation::{PlanningStrategy, RepeatTimes, WorldDimensions},
+    Config,
+};
 use itertools::Itertools;
 use rand::{seq::IteratorRandom, Rng};
 use strum::IntoEnumIterator;
@@ -14,10 +19,6 @@ use super::{
 use crate::{
     // asset_loader::SceneAssets,
     asset_loader::Meshes,
-    config::{
-        formation::{PlanningStrategy, RepeatTimes, WorldDimensions},
-        Config,
-    },
     environment::FollowCameraMe,
     pause_play::PausePlay,
     planner::robot::{RobotBundle, Route, StateVector},
@@ -419,16 +420,9 @@ fn spawn_formation(
     config: Res<Config>,
     env_config: Res<gbp_environment::Environment>,
     theme: Res<CatppuccinTheme>,
-    // formation_group: Res<FormationGroup>,
     simulation_manager: Res<SimulationManager>,
-    // variable_timesteps: Res<VariableTimesteps>,
-    // scene_assets: Res<SceneAssets>,
-    meshes: Res<Meshes>,
-    // obstacles: Res<Obstacles>,
     sdf: Res<Sdf>,
-    // obstacle_sdf: Res<ObstacleSdf>,
-    // image_assets: ResMut<Assets<Image>>,
-    mut prng: ResMut<bevy_rand::prelude::GlobalEntropy<bevy_prng::WyRand>>,
+    mut prng: ResMut<GlobalEntropy<bevy_prng::WyRand>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     time_virtual: Res<Time<Virtual>>,
 ) {
@@ -604,6 +598,7 @@ fn spawn_formation(
             entity.insert((
                 robotbundle,
                 pbrbundle,
+                prng.fork_rng(),
                 simulation_loader::Reloadable,
                 super::tracking::PositionTracker::new(1000, Duration::from_millis(50)),
                 super::tracking::VelocityTracker::new(1000, Duration::from_millis(50)),

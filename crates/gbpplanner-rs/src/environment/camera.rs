@@ -1,8 +1,8 @@
 // https://github.com/marcelchampagne/bevy-basics/blob/main/episode-3/src/camera.rs
 use bevy::prelude::*;
+use gbp_config::Config;
 
 use crate::{
-    config::Config,
     movement::{LinearMovementBundle, Local, Orbit, OrbitMovementBundle},
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };

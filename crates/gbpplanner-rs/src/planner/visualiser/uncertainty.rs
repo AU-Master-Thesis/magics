@@ -1,11 +1,11 @@
 #![warn(missing_docs)]
 use bevy::prelude::*;
+use gbp_config::Config;
 
 use super::{RobotTracker, Z_FIGHTING_OFFSET};
 use crate::{
     asset_loader::Materials,
     bevy_utils::run_conditions::event_exists,
-    config::Config,
     factorgraph::prelude::FactorGraph,
     input::DrawSettingsEvent,
     simulation_loader,
@@ -307,7 +307,7 @@ fn show_or_hide_uncertainty(
 ) {
     for event in evr_draw_settings.read() {
         // debug!("received event to toggle draw visibility of gaussian uncertainty");
-        if matches!(event.setting, crate::config::DrawSetting::Uncertainty) {
+        if matches!(event.setting, gbp_config::DrawSetting::Uncertainty) {
             let new_visibility_state = if event.draw {
                 Visibility::Visible
             } else {

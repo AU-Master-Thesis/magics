@@ -2,8 +2,9 @@
 //! environment.
 
 use bevy::prelude::*;
+use gbp_config::Config;
 
-use crate::{config::Config, factorgraph::prelude::FactorGraph};
+use crate::factorgraph::prelude::FactorGraph;
 
 #[derive(Default)]
 pub struct ObstacleFactorVisualizerPlugin;
@@ -50,7 +51,7 @@ mod resources {
 
     impl FromWorld for Settings {
         fn from_world(world: &mut World) -> Self {
-            if let Some(config) = world.get_resource::<crate::config::Config>() {
+            if let Some(config) = world.get_resource::<gbp_config::Config>() {
                 Self {
                     enabled: config.visualisation.draw.obstacle_factors,
                 }

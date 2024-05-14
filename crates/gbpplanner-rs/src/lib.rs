@@ -5,7 +5,7 @@ use bevy::ecs::schedule::States;
 pub mod asset_loader;
 pub mod bevy_utils;
 pub mod cli;
-pub mod config;
+// pub mod config;
 pub mod diagnostic;
 pub mod environment;
 pub mod export;

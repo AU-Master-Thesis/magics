@@ -11,6 +11,7 @@ use bevy::{
 use bevy_prng::WyRand;
 use bevy_rand::prelude::{EntropyComponent, ForkableRng, GlobalEntropy};
 use derive_more::Index;
+use gbp_config::{formation::WaypointReachedWhenIntersects, Config};
 use gbp_linalg::prelude::*;
 use gbp_schedule::GbpSchedule;
 use ndarray::{array, concatenate, s, Axis};
@@ -22,7 +23,6 @@ use super::{
 };
 use crate::{
     bevy_utils::run_conditions::time::virtual_time_is_paused,
-    config::{formation::WaypointReachedWhenIntersects, Config},
     factorgraph::{
         factor::{ExternalVariableId, FactorNode},
         factorgraph::{FactorGraph, NodeIndex, VariableIndex},
@@ -86,8 +86,8 @@ impl Plugin for RobotPlugin {
 #[derive(Event)]
 pub struct GbpScheduleChanged(pub GbpIterationSchedule);
 
-impl From<crate::config::GbpIterationSchedule> for GbpScheduleChanged {
-    fn from(schedule: crate::config::GbpIterationSchedule) -> Self {
+impl From<gbp_config::GbpIterationSchedule> for GbpScheduleChanged {
+    fn from(schedule: gbp_config::GbpIterationSchedule) -> Self {
         Self(GbpIterationSchedule(schedule))
     }
 }
@@ -422,7 +422,7 @@ pub struct Ball(parry2d::shape::Ball);
 // }
 
 #[derive(Clone, Copy, Debug, Component, Resource, derive_more::Into, derive_more::From)]
-pub struct GbpIterationSchedule(pub crate::config::GbpIterationSchedule);
+pub struct GbpIterationSchedule(pub gbp_config::GbpIterationSchedule);
 
 impl GbpIterationSchedule {
     pub fn schedule(&self) -> Box<dyn gbp_schedule::GbpScheduleIterator> {
@@ -450,7 +450,7 @@ impl FromWorld for GbpIterationSchedule {
         if let Some(config) = world.get_resource::<Config>() {
             Self(config.gbp.iteration_schedule)
         } else {
-            Self(crate::config::GbpIterationSchedule::default())
+            Self(gbp_config::GbpIterationSchedule::default())
         }
     }
 }

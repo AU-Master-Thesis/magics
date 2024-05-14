@@ -1,10 +1,10 @@
 //! A **Bevy** Plugin for visualising the communication graph between robots
 
 use bevy::prelude::*;
+use gbp_config::Config;
 
 use super::super::RobotState;
 use crate::{
-    config::Config,
     planner::robot::RadioAntenna,
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };

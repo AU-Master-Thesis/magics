@@ -1,8 +1,9 @@
 //! Visualize interrobot factors
 //! environment.
 use bevy::prelude::*;
+use gbp_config::Config;
 
-use crate::{config::Config, factorgraph::prelude::FactorGraph, planner::robot::RadioAntenna};
+use crate::{factorgraph::prelude::FactorGraph, planner::robot::RadioAntenna};
 
 pub struct InterRobotFactorVisualizerPlugin;
 

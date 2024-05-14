@@ -44,6 +44,9 @@ seq                     = { path = "../seq" }
 interleave_evenly       = { path = "../interleave_evenly" }
 gbp_schedule            = { path = "../gbp_schedule" }
 env_to_png              = { path = "../env_to_png" }
+gbp_config              = { path = "../gbp_config" }
+gbp_environment         = { path = "../gbp_environment" }
+gbp_global_planner      = { path = "../gbp_global_planner" }
 
 bevy.workspace = true
 
@@ -54,17 +57,32 @@ egui_tiles          = "0.7.2"
 
 # bevy_egui = { git = "https://github.com/mvlabat/bevy_egui", branch = "main" } # 0.26 does not support egui 0.27, which egui-notify needs
 
+bevy_rand.workspace       = true
+bevy_prng.workspace       = true
+parry3d.workspace         = true
+parry2d.workspace         = true
+struct_iterable.workspace = true
+toml.workspace            = true
+thiserror.workspace       = true
+anyhow.workspace          = true
+clap.workspace            = true
+itertools.workspace       = true
+ndarray.workspace         = true
+num-traits.workspace      = true
+ron.workspace             = true
+strum.workspace           = true
+strum_macros.workspace    = true
+typed_floats.workspace    = true
+delegate.workspace        = true
+derive_more.workspace     = true
+rrt.workspace             = true
+serde_yaml.workspace      = true
+
 egui_extras = { version = "0.26.2", features = [
   "all_loaders",
 ] }
 bevy_mod_picking = { version = "0.18" }
 # bevy_eventlistener = "0.7"
-
-bevy_rand = "0.6"
-bevy_prng = { version = "0.6", features = [
-  "rand_chacha",
-  "wyrand",
-] }
 iyes_perf_ui = { git = "https://github.com/IyesGames/iyes_perf_ui", branch = "main" }
 image = { version = "0.25", default-features = false, features = [
   "png",
@@ -73,13 +91,6 @@ leafwing-input-manager = "0.13.3"
 # bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
 bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "bevy-v0.13.0" }
 bevy_more_shapes = { git = "https://github.com/AU-Master-Thesis/bevy_more_shapes", branch = "bevy-v0.13.0" }
-gbp_environment = { path = "../gbp_environment" }
-parry3d = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
-  "bevy",
-] }
-parry2d = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
-  "bevy",
-] }
 # bevy_mesh_terrain = "0.6.1"
 
 bevy_asset_loader = "0.20"
@@ -90,50 +101,33 @@ bevy_mod_debugdump = "0.10.0"
 
 
 heck            = "0.5.0"
-struct_iterable = "0.1.1"
 catppuccin      = "1.4.0"
 
-toml.workspace = true
 serde = { version = "1.0.196", features = [
   "derive",
 ] }
-thiserror.workspace = true
-anyhow.workspace = true
-clap.workspace = true
 clap_complete = "4.5.2"
 
 # color-eyre = "0.6.2"
 rand      = "0.8.5"
-itertools = "0.12"
 petgraph  = "0.6"
 # ndarray         = "0.15.6"
-ndarray.workspace = true
 ndarray-inverse   = "0.1.9"
-num-traits        = "0.2.18"
-ron.workspace     = true
-strum             = "0.26.1"
-strum_macros      = "0.26.1"
 glob              = "0.3.1"
 better-panic      = "0.3.0"
 
 tap = "1.0.1"
 
-typed_floats.workspace = true
 
 ringbuf               = "0.3.3"
 bevy_dev_console      = { git = "https://github.com/doonv/bevy_dev_console.git", version = "0.1.0" }
 termsize              = "0.1.6"
-derive_more.workspace = true
 paste                 = "1.0.14"
 egui_plot             = "0.26"
 egui_graphs           = "0.19.0"
-serde_yaml.workspace  = true
-rrt                   = { git = "https://github.com/AU-Master-Thesis/rrt", branch = "main" }
 colored               = "2.1.0"
-directories           = "5.0.1"
 chrono                = "0.4.37"
 # parry3d = "0.13.7"
-
 
 # font-kit = { version = "0.13.0", features = ["freetype"] }
 
@@ -162,7 +156,7 @@ open          = "5.1.0"
 open = "5.1.0"
 
 [dev-dependencies]
-pretty_assertions = "1.4.0"
+pretty_assertions.workspace = true
 approx            = "0.5.1"
 
 [build-dependencies]

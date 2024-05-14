@@ -1,18 +1,10 @@
-// mod debug;
-// mod factor;
-// mod factorgraph;
-// mod marginalise_factor_distance;
-// mod message;
 pub mod collisions;
 pub mod robot;
 pub mod spawner;
 pub mod tracking;
-// mod variable;
-// mod run_schedule;
 mod visualiser;
 
 use bevy::prelude::*;
-// pub use factorgraph::{graphviz::NodeKind, FactorGraph, NodeIndex};
 pub use robot::{RobotId, RobotState};
 pub use visualiser::{
     factorgraphs::VariableVisualiser, waypoints::WaypointVisualiser, RobotTracker,
@@ -30,7 +22,6 @@ impl Plugin for PlannerPlugin {
             VisualiserPlugin,
             collisions::RobotCollisionsPlugin,
             tracking::TrackingPlugin,
-            // PlannerDebugPlugin,
         ));
     }
 }

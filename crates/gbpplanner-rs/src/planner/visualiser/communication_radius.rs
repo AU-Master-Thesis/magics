@@ -1,7 +1,7 @@
 use bevy::prelude::*;
+use gbp_config::Config;
 
 use crate::{
-    config::Config,
     planner::{robot::RadioAntenna, RobotState},
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };

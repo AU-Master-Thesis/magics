@@ -1,13 +1,17 @@
 use std::{collections::HashMap, ops::Deref, time::Duration};
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
+use gbp_global_planner::Colliders;
 use parry2d::{
     bounding_volume::BoundingVolume,
     na::{Complex, Isometry, Unit},
 };
 
 use super::{robot::Ball, RobotState};
-use crate::simulation_loader::{LoadSimulation, ReloadSimulation};
+use crate::{
+    // environment::map_generator::Colliders,
+    simulation_loader::{LoadSimulation, ReloadSimulation},
+};
 
 #[derive(Default)]
 pub struct RobotCollisionsPlugin;
@@ -30,7 +34,9 @@ impl Plugin for RobotCollisionsPlugin {
                     toggle_visibility_of_robot_robot_collisions,
                     // toggle_visibility_of_robot_robot_collisions
                     //     .run_if(input_just_pressed(KeyCode::F10)),
-                    update_robot_environment_collisions.run_if(on_timer(Self::UPDATE_EVERY)),
+                    update_robot_environment_collisions.run_if(
+                        on_timer(Self::UPDATE_EVERY).and_then(resource_exists::<Colliders>),
+                    ),
                     render_robot_environment_collisions,
                     toggle_visibility_of_robot_environment_collisions,
                     // toggle_visibility_of_robot_environment_collisions
@@ -269,7 +275,7 @@ pub mod events {
 }
 
 fn update_robot_environment_collisions(
-    env_colliders: Res<crate::environment::map_generator::Colliders>,
+    env_colliders: Res<Colliders>,
     robots: Query<(Entity, &Transform, &Ball), With<RobotState>>,
     mut robot_environment_collisions: ResMut<resources::RobotEnvironmentCollisions>,
     mut aabbs: Local<
@@ -409,7 +415,7 @@ fn render_robot_robot_collisions(
     mut evr_robots_collided: EventReader<events::RobotRobotCollision>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    config: Res<crate::config::Config>,
+    config: Res<gbp_config::Config>,
 ) {
     for event in evr_robots_collided.read() {
         let material = materials.add(StandardMaterial {
@@ -452,10 +458,7 @@ fn toggle_visibility_of_robot_robot_collisions(
     mut evr_draw_settings: EventReader<crate::input::DrawSettingsEvent>,
 ) {
     for event in evr_draw_settings.read() {
-        if matches!(
-            event.setting,
-            crate::config::DrawSetting::RobotRobotCollisions
-        ) {
+        if matches!(event.setting, gbp_config::DrawSetting::RobotRobotCollisions) {
             for mut visibility in &mut q_robot_collisions {
                 *visibility = if *visibility == Visibility::Visible {
                     Visibility::Hidden
@@ -472,7 +475,7 @@ fn render_robot_environment_collisions(
     mut evr_robots_collided: EventReader<events::RobotEnvironmentCollision>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    config: Res<crate::config::Config>,
+    config: Res<gbp_config::Config>,
     // mut q_obstacles: Query<&mut Handle<StandardMaterial>,
     // With<crate::environment::ObstacleMarker>>,
 ) {
@@ -526,7 +529,7 @@ fn toggle_visibility_of_robot_environment_collisions(
         // println!("draw setting event: {:?}", event);
         if matches!(
             event.setting,
-            crate::config::DrawSetting::RobotEnvironmentCollisions
+            gbp_config::DrawSetting::RobotEnvironmentCollisions
         ) {
             for mut visibility in &mut q_robot_collisions {
                 *visibility = if *visibility == Visibility::Visible {

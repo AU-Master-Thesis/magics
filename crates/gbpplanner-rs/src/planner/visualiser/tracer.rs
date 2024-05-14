@@ -7,8 +7,9 @@ use ringbuf::{Rb, StaticRb};
 const MAX_TRACE_LENGTH: usize = 100;
 const SAMPLE_DELAY: f32 = 0.5;
 
+use gbp_config::Config;
+
 use crate::{
-    config::Config,
     planner::{
         robot::{RobotDespawned, RobotSpawned},
         RobotId, RobotState,
