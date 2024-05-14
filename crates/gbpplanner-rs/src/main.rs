@@ -373,7 +373,6 @@ fn main() -> anyhow::Result<()> {
         .add_plugins((
             bevy_egui::EguiPlugin,
             bevy_mod_picking::DefaultPickingPlugins,
-            bevy_rand::prelude::EntropyPlugin::<bevy_prng::WyRand>::default()
         ))
 
         // our plugins

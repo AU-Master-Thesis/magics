@@ -24,7 +24,7 @@ uncertainty                        = false
 paths                              = true
 generated-map                      = true
 height-map                         = false
-sdf                                = true
+sdf                                = false
 communication-radius               = false
 obstacle-factors                   = false
 tracking                           = false
@@ -82,6 +82,7 @@ collision-radius     = 3.0
 neighbourhood-radius = 8.0
 
 [rrt.smoothing]
+enabled        = true
 max-iterations = 500
 step-size      = 0.5
 
