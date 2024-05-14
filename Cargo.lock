@@ -3411,7 +3411,7 @@ dependencies = [
  "derive_more",
  "directories",
  "gbp_schedule",
- "itertools 0.12.1",
+ "itertools",
  "min_len_vec",
  "num-traits",
  "pretty_assertions",
