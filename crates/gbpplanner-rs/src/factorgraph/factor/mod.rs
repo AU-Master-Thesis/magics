@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ops::AddAssign};
+use std::{borrow::Cow, num::NonZeroUsize, ops::AddAssign};
 
 use bevy::math::Vec2;
 use gbp_linalg::{prelude::*, pretty_format_matrix, pretty_format_vector};
@@ -171,11 +171,13 @@ impl FactorNode {
         robot_radius: StrictlyPositiveFinite<Float>,
         safety_distance_multiplier: StrictlyPositiveFinite<Float>,
         external_variable: ExternalVariableId,
+        robot_number: NonZeroUsize,
     ) -> Self {
         let interrobot_factor = InterRobotFactor::new(
             robot_radius,
             external_variable,
             Some(safety_distance_multiplier),
+            robot_number,
         );
         let kind = FactorKind::InterRobot(interrobot_factor);
         let state = FactorState::new(measurement, strength, InterRobotFactor::NEIGHBORS);

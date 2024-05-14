@@ -15,10 +15,8 @@ pub struct ObstacleFactor {
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy
     /// of here since `ObstacleFactor` needs this information to calculate
     /// `.jacobian_delta()` and `.measurement()`
+    world_size:       WorldSize,
     // world_size:       Float,
-    // world_size_width: Float,
-    // world_size_height: Float,
-    world_size: WorldSize,
     last_measurement: Mutex<Cell<LastMeasurement>>,
     jacobian_delta:   Float,
 }
@@ -69,21 +67,14 @@ impl ObstacleFactor {
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
     pub fn new(obstacle_sdf: SdfImage, world_size: WorldSize) -> Self {
-        // let jacobian_delta = todo!();
         let jacobian_delta = {
             let width = world_size.width / Float::from(obstacle_sdf.width());
             let height = world_size.height / Float::from(obstacle_sdf.height());
             (width + height) / 2.0
         };
 
-        // (world_size.width / Float::from(obstacle_sdf.width()) + world_size.height /
-        // Float::from(obstacle_sdf.height())) / 2.0;
-
-        // self.world_size / Float::from(self.obstacle_sdf.width())
         Self {
             obstacle_sdf,
-            // world_size_width,
-            // world_size_height,
             world_size,
             last_measurement: Default::default(),
             jacobian_delta,
@@ -102,10 +93,14 @@ impl Factor for ObstacleFactor {
     }
 
     #[inline]
-    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+    fn jacobian(
+        &self,
+        state: &FactorState,
+        linearisation_point: &Vector<Float>,
+    ) -> Cow<'_, Matrix<Float>> {
         // Same as PoseFactor
         // TODO: change to not clone x
-        Cow::Owned(self.first_order_jacobian(state, x.clone()))
+        Cow::Owned(self.first_order_jacobian(state, linearisation_point.clone()))
     }
 
     fn measure(&self, _state: &FactorState, linearisation_point: &Vector<Float>) -> Vector<Float> {
@@ -114,36 +109,18 @@ impl Factor for ObstacleFactor {
         let x_scale = Float::from(self.obstacle_sdf.width()) / self.world_size.width;
         let y_scale = Float::from(self.obstacle_sdf.height()) / self.world_size.height;
 
-        // let x_measurement_point = (linearisation_point[0] + x_offset) * x_scale;
-        // let y_measurement_point = (linearisation_point[1] + y_offset) * y_scale;
         let x_pixel = ((linearisation_point[0] + x_offset) * x_scale) as u32;
         let y_pixel = ((linearisation_point[1] + y_offset) * y_scale) as u32;
-        // println!("x_pixel: {}, y_pixel: {}", x_pixel, y_pixel);
 
-        // if x_pixel >= self.obstacle_sdf.width() || y_pixel >=
-        // self.obstacle_sdf.height() {     return array![0.0];
-        // }
         let Some(pixel) = self.obstacle_sdf.get_pixel_checked(x_pixel, y_pixel) else {
             // Measurement point outside of image
             // Return 1.0 to indicate that it is an obstacle
             // return array![1.0];
+            // Return 0.0 to indicate that it is an empty space
             return array![0.0];
         };
 
-        // if (linearisation_point[0] + x_offset) * x_scale >
-        // Float::from(self.obstacle_sdf.width()) {     return array![0.0];
-        // }
-        // if (linearisation_point[1] + y_offset) * y_scale >
-        // Float::from(self.obstacle_sdf.height()) {     return array![0.0];
-        // }
-        // #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        // // let pixel_x =
-        // let pixel_x = ((linearisation_point[0] + x_offset) * x_scale) as u32;
-        // #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        // let pixel_y = ((linearisation_point[1] + y_offset) * y_scale) as u32;
-
         let red_channel = pixel[0];
-        // let hsv_value = Float::from(red_channel) / 255.0;
         // Dark areas are obstacles, so h(0) should return a 1 for these regions.
         let hsv_value = 1.0 - Float::from(red_channel) / 255.0;
 
@@ -158,7 +135,6 @@ impl Factor for ObstacleFactor {
     #[inline(always)]
     fn jacobian_delta(&self) -> Float {
         self.jacobian_delta
-        // self.world_size / Float::from(self.obstacle_sdf.width())
     }
 
     #[inline(always)]
@@ -180,8 +156,6 @@ impl Factor for ObstacleFactor {
 impl std::fmt::Display for ObstacleFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "world_size: {}", self.world_size)?;
-        // writeln!(f, "world_size_width: {}", self.world_size_width)?;
-        // writeln!(f, "world_size_height: {}", self.world_size_height)?;
         writeln!(f, "last_measurement: {:?}", self.last_measurement())
     }
 }
