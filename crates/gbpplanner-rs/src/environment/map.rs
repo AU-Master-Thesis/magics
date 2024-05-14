@@ -42,9 +42,7 @@ impl Plugin for MapPlugin {
             .add_systems(Update,
                 (
                     // obstacles.run_if(environment_png_is_loaded),
-                    obstacles.run_if(resource_changed::<Obstacles>),
-                    // obstacles.run_if(on_event::<LoadSimulation>()),
-                    // show_or_hide_height_map,
+                    // obstacles.run_if(resource_changed::<Obstacles>),
                     show_or_hide_flat_map,
                 )
             );
@@ -214,127 +212,127 @@ fn environment_png_is_loaded(
     // false
 }
 
-/// **Bevy** [`Update`] system
-/// Spawn the heightmap obstacles as soon as the obstacle image is loaded by
-/// using the `environment_png_is_loaded` run criteria.
-#[allow(
-    clippy::cast_precision_loss,
-    clippy::cast_sign_loss,
-    clippy::cast_possible_truncation
-)]
-#[allow(clippy::too_many_arguments)]
-fn obstacles(
-    mut commands: Commands,
-    obstacles: Res<Obstacles>,
-    sdf: Res<Sdf>,
-    image_assets: Res<Assets<Image>>,
-    mut mesh_assets: ResMut<Assets<Mesh>>,
-    mut standard_material_assets: ResMut<Assets<StandardMaterial>>,
-    mut next_heightmap_state: ResMut<NextState<HeightMapState>>,
-    config: Res<Config>,
-    asset_server: Res<AssetServer>,
-) {
-    let Some(load_state) = asset_server.get_load_state(obstacles.raw.id()) else {
-        warn!("obstacle image not loaded yet");
-        return;
-    };
-
-    let bevy::asset::LoadState::Loaded = load_state else {
-        warn!("obstacle image not loaded yet");
-        return;
-    };
-
-    let Some(image) = image_assets.get(obstacles.raw.id()) else {
-        warn!("obstacle image not available yet");
-        return;
-    };
-
-    next_heightmap_state.set(HeightMapState::Generated);
-
-    let width = image.texture_descriptor.size.width as usize;
-    let height = image.texture_descriptor.size.height as usize;
-    let channels = 4;
-
-    let vertices_count = width * height;
-    let triangle_count = (width - 1) * (height - 1) * 6;
-    let extent = config.simulation.world_size.get();
-    let intensity = config.visualisation.height.height_map;
-
-    let mut heightmap = Vec::<f32>::with_capacity(vertices_count);
-    for w in 0..width {
-        for h in 0..height {
-            heightmap.push(1.0 - f32::from(image.data[(w * height + h) * channels]) / 255.0);
-        }
-    }
-
-    // Defining vertices.
-    let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
-    let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(vertices_count);
-
-    for d in 0..width {
-        for w in 0..height {
-            let (w_f32, d_f32) = (w as f32, d as f32);
-
-            let pos = [
-                (w_f32 - width as f32 / 2.) * extent / width as f32,
-                heightmap[d * width + w].mul_add(intensity, -0.1),
-                (d_f32 - height as f32 / 2.) * extent / height as f32,
-            ];
-            positions.push(pos);
-            uvs.push([w_f32 / width as f32, d_f32 / height as f32]);
-        }
-    }
-
-    // Defining triangles.
-    let mut triangles: Vec<u32> = Vec::with_capacity(triangle_count);
-
-    assert!(height > 2);
-    for d in 0..(height - 2) as u32 {
-        for w in 0..(width - 2) as u32 {
-            // First tringle
-            triangles.push((d * (width as u32 + 1)) + w);
-            triangles.push(((d + 1) * (width as u32 + 1)) + w);
-            triangles.push(((d + 1) * (width as u32 + 1)) + w + 1);
-            // Second triangle
-            triangles.push((d * (width as u32 + 1)) + w);
-            triangles.push(((d + 1) * (width as u32 + 1)) + w + 1);
-            triangles.push((d * (width as u32 + 1)) + w + 1);
-        }
-    }
-
-    let mut mesh = Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
-    );
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-    // mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-    // mesh.set_indices(Some(Indices::U32(triangles)));
-    mesh.insert_indices(Indices::U32(triangles));
-    mesh.duplicate_vertices();
-    mesh.compute_flat_normals();
-
-    let material_handle = standard_material_assets.add(StandardMaterial {
-        base_color_texture: Some(obstacles.raw.clone()),
-        // base_color: Color::rgb(0.5, 0.5, 0.85),
-        ..default()
-    });
-
-    // let visibility = if config.visualisation.draw.height_map {
-    //     Visibility::Visible
-    // } else {
-    //     Visibility::Hidden
-    // };
-    //
-    commands.spawn((simulation_loader::Reloadable, HeightMap, PbrBundle {
-        mesh: mesh_assets.add(mesh),
-        material: material_handle,
-        // visibility,
-        ..default()
-    }));
-
-    error!("spawned heightmap");
-}
+// /// **Bevy** [`Update`] system
+// /// Spawn the heightmap obstacles as soon as the obstacle image is loaded by
+// /// using the `environment_png_is_loaded` run criteria.
+// #[allow(
+//     clippy::cast_precision_loss,
+//     clippy::cast_sign_loss,
+//     clippy::cast_possible_truncation
+// )]
+// #[allow(clippy::too_many_arguments)]
+// fn obstacles(
+//     mut commands: Commands,
+//     obstacles: Res<Obstacles>,
+//     sdf: Res<Sdf>,
+//     image_assets: Res<Assets<Image>>,
+//     mut mesh_assets: ResMut<Assets<Mesh>>,
+//     mut standard_material_assets: ResMut<Assets<StandardMaterial>>,
+//     mut next_heightmap_state: ResMut<NextState<HeightMapState>>,
+//     config: Res<Config>,
+//     asset_server: Res<AssetServer>,
+// ) {
+//     let Some(load_state) = asset_server.get_load_state(obstacles.raw.id())
+// else {         warn!("obstacle image not loaded yet");
+//         return;
+//     };
+//
+//     let bevy::asset::LoadState::Loaded = load_state else {
+//         warn!("obstacle image not loaded yet");
+//         return;
+//     };
+//
+//     let Some(image) = image_assets.get(obstacles.raw.id()) else {
+//         warn!("obstacle image not available yet");
+//         return;
+//     };
+//
+//     next_heightmap_state.set(HeightMapState::Generated);
+//
+//     let width = image.texture_descriptor.size.width as usize;
+//     let height = image.texture_descriptor.size.height as usize;
+//     let channels = 4;
+//
+//     let vertices_count = width * height;
+//     let triangle_count = (width - 1) * (height - 1) * 6;
+//     let extent = config.simulation.world_size.get();
+//     let intensity = config.visualisation.height.height_map;
+//
+//     let mut heightmap = Vec::<f32>::with_capacity(vertices_count);
+//     for w in 0..width {
+//         for h in 0..height {
+//             heightmap.push(1.0 - f32::from(image.data[(w * height + h) *
+// channels]) / 255.0);         }
+//     }
+//
+//     // Defining vertices.
+//     let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertices_count);
+//     let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(vertices_count);
+//
+//     for d in 0..width {
+//         for w in 0..height {
+//             let (w_f32, d_f32) = (w as f32, d as f32);
+//
+//             let pos = [
+//                 (w_f32 - width as f32 / 2.) * extent / width as f32,
+//                 heightmap[d * width + w].mul_add(intensity, -0.1),
+//                 (d_f32 - height as f32 / 2.) * extent / height as f32,
+//             ];
+//             positions.push(pos);
+//             uvs.push([w_f32 / width as f32, d_f32 / height as f32]);
+//         }
+//     }
+//
+//     // Defining triangles.
+//     let mut triangles: Vec<u32> = Vec::with_capacity(triangle_count);
+//
+//     assert!(height > 2);
+//     for d in 0..(height - 2) as u32 {
+//         for w in 0..(width - 2) as u32 {
+//             // First tringle
+//             triangles.push((d * (width as u32 + 1)) + w);
+//             triangles.push(((d + 1) * (width as u32 + 1)) + w);
+//             triangles.push(((d + 1) * (width as u32 + 1)) + w + 1);
+//             // Second triangle
+//             triangles.push((d * (width as u32 + 1)) + w);
+//             triangles.push(((d + 1) * (width as u32 + 1)) + w + 1);
+//             triangles.push((d * (width as u32 + 1)) + w + 1);
+//         }
+//     }
+//
+//     let mut mesh = Mesh::new(
+//         PrimitiveTopology::TriangleList,
+//         RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
+//     );
+//     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+//     // mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+//     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+//     // mesh.set_indices(Some(Indices::U32(triangles)));
+//     mesh.insert_indices(Indices::U32(triangles));
+//     mesh.duplicate_vertices();
+//     mesh.compute_flat_normals();
+//
+//     let material_handle = standard_material_assets.add(StandardMaterial {
+//         base_color_texture: Some(obstacles.raw.clone()),
+//         // base_color: Color::rgb(0.5, 0.5, 0.85),
+//         ..default()
+//     });
+//
+//     // let visibility = if config.visualisation.draw.height_map {
+//     //     Visibility::Visible
+//     // } else {
+//     //     Visibility::Hidden
+//     // };
+//     //
+//     commands.spawn((simulation_loader::Reloadable, HeightMap, PbrBundle {
+//         mesh: mesh_assets.add(mesh),
+//         material: material_handle,
+//         // visibility,
+//         ..default()
+//     }));
+//
+//     error!("spawned heightmap");
+// }
 
 /// **Bevy** marker [`Component`] to represent the heightmap.
 /// Serves as a marker to identify the heightmap entity.

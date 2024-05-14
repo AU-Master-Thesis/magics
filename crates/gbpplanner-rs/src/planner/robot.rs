@@ -567,6 +567,7 @@ impl RobotBundle {
         // variable_timesteps: Vec<u32>,
         // variable_timesteps: VariableTimesteps,
         config: &Config,
+        env_config: &gbp_environment::Environment,
         radius: f32,
         sdf: &SdfImage,
         use_tracking: bool,
@@ -665,6 +666,13 @@ impl RobotBundle {
 
         // Create Obstacle factors for all variables excluding start,
         // excluding horizon
+        let tile_size = env_config.tiles.settings.tile_size as f64;
+        let (nrows, ncols) = env_config.tiles.grid.shape();
+        let world_size = crate::factorgraph::factor::obstacle::WorldSize {
+            width:  tile_size * ncols as f64,
+            height: tile_size * nrows as f64,
+        };
+
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
             let obstacle_factor = FactorNode::new_obstacle_factor(
@@ -672,7 +680,12 @@ impl RobotBundle {
                 Float::from(config.gbp.sigma_factor_obstacle),
                 array![0.0],
                 sdf.clone(),
-                Float::from(config.simulation.world_size.get()),
+                world_size,
+                // crate::factorgraph::factor::obstacle::WorldSize {
+                //     width: env_config.tiles.settings.tile_size *
+                //     height: todo!(),
+                // },
+                // Float::from(config.simulation.world_size.get()),
             );
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);

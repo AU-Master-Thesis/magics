@@ -152,11 +152,12 @@ atty          = "0.2.14"
 bat           = "0.24.0"
 dhat          = { version = "0.3.3", optional = true }
 indexmap      = "2.2.6"
-colored-diff  = "0.2.3"
+# colored-diff  = "0.2.3"
 serde_json    = "1.0.116"
 colorgrad     = "0.6.2"
 open          = "5.1.0"
 ordered-float = "4.2.0"
+# dialoguer = { version = "0.11.0", features = ["fuzzy-select"] }
 
 # TODO: change to not wasm
 [target.'cfg(linux)'.dependencies]
@@ -168,7 +169,6 @@ approx            = "0.5.1"
 
 [build-dependencies]
 embed-resource = "2.4.2"
-
 
 [lints]
 workspace = true

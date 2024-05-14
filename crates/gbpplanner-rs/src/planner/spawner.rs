@@ -577,6 +577,7 @@ fn spawn_formation(
                 route,
                 variable_timesteps.as_slice(),
                 &config,
+                &env_config,
                 radii[i],
                 &sdf.0,
                 matches!(formation.planning_strategy, PlanningStrategy::RrtStar),

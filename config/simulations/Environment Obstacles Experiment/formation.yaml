@@ -7,7 +7,7 @@ formations:
   delay:
     secs: 1
     nanos: 0
-  robots: 5
+  robots: 1
   planning-strategy: only-local
   initial-position:
     shape: !circle

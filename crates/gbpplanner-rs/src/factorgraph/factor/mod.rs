@@ -22,7 +22,7 @@ use crate::{factorgraph::node::RemoveConnectionToError, simulation_loader::SdfIm
 pub(in crate::factorgraph) mod dynamic;
 pub(in crate::factorgraph) mod interrobot;
 mod marginalise_factor_distance;
-pub(in crate::factorgraph) mod obstacle;
+pub(crate) mod obstacle;
 pub(in crate::factorgraph) mod pose;
 pub(in crate::factorgraph) mod tracking;
 mod velocity;
@@ -193,7 +193,9 @@ impl FactorNode {
         strength: Float,
         measurement: Vector<Float>,
         obstacle_sdf: SdfImage,
-        world_size: Float,
+        world_size: obstacle::WorldSize,
+        // world_size_width: Float,
+        // world_size_height: Float,
     ) -> Self {
         let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS);
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);

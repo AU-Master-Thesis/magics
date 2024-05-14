@@ -52,10 +52,8 @@ schedule = "interleave-evenly"
 [robot]
 planning-horizon                       = 5.0
 max-speed                              = 4.0
-dofs                                   = 4
-symmetric-factors                      = true
 inter-robot-safety-distance-multiplier = 2.2
-# radius            = 1.0
+
 [robot.radius]
 min = 2.0
 max = 3.0
@@ -65,12 +63,12 @@ radius       = 20.0
 failure-rate = 0.2
 
 [simulation]
-t0                                        = 0.25
-max-time                                  = 10000.0
-time-scale                                = 1.0
-manual-step-factor                        = 1
-hz                                        = 60.0
-world-size                                = 100.0
+# t0                 = 0.25
+max-time           = 10000.0
+time-scale         = 1.0
+manual-step-factor = 1
+hz                 = 60.0
+# world-size                                = 100.0
 prng-seed                                 = 0
 pause-on-spawn                            = true
 despawn-robot-when-final-waypoint-reached = false

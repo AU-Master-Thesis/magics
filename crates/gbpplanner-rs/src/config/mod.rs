@@ -7,7 +7,7 @@ pub mod reader;
 use std::{num::NonZeroUsize, ops::RangeInclusive};
 
 use bevy::{
-    ecs::{component::Component, system::Resource},
+    ecs::system::Resource,
     reflect::{GetField, Reflect},
 };
 // pub use environment::{Environment, EnvironmentType};
@@ -16,7 +16,7 @@ use gbp_schedule::GbpSchedule;
 pub use reader::read_config;
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
-use typed_floats::{PositiveFinite, StrictlyPositiveFinite};
+use typed_floats::StrictlyPositiveFinite;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
@@ -302,13 +302,13 @@ pub struct SimulationSection {
     /// SI unit: s
     pub hz: f64,
 
-    /// The side length of the smallest square that contains the entire
-    /// simulated environment. Size of the environment in meters.
-    /// SI unit: m
-    pub world_size: StrictlyPositiveFinite<f32>,
+    // /// The side length of the smallest square that contains the entire
+    // /// simulated environment. Size of the environment in meters.
+    // /// SI unit: m
+    // pub world_size: StrictlyPositiveFinite<f32>,
     /// The seed at which random number generators should be seeded, to ensure
     /// deterministic results across simulation runs.
-    pub prng_seed:  u64,
+    pub prng_seed: u64,
 
     /// Whether to pause the simulation time when the first robot is spawned
     pub pause_on_spawn: bool,
@@ -328,7 +328,7 @@ impl Default for SimulationSection {
             time_scale: 1.0.try_into().expect("1.0 > 0.0"),
             manual_step_factor: 1,
             hz: 60.0,
-            world_size: 100.0.try_into().expect("100.0 > 0.0"),
+            // world_size: 100.0.try_into().expect("100.0 > 0.0"),
             // world_size:         StrictlyPositiveFinite::<f32>::new(100.0).expect("100.0 > 0.0"),
             prng_seed: 0,
             pause_on_spawn: false,
@@ -512,15 +512,6 @@ pub struct RobotSection {
     pub planning_horizon: StrictlyPositiveFinite<f32>,
     /// SI unit: m/s
     pub max_speed: StrictlyPositiveFinite<f32>,
-    /// Degrees of freedom of the robot's state [x, y, x', y']
-    pub dofs: NonZeroUsize,
-    // /// Simulation timestep interval
-    // /// FIXME: does not belong to group of parameters, should be in SimulationSettings or
-    // something pub delta_t: f32,
-    /// If true, when inter-robot factors need to be created between two robots,
-    /// a pair of factors is created (one belonging to each robot). This becomes
-    /// a redundancy.
-    pub symmetric_factors: bool,
     /// Radius of the robot.
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
@@ -536,9 +527,6 @@ impl Default for RobotSection {
         Self {
             planning_horizon: StrictlyPositiveFinite::<f32>::new(5.0).expect("5.0 > 0.0"),
             max_speed: StrictlyPositiveFinite::<f32>::new(4.0).expect("2.0 > 0.0"),
-            dofs: NonZeroUsize::new(4).expect("4 > 0"),
-
-            symmetric_factors: true,
             // radius: StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
             radius: RobotRadiusSection::default(),
             communication: CommunicationSection::default(),

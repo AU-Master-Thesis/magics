@@ -414,49 +414,49 @@ fn ui_settings_panel(
                             ui.end_row();
                         });
 
-                        ui.separator();
-
-                        custom::grid("factors_grid", 2).show(ui, |ui| {
-                            ui.label("Obstacle");
-
-                            custom::float_right(ui, |ui| {
-                                let mut obstacle: bool = true;
-                                if custom::toggle_ui(ui, &mut obstacle).clicked() {
-                                    error!("todo");
-                                }
-                            });
-                            ui.end_row();
-
-                            ui.label("Pose");
-                            custom::float_right(ui, |ui| {
-                                let mut toggle: bool = true;
-                                if custom::toggle_ui(ui, &mut toggle).clicked() {
-                                    error!("todo");
-                                }
-                            });
-                            ui.end_row();
-
-                            ui.label("Dynamic");
-                            custom::float_right(ui, |ui| {
-                                let mut toggle: bool = true;
-                                if custom::toggle_ui(ui, &mut toggle).clicked() {
-                                    error!("todo");
-                                }
-                            });
-                            ui.end_row();
-
-                            ui.label("Interrobot");
-                            custom::float_right(ui, |ui| {
-                                let mut toggle: bool = true;
-                                if custom::toggle_ui(ui, &mut toggle).clicked() {
-                                    error!("todo");
-                                }
-                            });
-                            ui.end_row();
-
-                        });
-
-                        ui.add_space(2.5);
+                        // ui.separator();
+                        //
+                        // custom::grid("factors_grid", 2).show(ui, |ui| {
+                        //     ui.label("Obstacle");
+                        //
+                        //     custom::float_right(ui, |ui| {
+                        //         let mut obstacle: bool = true;
+                        //         if custom::toggle_ui(ui, &mut obstacle).clicked() {
+                        //             error!("todo");
+                        //         }
+                        //     });
+                        //     ui.end_row();
+                        //
+                        //     ui.label("Pose");
+                        //     custom::float_right(ui, |ui| {
+                        //         let mut toggle: bool = true;
+                        //         if custom::toggle_ui(ui, &mut toggle).clicked() {
+                        //             error!("todo");
+                        //         }
+                        //     });
+                        //     ui.end_row();
+                        //
+                        //     ui.label("Dynamic");
+                        //     custom::float_right(ui, |ui| {
+                        //         let mut toggle: bool = true;
+                        //         if custom::toggle_ui(ui, &mut toggle).clicked() {
+                        //             error!("todo");
+                        //         }
+                        //     });
+                        //     ui.end_row();
+                        //
+                        //     ui.label("Interrobot");
+                        //     custom::float_right(ui, |ui| {
+                        //         let mut toggle: bool = true;
+                        //         if custom::toggle_ui(ui, &mut toggle).clicked() {
+                        //             error!("todo");
+                        //         }
+                        //     });
+                        //     ui.end_row();
+                        //
+                        // });
+                        //
+                        // ui.add_space(2.5);
 
                         custom::grid("gbp_grid", 2).show(ui, |ui| {
                             ui.label("Safety Distance");
