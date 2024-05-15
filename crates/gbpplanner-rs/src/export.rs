@@ -157,6 +157,7 @@ struct MessageCount {
 struct ExportData {
     environment: String,
     makespan: f64,
+    delta_t: f64,
     gbp: GbpData,
     robots: HashMap<Entity, RobotData>,
 }
@@ -190,6 +191,7 @@ fn export(
     sim_manager: Res<crate::simulation_loader::SimulationManager>,
     config: Res<Config>,
     time_virtual: Res<Time<Virtual>>,
+    time_fixed: Res<Time<Fixed>>,
 ) {
     // schema:
     //
@@ -341,6 +343,7 @@ fn export(
         let export_data = ExportData {
             environment: environment.to_string(),
             makespan,
+            delta_t: time_fixed.delta_seconds_f64(),
             gbp,
             robots: robot_snapshots.drain().collect(),
         };
