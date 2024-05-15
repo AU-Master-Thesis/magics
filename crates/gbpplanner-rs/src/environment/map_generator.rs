@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, reflect::Tuple};
 use gbp_config::{Config, DrawSetting};
 use gbp_environment::{
     Circle, Environment, PlaceableShape, Rectangle, RegularPolygon, TileCoordinates, Triangle,
@@ -161,12 +161,12 @@ fn build_obstacles(
         let translation = obstacle.translation;
 
         // Construct the correct shape
-        match obstacle.shape {
+        match &obstacle.shape {
             PlaceableShape::Circle(Circle { radius }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
-                    (translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
+                    (1.0 - translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
                 );
 
                 info!("Spawning circle: r = {}, at {:?}", radius, center);
@@ -182,18 +182,7 @@ fn build_obstacles(
 
                 Some((mesh, transform))
             }
-            PlaceableShape::Triangle(Triangle {
-                base_length,
-                height,
-                mid_point,
-            }) => {
-                // dbg!((
-                //     "Triangle",
-                //     translation.y.get() as f32,
-                //     tile_size,
-                //     -offset_z,
-                //     pos_offset
-                //));
+            PlaceableShape::Triangle(ref triangle_shape @ Triangle { angles, radius }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
@@ -210,56 +199,43 @@ fn build_obstacles(
                 // One could also have a negative `mid_point`, which would make the current
                 // right-angle more obtuse, or a positive `mid_point`, which
                 // would make the current right-angle more acute.
+                let [p1, p2, p3] = triangle_shape.points().map(|point| {
+                    Vec2::new(-point.x as f32 * tile_size, point.y as f32 * tile_size)
+                });
 
-                let points = vec![
-                    // bottom-left corner
-                    Vec2::new(
-                        -base_length.get() as f32 / 2.0 * tile_size,
-                        -height.get() as f32 / 2.0 * tile_size,
-                    ),
-                    // bottom-right corner
-                    Vec2::new(
-                        base_length.get() as f32 / 2.0 * tile_size,
-                        -height.get() as f32 / 2.0 * tile_size,
-                    ),
-                    // top corner
-                    Vec2::new(
-                        (mid_point as f32 - 0.5) * base_length.get() as f32 * tile_size,
-                        height.get() as f32 / 2.0 * tile_size,
-                    ),
-                ];
+                // reflect around the x-axis
+                // let p1 = Vec2::new(p1.x, -p1.y);
+                // let p2 = Vec2::new(p2.x, -p2.y);
+                // let p3 = Vec2::new(p3.x, -p3.y);
 
-                println!("bottom-left = {:?}", center.xz() + points[0]);
-                println!("bottom-right = {:?}", center.xz() + points[1]);
-                println!("top = {:?}", center.xz() + points[2]);
+                // println!("bottom-left = {:?}", center.xz() + p1);
+                // println!("bottom-right = {:?}", center.xz() + p2);
+                // println!("top = {:?}", center.xz() + p3);
 
-                info!(
-                    "Spawning triangle: base_length = {}, height = {}, at {:?}",
-                    base_length, height, center
-                );
+                // info!(
+                //     "Spawning triangle: base_length = {}, height = {}, at {:?}",
+                //     base_length, height, center
+                // );
 
                 let mesh = meshes.add(
-                    Mesh::try_from(bevy_more_shapes::Prism::new(-obstacle_height, points))
-                        .expect("Failed to create triangle mesh"),
+                    Mesh::try_from(bevy_more_shapes::Prism::new(
+                        -obstacle_height,
+                        [p1, p2, p3].to_vec(),
+                    ))
+                    .expect("Failed to create triangle mesh"),
                 );
 
                 let rotation = Quat::from_rotation_y(
                     // std::f32::consts::FRAC_PI_2
-                    (std::f32::consts::FRAC_PI_2 + obstacle.rotation.as_radians() as f32),
+                    std::f32::consts::FRAC_PI_2 - obstacle.rotation.as_radians() as f32,
+                    // 0.0,
                 );
                 let transform = Transform::from_translation(center).with_rotation(rotation);
                 // let transform = Transform::from_translation(center);
 
                 Some((mesh, transform))
             }
-            PlaceableShape::RegularPolygon(RegularPolygon { sides, side_length }) => {
-                // dbg!((
-                //     "RegularPolygon",
-                //     translation.y.get() as f32,
-                //     tile_size,
-                //     -offset_z,
-                //     pos_offset
-                // ));
+            PlaceableShape::RegularPolygon(RegularPolygon { sides, radius }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
@@ -267,15 +243,15 @@ fn build_obstacles(
                 );
 
                 info!(
-                    "Spawning regular polygon: sides = {}, side_length = {}, at {:?}",
-                    sides, side_length, center
+                    "Spawning regular polygon: sides = {}, radius = {}, at {:?}",
+                    sides, radius, center
                 );
 
                 let mesh = meshes.add(Mesh::from(bevy_more_shapes::Cylinder {
                     height: -obstacle_height,
-                    radius_bottom: side_length.get() as f32 * tile_size / 2.0,
-                    radius_top: side_length.get() as f32 * tile_size / 2.0,
-                    radial_segments: sides as u32,
+                    radius_bottom: radius.get() as f32 * tile_size / 2.0,
+                    radius_top: radius.get() as f32 * tile_size / 2.0,
+                    radial_segments: *sides as u32,
                     height_segments: 1,
                 }));
 

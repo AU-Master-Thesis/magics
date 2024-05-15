@@ -323,6 +323,8 @@ fn main() -> anyhow::Result<()> {
                                                     // work
     }
 
+    let image_plugin = ImagePlugin::default_nearest();
+
     // let mut default_plugins = DefaultPlugins;
 
     // let log_plugin = if cfg!(debug_assertions) {
@@ -349,6 +351,7 @@ fn main() -> anyhow::Result<()> {
         // bevy builtin plugins
         .add_plugins(DefaultPlugins
             .set(window_plugin)
+            .set(image_plugin)
             // .set(log_plugin)
         )
         // third-party plugins

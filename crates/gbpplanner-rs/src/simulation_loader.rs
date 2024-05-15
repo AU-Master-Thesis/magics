@@ -92,8 +92,9 @@ impl Plugin for SimulationLoaderPlugin {
                 // println!("name: {name:?}");
                 let sdf_image_buffer = env_to_png::env_to_sdf_image(
                     &environment,
-                    // env_to_png::PixelsPerTile::new(200),
-                    env_to_png::PixelsPerTile::new(environment.tiles.settings.tile_size as u32),
+                    env_to_png::PixelsPerTile::new(
+                        environment.tiles.settings.sdf.resolution as u32,
+                    ),
                     env_to_png::Percentage::new(environment.tiles.settings.sdf.expansion),
                     env_to_png::Percentage::new(environment.tiles.settings.sdf.blur),
                 )
@@ -161,7 +162,8 @@ impl Plugin for SimulationLoaderPlugin {
 
         app
             .add_plugins(
-                bevy_rand::prelude::EntropyPlugin::<bevy_prng::WyRand>::default())
+                    bevy_rand::prelude::EntropyPlugin::<bevy_prng::WyRand>::default(),
+            )
             // .add_systems(Startup, load_initial_simulation)
             .insert_resource(config)
             .insert_resource(formation_group)

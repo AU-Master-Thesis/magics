@@ -8,7 +8,7 @@ tiles:
 obstacles:
 - shape: !regular-polygon
     sides: 4
-    side-length: 0.0525
+    radius: 0.0525
   translation:
     x: 0.625
     y: 0.60125
@@ -18,7 +18,7 @@ obstacles:
     col: 0
 - shape: !regular-polygon
     sides: 4
-    side-length: 0.035
+    radius: 0.035
   translation:
     x: 0.44125
     y: 0.57125
@@ -28,7 +28,7 @@ obstacles:
     col: 0
 - shape: !regular-polygon
     sides: 4
-    side-length: 0.0225
+    radius: 0.0225
   translation:
     x: 0.4835
     y: 0.428

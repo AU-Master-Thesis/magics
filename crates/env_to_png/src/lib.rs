@@ -6,10 +6,10 @@
 use std::num::NonZeroU32;
 
 // use gbpplanner_rs::config::Environment;
-use gbp_environment::Environment;
+use gbp_environment::{Environment, PlaceableShape, RegularPolygon};
 use gbp_geometry::RelativePoint;
 use glam::{Vec2, Vec3Swizzles};
-use image::RgbImage;
+use image::{imageops::FilterType::Triangle, RgbImage};
 
 /// Custom resolution type, as pixels per tile.
 #[derive(Clone, Copy, Debug)]
@@ -152,6 +152,10 @@ pub fn env_to_sdf_image(
 ) -> anyhow::Result<RgbImage> {
     let image = env_to_image(env, resolution, expansion).unwrap();
     let blur_pixels = blur_percent.0 * resolution.get() as f32;
+    println!("Blur pixels: {}", blur_pixels);
+    if blur_pixels < 1.0 {
+        return Ok(image);
+    }
     let sdf = image::imageops::blur(&image, blur_pixels);
 
     Ok(sdf)
@@ -285,10 +289,8 @@ fn is_placeable_obstacle(
     percentage: PercentageCoords,
     expansion: Percentage,
 ) -> bool {
-    // let inverted_percentage = *percentage.clone().invert();
     let inverted_percentage = percentage.clone();
     for obstacle in env.obstacles.iter() {
-        // println!("Obstacle: {}", i);
         // let obstale_tile_coords = &obstacle.tile_coordinates;
         let obstacle_tile_coords = TileCoords {
             x: obstacle.tile_coordinates.col.clone(),
@@ -303,18 +305,46 @@ fn is_placeable_obstacle(
         let expanded_shape = obstacle.shape.expanded(expansion.0 as f64);
 
         // translate percentage to obstacle coordinates
-        // percentage.x.0 -= obstacle.translation.x.get() as f32;
-        let translated = Vec2::from(inverted_percentage) - Vec2::from(obstacle.translation);
-        // rotate the translated coordinated by the obstacle rotation
-        let rotated = glam::Quat::from_rotation_z(
-            obstacle.rotation.as_radians() as f32 + std::f32::consts::FRAC_PI_2,
-        )
-        .mul_vec3(translated.extend(0.0))
-        .xy();
-        // Invert y to account for image y coordinates going top-down
-        // let inverted = rotated.y
-        // rotated.y = 1.0 - rotated.y;
-        // println!("{:?}", rotated);
+        // let translation_offset = match obstacle.shape {
+        //     PlaceableShape::Triangle(
+        //         ref triangle_shape @ gbp_environment::Triangle {
+        //             angles,
+        //             radius
+        //         },
+        //     ) => {
+        //         let [p1, p2, p3] = triangle_shape.points();
+        //         let base_length_dir = (p1 - p2).normalize();
+        //         let base_length_dir_n = Vec2::new(-base_length_dir.y,
+        // base_length_dir.x);
+
+        //         let mid_point_vec = p1 + (p2 - p1) * mid_point as f32;
+        //         let height_dir = (mid_point_vec - p3).normalize();
+        //         let height_dir_n = Vec2::new(-height_dir.y, height_dir.x);
+
+        //         base_length_dir_n * -expansion.0 as f32 / 4.0 * mid_point as f32
+        //             + height_dir_n * expansion.0 as f32 / 4.0 * mid_point as f32
+        //     }
+        //     _ => Vec2::ZERO,
+        // };
+        let translated = Vec2::from(inverted_percentage) - Vec2::from(obstacle.translation); // - translation_offset;
+                                                                                             // rotate the translated coordinated by the obstacle rotation
+        let rotation_offset = match obstacle.shape {
+            PlaceableShape::RegularPolygon(RegularPolygon { sides, radius }) => {
+                std::f32::consts::FRAC_PI_2
+                    + std::f32::consts::FRAC_PI_2
+                    + if sides % 2 != 0 {
+                        std::f32::consts::PI / sides as f32
+                    } else {
+                        0.0
+                    }
+            }
+            _ => std::f32::consts::FRAC_PI_2,
+        };
+
+        let rotated =
+            glam::Quat::from_rotation_z(obstacle.rotation.as_radians() as f32 + rotation_offset)
+                .mul_vec3(translated.extend(0.0))
+                .xy();
 
         let inside_placeable_shape = expanded_shape.inside(rotated);
 

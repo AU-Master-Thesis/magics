@@ -140,24 +140,37 @@ impl Circle {
     }
 }
 
+/// Two angles of a triangle
+#[derive(Debug, Serialize, Deserialize, Clone, derive_more::Constructor)]
+#[serde(rename_all = "kebab-case")]
+pub struct Angles {
+    A: Angle,
+    B: Angle,
+}
+
 /// A triangle to be placed in the environment
 /// - A [`PlaceableShape`] variant
 #[derive(Debug, Serialize, Deserialize, Clone, derive_more::Constructor)]
 #[serde(rename_all = "kebab-case")]
 pub struct Triangle {
-    /// The length of the base of the triangle
-    /// This is a value in the range [0, 1]
-    pub base_length: StrictlyPositiveFinite<Float>,
-    /// The height of the triangle
-    /// Intersects the base perpendicularly at the mid-point
-    pub height:      StrictlyPositiveFinite<Float>,
-    /// The mid-point of the base of the triangle
-    /// This is a value in the range [0, 1]
-    /// Defines where the height of the triangle intersects the base
-    /// perpendicularly
-    pub mid_point:   Float,
-    // /// Where to place the center of the triangle
-    // pub translation: RelativePoint,
+    // /// The length of the base of the triangle
+    // /// This is a value in the range [0, 1]
+    // pub base_length: StrictlyPositiveFinite<Float>,
+    // /// The height of the triangle
+    // /// Intersects the base perpendicularly at the mid-point
+    // pub height:      StrictlyPositiveFinite<Float>,
+    // /// The mid-point of the base of the triangle
+    // /// This is a value in the range [0, 1]
+    // /// Defines where the height of the triangle intersects the base
+    // /// perpendicularly
+    // pub mid_point:   Float,
+    // // /// Where to place the center of the triangle
+    // // pub translation: RelativePoint,
+    /// Two angles of the triangle
+    /// Third angle is calculated as 180 - (A + B)
+    pub angles: Angles,
+    /// The radius of the inscribed circle
+    pub radius: StrictlyPositiveFinite<Float>,
 }
 
 impl Triangle {
@@ -166,44 +179,51 @@ impl Triangle {
     /// - `base_length`
     /// - `height`
     pub fn expanded(&self, expansion: Float) -> Self {
-        let factor = expansion * 3.0;
+        // let factor = expansion * 3.0;
 
-        let expanded_height = self.height.get() + factor;
-        let height_factor = expanded_height / self.height.get();
-        let expanded_base_length = self.base_length.get() * height_factor;
+        // let expanded_height = self.height.get() + factor;
+        // let height_factor = expanded_height / self.height.get();
+        // let expanded_base_length = self.base_length.get() * height_factor;
+
+        // Self {
+        //     base_length:
+        // StrictlyPositiveFinite::<Float>::new(expanded_base_length).unwrap(),
+        //     height:
+        // StrictlyPositiveFinite::<Float>::new(expanded_height).unwrap(),
+        //     mid_point:   self.mid_point,
+        // }
 
         Self {
-            base_length: StrictlyPositiveFinite::<Float>::new(expanded_base_length).unwrap(),
-            height:      StrictlyPositiveFinite::<Float>::new(expanded_height).unwrap(),
-            mid_point:   self.mid_point,
+            angles: self.angles.clone(),
+            radius: StrictlyPositiveFinite::<Float>::new(self.radius.get() + expansion).unwrap(),
         }
     }
 
-    pub fn points(&self) -> (Vec2, Vec2, Vec2) {
-        (
-            // bottom-left corner
-            Vec2::new(
-                -self.base_length.get() as f32 / 2.0,
-                -self.height.get() as f32 / 2.0,
-            ),
-            // bottom-right corner
-            Vec2::new(
-                self.base_length.get() as f32 / 2.0,
-                -self.height.get() as f32 / 2.0,
-            ),
-            // top corner
-            Vec2::new(
-                (self.mid_point as f32 - 0.5) * self.base_length.get() as f32,
-                self.height.get() as f32 / 2.0,
-            ),
-        )
+    pub fn points(&self) -> [Vec2; 3] {
+        let a = self.angles.A.as_radians() as f32;
+        let b = self.angles.B.as_radians() as f32;
+        let c = std::f32::consts::PI - (a + b);
+
+        let a_hypotenuse = self.radius.get() as f32 / a.sin();
+        let b_hypotenuse = self.radius.get() as f32 / b.sin();
+        let c_hypotenuse = self.radius.get() as f32 / c.sin();
+
+        let a_dir = Vec2::from_angle(std::f32::consts::PI + a / 2.0);
+        let b_dir = Vec2::from_angle(-b / 2.0);
+        let c_dir = Vec2::from_angle(std::f32::consts::PI - b - c / 2.0);
+
+        let a_point = a_dir * a_hypotenuse;
+        let b_point = b_dir * b_hypotenuse;
+        let c_point = c_dir * c_hypotenuse;
+
+        [a_point, b_point, c_point]
     }
 
     /// Check if a given point is inside the triangle
     /// Expects translation and rotation to be performed beforehand
     pub fn inside(&self, point: Vec2) -> bool {
         // find the three vertices of the triangle
-        let (a, b, c) = self.points();
+        let [a, b, c] = self.points();
 
         let d1 = sign(Vec2::from(point), a, b);
         let d2 = sign(Vec2::from(point), b, c);
@@ -220,37 +240,17 @@ fn sign(p1: Vec2, p2: Vec2, p3: Vec2) -> f32 {
     (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y)
 }
 
-// How to check if point is inside a triangle
-// https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
-// float sign (fPoint p1, fPoint p2, fPoint p3)
-// {
-//     return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-// }
-
-// bool PointInTriangle (fPoint pt, fPoint v1, fPoint v2, fPoint v3)
-// {
-//     float d1, d2, d3;
-//     bool has_neg, has_pos;
-
-//     d1 = sign(pt, v1, v2);
-//     d2 = sign(pt, v2, v3);
-//     d3 = sign(pt, v3, v1);
-
-//     has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-//     has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-
-//     return !(has_neg && has_pos);
-// }
-
 /// A regular polygon to be placed in the environment
 /// - A [`PlaceableShape`] variant
 #[derive(Debug, Serialize, Deserialize, Clone, derive_more::Constructor)]
 #[serde(rename_all = "kebab-case")]
 pub struct RegularPolygon {
     /// The number of sides of the polygon
-    pub sides:       usize,
-    /// Side length of the polygon
-    pub side_length: StrictlyPositiveFinite<Float>,
+    pub sides:  usize,
+    /// The radius of the polygon
+    pub radius: StrictlyPositiveFinite<Float>,
+    // /// Side length of the polygon
+    // pub side_length: StrictlyPositiveFinite<Float>,
     // /// Where to place the center of the polygon
     // pub translation: RelativePoint,
 }
@@ -260,20 +260,38 @@ impl RegularPolygon {
     pub fn expanded(&self, expansion: Float) -> Self {
         // let factor = expansion * 2.0;
 
+        // // step 1: calculate radius from side length
+        // let radius =
+        //     self.side_length.get() / (2.0 * std::f64::consts::PI / self.sides as
+        // Float).tan(); // step 2: expand radius
+        // let expanded_radius = radius + expansion;
+        // // step 3: calculate side length from expanded radius
+        // let expanded_side_length =
+        //     2.0 * expanded_radius * (std::f64::consts::PI / self.sides as
+        // Float).tan();
+
         RegularPolygon::new(
             self.sides,
-            StrictlyPositiveFinite::<Float>::new(self.side_length.get() + expansion).unwrap(),
+            StrictlyPositiveFinite::<Float>::new(self.radius.get() + expansion * 2.0).unwrap(),
         )
     }
 
     /// Get the points of the polygon
     /// Calculate all the points of the polygon
     pub fn point_at(&self, i: usize) -> (Float, Float) {
+        // let angle = 2.0 * std::f64::consts::PI / self.sides as Float * i as Float
+        //     + std::f64::consts::FRAC_PI_4;
+
+        // let x = angle.cos() * self.side_length.get();
+        // let y = angle.sin() * self.side_length.get();
+
+        // (x, y)
+
         let angle = 2.0 * std::f64::consts::PI / self.sides as Float * i as Float
             + std::f64::consts::FRAC_PI_4;
 
-        let x = angle.cos() * self.side_length.get();
-        let y = angle.sin() * self.side_length.get();
+        let x = angle.cos() * self.radius.get();
+        let y = angle.sin() * self.radius.get();
 
         (x, y)
     }
@@ -282,7 +300,7 @@ impl RegularPolygon {
     /// Expects translation and rotation to be performed beforehand
     pub fn inside(&self, point: Vec2) -> bool {
         let mut inside = false;
-        let (x, y) = (point.x as f64, point.y as f64);
+        let (x, y) = (point.x as f64 * 2.0, point.y as f64 * 2.0);
         let mut j = self.sides - 1;
         for i in 0..self.sides {
             let (xi, yi) = self.point_at(i);
@@ -324,8 +342,8 @@ impl Rectangle {
         // StrictlyPositiveFinite::<Float>::new(self.height.get() * expansion).unwrap();
 
         Rectangle::new(
-            StrictlyPositiveFinite::<Float>::new(self.width.get() + expansion).unwrap(),
-            StrictlyPositiveFinite::<Float>::new(self.height.get() + expansion).unwrap(),
+            StrictlyPositiveFinite::<Float>::new(self.width.get() + expansion * 2.0).unwrap(),
+            StrictlyPositiveFinite::<Float>::new(self.height.get() + expansion * 2.0).unwrap(),
         )
     }
 
@@ -334,8 +352,8 @@ impl Rectangle {
     pub fn inside(&self, point: Vec2) -> bool {
         let (x, y) = (point.x as f64, point.y as f64);
 
-        let half_width = self.width.get() / 2.0;
-        let half_height = self.height.get() / 2.0;
+        let half_width = self.width.get() / 4.0;
+        let half_height = self.height.get() / 4.0;
 
         if x >= -half_width && x <= half_width && y >= -half_height && y <= half_height {
             return true;
@@ -373,19 +391,13 @@ impl PlaceableShape {
     /// If `translation` is not a relative point i.e. within interval ([0.0,
     /// 1.0], [0.0, 1.0])
     #[allow(clippy::unwrap_used)]
-    pub fn triangle(
-        // base_length: Float,
-        base_length: StrictlyPositiveFinite<Float>,
-        // height: Float,
-        height: StrictlyPositiveFinite<Float>,
-        mid_point: Float,
-        // translation: (Float, Float),
-    ) -> Self {
+    pub fn triangle(angles: [Angle; 2], radius: StrictlyPositiveFinite<Float>) -> Self {
         Self::Triangle(Triangle::new(
-            base_length,
-            height,
-            mid_point,
-            // RelativePoint::new(translation.0, translation.1).unwrap(),
+            Angles {
+                A: angles[0],
+                B: angles[1],
+            },
+            radius,
         ))
     }
 
@@ -510,15 +522,17 @@ pub struct TileSettings {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct SdfSettings {
-    pub expansion: f32,
-    pub blur:      f32,
+    pub resolution: u32,
+    pub expansion:  f32,
+    pub blur:       f32,
 }
 
 impl Default for SdfSettings {
     fn default() -> Self {
         Self {
-            expansion: 0.1,
-            blur:      0.05,
+            resolution: 200,
+            expansion:  0.1,
+            blur:       0.05,
         }
     }
 }
@@ -838,9 +852,11 @@ impl Environment {
                 Obstacle::new(
                     (0, 0),
                     PlaceableShape::triangle(
-                        0.03.try_into().expect("positive and finite"),
-                        0.0415.try_into().expect("positive and finite"),
-                        0.575,
+                        [
+                            Angle::from_degrees(30.0).expect("Invalid angle"),
+                            Angle::from_degrees(30.0).expect("Invalid angle"),
+                        ],
+                        0.05.try_into().expect("positive and finite"),
                     ),
                     0.0,
                     (0.5575, 0.5145),
@@ -848,9 +864,11 @@ impl Environment {
                 Obstacle::new(
                     (0, 0),
                     PlaceableShape::triangle(
-                        0.012.try_into().expect("positive and finite"),
-                        0.025.try_into().expect("positive and finite"),
-                        1.25,
+                        [
+                            Angle::from_degrees(110.0).expect("Invalid angle"),
+                            Angle::from_degrees(40.0).expect("Invalid angle"),
+                        ],
+                        0.03.try_into().expect("positive and finite"),
                     ),
                     5.225,
                     (0.38, 0.432),

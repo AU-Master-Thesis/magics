@@ -12,6 +12,7 @@ tiles:
     path-width: 0.5
     obstacle-height: 1.0
     sdf:
+      resolution: 200
       expansion: 0.1
       blur: 0.01
 obstacles: []

@@ -6,12 +6,92 @@ tiles:
     path-width: 0.1
     obstacle-height: 1.0
     sdf:
-      expansion: 0.05
-      blur: 0.05
+      resolution: 200
+      expansion: 0.025
+      blur: 0.01
 obstacles:
+- shape: !circle
+    radius: 0.05
+  translation:
+    x: 0.325
+    y: 0.60125
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !regular-polygon
+    sides: 3
+    radius: 0.1
+  translation:
+    x: 0.1
+    y: 0.8
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
 - shape: !regular-polygon
     sides: 4
-    side-length: 0.0525
+    radius: 0.1
+  translation:
+    x: 0.3
+    y: 0.8
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !regular-polygon
+    sides: 5
+    radius: 0.1
+  translation:
+    x: 0.5
+    y: 0.8
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !regular-polygon
+    sides: 6
+    radius: 0.1
+  translation:
+    x: 0.7
+    y: 0.8
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !regular-polygon
+    sides: 7
+    radius: 0.1
+  translation:
+    x: 0.9
+    y: 0.8
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !regular-polygon
+    sides: 7
+    radius: 0.15
+  translation:
+    x: 0.2
+    y: 0.2
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !regular-polygon
+    sides: 6
+    radius: 0.2
+  translation:
+    x: 0.8
+    y: 0.3
+  rotation: 0.0
+  tile-coordinates:
+    row: 0
+    col: 0
+- shape: !regular-polygon
+    sides: 4
+    radius: 0.0525
   translation:
     x: 0.625
     y: 0.60125
@@ -21,7 +101,7 @@ obstacles:
     col: 0
 - shape: !regular-polygon
     sides: 4
-    side-length: 0.035
+    radius: 0.035
   translation:
     x: 0.44125
     y: 0.57125
@@ -31,7 +111,7 @@ obstacles:
     col: 0
 - shape: !regular-polygon
     sides: 4
-    side-length: 0.0225
+    radius: 0.0225
   translation:
     x: 0.4835
     y: 0.428
@@ -50,25 +130,26 @@ obstacles:
     row: 0
     col: 0
 - shape: !triangle
-    base-length: 0.03
-    height: 0.0415
-    mid-point: 0.575
+    angles:
+      A: 1.22
+      B: 1.22
+    radius: 0.025
+  rotation: 0.0
   translation:
     x: 0.5575
     y: 0.5145
-  rotation: 0.0
-  # rotation:  1.5707964
   tile-coordinates:
     row: 0
     col: 0
 - shape: !triangle
-    base-length: 0.012
-    height: 0.025
-    mid-point: 1.25
+    angles:
+      A: 0.6981317007977318
+      B: 1.9198621771937625
+    radius: 0.01
+  rotation: 5.2
   translation:
     x: 0.38
     y: 0.432
-  rotation: 5.225
   tile-coordinates:
     row: 0
     col: 0
