@@ -10,85 +10,85 @@ tiles:
       expansion: 0.025
       blur: 0.01
 obstacles:
-- shape: !circle
-    radius: 0.05
-  translation:
-    x: 0.325
-    y: 0.60125
-  rotation: 0.0
-  tile-coordinates:
-    row: 0
-    col: 0
-- shape: !regular-polygon
-    sides: 3
-    radius: 0.1
-  translation:
-    x: 0.1
-    y: 0.8
-  rotation: 0.0
-  tile-coordinates:
-    row: 0
-    col: 0
-- shape: !regular-polygon
-    sides: 4
-    radius: 0.1
-  translation:
-    x: 0.3
-    y: 0.8
-  rotation: 0.0
-  tile-coordinates:
-    row: 0
-    col: 0
-- shape: !regular-polygon
-    sides: 5
-    radius: 0.1
-  translation:
-    x: 0.5
-    y: 0.8
-  rotation: 0.0
-  tile-coordinates:
-    row: 0
-    col: 0
-- shape: !regular-polygon
-    sides: 6
-    radius: 0.1
-  translation:
-    x: 0.7
-    y: 0.8
-  rotation: 0.0
-  tile-coordinates:
-    row: 0
-    col: 0
-- shape: !regular-polygon
-    sides: 7
-    radius: 0.1
-  translation:
-    x: 0.9
-    y: 0.8
-  rotation: 0.0
-  tile-coordinates:
-    row: 0
-    col: 0
-- shape: !regular-polygon
-    sides: 7
-    radius: 0.15
-  translation:
-    x: 0.2
-    y: 0.2
-  rotation: 0.0
-  tile-coordinates:
-    row: 0
-    col: 0
-- shape: !regular-polygon
-    sides: 6
-    radius: 0.2
-  translation:
-    x: 0.8
-    y: 0.3
-  rotation: 0.0
-  tile-coordinates:
-    row: 0
-    col: 0
+# - shape: !circle
+#     radius: 0.05
+#   translation:
+#     x: 0.325
+#     y: 0.60125
+#   rotation: 0.0
+#   tile-coordinates:
+#     row: 0
+#     col: 0
+# - shape: !regular-polygon
+#     sides: 3
+#     radius: 0.1
+#   translation:
+#     x: 0.1
+#     y: 0.8
+#   rotation: 0.0
+#   tile-coordinates:
+#     row: 0
+#     col: 0
+# - shape: !regular-polygon
+#     sides: 4
+#     radius: 0.1
+#   translation:
+#     x: 0.3
+#     y: 0.8
+#   rotation: 0.0
+#   tile-coordinates:
+#     row: 0
+#     col: 0
+# - shape: !regular-polygon
+#     sides: 5
+#     radius: 0.1
+#   translation:
+#     x: 0.5
+#     y: 0.8
+#   rotation: 0.0
+#   tile-coordinates:
+#     row: 0
+#     col: 0
+# - shape: !regular-polygon
+#     sides: 6
+#     radius: 0.1
+#   translation:
+#     x: 0.7
+#     y: 0.8
+#   rotation: 0.0
+#   tile-coordinates:
+#     row: 0
+#     col: 0
+# - shape: !regular-polygon
+#     sides: 7
+#     radius: 0.1
+#   translation:
+#     x: 0.9
+#     y: 0.8
+#   rotation: 0.0
+#   tile-coordinates:
+#     row: 0
+#     col: 0
+# - shape: !regular-polygon
+#     sides: 7
+#     radius: 0.15
+#   translation:
+#     x: 0.2
+#     y: 0.2
+#   rotation: 0.0
+#   tile-coordinates:
+#     row: 0
+#     col: 0
+# - shape: !regular-polygon
+#     sides: 6
+#     radius: 0.2
+#   translation:
+#     x: 0.8
+#     y: 0.3
+#   rotation: 0.0
+#   tile-coordinates:
+#     row: 0
+#     col: 0
 - shape: !regular-polygon
     sides: 4
     radius: 0.0525
