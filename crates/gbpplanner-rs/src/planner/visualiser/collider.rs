@@ -69,20 +69,51 @@ mod environment_colliders {
     ) {
         // let height = config.visualisation.height.objects;
         let height = -env_config.tiles.settings.obstacle_height;
+        let color = Color::ORANGE_RED;
 
-        for collider in env_colliders.iter() {
-            let aabb = collider.aabb();
-            let center = aabb.center();
-            // let height
+        for collider @ gbp_global_planner::Collider {
+            associated_mesh,
+            isometry,
+            shape,
+        } in env_colliders.iter()
+        {
+            if let Some(triangle) = shape.downcast_ref::<parry2d::shape::Triangle>() {
+                let top_surface = triangle
+                    .vertices()
+                    .iter()
+                    .cycle()
+                    .take(4)
+                    .map(|v| Vec3::new(v.x, height / 2.0, v.y));
+                let bottom_surface = triangle
+                    .vertices()
+                    .iter()
+                    .cycle()
+                    .take(4)
+                    .map(|v| Vec3::new(v.x, -height / 2.0, v.y));
 
-            let translation = Vec3::new(center.x, height / 2.0, center.y);
-            let half_extents = aabb.half_extents();
-            let aabb = Transform {
-                translation,
-                scale: Vec3::new(half_extents.x * 2.0, height, half_extents.y * 2.0),
-                ..Default::default()
-            };
-            gizmos.cuboid(aabb, Color::ORANGE_RED);
+                gizmos.linestrip(top_surface, color);
+                gizmos.linestrip(bottom_surface, color);
+
+                for v in triangle.vertices() {
+                    let start = Vec3::new(v.x, height / 2.0, v.y);
+                    let end = Vec3::new(v.x, -height / 2.0, v.y);
+                    gizmos.line(start, end, color)
+                }
+            } else {
+                // gizmos.
+                let aabb = collider.aabb();
+                let center = aabb.center();
+                // let height
+
+                let translation = Vec3::new(center.x, height / 2.0, center.y);
+                let half_extents = aabb.half_extents();
+                let aabb = Transform {
+                    translation,
+                    scale: Vec3::new(half_extents.x * 2.0, height, half_extents.y * 2.0),
+                    ..Default::default()
+                };
+                gizmos.cuboid(aabb, Color::ORANGE_RED);
+            }
         }
     }
 }

@@ -296,6 +296,13 @@ impl RegularPolygon {
         (x, y)
     }
 
+    pub fn points(&self) -> Vec<[Float; 2]> {
+        (0..self.sides)
+            .map(|i| self.point_at(i))
+            .map(|(x, y)| [x, y])
+            .collect()
+    }
+
     /// Check if a given point is inside the polygon
     /// Expects translation and rotation to be performed beforehand
     pub fn inside(&self, point: Vec2) -> bool {

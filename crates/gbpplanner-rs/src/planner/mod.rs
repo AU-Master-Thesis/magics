@@ -1,4 +1,5 @@
 pub mod collisions;
+pub mod mission;
 pub mod robot;
 pub mod spawner;
 pub mod tracking;
@@ -22,6 +23,7 @@ impl Plugin for PlannerPlugin {
             VisualiserPlugin,
             collisions::RobotCollisionsPlugin,
             tracking::TrackingPlugin,
+            mission::MissionPlugin,
         ));
     }
 }
