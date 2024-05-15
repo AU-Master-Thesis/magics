@@ -88,7 +88,8 @@ fn visualize_obstacle_factors(
             // };
 
             // let scale = 1e2;
-            let v: f32 = (last_measurement.value as f32 * 1e2).clamp(0.0, 1.0);
+            // let v: f32 = (last_measurement.value as f32 * 1e2).clamp(0.0, 1.0);
+            let v: f32 = (last_measurement.value as f32).clamp(0.0, 1.0);
 
             let red = 1.0 * v;
             let green = 1.0 - red;
@@ -102,11 +103,18 @@ fn visualize_obstacle_factors(
             // let start = estimated_position.extend(height).xzy();
             // let end = scale * last_measurement.pos.extend(height).xzy();
             // gizmos.line(start, end, color);
+            let pos = last_measurement.pos.extend(height).xzy();
             gizmos.circle(
-                last_measurement.pos.extend(height).xzy(),
+                pos,
                 Direction3d::Y,
                 // Vec3::NEG_Z.di,
                 0.5,
+                color,
+            );
+
+            gizmos.line(
+                variable.estimated_position_vec2().extend(height).xzy(),
+                pos,
                 color,
             );
         }

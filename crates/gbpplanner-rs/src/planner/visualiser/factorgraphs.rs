@@ -117,14 +117,15 @@ fn on_variable_clicked(
             // println!("factor[{i}]: {}", <neighbour.kind as &dyn Factor>::name());
             println!("factor[{i}]: {}", neighbour.kind.name());
             match neighbour.kind {
-                InterRobot(ref interrobot) => println!("{}", interrobot),
-                Dynamic(ref dynanic) => println!("{}", dynanic),
+                // InterRobot(ref interrobot) => println!("{}", interrobot),
+                // Dynamic(ref dynanic) => println!("{}", dynanic),
                 Obstacle(ref obstacle) => println!("{}", obstacle),
-                Tracking(ref tracking) => println!("{}", tracking),
+                // Tracking(ref tracking) => println!("{}", tracking),
+                _ => {}
             }
 
-            println!("state:");
-            println!("{}", neighbour.state);
+            // println!("state:");
+            // println!("{}", neighbour.state);
         }
 
         println!("{}", hr);

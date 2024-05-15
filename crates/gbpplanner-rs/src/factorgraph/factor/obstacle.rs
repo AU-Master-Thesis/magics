@@ -39,6 +39,22 @@ pub struct LastMeasurement {
     pub value: Float,
 }
 
+impl std::fmt::Display for LastMeasurement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use colored::Colorize;
+        let v = self.value * 255.0;
+        let r = v as u8;
+        let g = 255 - r;
+
+        write!(
+            f,
+            "[pos: {}, value: {}]",
+            self.pos,
+            format!("{:.4}", self.value).truecolor(r, g, 0u8)
+        )
+    }
+}
+
 impl Default for LastMeasurement {
     fn default() -> Self {
         Self {
@@ -104,16 +120,36 @@ impl Factor for ObstacleFactor {
     }
 
     fn measure(&self, _state: &FactorState, linearisation_point: &Vector<Float>) -> Vector<Float> {
+        let x_pos = linearisation_point[0];
+        let y_pos = linearisation_point[1];
+        // The robots coordinate system is centered in the image, so we have to offset
+        // the pixel index, by half the height in the row index i.e. `y` and
+        // half the width in the column index i.e. `x`
         let x_offset = self.world_size.width / 2.0;
         let y_offset = self.world_size.height / 2.0;
+
         let x_scale = Float::from(self.obstacle_sdf.width()) / self.world_size.width;
         let y_scale = Float::from(self.obstacle_sdf.height()) / self.world_size.height;
 
-        let x_pixel = ((linearisation_point[0] + x_offset) * x_scale) as u32;
-        let y_pixel = ((linearisation_point[1] + y_offset) * y_scale) as u32;
+        let x_pixel = ((x_pos + x_offset) * x_scale) as u32;
+        // NOTE: the -y_pos is because the y axis is flipped in the image
+        let y_pixel = ((-y_pos + y_offset) * y_scale) as u32;
+
+        // dbg!((
+        //     x_pos,
+        //     y_pos,
+        //     x_offset,
+        //     y_offset,
+        //     x_scale,
+        //     y_scale,
+        //     x_pixel,
+        //     y_pixel,
+        //     self.obstacle_sdf.dimensions()
+        // ));
 
         let Some(pixel) = self.obstacle_sdf.get_pixel_checked(x_pixel, y_pixel) else {
-            // Measurement point outside of image
+            // let Some(pixel) = self.obstacle_sdf.get_pixel_checked(y_pixel, x_pixel) else
+            // { Measurement point outside of image
             // Return 1.0 to indicate that it is an obstacle
             // return array![1.0];
             // Return 0.0 to indicate that it is an empty space
@@ -121,11 +157,13 @@ impl Factor for ObstacleFactor {
         };
 
         let red_channel = pixel[0];
+        // println!("pixel: {:?}", pixel);
+        // println!("red {}", Float::from(red_channel));
         // Dark areas are obstacles, so h(0) should return a 1 for these regions.
         let hsv_value = 1.0 - Float::from(red_channel) / 255.0;
 
         self.last_measurement.lock().unwrap().set(LastMeasurement {
-            pos:   Vec2::new(linearisation_point[0] as f32, linearisation_point[1] as f32),
+            pos:   Vec2::new(x_pos as f32, y_pos as f32),
             value: hsv_value,
         });
 
@@ -156,6 +194,6 @@ impl Factor for ObstacleFactor {
 impl std::fmt::Display for ObstacleFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "world_size: {}", self.world_size)?;
-        writeln!(f, "last_measurement: {:?}", self.last_measurement())
+        writeln!(f, "last_measurement: {}", self.last_measurement())
     }
 }
