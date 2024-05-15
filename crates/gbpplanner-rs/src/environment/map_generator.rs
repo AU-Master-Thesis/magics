@@ -188,7 +188,8 @@ fn build_obstacles(
             PlaceableShape::Triangle(ref triangle_shape @ Triangle { angles, radius }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
-                    obstacle_height / 2.0,
+                    // obstacle_height / 2.0,
+                    obstacle_height,
                     -((translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset),
                 );
 
@@ -1152,6 +1153,7 @@ fn build_tile_grid(
                             TileCoordinates::new(x, y),
                             ObstacleMarker,
                             bevy_mod_picking::PickableBundle::default(),
+                            // TODO: add on click handler
                         ))
                         .id();
 

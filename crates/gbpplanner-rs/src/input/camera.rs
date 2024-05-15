@@ -288,14 +288,25 @@ fn camera_actions(
                 }
                 CameraMovement::Orbit => {
                     // action represents the direction to move the camera around it's origin
-                    if let Some(action) = action_state
+                    if let Some(direction) = action_state
                         .clamped_axis_pair(&CameraAction::Move)
                         .map(|axis| axis.xy().normalize())
                     {
-                        tmp_angular_velocity.x =
-                            action.x * camera_settings.angular_speed * sensitivity.move_sensitivity;
-                        tmp_angular_velocity.y =
-                            action.y * camera_settings.angular_speed * sensitivity.move_sensitivity;
+                        if direction.x.is_nan() {
+                            tmp_angular_velocity.x = 0.0;
+                        } else {
+                            tmp_angular_velocity.x = direction.x
+                                * camera_settings.angular_speed
+                                * sensitivity.move_sensitivity;
+                        }
+
+                        if direction.y.is_nan() {
+                            tmp_angular_velocity.y = 0.0;
+                        } else {
+                            tmp_angular_velocity.y = direction.y
+                                * camera_settings.angular_speed
+                                * sensitivity.move_sensitivity;
+                        }
                     }
                 }
             }
