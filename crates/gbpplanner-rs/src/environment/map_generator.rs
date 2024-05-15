@@ -350,24 +350,7 @@ fn build_obstacles(
                         height.get() as f32 * tile_size / 4.0,
                     ]);
 
-                // from_vec(vec![
-                //     width.get() as f32 * tile_size / 2.0,
-                //     height.get() as f32 * tile_size / 2.0,
-                // ]);
-
-                // Arc::new(Into::<shape::Cuboid>::into(*cuboid)),
-                // parry2d::na::Vector::from_slice(&[
-                //     width.get() as f32 / 2.0,
-                //     height.get() as f32 / 2.0,
-                // ]);
-                let shape = parry2d::shape::Cuboid::new(
-                    half_extents,
-                    // [
-                    //     height.get() as f32 * tile_size / 2.0,
-                    //     width.get() as f32 * tile_size / 2.0,
-                    // ]
-                    // .into(),
-                );
+                let shape = parry2d::shape::Cuboid::new(half_extents);
 
                 let shape: Arc<dyn shape::Shape> = Arc::new(shape);
 
@@ -401,7 +384,7 @@ fn build_obstacles(
                 Isometry2::new(parry2d::na::Vector2::new(
                     transform.translation.x,
                     transform.translation.z,
-                ), na::zero()),
+                ), na::zero()), // FIXME: add rotation
                 shape
             );
         });

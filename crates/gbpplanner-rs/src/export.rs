@@ -20,11 +20,14 @@ impl Plugin for ExportPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<events::Export>()
             .add_event::<events::TakeSnapshotOfRobot>()
+            .add_event::<events::OpenLatestExport>()
             .init_resource::<resources::SnapshottedRobots>()
+            .init_resource::<resources::LatestExport>()
             .add_systems(
                 Update,
                 (
                     export,
+                    open_latest_export,
                     send_default_export_event.run_if(
                         input_just_pressed(KeyCode::F7)
                             .or_else(on_event::<crate::planner::spawner::AllFormationsFinished>()),
@@ -43,6 +46,9 @@ mod resources {
 
     #[derive(Resource, Deref, DerefMut, Default)]
     pub(super) struct SnapshottedRobots(HashMap<Entity, RobotData>);
+
+    #[derive(Resource, Deref, DerefMut, Default)]
+    pub(super) struct LatestExport(pub Option<std::path::PathBuf>);
 }
 
 fn send_default_export_event(mut evw_export: EventWriter<events::Export>) {
@@ -62,10 +68,39 @@ pub mod events {
     pub struct Export {
         pub save_at_location: ExportSaveLocation,
         pub postfix: ExportSavePostfix,
+        pub toast: bool,
     }
+
+    #[derive(Event, Default)]
+    pub struct OpenLatestExport;
 
     #[derive(Event)]
     pub struct TakeSnapshotOfRobot(pub Entity);
+}
+
+fn open_latest_export(
+    mut evr_open_latest_export: EventReader<events::OpenLatestExport>,
+    latest_export: Res<resources::LatestExport>,
+    mut evw_toast: EventWriter<bevy_notify::ToastEvent>,
+) {
+    for _ in evr_open_latest_export.read() {
+        let Some(ref path) = latest_export.0 else {
+            evw_toast.send(bevy_notify::ToastEvent::error(
+                "no data has been exported yet",
+            ));
+            continue;
+        };
+
+        if cfg!(target_arch = "wasm32") {
+            evw_toast.send(bevy_notify::ToastEvent::warning("Not supported on wasm32"));
+        } else {
+            if let Err(err) = open::that_detached(path) {
+                let err_msg = format!("Failed to open {}: {}", path.display(), err);
+                error!(err_msg);
+                evw_toast.send(bevy_notify::ToastEvent::error(err_msg));
+            }
+        }
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -139,6 +174,8 @@ struct GbpData {
 
 fn export(
     mut evr_export: EventReader<events::Export>,
+    mut evw_toast: EventWriter<bevy_notify::ToastEvent>,
+    mut latest_export: ResMut<resources::LatestExport>,
     mut robot_snapshots: ResMut<resources::SnapshottedRobots>,
     q_robots: Query<(
         Entity,
@@ -349,10 +386,18 @@ fn export(
 
         let mut file = std::fs::File::create(output_filepath.clone()).unwrap();
         file.write_all(json.as_bytes()).unwrap();
-        println!(
+
+        let message = format!(
             "Data exported successfully to '{}'",
             output_filepath.to_string_lossy().to_string()
         );
+        info!(message);
+
+        if event.toast {
+            evw_toast.send(bevy_notify::ToastEvent::success(message));
+        }
+
+        latest_export.0 = Some(output_filepath);
     }
 }
 

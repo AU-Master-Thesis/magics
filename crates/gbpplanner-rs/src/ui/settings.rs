@@ -863,8 +863,36 @@ fn ui_settings_panel(
                                     if !png_output_path.exists() {
                                         world.send_event::<ToastEvent>(ToastEvent::warning("No factorgraph has been exported yet"));
                                     } else {
-                                        let _ = open::that(png_output_path);
+                                        if let Err(err) = open::that_detached(png_output_path) {
+                                            let err_msg = format!("Failed to open {}: {}", png_output_path.display(), err);
+                                            error!(err_msg);
+                                            world.send_event::<ToastEvent>(ToastEvent::error(err_msg));
+                                        }
                                     }
+                                }
+                            }
+                        });
+
+                        ui.end_row();
+
+                        ui.label("Metrics");
+                        custom::fill_x(ui, |ui| {
+                            if ui.button("Export").clicked() {
+                                use crate::export::events::Export;
+                                world.send_event::<Export>(Export {
+                                    toast: true,
+                                    ..Default::default()
+                                });
+                            }
+                        });
+
+                        custom::fill_x(ui, |ui| {
+                            if ui.button("Open").clicked() {
+                                if cfg!(target_arch = "wasm32") {
+                                    world.send_event::<ToastEvent>(ToastEvent::warning("Not supported on wasm32"));
+                                } else {
+                                    use crate::export::events::OpenLatestExport;
+                                    world.send_event::<OpenLatestExport>(OpenLatestExport);
                                 }
                             }
                         });
