@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use bevy::{prelude::*, reflect::Tuple};
+use bevy_mod_picking::prelude::*;
 use gbp_config::{Config, DrawSetting};
 use gbp_environment::{
     Circle, Environment, PlaceableShape, Rectangle, RegularPolygon, TileCoordinates, Triangle,
@@ -21,6 +22,7 @@ pub struct GenMapPlugin;
 impl Plugin for GenMapPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_event::<events::ObstacleClickedOn>()
             // .init_resource::<Colliders>()
             // .add_systems(Startup, (build_tile_grid, build_obstacles))
             // .add_systems(PostStartup, create_static_colliders)
@@ -32,6 +34,20 @@ impl Plugin for GenMapPlugin {
                 Update,
                 show_or_hide_generated_map.run_if(event_exists::<DrawSettingsEvent>),
             );
+    }
+}
+
+pub mod events {
+    use super::*;
+
+    #[derive(Debug, Event)]
+    pub struct ObstacleClickedOn(pub Entity);
+
+    impl From<ListenerInput<Pointer<Click>>> for ObstacleClickedOn {
+        #[inline]
+        fn from(value: ListenerInput<Pointer<Click>>) -> Self {
+            Self(value.target)
+        }
     }
 }
 
@@ -1153,6 +1169,7 @@ fn build_tile_grid(
                             TileCoordinates::new(x, y),
                             ObstacleMarker,
                             bevy_mod_picking::PickableBundle::default(),
+                            On::<Pointer<Click>>::send_event::<events::ObstacleClickedOn>(),
                             // TODO: add on click handler
                         ))
                         .id();

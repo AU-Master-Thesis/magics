@@ -39,6 +39,7 @@ impl Plugin for RobotCollisionsPlugin {
                     ),
                     render_robot_environment_collisions,
                     toggle_visibility_of_robot_environment_collisions,
+                    on_obstacle_clicked_on,
                     // toggle_visibility_of_robot_environment_collisions
                     //     .run_if(input_just_pressed(KeyCode::F10)),
                 ),
@@ -539,5 +540,15 @@ fn toggle_visibility_of_robot_environment_collisions(
                 };
             }
         }
+    }
+}
+
+fn on_obstacle_clicked_on(
+    mut evr_obstacle_clicked_on: EventReader<
+        crate::environment::map_generator::events::ObstacleClickedOn,
+    >,
+) {
+    for event in evr_obstacle_clicked_on.read() {
+        println!("{}:{} {:?}", file!(), line!(), event);
     }
 }
