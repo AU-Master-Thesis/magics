@@ -139,13 +139,10 @@ fn on_variable_clicked(
                 }
                 _ => {}
             }
-
-            // if config.debug.on_variable_clicked.variable {
-            //     println!("{}", neighbour.state);
-            // }
         }
 
         if config.debug.on_variable_clicked.variable {
+            // TODO: do not use debug print here
             println!("{:?}", variable);
         }
 

@@ -61,6 +61,95 @@ mod environment_colliders {
         config.visualisation.draw.environment_colliders
     }
 
+    const COLOR: Color = Color::ORANGE_RED;
+
+    fn render_triangle(
+        mut gizmos: &mut Gizmos,
+        height: f32,
+        isometry: &parry2d::na::Isometry2<f32>,
+        triangle: &parry2d::shape::Triangle,
+    ) {
+        let top_surface = triangle
+            .vertices()
+            .iter()
+            .cycle()
+            .take(4)
+            .map(|v| Vec3::new(v.x, height / 2.0, v.y));
+        let bottom_surface = triangle
+            .vertices()
+            .iter()
+            .cycle()
+            .take(4)
+            .map(|v| Vec3::new(v.x, -height / 2.0, v.y));
+
+        gizmos.linestrip(top_surface, COLOR);
+        gizmos.linestrip(bottom_surface, COLOR);
+
+        for v in triangle.vertices() {
+            let start = Vec3::new(v.x, height / 2.0, v.y);
+            let end = Vec3::new(v.x, -height / 2.0, v.y);
+            gizmos.line(start, end, COLOR);
+        }
+    }
+
+    fn render_rectangle(
+        mut gizmos: &mut Gizmos,
+        height: f32,
+        collider: &gbp_global_planner::Collider,
+    ) {
+        let aabb = collider.aabb();
+        let center = aabb.center();
+        // let height
+
+        let translation = Vec3::new(center.x, height / 2.0, center.y);
+        let half_extents = aabb.half_extents();
+        let aabb = Transform {
+            translation,
+            scale: Vec3::new(half_extents.x * 2.0, height, half_extents.y * 2.0),
+            ..Default::default()
+        };
+        gizmos.cuboid(aabb, COLOR);
+    }
+
+    fn render_circle(
+        mut gizmos: &mut Gizmos,
+        height: f32,
+        isometry: &parry2d::na::Isometry2<f32>,
+        ball: &parry2d::shape::Ball,
+    ) {
+        let radius = ball.radius;
+        let center_x = isometry.translation.x;
+        let center_y = isometry.translation.y;
+        let normal = Direction3d::Y;
+        // top circle
+        let position = Vec3::new(center_x, height, center_y);
+        let segments = 32;
+        gizmos
+            .circle(position, normal, radius, COLOR)
+            .segments(segments);
+        // bottom circle
+        let position = Vec3::new(center_x, 0., center_y);
+        gizmos
+            .circle(position, normal, radius, COLOR)
+            .segments(segments);
+
+        // draw 4 vertical lines 90degree spread apart around the cylinder
+        for i in 0..4 {
+            let angle = 2.0 * std::f32::consts::PI * i as f32 / 4.0;
+            let x = radius * angle.cos();
+            let y = radius * angle.sin();
+            let position = Vec3::new(center_x + x, height, center_y + y);
+            gizmos.line(position, position + Vec3::new(0., -height, 0.), COLOR);
+        }
+    }
+    fn render_convex_polygon(
+        mut gizmos: &mut Gizmos,
+        height: f32,
+        isometry: &parry2d::na::Isometry2<f32>,
+        collider: &parry2d::shape::ConvexPolygon,
+    ) {
+    }
+
     pub(super) fn render(
         mut gizmos: Gizmos,
         env_colliders: Res<gbp_global_planner::Colliders>,
@@ -78,41 +167,29 @@ mod environment_colliders {
         } in env_colliders.iter()
         {
             if let Some(triangle) = shape.downcast_ref::<parry2d::shape::Triangle>() {
-                let top_surface = triangle
-                    .vertices()
-                    .iter()
-                    .cycle()
-                    .take(4)
-                    .map(|v| Vec3::new(v.x, height / 2.0, v.y));
-                let bottom_surface = triangle
-                    .vertices()
-                    .iter()
-                    .cycle()
-                    .take(4)
-                    .map(|v| Vec3::new(v.x, -height / 2.0, v.y));
-
-                gizmos.linestrip(top_surface, color);
-                gizmos.linestrip(bottom_surface, color);
-
-                for v in triangle.vertices() {
-                    let start = Vec3::new(v.x, height / 2.0, v.y);
-                    let end = Vec3::new(v.x, -height / 2.0, v.y);
-                    gizmos.line(start, end, color)
-                }
+                render_triangle(&mut gizmos, height, isometry, triangle);
+            } else if let Some(circle) = shape.downcast_ref::<parry2d::shape::Ball>() {
+                render_circle(&mut gizmos, height, isometry, circle);
+            } else if let Some(convex_polygon) =
+                shape.downcast_ref::<parry2d::shape::ConvexPolygon>()
+            {
+                render_convex_polygon(&mut gizmos, height, isometry, convex_polygon);
             } else {
-                // gizmos.
-                let aabb = collider.aabb();
-                let center = aabb.center();
-                // let height
-
-                let translation = Vec3::new(center.x, height / 2.0, center.y);
-                let half_extents = aabb.half_extents();
-                let aabb = Transform {
-                    translation,
-                    scale: Vec3::new(half_extents.x * 2.0, height, half_extents.y * 2.0),
-                    ..Default::default()
-                };
-                gizmos.cuboid(aabb, Color::ORANGE_RED);
+                render_rectangle(&mut gizmos, height, collider);
+                // // gizmos.
+                // let aabb = collider.aabb();
+                // let center = aabb.center();
+                // // let height
+                //
+                // let translation = Vec3::new(center.x, height / 2.0,
+                // center.y); let half_extents =
+                // aabb.half_extents(); let aabb = Transform {
+                //     translation,
+                //     scale: Vec3::new(half_extents.x * 2.0, height,
+                // half_extents.y * 2.0),
+                //     ..Default::default()
+                // };
+                // gizmos.cuboid(aabb, Color::ORANGE_RED);
             }
         }
     }
