@@ -614,6 +614,41 @@ impl Default for SmoothingSection {
     }
 }
 
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct DebugSection {
+    pub on_variable_clicked: OnVariableClickedSection,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    serde::Serialize,
+    serde::Deserialize,
+    bevy::reflect::Reflect,
+    struct_iterable::Iterable,
+)]
+#[serde(rename_all = "kebab-case")]
+pub struct OnVariableClickedSection {
+    pub obstacle:   bool,
+    pub dynamic:    bool,
+    pub interrobot: bool,
+    pub tracking:   bool,
+    pub variable:   bool,
+}
+
+impl Default for OnVariableClickedSection {
+    fn default() -> Self {
+        Self {
+            obstacle:   false,
+            dynamic:    false,
+            interrobot: false,
+            tracking:   false,
+            variable:   false,
+        }
+    }
+}
+
 /// Collection of all the sections in the config file
 #[derive(Debug, Clone, Serialize, Deserialize, Resource)]
 pub struct Config {
@@ -658,6 +693,9 @@ pub struct Config {
     /// Contains parameters for manual time-stepping
     #[serde(default)]
     pub manual: ManualSection,
+
+    #[serde(default)]
+    pub debug: DebugSection,
 }
 
 impl Default for Config {
@@ -684,6 +722,7 @@ impl Default for Config {
             rrt: RRTSection::default(),
             graphviz: GraphvizSection::default(),
             manual: ManualSection::default(),
+            debug: DebugSection::default(),
         }
     }
 }

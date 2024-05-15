@@ -108,6 +108,11 @@ impl Factor for ObstacleFactor {
         "ObstacleFactor"
     }
 
+    fn color(&self) -> [u8; 3] {
+        // #ee99a0
+        [238, 153, 160]
+    }
+
     #[inline]
     fn jacobian(
         &self,
@@ -157,8 +162,6 @@ impl Factor for ObstacleFactor {
         };
 
         let red_channel = pixel[0];
-        // println!("pixel: {:?}", pixel);
-        // println!("red {}", Float::from(red_channel));
         // Dark areas are obstacles, so h(0) should return a 1 for these regions.
         let hsv_value = 1.0 - Float::from(red_channel) / 255.0;
 

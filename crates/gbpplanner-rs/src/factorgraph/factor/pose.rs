@@ -25,6 +25,12 @@ impl Factor for PoseFactor {
         "PoseFactor"
     }
 
+    #[inline]
+    fn color(&self) -> [u8; 3] {
+        //#c6a0f6
+        [198, 160, 246]
+    }
+
     #[inline(always)]
     fn jacobian_delta(&self) -> Float {
         1e-8

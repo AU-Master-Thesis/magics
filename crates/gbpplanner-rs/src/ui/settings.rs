@@ -635,9 +635,7 @@ fn ui_settings_panel(
                                 .visualisation
                                 .draw
                                 .get_field_mut::<bool>(name)
-                                .expect(
-                                    "Since I am iterating over the fields, I should be able to \
-                                     get the field",
+                                .expect("is bool"
                                 );
                             custom::float_right(ui, |ui| {
                                 if custom::toggle_ui(ui, setting).clicked() {
@@ -940,6 +938,42 @@ fn ui_settings_panel(
 
                     ui.add_space(2.5);
 
+                    // for field in config.debug.on_variable_clicked.iter_fields() {
+                    //     if let Some(option) = field.downcast_mut::<bool>() {
+                    //         if ui.button(format!("{:?}", field)).clicked() {
+                    //             <config.debug.on_variable_clicked as bevy::reflect::Reflect>
+                    //             // *option = !*option;
+                    //         }
+                    //     }
+                    // }
+
+                    ui.separator();
+                    ui.label("On Variable Clicked Show");
+
+                    custom::grid("on_variable_clicked_grid", 2).show(ui, |ui| {
+                        let copy = config.debug.on_variable_clicked.clone();
+                        for (field, value) in copy.iter() {
+                            if value.is::<bool>() {
+                                ui.label(field);
+                                let value = config.debug.on_variable_clicked.get_field_mut::<bool>(field).unwrap();
+                                custom::float_right(ui, |ui| {
+                                    if custom::toggle_ui(ui, value).clicked() {
+                                    }
+                                });
+                            }
+
+                            ui.end_row();
+                        }
+
+
+
+                                // if ui.button(field).clicked() {
+                                //     if let Some(value) = config.debug.on_variable_clicked.get_field_mut::<bool>(field) {
+                                //         *value = !*value;
+                                //     }
+                                // }
+                    });
+
                     ui.separator();
                     ui.collapsing("Entities", |ui| {
                         bevy_inspector::ui_for_world_entities(world, ui);
@@ -950,6 +984,8 @@ fn ui_settings_panel(
                     ui.collapsing("Assets", |ui| {
                         bevy_inspector::ui_for_all_assets(world, ui);
                     });
+
+
 
                     custom::subheading(
                         ui,

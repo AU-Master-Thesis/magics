@@ -36,6 +36,8 @@ pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 pub trait Factor: std::fmt::Display {
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
+    /// The color of the factor. Used for visualization.
+    fn color(&self) -> [u8; 3];
 
     /// The delta for the jacobian calculation
     fn jacobian_delta(&self) -> Float;
@@ -452,6 +454,15 @@ impl Factor for FactorKind {
             Self::Dynamic(f) => f.name(),
             Self::Obstacle(f) => f.name(),
             Self::Tracking(f) => f.name(),
+        }
+    }
+
+    fn color(&self) -> [u8; 3] {
+        match self {
+            Self::InterRobot(f) => f.color(),
+            Self::Dynamic(f) => f.color(),
+            Self::Obstacle(f) => f.color(),
+            Self::Tracking(f) => f.color(),
         }
     }
 

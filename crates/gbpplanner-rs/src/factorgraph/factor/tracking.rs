@@ -66,6 +66,12 @@ impl Factor for TrackingFactor {
     }
 
     #[inline]
+    fn color(&self) -> [u8; 3] {
+        // #f4a15a
+        [244, 161, 90]
+    }
+
+    #[inline]
     fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
         // Same as PoseFactor
         // TODO: change to not clone x

@@ -379,3 +379,10 @@ impl FactorGraphNode for VariableNode {
         self.message_count.reset();
     }
 }
+
+// impl std::fmt::Display for VariableNode {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         writeln!(f, "factorgraph_id: {:?}", self.factorgraph_id)?;
+//         // writeln!(f, )
+//     }
+// }

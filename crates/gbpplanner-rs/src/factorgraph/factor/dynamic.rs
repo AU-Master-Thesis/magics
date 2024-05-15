@@ -59,6 +59,12 @@ impl Factor for DynamicFactor {
     }
 
     #[inline]
+    fn color(&self) -> [u8; 3] {
+        // #8aadf4
+        [138, 173, 244]
+    }
+
+    #[inline]
     fn jacobian(&self, _state: &FactorState, _x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
         Cow::Borrowed(&self.cached_jacobian)
     }

@@ -87,6 +87,7 @@ fn on_variable_clicked(
     mut evr_variable_clicked_on: EventReader<VariableClickedOn>,
     q_robottracker: Query<&RobotTracker, With<VariableVisualiser>>,
     q_factorgraph: Query<&FactorGraph, With<RobotState>>,
+    config: Res<Config>,
 ) {
     for VariableClickedOn(entity) in evr_variable_clicked_on.read() {
         let Ok(tracker) = q_robottracker.get(*entity) else {
@@ -99,7 +100,7 @@ fn on_variable_clicked(
             return;
         };
 
-        let Some((node_index, _)) = factorgraph.nth_variable(tracker.variable_index) else {
+        let Some((node_index, variable)) = factorgraph.nth_variable(tracker.variable_index) else {
             error!("the clicked variable mesh is not associated with any existing factorgraph!");
             return;
         };
@@ -110,22 +111,42 @@ fn on_variable_clicked(
         };
 
         let hr = "=".repeat(80);
-        println!("variable {}", hr);
+        println!(
+            "variable {} in factorgraph {:?}",
+            node_index.index(),
+            factorgraph.id()
+        );
         for (i, neighbour) in neighbours.enumerate() {
             // println!("name: {}", neighbour.kind.name());
+            use colored::Colorize;
+
             use crate::factorgraph::factor::FactorKind::{Dynamic, InterRobot, Obstacle, Tracking};
             // println!("factor[{i}]: {}", <neighbour.kind as &dyn Factor>::name());
-            println!("factor[{i}]: {}", neighbour.kind.name());
+            let [r, g, b] = neighbour.kind.color();
+            println!("factor[{i}]: {}", neighbour.kind.name().truecolor(r, g, b));
             match neighbour.kind {
-                // InterRobot(ref interrobot) => println!("{}", interrobot),
-                // Dynamic(ref dynanic) => println!("{}", dynanic),
-                Obstacle(ref obstacle) => println!("{}", obstacle),
-                // Tracking(ref tracking) => println!("{}", tracking),
+                InterRobot(ref interrobot) if config.debug.on_variable_clicked.interrobot => {
+                    println!("{}", interrobot)
+                }
+                Dynamic(ref dynanic) if config.debug.on_variable_clicked.dynamic => {
+                    println!("{}", dynanic)
+                }
+                Obstacle(ref obstacle) if config.debug.on_variable_clicked.obstacle => {
+                    println!("{}", obstacle)
+                }
+                Tracking(ref tracking) if config.debug.on_variable_clicked.tracking => {
+                    println!("{}", tracking)
+                }
                 _ => {}
             }
 
-            // println!("state:");
-            // println!("{}", neighbour.state);
+            // if config.debug.on_variable_clicked.variable {
+            //     println!("{}", neighbour.state);
+            // }
+        }
+
+        if config.debug.on_variable_clicked.variable {
+            println!("{:?}", variable);
         }
 
         println!("{}", hr);
