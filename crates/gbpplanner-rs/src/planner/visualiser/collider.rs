@@ -55,6 +55,7 @@ mod robot_colliders {
 
 mod environment_colliders {
     use gbp_environment::Environment;
+    use itertools::Itertools;
 
     use super::*;
     pub(super) fn enabled(config: Res<Config>) -> bool {
@@ -74,20 +75,22 @@ mod environment_colliders {
             .iter()
             .cycle()
             .take(4)
-            .map(|v| Vec3::new(v.x, height / 2.0, v.y));
-        let bottom_surface = triangle
-            .vertices()
-            .iter()
-            .cycle()
-            .take(4)
-            .map(|v| Vec3::new(v.x, -height / 2.0, v.y));
+            .map(|v| Vec3::new(v.x, height, v.y));
+        // let bottom_surface = triangle
+        //     .vertices()
+        //     .iter()
+        //     .cycle()
+        //     .take(4)
+        //     .map(|v| Vec3::new(v.x, 0.0, v.y));
 
         gizmos.linestrip(top_surface, COLOR);
-        gizmos.linestrip(bottom_surface, COLOR);
+        // gizmos.linestrip(bottom_surface, COLOR);
 
+        // draw 4 vertical lines lines connecting the top surface vertices with their
+        // corresponding bottom ones
         for v in triangle.vertices() {
-            let start = Vec3::new(v.x, height / 2.0, v.y);
-            let end = Vec3::new(v.x, -height / 2.0, v.y);
+            let start = Vec3::new(v.x, height, v.y);
+            let end = Vec3::new(v.x, 0.0, v.y);
             gizmos.line(start, end, COLOR);
         }
     }
@@ -145,9 +148,24 @@ mod environment_colliders {
     fn render_convex_polygon(
         mut gizmos: &mut Gizmos,
         height: f32,
+        // scale: f32,
         isometry: &parry2d::na::Isometry2<f32>,
-        collider: &parry2d::shape::ConvexPolygon,
+        convex_polygon: &parry2d::shape::ConvexPolygon,
     ) {
+        let center_x = isometry.translation.x;
+        let center_y = isometry.translation.y;
+        let center = Vec3::new(center_x, height, center_y);
+        let points = convex_polygon.points();
+        let points_with_first_appended = points
+            .iter()
+            .chain(std::iter::once(points.first().unwrap()));
+        for (p1, p2) in points_with_first_appended.tuple_windows() {
+            let p1 = center + Vec3::new(p1.x, 0.0, p1.y);
+            let p2 = center + Vec3::new(p2.x, 0.0, p2.y);
+            gizmos.line(p1, p2, COLOR);
+            // line from vertex to ground
+            gizmos.line(p1, p1 + Vec3::new(0.0, -height, 0.0), COLOR);
+        }
     }
 
     pub(super) fn render(
@@ -173,7 +191,13 @@ mod environment_colliders {
             } else if let Some(convex_polygon) =
                 shape.downcast_ref::<parry2d::shape::ConvexPolygon>()
             {
-                render_convex_polygon(&mut gizmos, height, isometry, convex_polygon);
+                render_convex_polygon(
+                    &mut gizmos,
+                    height,
+                    // env_config.tile_size() / 2.0,
+                    isometry,
+                    convex_polygon,
+                );
             } else {
                 render_rectangle(&mut gizmos, height, collider);
                 // // gizmos.

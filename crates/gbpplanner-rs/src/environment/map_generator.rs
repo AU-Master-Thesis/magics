@@ -219,11 +219,6 @@ fn build_obstacles(
                 //     "Spawning triangle: base_length = {}, height = {}, at {:?}",
                 //     base_length, height, center
                 // );
-                let shape = parry2d::shape::Triangle::new(
-                    p1.to_array().into(),
-                    p2.to_array().into(),
-                    p3.to_array().into(),
-                );
 
                 let mesh = meshes.add(
                     Mesh::try_from(bevy_more_shapes::Prism::new(
@@ -241,6 +236,24 @@ fn build_obstacles(
                 let transform = Transform::from_translation(center).with_rotation(rotation);
                 // let transform = Transform::from_translation(center);
 
+                let center_xy = center.xz();
+                let shape = parry2d::shape::Triangle::new(
+                    // (center_xy + p1).to_array().into(),
+                    // (center_xy + p2).to_array().into(),
+                    // (center_xy + p3).to_array().into(),
+                    (rotation.mul_vec3(p1.extend(0.0).xzy()) + center)
+                        .xz()
+                        .to_array()
+                        .into(),
+                    (rotation.mul_vec3(p2.extend(0.0).xzy()) + center)
+                        .xz()
+                        .to_array()
+                        .into(),
+                    (rotation.mul_vec3(p3.extend(0.0).xzy()) + center)
+                        .xz()
+                        .to_array()
+                        .into(),
+                );
                 let shape: Arc<dyn shape::Shape> = Arc::new(shape);
 
                 Some((mesh, transform, shape))
@@ -284,10 +297,23 @@ fn build_obstacles(
                 let transform = Transform::from_translation(center).with_rotation(rotation);
 
                 // let points: Vec<parry2d::math::Point<parry2d::math::Real>> = polygon
+                let scale = tile_size / 2.0;
                 let points: Vec<_> = polygon
                     .points()
                     .iter()
-                    .map(|[x, y]| parry2d::math::Point::new(*x as f32, *y as f32))
+                    .map(|[x, y]| {
+                        let p = Vec3::new(*x as f32, 0.0, *y as f32);
+                        // let p_rotated = rotation.mul_vec3(p);
+
+                        let p_rotated = p;
+                        parry2d::math::Point::new(
+                            p_rotated.x * scale,
+                            p_rotated.z * scale,
+                            // *x as f32 * (tile_size / 2.0),
+                            // *y as f32 * (tile_size / 2.0),
+                        )
+                    })
+                    .inspect(|p| println!("p = {:?}", p))
                     .collect();
                 let shape = parry2d::shape::ConvexPolygon::from_convex_hull(points.as_slice())
                     .expect("polygon is always convex");
