@@ -135,17 +135,19 @@ fn track_positions(
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize)]
 pub struct VelocityMeasurement {
     pub velocity:      Vec3,
-    pub timestamp:     Instant,
+    // pub timestamp:     Instant,
+    pub timestamp:     f64,
     pub measured_over: Duration,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Serialize)]
 struct PreviousPosition {
-    position:  Vec3,
-    timestamp: Instant,
+    position:      Vec3,
+    pub timestamp: f64,
+    // timestamp: Instant,
 }
 
 /// A component that tracks velocity data of an entity with a transform using a
@@ -156,7 +158,8 @@ pub struct VelocityTracker {
     // last_position: Option<Vec3>,
     timer: Timer,
     previous_position: Option<PreviousPosition>,
-    first_measurement_at: Option<Instant>,
+    // first_measurement_at: Option<Instant>,
+    first_measurement_at: Option<f64>,
 }
 
 impl VelocityTracker {
@@ -211,15 +214,15 @@ fn track_velocities(
     for (transform, mut tracker) in &mut q {
         tracker.timer.tick(time.delta());
         if tracker.timer.just_finished() {
-            let now = Instant::now();
+            // let now = Instant::now();
+            let now = time.elapsed_seconds_f64();
 
             if let Some(previous_position) = tracker.previous_position {
                 let dt = now - previous_position.timestamp;
                 let measurement = VelocityMeasurement {
-                    velocity:      (transform.translation - previous_position.position)
-                        / dt.as_secs_f32(),
+                    velocity:      (transform.translation - previous_position.position) / dt as f32,
                     timestamp:     now,
-                    measured_over: dt,
+                    measured_over: Duration::from_secs_f64(dt),
                 };
                 // tracker.ringbuf.push_overwrite(transform.translation);
                 tracker.ringbuf.push_overwrite(measurement);

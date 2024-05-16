@@ -107,7 +107,8 @@ fn open_latest_export(
 pub struct RobotData {
     radius:     f32,
     positions:  Vec<[f32; 2]>,
-    velocities: Vec<[f32; 2]>,
+    // velocities: Vec<[f32; 2]>,
+    velocities: Vec<planner::tracking::VelocityMeasurement>,
     collisions: CollisionData,
     messages:   MessageData,
     route:      RouteData,
@@ -248,7 +249,9 @@ fn export(
                 continue;
             }
             let positions: Vec<[f32; 2]> = positions.positions().map(Into::into).collect();
-            let velocities: Vec<[f32; 2]> = velocities.velocities().map(Into::into).collect();
+            // let velocities: Vec<[f32; 2]> =
+            // velocities.velocities().map(Into::into).collect();
+            let velocities: Vec<_> = velocities.measurements().collect();
             let robot_collisions = robot_collisions.get(robot_entity).unwrap_or(0);
             let environment_collisions = environment_collisions.get(robot_entity).unwrap_or(0);
 
@@ -441,7 +444,9 @@ fn take_snapshot_of_robot(
     };
 
     let positions: Vec<[f32; 2]> = positions.positions().map(Into::into).collect();
-    let velocities: Vec<[f32; 2]> = velocities.velocities().map(Into::into).collect();
+    // let velocities: Vec<[f32; 2]> =
+    // velocities.velocities().map(Into::into).collect();
+    let velocities: Vec<_> = velocities.measurements().collect();
     let robot_collisions = robot_collisions.get(robot_entity).unwrap_or(0);
     let environment_collisions = environment_collisions.get(robot_entity).unwrap_or(0);
 
