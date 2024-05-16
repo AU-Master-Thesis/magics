@@ -42,9 +42,21 @@ pub struct LastMeasurement {
 impl std::fmt::Display for LastMeasurement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use colored::Colorize;
-        let v = self.value * 255.0;
-        let r = v as u8;
-        let g = 255 - r;
+        // let v = self.value * 255.0;
+        // let r = v as u8;
+        // let g = 255 - r;
+
+        let green = colorgrad::Color::from_linear_rgba(0.0, 255.0, 0.0, 255.0);
+        let red = colorgrad::Color::from_linear_rgba(255.0, 0.0, 0.0, 255.0);
+        let gradient = colorgrad::CustomGradient::new()
+            .colors(&[green, red])
+            .domain(&[0.0, 1.0])
+            .mode(colorgrad::BlendMode::Hsv)
+            .build()
+            .unwrap();
+
+        let color = gradient.at(self.value);
+        let [r, g, _, _] = color.to_rgba8();
 
         write!(
             f,

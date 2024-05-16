@@ -26,7 +26,7 @@ members = [
   "crates/gbp_environment",
   "crates/gbp_geometry",
   "crates/gbp_global_planner",
-  "crates/gbp_config",
+  "crates/gbp_config", "crates/bevy_tracking",
 ]
 
 [workspace.package]
