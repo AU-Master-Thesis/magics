@@ -65,7 +65,7 @@ mod environment_colliders {
     const COLOR: Color = Color::ORANGE_RED;
 
     fn render_triangle(
-        mut gizmos: &mut Gizmos,
+        gizmos: &mut Gizmos,
         height: f32,
         isometry: &parry2d::na::Isometry2<f32>,
         triangle: &parry2d::shape::Triangle,
@@ -95,11 +95,7 @@ mod environment_colliders {
         }
     }
 
-    fn render_rectangle(
-        mut gizmos: &mut Gizmos,
-        height: f32,
-        collider: &gbp_global_planner::Collider,
-    ) {
+    fn render_rectangle(gizmos: &mut Gizmos, height: f32, collider: &gbp_global_planner::Collider) {
         let aabb = collider.aabb();
         let center = aabb.center();
         // let height
@@ -115,7 +111,7 @@ mod environment_colliders {
     }
 
     fn render_circle(
-        mut gizmos: &mut Gizmos,
+        gizmos: &mut Gizmos,
         height: f32,
         isometry: &parry2d::na::Isometry2<f32>,
         ball: &parry2d::shape::Ball,
@@ -146,7 +142,7 @@ mod environment_colliders {
         }
     }
     fn render_convex_polygon(
-        mut gizmos: &mut Gizmos,
+        gizmos: &mut Gizmos,
         height: f32,
         // scale: f32,
         isometry: &parry2d::na::Isometry2<f32>,

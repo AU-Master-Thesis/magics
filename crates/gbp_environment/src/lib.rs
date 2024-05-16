@@ -11,7 +11,7 @@ use gbp_linalg::Float;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Component)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileCoordinates {
     pub row: usize,
@@ -362,7 +362,7 @@ impl Rectangle {
         let half_width = self.width.get() / 4.0;
         let half_height = self.height.get() / 4.0;
 
-        if x >= -half_width && x <= half_width && y >= -half_height && y <= half_height {
+        if x >= -half_height && x <= half_height && y >= -half_width && y <= half_width {
             return true;
         }
 

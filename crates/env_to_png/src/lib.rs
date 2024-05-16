@@ -293,8 +293,8 @@ fn is_placeable_obstacle(
     for obstacle in env.obstacles.iter() {
         // let obstale_tile_coords = &obstacle.tile_coordinates;
         let obstacle_tile_coords = TileCoords {
-            x: obstacle.tile_coordinates.col.clone(),
-            y: obstacle.tile_coordinates.row.clone(),
+            x: obstacle.tile_coordinates.col,
+            y: obstacle.tile_coordinates.row,
         };
 
         if tile_coords != obstacle_tile_coords {
@@ -329,7 +329,7 @@ fn is_placeable_obstacle(
         let translated = Vec2::from(inverted_percentage) - Vec2::from(obstacle.translation); // - translation_offset;
                                                                                              // rotate the translated coordinated by the obstacle rotation
         let rotation_offset = match obstacle.shape {
-            PlaceableShape::RegularPolygon(RegularPolygon { sides, radius }) => {
+            PlaceableShape::RegularPolygon(RegularPolygon { sides, radius: _ }) => {
                 std::f32::consts::FRAC_PI_2
                     + std::f32::consts::FRAC_PI_2
                     + if sides % 2 != 0 {

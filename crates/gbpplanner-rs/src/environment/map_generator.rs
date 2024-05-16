@@ -276,13 +276,6 @@ fn build_obstacles(
                 Some((mesh, transform, shape))
             }
             PlaceableShape::RegularPolygon(ref polygon @ RegularPolygon { sides, radius }) => {
-                // dbg!((
-                //     "RegularPolygon",
-                //     translation.y.get() as f32,
-                //     tile_size,
-                //     -offset_z,
-                //     pos_offset
-                // ));
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
@@ -302,16 +295,57 @@ fn build_obstacles(
                     height_segments: 1,
                 }));
 
-                info!(
-                    "obstacle.rotation.as_radians() = {:?}, std::f32::consts::FRAC_PI_4 = {:?}",
-                    obstacle.rotation.as_radians() as f32,
-                    std::f32::consts::FRAC_PI_4
-                );
+                // info!(
+                //     "obstacle.rotation.as_radians() = {:?}, std::f32::consts::FRAC_PI_4 =
+                // {:?}",     obstacle.rotation.as_radians() as f32,
+                //     std::f32::consts::FRAC_PI_4
+                // );
 
                 let rotation = Quat::from_rotation_y(
                     std::f32::consts::FRAC_PI_4 + obstacle.rotation.as_radians() as f32,
                 );
                 let transform = Transform::from_translation(center).with_rotation(rotation);
+
+                // let rotation_offset = match obstacle.shape {
+                //             PlaceableShape::RegularPolygon(RegularPolygon { sides, radius })
+                // => {                 std::f32::consts::PI
+                //                     + if sides % 2 != 0 { std::f32::consts::PI / sides as f32
+                //                     } else {
+                //                         0.0
+                //                     }
+                //             }
+                //             _ => std::f32::consts::FRAC_PI_2,
+                //         };
+
+                use std::f32::consts::{FRAC_PI_2, PI};
+                let rotation_offset = PI
+                    + match polygon.sides {
+                        4 => 0.0,
+                        n if n % 2 != 0 => FRAC_PI_2,
+                        _ => -FRAC_PI_2,
+                    };
+                // let rotation_offset = PI
+                //     + match polygon.sides { n if n % 2 != 0 => PI / n as f32, _ => 0.0, // n
+                //       => FRAC_PI_2 / n as f32,
+                //     };
+
+                // + if polygon.sides % 2 != 0 { PI / polygon.sides as f32
+                // } else {
+                //     0.0
+                // };
+
+                // let rotation2 = Quat::from_rotation_y(std::f32::consts::PI / polygon.sides as
+                // f32);
+                let rotation2 =
+                    Quat::from_rotation_z(obstacle.rotation.as_radians() as f32 + rotation_offset);
+                // let rotation2 = Quat::from_rotation_z(rotation_offset);
+
+                println!(
+                    "rotation in radians = {}",
+                    obstacle.rotation.as_radians() as f32
+                );
+
+                // dbg!(&rotation2);
 
                 // let points: Vec<parry2d::math::Point<parry2d::math::Real>> = polygon
                 let scale = tile_size / 2.0;
@@ -319,18 +353,21 @@ fn build_obstacles(
                     .points()
                     .iter()
                     .map(|[x, y]| {
-                        let p = Vec3::new(*x as f32, 0.0, *y as f32);
+                        let p = Vec3::new(*x as f32, *y as f32, 0.0);
+                        // let p = Vec3::new(*x as f32, 0.0, *y as f32);
                         // let p_rotated = rotation.mul_vec3(p);
+                        let p_rotated = rotation2.mul_vec3(p);
+                        dbg!((&p, &p_rotated));
 
-                        let p_rotated = p;
+                        // let p_rotated = p;
                         parry2d::math::Point::new(
                             p_rotated.x * scale,
-                            p_rotated.z * scale,
+                            p_rotated.y * scale,
                             // *x as f32 * (tile_size / 2.0),
                             // *y as f32 * (tile_size / 2.0),
                         )
                     })
-                    .inspect(|p| println!("p = {:?}", p))
+                    // .inspect(|p| println!("p = {:?}", p))
                     .collect();
                 let shape = parry2d::shape::ConvexPolygon::from_convex_hull(points.as_slice())
                     .expect("polygon is always convex");
@@ -370,7 +407,7 @@ fn build_obstacles(
                 // let transform = Transform::from_translation(center).with_rotation(rotation);
                 let transform = Transform::from_translation(center);
 
-                let mut half_extents: parry2d::na::Vector2<parry2d::math::Real> =
+                let half_extents: parry2d::na::Vector2<parry2d::math::Real> =
                     parry2d::na::Vector2::from_vec(vec![
                         width.get() as f32 * tile_size / 4.0,
                         height.get() as f32 * tile_size / 4.0,
