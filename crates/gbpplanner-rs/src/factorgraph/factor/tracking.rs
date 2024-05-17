@@ -1,10 +1,6 @@
-//! Obstacle factor
+//! Tracking Factor (extension)
 
-use std::{
-    borrow::Cow,
-    cell::{Cell, RefCell},
-    sync::Mutex,
-};
+use std::{borrow::Cow, cell::Cell, sync::Mutex};
 
 use bevy::math::Vec2;
 use gbp_linalg::prelude::*;
@@ -14,7 +10,7 @@ use super::{Factor, FactorState};
 
 #[derive(Debug)]
 pub struct TrackingFactor {
-    /// Reference to the tracking path (Likely from RRT)
+    /// Tracking path (Likely from RRT)
     tracking_path: Vec<Vec2>,
 
     /// Most recent measurement
@@ -171,6 +167,7 @@ impl Factor for TrackingFactor {
 
 impl std::fmt::Display for TrackingFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "tracking_path: {:?}", self.tracking_path)?;
         write!(f, "last_measurement: {:?}", self.last_measurement())
     }
 }

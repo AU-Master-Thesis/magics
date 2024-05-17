@@ -424,7 +424,8 @@ fn spawn_formation(
     sdf: Res<Sdf>,
     mut prng: ResMut<GlobalEntropy<bevy_prng::WyRand>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
-    time_virtual: Res<Time<Virtual>>,
+    // time_virtual: Res<Time<Virtual>>,
+    time_fixed: Res<Time<Fixed>>,
 ) {
     for event in evr_robot_formation_spawned.read() {
         let formation_group = simulation_manager
@@ -544,7 +545,8 @@ fn spawn_formation(
                     .try_into()
                     .unwrap(),
                 formation.waypoint_reached_when_intersects,
-                time_virtual.elapsed().as_secs_f64(),
+                // time_virtual.elapsed().as_secs_f64(),
+                time_fixed.elapsed().as_secs_f64(),
             );
 
             // let lookahead_horizon = (5.0 / 0.25) as u32;

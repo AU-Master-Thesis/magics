@@ -157,7 +157,7 @@ fn attach_despawn_timer_when_robot_finishes_route(
     mut commands: Commands,
     mut evr_robot_finished_route: EventReader<RobotFinishedRoute>,
 ) {
-    let duration = Duration::from_secs(2);
+    let duration = Duration::from_millis(500);
     for RobotFinishedRoute(robot_id) in evr_robot_finished_route.read() {
         info!(
             "attaching despawn timer to robot: {:?} with duration: {:?}",
@@ -373,7 +373,7 @@ impl Route {
             self.target_index += 1;
         }
         if self.is_completed() && self.finished_at.is_none() {
-            self.finished_at = Some(elapsed.as_secs_f64() - self.started_at);
+            self.finished_at = Some(elapsed.as_secs_f64() + self.started_at);
         }
     }
 
@@ -1276,10 +1276,15 @@ fn iterate_gbp_v2(
 
             // Send messages to external variables
             for message in messages_to_external_variables.into_iter() {
-                let (_, mut external_factorgraph, _, antenna) =
-                    query.get_mut(message.to.factorgraph_id).expect(
-                        "the factorgraph_id of the receiving variable should exist in the world",
-                    );
+                let Ok((_, mut external_factorgraph, _, antenna)) =
+                    query.get_mut(message.to.factorgraph_id)
+                else {
+                    continue;
+                };
+
+                // .expect(
+                //     "the factorgraph_id of the receiving variable should exist in the world",
+                // );
 
                 if !antenna.active {
                     continue;
@@ -1302,9 +1307,14 @@ fn iterate_gbp_v2(
 
             // Send messages to external factors
             for message in messages_to_external_factors.into_iter() {
-                let (_, mut external_factorgraph, _, antenna) = query
-                    .get_mut(message.to.factorgraph_id)
-                    .expect("the factorgraph_id of the receiving factor should exist in the world");
+                let Ok((_, mut external_factorgraph, _, antenna)) =
+                    query.get_mut(message.to.factorgraph_id)
+                else {
+                    continue;
+                };
+
+                // .expect("the factorgraph_id of the receiving factor should exist in the
+                // world");
 
                 if !antenna.active {
                     continue;
@@ -1541,7 +1551,8 @@ pub struct FinishedPath(pub bool);
 /// Called `Robot::updateHorizon` in **gbpplanner**
 fn update_prior_of_horizon_state(
     config: Res<Config>,
-    time_virtual: Res<Time<Virtual>>,
+    // time_virtual: Res<Time<Virtual>>,
+    time: Res<Time>,
     mut query: Query<
         (
             Entity,
@@ -1560,7 +1571,8 @@ fn update_prior_of_horizon_state(
     // the vector is cleared between calls, by calling .drain(..) at the end of every call
     mut all_messages_to_external_factors: Local<Vec<VariableToFactorMessage>>,
 ) {
-    let delta_t = Float::from(time_virtual.delta_seconds());
+    // println!("dt: {}", time.delta_seconds());
+    let delta_t = Float::from(time.delta_seconds());
     let max_speed = Float::from(config.robot.max_speed.get());
 
     let mut robots_to_despawn = Vec::new();
@@ -1628,7 +1640,7 @@ fn update_prior_of_horizon_state(
         all_messages_to_external_factors.extend(messages_to_external_factors);
 
         if reached_waypoint && !route.is_completed() {
-            route.advance(time_virtual.elapsed());
+            route.advance(time.elapsed());
             evw_robot_reached_waypoint.send(RobotReachedWaypoint {
                 robot_id,
                 waypoint_index: 0,
@@ -1638,9 +1650,11 @@ fn update_prior_of_horizon_state(
 
     // Send messages to external factors
     for message in all_messages_to_external_factors.drain(..) {
-        let (_, mut external_factorgraph, _, _, _) = query
-            .get_mut(message.to.factorgraph_id)
-            .expect("the factorgraph of the receiving factor exists in the world");
+        let Ok((_, mut external_factorgraph, _, _, _)) = query.get_mut(message.to.factorgraph_id)
+        else {
+            continue;
+        };
+        // .expect("the factorgraph of the receiving factor exists in the world");
 
         if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
             factor.receive_message_from(message.from, message.message);

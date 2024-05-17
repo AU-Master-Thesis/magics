@@ -143,7 +143,7 @@ fn on_variable_clicked(
 
         if config.debug.on_variable_clicked.variable {
             // TODO: do not use debug print here
-            println!("{:?}", variable);
+            println!("{:#?}", variable);
         }
 
         println!("{}", hr);
