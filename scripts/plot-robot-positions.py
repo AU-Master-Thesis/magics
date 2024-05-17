@@ -33,8 +33,6 @@ def plot_robot_paths(data):
             scaleanchor = "y",
             scaleratio = 1
         )
-        # width=800,
-        # height=800
     )
 
     # Save the plot to an HTML file

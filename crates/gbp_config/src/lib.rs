@@ -408,7 +408,52 @@ impl Default for GbpIterationSchedule {
             internal: n,
             external: n,
             schedule: GbpIterationScheduleKind::default(),
-            // schedule: GbpSchedule::default(),
+        }
+    }
+}
+
+// macro_rules! impl_factor_section {
+//     ($name:ident) => {
+//         paste::paste! {
+//         pub struct [<$name:upper:camel>Section] {
+//
+//         }
+//         }
+//     };
+// }
+
+// impl_factor_section!(pose);
+// impl_factor_section!(dynamics);
+// impl_factor_section!(interrobot);
+// impl_factor_section!(obstacle);
+// impl_factor_section!(tracking);
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    serde::Serialize,
+    serde::Deserialize,
+    struct_iterable::Iterable,
+    bevy::reflect::Reflect,
+)]
+#[serde(rename_all = "kebab-case")]
+pub struct FactorsEnabledSection {
+    // pub pose:       bool,
+    pub dynamic:    bool,
+    pub interrobot: bool,
+    pub obstacle:   bool,
+    pub tracking:   bool,
+}
+
+impl Default for FactorsEnabledSection {
+    fn default() -> Self {
+        Self {
+            // pose:       true,
+            dynamic:    true,
+            interrobot: true,
+            obstacle:   true,
+            tracking:   true,
         }
     }
 }
@@ -434,6 +479,8 @@ pub struct GbpSection {
     /// Number of iterations of GBP per timestep
     // pub iterations_per_timestep: usize,
     pub iteration_schedule: GbpIterationSchedule,
+    #[serde(default)]
+    pub factors_enabled: FactorsEnabledSection,
 }
 
 impl Default for GbpSection {
@@ -447,6 +494,7 @@ impl Default for GbpSection {
             lookahead_multiple: 3,
             // iterations_per_timestep: 10,
             iteration_schedule: Default::default(),
+            factors_enabled: FactorsEnabledSection::default(),
         }
     }
 }

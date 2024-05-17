@@ -109,10 +109,16 @@ pub struct FactorNode {
     pub inbox:      MessagesToVariables,
 
     message_count: MessageCount,
+    pub enabled:   bool,
 }
 
 impl FactorNode {
-    fn new(factorgraph_id: FactorGraphId, state: FactorState, kind: FactorKind) -> Self {
+    fn new(
+        factorgraph_id: FactorGraphId,
+        state: FactorState,
+        kind: FactorKind,
+        enabled: bool,
+    ) -> Self {
         Self {
             factorgraph_id,
             node_index: None,
@@ -120,6 +126,7 @@ impl FactorNode {
             kind,
             inbox: MessagesToVariables::new(),
             message_count: MessageCount::default(),
+            enabled,
         }
     }
 
@@ -157,11 +164,12 @@ impl FactorNode {
         strength: Float,
         measurement: Vector<Float>,
         delta_t: Float,
+        enabled: bool,
     ) -> Self {
         let mut state = FactorState::new(measurement, strength, DynamicFactor::NEIGHBORS);
         let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
         let kind = FactorKind::Dynamic(dynamic_factor);
-        Self::new(factorgraph_id, state, kind)
+        Self::new(factorgraph_id, state, kind, enabled)
     }
 
     /// Create a new interrobot factor
@@ -174,6 +182,7 @@ impl FactorNode {
         safety_distance_multiplier: StrictlyPositiveFinite<Float>,
         external_variable: ExternalVariableId,
         robot_number: NonZeroUsize,
+        enabled: bool,
     ) -> Self {
         let interrobot_factor = InterRobotFactor::new(
             robot_radius,
@@ -184,7 +193,7 @@ impl FactorNode {
         let kind = FactorKind::InterRobot(interrobot_factor);
         let state = FactorState::new(measurement, strength, InterRobotFactor::NEIGHBORS);
 
-        Self::new(factorgraph_id, state, kind)
+        Self::new(factorgraph_id, state, kind, enabled)
     }
 
     // pub fn new_pose_factor() -> Self {
@@ -198,13 +207,14 @@ impl FactorNode {
         measurement: Vector<Float>,
         obstacle_sdf: SdfImage,
         world_size: obstacle::WorldSize,
+        enabled: bool,
         // world_size_width: Float,
         // world_size_height: Float,
     ) -> Self {
         let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS);
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
-        Self::new(factorgraph_id, state, kind)
+        Self::new(factorgraph_id, state, kind, enabled)
     }
 
     /// Create a new tracking factor
@@ -213,11 +223,12 @@ impl FactorNode {
         strength: Float,
         measurement: Vector<Float>,
         rrt_path: Vec<Vec2>,
+        enabled: bool,
     ) -> Self {
         let state = FactorState::new(measurement, strength, TrackingFactor::NEIGHBORS);
         let tracking_factor = TrackingFactor::new(rrt_path);
         let kind = FactorKind::Tracking(tracking_factor);
-        Self::new(factorgraph_id, state, kind)
+        Self::new(factorgraph_id, state, kind, enabled)
     }
 
     #[inline(always)]

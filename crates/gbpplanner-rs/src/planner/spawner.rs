@@ -433,13 +433,7 @@ fn spawn_formation(
             .expect("there is an active formation group");
 
         let formation = &formation_group.formations[event.formation_group_index];
-
         // TODO: check this gets reloaded correctly
-        // FIXME: use data from environment
-        // let world_dims = WorldDimensions::new(
-        //     config.simulation.world_size.get().into(),
-        //     config.simulation.world_size.get().into(),
-        // );
 
         let world_dims = {
             let tile_size = env_config.tiles.settings.tile_size as f64;
@@ -448,8 +442,6 @@ fn spawn_formation(
             WorldDimensions::new(width, height)
         };
 
-        // TODO: use random resource/component for reproducibility
-        // let mut rng = rand::thread_rng();
         let max_placement_attempts = NonZeroUsize::new(1000).expect("1000 is not zero");
 
         let radii = (0..formation.robots.get())
@@ -474,9 +466,6 @@ fn spawn_formation(
             );
             return;
         };
-
-        // dbg!(&initial_position_for_each_robot);
-        // dbg!(&waypoint_positions_for_each_robot);
 
         let initial_pose_for_each_robot: Vec<Vec4> = initial_position_for_each_robot
             .iter()
@@ -545,9 +534,14 @@ fn spawn_formation(
                     .try_into()
                     .unwrap(),
                 formation.waypoint_reached_when_intersects,
-                // time_virtual.elapsed().as_secs_f64(),
                 time_fixed.elapsed().as_secs_f64(),
             );
+
+            // TODO:
+            // match formation.planning_strategy {
+            //     PlanningStrategy::OnlyLocal => todo!(),
+            //     PlanningStrategy::RrtStar => todo!(),
+            // }
 
             // let lookahead_horizon = (5.0 / 0.25) as u32;
             // let lookahead_multiple = 3;
@@ -576,7 +570,10 @@ fn spawn_formation(
                 &env_config,
                 radii[i],
                 &sdf.0,
-                matches!(formation.planning_strategy, PlanningStrategy::RrtStar),
+                // config
+                formation.planning_strategy,
+                // matches!(formation.planning_strategy, PlanningStrategy::RrtStar
+                // ),
             );
 
             let initial_visibility = if config.visualisation.draw.robots {
@@ -604,7 +601,6 @@ fn spawn_formation(
 
             let pbrbundle = PbrBundle {
                 mesh,
-                // mesh: meshes.robot.clone(),
                 material,
                 transform: Transform::from_translation(initial_translation),
                 visibility: initial_visibility,

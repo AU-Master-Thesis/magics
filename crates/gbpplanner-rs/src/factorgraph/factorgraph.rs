@@ -11,8 +11,8 @@ use typed_floats::StrictlyPositiveFinite;
 
 use super::{
     factor::{
-        interrobot::InterRobotFactor, obstacle::ObstacleFactor, tracking::TrackingFactor, Factor,
-        FactorKind, FactorNode,
+        dynamic, interrobot::InterRobotFactor, obstacle::ObstacleFactor, tracking::TrackingFactor,
+        Factor, FactorKind, FactorNode,
     },
     id::{FactorId, VariableId},
     message::{FactorToVariableMessage, VariableToFactorMessage},
@@ -1498,5 +1498,19 @@ impl graphviz::ExportGraph for FactorGraph {
             .collect::<Vec<_>>();
 
         (nodes, edges)
+    }
+}
+
+impl FactorGraph {
+    pub fn change_factor_enabled(&mut self, settings: gbp_config::FactorsEnabledSection) {
+        for &ix in self.factor_indices.iter() {
+            let factor = self.graph[ix].factor_mut();
+            factor.enabled = match factor.kind {
+                FactorKind::Dynamic(_) => settings.dynamic,
+                FactorKind::Obstacle(_) => settings.obstacle,
+                FactorKind::InterRobot(_) => settings.interrobot,
+                FactorKind::Tracking(_) => settings.tracking,
+            };
+        }
     }
 }

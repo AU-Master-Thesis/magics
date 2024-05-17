@@ -26,6 +26,7 @@ min_len_vec = { path = "../min_len_vec"}
 unit_interval = { path = "../unit_interval"}
 ron.workspace = true
 serde_yaml.workspace = true
+paste = "1.0.15"
 
 [dev-dependencies]
 pretty_assertions.workspace = true

@@ -414,49 +414,30 @@ fn ui_settings_panel(
                             ui.end_row();
                         });
 
-                        // ui.separator();
-                        //
-                        // custom::grid("factors_grid", 2).show(ui, |ui| {
-                        //     ui.label("Obstacle");
-                        //
-                        //     custom::float_right(ui, |ui| {
-                        //         let mut obstacle: bool = true;
-                        //         if custom::toggle_ui(ui, &mut obstacle).clicked() {
-                        //             error!("todo");
-                        //         }
-                        //     });
-                        //     ui.end_row();
-                        //
-                        //     ui.label("Pose");
-                        //     custom::float_right(ui, |ui| {
-                        //         let mut toggle: bool = true;
-                        //         if custom::toggle_ui(ui, &mut toggle).clicked() {
-                        //             error!("todo");
-                        //         }
-                        //     });
-                        //     ui.end_row();
-                        //
-                        //     ui.label("Dynamic");
-                        //     custom::float_right(ui, |ui| {
-                        //         let mut toggle: bool = true;
-                        //         if custom::toggle_ui(ui, &mut toggle).clicked() {
-                        //             error!("todo");
-                        //         }
-                        //     });
-                        //     ui.end_row();
-                        //
-                        //     ui.label("Interrobot");
-                        //     custom::float_right(ui, |ui| {
-                        //         let mut toggle: bool = true;
-                        //         if custom::toggle_ui(ui, &mut toggle).clicked() {
-                        //             error!("todo");
-                        //         }
-                        //     });
-                        //     ui.end_row();
-                        //
-                        // });
-                        //
-                        // ui.add_space(2.5);
+                        ui.separator();
+
+                        custom::grid("factors_enabled_grid", 2).show(ui, |ui| {
+                            let copy = config.gbp.factors_enabled.clone();
+                            for (field, _) in copy.iter() {
+                                ui.label(field);
+                                let value = config.gbp.factors_enabled.get_field_mut::<bool>(field).unwrap();
+                                // this shit ugly as f
+                                custom::float_right(ui, |ui| {
+                                    if custom::toggle_ui(ui, value).clicked() {
+                                        // drop(value);
+                                        let mut settings = copy.clone();
+                                        settings.get_field_mut::<bool>(field).unwrap().clone_from(value);
+                                        let mut query = world.query::<&mut FactorGraph>();
+                                        for mut fgraph in query.iter_mut(world) {
+                                            fgraph.change_factor_enabled(settings);
+                                        }
+                                    }
+                                });
+                                ui.end_row();
+                            }
+                        });
+
+                        ui.add_space(2.5);
 
                         custom::grid("gbp_grid", 2).show(ui, |ui| {
                             ui.label("Safety Distance");

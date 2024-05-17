@@ -12,7 +12,10 @@ use bevy::{
 use bevy_prng::WyRand;
 use bevy_rand::prelude::{EntropyComponent, ForkableRng, GlobalEntropy};
 use derive_more::Index;
-use gbp_config::{formation::WaypointReachedWhenIntersects, Config};
+use gbp_config::{
+    formation::{PlanningStrategy, WaypointReachedWhenIntersects},
+    Config,
+};
 use gbp_linalg::prelude::*;
 use gbp_schedule::GbpSchedule;
 use itertools::Itertools;
@@ -534,6 +537,14 @@ impl FromWorld for GbpIterationSchedule {
 //     }
 // }
 
+#[derive(Debug, Component, Default)]
+pub enum TaskState {
+    #[default]
+    Idle,
+    Active(Route),
+    Completed,
+}
+
 #[derive(Bundle)]
 pub struct RobotBundle {
     /// The factor graph that the robot is part of, and uses to perform GBP
@@ -547,28 +558,29 @@ pub struct RobotBundle {
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
     pub radius: Radius,
-    pub ball: Ball,
+
+    pub ball:    Ball,
     pub antenna: RadioAntenna,
     /// The current state of the robot
-    pub state: RobotState,
+    pub state:   RobotState,
+
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A `VecDeque` is used to allow for efficient `pop_front` operations, and
     /// `push_back` operations.
     pub route: Route,
-
     /// Initial sate
     pub initial_state: StateVector,
 
     /// Time between t_i and t_i+1
     pub t0: T0,
 
-    // pub variable_timesteps: VariableTimesteps,
     /// Boolean component used to keep track of whether the robot has finished
     /// its path by reaching its final waypoint. This flag exists to ensure
     /// that the robot is not detected as having finished more than once.
     /// TODO: should probably be modelled as an enum instead, too easier support
     /// additional states in the future
     finished_path: FinishedPath,
+    // pub task_state: TaskState,
 }
 
 /// State vector of a robot
@@ -617,12 +629,6 @@ impl StateVector {
 
 impl RobotBundle {
     /// Create a new `RobotBundle`
-    ///
-    /// # Errors
-    ///
-    /// Will return `Err` if:
-    /// - `waypoints` is empty
-    /// - `variable_timesteps` is empty
     #[must_use = "Constructor responsible for creating the robots factorgraph"]
     #[allow(clippy::missing_panics_doc)]
     pub fn new(
@@ -636,7 +642,8 @@ impl RobotBundle {
         env_config: &gbp_environment::Environment,
         radius: f32,
         sdf: &SdfImage,
-        use_tracking: bool,
+        // use_tracking: bool,
+        planning_strategy: PlanningStrategy,
     ) -> Self {
         assert!(
             !variable_timesteps.is_empty(),
@@ -715,6 +722,7 @@ impl RobotBundle {
                 Float::from(config.gbp.sigma_factor_dynamics),
                 measurement,
                 Float::from(delta_t),
+                config.gbp.factors_enabled.dynamic,
             );
 
             let factor_node_index = factorgraph.add_factor(dynamic_factor);
@@ -739,6 +747,8 @@ impl RobotBundle {
             height: tile_size * nrows as f64,
         };
 
+        /// Create Obstacle factors for all variables excluding start and
+        /// horizon state
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
             let obstacle_factor = FactorNode::new_obstacle_factor(
@@ -747,11 +757,7 @@ impl RobotBundle {
                 array![0.0],
                 sdf.clone(),
                 world_size,
-                // crate::factorgraph::factor::obstacle::WorldSize {
-                //     width: env_config.tiles.settings.tile_size *
-                //     height: todo!(),
-                // },
-                // Float::from(config.simulation.world_size.get()),
+                config.gbp.factors_enabled.obstacle,
             );
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
@@ -762,6 +768,7 @@ impl RobotBundle {
             );
         }
 
+        let use_tracking = false;
         // Create Tracking factors for all variables, excluding the start
         if use_tracking {
             for i in 1..variable_timesteps.len() {
@@ -775,6 +782,7 @@ impl RobotBundle {
                         .iter()
                         .map(|wp| wp.position())
                         .collect::<Vec<Vec2>>(),
+                    config.gbp.factors_enabled.tracking,
                 );
 
                 let factor_node_index = factorgraph.add_factor(tracking_factor);
@@ -785,6 +793,12 @@ impl RobotBundle {
                 );
             }
         }
+
+        // let task_state = if use_tracking {
+        //     TaskState::Idle
+        // } else {
+        //     TaskState::Active(route)
+        // };
 
         Self {
             factorgraph,
@@ -797,6 +811,7 @@ impl RobotBundle {
             finished_path: FinishedPath::default(),
             t0: T0(t0),
             gbp_iteration_schedule: GbpIterationSchedule(config.gbp.iteration_schedule),
+            // task_state:
         }
     }
 }
@@ -1003,6 +1018,7 @@ fn create_interrobot_factors(
                     //     .expect("safe radius is positive and finite"),
                     external_variable_id,
                     robot_number_gen.next(),
+                    config.gbp.factors_enabled.interrobot,
                 );
 
                 let factor_index = factorgraph.add_factor(interrobot_factor);
