@@ -414,7 +414,11 @@ fn ui_settings_panel(
                             ui.end_row();
                         });
 
+                        ui.add_space(2.5);
                         ui.separator();
+
+                        // ui.label("Factors");
+                        ui.label(egui::RichText::new("Factors").size(16.0));
 
                         custom::grid("factors_enabled_grid", 2).show(ui, |ui| {
                             let copy = config.gbp.factors_enabled.clone();
@@ -437,6 +441,7 @@ fn ui_settings_panel(
                             }
                         });
 
+                        ui.separator();
                         ui.add_space(2.5);
 
                         custom::grid("gbp_grid", 2).show(ui, |ui| {

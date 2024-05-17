@@ -440,20 +440,42 @@ impl Default for GbpIterationSchedule {
 #[serde(rename_all = "kebab-case")]
 pub struct FactorsEnabledSection {
     // pub pose:       bool,
+    #[serde(default = "FactorsEnabledSection::default_dynamic")]
     pub dynamic:    bool,
+    #[serde(default = "FactorsEnabledSection::default_interrobot")]
     pub interrobot: bool,
+    #[serde(default = "FactorsEnabledSection::default_obstacle")]
     pub obstacle:   bool,
+    #[serde(default = "FactorsEnabledSection::default_tracking")]
     pub tracking:   bool,
+}
+
+impl FactorsEnabledSection {
+    fn default_tracking() -> bool {
+        false
+    }
+
+    fn default_dynamic() -> bool {
+        true
+    }
+
+    fn default_interrobot() -> bool {
+        true
+    }
+
+    fn default_obstacle() -> bool {
+        true
+    }
 }
 
 impl Default for FactorsEnabledSection {
     fn default() -> Self {
         Self {
             // pose:       true,
-            dynamic:    true,
-            interrobot: true,
-            obstacle:   true,
-            tracking:   true,
+            dynamic:    Self::default_dynamic(),
+            interrobot: Self::default_interrobot(),
+            obstacle:   Self::default_obstacle(),
+            tracking:   Self::default_tracking(),
         }
     }
 }
@@ -494,6 +516,7 @@ impl Default for GbpSection {
             lookahead_multiple: 3,
             // iterations_per_timestep: 10,
             iteration_schedule: Default::default(),
+            // FIXME: not properly read when desirialized from toml
             factors_enabled: FactorsEnabledSection::default(),
         }
     }

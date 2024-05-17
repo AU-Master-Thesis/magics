@@ -677,6 +677,9 @@ impl FactorGraph {
             if let FactorKind::InterRobot(_) = factor.kind {
                 continue;
             }
+            if !factor.enabled {
+                continue;
+            }
 
             let variable_messages = factor.update();
             let factor_id = FactorId::new(self.id, FactorIndex(ix));
@@ -739,6 +742,9 @@ impl FactorGraph {
 
             let node = &mut self.graph[ix];
             let factor = node.factor_mut();
+            if !factor.enabled {
+                continue;
+            }
 
             let variable_messages = factor.update();
             let factor_id = FactorId::new(self.id, FactorIndex(ix));
@@ -783,6 +789,10 @@ impl FactorGraph {
                 let factor = self.graph[factor_id.factor_index.0]
                     .as_factor_mut()
                     .expect("a factor only has variables as neighbours");
+
+                if !factor.enabled {
+                    continue;
+                }
 
                 factor.receive_message_from(variable_id, message);
             }

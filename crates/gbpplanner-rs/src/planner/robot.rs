@@ -10,17 +10,15 @@ use bevy::{
     prelude::*,
 };
 use bevy_prng::WyRand;
-use bevy_rand::prelude::{EntropyComponent, ForkableRng, GlobalEntropy};
-use derive_more::Index;
+use bevy_rand::prelude::GlobalEntropy;
 use gbp_config::{
     formation::{PlanningStrategy, WaypointReachedWhenIntersects},
     Config,
 };
 use gbp_linalg::prelude::*;
-use gbp_schedule::GbpSchedule;
 use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
-use rand::{thread_rng, Rng};
+use rand::Rng;
 
 use super::{
     collisions::resources::{RobotEnvironmentCollisions, RobotRobotCollisions},
@@ -39,7 +37,6 @@ use crate::{
     },
     pause_play::PausePlay,
     simulation_loader::{LoadSimulation, ReloadSimulation, SdfImage},
-    utils::get_variable_timesteps,
 };
 
 pub type RobotId = Entity;
@@ -1174,6 +1171,10 @@ fn iterate_gbp_external(
                 .expect("the factorgraph of the receiving variable should exist in the world");
 
             if let Some(factor) = factorgraph.get_factor_mut(message.to.factor_index) {
+                if !factor.enabled {
+                    continue;
+                }
+
                 factor.receive_message_from(message.from, message.message.clone());
             }
         }

@@ -251,6 +251,9 @@ impl FactorNode {
 
     /// Add a message to this factors inbox
     pub fn receive_message_from(&mut self, from: VariableId, message: Message) {
+        if !self.enabled {
+            return;
+        }
         let _ = self.inbox.insert(from, message);
         if from.factorgraph_id == self.factorgraph_id {
             self.message_count.received.internal += 1;
