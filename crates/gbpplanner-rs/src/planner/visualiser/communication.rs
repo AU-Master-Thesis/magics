@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use gbp_config::Config;
 
-use super::super::RobotState;
+use super::super::RobotConnections;
 use crate::{
     planner::robot::RadioAntenna,
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
@@ -83,7 +83,7 @@ fn enabled(config: Res<Config>) -> bool {
 fn draw_communication_graph_v3(
     mut gizmos: Gizmos,
     catppuccin_theme: Res<CatppuccinTheme>,
-    query: Query<(Entity, &RobotState, &RadioAntenna, &Transform)>,
+    query: Query<(Entity, &RobotConnections, &RadioAntenna, &Transform)>,
 ) {
     let connected_color = Color::from_catppuccin_colour(catppuccin_theme.green());
     let disconnected_color = Color::from_catppuccin_colour(catppuccin_theme.red());

@@ -7,7 +7,10 @@ use std::{
     time::Duration,
 };
 
-use bevy::{ecs::system::Resource, math::Vec2};
+use bevy::{
+    ecs::{component::Component, system::Resource},
+    math::Vec2,
+};
 use itertools::Itertools;
 use min_len_vec::{one_or_more, OneOrMore};
 use num_traits::{Saturating, SaturatingMul};
@@ -38,7 +41,7 @@ pub enum InitialPlacementStrategy {
 
 // TODO: extend with a generalised idea of Local and Global planning
 /// Planning strategy to use for the robots after spawning
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Component, strum_macros::IntoStaticStr)]
 #[serde(rename_all = "kebab-case")]
 pub enum PlanningStrategy {
     /// The default, waypoint-to-waypoint strategy
@@ -155,7 +158,7 @@ impl Repeat {
 }
 
 /// How to evaluate if a robot has reached a waypoint
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, Component)]
 #[serde(rename_all = "kebab-case")]
 pub enum WaypointReachedWhenIntersects {
     /// When the current variable i.e. the robots current position intersects

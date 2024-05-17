@@ -12,7 +12,7 @@ use crate::{
     input::DrawSettingsEvent,
     planner::{
         robot::{RobotDespawned, RobotSpawned},
-        RobotState,
+        RobotConnections,
     },
     simulation_loader::{self, EndSimulation},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
@@ -86,7 +86,7 @@ impl From<ListenerInput<Pointer<Click>>> for VariableClickedOn {
 fn on_variable_clicked(
     mut evr_variable_clicked_on: EventReader<VariableClickedOn>,
     q_robottracker: Query<&RobotTracker, With<VariableVisualiser>>,
-    q_factorgraph: Query<&FactorGraph, With<RobotState>>,
+    q_factorgraph: Query<&FactorGraph, With<RobotConnections>>,
     config: Res<Config>,
 ) {
     for VariableClickedOn(entity) in evr_variable_clicked_on.read() {
@@ -159,7 +159,7 @@ fn create_factorgraph_visualizer(
     mut commands: Commands,
     mut spawn_robot_event: EventReader<RobotSpawned>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    query: Query<(Entity, &FactorGraph, &ColorAssociation), With<RobotState>>,
+    query: Query<(Entity, &FactorGraph, &ColorAssociation), With<RobotConnections>>,
     config: Res<Config>,
     // scene_assets: Res<SceneAssets>,
     meshes: Res<Meshes>,

@@ -3,7 +3,7 @@ formations:
     every:
       secs: 4
       nanos: 0
-    times: !finite 10
+    times: !finite 1
   delay:
     secs: 0
     nanos: 0
@@ -31,7 +31,7 @@ formations:
     every:
       secs: 3
       nanos: 0
-    times: !finite 10
+    times: !finite 1
   delay:
     secs: 0
     nanos: 0

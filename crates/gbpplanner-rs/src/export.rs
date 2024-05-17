@@ -1,15 +1,12 @@
 use std::{collections::HashMap, io::Write};
 
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
-use gbp_config::Config;
+use gbp_config::{formation::PlanningStrategy, Config};
 
 use self::events::TakeSnapshotOfRobot;
 use crate::{
     factorgraph::prelude::FactorGraph,
-    planner::{
-        self,
-        robot::{Radius, Route},
-    },
+    planner::{self, robot::Radius},
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };
 
@@ -105,13 +102,24 @@ fn open_latest_export(
 
 #[derive(serde::Serialize)]
 pub struct RobotData {
-    radius:     f32,
-    positions:  Vec<[f32; 2]>,
+    radius: f32,
+    positions: Vec<[f32; 2]>,
     // velocities: Vec<[f32; 2]>,
     velocities: Vec<planner::tracking::VelocityMeasurement>,
     collisions: CollisionData,
-    messages:   MessageData,
-    route:      RouteData,
+    messages: MessageData,
+    // route: RouteData,
+    mission: MissionData,
+    planning_strategy: PlanningStrategy,
+}
+
+#[derive(serde::Serialize)]
+struct MissionData {
+    // waypoints: Vec<[f32; 4]>, // [x, y, x', y']
+    waypoints:   Vec<[f32; 2]>, // [x, y]
+    started_at:  f64,
+    finished_at: f64,
+    routes:      Vec<RouteData>,
 }
 
 #[derive(serde::Serialize)]
@@ -119,26 +127,35 @@ struct RouteData {
     waypoints:   Vec<[f32; 2]>,
     started_at:  f64,
     finished_at: f64,
-    duration:    f64,
 }
 
-impl RouteData {
-    fn new(waypoints: Vec<[f32; 2]>, started_at: f64, finished_at: f64) -> Self {
-        assert!(waypoints.len() >= 2);
-        if finished_at < started_at {
-            dbg!(finished_at, started_at);
-            panic!("finished_at must be after started_at");
-        }
-        // assert!(finished_at > started_at);
-        let duration = finished_at - started_at;
-        Self {
-            waypoints,
-            started_at,
-            finished_at,
-            duration,
-        }
-    }
-}
+// impl std::convert::From<planner::robot::Route> for RouteData {
+//     fn from(route: planner::robot::Route) -> Self {
+//         Self {
+//             waypoints:   route.waypoints,
+//             started_at:  route.started_at(),
+//             finished_at: route.finished_at,
+//         }
+//     }
+// }
+
+// impl RouteData {
+//     fn new(waypoints: Vec<[f32; 2]>, started_at: f64, finished_at: f64) ->
+// Self {         assert!(waypoints.len() >= 2);
+//         if finished_at < started_at {
+//             dbg!(finished_at, started_at);
+//             panic!("finished_at must be after started_at");
+//         }
+//         // assert!(finished_at > started_at);
+//         let duration = finished_at - started_at;
+//         Self {
+//             waypoints,
+//             started_at,
+//             finished_at,
+//             duration,
+//         }
+//     }
+// }
 
 #[derive(serde::Serialize)]
 struct CollisionData {
@@ -189,7 +206,9 @@ fn export(
         &planner::tracking::PositionTracker,
         &planner::tracking::VelocityTracker,
         &Radius,
-        &Route,
+        // &Route,
+        &planner::robot::RobotMission,
+        &PlanningStrategy,
     )>,
     robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
     environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
@@ -248,7 +267,9 @@ fn export(
         let makespan = time_virtual.elapsed_seconds() as f64;
         // take a snapshot of all robots, that do not already have one
 
-        for (robot_entity, graph, positions, velocities, radius, route) in q_robots.iter() {
+        for (robot_entity, graph, positions, velocities, radius, mission, planning_strategy) in
+            q_robots.iter()
+        {
             if robot_snapshots.contains_key(&robot_entity) {
                 continue;
             }
@@ -264,17 +285,45 @@ fn export(
                 radius: radius.0,
                 positions,
                 velocities,
-                route: RouteData::new(
-                    route
-                        .waypoints()
+                mission: MissionData {
+                    waypoints:   mission
+                        .waypoints
                         .iter()
                         .map(|wp| wp.position().into())
                         .collect(),
-                    route.started_at(),
-                    route
+                    started_at:  mission.started_at(),
+                    finished_at: mission
                         .finished_at()
-                        .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
-                ),
+                        .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
+                    // routes:      mission.routes.iter().map(Into::into).collect(),
+                    routes:      mission
+                        .routes
+                        .iter()
+                        .map(|r| RouteData {
+                            waypoints:   r
+                                .waypoints()
+                                .iter()
+                                .map(|wp| wp.position().into())
+                                .collect(),
+                            started_at:  r.started_at(),
+                            finished_at: r
+                                .finished_at()
+                                .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
+                        })
+                        .collect(),
+                },
+
+                // route: RouteData::new(
+                //     route
+                //         .waypoints()
+                //         .iter()
+                //         .map(|wp| wp.position().into())
+                //         .collect(),
+                //     route.started_at(),
+                //     route
+                //         .finished_at()
+                //         .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
+                // ),
                 collisions: CollisionData {
                     robots:      robot_collisions,
                     environment: environment_collisions,
@@ -289,6 +338,7 @@ fn export(
                         external: graph.messages_received().external,
                     },
                 },
+                planning_strategy: *planning_strategy,
             };
 
             robot_snapshots.insert(robot_entity, robot_data);
@@ -429,19 +479,31 @@ impl Default for ExportSavePostfix {
 
 fn take_snapshot_of_robot(
     robot_entity: Entity,
+    // q_robots: &Query<(
+    //     &FactorGraph,
+    //     &planner::tracking::PositionTracker,
+    //     &planner::tracking::VelocityTracker,
+    //     &Radius,
+    //     &Route,
+    // )>,
     q_robots: &Query<(
         &FactorGraph,
         &planner::tracking::PositionTracker,
         &planner::tracking::VelocityTracker,
         &Radius,
-        &Route,
+        // &Route,
+        &planner::robot::RobotMission,
+        &PlanningStrategy,
     )>,
+
     robot_collisions: &crate::planner::collisions::resources::RobotRobotCollisions,
     environment_collisions: &crate::planner::collisions::resources::RobotEnvironmentCollisions,
     // time_virtual: &Time<Virtual>,
     time_fixed: &Time<Fixed>,
 ) -> anyhow::Result<RobotData> {
-    let Ok((fgraph, positions, velocities, radius, route)) = q_robots.get(robot_entity) else {
+    let Ok((fgraph, positions, velocities, radius, mission, planning_strategy)) =
+        q_robots.get(robot_entity)
+    else {
         anyhow::bail!(
             "cannot take snapshot of non-existing robot {:?}",
             robot_entity
@@ -459,17 +521,17 @@ fn take_snapshot_of_robot(
         radius: radius.0,
         positions,
         velocities,
-        route: RouteData::new(
-            route
-                .waypoints()
-                .iter()
-                .map(|wp| wp.position().into())
-                .collect(),
-            route.started_at(),
-            route
-                .finished_at()
-                .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
-        ),
+        // route: RouteData::new(
+        //     route
+        //         .waypoints()
+        //         .iter()
+        //         .map(|wp| wp.position().into())
+        //         .collect(),
+        //     route.started_at(),
+        //     route
+        //         .finished_at()
+        //         .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
+        // ),
         collisions: CollisionData {
             robots:      robot_collisions,
             environment: environment_collisions,
@@ -484,6 +546,34 @@ fn take_snapshot_of_robot(
                 external: fgraph.messages_received().external,
             },
         },
+        planning_strategy: *planning_strategy,
+        mission: MissionData {
+            started_at:  mission.started_at(),
+            finished_at: mission
+                .finished_at()
+                .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
+            waypoints:   mission
+                .waypoints
+                .iter()
+                .map(|wp| wp.position().into())
+                .collect(),
+            // routes:      mission.routes.iter().map(Into::into).collect(),
+            routes:      mission
+                .routes
+                .iter()
+                .map(|r| RouteData {
+                    waypoints:   r
+                        .waypoints()
+                        .iter()
+                        .map(|wp| wp.position().into())
+                        .collect(),
+                    started_at:  r.started_at(),
+                    finished_at: r
+                        .finished_at()
+                        .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
+                })
+                .collect(),
+        },
     };
 
     Ok(robot_data)
@@ -493,13 +583,23 @@ fn await_robot_snapshot_request(
     mut evr_submit_robot_data: EventReader<events::TakeSnapshotOfRobot>,
     mut submitted_robots: ResMut<resources::SnapshottedRobots>,
 
+    // q_robots: Query<(
+    //     &FactorGraph,
+    //     &planner::tracking::PositionTracker,
+    //     &planner::tracking::VelocityTracker,
+    //     &Radius,
+    //     &Route,
+    // )>,
     q_robots: Query<(
         &FactorGraph,
         &planner::tracking::PositionTracker,
         &planner::tracking::VelocityTracker,
         &Radius,
-        &Route,
+        // &Route,
+        &planner::robot::RobotMission,
+        &PlanningStrategy,
     )>,
+
     robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
     environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
     // time_virtual: Res<Time<Virtual>>,

@@ -519,23 +519,29 @@ fn spawn_formation(
             // let initial_translation = Vec3::new(initial_pose.x, -5.5, initial_pose.y);
 
             let mut entity = commands.spawn_empty();
-            let robot_id = entity.id();
+            let robot_entity = entity.id();
             evw_waypoint_created.send_batch(waypoints.iter().map(|pose| WaypointCreated {
-                for_robot: robot_id,
+                for_robot: robot_entity,
                 position:  pose.xy(),
             }));
 
-            let route = Route::new(
-                std::iter::once(initial_pose)
-                    .chain(waypoints.iter())
-                    .copied()
-                    .map_into::<StateVector>()
-                    .collect::<Vec<_>>()
-                    .try_into()
-                    .unwrap(),
-                formation.waypoint_reached_when_intersects,
-                time_fixed.elapsed().as_secs_f64(),
-            );
+            // let route = Route::new(
+            //     std::iter::once(initial_pose)
+            //         .chain(waypoints.iter())
+            //         .copied()
+            //         .map_into::<StateVector>()
+            //         .collect::<Vec<_>>()
+            //         .try_into()
+            //         .unwrap(),
+            //     formation.waypoint_reached_when_intersects,
+            //     time_fixed.elapsed().as_secs_f64(),
+            // );
+
+            let waypoints = std::iter::once(initial_pose)
+                .chain(waypoints.iter())
+                .copied()
+                .map_into::<StateVector>()
+                .collect::<Vec<_>>();
 
             // TODO:
             // match formation.planning_strategy {
@@ -562,16 +568,19 @@ fn spawn_formation(
             let variable_timesteps = get_variable_timesteps(lookahead_horizon, lookahead_multiple);
 
             let robotbundle = RobotBundle::new(
-                robot_id,
+                robot_entity,
                 StateVector::new(*initial_pose),
-                route,
+                // route,
                 variable_timesteps.as_slice(),
                 &config,
                 &env_config,
                 radii[i],
                 &sdf.0,
+                time_fixed.elapsed().as_secs_f64(),
+                waypoints.try_into().unwrap(),
                 // config
                 formation.planning_strategy,
+                formation.waypoint_reached_when_intersects,
                 // matches!(formation.planning_strategy, PlanningStrategy::RrtStar
                 // ),
             );
@@ -583,7 +592,6 @@ fn spawn_formation(
             };
 
             let random_color = DisplayColour::iter()
-                // .choose(&mut thread_rng())
                 .choose(prng.deref_mut())
                 .expect("there is more than 0 colors");
 
@@ -625,7 +633,7 @@ fn spawn_formation(
                     .with_attached(true),
             ));
 
-            evw_robot_spawned.send(RobotSpawned(robot_id));
+            evw_robot_spawned.send(RobotSpawned(robot_entity));
         }
     }
 }

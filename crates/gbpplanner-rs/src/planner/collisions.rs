@@ -7,7 +7,7 @@ use parry2d::{
     na::{Complex, Isometry, Unit},
 };
 
-use super::{robot::Ball, RobotState};
+use super::{robot::Ball, RobotConnections};
 use crate::{
     // environment::map_generator::Colliders,
     simulation_loader::{LoadSimulation, ReloadSimulation},
@@ -58,7 +58,7 @@ fn clear_robot_robot_collisions(mut robot_collisions: ResMut<resources::RobotRob
 
 fn update_robot_robot_collisions(
     mut robot_collisions: ResMut<resources::RobotRobotCollisions>,
-    robots: Query<(Entity, &Transform, &Ball), With<RobotState>>,
+    robots: Query<(Entity, &Transform, &Ball), With<RobotConnections>>,
     // PERF: store bounding spheres in a Local<> vec to reuse the allocation between system calls
     mut aabbs: Local<
         Vec<(
@@ -277,7 +277,7 @@ pub mod events {
 
 fn update_robot_environment_collisions(
     env_colliders: Res<Colliders>,
-    robots: Query<(Entity, &Transform, &Ball), With<RobotState>>,
+    robots: Query<(Entity, &Transform, &Ball), With<RobotConnections>>,
     mut robot_environment_collisions: ResMut<resources::RobotEnvironmentCollisions>,
     mut aabbs: Local<
         Vec<(

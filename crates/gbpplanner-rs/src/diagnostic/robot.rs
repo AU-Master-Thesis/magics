@@ -7,7 +7,7 @@ use units::sample_rate::SampleRate;
 
 use crate::{
     factorgraph::prelude::FactorGraph,
-    planner::{collisions::resources::RobotRobotCollisions, RobotState},
+    planner::{collisions::resources::RobotRobotCollisions, RobotConnections},
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };
 
@@ -107,14 +107,14 @@ impl RobotDiagnosticsPlugin {
     pub const VARIABLE_COUNT: DiagnosticPath = DiagnosticPath::const_new("variable_count");
 
     #[allow(clippy::cast_precision_loss)]
-    fn robots(mut diagnostics: Diagnostics, robots: Query<(), With<RobotState>>) {
+    fn robots(mut diagnostics: Diagnostics, robots: Query<(), With<RobotConnections>>) {
         diagnostics.add_measurement(&Self::ROBOT_COUNT, || robots.iter().count() as f64);
     }
 
     #[allow(clippy::cast_precision_loss)]
     fn variables_and_factors(
         mut diagnostics: Diagnostics,
-        factorgraphs: Query<&FactorGraph, With<RobotState>>,
+        factorgraphs: Query<&FactorGraph, With<RobotConnections>>,
     ) {
         diagnostics.add_measurement(&Self::VARIABLE_COUNT, || {
             factorgraphs

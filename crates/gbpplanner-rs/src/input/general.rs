@@ -19,7 +19,7 @@ use crate::{
         prelude::FactorGraph,
     },
     pause_play::PausePlay,
-    planner::{robot::RadioAntenna, RobotId, RobotState},
+    planner::{robot::RadioAntenna, RobotConnections, RobotId},
     theme::CatppuccinTheme,
 };
 
@@ -183,7 +183,7 @@ fn bind_general_input(mut commands: Commands) {
 }
 
 fn export_factorgraphs_as_graphviz(
-    query: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
+    query: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotConnections>>,
     config: &Config,
 ) -> Option<String> {
     if query.is_empty() {
@@ -336,7 +336,7 @@ fn cycle_theme(
 
 fn export_graph_on_event(
     mut evr_export_factorgraph_as_graphviz: EventReader<ExportFactorGraphAsGraphviz>,
-    query: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
+    query: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotConnections>>,
     config: Res<Config>,
     evw_export_graph_finished: EventWriter<ExportFactorGraphAsGraphvizFinished>,
 ) {
@@ -363,7 +363,7 @@ pub enum ExportFactorGraphAsGraphvizFinished {
 }
 
 fn handle_export_graph(
-    q: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
+    q: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotConnections>>,
     config: &Config,
     mut export_graph_finished_event: EventWriter<ExportFactorGraphAsGraphvizFinished>,
     // mut toast_event: EventWriter<ToastEvent>,
@@ -502,7 +502,7 @@ fn quit_application_system(
 fn general_actions_system(
     mut theme_event: EventWriter<CycleTheme>,
     query: Query<&ActionState<GeneralAction>, With<GeneralInputs>>,
-    query_graphs: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotState>>,
+    query_graphs: Query<(Entity, &FactorGraph, &RadioAntenna), With<RobotConnections>>,
     config: Res<Config>,
     currently_changing: Res<ChangingBinding>,
     catppuccin_theme: Res<CatppuccinTheme>,

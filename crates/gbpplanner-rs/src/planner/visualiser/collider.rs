@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use gbp_config::Config;
 
-use crate::planner::{robot::Ball, RobotState};
+use crate::planner::{robot::Ball, RobotConnections};
 
 #[derive(Default)]
 pub struct ColliderVisualizerPlugin;
@@ -28,7 +28,10 @@ mod robot_colliders {
         config.visualisation.draw.robot_colliders
     }
 
-    pub(super) fn render(mut gizmos: Gizmos, q: Query<(&Transform, &Ball), With<RobotState>>) {
+    pub(super) fn render(
+        mut gizmos: Gizmos,
+        q: Query<(&Transform, &Ball), With<RobotConnections>>,
+    ) {
         for (transform, ball) in &q {
             // let position = parry2d::na::Isometry2::translation(
             //     transform.translation.x,
