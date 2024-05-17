@@ -2,8 +2,11 @@
 #!nix-shell -i python3 -p python3Packages.matplotlib python3Packages.plotly python3Packages.polars
 
 import json
+import argparse
 import plotly.graph_objects as go
 import sys
+import subprocess
+import shutil
 from pathlib import Path
 
 def load_data(filepath):
@@ -12,7 +15,7 @@ def load_data(filepath):
         data = json.load(file)
     return data
 
-def plot_robot_paths(data):
+def plot_robot_paths(data, filepath="robot-positions.html"):
     """ Plot the paths for each robot using their position data. """
     fig = go.Figure()
 
@@ -36,16 +39,26 @@ def plot_robot_paths(data):
     )
 
     # Save the plot to an HTML file
-    fig.write_html('robot-positions.html')
-    print("Plot saved to 'robot-positions.html'.")
+    fig.write_html(filepath)
+    print(f"Plot saved to '{filepath}'.")
+    # print("Plot saved to 'robot-positions.html'.")
 
 def main():
-    # Accept file path from command line argument
-    filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('export.json')
-    data = load_data(filepath)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', type=Path, help="Input JSON file containing robot data")
+    parser.add_argument('-o', '--output', type=Path, default="robot-positions.html", help="Output HTML file")
+    args = parser.parse_args()
+
+    data = json.loads(args.input.read_text())
 
     # Plot the paths of each robot
-    plot_robot_paths(data)
+    # output_html = "robot-positions.html"
+    plot_robot_paths(data, args.output)
+
+    # Check if `xdg-open` exists in path, and if it does then open the plot with it
+    if shutil.which('xdg-open') is not None:
+        subprocess.run(['xdg-open', args.output])
+
 
 if __name__ == '__main__':
     main()

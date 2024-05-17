@@ -1,6 +1,7 @@
 #!/usr/bin/env nix-shell
-#!nix-shell -i python3 -p python3Packages.numpy python3Packages.scipy python3Packages.rich
+#!nix-shell -i python3 -p python3Packages.numpy python3Packages.scipy python3Packages.rich python3Packages.tabulate python3Packages.matplotlib
 
+import statistics
 import json
 import sys
 import argparse
@@ -8,7 +9,9 @@ from pathlib import Path
 
 import numpy as np
 from scipy.integrate import simpson
+import matplotlib.pyplot as plt
 from rich import print, inspect, pretty
+from tabulate import tabulate
 
 pretty.install()
 
@@ -56,23 +59,73 @@ def ldj(velocities: np.ndarray, timesteps: np.ndarray) -> float:
     return ldj
 
 
+def plot_ldj(ldjs):
+    plt.boxplot(ldjs)
+    plt.title('Log Dimensionless Jerk by Robots')
+    plt.ylabel('LDJ')
+    plt.xlabel('Robots')
+    plt.ylim( -25, 0)
+    num_measurements = len(ldjs)
+    plt.xticks([1], [str(num_measurements)])
+
+    plt.show()
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('json_file', type=Path)
+    parser.add_argument('-i', '--input', type=Path)
+    parser.add_argument('-p', '--plot', action='store_true')
     args = parser.parse_args()
 
-    data = json.loads(args.json_file.read_text())
+    data = json.loads(args.input.read_text())
 
+    ldj_of_each_robot: dict[int, float] = {}
     for robot_id, robot_data in data['robots'].items():
-        route = robot_data['route']
-        t_start: float = route['started_at']
-        t_final: float = route['finished_at'] if route['finished_at'] else route['duration'] + t_start
+        mission = robot_data['mission']
+        t_start: float = mission['started_at']
+        t_final: float = mission['finished_at'] if mission['finished_at'] else mission['duration'] + t_start
         timestamps: np.ndarray = np.array([measurement['timestamp'] for measurement in robot_data['velocities']])
         velocities3d_bevy: np.ndarray = np.array([measurement['velocity'] for measurement in robot_data['velocities']])
         velocities = velocities3d_bevy[:, [0, 2]]
 
         metric = ldj(velocities, timestamps)
-        print(f"{robot_id} t_start: {t_start:.3f} t_final: {t_final:.3f} #velocities: {len(velocities)} LDJ: {metric:.3f}")
+        ldj_of_each_robot[robot_id] = metric
+        # print(f"{robot_id} t_start: {t_start:.3f} t_final: {t_final:.3f} #velocities: {len(velocities)} LDJ: {metric:.3f}")
+
+    headers = ['Robot ID', 'LDJ']
+    table = [[robot_id, f"{ldj:.3f}"] for robot_id, ldj in ldj_of_each_robot.items()]
+    tabulate_opts = dict(
+        tablefmt="mixed_outline",
+        showindex="always"
+    )
+    # print(tabulate(table, headers, tablefmt="mixed_outline"))
+    print(tabulate(table, headers, **tabulate_opts))
+
+
+    mean: float = statistics.mean(ldj_of_each_robot.values())
+
+    mean: float = statistics.mean(ldj_of_each_robot.values())
+    median: float = statistics.median(ldj_of_each_robot.values())
+    largest: float = max(ldj_of_each_robot.values())
+    smallest: float = min(ldj_of_each_robot.values())
+    variance: float = statistics.variance(ldj_of_each_robot.values())
+    stdev: float = statistics.stdev(ldj_of_each_robot.values())
+    N: int = len(ldj_of_each_robot)
+
+    stats = dict(
+        robots=N,
+        mean=mean,
+        median=median,
+        largest=largest,
+        smallest=smallest,
+        variance=variance,
+        stdev=stdev
+    )
+
+    print(tabulate([stats], headers="keys", **tabulate_opts))
+
+    if args.plot:
+        plot_ldj(ldj_of_each_robot.values())
+
 
 if __name__ == '__main__':
     main()

@@ -10,11 +10,12 @@ use bevy::{
     prelude::*,
 };
 use bevy_prng::WyRand;
-use bevy_rand::prelude::GlobalEntropy;
+use bevy_rand::{component::EntropyComponent, prelude::GlobalEntropy};
 use gbp_config::{
     formation::{PlanningStrategy, WaypointReachedWhenIntersects},
     Config,
 };
+use gbp_global_planner::{PathFinder, PathfindingTask};
 use gbp_linalg::prelude::*;
 use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
@@ -160,7 +161,12 @@ pub struct RobotFinishedRoute(pub RobotId);
 fn attach_despawn_timer_when_robot_finishes_route(
     mut commands: Commands,
     mut evr_robot_finished_route: EventReader<RobotFinishedRoute>,
+    config: Res<Config>,
 ) {
+    if !config.simulation.despawn_robot_when_final_waypoint_reached {
+        return;
+    }
+
     let duration = Duration::from_millis(500);
     for RobotFinishedRoute(robot_id) in evr_robot_finished_route.read() {
         info!(
@@ -525,8 +531,15 @@ impl FromWorld for GbpIterationSchedule {
 }
 
 fn progress_missions(
+    mut commands: Commands,
     mut q: Query<(Entity, &mut RobotMission, &PlanningStrategy)>,
+    mut pathfinders: Query<
+        (Entity, &mut EntropyComponent<WyRand>),
+        (With<PathFinder>, Without<PathfindingTask>),
+    >,
+    config: Res<Config>,
     time: Res<Time>,
+    // colliders: Res<gbp_global_planner::Colliders>,
 ) {
     for (robot_entity, mut mission, plannning_strategy) in &mut q {
         match (mission.state, plannning_strategy) {
@@ -541,6 +554,13 @@ fn progress_missions(
                 },
                 PlanningStrategy::RrtStar,
             ) => {
+                // if let Ok((_, mut )) = pathfinders.get_mut(robot_entity) {
+                // gbp_global_planner::rrtstar::spawn_pathfinding_task(
+                //     &mut commands, start, end, smooth, rrt_params, colliders, task_target,
+                //
+                // )
+                // }
+
                 // start rrt job TODO:
                 info!("(Idle {{ .. }}, RrtStar) => Active");
                 mission.state = RobotMissionState::Active;

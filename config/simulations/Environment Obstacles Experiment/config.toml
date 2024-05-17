@@ -72,7 +72,8 @@ hz                 = 10.0
 # world-size                                = 100.0
 prng-seed                                 = 0
 pause-on-spawn                            = false
-despawn-robot-when-final-waypoint-reached = false
+despawn-robot-when-final-waypoint-reached = true
+exit-application-on-scenario-finished     = true
 
 [rrt]
 max-iterations       = 1000000

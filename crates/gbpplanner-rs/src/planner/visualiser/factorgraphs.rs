@@ -43,10 +43,10 @@ impl Plugin for FactorGraphVisualiserPlugin {
 fn remove_rendered_factorgraph_when_robot_despawns(
     mut commands: Commands,
     query: Query<(Entity, &RobotTracker)>,
-    mut despawn_robot_event: EventReader<RobotDespawned>,
+    mut evr_robot_despawned: EventReader<RobotDespawned>,
 ) {
-    for RobotDespawned(robot_id) in despawn_robot_event.read() {
-        for (entity, tracker) in query.iter() {
+    for RobotDespawned(robot_id) in evr_robot_despawned.read() {
+        for (entity, tracker) in &query {
             if tracker.robot_id == *robot_id {
                 if let Some(mut entitycommands) = commands.get_entity(entity) {
                     entitycommands.despawn();

@@ -58,6 +58,8 @@ impl Plugin for RobotSpawnerPlugin {
                 (
                     spawn_formation,
                     advance_time.run_if(not(virtual_time_is_paused)),
+                    exit_application_on_scenario_finished,
+                    // exit_application_on_scenario_finished.run_if(on_event::<AllFormationsFinished>())
                 ),
             )
             .add_systems(
@@ -645,5 +647,39 @@ pub struct RobotClickedOn(pub Entity);
 impl From<ListenerInput<Pointer<Click>>> for RobotClickedOn {
     fn from(value: ListenerInput<Pointer<Click>>) -> Self {
         Self(value.target)
+    }
+}
+
+struct DelayTimer(pub Timer);
+
+impl Default for DelayTimer {
+    fn default() -> Self {
+        Self(Timer::new(Duration::from_millis(1000), TimerMode::Once))
+    }
+}
+
+fn exit_application_on_scenario_finished(
+    mut evr_all_formations_finished: EventReader<AllFormationsFinished>,
+    config: Res<Config>,
+    mut evw_app_exit: EventWriter<bevy::app::AppExit>,
+    mut timer: Local<Option<DelayTimer>>,
+    time: Res<Time>,
+) {
+    match *timer {
+        Some(ref mut timer) => {
+            timer.0.tick(time.delta());
+            if timer.0.just_finished() {
+                evw_app_exit.send(bevy::app::AppExit);
+            }
+        }
+        None => {}
+    }
+
+    for _ in evr_all_formations_finished.read() {
+        if config.simulation.exit_application_on_scenario_finished {
+            if timer.is_none() {
+                *timer = Some(DelayTimer::default());
+            }
+        }
     }
 }

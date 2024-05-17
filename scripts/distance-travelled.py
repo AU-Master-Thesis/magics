@@ -11,8 +11,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from rich import print, inspect, pretty
 from tabulate import tabulate
-# import asciichartpy as ac
-
 
 pretty.install()
 
@@ -24,6 +22,9 @@ def plot_distances(distances):
     plt.title('Distance Travelled by Robots')
     plt.ylabel('Distance')
     plt.xlabel('Robots')
+    plt.ylim(0, 250)
+    num_measurements = len(distances)
+    plt.xticks([1], [str(num_measurements)])
     plt.show()
 
 def distance_travelled(positions: np.ndarray) -> float:
@@ -82,7 +83,7 @@ def main():
 
     print(tabulate([stats], headers="keys", **tabulate_opts))
 
-    # plot_distances(distance_travelled_of_each_robot.values())
+    plot_distances(distance_travelled_of_each_robot.values())
 
 if __name__ == '__main__':
     main()

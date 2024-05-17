@@ -49,12 +49,14 @@ pub struct GraphvizInterrobotSection {
 #[serde(rename_all = "kebab-case")]
 pub struct GraphvizSection {
     pub interrobot:      GraphvizInterrobotSection,
-    #[serde(default = "default_export_location")]
+    #[serde(default = "GraphvizSection::default_export_location")]
     pub export_location: String,
 }
 
-fn default_export_location() -> String {
-    "./assets/export".to_string()
+impl GraphvizSection {
+    pub fn default_export_location() -> String {
+        "./assets/export".to_string()
+    }
 }
 
 impl Default for GraphvizSection {
@@ -317,6 +319,15 @@ pub struct SimulationSection {
     /// Exists for the circle formation environment, where it looks slick if
     /// they all stay at at the end along the perimeter.
     pub despawn_robot_when_final_waypoint_reached: bool,
+
+    #[serde(default = "SimulationSection::default_exit_application_on_scenario_finished")]
+    pub exit_application_on_scenario_finished: bool,
+}
+
+impl SimulationSection {
+    fn default_exit_application_on_scenario_finished() -> bool {
+        false
+    }
 }
 
 impl Default for SimulationSection {
@@ -332,6 +343,8 @@ impl Default for SimulationSection {
             prng_seed: 0,
             pause_on_spawn: false,
             despawn_robot_when_final_waypoint_reached: true,
+            exit_application_on_scenario_finished:
+                Self::default_exit_application_on_scenario_finished(),
         }
     }
 }
