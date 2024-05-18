@@ -182,6 +182,7 @@ struct ExportData {
     delta_t: f64,
     gbp: GbpData,
     robots: HashMap<Entity, RobotData>,
+    prng_seed: u64,
 }
 
 #[derive(serde::Serialize)]
@@ -403,6 +404,7 @@ fn export(
             delta_t: time_fixed.delta_seconds_f64(),
             gbp,
             robots: robot_snapshots.drain().collect(),
+            prng_seed: config.simulation.prng_seed,
         };
 
         let json = serde_json::to_string_pretty(&export_data).unwrap();

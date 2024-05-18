@@ -363,15 +363,15 @@ impl Default for SimulationSection {
 #[serde(rename_all = "kebab-case")]
 pub enum GbpIterationScheduleKind {
     #[default]
-    #[strum(serialize = "centered")]
+    #[strum(serialize = "Centered")]
     Centered,
-    #[strum(serialize = "soon as possible")]
+    #[strum(serialize = "Soon as Possible")]
     SoonAsPossible,
-    #[strum(serialize = "late as possible")]
+    #[strum(serialize = "Late as Possible")]
     LateAsPossible,
-    #[strum(serialize = "interleave evenly")]
+    #[strum(serialize = "Interleave Evenly")]
     InterleaveEvenly,
-    #[strum(serialize = "half beginning half end")]
+    #[strum(serialize = "Half Beginning Half End")]
     HalfBeginningHalfEnd,
 }
 
@@ -817,14 +817,18 @@ impl Config {
     where
         P: AsRef<std::path::Path>,
     {
-        let file_contents = std::fs::read_to_string(path)?;
-        Self::parse(file_contents.as_str())
+        std::fs::read_to_string(path)
+            .map_err(Into::into)
+            .and_then(|contents| Self::parse(contents.as_str()))
+        // let file_contents = std::fs::read_to_string(path)?;
+        // Self::parse(file_contents.as_str())
     }
 
     /// Parse a config file
     /// Returns a `ParseError` if the file cannot be parsed
     pub fn parse(contents: &str) -> Result<Self, ParseError> {
-        let config = toml::from_str(contents)?;
-        Ok(config)
+        toml::from_str(contents).map_err(Into::into)
+        // let config = toml::from_str(contents)?;
+        // Ok(config)
     }
 }
