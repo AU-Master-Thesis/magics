@@ -46,7 +46,7 @@ lookahead-multiple      = 3
 
 [gbp.factors-enabled]
 tracking = false
-obstacle = false
+obstacle = true
 
 [gbp.iteration-schedule]
 internal = 10
@@ -73,8 +73,8 @@ manual-step-factor = 1
 hz                 = 10.0
 # world-size                                = 100.0
 prng-seed                                 = 2
-pause-on-spawn                            = true
-despawn-robot-when-final-waypoint-reached = true
+pause-on-spawn                            = false
+despawn-robot-when-final-waypoint-reached = false
 
 [rrt]
 max-iterations       = 1000000

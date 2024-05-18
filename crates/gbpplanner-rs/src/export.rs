@@ -111,6 +111,7 @@ pub struct RobotData {
     // route: RouteData,
     mission: MissionData,
     planning_strategy: PlanningStrategy,
+    color: String,
 }
 
 #[derive(serde::Serialize)]
@@ -177,11 +178,11 @@ struct MessageCount {
 
 #[derive(serde::Serialize)]
 struct ExportData {
-    environment: String,
-    makespan: f64,
-    delta_t: f64,
-    gbp: GbpData,
-    robots: HashMap<Entity, RobotData>,
+    scenario:  String,
+    makespan:  f64,
+    delta_t:   f64,
+    gbp:       GbpData,
+    robots:    HashMap<Entity, RobotData>,
     prng_seed: u64,
 }
 
@@ -210,6 +211,9 @@ fn export(
         // &Route,
         &planner::robot::RobotMission,
         &PlanningStrategy,
+        &crate::theme::ColorAssociation,
+        // &ColorAssociation,
+        // &ColorAssociation,
     )>,
     robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
     environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
@@ -217,6 +221,7 @@ fn export(
     config: Res<Config>,
     time_virtual: Res<Time<Virtual>>,
     time_fixed: Res<Time<Fixed>>,
+    catppuccin: Res<crate::theme::CatppuccinTheme>,
 ) {
     // schema:
     //
@@ -268,8 +273,16 @@ fn export(
         let makespan = time_virtual.elapsed_seconds() as f64;
         // take a snapshot of all robots, that do not already have one
 
-        for (robot_entity, graph, positions, velocities, radius, mission, planning_strategy) in
-            q_robots.iter()
+        for (
+            robot_entity,
+            graph,
+            positions,
+            velocities,
+            radius,
+            mission,
+            planning_strategy,
+            color_assoc,
+        ) in q_robots.iter()
         {
             if robot_snapshots.contains_key(&robot_entity) {
                 continue;
@@ -280,6 +293,9 @@ fn export(
             let velocities: Vec<_> = velocities.measurements().collect();
             let robot_collisions = robot_collisions.get(robot_entity).unwrap_or(0);
             let environment_collisions = environment_collisions.get(robot_entity).unwrap_or(0);
+
+            let catppuccin::Colour(r, g, b) = catppuccin.get_display_colour(&color_assoc.name);
+            let color: String = format!("#{:2x}{:2x}{:2x}", r, g, b);
 
             // let id = format!("{:?}", robot_entity);
             let robot_data = RobotData {
@@ -340,6 +356,7 @@ fn export(
                     },
                 },
                 planning_strategy: *planning_strategy,
+                color,
             };
 
             robot_snapshots.insert(robot_entity, robot_data);
@@ -399,7 +416,7 @@ fn export(
         };
 
         let export_data = ExportData {
-            environment: environment.to_string(),
+            scenario: environment.to_string(),
             makespan,
             delta_t: time_fixed.delta_seconds_f64(),
             gbp,
@@ -496,14 +513,16 @@ fn take_snapshot_of_robot(
         // &Route,
         &planner::robot::RobotMission,
         &PlanningStrategy,
+        &crate::theme::ColorAssociation,
     )>,
 
     robot_collisions: &crate::planner::collisions::resources::RobotRobotCollisions,
     environment_collisions: &crate::planner::collisions::resources::RobotEnvironmentCollisions,
     // time_virtual: &Time<Virtual>,
     time_fixed: &Time<Fixed>,
+    catppuccin: &crate::theme::CatppuccinTheme,
 ) -> anyhow::Result<RobotData> {
-    let Ok((fgraph, positions, velocities, radius, mission, planning_strategy)) =
+    let Ok((fgraph, positions, velocities, radius, mission, planning_strategy, color_assoc)) =
         q_robots.get(robot_entity)
     else {
         anyhow::bail!(
@@ -518,6 +537,9 @@ fn take_snapshot_of_robot(
     let velocities: Vec<_> = velocities.measurements().collect();
     let robot_collisions = robot_collisions.get(robot_entity).unwrap_or(0);
     let environment_collisions = environment_collisions.get(robot_entity).unwrap_or(0);
+
+    let catppuccin::Colour(r, g, b) = catppuccin.get_display_colour(&color_assoc.name);
+    let color: String = format!("#{:2x}{:2x}{:2x}", r, g, b);
 
     let robot_data = RobotData {
         radius: radius.0,
@@ -549,6 +571,7 @@ fn take_snapshot_of_robot(
             },
         },
         planning_strategy: *planning_strategy,
+        color,
         mission: MissionData {
             started_at:  mission.started_at(),
             finished_at: mission
@@ -600,11 +623,13 @@ fn await_robot_snapshot_request(
         // &Route,
         &planner::robot::RobotMission,
         &PlanningStrategy,
+        &crate::theme::ColorAssociation,
     )>,
 
     robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
     environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
     // time_virtual: Res<Time<Virtual>>,
+    catppuccin: Res<crate::theme::CatppuccinTheme>,
     time_fixed: Res<Time<Fixed>>,
 ) {
     for TakeSnapshotOfRobot(robot_id) in evr_submit_robot_data.read() {
@@ -618,6 +643,7 @@ fn await_robot_snapshot_request(
             &robot_collisions,
             &environment_collisions,
             &time_fixed,
+            &catppuccin,
         ) else {
             error!(
                 "failed to take snapshot of robot {:?}, reason entity does not exist",
