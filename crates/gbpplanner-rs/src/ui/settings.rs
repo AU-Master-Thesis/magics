@@ -11,7 +11,7 @@ use bevy_notify::ToastEvent;
 use catppuccin::Colour;
 use gbp_config::{Config, DrawSection, DrawSetting};
 use gbp_linalg::Float;
-use gbp_schedule::GbpScheduleAtTimestep;
+use gbp_schedule::GbpScheduleAtIteration;
 use repeating_array::RepeatingArray;
 use smol_str::SmolStr;
 use struct_iterable::Iterable;
@@ -176,8 +176,12 @@ fn ui_settings_panel(
                                     catppuccin::Flavour::Macchiato,
                                     catppuccin::Flavour::Mocha,
                                 ] {
-                                    ui.vertical_centered_justified(|ui| {
-                                        if ui.button(flavour.to_display_string()).clicked() {
+                                    // ui.vertical_centered_justified(|ui| {
+                                    ui.vertical(|ui| {
+                                        let button = egui::Button::new(flavour.to_display_string()).wrap(false);
+
+                                        if ui.add(button).clicked() {
+                                        // if ui.button(flavour.to_display_string()).clicked() {
                                             world.send_event::<CycleTheme>(CycleTheme(*flavour));
                                             // theme_event.send(ThemeEvent(*flavour));
                                             ui.close_menu();
@@ -193,8 +197,11 @@ fn ui_settings_panel(
                         ui.vertical_centered_justified(|ui| {
                             ui.menu_button(ui_state.scale_type.to_display_string(), |ui| {
                                 for scale in UiScaleType::iter() {
-                                    ui.vertical_centered_justified(|ui| {
-                                        if ui.button(scale.to_display_string()).clicked() {
+                                    // ui.vertical_centered_justified(|ui| {
+                                    ui.vertical(|ui| {
+                                        let button = egui::Button::new(scale.to_display_string()).wrap(false);
+                                        if ui.add(button).clicked() {
+                                        // if ui.button(scale.to_display_string()).clicked() {
                                             ui_state.scale_type = scale;
                                             // world.send_event::<UiScaleEvent>(UiScaleEvent);
                                             // scale_event.send(UiScaleEvent);
@@ -272,6 +279,7 @@ fn ui_settings_panel(
                             let te_output = egui::TextEdit::singleline(&mut text)
                                 .char_limit(3)
                                 .interactive(time_virtual.is_paused())
+                                .desired_width(f32::INFINITY)
                                 .show(ui);
 
                             // if te_output.response.lost_focus() && te_output.response.changed() {
@@ -292,7 +300,7 @@ fn ui_settings_panel(
                             let te_output = egui::TextEdit::singleline(&mut text)
                                 .char_limit(3)
                                 .interactive(time_virtual.is_paused())
-                                // .cursor_at_end(true)
+                                .desired_width(f32::INFINITY)
                                 .show(ui);
 
                             if  te_output.response.changed() {
@@ -312,7 +320,7 @@ fn ui_settings_panel(
                             {
                                 let n = config.gbp.iteration_schedule.internal.max(config.gbp.iteration_schedule.external);
 
-                                let schedule_config = gbp_schedule::GbpScheduleConfig {
+                                let schedule_config = gbp_schedule::GbpScheduleParams {
                                     internal: config.gbp.iteration_schedule.internal as u8,
                                     external: config.gbp.iteration_schedule.external as u8,
                                 };
@@ -352,7 +360,7 @@ fn ui_settings_panel(
                                 let mut x = start_x;
                                 let mut y = start_y;
 
-                                for GbpScheduleAtTimestep { internal, external } in schedule {
+                                for GbpScheduleAtIteration { internal, external } in schedule {
                                     let internal_color = if internal {
                                         Color32::from_catppuccin_colour(theme.sky())
                                     } else {
@@ -398,9 +406,12 @@ fn ui_settings_panel(
                                 let current: &'static str = config.gbp.iteration_schedule.schedule.into();
                                 ui.menu_button(current, |ui| {
                                     for schedule in gbp_config::GbpIterationScheduleKind::iter() {
-                                        ui.vertical_centered_justified(|ui| {
+                                        ui.vertical(|ui| {
+                                        // ui.vertical_centered(|ui| {
+                                        // ui.vertical_centered_justified(|ui| {
                                             let text: &'static str = schedule.into();
-                                            if ui.button(text).clicked() {
+                                            let button = egui::Button::new(text).wrap(false);
+                                            if ui.add(button).clicked() {
                                                 let new_schedule = schedule.into();
                                                 config.gbp.iteration_schedule.schedule = new_schedule;
                                                 world.send_event::<crate::planner::robot::GbpScheduleChanged>(config.gbp.iteration_schedule.into());
@@ -679,7 +690,6 @@ fn ui_settings_panel(
                         }
                     });
 
-
                     custom::subheading(
                         ui,
                         "Simulation",
@@ -687,6 +697,7 @@ fn ui_settings_panel(
                             title_colors.next_or_first(),
                         )),
                     );
+
                     custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
                         ui.label("Active Simulation");
                         custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
@@ -739,19 +750,26 @@ fn ui_settings_panel(
 
                         // slider for simulation time between 0 and 100
                         ui.label("Simulation Speed");
-                        // slider for simulation speed (time scale) between 0.1 and 10
-                        ui.spacing_mut().slider_width =
-                            ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let slider_response = ui.add(
-                            egui::Slider::new(&mut config.simulation.time_scale.get(), 0.1..=5.0)
-                                .suffix("x")
-                                .trailing_fill(true)
-                                .show_value(true),
-                        );
-                        if slider_response.drag_released() || slider_response.lost_focus() {
-                            info!("time scale changed: {}", config.simulation.time_scale);
-                            time_virtual.set_relative_speed(config.simulation.time_scale.get());
-                        }
+
+
+                        ui.horizontal(|ui| {
+                            let mut time_scale = config.simulation.time_scale.get();
+                            ui.label(format!("{:.2}x", time_scale));
+                            ui.spacing_mut().slider_width = ui.available_width();
+                            let slider_response = ui.add(
+                                egui::Slider::new(&mut time_scale, 0.1..=5.0)
+                                    // .suffix("x")
+                                    .trailing_fill(true)
+                                    .show_value(false),
+                            );
+                            if slider_response.changed() {
+                            // if slider_response.drag_released() || slider_response.lost_focus() {
+                                config.simulation.time_scale = time_scale.try_into().unwrap();
+                                info!("time scale changed: {}", config.simulation.time_scale);
+                                time_virtual.set_relative_speed(config.simulation.time_scale.get());
+                            }
+                        });
+
                         ui.end_row();
 
                         ui.label("Manual Controls");
@@ -800,11 +818,12 @@ fn ui_settings_panel(
 
                         ui.label("Timesteps per Step");
 
-                        let mut text = config.manual.timesteps_per_step.to_string();
+                        let mut text: String = config.manual.timesteps_per_step.to_string();
 
                         let te_output = egui::TextEdit::singleline(&mut text)
                             .char_limit(3)
                             .interactive(time_virtual.is_paused())
+                            .desired_width(f32::INFINITY) // maximize
                             .show(ui);
 
                         if te_output.response.changed() {

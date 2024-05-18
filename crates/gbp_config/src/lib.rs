@@ -378,7 +378,7 @@ pub enum GbpIterationScheduleKind {
 impl GbpIterationScheduleKind {
     pub fn get(
         &self,
-        config: gbp_schedule::GbpScheduleConfig,
+        config: gbp_schedule::GbpScheduleParams,
     ) -> Box<dyn gbp_schedule::GbpScheduleIterator> {
         match self {
             GbpIterationScheduleKind::Centered => {

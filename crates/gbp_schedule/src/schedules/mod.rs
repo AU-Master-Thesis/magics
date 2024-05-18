@@ -57,27 +57,25 @@ pub use soon_as_possible::*;
 // pub trait GbpScheduleIter<'a>: std::iter::Iterator<Item = u64> {}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct GbpScheduleAtTimestep {
+pub struct GbpScheduleAtIteration {
     pub internal: bool,
     pub external: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct GbpScheduleConfig {
+pub struct GbpScheduleParams {
     pub internal: u8,
     pub external: u8,
 }
 
-impl GbpScheduleConfig {
+impl GbpScheduleParams {
     pub(crate) fn max(&self) -> u8 {
         self.internal.max(self.external)
     }
 }
 
-pub trait GbpScheduleIterator: std::iter::Iterator<Item = GbpScheduleAtTimestep> {}
+pub trait GbpScheduleIterator: std::iter::Iterator<Item = GbpScheduleAtIteration> {}
 
 pub trait GbpSchedule {
-    // fn schedule(times: &[NonZeroUsize]) -> impl GbpScheduleIter;
-    // fn schedule(times: &[usize]) -> impl GbpScheduleIter<'_>;
-    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIterator;
+    fn schedule(params: GbpScheduleParams) -> impl GbpScheduleIterator;
 }

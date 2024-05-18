@@ -512,7 +512,7 @@ pub struct GbpIterationSchedule(pub gbp_config::GbpIterationSchedule);
 
 impl GbpIterationSchedule {
     pub fn schedule(&self) -> Box<dyn gbp_schedule::GbpScheduleIterator> {
-        let config = gbp_schedule::GbpScheduleConfig {
+        let config = gbp_schedule::GbpScheduleParams {
             internal: self.0.internal as u8,
             external: self.0.external as u8,
         };
@@ -1414,13 +1414,13 @@ fn iterate_gbp_v2(
     >,
     config: Res<Config>,
 ) {
-    let schedule_config = gbp_schedule::GbpScheduleConfig {
+    let schedule_config = gbp_schedule::GbpScheduleParams {
         internal: config.gbp.iteration_schedule.internal as u8,
         external: config.gbp.iteration_schedule.external as u8,
     };
     let schedule = config.gbp.iteration_schedule.schedule.get(schedule_config);
 
-    for gbp_schedule::GbpScheduleAtTimestep { internal, external } in schedule {
+    for gbp_schedule::GbpScheduleAtIteration { internal, external } in schedule {
         if internal {
             query.par_iter_mut().for_each(|(_, mut factorgraph, _, _)| {
                 factorgraph.internal_factor_iteration();
