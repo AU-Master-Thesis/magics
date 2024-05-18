@@ -139,6 +139,8 @@ fn ui_settings_panel(
         theme.lavender(),
     ]);
 
+    let slider_right_margin = 10.0;
+
     // let panel_resizable = false;
 
     let width = 400.0;
@@ -221,33 +223,39 @@ fn ui_settings_panel(
                             },
                         );
 
-                        // ui.spacing_mut().slider_width = ui.available_size_before_wrap().x;
-                        // ui.spacing_mut().slider_width = ui.available_width();
-                        ui.spacing_mut().slider_width =
-                            ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let enabled = matches!(ui_state.scale_type, UiScaleType::Custom);
-                        let slider = egui::Slider::new(
-                                &mut ui_state.scale_percent,
-                                UiState::VALID_SCALE_INTERVAL,
-                            )
+                        ui.horizontal(|ui| {
+                            ui.label(format!("{}%", ui_state.scale_percent));
+                            // ui.spacing_mut().slider_width = ui.available_size_before_wrap().x;
+                            // ui.spacing_mut().slider_width = ui.available_width();
+                            // ui.spacing_mut().slider_width =
+                            //     ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                            ui.spacing_mut().slider_width =
+                                ui.available_width();
+                            let enabled = matches!(ui_state.scale_type, UiScaleType::Custom);
+                            let slider = egui::Slider::new(
+                                    &mut ui_state.scale_percent,
+                                    UiState::VALID_SCALE_INTERVAL,
+                                )
 
-                            .suffix("%")
-                            .show_value(true);
+                                // .suffix("%")
 
-                        let slider_response = ui.add_enabled(
-                            enabled,
-                            slider
-                        );
-                        // Only trigger ui scale update when the slider is released or lost focus
-                        // otherwise it would be imposssible to drag the slider while the ui is
-                        // scaling
-                        #[allow(clippy::cast_precision_loss)]
-                        if slider_response.drag_released() || slider_response.lost_focus() {
-                        // if slider_response.changed() {
-                            world.send_event::<ScaleUi>(ScaleUi::Set(
-                                ui_state.scale_percent as f32 / 100.0,
-                            ));
-                        }
+                                .show_value(false);
+
+                            let slider_response = ui.add_enabled(
+                                enabled,
+                                slider
+                            );
+                            // Only trigger ui scale update when the slider is released or lost focus
+                            // otherwise it would be imposssible to drag the slider while the ui is
+                            // scaling
+                            #[allow(clippy::cast_precision_loss)]
+                            if slider_response.drag_released() || slider_response.lost_focus() {
+                            // if slider_response.changed() {
+                                world.send_event::<ScaleUi>(ScaleUi::Set(
+                                    ui_state.scale_percent as f32 / 100.0,
+                                ));
+                            }
+                        });
 
                         ui.end_row();
 
@@ -457,48 +465,56 @@ fn ui_settings_panel(
 
                         custom::grid("gbp_grid", 2).show(ui, |ui| {
                             ui.label("Safety Distance");
-                            ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                            let mut safety_dist_multiplier = config.robot.inter_robot_safety_distance_multiplier.get();
-                            // let mut available_size = ui.available_size();
-                            // available_size.x += 10.0;
-                            // let slider_response = ui.add_sized(available_size,
-                               let slider_response = ui.add_enabled(
-                                   time_virtual.is_paused(),
-                                      egui::Slider::new(&mut safety_dist_multiplier, 1.0..=10.0)
-                                    .suffix("r")
-                                    // .text(" * radius")
-                                    .fixed_decimals(1)
-                                    .trailing_fill(true));
-                            if slider_response.enabled() && slider_response.changed() {
-                                config.robot.inter_robot_safety_distance_multiplier = safety_dist_multiplier.try_into().expect("slider range set to [0.1, 10.0]");
+                            ui.horizontal(|ui| {
+                                let mut safety_dist_multiplier = config.robot.inter_robot_safety_distance_multiplier.get();
+                                ui.selectable_label(false, format!("{:.1}r ", safety_dist_multiplier));
 
-                                let mut query = world.query::<&mut FactorGraph>();
-                                for mut factorgraph in query.iter_mut(world) {
-                                    factorgraph.update_inter_robot_safety_distance_multiplier(Float::from(config.robot.inter_robot_safety_distance_multiplier.get()).try_into().expect("> 0.0"));
+                                // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                                ui.spacing_mut().slider_width = ui.available_width() - slider_right_margin;
+                                // let mut available_size = ui.available_size();
+                                // available_size.x += 10.0;
+                                // let slider_response = ui.add_sized(available_size,
+                                   let slider_response = ui.add_enabled(
+                                       time_virtual.is_paused(),
+                                          egui::Slider::new(&mut safety_dist_multiplier, 1.0..=10.0)
+                                        // .suffix("r")
+                                        // .text(" * radius")
+                                        .fixed_decimals(1)
+                                        .show_value(false)
+                                        .trailing_fill(true));
+                                if slider_response.enabled() && slider_response.changed() {
+                                    config.robot.inter_robot_safety_distance_multiplier = safety_dist_multiplier.try_into().expect("slider range set to [0.1, 10.0]");
+
+                                    let mut query = world.query::<&mut FactorGraph>();
+                                    for mut factorgraph in query.iter_mut(world) {
+                                        factorgraph.update_inter_robot_safety_distance_multiplier(Float::from(config.robot.inter_robot_safety_distance_multiplier.get()).try_into().expect("> 0.0"));
+                                    }
                                 }
-                            }
+                            });
 
                             ui.end_row();
 
                             ui.label("Max Speed");
-                            // slider for robot max speed  in (0.0, 10.]
-                            // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
-                            ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                            ui.horizontal(|ui| {
+                                let mut max_speed = config.robot.max_speed.get();
+                                ui.label(format!("{:.1}m/s", max_speed));
+                                // slider for robot max speed  in (0.0, 10.]
+                                // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
+                                // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                                ui.spacing_mut().slider_width = ui.available_width() - slider_right_margin;
 
-                            let mut max_speed = config.robot.max_speed.get();
-                            // let mut available_size = ui.available_size();
-                            // available_size.x += 10.0;
-                            // let slider_response = ui.add_sized(available_size,
-                               let slider_response = ui.add_enabled(
-                                   time_virtual.is_paused(),
-                                                                      egui::Slider::new(&mut max_speed, 0.1..=100.0)
+                                   let slider_response = ui.add_enabled(
+                                       time_virtual.is_paused(),
+                                                                          egui::Slider::new(&mut max_speed, 0.1..=100.0)
 
-                                    .suffix("m/s")
-                                    .fixed_decimals(1)
-                                    .trailing_fill(true));
-                            if slider_response.enabled() && slider_response.changed() {
-                                config.robot.max_speed = max_speed.try_into().expect("slider range set to [0.1, 10.0]");
-                            }
+                                        // .suffix("m/s")
+                                        .fixed_decimals(1)
+                                        .show_value(false)
+                                        .trailing_fill(true));
+                                if slider_response.enabled() && slider_response.changed() {
+                                    config.robot.max_speed = max_speed.try_into().expect("slider range set to [0.1, 10.0]");
+                                }
+                            });
 
                             ui.end_row();
                         });
@@ -513,40 +529,50 @@ fn ui_settings_panel(
 
                     custom::grid("communication_grid", 2).show(ui,|ui| {
                         ui.label("Radius");
-                        // slider for communication radius in (0.0, 50.]
-                        ui.spacing_mut().slider_width =
-                            ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let mut comms_radius = config.robot.communication.radius.get();
-                        let slider_response = ui.add(
-                            egui::Slider::new(&mut comms_radius, 0.1..=50.0)
-                                .suffix("m")
-                                .fixed_decimals(1)
-                                .trailing_fill(true)
+                        ui.horizontal(|ui| {
+                            let mut comms_radius = config.robot.communication.radius.get();
+                            ui.label(format!("{:.1}m", comms_radius));
+                            // slider for communication radius in (0.0, 50.]
+                            // ui.spacing_mut().slider_width =
+                            //     ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
 
-                        );
-                        if slider_response.changed() {
-                            config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 50.0]");
-                            // TODO: this should not be done with a query here, but there is not
-                            // much time left.
-                            let mut query = world.query::<&mut RadioAntenna>();
-                            for mut antenna in query.iter_mut(world) {
-                                antenna.radius = comms_radius;
+                            ui.spacing_mut().slider_width = ui.available_width() - slider_right_margin;
+                            let slider_response = ui.add(
+                                egui::Slider::new(&mut comms_radius, 0.1..=50.0)
+                                    // .suffix("m")
+                                    .fixed_decimals(1)
+                                    .trailing_fill(true)
+                                    .show_value(false)
+                            );
+                            if slider_response.changed() {
+                                config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 50.0]");
+                                // TODO: this should not be done with a query here, but there is not
+                                // much time left.
+                                let mut query = world.query::<&mut RadioAntenna>();
+                                for mut antenna in query.iter_mut(world) {
+                                    antenna.radius = comms_radius;
+                                }
                             }
-                        }
+                        });
                         ui.end_row();
                         // Slider for communication failure rate (probability) in [0.0, 1.0]
                         ui.label("Failure");
-                        ui.spacing_mut().slider_width = ui.available_width()  - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let mut failure_rate = config.robot.communication.failure_rate;
-                        let slider_response = ui.add(
-                            egui::Slider::new(&mut failure_rate, 0.0..=1.0)
-                                .suffix("%")
-                                .fixed_decimals(2)
-                                .trailing_fill(true)
-                        );
-                        if slider_response.changed() {
-                            config.robot.communication.failure_rate = failure_rate;
-                        }
+                        ui.horizontal(|ui| {
+                            let mut failure_rate = config.robot.communication.failure_rate;
+                            ui.label(format!("{:.2}%", failure_rate));
+                            // ui.spacing_mut().slider_width = ui.available_width()  - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                            ui.spacing_mut().slider_width = ui.available_width()  - slider_right_margin;
+                            let slider_response = ui.add(
+                                egui::Slider::new(&mut failure_rate, 0.0..=1.0)
+                                    // .suffix("%")
+                                    .fixed_decimals(2)
+                                    .trailing_fill(true)
+                                    .show_value(false)
+                            );
+                            if slider_response.changed() {
+                                config.robot.communication.failure_rate = failure_rate;
+                            }
+                        });
                         ui.end_row();
                     });
 
