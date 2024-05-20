@@ -1,7 +1,10 @@
 formations:
-- repeat-every:
-    secs: 4
-    nanos: 0
+
+- repeat:
+    every:
+      secs: 5
+      nanos: 0
+    times: !finite 10
   delay:
     secs: 2
     nanos: 0
@@ -9,22 +12,26 @@ formations:
   planning-strategy: rrt-star
   initial-position:
     shape: !line-segment
-    - x: 0.45
-      y: 0.0
-    - x: 0.55
-      y: 0.0
-    placement-strategy: equal
+    - x: 0.15
+      y: 0.20
+    - x: 0.15
+      y: 0.2
+    placement-strategy: !random
+      attempts: 1000
   waypoints:
   - shape: !line-segment
-    - x: 0.45
-      y: 1.25
-    - x: 0.55
-      y: 1.25
+    - x: 0.85
+      y: 0.80
+    - x: 0.85
+      y: 0.8
     projection-strategy: identity
   waypoint-reached-when-intersects: horizon
-- repeat-every:
-    secs: 4
-    nanos: 0
+
+- repeat:
+    every:
+      secs: 5
+      nanos: 0
+    times: !finite 10
   delay:
     secs: 2
     nanos: 0
@@ -32,16 +39,73 @@ formations:
   planning-strategy: rrt-star
   initial-position:
     shape: !line-segment
-    - x: 0.0
-      y: 0.45
-    - x: 0.0
-      y: 0.55
-    placement-strategy: equal
+    - x: 0.85
+      y: 0.80
+    - x: 0.85
+      y: 0.8
+    placement-strategy: !random
+      attempts: 1000
   waypoints:
   - shape: !line-segment
-    - x: 1.25
-      y: 0.45
-    - x: 1.25
-      y: 0.55
+    - x: 0.15
+      y: 0.20
+    - x: 0.15
+      y: 0.2
+    projection-strategy: identity
+  waypoint-reached-when-intersects: horizon
+
+
+- repeat:
+    every:
+      secs: 5
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 0
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.15
+      y: 0.80
+    - x: 0.15
+      y: 0.8
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.85
+      y: 0.2
+    - x: 0.85
+      y: 0.2
+    projection-strategy: identity
+  waypoint-reached-when-intersects: horizon
+
+
+- repeat:
+    every:
+      secs: 5
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 0
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.85
+      y: 0.2
+    - x: 0.85
+      y: 0.2
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.15
+      y: 0.80
+    - x: 0.15
+      y: 0.8
     projection-strategy: identity
   waypoint-reached-when-intersects: horizon

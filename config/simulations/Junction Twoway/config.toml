@@ -76,11 +76,28 @@ prng-seed                                 = 2
 pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = false
 
+
 [rrt]
-max-iterations       = 1000000
-step-size            = 0.5
-collision-radius     = 0.1
-neighbourhood-radius = 10.0
+max-iterations       = 5000000
+step-size            = 5.0
+collision-radius     = 3.0
+neighbourhood-radius = 8.0
+
+[rrt.smoothing]
+enabled        = true
+max-iterations = 500
+step-size      = 0.5
+
+# [rrt]
+# max-iterations       = 10000000
+# step-size            = 0.5
+# collision-radius     = 0.1
+# neighbourhood-radius = 10.0
+#
+# [rrt.smoothing]
+# enabled        = false
+# max-iterations = 100
+# step-size      = 1.0
 
 [graphviz]
 export-location = "./assets/export/"

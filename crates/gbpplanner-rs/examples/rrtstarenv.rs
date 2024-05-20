@@ -127,7 +127,7 @@ fn rrt_path(
             &mut commands,
             START,
             END,
-            config.rrt.smoothing.enabled,
+            // config.rrt.smoothing.enabled,
             config.rrt.clone(),
             colliders.clone(),
             pathfinder,

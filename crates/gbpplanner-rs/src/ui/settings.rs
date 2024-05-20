@@ -470,7 +470,7 @@ fn ui_settings_panel(
                                 ui.selectable_label(false, format!("{:.1}r ", safety_dist_multiplier));
 
                                 // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                                ui.spacing_mut().slider_width = ui.available_width() - slider_right_margin;
+                                ui.spacing_mut().slider_width = ui.available_width();
                                 // let mut available_size = ui.available_size();
                                 // available_size.x += 10.0;
                                 // let slider_response = ui.add_sized(available_size,
@@ -501,7 +501,7 @@ fn ui_settings_panel(
                                 // slider for robot max speed  in (0.0, 10.]
                                 // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
                                 // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                                ui.spacing_mut().slider_width = ui.available_width() - slider_right_margin;
+                                ui.spacing_mut().slider_width = ui.available_width();
 
                                    let slider_response = ui.add_enabled(
                                        time_virtual.is_paused(),
@@ -536,7 +536,7 @@ fn ui_settings_panel(
                             // ui.spacing_mut().slider_width =
                             //     ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
 
-                            ui.spacing_mut().slider_width = ui.available_width() - slider_right_margin;
+                            ui.spacing_mut().slider_width = ui.available_width();
                             let slider_response = ui.add(
                                 egui::Slider::new(&mut comms_radius, 0.1..=50.0)
                                     // .suffix("m")
@@ -561,7 +561,7 @@ fn ui_settings_panel(
                             let mut failure_rate = config.robot.communication.failure_rate;
                             ui.label(format!("{:.2}%", failure_rate));
                             // ui.spacing_mut().slider_width = ui.available_width()  - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                            ui.spacing_mut().slider_width = ui.available_width()  - slider_right_margin;
+                            ui.spacing_mut().slider_width = ui.available_width();
                             let slider_response = ui.add(
                                 egui::Slider::new(&mut failure_rate, 0.0..=1.0)
                                     // .suffix("%")

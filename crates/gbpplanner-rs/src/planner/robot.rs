@@ -8,6 +8,7 @@ use std::{
 use bevy::{
     input::{keyboard::KeyboardInput, ButtonState},
     prelude::*,
+    tasks::futures_lite::future,
 };
 use bevy_prng::WyRand;
 use bevy_rand::{component::EntropyComponent, prelude::GlobalEntropy};
@@ -70,11 +71,16 @@ impl Plugin for RobotPlugin {
                     on_gbp_schedule_changed,
                     attach_despawn_timer_when_robot_finishes_route,
                     request_snapshot_of_robot_when_it_finishes_its_route,
+                    progress_missions.run_if(resource_exists::<gbp_global_planner::Colliders>),
                 ),
             )
             .add_systems(
                 FixedUpdate,
-                (reached_waypoint, progress_missions).run_if(not(virtual_time_is_paused)),
+                (
+                    reached_waypoint,
+                    // progress_missions.run_if(resource_exists::<gbp_global_planner::Colliders>),
+                )
+                    .run_if(not(virtual_time_is_paused)),
             )
             .add_systems(
                 FixedUpdate,
@@ -367,6 +373,11 @@ impl Route {
         }
     }
 
+    pub fn update_waypoints(&mut self, waypoints: min_len_vec::TwoOrMore<StateVector>) {
+        self.waypoints = waypoints.into();
+        self.target_index = 1;
+    }
+
     // pub fn upcoming(waypoints: min_len_vec::TwoOrMore<StateVector>) -> Self {
     //     Self {
     //         waypoints:    waypoints.into(),
@@ -379,6 +390,11 @@ impl Route {
     /// Returns a reference to the next waypoint, if available.
     pub fn next_waypoint(&self) -> Option<&StateVector> {
         self.waypoints.get(self.target_index)
+    }
+
+    /// Returns a reference to the last waypoint, if available.
+    pub fn last_waypoint(&self) -> Option<&StateVector> {
+        self.waypoints.get(self.target_index - 1)
     }
 
     /// Advances to the next waypoint, updating the finished time if the route
@@ -530,16 +546,26 @@ impl FromWorld for GbpIterationSchedule {
     }
 }
 
+// fn poll_pathfinding_tasks(
+//    mut commands: Commands,
+//    mut q: Query<&mut PathfindingTask>,
+//) {
+//    for mut task in &mut q {
+//        if let Some(result) = future::block_on(future::poll_once(&mut task.0))
+// {            info!("Pathfinding task completed");
+//            commands.entity(task.1).remove::<PathfindingTask>();
+//        }
+//    }
+//}
+
 fn progress_missions(
     mut commands: Commands,
     mut q: Query<(Entity, &mut RobotMission, &PlanningStrategy)>,
-    mut pathfinders: Query<
-        (Entity, &mut EntropyComponent<WyRand>),
-        (With<PathFinder>, Without<PathfindingTask>),
-    >,
+    mut pathfinders: Query<(Entity, &mut EntropyComponent<WyRand>), Without<PathfindingTask>>,
+    mut tasks: Query<&mut PathfindingTask>,
     config: Res<Config>,
     time: Res<Time>,
-    // colliders: Res<gbp_global_planner::Colliders>,
+    colliders: Res<gbp_global_planner::Colliders>,
 ) {
     for (robot_entity, mut mission, plannning_strategy) in &mut q {
         match (mission.state, plannning_strategy) {
@@ -554,16 +580,47 @@ fn progress_missions(
                 },
                 PlanningStrategy::RrtStar,
             ) => {
-                // if let Ok((_, mut )) = pathfinders.get_mut(robot_entity) {
-                // gbp_global_planner::rrtstar::spawn_pathfinding_task(
-                //     &mut commands, start, end, smooth, rrt_params, colliders, task_target,
-                //
-                // )
-                // }
+                if let Ok((pathfinder, prng)) = pathfinders.get_mut(robot_entity) {
+                    let active_route = mission.active_route().unwrap();
+                    //    let start = active_route
+                    //
+                    //    .waypoints
+                    //    .first()
+                    //    .map(|w| w.position())
+                    //    .unwrap();
+                    // let end = active_route.waypoints.last().map(|w| w.position()).unwrap();
+                    let start = mission.waypoints[mission.active_route].position();
+                    let end = mission.waypoints[mission.active_route + 1].position();
+                    // let start = mission.last_waypoint().unwrap().position();
+                    // let end = mission.next_waypoint().unwrap().position();
+                    info!(
+                        "starting pathfinding task for entity: {:?} from {:?} to {:?} #colliders \
+                         {}",
+                        robot_entity,
+                        start,
+                        end,
+                        colliders.len()
+                    );
+
+                    // dbg!(&colliders);
+                    gbp_global_planner::rrtstar::spawn_pathfinding_task(
+                        &mut commands,
+                        start,
+                        end,
+                        dbg!(config.rrt.clone()),
+                        colliders.clone(),
+                        pathfinder,
+                        Some(Box::new(prng.clone())),
+                    );
+                }
+
+                mission.state = RobotMissionState::Idle {
+                    waiting_for_waypoints: true,
+                };
 
                 // start rrt job TODO:
-                info!("(Idle {{ .. }}, RrtStar) => Active");
-                mission.state = RobotMissionState::Active;
+                // info!("(Idle {{ .. }}, RrtStar) => Active");
+                // mission.state = RobotMissionState::Active;
             }
             (
                 RobotMissionState::Idle {
@@ -573,6 +630,41 @@ fn progress_missions(
             ) => {
                 // check if rrt job finished, and the advance to active state
                 // TODO:
+
+                if let Ok(mut task) = tasks.get_mut(robot_entity) {
+                    // info!("polling task for entity: {:?}", robot_entity);
+                    // if let Ok(result) = future::block_on(&mut task.0) {
+                    if let Some(result) = future::block_on(future::poll_once(&mut task.0)) {
+                        info!("Pathfinding task completed for entity: {:?}", robot_entity);
+                        commands.entity(robot_entity).remove::<PathfindingTask>();
+                        match result {
+                            Ok(new_path) => {
+                                let active_route = mission.active_route_mut().unwrap();
+                                let waypoints = new_path
+                                    .0
+                                    .iter()
+                                    // TODO: set velocity to direction of next waypoint
+                                    .map(|p| Vec4::new(p.x, p.y, 0.0, 0.0).into())
+                                    .rev()
+                                    .collect_vec();
+                                //.try_into()
+                                //.unwrap();
+
+                                dbg!(&waypoints);
+
+                                info!("updating route waypoints: {:?}", waypoints);
+                                active_route.update_waypoints(waypoints.try_into().unwrap());
+                                mission.state = RobotMissionState::Active;
+                            }
+                            Err(e) => {
+                                error!("Pathfinding error: {:?}", e);
+                                mission.state = RobotMissionState::Idle {
+                                    waiting_for_waypoints: false, // try again
+                                }
+                            }
+                        }
+                    }
+                }
             }
             (RobotMissionState::Active, _) => {
                 // info!("(Active)");
@@ -656,11 +748,25 @@ impl RobotMission {
         // self.routes[self.active_route].next_waypoint()
     }
 
+    pub fn last_waypoint(&self) -> Option<&StateVector> {
+        self.routes
+            .get(self.active_route)
+            .and_then(|r| r.last_waypoint())
+    }
+
     pub fn active_route(&self) -> Option<&Route> {
         if self.is_completed() {
             None
         } else {
             self.routes.get(self.active_route)
+        }
+    }
+
+    pub fn active_route_mut(&mut self) -> Option<&mut Route> {
+        if self.is_completed() {
+            None
+        } else {
+            self.routes.get_mut(self.active_route)
         }
     }
 
@@ -704,6 +810,10 @@ impl RobotMission {
             RobotMissionState::Completed | RobotMissionState::Idle { .. } => return,
         }
     }
+
+    pub fn waypoints(&self) -> impl Iterator<Item = &StateVector> + '_ {
+        self.routes.iter().flat_map(|r| r.waypoints())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -711,6 +821,12 @@ pub enum RobotMissionState {
     Idle { waiting_for_waypoints: bool },
     Active,
     Completed,
+}
+
+impl RobotMissionState {
+    pub fn idle(&self) -> bool {
+        matches!(self, RobotMissionState::Idle { .. })
+    }
 }
 
 #[derive(Bundle)]
@@ -973,6 +1089,15 @@ impl RobotBundle {
             // }
         }
 
+        let mission = match planning_strategy {
+            PlanningStrategy::OnlyLocal => {
+                RobotMission::local(waypoints.try_into().unwrap(), started_at)
+            }
+            PlanningStrategy::RrtStar => {
+                RobotMission::global(waypoints.try_into().unwrap(), started_at)
+            }
+        };
+
         Self {
             factorgraph,
             radius: Radius(radius),
@@ -985,7 +1110,8 @@ impl RobotBundle {
             t0: T0(t0),
             gbp_iteration_schedule: GbpIterationSchedule(config.gbp.iteration_schedule),
             // task_state:
-            mission: RobotMission::local(waypoints.try_into().unwrap(), started_at),
+            // mission: RobotMission::local(waypoints.try_into().unwrap(), started_at),
+            mission,
             intersects_when,
             planning_strategy,
         }
@@ -1117,7 +1243,7 @@ fn create_interrobot_factors(
     //         node_indices.len()
     //     );
     // }
-    debug_assert!(variable_indices_of_each_factorgraph.values().all_equal());
+    // debug_assert!(variable_indices_of_each_factorgraph.values().all_equal());
 
     let mut external_edges_to_add = Vec::new();
 
@@ -1799,7 +1925,7 @@ fn update_prior_of_horizon_state(
     let mut robots_to_despawn = Vec::new();
 
     for (robot_id, mut factorgraph, mission, mut finished_path, radius) in &mut query {
-        if finished_path.0 {
+        if finished_path.0 || mission.state.idle() {
             continue;
         }
 
@@ -1902,7 +2028,10 @@ fn update_prior_of_horizon_state(
 
 /// Called `Robot::updateCurrent` in **gbpplanner**
 fn update_prior_of_current_state_v3(
-    mut query: Query<(&mut FactorGraph, &mut Transform, &T0), With<RobotConnections>>,
+    mut query: Query<
+        (&mut FactorGraph, &mut Transform, &T0, &RobotMission),
+        With<RobotConnections>,
+    >,
     config: Res<Config>,
     time_fixed: Res<Time<Fixed>>,
 ) {
@@ -1910,7 +2039,11 @@ fn update_prior_of_current_state_v3(
 
     let mut messages_to_external_factors: Vec<FactorToVariableMessage> = vec![];
 
-    for (mut factorgraph, mut transform, &t0) in &mut query {
+    for (mut factorgraph, mut transform, &t0, mission) in &mut query {
+        if mission.state.idle() {
+            continue;
+        }
+
         let time_scale = time_fixed.delta_seconds() / *t0;
         let (current_variable_index, current_variable) = factorgraph
             .nth_variable(0)

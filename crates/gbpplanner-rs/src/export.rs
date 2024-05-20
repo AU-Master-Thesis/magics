@@ -184,6 +184,7 @@ struct ExportData {
     gbp:       GbpData,
     robots:    HashMap<Entity, RobotData>,
     prng_seed: u64,
+    config:    gbp_config::Config,
 }
 
 #[derive(serde::Serialize)]
@@ -218,7 +219,7 @@ fn export(
     robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
     environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
     sim_manager: Res<crate::simulation_loader::SimulationManager>,
-    config: Res<Config>,
+    config: Res<gbp_config::Config>,
     time_virtual: Res<Time<Virtual>>,
     time_fixed: Res<Time<Fixed>>,
     catppuccin: Res<crate::theme::CatppuccinTheme>,
@@ -422,6 +423,7 @@ fn export(
             gbp,
             robots: robot_snapshots.drain().collect(),
             prng_seed: config.simulation.prng_seed,
+            config: config.clone(),
         };
 
         let json = serde_json::to_string_pretty(&export_data).unwrap();

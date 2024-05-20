@@ -1,14 +1,20 @@
 //! **Bevy** Plugin to visualize robot waypoints
 use bevy::prelude::*;
 use gbp_config::{Config, DrawSetting};
+use itertools::Itertools;
 
 use crate::{
     // asset_loader::SceneAssets,
     asset_loader::{Materials, Meshes},
     bevy_utils::run_conditions::event_exists,
     input::DrawSettingsEvent,
-    planner::{robot::RobotReachedWaypoint, spawner::WaypointCreated, RobotId},
+    planner::{
+        robot::{RobotMission, RobotReachedWaypoint},
+        spawner::WaypointCreated,
+        RobotId,
+    },
     simulation_loader,
+    theme::ColorAssociation,
 };
 
 /// **Bevy** Plugin to visualize robot waypoints
@@ -19,8 +25,9 @@ impl Plugin for WaypointVisualiserPlugin {
         app.add_systems(
             Update,
             (
-                listen_for_robot_reached_waypoint_event,
+                remove_when_robot_reached_waypoint,
                 create_waypoint_visualizer,
+                visualize_waypoints,
                 // delete_mesh_of_reached_waypoints,
                 show_or_hide_waypoint_visualizers.run_if(event_exists::<DrawSettingsEvent>),
             ),
@@ -28,7 +35,31 @@ impl Plugin for WaypointVisualiserPlugin {
     }
 }
 
-fn listen_for_robot_reached_waypoint_event(
+fn visualize_waypoints(
+    mut gizmos: Gizmos,
+    missions: Query<(&RobotMission, &ColorAssociation)>,
+    config: Res<Config>,
+    theme: Res<crate::theme::CatppuccinTheme>,
+) {
+    use crate::theme::ColorFromCatppuccinColourExt;
+
+    let height = config.visualisation.height.objects;
+    for (mission, color_assoc) in &missions {
+        let colour = theme.get_display_colour(&color_assoc.name);
+        let color = Color::from_catppuccin_colour_with_alpha(colour, 0.25);
+        // let color = theme.from_catppuccin_colour(color_assoc.name.);
+        for (wp1, wp2) in mission.waypoints().tuple_windows() {
+            gizmos.line(
+                wp1.position().extend(height).xzy(),
+                wp2.position().extend(height).xzy(),
+                color,
+                // Color::RED,
+            );
+        }
+    }
+}
+
+fn remove_when_robot_reached_waypoint(
     mut commands: Commands,
     mut evr_robot_reached_waypoint: EventReader<RobotReachedWaypoint>,
     // mut evw_waypoint_reached: EventWriter<RobotReachedWaypoint>,
@@ -42,7 +73,6 @@ fn listen_for_robot_reached_waypoint_event(
             .map(|(entity, _)| entity)
         {
             commands.entity(waypoint_id).despawn();
-            // evw_waypoint_reached.send(RobotReachedWaypoint(waypoint_id));
         };
     }
 }

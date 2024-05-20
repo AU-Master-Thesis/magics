@@ -363,7 +363,11 @@ fn create_formation_group_spawners(
             formation.delay, repeating_timer
         );
 
-        commands.spawn(FormationSpawner::new(i, formation.delay, repeating_timer));
+        commands.spawn(dbg!(FormationSpawner::new(
+            i,
+            formation.delay,
+            repeating_timer
+        )));
     }
     commands.insert_resource(Scoreboard {
         robots_left: robots_to_spawn,
@@ -581,7 +585,7 @@ fn spawn_formation(
                 time_fixed.elapsed().as_secs_f64(),
                 waypoints.try_into().unwrap(),
                 // config
-                formation.planning_strategy,
+                dbg!(formation.planning_strategy),
                 formation.waypoint_reached_when_intersects,
                 // matches!(formation.planning_strategy, PlanningStrategy::RrtStar
                 // ),

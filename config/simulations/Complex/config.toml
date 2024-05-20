@@ -5,7 +5,7 @@ formation_group   = "./config/simulations/Complex/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance    = 250.0
+default-cam-distance    = 300.0
 
 [visualisation.uncertainty]
 max-radius = 2.5
@@ -17,7 +17,7 @@ height-map = 1.0
 
 [visualisation.draw]
 robots                             = true
-communication-graph                = false
+communication-graph                = true
 predicted-trajectories             = true
 waypoints                          = false
 uncertainty                        = false
@@ -44,29 +44,29 @@ sigma-factor-tracking   = 0.1
 # iterations-per-timestep = 10
 lookahead-multiple = 3
 [gbp.iteration-schedule]
-internal = 10
+internal = 20
 external = 10
 schedule = "interleave-evenly"
 
 [robot]
 planning-horizon                       = 5.0
-max-speed                              = 4.0
+max-speed                              = 7.0
 inter-robot-safety-distance-multiplier = 2.2
 
 [robot.radius]
 min = 2.0
-max = 3.0
+max = 2.0
 
 [robot.communication]
 radius       = 20.0
-failure-rate = 0.2
+failure-rate = 0.05
 
 [simulation]
 # t0                 = 0.25
 max-time           = 10000.0
 time-scale         = 1.0
 manual-step-factor = 1
-hz                 = 60.0
+hz                 = 20.0
 # world-size                                = 100.0
 prng-seed                                 = 0
 pause-on-spawn                            = false
