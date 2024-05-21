@@ -28,7 +28,7 @@ def plot_robot_paths(data, filepath="robot-positions.html"):
                                  name=f'Robot {robot_id} (Radius: {robot_data["radius"]})'))
 
     fig.update_layout(
-        title=f'Paths of Robots in Environment: {data["environment"]}',
+        title=f'Paths of Robots in Environment: {data["scenario"]}',
         xaxis_title='X Coordinate',
         yaxis_title='Y Coordinate',
         legend_title='Robot ID',

@@ -11,7 +11,8 @@ use super::{Factor, FactorState};
 #[derive(Debug)]
 pub struct TrackingFactor {
     /// Tracking path (Likely from RRT)
-    tracking_path: Vec<Vec2>,
+    // tracking_path: Vec<Vec2>,
+    tracking_path: Option<Vec<Vec2>>,
 
     /// Most recent measurement
     last_measurement: Mutex<Cell<LastMeasurement>>,
@@ -37,13 +38,13 @@ impl TrackingFactor {
     pub const NEIGHBORS: usize = 1;
 
     /// Creates a new [`TrackingFactor`].
-    pub fn new(tracking_path: Vec<Vec2>) -> Self {
-        assert!(
-            tracking_path.len() >= 2,
-            "Tracking path must have at least 2 points"
-        );
+    pub fn new(tracking_path: Option<min_len_vec::TwoOrMore<Vec2>>) -> Self {
+        // assert!(
+        //    tracking_path.len() >= 2,
+        //    "Tracking path must have at least 2 points"
+        //);
         Self {
-            tracking_path,
+            tracking_path:    tracking_path.map(|x| x.into()),
             // last_measurement: Mutex::new(Cell::new(Vec2::ZERO)),
             last_measurement: Default::default(),
         }
@@ -52,6 +53,10 @@ impl TrackingFactor {
     /// Get the last measurement
     pub fn last_measurement(&self) -> LastMeasurement {
         self.last_measurement.lock().unwrap().get()
+    }
+
+    pub fn set_tracking_path(&mut self, tracking_path: min_len_vec::TwoOrMore<Vec2>) {
+        self.tracking_path = Some(tracking_path.into());
     }
 }
 
@@ -74,12 +79,14 @@ impl Factor for TrackingFactor {
         Cow::Owned(self.first_order_jacobian(state, x.clone()))
     }
 
-    fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, _state: &FactorState, linearization_point: &Vector<Float>) -> Vector<Float> {
         // 1. Window pairs of rrt path
         // 1.1. Find the line defined by the two points
 
         let (projected_point, _, _, _) = self
             .tracking_path
+            .as_ref()
+            .unwrap()
             .windows(2)
             .map(|window| {
                 let p2 = array![window[1].x as Float, window[1].y as Float];
@@ -87,7 +94,7 @@ impl Factor for TrackingFactor {
 
                 let line = &p2 - &p1;
 
-                let x_pos = x.slice(s![0..2]).to_owned();
+                let x_pos = linearization_point.slice(s![0..2]).to_owned();
 
                 // project x_pos onto the line
                 let projected = &p1 + (&x_pos - &p1).dot(&line) / &line.dot(&line) * &line;
@@ -117,7 +124,7 @@ impl Factor for TrackingFactor {
 
         let max_length = 2.0;
 
-        let x_to_projection = &projected_point - x.slice(s![0..2]).to_owned();
+        let x_to_projection = &projected_point - linearization_point.slice(s![0..2]).to_owned();
         // clamp the distance to the max length
         let x_to_projection = if x_to_projection.euclidean_norm() > max_length {
             (x_to_projection.normalized() * max_length).normalized()
@@ -151,7 +158,8 @@ impl Factor for TrackingFactor {
 
     #[inline(always)]
     fn skip(&self, _state: &FactorState) -> bool {
-        false
+        self.tracking_path.is_none()
+        // false
     }
 
     #[inline(always)]
@@ -167,7 +175,17 @@ impl Factor for TrackingFactor {
 
 impl std::fmt::Display for TrackingFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "tracking_path: {:?}", self.tracking_path)?;
+        use colored::Colorize;
+
+        if let Some(tracking_path) = &self.tracking_path {
+            writeln!(f, "tracking_path: {}", tracking_path.len())?;
+            let width = (tracking_path.len() as f32).log10().ceil() as usize;
+            for (i, pos) in tracking_path.iter().enumerate() {
+                writeln!(f, "  [{:>width$}] = [{:>6.2}, {:>6.2}]", i, pos.x, pos.y)?;
+            }
+        } else {
+            writeln!(f, "tracking_path: {}", "None".red())?;
+        }
         write!(f, "last_measurement: {:?}", self.last_measurement())
     }
 }

@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashMap, VecDeque},
+    collections::{BTreeSet, HashMap},
     num::NonZeroUsize,
     sync::{Arc, Mutex},
     time::Duration,
@@ -16,7 +16,7 @@ use gbp_config::{
     formation::{PlanningStrategy, WaypointReachedWhenIntersects},
     Config,
 };
-use gbp_global_planner::{PathFinder, PathfindingTask};
+use gbp_global_planner::PathfindingTask;
 use gbp_linalg::prelude::*;
 use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
@@ -485,7 +485,7 @@ impl RadioAntenna {
 
 /// A robot's state, consisting of other robots within communication range,
 /// and other robots that are connected via inter-robot factors.
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Default)]
 pub struct RobotConnections {
     /// List of robot ids that are within the communication radius of this
     /// robot. called `neighbours_` in **gbpplanner**.
@@ -506,22 +506,9 @@ impl RobotConnections {
     }
 }
 
-impl Default for RobotConnections {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 // TODO: change to collider
 #[derive(Debug, Component, Deref)]
 pub struct Ball(parry2d::shape::Ball);
-
-// #[derive(Component)]
-// pub struct GbpIterationSchedule {
-//     pub external_iterations: u32,
-//     pub internal_iterations: u32,
-//     pub schedule: Arc<dyn gbp_schedule::GbpSchedule>,
-// }
 
 #[derive(Clone, Copy, Debug, Component, Resource, derive_more::Into, derive_more::From)]
 pub struct GbpIterationSchedule(pub gbp_config::GbpIterationSchedule);
@@ -563,6 +550,7 @@ fn progress_missions(
     mut q: Query<(Entity, &mut RobotMission, &PlanningStrategy)>,
     mut pathfinders: Query<(Entity, &mut EntropyComponent<WyRand>), Without<PathfindingTask>>,
     mut tasks: Query<&mut PathfindingTask>,
+    mut factorgraphs: Query<&mut FactorGraph>,
     config: Res<Config>,
     time: Res<Time>,
     colliders: Res<gbp_global_planner::Colliders>,
@@ -650,7 +638,25 @@ fn progress_missions(
                                 //.try_into()
                                 //.unwrap();
 
-                                dbg!(&waypoints);
+                                // dbg!(&waypoints);
+
+                                if let Ok(mut fgraph) = factorgraphs.get_mut(robot_entity) {
+                                    fgraph.modify_tracking_factors(|tracking| {
+                                        let waypoints = waypoints
+                                            .iter()
+                                            .map(|wp: &StateVector| wp.position())
+                                            .collect_vec();
+                                        tracking.set_tracking_path(
+                                            min_len_vec::TwoOrMore::new(waypoints).unwrap(),
+                                        );
+                                    });
+
+                                    info!(
+                                        "updated tracking_path of each tracking factor of robot: \
+                                         {:?}",
+                                        robot_entity
+                                    );
+                                }
 
                                 info!("updating route waypoints: {:?}", waypoints);
                                 active_route.update_waypoints(waypoints.try_into().unwrap());
@@ -968,9 +974,21 @@ impl RobotBundle {
         for (i, &variable_timestep) in variable_timesteps.iter().enumerate() {
             // Set initial mean and covariance of variable interpolated between start and
             // horizon
-            #[allow(clippy::cast_precision_loss)]
-            let mean = start
-                + (horizon - start) * (variable_timestep as f32 / last_variable_timestep as f32);
+            //#[allow(clippy::cast_precision_loss)]
+            // let mean = start
+            //    + (horizon - start) * (variable_timestep as f32 / last_variable_timestep
+            //      as f32);
+
+            let mean = match planning_strategy {
+                PlanningStrategy::OnlyLocal => {
+                    start
+                        + (horizon - start)
+                            * (variable_timestep as f32 / last_variable_timestep as f32)
+                }
+                // PlanningStrategy::RrtStar => Vec4::ZERO,
+                // FIXME: why unwind like a worm?
+                PlanningStrategy::RrtStar => start,
+            };
 
             let sigma = if i == 0 || i == n_variables - 1 {
                 // Start and Horizon state variables should be 'fixed' during optimisation at a
@@ -1061,34 +1079,6 @@ impl RobotBundle {
             );
         }
 
-        let use_tracking = false;
-        // Create Tracking factors for all variables, excluding the start
-        if use_tracking {
-            // for i in 1..variable_timesteps.len() {
-            //     let tracking_factor = FactorNode::new_tracking_factor(
-            //         factorgraph.id(),
-            //         Float::from(config.gbp.sigma_factor_tracking),
-            //         // init_variable_means[i].clone(),
-            //         array![0.0],
-            //         route
-            //             .waypoints()
-            //             .iter()
-            //             .map(|wp| wp.position())
-            //             .collect::<Vec<Vec2>>(),
-            //         config.gbp.factors_enabled.tracking,
-            //     );
-            //
-            //     let factor_node_index =
-            // factorgraph.add_factor(tracking_factor);
-            //     let factor_id = FactorId::new(factorgraph.id(),
-            // factor_node_index);     let _ =
-            // factorgraph.add_internal_edge(
-            //         VariableId::new(factorgraph.id(),
-            // variable_node_indices[i]),         factor_id,
-            //     );
-            // }
-        }
-
         let mission = match planning_strategy {
             PlanningStrategy::OnlyLocal => {
                 RobotMission::local(waypoints.try_into().unwrap(), started_at)
@@ -1097,6 +1087,44 @@ impl RobotBundle {
                 RobotMission::global(waypoints.try_into().unwrap(), started_at)
             }
         };
+
+        let use_tracking = true;
+        // Create Tracking factors for all variables, excluding the start
+        if use_tracking {
+            // for i in 1..variable_timesteps.len() {
+
+            let initial_route = mission.active_route().unwrap();
+            let waypoints = initial_route
+                .waypoints
+                .iter()
+                .map(|w| w.position())
+                .collect::<Vec<Vec2>>();
+            for var_ix in &variable_node_indices[1..] {
+                let tracking_factor = FactorNode::new_tracking_factor(
+                    factorgraph.id(),
+                    Float::from(config.gbp.sigma_factor_tracking),
+                    // init_variable_means[i].clone(),
+                    array![0.0],
+                    // None,
+                    Some(waypoints.clone().try_into().unwrap()),
+                    // route
+                    //    .waypoints()
+                    //    .iter()
+                    //    .map(|wp| wp.position())
+                    //    .collect::<Vec<Vec2>>()
+                    //    .into(),
+                    config.gbp.factors_enabled.tracking,
+                );
+
+                let factor_node_index = factorgraph.add_factor(tracking_factor);
+                let factor_id = FactorId::new(factorgraph.id(), factor_node_index);
+                let _ = factorgraph.add_internal_edge(
+                    // VariableId::new(factorgraph.id(), variable_node_indices[i]),
+                    VariableId::new(factorgraph.id(), *var_ix),
+                    factor_id,
+                );
+            }
+        }
 
         Self {
             factorgraph,
@@ -2367,6 +2395,11 @@ fn on_robot_clicked(
             factor_counts.interrobot
         );
         println!("        {}: {}", "pose".yellow(), node_counts.variables); // bundled together
+        println!(
+            "        {}: {}",
+            "tracking".yellow(),
+            factor_counts.tracking
+        );
 
         println!("  {}:", "messages".magenta());
         // let message_count = factorgraph.message_count();

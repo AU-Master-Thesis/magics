@@ -36,8 +36,8 @@ robot-robot-collisions             = true
 robot-environment-collisions       = true
 
 [gbp]
-sigma-pose-fixed        = 0.000000000000001
-sigma-factor-dynamics   = 0.1
+sigma-pose-fixed        = 1e-15
+sigma-factor-dynamics   = 0.5
 sigma-factor-interrobot = 0.01
 sigma-factor-obstacle   = 0.01
 sigma-factor-tracking   = 0.1
@@ -51,7 +51,7 @@ schedule = "interleave-evenly"
 [robot]
 planning-horizon                       = 5.0
 max-speed                              = 7.0
-inter-robot-safety-distance-multiplier = 2.2
+inter-robot-safety-distance-multiplier = 3.2
 
 [robot.radius]
 min = 2.0
@@ -68,9 +68,9 @@ time-scale         = 1.0
 manual-step-factor = 1
 hz                 = 20.0
 # world-size                                = 100.0
-prng-seed                                 = 0
+prng-seed                                 = 2
 pause-on-spawn                            = false
-despawn-robot-when-final-waypoint-reached = false
+despawn-robot-when-final-waypoint-reached = true
 
 [rrt]
 max-iterations       = 5000000
@@ -99,3 +99,10 @@ export-location = "./assets/export/"
 
 [manual]
 timesteps-per-step = 1
+
+[debug.on-variable-clicked]
+tracking   = true
+obstacle   = true
+dynamic    = false
+interrobot = false
+variable   = false

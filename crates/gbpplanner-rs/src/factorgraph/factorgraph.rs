@@ -255,6 +255,7 @@ impl FactorGraph {
             obstacle:   self.obstacle_factor_indices.len(),
             interrobot: self.interrobot_factor_indices.len(),
             dynamic:    self.dynamic_factor_indices.len(),
+            tracking:   self.tracking_factor_indices.len(),
         }
     }
 
@@ -947,6 +948,8 @@ pub struct FactorCount {
     pub interrobot: usize,
     /// Number of `DynamicFactor`s
     pub dynamic:    usize,
+    /// Number of `TrackingFactor`s
+    pub tracking:   usize,
 }
 
 /// Iterator over the factors in the factorgraph.
@@ -1458,6 +1461,20 @@ impl FactorGraph {
         FactorsDyn {
             graph: &self.graph,
             iter:  self.factor_indices.iter(),
+        }
+    }
+}
+
+impl FactorGraph {
+    /// Modify the tracking factors in the factorgraph
+    pub fn modify_tracking_factors(&mut self, mut f: impl FnMut(&mut TrackingFactor)) {
+        for ix in &self.tracking_factor_indices {
+            let node = &mut self.graph[*ix];
+            let factor = node.factor_mut();
+            let FactorKind::Tracking(ref mut inner) = factor.kind else {
+                panic!("Expected a tracking factor");
+            };
+            f(inner);
         }
     }
 }

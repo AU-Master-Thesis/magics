@@ -348,8 +348,6 @@ fn create_formation_group_spawners(
     };
 
     let robots_to_spawn = formation_group.robots_to_spawn();
-    // dbg!(&formation_group);
-    // dbg!(robots_to_spawn);
 
     for (i, formation) in formation_group.formations.iter().enumerate() {
         #[allow(clippy::option_if_let_else)] // find it more readable with a match here
@@ -363,11 +361,7 @@ fn create_formation_group_spawners(
             formation.delay, repeating_timer
         );
 
-        commands.spawn(dbg!(FormationSpawner::new(
-            i,
-            formation.delay,
-            repeating_timer
-        )));
+        commands.spawn(FormationSpawner::new(i, formation.delay, repeating_timer));
     }
     commands.insert_resource(Scoreboard {
         robots_left: robots_to_spawn,
@@ -585,7 +579,7 @@ fn spawn_formation(
                 time_fixed.elapsed().as_secs_f64(),
                 waypoints.try_into().unwrap(),
                 // config
-                dbg!(formation.planning_strategy),
+                formation.planning_strategy,
                 formation.waypoint_reached_when_intersects,
                 // matches!(formation.planning_strategy, PlanningStrategy::RrtStar
                 // ),

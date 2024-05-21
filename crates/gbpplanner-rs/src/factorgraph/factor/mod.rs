@@ -222,7 +222,7 @@ impl FactorNode {
         factorgraph_id: FactorGraphId,
         strength: Float,
         measurement: Vector<Float>,
-        rrt_path: Vec<Vec2>,
+        rrt_path: Option<min_len_vec::TwoOrMore<Vec2>>,
         enabled: bool,
     ) -> Self {
         let state = FactorState::new(measurement, strength, TrackingFactor::NEIGHBORS);

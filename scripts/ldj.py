@@ -80,7 +80,12 @@ def main():
 
     ldj_of_each_robot: dict[int, float] = {}
     for robot_id, robot_data in data['robots'].items():
+        # print(f"{robot_data=}")
+        # sys.exit(0)
         mission = robot_data['mission']
+        # mission = robot_data.get("mission", None)
+        # if not mission:
+        #     continue
         t_start: float = mission['started_at']
         t_final: float = mission['finished_at'] if mission['finished_at'] else mission['duration'] + t_start
         timestamps: np.ndarray = np.array([measurement['timestamp'] for measurement in robot_data['velocities']])
@@ -99,7 +104,6 @@ def main():
     )
     # print(tabulate(table, headers, tablefmt="mixed_outline"))
     print(tabulate(table, headers, **tabulate_opts))
-
 
     mean: float = statistics.mean(ldj_of_each_robot.values())
 
