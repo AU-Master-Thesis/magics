@@ -81,6 +81,15 @@ impl TrackingFactor {
         }
     }
 
+    pub fn with_last_measurement(mut self, pos: Vec2, value: Float) -> Self {
+        self.last_measurement
+            .lock()
+            .unwrap()
+            .set(LastMeasurement { pos, value });
+
+        self
+    }
+
     /// Get the last measurement
     pub fn last_measurement(&self) -> LastMeasurement {
         self.last_measurement.lock().unwrap().get()
@@ -113,17 +122,7 @@ impl Factor for TrackingFactor {
 
     // fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
     fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Measurement {
-        // let x_pos = x.slice(s![0..2]).to_owned();
-        // if self.tracking.path.is_empty() {
-        //     println!("Skipping factor because path is empty");
-        //     return Measurement::new(array![0.0]);
-        // }
-
-        // The 2D position part of the linearisation point state
-        // let x_pos = {
-        //     let p = x.slice(s![0..2]).to_owned();
-        //     Vec2::new(p[0] as f32, p[1] as f32)
-        // };
+        println!("x: {}", x);
         let x_pos = x.slice(s![0..2]).to_owned();
 
         // 1. Find which line in the `self.tracking.path` to project to, based off of
@@ -152,7 +151,12 @@ impl Factor for TrackingFactor {
 
         // 3. if within 2m of end, increment `self.tracking.record`
         let projected_point_to_end = (&end - &projected_point).l1_norm();
+        println!(
+            "current_record: {}, distance to end: {}, lin: {}",
+            current_record, projected_point_to_end, x_pos
+        );
         if projected_point_to_end < 2.0f64.powi(2) {
+            println!("to end: {}", projected_point_to_end);
             self.tracking.record.lock().unwrap().set(current_record + 1)
         }
 
@@ -187,7 +191,7 @@ impl Factor for TrackingFactor {
         // TODO: Tune this
         // NOTE: Maybe this should be influenced by the distance from variable to the
         // measurement
-        1e-4
+        1e-2
     }
 
     #[inline(always)]

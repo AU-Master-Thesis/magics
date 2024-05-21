@@ -256,11 +256,16 @@ impl FactorNode {
         factorgraph_id: FactorGraphId,
         strength: Float,
         measurement: Vector<Float>,
+        linearisation_point: Vector<Float>,
         rrt_path: Vec<Vec2>,
         enabled: bool,
     ) -> Self {
-        let state = FactorState::new(measurement, strength, TrackingFactor::NEIGHBORS);
-        let tracking_factor = TrackingFactor::new(rrt_path);
+        let state = FactorState::new(measurement, strength, TrackingFactor::NEIGHBORS)
+            .with_linearisation_point(linearisation_point.clone());
+        let tracking_factor = TrackingFactor::new(rrt_path).with_last_measurement(
+            Vec2::new(linearisation_point[0] as f32, linearisation_point[1] as f32),
+            0.0,
+        );
         let kind = FactorKind::Tracking(tracking_factor);
         Self::new(factorgraph_id, state, kind, enabled)
     }
@@ -273,6 +278,9 @@ impl FactorNode {
     #[inline]
     // fn measure(&self, x: &Vector<Float>) -> Vector<Float> {
     fn measure(&self, x: &Vector<Float>) -> Measurement {
+        if matches!(self.kind, FactorKind::Tracking(_)) {
+            println!("measuring {}: {:?}", self.kind.name(), self.node_index);
+        }
         self.kind.measure(&self.state, x)
         // self.state.cached_measurement = self.kind.measure(&self.state, x);
         // self.state.cached_measurement.clone()
@@ -313,31 +321,6 @@ impl FactorNode {
     /// Update the factor using the gbp message passing algorithm
     #[must_use]
     pub fn update(&mut self) -> MessagesToVariables {
-        // debug_assert_eq!(
-        //     self.state.linearisation_point.len(),
-        //     DOFS * self.inbox.len()
-        // );
-
-        // if self.state.linearisation_point.len() != DOFS * self.inbox.len() {
-        //     eprintln!(
-        //         "self.state.linearisation_point.len() = {}, DOFS * self.inbox.len() =
-        // {}",         self.state.linearisation_point.len(),
-        //         DOFS * self.inbox.len()
-        //     );
-        //     panic!("should not happen");
-        // }
-
-        // // let chunks = self.state.linearisation_point.exact_chunks_mut(DOFS);
-        // for chunk in
-        // self.state.linearisation_point.exact_chunks_mut(DOFS).into_iter() {
-        //     // chunk.into_slice_memory_order()
-        //     if let Some(data) = chunk.as_slice_memory_order_mut() {
-        //         data.assign_elem(0.0);
-        //     } else {
-        //         panic!("should not happen, is 1d");
-        //     }
-        // }
-
         for (i, (_, message)) in self.inbox.iter().enumerate() {
             let mut slice = self
                 .state
@@ -351,57 +334,6 @@ impl FactorNode {
                     *x = 0.0;
                 }
             }
-
-            // match self.kind.try_as_tracking_ref() {
-            //     Some(tracking_factor) => {
-            //         let x_pos = slice.slice(s![0..2]);
-            //         let (projected_point, _, _, _) = tracking_factor
-            //             .tracking_path()
-            //             .windows(2)
-            //             .map(|window| {
-            //                 let p2 = array![window[1].x as Float, window[1].y
-            // as Float];                 let p1 =
-            // array![window[0].x as Float, window[0].y as Float];
-
-            //                 let line = &p2 - &p1;
-
-            //                 // project x_pos onto the line
-            //                 let projected =
-            //                     &p1 + (&x_pos - &p1).dot(&line) /
-            // &line.dot(&line) * &line;                 let
-            // distance = (&x_pos - &projected).euclidean_norm();
-
-            //                 (projected, distance, line, p1)
-            //             })
-            //             .filter(|(projected, _, line, p1)| {
-            //                 let p1_to_projected_l2 = (projected -
-            // p1).l2_norm();                 let p1_to_p2_l2 =
-            // line.l2_norm();                 let
-            // p2_to_projected_l2 = (projected - line).l2_norm();
-
-            //                 let projected_is_between_p1_p2 =
-            // p1_to_projected_l2 < p1_to_p2_l2;                 let
-            // projected_is_outside_radius_of_p2 =
-            // p2_to_projected_l2 > 2.0f64.powi(2);
-
-            //                 projected_is_between_p1_p2 &&
-            // projected_is_outside_radius_of_p2             })
-            //             .min_by(|(_, a, _, _), (_, b, _, _)|
-            // a.partial_cmp(b).unwrap())             .expect("There
-            // should be some line to consider");
-
-            //         slice.assign(&projected_point);
-            //     }
-            //     _ => {
-            //         if let Some(mean) = message.mean() {
-            //             slice.assign(mean);
-            //         } else {
-            //             for x in slice {
-            //                 *x = 0.0;
-            //             }
-            //         }
-            //     }
-            // }
         }
 
         // If the factor is to be skipped, send empty messages to all variables
@@ -424,17 +356,19 @@ impl FactorNode {
             return messages;
         }
 
+        // 1. Perform factor measurement
         let Measurement {
             value: measurement,
             position: measurement_position,
         } = self.measure(&self.state.linearisation_point);
-
+        // In case the measurement function wants to update the linearisation point
         if let Some(new_linearisation_point) = measurement_position {
             self.state.linearisation_point = new_linearisation_point;
         }
 
         let jacobian = self.jacobian(&self.state.linearisation_point);
 
+        // 2. Compute the Factor potential, Lambda and eta
         let potential_precision_matrix = jacobian
             .t()
             .dot(&self.state.measurement_precision)
@@ -449,6 +383,7 @@ impl FactorNode {
 
         self.state.initialized = true;
 
+        // 3. Marginalise Factor messages
         let mut marginalisation_idx = 0;
         let mut messages = MessagesToVariables::new();
         // let mut messages = MessagesToVariables::with_capacity(self.inbox.len());
@@ -468,11 +403,6 @@ impl FactorNode {
                 if other_message.is_empty() {
                     continue;
                 }
-
-                // let message_eta = other_message.information_vector().expect("it better be
-                // there"); information_vec
-                //     .slice_mut(s![j * DOFS..(j + 1) * DOFS])
-                //     .add_assign(message_eta);
 
                 if let Some(message_information) = other_message.information_vector() {
                     information_vec
@@ -527,18 +457,6 @@ impl FactorNode {
     pub fn is_tracking(&self) -> bool {
         self.kind.is_tracking()
     }
-
-    // /// Try to convert the factor to a [`TrackingFactor`]
-    // #[inline(always)]
-    // pub fn as_tracking(&self) -> Result<&TrackingFactor, ()> {
-    //     self.kind.try_as_tracking()
-    // }
-
-    // /// Check if the factor is a [`PoseFactor`]
-    // #[inline(always)]
-    // pub fn is_pose(&self) -> bool {
-    //     self.kind.is_pose()
-    // }
 }
 
 /// Static dispatch enum for the various factors in the factorgraph
@@ -700,6 +618,12 @@ impl FactorState {
             cached_measurement: array![],
             initialized: false,
         }
+    }
+
+    /// Set the linearisation point
+    fn with_linearisation_point(mut self, linearisation_point: Vector<Float>) -> Self {
+        self.linearisation_point = linearisation_point;
+        self
     }
 }
 

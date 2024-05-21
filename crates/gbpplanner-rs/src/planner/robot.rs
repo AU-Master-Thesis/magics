@@ -768,11 +768,14 @@ impl RobotBundle {
         // Create Tracking factors for all variables, excluding the start
         if config.gbp.factors_enabled.tracking {
             for i in 1..variable_timesteps.len() - 1 {
+                let init_linearisation_point =
+                    concatenate![Axis(0), init_variable_means[i].clone(), array![0.0, 0.0]];
+                println!("init_linearisation_point: {:?}", init_linearisation_point);
                 let tracking_factor = FactorNode::new_tracking_factor(
                     factorgraph.id(),
                     Float::from(config.gbp.sigma_factor_tracking),
-                    // init_variable_means[i].clone(),
                     array![0.0],
+                    init_linearisation_point,
                     route
                         .waypoints()
                         .iter()
