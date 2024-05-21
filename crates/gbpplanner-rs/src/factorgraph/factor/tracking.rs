@@ -4,9 +4,9 @@ use std::{borrow::Cow, cell::Cell, sync::Mutex};
 
 use bevy::math::Vec2;
 use gbp_linalg::prelude::*;
-use ndarray::{array, s};
+use ndarray::{array, concatenate, s, Axis};
 
-use super::{Factor, FactorState};
+use super::{Factor, FactorState, Measurement};
 
 #[derive(Debug)]
 pub struct TrackingFactor {
@@ -53,6 +53,11 @@ impl TrackingFactor {
     pub fn last_measurement(&self) -> LastMeasurement {
         self.last_measurement.lock().unwrap().get()
     }
+
+    /// Get the tracking path
+    pub fn tracking_path(&self) -> &[Vec2] {
+        &self.tracking_path
+    }
 }
 
 impl Factor for TrackingFactor {
@@ -74,7 +79,8 @@ impl Factor for TrackingFactor {
         Cow::Owned(self.first_order_jacobian(state, x.clone()))
     }
 
-    fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    // fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Measurement {
         // 1. Window pairs of rrt path
         // 1.1. Find the line defined by the two points
 
@@ -95,16 +101,16 @@ impl Factor for TrackingFactor {
 
                 (projected, distance, line, p1)
             })
-            .filter(|(projected, _, line, p1)| {
-                let p1_to_projected_l2 = (projected - p1).l2_norm();
-                let p1_to_p2_l2 = line.l2_norm();
-                let p2_to_projected_l2 = (projected - line).l2_norm();
+            // .filter(|(projected, _, line, p1)| {
+            //     let p1_to_projected_l2 = (projected - p1).l2_norm();
+            //     let p1_to_p2_l2 = line.l2_norm();
+            //     let p2_to_projected_l2 = (projected - line).l2_norm();
 
-                let projected_is_between_p1_p2 = p1_to_projected_l2 < p1_to_p2_l2;
-                let projected_is_outside_radius_of_p2 = p2_to_projected_l2 > 2.0f64.powi(2);
+            //     let projected_is_between_p1_p2 = p1_to_projected_l2 < p1_to_p2_l2;
+            //     let projected_is_outside_radius_of_p2 = p2_to_projected_l2 > 2.0f64.powi(2);
 
-                projected_is_between_p1_p2 && projected_is_outside_radius_of_p2
-            })
+            //     projected_is_between_p1_p2 && projected_is_outside_radius_of_p2
+            // })
             .min_by(|(_, a, _, _), (_, b, _, _)| a.partial_cmp(b).unwrap())
             .expect("There should be some line to consider");
 
@@ -115,7 +121,7 @@ impl Factor for TrackingFactor {
         // let future_point = projected_point + 2.0 * line.normalized();
         // let future_point = array![projected_point[1], projected_point[0]];
 
-        let max_length = 2.0;
+        let max_length = 1.0;
 
         let x_to_projection = &projected_point - x.slice(s![0..2]).to_owned();
         // clamp the distance to the max length
@@ -126,7 +132,7 @@ impl Factor for TrackingFactor {
         };
 
         // invert measurement to make it 'pull' the variable towards the path
-        let measurement = -x_to_projection.euclidean_norm();
+        let measurement = x_to_projection.euclidean_norm();
 
         // self.last_measurement
         //     .lock()
@@ -137,7 +143,11 @@ impl Factor for TrackingFactor {
             value: measurement,
         });
 
-        array![measurement]
+        Measurement::new(array![measurement]).with_position(concatenate![
+            Axis(0),
+            projected_point,
+            x.slice(s![1..3]).to_owned()
+        ])
     }
 
     #[inline(always)]
@@ -146,7 +156,7 @@ impl Factor for TrackingFactor {
         // TODO: Tune this
         // NOTE: Maybe this should be influenced by the distance from variable to the
         // measurement
-        1e-8
+        1e-4
     }
 
     #[inline(always)]

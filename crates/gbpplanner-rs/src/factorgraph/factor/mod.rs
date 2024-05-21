@@ -32,6 +32,30 @@ use marginalise_factor_distance::marginalise_factor_distance;
 
 pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 
+/// The value and position of a measurement
+pub struct Measurement {
+    /// The value of the measurement
+    value:    Vector<Float>,
+    /// The position of the measurement
+    position: Option<Vector<Float>>,
+}
+
+impl Measurement {
+    /// Create a new measurement
+    pub fn new(value: Vector<Float>) -> Self {
+        Self {
+            value,
+            position: None,
+        }
+    }
+
+    /// Set the position of the measurement
+    pub fn with_position(mut self, pos: Vector<Float>) -> Self {
+        self.position = Some(pos);
+        self
+    }
+}
+
 /// Common interface for all factors
 pub trait Factor: std::fmt::Display {
     /// The name of the factor. Used for debugging and visualization.
@@ -68,7 +92,9 @@ pub trait Factor: std::fmt::Display {
 
     /// Measurement function
     #[must_use]
-    fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>) -> Vector<Float>;
+    // fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>)
+    // -> Vector<Float>;
+    fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>) -> Measurement;
 
     /// The first order jacobian
     /// This is a default impl as factor variants should compute the first order
@@ -78,14 +104,21 @@ pub trait Factor: std::fmt::Display {
         state: &FactorState,
         mut linearization_point: Vector<Float>,
     ) -> Matrix<Float> {
-        let h0 = self.measure(state, &linearization_point); // value at linearization point
+        let Measurement {
+            value: h0,
+            position: _,
+        } = self.measure(state, &linearization_point); // value at linearization point
         let mut jacobian = Matrix::<Float>::zeros((h0.len(), linearization_point.len()));
 
         let delta = self.jacobian_delta();
 
         for i in 0..linearization_point.len() {
             linearization_point[i] += delta; // perturb by delta
-            let derivatives = (self.measure(state, &linearization_point) - &h0) / delta;
+            let Measurement {
+                value: h1,
+                position: _,
+            } = self.measure(state, &linearization_point);
+            let derivatives = (&h1 - &h0) / delta;
             jacobian.column_mut(i).assign(&derivatives);
             linearization_point[i] -= delta; // reset the perturbation
         }
@@ -109,6 +142,7 @@ pub struct FactorNode {
     pub inbox:      MessagesToVariables,
 
     message_count: MessageCount,
+    /// Whether the factor is enabled
     pub enabled:   bool,
 }
 
@@ -237,7 +271,8 @@ impl FactorNode {
     }
 
     #[inline]
-    fn measure(&self, x: &Vector<Float>) -> Vector<Float> {
+    // fn measure(&self, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, x: &Vector<Float>) -> Measurement {
         self.kind.measure(&self.state, x)
         // self.state.cached_measurement = self.kind.measure(&self.state, x);
         // self.state.cached_measurement.clone()
@@ -316,8 +351,60 @@ impl FactorNode {
                     *x = 0.0;
                 }
             }
+
+            // match self.kind.try_as_tracking_ref() {
+            //     Some(tracking_factor) => {
+            //         let x_pos = slice.slice(s![0..2]);
+            //         let (projected_point, _, _, _) = tracking_factor
+            //             .tracking_path()
+            //             .windows(2)
+            //             .map(|window| {
+            //                 let p2 = array![window[1].x as Float, window[1].y
+            // as Float];                 let p1 =
+            // array![window[0].x as Float, window[0].y as Float];
+
+            //                 let line = &p2 - &p1;
+
+            //                 // project x_pos onto the line
+            //                 let projected =
+            //                     &p1 + (&x_pos - &p1).dot(&line) /
+            // &line.dot(&line) * &line;                 let
+            // distance = (&x_pos - &projected).euclidean_norm();
+
+            //                 (projected, distance, line, p1)
+            //             })
+            //             .filter(|(projected, _, line, p1)| {
+            //                 let p1_to_projected_l2 = (projected -
+            // p1).l2_norm();                 let p1_to_p2_l2 =
+            // line.l2_norm();                 let
+            // p2_to_projected_l2 = (projected - line).l2_norm();
+
+            //                 let projected_is_between_p1_p2 =
+            // p1_to_projected_l2 < p1_to_p2_l2;                 let
+            // projected_is_outside_radius_of_p2 =
+            // p2_to_projected_l2 > 2.0f64.powi(2);
+
+            //                 projected_is_between_p1_p2 &&
+            // projected_is_outside_radius_of_p2             })
+            //             .min_by(|(_, a, _, _), (_, b, _, _)|
+            // a.partial_cmp(b).unwrap())             .expect("There
+            // should be some line to consider");
+
+            //         slice.assign(&projected_point);
+            //     }
+            //     _ => {
+            //         if let Some(mean) = message.mean() {
+            //             slice.assign(mean);
+            //         } else {
+            //             for x in slice {
+            //                 *x = 0.0;
+            //             }
+            //         }
+            //     }
+            // }
         }
 
+        // If the factor is to be skipped, send empty messages to all variables
         if self.skip() {
             let mut messages_sent = MessagesSent::new();
             let messages: MessagesToVariables = self
@@ -337,7 +424,15 @@ impl FactorNode {
             return messages;
         }
 
-        let measurement = self.measure(&self.state.linearisation_point);
+        let Measurement {
+            value: measurement,
+            position: measurement_position,
+        } = self.measure(&self.state.linearisation_point);
+
+        if let Some(new_linearisation_point) = measurement_position {
+            self.state.linearisation_point = new_linearisation_point;
+        }
+
         let jacobian = self.jacobian(&self.state.linearisation_point);
 
         let potential_precision_matrix = jacobian
@@ -427,6 +522,18 @@ impl FactorNode {
         self.kind.is_obstacle()
     }
 
+    /// Check if the factor is a [`TrackingFactor`]
+    #[inline(always)]
+    pub fn is_tracking(&self) -> bool {
+        self.kind.is_tracking()
+    }
+
+    // /// Try to convert the factor to a [`TrackingFactor`]
+    // #[inline(always)]
+    // pub fn as_tracking(&self) -> Result<&TrackingFactor, ()> {
+    //     self.kind.try_as_tracking()
+    // }
+
     // /// Check if the factor is a [`PoseFactor`]
     // #[inline(always)]
     // pub fn is_pose(&self) -> bool {
@@ -493,7 +600,9 @@ impl Factor for FactorKind {
         }
     }
 
-    fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>) -> Vector<Float> {
+    // fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>)
+    // -> Vector<Float> {
+    fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>) -> Measurement {
         match self {
             // Self::Pose(f) => f.measure(state, x),
             Self::Dynamic(f) => f.measure(state, linearisation_point),

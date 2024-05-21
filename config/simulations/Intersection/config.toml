@@ -35,13 +35,15 @@ environment-colliders              = false
 robot-robot-collisions             = false
 robot-environment-collisions       = false
 
+[gbp.factors-enabled]
+tracking = true
 
 [gbp]
 sigma-pose-fixed        = 0.000000000000001
 sigma-factor-dynamics   = 0.1
 sigma-factor-interrobot = 0.01
 sigma-factor-obstacle   = 0.01
-sigma-factor-tracking   = 0.01
+sigma-factor-tracking   = 1
 lookahead-multiple      = 3
 
 [gbp.iteration-schedule]

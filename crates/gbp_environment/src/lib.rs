@@ -144,8 +144,10 @@ impl Circle {
 #[derive(Debug, Serialize, Deserialize, Clone, derive_more::Constructor)]
 #[serde(rename_all = "kebab-case")]
 pub struct Angles {
-    a: Angle,
-    b: Angle,
+    #[allow(non_snake_case)]
+    A: Angle,
+    #[allow(non_snake_case)]
+    B: Angle,
 }
 
 /// A triangle to be placed in the environment
@@ -187,8 +189,8 @@ impl Triangle {
     }
 
     pub fn points(&self) -> [Vec2; 3] {
-        let a = self.angles.a.as_radians() as f32;
-        let b = self.angles.b.as_radians() as f32;
+        let a = self.angles.A.as_radians() as f32;
+        let b = self.angles.B.as_radians() as f32;
         let c = std::f32::consts::PI - (a + b);
 
         let a_hypotenuse = self.radius.get() as f32 / a.sin();
@@ -388,8 +390,8 @@ impl PlaceableShape {
     pub fn triangle(angles: [Angle; 2], radius: StrictlyPositiveFinite<Float>) -> Self {
         Self::Triangle(Triangle::new(
             Angles {
-                a: angles[0],
-                b: angles[1],
+                A: angles[0],
+                B: angles[1],
             },
             radius,
         ))

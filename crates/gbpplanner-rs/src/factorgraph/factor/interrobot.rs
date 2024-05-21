@@ -5,7 +5,7 @@ use gbp_linalg::prelude::*;
 use ndarray::s;
 use typed_floats::StrictlyPositiveFinite;
 
-use super::{Factor, FactorState};
+use super::{Factor, FactorState, Measurement};
 use crate::factorgraph::{
     factorgraph::{FactorGraphId, VariableIndex},
     DOFS,
@@ -158,7 +158,9 @@ impl Factor for InterRobotFactor {
         Cow::Owned(jacobian)
     }
 
-    fn measure(&self, state: &FactorState, lineraisation_point: &Vector<Float>) -> Vector<Float> {
+    // fn measure(&self, state: &FactorState, lineraisation_point: &Vector<Float>)
+    // -> Vector<Float> {
+    fn measure(&self, state: &FactorState, lineraisation_point: &Vector<Float>) -> Measurement {
         let mut measurement = Vector::<Float>::zeros(state.initial_measurement.len());
         let x_diff = self.diff_between_estimated_positions(lineraisation_point);
         // let x_diff = {
@@ -196,7 +198,7 @@ impl Factor for InterRobotFactor {
             measurement[0] = 1.0 * (1.0 - radius / self.safety_distance);
         }
 
-        measurement
+        Measurement::new(measurement)
     }
 
     #[inline(always)]

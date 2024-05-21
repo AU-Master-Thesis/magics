@@ -6,7 +6,7 @@ use bevy::math::Vec2;
 use gbp_linalg::prelude::*;
 use ndarray::array;
 
-use super::{Factor, FactorState};
+use super::{Factor, FactorState, Measurement};
 use crate::simulation_loader::SdfImage;
 
 pub struct ObstacleFactor {
@@ -136,7 +136,9 @@ impl Factor for ObstacleFactor {
         Cow::Owned(self.first_order_jacobian(state, linearisation_point.clone()))
     }
 
-    fn measure(&self, _state: &FactorState, linearisation_point: &Vector<Float>) -> Vector<Float> {
+    // fn measure(&self, _state: &FactorState, linearisation_point: &Vector<Float>)
+    // -> Vector<Float> {
+    fn measure(&self, _state: &FactorState, linearisation_point: &Vector<Float>) -> Measurement {
         let x_pos = linearisation_point[0];
         let y_pos = linearisation_point[1];
         // The robots coordinate system is centered in the image, so we have to offset
@@ -170,7 +172,7 @@ impl Factor for ObstacleFactor {
             // Return 1.0 to indicate that it is an obstacle
             // return array![1.0];
             // Return 0.0 to indicate that it is an empty space
-            return array![0.0];
+            return Measurement::new(array![0.0]);
         };
 
         let red_channel = pixel[0];
@@ -182,7 +184,7 @@ impl Factor for ObstacleFactor {
             value: hsv_value,
         });
 
-        array![hsv_value]
+        Measurement::new(array![hsv_value])
     }
 
     #[inline(always)]

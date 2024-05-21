@@ -4,7 +4,7 @@ use std::borrow::Cow;
 
 use gbp_linalg::prelude::*;
 
-use super::{Factor, FactorState};
+use super::{Factor, FactorState, Measurement};
 
 #[derive(Debug)]
 pub struct PoseFactor;
@@ -54,8 +54,9 @@ impl Factor for PoseFactor {
 
     /// Default measurement function is the identity function
     #[inline(always)]
-    fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
-        x.clone()
+    // fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Measurement {
+        Measurement::new(x.clone())
     }
 
     #[inline(always)]

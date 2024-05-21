@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use gbp_linalg::{prelude::*, pretty_format_matrix};
 use ndarray::{concatenate, Axis};
 
-use super::{Factor, FactorState};
+use super::{Factor, FactorState, Measurement};
 use crate::factorgraph::DOFS;
 
 /// Dynamic factor: constant velocity model
@@ -70,8 +70,9 @@ impl Factor for DynamicFactor {
     }
 
     #[inline(always)]
-    fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
-        self.cached_jacobian.dot(x)
+    // fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Measurement {
+        Measurement::new(self.cached_jacobian.dot(x))
     }
 
     #[inline(always)]

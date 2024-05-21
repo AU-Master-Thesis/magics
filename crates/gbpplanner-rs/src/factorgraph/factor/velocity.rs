@@ -7,7 +7,7 @@
 use gbp_linalg::prelude::*;
 use ndarray::{concatenate, Axis};
 
-use super::{Factor, FactorState};
+use super::{Factor, FactorState, Measurement};
 use crate::factorgraph::DOFS;
 
 #[derive(Debug)]
@@ -51,7 +51,9 @@ impl Factor for VelocityFactor {
         true
     }
 
-    fn measure(&self, _state: &FactorState, _x: &Vector<Float>) -> Vector<Float> {
+    // fn measure(&self, _state: &FactorState, _x: &Vector<Float>) -> Vector<Float>
+    // {
+    fn measure(&self, _state: &FactorState, _x: &Vector<Float>) -> Measurement {
         todo!()
     }
 

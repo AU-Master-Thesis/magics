@@ -4,7 +4,7 @@ tiles:
   # - ├
   settings:
     tile-size: 100.0
-    path-width: 0.1375
+    path-width: 0.3
     obstacle-height: 1.0
     sdf:
       resolution: 200
