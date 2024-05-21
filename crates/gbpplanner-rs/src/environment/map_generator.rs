@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use bevy::{prelude::*, reflect::Tuple};
+use bevy_mod_picking::prelude::*;
 use gbp_config::{Config, DrawSetting};
 use gbp_environment::{
     Circle, Environment, PlaceableShape, Rectangle, RegularPolygon, TileCoordinates, Triangle,
@@ -21,6 +22,7 @@ pub struct GenMapPlugin;
 impl Plugin for GenMapPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_event::<events::ObstacleClickedOn>()
             // .init_resource::<Colliders>()
             // .add_systems(Startup, (build_tile_grid, build_obstacles))
             // .add_systems(PostStartup, create_static_colliders)
@@ -32,6 +34,20 @@ impl Plugin for GenMapPlugin {
                 Update,
                 show_or_hide_generated_map.run_if(event_exists::<DrawSettingsEvent>),
             );
+    }
+}
+
+pub mod events {
+    use super::*;
+
+    #[derive(Debug, Event)]
+    pub struct ObstacleClickedOn(pub Entity);
+
+    impl From<ListenerInput<Pointer<Click>>> for ObstacleClickedOn {
+        #[inline]
+        fn from(value: ListenerInput<Pointer<Click>>) -> Self {
+            Self(value.target)
+        }
     }
 }
 
@@ -188,7 +204,8 @@ fn build_obstacles(
             PlaceableShape::Triangle(ref triangle_shape @ Triangle { angles, radius }) => {
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
-                    obstacle_height / 2.0,
+                    // obstacle_height / 2.0,
+                    obstacle_height,
                     -((translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset),
                 );
 
@@ -219,11 +236,6 @@ fn build_obstacles(
                 //     "Spawning triangle: base_length = {}, height = {}, at {:?}",
                 //     base_length, height, center
                 // );
-                let shape = parry2d::shape::Triangle::new(
-                    p1.to_array().into(),
-                    p2.to_array().into(),
-                    p3.to_array().into(),
-                );
 
                 let mesh = meshes.add(
                     Mesh::try_from(bevy_more_shapes::Prism::new(
@@ -241,18 +253,29 @@ fn build_obstacles(
                 let transform = Transform::from_translation(center).with_rotation(rotation);
                 // let transform = Transform::from_translation(center);
 
+                let center_xy = center.xz();
+                let shape = parry2d::shape::Triangle::new(
+                    // (center_xy + p1).to_array().into(),
+                    // (center_xy + p2).to_array().into(),
+                    // (center_xy + p3).to_array().into(),
+                    (rotation.mul_vec3(p1.extend(0.0).xzy()) + center)
+                        .xz()
+                        .to_array()
+                        .into(),
+                    (rotation.mul_vec3(p2.extend(0.0).xzy()) + center)
+                        .xz()
+                        .to_array()
+                        .into(),
+                    (rotation.mul_vec3(p3.extend(0.0).xzy()) + center)
+                        .xz()
+                        .to_array()
+                        .into(),
+                );
                 let shape: Arc<dyn shape::Shape> = Arc::new(shape);
 
                 Some((mesh, transform, shape))
             }
             PlaceableShape::RegularPolygon(ref polygon @ RegularPolygon { sides, radius }) => {
-                // dbg!((
-                //     "RegularPolygon",
-                //     translation.y.get() as f32,
-                //     tile_size,
-                //     -offset_z,
-                //     pos_offset
-                // ));
                 let center = Vec3::new(
                     (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
                     obstacle_height / 2.0,
@@ -272,22 +295,79 @@ fn build_obstacles(
                     height_segments: 1,
                 }));
 
-                info!(
-                    "obstacle.rotation.as_radians() = {:?}, std::f32::consts::FRAC_PI_4 = {:?}",
-                    obstacle.rotation.as_radians() as f32,
-                    std::f32::consts::FRAC_PI_4
-                );
+                // info!(
+                //     "obstacle.rotation.as_radians() = {:?}, std::f32::consts::FRAC_PI_4 =
+                // {:?}",     obstacle.rotation.as_radians() as f32,
+                //     std::f32::consts::FRAC_PI_4
+                // );
 
                 let rotation = Quat::from_rotation_y(
                     std::f32::consts::FRAC_PI_4 + obstacle.rotation.as_radians() as f32,
                 );
                 let transform = Transform::from_translation(center).with_rotation(rotation);
 
+                // let rotation_offset = match obstacle.shape {
+                //             PlaceableShape::RegularPolygon(RegularPolygon { sides, radius })
+                // => {                 std::f32::consts::PI
+                //                     + if sides % 2 != 0 { std::f32::consts::PI / sides as f32
+                //                     } else {
+                //                         0.0
+                //                     }
+                //             }
+                //             _ => std::f32::consts::FRAC_PI_2,
+                //         };
+
+                use std::f32::consts::{FRAC_PI_2, PI};
+                let rotation_offset = PI
+                    + match polygon.sides {
+                        4 => 0.0,
+                        n if n % 2 != 0 => FRAC_PI_2,
+                        _ => -FRAC_PI_2,
+                    };
+                // let rotation_offset = PI
+                //     + match polygon.sides { n if n % 2 != 0 => PI / n as f32, _ => 0.0, // n
+                //       => FRAC_PI_2 / n as f32,
+                //     };
+
+                // + if polygon.sides % 2 != 0 { PI / polygon.sides as f32
+                // } else {
+                //     0.0
+                // };
+
+                // let rotation2 = Quat::from_rotation_y(std::f32::consts::PI / polygon.sides as
+                // f32);
+                let rotation2 =
+                    Quat::from_rotation_z(obstacle.rotation.as_radians() as f32 + rotation_offset);
+                // let rotation2 = Quat::from_rotation_z(rotation_offset);
+
+                println!(
+                    "rotation in radians = {}",
+                    obstacle.rotation.as_radians() as f32
+                );
+
+                // dbg!(&rotation2);
+
                 // let points: Vec<parry2d::math::Point<parry2d::math::Real>> = polygon
+                let scale = tile_size / 2.0;
                 let points: Vec<_> = polygon
                     .points()
                     .iter()
-                    .map(|[x, y]| parry2d::math::Point::new(*x as f32, *y as f32))
+                    .map(|[x, y]| {
+                        let p = Vec3::new(*x as f32, *y as f32, 0.0);
+                        // let p = Vec3::new(*x as f32, 0.0, *y as f32);
+                        // let p_rotated = rotation.mul_vec3(p);
+                        let p_rotated = rotation2.mul_vec3(p);
+                        dbg!((&p, &p_rotated));
+
+                        // let p_rotated = p;
+                        parry2d::math::Point::new(
+                            p_rotated.x * scale,
+                            p_rotated.y * scale,
+                            // *x as f32 * (tile_size / 2.0),
+                            // *y as f32 * (tile_size / 2.0),
+                        )
+                    })
+                    // .inspect(|p| println!("p = {:?}", p))
                     .collect();
                 let shape = parry2d::shape::ConvexPolygon::from_convex_hull(points.as_slice())
                     .expect("polygon is always convex");
@@ -327,7 +407,7 @@ fn build_obstacles(
                 // let transform = Transform::from_translation(center).with_rotation(rotation);
                 let transform = Transform::from_translation(center);
 
-                let mut half_extents: parry2d::na::Vector2<parry2d::math::Real> =
+                let half_extents: parry2d::na::Vector2<parry2d::math::Real> =
                     parry2d::na::Vector2::from_vec(vec![
                         width.get() as f32 * tile_size / 4.0,
                         height.get() as f32 * tile_size / 4.0,
@@ -1126,6 +1206,8 @@ fn build_tile_grid(
                             TileCoordinates::new(x, y),
                             ObstacleMarker,
                             bevy_mod_picking::PickableBundle::default(),
+                            On::<Pointer<Click>>::send_event::<events::ObstacleClickedOn>(),
+                            // TODO: add on click handler
                         ))
                         .id();
 

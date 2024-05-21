@@ -11,8 +11,8 @@ use typed_floats::StrictlyPositiveFinite;
 
 use super::{
     factor::{
-        interrobot::InterRobotFactor, obstacle::ObstacleFactor, tracking::TrackingFactor, Factor,
-        FactorKind, FactorNode,
+        dynamic, interrobot::InterRobotFactor, obstacle::ObstacleFactor, tracking::TrackingFactor,
+        Factor, FactorKind, FactorNode,
     },
     id::{FactorId, VariableId},
     message::{FactorToVariableMessage, VariableToFactorMessage},
@@ -677,6 +677,9 @@ impl FactorGraph {
             if let FactorKind::InterRobot(_) = factor.kind {
                 continue;
             }
+            if !factor.enabled {
+                continue;
+            }
 
             let variable_messages = factor.update();
             let factor_id = FactorId::new(self.id, FactorIndex(ix));
@@ -739,6 +742,9 @@ impl FactorGraph {
 
             let node = &mut self.graph[ix];
             let factor = node.factor_mut();
+            if !factor.enabled {
+                continue;
+            }
 
             let variable_messages = factor.update();
             let factor_id = FactorId::new(self.id, FactorIndex(ix));
@@ -783,6 +789,10 @@ impl FactorGraph {
                 let factor = self.graph[factor_id.factor_index.0]
                     .as_factor_mut()
                     .expect("a factor only has variables as neighbours");
+
+                if !factor.enabled {
+                    continue;
+                }
 
                 factor.receive_message_from(variable_id, message);
             }
@@ -1498,5 +1508,19 @@ impl graphviz::ExportGraph for FactorGraph {
             .collect::<Vec<_>>();
 
         (nodes, edges)
+    }
+}
+
+impl FactorGraph {
+    pub fn change_factor_enabled(&mut self, settings: gbp_config::FactorsEnabledSection) {
+        for &ix in self.factor_indices.iter() {
+            let factor = self.graph[ix].factor_mut();
+            factor.enabled = match factor.kind {
+                FactorKind::Dynamic(_) => settings.dynamic,
+                FactorKind::Obstacle(_) => settings.obstacle,
+                FactorKind::InterRobot(_) => settings.interrobot,
+                FactorKind::Tracking(_) => settings.tracking,
+            };
+        }
     }
 }

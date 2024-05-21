@@ -44,6 +44,10 @@ sigma-factor-obstacle   = 0.001
 sigma-factor-tracking   = 0.01
 lookahead-multiple      = 3
 
+[gbp.factors-enabled]
+tracking = false
+obstacle = false
+
 [gbp.iteration-schedule]
 internal = 10
 external = 10

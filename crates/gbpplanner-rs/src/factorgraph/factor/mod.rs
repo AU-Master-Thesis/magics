@@ -36,6 +36,8 @@ pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
 pub trait Factor: std::fmt::Display {
     /// The name of the factor. Used for debugging and visualization.
     fn name(&self) -> &'static str;
+    /// The color of the factor. Used for visualization.
+    fn color(&self) -> [u8; 3];
 
     /// The delta for the jacobian calculation
     fn jacobian_delta(&self) -> Float;
@@ -107,10 +109,16 @@ pub struct FactorNode {
     pub inbox:      MessagesToVariables,
 
     message_count: MessageCount,
+    pub enabled:   bool,
 }
 
 impl FactorNode {
-    fn new(factorgraph_id: FactorGraphId, state: FactorState, kind: FactorKind) -> Self {
+    fn new(
+        factorgraph_id: FactorGraphId,
+        state: FactorState,
+        kind: FactorKind,
+        enabled: bool,
+    ) -> Self {
         Self {
             factorgraph_id,
             node_index: None,
@@ -118,6 +126,7 @@ impl FactorNode {
             kind,
             inbox: MessagesToVariables::new(),
             message_count: MessageCount::default(),
+            enabled,
         }
     }
 
@@ -155,11 +164,12 @@ impl FactorNode {
         strength: Float,
         measurement: Vector<Float>,
         delta_t: Float,
+        enabled: bool,
     ) -> Self {
         let mut state = FactorState::new(measurement, strength, DynamicFactor::NEIGHBORS);
         let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
         let kind = FactorKind::Dynamic(dynamic_factor);
-        Self::new(factorgraph_id, state, kind)
+        Self::new(factorgraph_id, state, kind, enabled)
     }
 
     /// Create a new interrobot factor
@@ -172,6 +182,7 @@ impl FactorNode {
         safety_distance_multiplier: StrictlyPositiveFinite<Float>,
         external_variable: ExternalVariableId,
         robot_number: NonZeroUsize,
+        enabled: bool,
     ) -> Self {
         let interrobot_factor = InterRobotFactor::new(
             robot_radius,
@@ -182,7 +193,7 @@ impl FactorNode {
         let kind = FactorKind::InterRobot(interrobot_factor);
         let state = FactorState::new(measurement, strength, InterRobotFactor::NEIGHBORS);
 
-        Self::new(factorgraph_id, state, kind)
+        Self::new(factorgraph_id, state, kind, enabled)
     }
 
     // pub fn new_pose_factor() -> Self {
@@ -196,13 +207,14 @@ impl FactorNode {
         measurement: Vector<Float>,
         obstacle_sdf: SdfImage,
         world_size: obstacle::WorldSize,
+        enabled: bool,
         // world_size_width: Float,
         // world_size_height: Float,
     ) -> Self {
         let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS);
         let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
         let kind = FactorKind::Obstacle(obstacle_factor);
-        Self::new(factorgraph_id, state, kind)
+        Self::new(factorgraph_id, state, kind, enabled)
     }
 
     /// Create a new tracking factor
@@ -211,11 +223,12 @@ impl FactorNode {
         strength: Float,
         measurement: Vector<Float>,
         rrt_path: Vec<Vec2>,
+        enabled: bool,
     ) -> Self {
         let state = FactorState::new(measurement, strength, TrackingFactor::NEIGHBORS);
         let tracking_factor = TrackingFactor::new(rrt_path);
         let kind = FactorKind::Tracking(tracking_factor);
-        Self::new(factorgraph_id, state, kind)
+        Self::new(factorgraph_id, state, kind, enabled)
     }
 
     #[inline(always)]
@@ -238,6 +251,9 @@ impl FactorNode {
 
     /// Add a message to this factors inbox
     pub fn receive_message_from(&mut self, from: VariableId, message: Message) {
+        if !self.enabled {
+            return;
+        }
         let _ = self.inbox.insert(from, message);
         if from.factorgraph_id == self.factorgraph_id {
             self.message_count.received.internal += 1;
@@ -452,6 +468,15 @@ impl Factor for FactorKind {
             Self::Dynamic(f) => f.name(),
             Self::Obstacle(f) => f.name(),
             Self::Tracking(f) => f.name(),
+        }
+    }
+
+    fn color(&self) -> [u8; 3] {
+        match self {
+            Self::InterRobot(f) => f.color(),
+            Self::Dynamic(f) => f.color(),
+            Self::Obstacle(f) => f.color(),
+            Self::Tracking(f) => f.color(),
         }
     }
 

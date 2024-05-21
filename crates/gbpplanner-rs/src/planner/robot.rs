@@ -10,14 +10,15 @@ use bevy::{
     prelude::*,
 };
 use bevy_prng::WyRand;
-use bevy_rand::prelude::{EntropyComponent, ForkableRng, GlobalEntropy};
-use derive_more::Index;
-use gbp_config::{formation::WaypointReachedWhenIntersects, Config};
+use bevy_rand::prelude::GlobalEntropy;
+use gbp_config::{
+    formation::{PlanningStrategy, WaypointReachedWhenIntersects},
+    Config,
+};
 use gbp_linalg::prelude::*;
-use gbp_schedule::GbpSchedule;
 use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
-use rand::{thread_rng, Rng};
+use rand::Rng;
 
 use super::{
     collisions::resources::{RobotEnvironmentCollisions, RobotRobotCollisions},
@@ -36,7 +37,6 @@ use crate::{
     },
     pause_play::PausePlay,
     simulation_loader::{LoadSimulation, ReloadSimulation, SdfImage},
-    utils::get_variable_timesteps,
 };
 
 pub type RobotId = Entity;
@@ -157,7 +157,7 @@ fn attach_despawn_timer_when_robot_finishes_route(
     mut commands: Commands,
     mut evr_robot_finished_route: EventReader<RobotFinishedRoute>,
 ) {
-    let duration = Duration::from_secs(2);
+    let duration = Duration::from_millis(500);
     for RobotFinishedRoute(robot_id) in evr_robot_finished_route.read() {
         info!(
             "attaching despawn timer to robot: {:?} with duration: {:?}",
@@ -373,7 +373,7 @@ impl Route {
             self.target_index += 1;
         }
         if self.is_completed() && self.finished_at.is_none() {
-            self.finished_at = Some(elapsed.as_secs_f64() - self.started_at);
+            self.finished_at = Some(elapsed.as_secs_f64() + self.started_at);
         }
     }
 
@@ -534,6 +534,14 @@ impl FromWorld for GbpIterationSchedule {
 //     }
 // }
 
+#[derive(Debug, Component, Default)]
+pub enum TaskState {
+    #[default]
+    Idle,
+    Active(Route),
+    Completed,
+}
+
 #[derive(Bundle)]
 pub struct RobotBundle {
     /// The factor graph that the robot is part of, and uses to perform GBP
@@ -547,28 +555,29 @@ pub struct RobotBundle {
     /// circle that fully encompass the shape of the robot. **constraint**:
     /// > 0.0
     pub radius: Radius,
-    pub ball: Ball,
+
+    pub ball:    Ball,
     pub antenna: RadioAntenna,
     /// The current state of the robot
-    pub state: RobotState,
+    pub state:   RobotState,
+
     /// Waypoints used to instruct the robot to move to a specific position.
     /// A `VecDeque` is used to allow for efficient `pop_front` operations, and
     /// `push_back` operations.
     pub route: Route,
-
     /// Initial sate
     pub initial_state: StateVector,
 
     /// Time between t_i and t_i+1
     pub t0: T0,
 
-    // pub variable_timesteps: VariableTimesteps,
     /// Boolean component used to keep track of whether the robot has finished
     /// its path by reaching its final waypoint. This flag exists to ensure
     /// that the robot is not detected as having finished more than once.
     /// TODO: should probably be modelled as an enum instead, too easier support
     /// additional states in the future
     finished_path: FinishedPath,
+    // pub task_state: TaskState,
 }
 
 /// State vector of a robot
@@ -617,12 +626,6 @@ impl StateVector {
 
 impl RobotBundle {
     /// Create a new `RobotBundle`
-    ///
-    /// # Errors
-    ///
-    /// Will return `Err` if:
-    /// - `waypoints` is empty
-    /// - `variable_timesteps` is empty
     #[must_use = "Constructor responsible for creating the robots factorgraph"]
     #[allow(clippy::missing_panics_doc)]
     pub fn new(
@@ -636,7 +639,8 @@ impl RobotBundle {
         env_config: &gbp_environment::Environment,
         radius: f32,
         sdf: &SdfImage,
-        use_tracking: bool,
+        // use_tracking: bool,
+        planning_strategy: PlanningStrategy,
     ) -> Self {
         assert!(
             !variable_timesteps.is_empty(),
@@ -715,6 +719,7 @@ impl RobotBundle {
                 Float::from(config.gbp.sigma_factor_dynamics),
                 measurement,
                 Float::from(delta_t),
+                config.gbp.factors_enabled.dynamic,
             );
 
             let factor_node_index = factorgraph.add_factor(dynamic_factor);
@@ -739,6 +744,8 @@ impl RobotBundle {
             height: tile_size * nrows as f64,
         };
 
+        /// Create Obstacle factors for all variables excluding start and
+        /// horizon state
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
             let obstacle_factor = FactorNode::new_obstacle_factor(
@@ -747,11 +754,7 @@ impl RobotBundle {
                 array![0.0],
                 sdf.clone(),
                 world_size,
-                // crate::factorgraph::factor::obstacle::WorldSize {
-                //     width: env_config.tiles.settings.tile_size *
-                //     height: todo!(),
-                // },
-                // Float::from(config.simulation.world_size.get()),
+                config.gbp.factors_enabled.obstacle,
             );
 
             let factor_node_index = factorgraph.add_factor(obstacle_factor);
@@ -762,6 +765,7 @@ impl RobotBundle {
             );
         }
 
+        let use_tracking = false;
         // Create Tracking factors for all variables, excluding the start
         if use_tracking {
             for i in 1..variable_timesteps.len() {
@@ -775,6 +779,7 @@ impl RobotBundle {
                         .iter()
                         .map(|wp| wp.position())
                         .collect::<Vec<Vec2>>(),
+                    config.gbp.factors_enabled.tracking,
                 );
 
                 let factor_node_index = factorgraph.add_factor(tracking_factor);
@@ -785,6 +790,12 @@ impl RobotBundle {
                 );
             }
         }
+
+        // let task_state = if use_tracking {
+        //     TaskState::Idle
+        // } else {
+        //     TaskState::Active(route)
+        // };
 
         Self {
             factorgraph,
@@ -797,6 +808,7 @@ impl RobotBundle {
             finished_path: FinishedPath::default(),
             t0: T0(t0),
             gbp_iteration_schedule: GbpIterationSchedule(config.gbp.iteration_schedule),
+            // task_state:
         }
     }
 }
@@ -1003,6 +1015,7 @@ fn create_interrobot_factors(
                     //     .expect("safe radius is positive and finite"),
                     external_variable_id,
                     robot_number_gen.next(),
+                    config.gbp.factors_enabled.interrobot,
                 );
 
                 let factor_index = factorgraph.add_factor(interrobot_factor);
@@ -1158,6 +1171,10 @@ fn iterate_gbp_external(
                 .expect("the factorgraph of the receiving variable should exist in the world");
 
             if let Some(factor) = factorgraph.get_factor_mut(message.to.factor_index) {
+                if !factor.enabled {
+                    continue;
+                }
+
                 factor.receive_message_from(message.from, message.message.clone());
             }
         }
@@ -1276,10 +1293,15 @@ fn iterate_gbp_v2(
 
             // Send messages to external variables
             for message in messages_to_external_variables.into_iter() {
-                let (_, mut external_factorgraph, _, antenna) =
-                    query.get_mut(message.to.factorgraph_id).expect(
-                        "the factorgraph_id of the receiving variable should exist in the world",
-                    );
+                let Ok((_, mut external_factorgraph, _, antenna)) =
+                    query.get_mut(message.to.factorgraph_id)
+                else {
+                    continue;
+                };
+
+                // .expect(
+                //     "the factorgraph_id of the receiving variable should exist in the world",
+                // );
 
                 if !antenna.active {
                     continue;
@@ -1302,9 +1324,14 @@ fn iterate_gbp_v2(
 
             // Send messages to external factors
             for message in messages_to_external_factors.into_iter() {
-                let (_, mut external_factorgraph, _, antenna) = query
-                    .get_mut(message.to.factorgraph_id)
-                    .expect("the factorgraph_id of the receiving factor should exist in the world");
+                let Ok((_, mut external_factorgraph, _, antenna)) =
+                    query.get_mut(message.to.factorgraph_id)
+                else {
+                    continue;
+                };
+
+                // .expect("the factorgraph_id of the receiving factor should exist in the
+                // world");
 
                 if !antenna.active {
                     continue;
@@ -1541,7 +1568,8 @@ pub struct FinishedPath(pub bool);
 /// Called `Robot::updateHorizon` in **gbpplanner**
 fn update_prior_of_horizon_state(
     config: Res<Config>,
-    time_virtual: Res<Time<Virtual>>,
+    // time_virtual: Res<Time<Virtual>>,
+    time: Res<Time>,
     mut query: Query<
         (
             Entity,
@@ -1560,7 +1588,8 @@ fn update_prior_of_horizon_state(
     // the vector is cleared between calls, by calling .drain(..) at the end of every call
     mut all_messages_to_external_factors: Local<Vec<VariableToFactorMessage>>,
 ) {
-    let delta_t = Float::from(time_virtual.delta_seconds());
+    // println!("dt: {}", time.delta_seconds());
+    let delta_t = Float::from(time.delta_seconds());
     let max_speed = Float::from(config.robot.max_speed.get());
 
     let mut robots_to_despawn = Vec::new();
@@ -1628,7 +1657,7 @@ fn update_prior_of_horizon_state(
         all_messages_to_external_factors.extend(messages_to_external_factors);
 
         if reached_waypoint && !route.is_completed() {
-            route.advance(time_virtual.elapsed());
+            route.advance(time.elapsed());
             evw_robot_reached_waypoint.send(RobotReachedWaypoint {
                 robot_id,
                 waypoint_index: 0,
@@ -1638,9 +1667,11 @@ fn update_prior_of_horizon_state(
 
     // Send messages to external factors
     for message in all_messages_to_external_factors.drain(..) {
-        let (_, mut external_factorgraph, _, _, _) = query
-            .get_mut(message.to.factorgraph_id)
-            .expect("the factorgraph of the receiving factor exists in the world");
+        let Ok((_, mut external_factorgraph, _, _, _)) = query.get_mut(message.to.factorgraph_id)
+        else {
+            continue;
+        };
+        // .expect("the factorgraph of the receiving factor exists in the world");
 
         if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
             factor.receive_message_from(message.from, message.message);

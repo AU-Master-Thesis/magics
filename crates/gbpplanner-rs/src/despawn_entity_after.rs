@@ -48,11 +48,19 @@ pub mod components {
         }
 
         pub(super) fn despawn(&self, commands: &mut Commands) {
-            if self.despawn_recursive {
-                commands.entity(self.entity_to_despawn).despawn_recursive();
-            } else {
-                commands.entity(self.entity_to_despawn).despawn();
+            if let Some(mut entitycommands) = commands.get_entity(self.entity_to_despawn) {
+                if self.despawn_recursive {
+                    entitycommands.despawn_recursive();
+                } else {
+                    entitycommands.despawn();
+                }
             }
+
+            // if self.despawn_recursive {
+            //     commands.entity(self.entity_to_despawn).despawn_recursive();
+            // } else {
+            //     commands.entity(self.entity_to_despawn).despawn();
+            // }
         }
     }
 
@@ -86,15 +94,24 @@ pub mod components {
         }
 
         pub(super) fn despawn(&self, commands: &mut Commands) {
-            if self.despawn_recursive {
-                for entity in &self.entities_to_despawn {
-                    commands.entity(*entity).despawn_recursive();
-                }
-            } else {
-                for entity in &self.entities_to_despawn {
-                    commands.entity(*entity).despawn();
+            for entity in &self.entities_to_despawn {
+                if let Some(mut entitycommands) = commands.get_entity(*entity) {
+                    if self.despawn_recursive {
+                        entitycommands.despawn_recursive();
+                    } else {
+                        entitycommands.despawn();
+                    }
                 }
             }
+            // if self.despawn_recursive {
+            //     for entity in &self.entities_to_despawn {
+            //         commands.entity(*entity).despawn_recursive();
+            //     }
+            // } else {
+            //     for entity in &self.entities_to_despawn {
+            //         commands.entity(*entity).despawn();
+            //     }
+            // }
         }
     }
 }

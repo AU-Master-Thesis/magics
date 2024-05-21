@@ -27,6 +27,11 @@ impl Factor for VelocityFactor {
     }
 
     #[inline]
+    fn color(&self) -> [u8; 3] {
+        todo!()
+    }
+
+    #[inline]
     fn jacobian_delta(&self) -> Float {
         1e-8 // Same as DynamicFactor, for now
     }

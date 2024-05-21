@@ -51,12 +51,9 @@ impl Percentage {
     /// If the input value is 2.3, the output should be 2.3 % 1 = 0.3.
     /// Illegal to give negative values.
     pub fn new(value: f32) -> Self {
-        // println!("Value: {}", value);
         assert!(value >= 0.0);
         assert!(value <= 1.0);
         Self(value)
-        // Self((value - f32::EPSILON) % 1.0)
-        // Self(value % 1.0)
     }
 
     /// Invert
@@ -252,11 +249,6 @@ fn image_to_tile_coords(pixel_coords: PixelCoords, resolution: PixelsPerTile) ->
         y: f32::floor(y / resolution.get() as f32) as TileIndex,
     };
 
-    // if x == 99.0 || y == 99.0 {
-    //     println!("({}, {}): Pixelcoords", x, y);
-    //     println!("({}, {}): Tilecoords", tile_coords.x, tile_coords.y);
-    // }
-
     tile_coords
 }
 
@@ -293,8 +285,8 @@ fn is_placeable_obstacle(
     for obstacle in env.obstacles.iter() {
         // let obstale_tile_coords = &obstacle.tile_coordinates;
         let obstacle_tile_coords = TileCoords {
-            x: obstacle.tile_coordinates.col.clone(),
-            y: obstacle.tile_coordinates.row.clone(),
+            x: obstacle.tile_coordinates.col,
+            y: obstacle.tile_coordinates.row,
         };
 
         if tile_coords != obstacle_tile_coords {
@@ -303,34 +295,12 @@ fn is_placeable_obstacle(
 
         // TODO: Expand the obstacle by the expansion percentage first
         let expanded_shape = obstacle.shape.expanded(expansion.0 as f64);
-
-        // translate percentage to obstacle coordinates
-        // let translation_offset = match obstacle.shape {
-        //     PlaceableShape::Triangle(
-        //         ref triangle_shape @ gbp_environment::Triangle {
-        //             angles,
-        //             radius
-        //         },
-        //     ) => {
-        //         let [p1, p2, p3] = triangle_shape.points();
-        //         let base_length_dir = (p1 - p2).normalize();
-        //         let base_length_dir_n = Vec2::new(-base_length_dir.y,
-        // base_length_dir.x);
-
-        //         let mid_point_vec = p1 + (p2 - p1) * mid_point as f32;
-        //         let height_dir = (mid_point_vec - p3).normalize();
-        //         let height_dir_n = Vec2::new(-height_dir.y, height_dir.x);
-
-        //         base_length_dir_n * -expansion.0 as f32 / 4.0 * mid_point as f32
-        //             + height_dir_n * expansion.0 as f32 / 4.0 * mid_point as f32
-        //     }
-        //     _ => Vec2::ZERO,
-        // };
         let translated = Vec2::from(inverted_percentage) - Vec2::from(obstacle.translation); // - translation_offset;
                                                                                              // rotate the translated coordinated by the obstacle rotation
         let rotation_offset = match obstacle.shape {
-            PlaceableShape::RegularPolygon(RegularPolygon { sides, radius }) => {
-                std::f32::consts::PI
+            PlaceableShape::RegularPolygon(RegularPolygon { sides, radius: _ }) => {
+                std::f32::consts::FRAC_PI_2
+                    + std::f32::consts::FRAC_PI_2
                     + if sides % 2 != 0 {
                         std::f32::consts::PI / sides as f32
                     } else {
@@ -358,8 +328,6 @@ fn is_placeable_obstacle(
 /// Given tile coordinates, and coordinate in tile percentage, return whether
 /// the coordinate is within and obstacle.
 fn is_tile_obstacle(
-    // env: Environment,
-    // tile: TileCoordinates,
     tile: char,
     path_width: Percentage,
     percentage: PercentageCoords,

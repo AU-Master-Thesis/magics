@@ -1726,6 +1726,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_tracking"
+version = "1.2.0"
+dependencies = [
+ "bevy",
+ "ringbuf 0.4.1",
+ "serde",
+]
+
+[[package]]
 name = "bevy_transform"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3414,6 +3423,7 @@ dependencies = [
  "itertools",
  "min_len_vec",
  "num-traits",
+ "paste",
  "pretty_assertions",
  "rand",
  "ron",
@@ -3578,7 +3588,7 @@ dependencies = [
  "rand",
  "rand_chacha",
  "repeating_array",
- "ringbuf",
+ "ringbuf 0.3.3",
  "ron",
  "rrt",
  "seq",
@@ -5307,9 +5317,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "1.0.14"
+version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
+checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "path-slash"
@@ -5936,6 +5946,15 @@ name = "ringbuf"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79abed428d1fd2a128201cec72c5f6938e2da607c6f3745f769fabea399d950a"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "ringbuf"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c65e4c865bc3d2e3294493dff0acf7e6c259d066e34e22059fa9c39645c3636"
 dependencies = [
  "crossbeam-utils",
 ]

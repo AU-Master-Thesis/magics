@@ -107,7 +107,8 @@ fn open_latest_export(
 pub struct RobotData {
     radius:     f32,
     positions:  Vec<[f32; 2]>,
-    velocities: Vec<[f32; 2]>,
+    // velocities: Vec<[f32; 2]>,
+    velocities: Vec<planner::tracking::VelocityMeasurement>,
     collisions: CollisionData,
     messages:   MessageData,
     route:      RouteData,
@@ -124,7 +125,11 @@ struct RouteData {
 impl RouteData {
     fn new(waypoints: Vec<[f32; 2]>, started_at: f64, finished_at: f64) -> Self {
         assert!(waypoints.len() >= 2);
-        assert!(finished_at > started_at);
+        if finished_at < started_at {
+            dbg!(finished_at, started_at);
+            panic!("finished_at must be after started_at");
+        }
+        // assert!(finished_at > started_at);
         let duration = finished_at - started_at;
         Self {
             waypoints,
@@ -248,7 +253,9 @@ fn export(
                 continue;
             }
             let positions: Vec<[f32; 2]> = positions.positions().map(Into::into).collect();
-            let velocities: Vec<[f32; 2]> = velocities.velocities().map(Into::into).collect();
+            // let velocities: Vec<[f32; 2]> =
+            // velocities.velocities().map(Into::into).collect();
+            let velocities: Vec<_> = velocities.measurements().collect();
             let robot_collisions = robot_collisions.get(robot_entity).unwrap_or(0);
             let environment_collisions = environment_collisions.get(robot_entity).unwrap_or(0);
 
@@ -431,7 +438,8 @@ fn take_snapshot_of_robot(
     )>,
     robot_collisions: &crate::planner::collisions::resources::RobotRobotCollisions,
     environment_collisions: &crate::planner::collisions::resources::RobotEnvironmentCollisions,
-    time_virtual: &Time<Virtual>,
+    // time_virtual: &Time<Virtual>,
+    time_fixed: &Time<Fixed>,
 ) -> anyhow::Result<RobotData> {
     let Ok((fgraph, positions, velocities, radius, route)) = q_robots.get(robot_entity) else {
         anyhow::bail!(
@@ -441,7 +449,9 @@ fn take_snapshot_of_robot(
     };
 
     let positions: Vec<[f32; 2]> = positions.positions().map(Into::into).collect();
-    let velocities: Vec<[f32; 2]> = velocities.velocities().map(Into::into).collect();
+    // let velocities: Vec<[f32; 2]> =
+    // velocities.velocities().map(Into::into).collect();
+    let velocities: Vec<_> = velocities.measurements().collect();
     let robot_collisions = robot_collisions.get(robot_entity).unwrap_or(0);
     let environment_collisions = environment_collisions.get(robot_entity).unwrap_or(0);
 
@@ -458,7 +468,7 @@ fn take_snapshot_of_robot(
             route.started_at(),
             route
                 .finished_at()
-                .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
+                .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
         ),
         collisions: CollisionData {
             robots:      robot_collisions,
@@ -492,7 +502,8 @@ fn await_robot_snapshot_request(
     )>,
     robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
     environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
-    time_virtual: Res<Time<Virtual>>,
+    // time_virtual: Res<Time<Virtual>>,
+    time_fixed: Res<Time<Fixed>>,
 ) {
     for TakeSnapshotOfRobot(robot_id) in evr_submit_robot_data.read() {
         // ignore if the robot has already been submitted
@@ -504,7 +515,7 @@ fn await_robot_snapshot_request(
             &q_robots,
             &robot_collisions,
             &environment_collisions,
-            &time_virtual,
+            &time_fixed,
         ) else {
             error!(
                 "failed to take snapshot of robot {:?}, reason entity does not exist",

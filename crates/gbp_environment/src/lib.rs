@@ -11,7 +11,7 @@ use gbp_linalg::Float;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Component)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileCoordinates {
     pub row: usize,
@@ -144,8 +144,8 @@ impl Circle {
 #[derive(Debug, Serialize, Deserialize, Clone, derive_more::Constructor)]
 #[serde(rename_all = "kebab-case")]
 pub struct Angles {
-    A: Angle,
-    B: Angle,
+    a: Angle,
+    b: Angle,
 }
 
 /// A triangle to be placed in the environment
@@ -153,19 +153,6 @@ pub struct Angles {
 #[derive(Debug, Serialize, Deserialize, Clone, derive_more::Constructor)]
 #[serde(rename_all = "kebab-case")]
 pub struct Triangle {
-    // /// The length of the base of the triangle
-    // /// This is a value in the range [0, 1]
-    // pub base_length: StrictlyPositiveFinite<Float>,
-    // /// The height of the triangle
-    // /// Intersects the base perpendicularly at the mid-point
-    // pub height:      StrictlyPositiveFinite<Float>,
-    // /// The mid-point of the base of the triangle
-    // /// This is a value in the range [0, 1]
-    // /// Defines where the height of the triangle intersects the base
-    // /// perpendicularly
-    // pub mid_point:   Float,
-    // // /// Where to place the center of the triangle
-    // // pub translation: RelativePoint,
     /// Two angles of the triangle
     /// Third angle is calculated as 180 - (A + B)
     pub angles: Angles,
@@ -200,8 +187,8 @@ impl Triangle {
     }
 
     pub fn points(&self) -> [Vec2; 3] {
-        let a = self.angles.A.as_radians() as f32;
-        let b = self.angles.B.as_radians() as f32;
+        let a = self.angles.a.as_radians() as f32;
+        let b = self.angles.b.as_radians() as f32;
         let c = std::f32::consts::PI - (a + b);
 
         let a_hypotenuse = self.radius.get() as f32 / a.sin();
@@ -362,7 +349,7 @@ impl Rectangle {
         let half_width = self.width.get() / 4.0;
         let half_height = self.height.get() / 4.0;
 
-        if x >= -half_width && x <= half_width && y >= -half_height && y <= half_height {
+        if x >= -half_height && x <= half_height && y >= -half_width && y <= half_width {
             return true;
         }
 
@@ -401,8 +388,8 @@ impl PlaceableShape {
     pub fn triangle(angles: [Angle; 2], radius: StrictlyPositiveFinite<Float>) -> Self {
         Self::Triangle(Triangle::new(
             Angles {
-                A: angles[0],
-                B: angles[1],
+                a: angles[0],
+                b: angles[1],
             },
             radius,
         ))

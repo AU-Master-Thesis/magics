@@ -110,6 +110,12 @@ impl Factor for InterRobotFactor {
         "InterRobotFactor"
     }
 
+    #[inline]
+    fn color(&self) -> [u8; 3] {
+        // #a6da95
+        [166, 218, 149]
+    }
+
     fn jacobian(
         &self,
         state: &FactorState,

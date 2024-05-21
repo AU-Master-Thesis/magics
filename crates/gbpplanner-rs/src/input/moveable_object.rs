@@ -185,6 +185,7 @@ fn movement_actions(
         (true, false) => -1.0,
         (false, true) => 1.0,
         // Handles both false or both true cases, resulting in no rotation.
+        (true, true) => panic!("Both clockwise and counter-clockwise are pressed"),
         _ => 0.0,
     };
 

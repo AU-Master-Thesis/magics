@@ -248,12 +248,20 @@ fn update_rotation_orbit(
         // FIXME: handle case where user presses up/down or left/right at the same time
         // triggering a unwrap() err, in transform::right()
         // let axis =
-        let yaw = Quat::from_axis_angle(Vec3::Y, angular_velocity.value.x * time.delta_seconds());
+
+        if !transform.is_finite() {
+            // error!("transform is not finite");
+            continue;
+        }
+        // transform.
+        let yaw = Quat::from_axis_angle(Vec3::Y, -angular_velocity.value.x * time.delta_seconds());
+
         let pitch = Quat::from_axis_angle(
             *transform.right(),
             -angular_velocity.value.y * time.delta_seconds(),
         );
 
+        // transform.rotate_around(orbit.origin, -(yaw * pitch));
         transform.rotate_around(orbit.origin, yaw * pitch);
         // transform.look_at(orbit.origin, Vec3::Z);
         // transform.translation = orbit.origin + q * (transform.translation -

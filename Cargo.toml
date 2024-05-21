@@ -26,7 +26,7 @@ members = [
   "crates/gbp_environment",
   "crates/gbp_geometry",
   "crates/gbp_global_planner",
-  "crates/gbp_config",
+  "crates/gbp_config", "crates/bevy_tracking",
 ]
 
 [workspace.package]
@@ -132,10 +132,10 @@ incremental = true
 # Enable a small amount of optimization in debug mode
 [profile.dev]
 opt-level   = 1
-debug       = false
 incremental = true
 # codegen-backend = "cranelift" # requires nightly
-strip = "debuginfo"
+# debug       = false
+# strip = "debuginfo"
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]

@@ -408,7 +408,74 @@ impl Default for GbpIterationSchedule {
             internal: n,
             external: n,
             schedule: GbpIterationScheduleKind::default(),
-            // schedule: GbpSchedule::default(),
+        }
+    }
+}
+
+// macro_rules! impl_factor_section {
+//     ($name:ident) => {
+//         paste::paste! {
+//         pub struct [<$name:upper:camel>Section] {
+//
+//         }
+//         }
+//     };
+// }
+
+// impl_factor_section!(pose);
+// impl_factor_section!(dynamics);
+// impl_factor_section!(interrobot);
+// impl_factor_section!(obstacle);
+// impl_factor_section!(tracking);
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    serde::Serialize,
+    serde::Deserialize,
+    struct_iterable::Iterable,
+    bevy::reflect::Reflect,
+)]
+#[serde(rename_all = "kebab-case")]
+pub struct FactorsEnabledSection {
+    // pub pose:       bool,
+    #[serde(default = "FactorsEnabledSection::default_dynamic")]
+    pub dynamic:    bool,
+    #[serde(default = "FactorsEnabledSection::default_interrobot")]
+    pub interrobot: bool,
+    #[serde(default = "FactorsEnabledSection::default_obstacle")]
+    pub obstacle:   bool,
+    #[serde(default = "FactorsEnabledSection::default_tracking")]
+    pub tracking:   bool,
+}
+
+impl FactorsEnabledSection {
+    fn default_tracking() -> bool {
+        false
+    }
+
+    fn default_dynamic() -> bool {
+        true
+    }
+
+    fn default_interrobot() -> bool {
+        true
+    }
+
+    fn default_obstacle() -> bool {
+        true
+    }
+}
+
+impl Default for FactorsEnabledSection {
+    fn default() -> Self {
+        Self {
+            // pose:       true,
+            dynamic:    Self::default_dynamic(),
+            interrobot: Self::default_interrobot(),
+            obstacle:   Self::default_obstacle(),
+            tracking:   Self::default_tracking(),
         }
     }
 }
@@ -434,6 +501,8 @@ pub struct GbpSection {
     /// Number of iterations of GBP per timestep
     // pub iterations_per_timestep: usize,
     pub iteration_schedule: GbpIterationSchedule,
+    #[serde(default)]
+    pub factors_enabled: FactorsEnabledSection,
 }
 
 impl Default for GbpSection {
@@ -447,6 +516,8 @@ impl Default for GbpSection {
             lookahead_multiple: 3,
             // iterations_per_timestep: 10,
             iteration_schedule: Default::default(),
+            // FIXME: not properly read when desirialized from toml
+            factors_enabled: FactorsEnabledSection::default(),
         }
     }
 }
@@ -614,6 +685,41 @@ impl Default for SmoothingSection {
     }
 }
 
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct DebugSection {
+    pub on_variable_clicked: OnVariableClickedSection,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    serde::Serialize,
+    serde::Deserialize,
+    bevy::reflect::Reflect,
+    struct_iterable::Iterable,
+)]
+#[serde(rename_all = "kebab-case")]
+pub struct OnVariableClickedSection {
+    pub obstacle:   bool,
+    pub dynamic:    bool,
+    pub interrobot: bool,
+    pub tracking:   bool,
+    pub variable:   bool,
+}
+
+impl Default for OnVariableClickedSection {
+    fn default() -> Self {
+        Self {
+            obstacle:   false,
+            dynamic:    false,
+            interrobot: false,
+            tracking:   false,
+            variable:   false,
+        }
+    }
+}
+
 /// Collection of all the sections in the config file
 #[derive(Debug, Clone, Serialize, Deserialize, Resource)]
 pub struct Config {
@@ -658,6 +764,9 @@ pub struct Config {
     /// Contains parameters for manual time-stepping
     #[serde(default)]
     pub manual: ManualSection,
+
+    #[serde(default)]
+    pub debug: DebugSection,
 }
 
 impl Default for Config {
@@ -684,6 +793,7 @@ impl Default for Config {
             rrt: RRTSection::default(),
             graphviz: GraphvizSection::default(),
             manual: ManualSection::default(),
+            debug: DebugSection::default(),
         }
     }
 }

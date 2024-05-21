@@ -28,7 +28,11 @@ def plot_robot_paths(data):
         title=f'Paths of Robots in Environment: {data["environment"]}',
         xaxis_title='X Coordinate',
         yaxis_title='Y Coordinate',
-        legend_title='Robot ID'
+        legend_title='Robot ID',
+        xaxis = dict(
+            scaleanchor = "y",
+            scaleratio = 1
+        )
     )
 
     # Save the plot to an HTML file
