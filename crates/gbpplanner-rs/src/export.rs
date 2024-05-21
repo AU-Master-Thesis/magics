@@ -107,7 +107,7 @@ pub struct RobotData {
     positions: Vec<[f32; 2]>,
     // velocities: Vec<[f32; 2]>,
     velocities: Vec<planner::tracking::VelocityMeasurement>,
-    collisions: CollisionData,
+    collisions: CollisionCountData,
     messages: MessageData,
     // route: RouteData,
     mission: MissionData,
@@ -160,7 +160,53 @@ struct RouteData {
 // }
 
 #[derive(serde::Serialize)]
+struct RobotRobotCollision {
+    robot_a: Entity,
+    robot_b: Entity,
+    aabbs:   Vec<parry2d::bounding_volume::Aabb>,
+}
+
+impl std::convert::From<((Entity, Entity), &[parry2d::bounding_volume::Aabb])>
+    for RobotRobotCollision
+{
+    fn from((k, v): ((Entity, Entity), &[parry2d::bounding_volume::Aabb])) -> Self {
+        Self {
+            robot_a: k.0,
+            robot_b: k.1,
+            aabbs:   v.into_iter().copied().collect(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+struct RobotEnvironmentCollision {
+    robot:    Entity,
+    obstacle: Entity,
+    aabbs:    Vec<parry2d::bounding_volume::Aabb>,
+}
+
+impl std::convert::From<((Entity, Entity), &[parry2d::bounding_volume::Aabb])>
+    for RobotEnvironmentCollision
+{
+    fn from((k, v): ((Entity, Entity), &[parry2d::bounding_volume::Aabb])) -> Self {
+        Self {
+            robot:    k.0,
+            obstacle: k.1,
+            aabbs:    v.into_iter().copied().collect(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
 struct CollisionData {
+    // robots:      usize,
+    // environment: usize,
+    robots:      Vec<RobotRobotCollision>,
+    environment: Vec<RobotEnvironmentCollision>,
+}
+
+#[derive(serde::Serialize)]
+struct CollisionCountData {
     robots:      usize,
     environment: usize,
 }
@@ -179,14 +225,16 @@ struct MessageCount {
 
 #[derive(serde::Serialize)]
 struct ExportData {
-    scenario:  String,
-    makespan:  f64,
-    delta_t:   f64,
-    gbp:       GbpData,
-    robots:    HashMap<Entity, RobotData>,
+    scenario: String,
+    makespan: f64,
+    delta_t: f64,
+    gbp: GbpData,
+    robots: HashMap<Entity, RobotData>,
     prng_seed: u64,
-    config:    gbp_config::Config,
-    obstacles: Vec<Obstacle>,
+    config: gbp_config::Config,
+    // obstacles: Vec<Obstacle>,
+    obstacles: HashMap<Entity, Obstacle>,
+    collisions: CollisionData,
 }
 
 #[derive(serde::Serialize)]
@@ -352,7 +400,7 @@ fn export(
                 //         .finished_at()
                 //         .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
                 // ),
-                collisions: CollisionData {
+                collisions: CollisionCountData {
                     robots:      robot_collisions,
                     environment: environment_collisions,
                 },
@@ -429,46 +477,56 @@ fn export(
         let obstacles = obstacles
             .iter()
             .map(|ob| {
-                if let Some(triangle) = ob.shape.downcast_ref::<parry2d::shape::Triangle>() {
-                    Obstacle::Polygon {
-                        vertices: triangle.vertices().iter().map(|v| [v.x, v.y]).collect(),
-                    }
-                } else if let Some(circle) = ob.shape.downcast_ref::<parry2d::shape::Ball>() {
-                    Obstacle::Circle {
-                        radius: circle.radius,
-                        center: [ob.isometry.translation.x, ob.isometry.translation.y],
-                    }
-                } else if let Some(convex_polygon) =
-                    ob.shape.downcast_ref::<parry2d::shape::ConvexPolygon>()
-                {
-                    let x = ob.isometry.translation.x;
-                    let y = ob.isometry.translation.y;
-                    Obstacle::Polygon {
-                        vertices: convex_polygon
-                            .points()
-                            .iter()
-                            .map(|p| [p.x + x, p.y + y])
-                            .collect(),
-                    }
-                } else {
-                    let aabb = ob.aabb();
-                    let center = aabb.center();
-                    let half_extents = aabb.half_extents();
+                let obstacle = {
+                    if let Some(triangle) = ob.shape.downcast_ref::<parry2d::shape::Triangle>() {
+                        Obstacle::Polygon {
+                            vertices: triangle.vertices().iter().map(|v| [v.x, v.y]).collect(),
+                        }
+                    } else if let Some(circle) = ob.shape.downcast_ref::<parry2d::shape::Ball>() {
+                        Obstacle::Circle {
+                            radius: circle.radius,
+                            center: [ob.isometry.translation.x, ob.isometry.translation.y],
+                        }
+                    } else if let Some(convex_polygon) =
+                        ob.shape.downcast_ref::<parry2d::shape::ConvexPolygon>()
+                    {
+                        let x = ob.isometry.translation.x;
+                        let y = ob.isometry.translation.y;
+                        Obstacle::Polygon {
+                            vertices: convex_polygon
+                                .points()
+                                .iter()
+                                .map(|p| [p.x + x, p.y + y])
+                                .collect(),
+                        }
+                    } else {
+                        let aabb = ob.aabb();
+                        let center = aabb.center();
+                        let half_extents = aabb.half_extents();
 
-                    Obstacle::Polygon {
-                        vertices: vec![
-                            [center.x - half_extents.x, center.y - half_extents.y],
-                            [center.x + half_extents.x, center.y - half_extents.y],
-                            [center.x + half_extents.x, center.y + half_extents.y],
-                            [center.x - half_extents.x, center.y + half_extents.y],
-                        ],
+                        Obstacle::Polygon {
+                            vertices: vec![
+                                [center.x - half_extents.x, center.y - half_extents.y],
+                                [center.x + half_extents.x, center.y - half_extents.y],
+                                [center.x + half_extents.x, center.y + half_extents.y],
+                                [center.x - half_extents.x, center.y + half_extents.y],
+                            ],
+                        }
                     }
-                }
+                };
+
+                let entity = ob.associated_mesh.unwrap();
+                (entity, obstacle)
 
                 // if let Some(circle) =
                 // ob.shape.downcast_ref::<parry2d::shape::Ci
             })
-            .collect_vec();
+            .collect();
+
+        let collisions = CollisionData {
+            robots:      robot_collisions.collisions().map_into().collect(),
+            environment: environment_collisions.collisions().map_into().collect(),
+        };
 
         let export_data = ExportData {
             scenario: environment.to_string(),
@@ -479,6 +537,7 @@ fn export(
             prng_seed: config.simulation.prng_seed,
             config: config.clone(),
             obstacles,
+            collisions,
         };
 
         let json = serde_json::to_string_pretty(&export_data).unwrap();
@@ -613,7 +672,7 @@ fn take_snapshot_of_robot(
         //         .finished_at()
         //         .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
         // ),
-        collisions: CollisionData {
+        collisions: CollisionCountData {
             robots:      robot_collisions,
             environment: environment_collisions,
         },

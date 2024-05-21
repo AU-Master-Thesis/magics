@@ -167,7 +167,7 @@ impl RobotDiagnosticsPlugin {
         robot_collisions: Res<RobotRobotCollisions>,
     ) {
         diagnostics.add_measurement(&Self::ROBOT_COLLISION_COUNT, || {
-            robot_collisions.collisions() as f64
+            robot_collisions.num_collisions() as f64
         });
     }
 

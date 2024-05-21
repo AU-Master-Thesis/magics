@@ -58,7 +58,8 @@ def plot_robot_paths_plotly(data, filepath="robot-positions.html"):
 
 
     # Plot obstacles
-    for obstacle in data['obstacles']:
+    for entity, obstacle in data['obstacles'].items():
+        # print(f"{obstacle=}")
         if obstacle['type'] == 'Circle':
             circle = go.Scatter(x=[obstacle['center'][0]], y=[obstacle['center'][1]], mode='markers',
                                 marker=dict(size=obstacle['radius']*20, symbol='circle-open'),
@@ -75,7 +76,8 @@ def plot_robot_paths_plotly(data, filepath="robot-positions.html"):
                                      name='Obstacle Polygon'))
 
      # Plot obstacles
-    for obstacle in data['obstacles']:
+    for entity, obstacle in data['obstacles'].items():
+        # print(f"{obstacle=}")
         if obstacle['type'] == 'Circle':
             center_x, center_y = obstacle['center']
             radius = obstacle['radius']
@@ -124,14 +126,35 @@ def plot_robot_paths_matplotlib(data, filepath="robot-positions.svg"):
         ax.plot(x_coords, y_coords, marker='o', color=color, label=f'Robot {robot_id} (Radius: {robot_data["radius"]})')
 
     # Plot obstacles
-    for obstacle in data['obstacles']:
+    for entity, obstacle in data['obstacles'].items():
+        color = 'gray'
+
+        for collision in data['collisions']['environment']:
+            print(f"{entity=} {collision=}")
+            if collision['obstacle'] == int(entity):
+                color = 'red'
+                break
+
         if obstacle['type'] == 'Circle':
-            circle = plt.Circle(obstacle['center'], obstacle['radius'], color='gray', fill=True, alpha=0.5)
+            circle = plt.Circle(obstacle['center'], obstacle['radius'], color=color, fill=True, alpha=0.5)
             ax.add_patch(circle)
         elif obstacle['type'] == 'Polygon':
             vertices = obstacle['vertices']
-            polygon = plt.Polygon(vertices, color='gray', fill=True, alpha=0.5)
+            polygon = plt.Polygon(vertices, color=color, fill=True, alpha=0.5)
             ax.add_patch(polygon)
+
+    for collision in data['collisions']['robots']:
+        robot_a = collision['robot_a']
+        robot_b = collision['robot_b']
+        for aabb in collision['aabbs']:
+            mins: list[float] = aabb['mins']
+            maxs: list[float] = aabb['maxs']
+
+            x_coords = [mins[0], maxs[0], maxs[0], mins[0], mins[0]]
+            y_coords = [mins[1], mins[1], maxs[1], maxs[1], mins[1]]
+
+            ax.plot(x_coords, y_coords, color='red', linewidth=2)
+
 
     ax.set_title(f'Paths of Robots in Environment: {data["scenario"]}')
     ax.set_xlabel('X Coordinate')

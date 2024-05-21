@@ -73,9 +73,13 @@ rrt = { git = "https://github.com/AU-Master-Thesis/rrt", branch = "main" }
 
 parry3d = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
   "bevy",
+  # "serde",
+  "serde-serialize",
 ] }
 parry2d = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
   "bevy",
+  # "serde",
+  "serde-serialize",
 ] }
 bevy_rand = "0.6"
 bevy_prng = { version = "0.6", features = [

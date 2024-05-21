@@ -440,6 +440,7 @@ fn build_obstacles(
                 },
                 ObstacleMarker,
                 bevy_mod_picking::PickableBundle::default(),
+                On::<Pointer<Click>>::send_event::<events::ObstacleClickedOn>(),
             )).id();
 
             colliders.push(
