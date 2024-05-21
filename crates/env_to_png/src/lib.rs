@@ -330,8 +330,7 @@ fn is_placeable_obstacle(
                                                                                              // rotate the translated coordinated by the obstacle rotation
         let rotation_offset = match obstacle.shape {
             PlaceableShape::RegularPolygon(RegularPolygon { sides, radius }) => {
-                std::f32::consts::FRAC_PI_2
-                    + std::f32::consts::FRAC_PI_2
+                std::f32::consts::PI
                     + if sides % 2 != 0 {
                         std::f32::consts::PI / sides as f32
                     } else {

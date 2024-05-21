@@ -4,13 +4,13 @@ use gbp_environment::Environment;
 fn main() {
     let environment =
         Environment::from_file("./config/environment.yaml").expect("Config file not found");
-    let resolution = PixelsPerTile::new(1000);
+    let resolution = PixelsPerTile::new(200);
     if let Ok(image) = env_to_image(&environment, resolution, Percentage::new(0.0)) {
         image
             .save("./output/img.png")
             .expect("Failed to save normal image");
     }
-    if let Ok(image) = env_to_image(&environment, resolution, Percentage::new(0.01)) {
+    if let Ok(image) = env_to_image(&environment, resolution, Percentage::new(0.015)) {
         image
             .save("./output/img_exp.png")
             .expect("Failed to save normal image");
@@ -19,7 +19,7 @@ fn main() {
     if let Ok(sdf) = env_to_sdf_image(
         &environment,
         resolution,
-        Percentage::new(0.01),
+        Percentage::new(0.015),
         Percentage::new(0.01),
     ) {
         sdf.save("./output/sdf.png")
