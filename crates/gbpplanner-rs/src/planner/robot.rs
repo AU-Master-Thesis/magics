@@ -631,14 +631,15 @@ fn progress_missions(
                                 let waypoints = new_path
                                     .0
                                     .iter()
-                                    // TODO: set velocity to direction of next waypoint
-                                    .map(|p| Vec4::new(p.x, p.y, 0.0, 0.0).into())
-                                    .rev()
+                                    .chain(new_path.0.last())
+                                    .tuple_windows()
+                                    .map(|(from, to)| {
+                                        let dir = (*from - *to).normalize();
+                                        let vel = config.robot.max_speed.get() * dir;
+                                        Vec4::new(from.x, from.y, vel.x, vel.y)
+                                    })
+                                    .map_into()
                                     .collect_vec();
-                                //.try_into()
-                                //.unwrap();
-
-                                // dbg!(&waypoints);
 
                                 if let Ok(mut fgraph) = factorgraphs.get_mut(robot_entity) {
                                     fgraph.modify_tracking_factors(|tracking| {

@@ -67,6 +67,7 @@ pub fn spawn_pathfinding_task(
                 Path(
                     resulting_path
                         .into_iter()
+                        .rev()
                         .map(|v| Vec2::new(v[0] as f32, v[1] as f32))
                         .collect::<Vec<_>>(),
                 )
