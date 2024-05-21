@@ -159,6 +159,9 @@ fn ui_settings_panel(
             egui::ScrollArea::vertical()
                 .drag_to_scroll(true)
                 .show(ui, |ui| {
+
+
+                    let max_rect = ui.max_rect();
                     ui.add_space(10.0);
                     custom::subheading(
                         ui,
@@ -333,7 +336,6 @@ fn ui_settings_panel(
                                     external: config.gbp.iteration_schedule.external as u8,
                                 };
                                 // let size = ui.available_size();
-                                let max_rect = ui.max_rect();
                                 // dbg!((&max_rect, &size));
 
                                 // let painter_rect = egui::Rect {min: egui::Pos2::new(max_rect.left(), ui.cursor().top()), max: egui::Pos2::new(max_rect.right(), ui.cursor().top() + 30.0)};
@@ -467,7 +469,7 @@ fn ui_settings_panel(
                             ui.label("Safety Distance");
                             ui.horizontal(|ui| {
                                 let mut safety_dist_multiplier = config.robot.inter_robot_safety_distance_multiplier.get();
-                                ui.selectable_label(false, format!("{:.1}r ", safety_dist_multiplier));
+                                ui.label(format!("{:.1}r ", safety_dist_multiplier));
 
                                 // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                                 ui.spacing_mut().slider_width = ui.available_width();
@@ -647,46 +649,68 @@ fn ui_settings_panel(
                     ui.add_space(2.5);
                     ui.separator();
 
-                    // egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
-                    custom::grid("draw_grid", 2).show(ui, |ui| {
-                        // CONFIG DRAW SECTION
-                        // This should add a toggle for each draw setting in the config
-                        // Should be 4 toggles
-                        for (name, _) in config.visualisation.draw.clone().iter() {
-                            ui.label(DrawSection::to_display_string(name));
-                            let setting = config
-                                .visualisation
-                                .draw
-                                .get_field_mut::<bool>(name)
-                                .expect("is bool"
-                                );
-                            custom::float_right(ui, |ui| {
-                                if custom::toggle_ui(ui, setting).clicked() {
-                                    println!("name: {}", name);
-                                    if let Ok(setting_kind) = name.parse::<DrawSetting>() {
-                                        let event = DrawSettingsEvent {
-                                            setting: setting_kind,
-                                            draw:    *setting,
-                                        };
-                                        world.send_event::<DrawSettingsEvent>(event);
-                                    } else {
-                                        error!("Failed to parse into a `DrawSection`: {}", name);
-                                    }
-                                    //
-                                    // let setting_kind: DrawSetting = name.parse().expect(
-                                    //     "the ui strings are generated from the enum, so parse \
-                                    //      should not fail",
-                                    // );
-                                    // let event = DrawSettingsEvent {
-                                    //     setting: setting_kind,
-                                    //     draw:    *setting,
-                                    // };
-                                    // world.send_event::<DrawSettingsEvent>(event);
+                    ui.push_id("draw_table", |ui| {
+                        egui_extras::TableBuilder::new(ui)
+                            .striped(true)
+                            .vscroll(false)
+                            .column(egui_extras::Column::initial(max_rect.width() * 0.8))
+                            .column(egui_extras::Column::remainder())
+                            .body(|mut body| {
+                                for (name, _) in config.visualisation.draw.clone().iter() {
+                                    body.row(25., |mut row| {
+                                        //row.col(|col| {col.label(DrawSection::to_display_string(name));});
+                                        row.col(|col| {custom::center_y(col, |col| {col.label(name);});});
+                                        row.col(|ui|  {
+                                            let setting = config
+                                                .visualisation
+                                                .draw
+                                                .get_field_mut::<bool>(name)
+                                                .expect("is bool"
+                                                );
+                                            custom::float_right(ui, |ui| {
+                                                if custom::toggle_ui(ui, setting).clicked() {
+                                                    println!("name: {}", name);
+                                                    if let Ok(setting_kind) = name.parse::<DrawSetting>() {
+                                                        let event = DrawSettingsEvent {
+                                                            setting: setting_kind,
+                                                            draw:    *setting,
+                                                        };
+                                                        world.send_event::<DrawSettingsEvent>(event);
+                                                    } else {
+                                                        error!("Failed to parse into a `DrawSection`: {}", name);
+                                                    }
+                                                }
+                                            });
+                                        });
+                                    });
                                 }
                             });
-                            ui.end_row();
-                        }
 
+
+                        //for (name, _) in config.visualisation.draw.clone().iter() {
+                        //    ui.label(DrawSection::to_display_string(name));
+                        //    let setting = config
+                        //        .visualisation
+                        //        .draw
+                        //        .get_field_mut::<bool>(name)
+                        //        .expect("is bool"
+                        //        );
+                        //    custom::float_right(ui, |ui| {
+                        //        if custom::toggle_ui(ui, setting).clicked() {
+                        //            println!("name: {}", name);
+                        //            if let Ok(setting_kind) = name.parse::<DrawSetting>() {
+                        //                let event = DrawSettingsEvent {
+                        //                    setting: setting_kind,
+                        //                    draw:    *setting,
+                        //                };
+                        //                world.send_event::<DrawSettingsEvent>(event);
+                        //            } else {
+                        //                error!("Failed to parse into a `DrawSection`: {}", name);
+                        //            }
+                        //        }
+                        //    });
+                        //    ui.end_row();
+                        //}
                     });
 
                     ui.add_space(2.5);

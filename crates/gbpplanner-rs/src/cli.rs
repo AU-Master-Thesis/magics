@@ -60,9 +60,9 @@ pub struct Cli {
     #[arg(short, long)]
     pub initial_scenario: Option<String>,
 
-    // /// Run the app without a window for rendering the environment
-    // #[arg(long, group = "display")]
-    // pub headless: bool,
+    /// Run the app without a window for rendering the environment
+    #[arg(long, group = "display")]
+    pub headless:   bool,
     /// Start the app in fullscreen mode
     #[arg(short, long, group = "display")]
     pub fullscreen: bool,

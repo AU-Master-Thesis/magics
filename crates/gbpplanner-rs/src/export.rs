@@ -1,7 +1,8 @@
 use std::{collections::HashMap, io::Write};
 
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
-use gbp_config::{formation::PlanningStrategy, Config};
+use gbp_config::formation::PlanningStrategy;
+use itertools::Itertools;
 
 use self::events::TakeSnapshotOfRobot;
 use crate::{
@@ -23,7 +24,7 @@ impl Plugin for ExportPlugin {
             .add_systems(
                 Update,
                 (
-                    export,
+                    export.run_if(resource_exists::<gbp_global_planner::Colliders>),
                     open_latest_export,
                     send_default_export_event.run_if(
                         input_just_pressed(KeyCode::F7)
@@ -185,6 +186,14 @@ struct ExportData {
     robots:    HashMap<Entity, RobotData>,
     prng_seed: u64,
     config:    gbp_config::Config,
+    obstacles: Vec<Obstacle>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(tag = "type")]
+enum Obstacle {
+    Circle { center: [f32; 2], radius: f32 },
+    Polygon { vertices: Vec<[f32; 2]> },
 }
 
 #[derive(serde::Serialize)]
@@ -223,6 +232,7 @@ fn export(
     time_virtual: Res<Time<Virtual>>,
     time_fixed: Res<Time<Fixed>>,
     catppuccin: Res<crate::theme::CatppuccinTheme>,
+    obstacles: Res<gbp_global_planner::Colliders>,
 ) {
     // schema:
     //
@@ -416,6 +426,50 @@ fn export(
             },
         };
 
+        let obstacles = obstacles
+            .iter()
+            .map(|ob| {
+                if let Some(triangle) = ob.shape.downcast_ref::<parry2d::shape::Triangle>() {
+                    Obstacle::Polygon {
+                        vertices: triangle.vertices().iter().map(|v| [v.x, v.y]).collect(),
+                    }
+                } else if let Some(circle) = ob.shape.downcast_ref::<parry2d::shape::Ball>() {
+                    Obstacle::Circle {
+                        radius: circle.radius,
+                        center: [ob.isometry.translation.x, ob.isometry.translation.y],
+                    }
+                } else if let Some(convex_polygon) =
+                    ob.shape.downcast_ref::<parry2d::shape::ConvexPolygon>()
+                {
+                    let x = ob.isometry.translation.x;
+                    let y = ob.isometry.translation.y;
+                    Obstacle::Polygon {
+                        vertices: convex_polygon
+                            .points()
+                            .iter()
+                            .map(|p| [p.x + x, p.y + y])
+                            .collect(),
+                    }
+                } else {
+                    let aabb = ob.aabb();
+                    let center = aabb.center();
+                    let half_extents = aabb.half_extents();
+
+                    Obstacle::Polygon {
+                        vertices: vec![
+                            [center.x - half_extents.x, center.y - half_extents.y],
+                            [center.x + half_extents.x, center.y - half_extents.y],
+                            [center.x + half_extents.x, center.y + half_extents.y],
+                            [center.x - half_extents.x, center.y + half_extents.y],
+                        ],
+                    }
+                }
+
+                // if let Some(circle) =
+                // ob.shape.downcast_ref::<parry2d::shape::Ci
+            })
+            .collect_vec();
+
         let export_data = ExportData {
             scenario: environment.to_string(),
             makespan,
@@ -424,6 +478,7 @@ fn export(
             robots: robot_snapshots.drain().collect(),
             prng_seed: config.simulation.prng_seed,
             config: config.clone(),
+            obstacles,
         };
 
         let json = serde_json::to_string_pretty(&export_data).unwrap();
