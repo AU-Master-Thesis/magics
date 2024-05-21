@@ -208,7 +208,7 @@ dependencies = [
 
 [[package]]
 name = "angle"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "approx",
  "serde",
@@ -351,7 +351,7 @@ checksum = "175571dd1d178ced59193a6fc02dde1b972eb0bc56c892cde9beeceac5bf0f6b"
 
 [[package]]
 name = "as_variant"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
@@ -1059,7 +1059,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_fullscreen"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "bevy",
 ]
@@ -1343,7 +1343,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_notify"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "bevy",
  "bevy_egui 0.26.0",
@@ -1719,14 +1719,14 @@ dependencies = [
 
 [[package]]
 name = "bevy_touchpad"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "bevy",
 ]
 
 [[package]]
 name = "bevy_tracking"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "bevy",
  "ringbuf 0.4.1",
@@ -3105,7 +3105,7 @@ dependencies = [
 
 [[package]]
 name = "env_to_png"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "anyhow",
  "gbp_environment",
@@ -3414,7 +3414,7 @@ dependencies = [
 
 [[package]]
 name = "gbp_config"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "bevy",
  "derive_more",
@@ -3440,7 +3440,7 @@ dependencies = [
 
 [[package]]
 name = "gbp_environment"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "angle",
  "bevy",
@@ -3460,7 +3460,7 @@ dependencies = [
 
 [[package]]
 name = "gbp_geometry"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "bevy",
  "derive_more",
@@ -3472,7 +3472,7 @@ dependencies = [
 
 [[package]]
 name = "gbp_global_planner"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "bevy",
  "bevy_prng",
@@ -3487,7 +3487,7 @@ dependencies = [
 
 [[package]]
 name = "gbp_linalg"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "approx",
  "arbtest",
@@ -3499,7 +3499,7 @@ dependencies = [
 
 [[package]]
 name = "gbp_multivariate_normal"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "gbp_linalg",
  "ndarray",
@@ -3510,14 +3510,14 @@ dependencies = [
 
 [[package]]
 name = "gbp_schedule"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "bevy",
 ]
 
 [[package]]
 name = "gbpplanner-rs"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "angle",
  "anyhow",
@@ -4158,7 +4158,7 @@ dependencies = [
 
 [[package]]
 name = "interleave_evenly"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "pretty_assertions",
 ]
@@ -4680,7 +4680,7 @@ dependencies = [
 
 [[package]]
 name = "min_len_vec"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "pretty_assertions",
  "serde",
@@ -5357,7 +5357,7 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "percentage"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "approx",
  "pretty_assertions",
@@ -5908,7 +5908,7 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "repeating_array"
-version = "1.2.0"
+version = "1.3.0"
 
 [[package]]
 name = "resvg"
@@ -6195,7 +6195,7 @@ checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
 
 [[package]]
 name = "seq"
-version = "1.2.0"
+version = "1.3.0"
 
 [[package]]
 name = "serde"
@@ -7125,7 +7125,7 @@ checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
 
 [[package]]
 name = "unit_interval"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "approx",
  "serde",
@@ -7133,7 +7133,7 @@ dependencies = [
 
 [[package]]
 name = "units"
-version = "1.2.0"
+version = "1.3.0"
 
 [[package]]
 name = "unsafe-libyaml"

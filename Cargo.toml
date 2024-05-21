@@ -31,14 +31,14 @@ members = [
 ]
 
 [workspace.package]
-version = "1.2.0"
+version = "1.3.0"
 edition = "2021"
 repository = "https://github.com/AU-Master-Thesis/gbp-rs"
 authors = [
   "Jens Høigaard Jensen <jens.jens@live.dk>",
   "Kristoffer Plagborg Bak Sørensen <kristoffer.pbs@tuta.io>",
 ]
-rust-version = "1.77"
+rust-version = "1.78"
 license = "MIT"
 
 [workspace.dependencies]
