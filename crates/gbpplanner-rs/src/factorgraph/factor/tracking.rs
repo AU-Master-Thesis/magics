@@ -2,17 +2,47 @@
 
 use std::{borrow::Cow, cell::Cell, sync::Mutex};
 
-use bevy::math::Vec2;
+use bevy::{math::Vec2, utils::smallvec::ToSmallVec};
 use gbp_linalg::prelude::*;
+use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
 
 use super::{Factor, FactorState, Measurement};
 
+/// Tracking information for each tracking factor to follow
+#[derive(Debug)]
+pub struct Tracking {
+    /// The path to follow
+    path:   Vec<Vec2>,
+    /// Which index in the path, the horizon is currently moving towards
+    index:  usize,
+    /// Tracking record
+    /// Implicitly tells which waypoint the factor has reached
+    /// e.g. if the record is 3, the factor has been to waypoint 1, 2, and 3
+    record: Mutex<Cell<usize>>,
+}
+
+impl Default for Tracking {
+    fn default() -> Self {
+        Self {
+            path:   Vec::new(),
+            index:  0,
+            record: Default::default(),
+        }
+    }
+}
+
+impl Tracking {
+    pub fn with_path(mut self, path: Vec<Vec2>) -> Self {
+        self.path = path;
+        self
+    }
+}
+
 #[derive(Debug)]
 pub struct TrackingFactor {
-    /// Tracking path (Likely from RRT)
-    tracking_path: Vec<Vec2>,
-
+    /// Tracking information from global path finder
+    tracking: Tracking,
     /// Most recent measurement
     last_measurement: Mutex<Cell<LastMeasurement>>,
 }
@@ -43,7 +73,9 @@ impl TrackingFactor {
             "Tracking path must have at least 2 points"
         );
         Self {
-            tracking_path,
+            // tracking_path,
+            // tracking: Tracking::default(),
+            tracking: Tracking::default().with_path(tracking_path),
             // last_measurement: Mutex::new(Cell::new(Vec2::ZERO)),
             last_measurement: Default::default(),
         }
@@ -55,8 +87,8 @@ impl TrackingFactor {
     }
 
     /// Get the tracking path
-    pub fn tracking_path(&self) -> &[Vec2] {
-        &self.tracking_path
+    pub fn tracking(&self) -> &Tracking {
+        &self.tracking
     }
 }
 
@@ -81,48 +113,53 @@ impl Factor for TrackingFactor {
 
     // fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
     fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Measurement {
-        // 1. Window pairs of rrt path
-        // 1.1. Find the line defined by the two points
+        // let x_pos = x.slice(s![0..2]).to_owned();
+        // if self.tracking.path.is_empty() {
+        //     println!("Skipping factor because path is empty");
+        //     return Measurement::new(array![0.0]);
+        // }
 
-        let (projected_point, _, _, _) = self
-            .tracking_path
+        // The 2D position part of the linearisation point state
+        // let x_pos = {
+        //     let p = x.slice(s![0..2]).to_owned();
+        //     Vec2::new(p[0] as f32, p[1] as f32)
+        // };
+        let x_pos = x.slice(s![0..2]).to_owned();
+
+        // 1. Find which line in the `self.tracking.path` to project to, based off of
+        //    the `self.tracking.record` e.g. if `self.tracking.record` is 3, then track
+        //    the line between waypoint 3 and 4
+        let current_record = self.tracking.record.lock().unwrap().get();
+        let [start, end]: [Vec2; 2] = self
+            .tracking
+            .path
             .windows(2)
-            .map(|window| {
-                let p2 = array![window[1].x as Float, window[1].y as Float];
-                let p1 = array![window[0].x as Float, window[0].y as Float];
+            .nth(current_record)
+            .unwrap()
+            .try_into()
+            .expect("My ass");
+        let (start, end) = (array![start.x as Float, start.y as Float], array![
+            end.x as Float,
+            end.y as Float
+        ]);
 
-                let line = &p2 - &p1;
+        // 2. Project the current position onto the line between `start` and `end`
+        let line = &end - &start;
+        // let projected_point = x_pos.project_onto(line);
 
-                let x_pos = x.slice(s![0..2]).to_owned();
+        // let projected = &p1 + (&x_pos - &p1).dot(&line) / &line.dot(&line) * &line;
+        let projected_point = &start + (&x_pos - &start).dot(&line) / &line.dot(&line) * &line;
 
-                // project x_pos onto the line
-                let projected = &p1 + (&x_pos - &p1).dot(&line) / &line.dot(&line) * &line;
-                let distance = (&x_pos - &projected).euclidean_norm();
-
-                (projected, distance, line, p1)
-            })
-            // .filter(|(projected, _, line, p1)| {
-            //     let p1_to_projected_l2 = (projected - p1).l2_norm();
-            //     let p1_to_p2_l2 = line.l2_norm();
-            //     let p2_to_projected_l2 = (projected - line).l2_norm();
-
-            //     let projected_is_between_p1_p2 = p1_to_projected_l2 < p1_to_p2_l2;
-            //     let projected_is_outside_radius_of_p2 = p2_to_projected_l2 > 2.0f64.powi(2);
-
-            //     projected_is_between_p1_p2 && projected_is_outside_radius_of_p2
-            // })
-            .min_by(|(_, a, _, _), (_, b, _, _)| a.partial_cmp(b).unwrap())
-            .expect("There should be some line to consider");
-
-        // current speed is the magnitude of the velocity x[2..4]
-        // let speed = x.slice(s![2..4]).euclidean_norm();
-
-        // let future_point = projected_point + speed * lines[min_index].2.normalized();
-        // let future_point = projected_point + 2.0 * line.normalized();
-        // let future_point = array![projected_point[1], projected_point[0]];
+        // 3. if within 2m of end, increment `self.tracking.record`
+        let projected_point_to_end = (&end - &projected_point).l1_norm();
+        if projected_point_to_end < 2.0f64.powi(2) {
+            self.tracking.record.lock().unwrap().set(current_record + 1)
+        }
 
         let max_length = 1.0;
 
+        // let projected_point = array![projected_point.x as f64, projected_point.y as
+        // f64];
         let x_to_projection = &projected_point - x.slice(s![0..2]).to_owned();
         // clamp the distance to the max length
         let x_to_projection = if x_to_projection.euclidean_norm() > max_length {
@@ -131,13 +168,7 @@ impl Factor for TrackingFactor {
             x_to_projection.normalized()
         };
 
-        // invert measurement to make it 'pull' the variable towards the path
         let measurement = x_to_projection.euclidean_norm();
-
-        // self.last_measurement
-        //     .lock()
-        //     .unwrap()
-        //     .set(Vec2::new(measurement[0] as f32, measurement[1] as f32));
         self.last_measurement.lock().unwrap().set(LastMeasurement {
             pos:   Vec2::new(projected_point[0] as f32, projected_point[1] as f32),
             value: measurement,
@@ -161,6 +192,11 @@ impl Factor for TrackingFactor {
 
     #[inline(always)]
     fn skip(&self, _state: &FactorState) -> bool {
+        // skip if `self.tracking.path` is empty
+        if self.tracking.path.is_empty() {
+            println!("Skipping factor because path is empty");
+            return true;
+        }
         false
     }
 
@@ -177,7 +213,7 @@ impl Factor for TrackingFactor {
 
 impl std::fmt::Display for TrackingFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "tracking_path: {:?}", self.tracking_path)?;
+        writeln!(f, "tracking_path: {:?}", self.tracking)?;
         write!(f, "last_measurement: {:?}", self.last_measurement())
     }
 }

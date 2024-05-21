@@ -767,7 +767,7 @@ impl RobotBundle {
 
         // Create Tracking factors for all variables, excluding the start
         if config.gbp.factors_enabled.tracking {
-            for i in 1..variable_timesteps.len() {
+            for i in 1..variable_timesteps.len() - 1 {
                 let tracking_factor = FactorNode::new_tracking_factor(
                     factorgraph.id(),
                     Float::from(config.gbp.sigma_factor_tracking),
