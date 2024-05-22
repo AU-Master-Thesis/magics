@@ -776,6 +776,7 @@ impl RobotBundle {
                     Float::from(config.gbp.sigma_factor_tracking),
                     array![0.0],
                     init_linearisation_point,
+                    config.gbp.tracking_smoothing as f64,
                     route
                         .waypoints()
                         .iter()

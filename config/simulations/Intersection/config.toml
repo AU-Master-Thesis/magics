@@ -45,10 +45,11 @@ sigma-factor-interrobot = 0.01
 sigma-factor-obstacle   = 0.01
 sigma-factor-tracking   = 10
 lookahead-multiple      = 3
+tracking-smoothing      = 5.0
 
 [gbp.iteration-schedule]
-internal = 10
-external = 10
+internal = 1
+external = 1
 schedule = "interleave-evenly"
 
 [robot]

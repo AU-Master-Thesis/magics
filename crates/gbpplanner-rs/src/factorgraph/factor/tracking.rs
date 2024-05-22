@@ -13,21 +13,24 @@ use super::{Factor, FactorState, Measurement};
 #[derive(Debug)]
 pub struct Tracking {
     /// The path to follow
-    path:   Vec<Vec2>,
+    path:      Vec<Vec2>,
     /// Which index in the path, the horizon is currently moving towards
-    index:  usize,
+    index:     usize,
     /// Tracking record
     /// Implicitly tells which waypoint the factor has reached
     /// e.g. if the record is 3, the factor has been to waypoint 1, 2, and 3
-    record: Mutex<Cell<usize>>,
+    record:    Mutex<Cell<usize>>,
+    /// The smoothing factor in meters
+    smoothing: f64,
 }
 
 impl Default for Tracking {
     fn default() -> Self {
         Self {
-            path:   Vec::new(),
-            index:  0,
-            record: Default::default(),
+            path:      Vec::new(),
+            index:     0,
+            record:    Default::default(),
+            smoothing: 10.0,
         }
     }
 }
@@ -35,6 +38,11 @@ impl Default for Tracking {
 impl Tracking {
     pub fn with_path(mut self, path: Vec<Vec2>) -> Self {
         self.path = path;
+        self
+    }
+
+    pub fn with_smoothing(mut self, smoothing: f64) -> Self {
+        self.smoothing = smoothing;
         self
     }
 }
@@ -81,12 +89,17 @@ impl TrackingFactor {
         }
     }
 
-    pub fn with_last_measurement(mut self, pos: Vec2, value: Float) -> Self {
+    pub fn with_last_measurement(self, pos: Vec2, value: Float) -> Self {
         self.last_measurement
             .lock()
             .unwrap()
             .set(LastMeasurement { pos, value });
 
+        self
+    }
+
+    pub fn with_smoothing(mut self, smoothing: f64) -> Self {
+        self.tracking.smoothing = smoothing;
         self
     }
 
@@ -122,7 +135,8 @@ impl Factor for TrackingFactor {
 
     // fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
     fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Measurement {
-        println!("x: {}", x);
+        use colored::Colorize;
+        println!("x: {}", x.to_string().blue());
         let x_pos = x.slice(s![0..2]).to_owned();
 
         // 1. Find which line in the `self.tracking.path` to project to, based off of
@@ -155,7 +169,7 @@ impl Factor for TrackingFactor {
             "current_record: {}, distance to end: {}, lin: {}",
             current_record, projected_point_to_end, x_pos
         );
-        if projected_point_to_end < 2.0f64.powi(2) {
+        if projected_point_to_end < self.tracking.smoothing.powi(2) {
             println!("to end: {}", projected_point_to_end);
             self.tracking.record.lock().unwrap().set(current_record + 1)
         }
@@ -181,7 +195,7 @@ impl Factor for TrackingFactor {
         Measurement::new(array![measurement]).with_position(concatenate![
             Axis(0),
             projected_point,
-            x.slice(s![1..3]).to_owned()
+            x.slice(s![2..4]).to_owned()
         ])
     }
 

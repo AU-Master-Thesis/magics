@@ -498,11 +498,18 @@ pub struct GbpSection {
     pub sigma_factor_tracking: f32,
     /// Parameter affecting how planned path is spaced out in time
     pub lookahead_multiple: usize,
+    /// Tracking smoothing in meters
+    #[serde(default = "default_smoothing")]
+    pub tracking_smoothing: f32,
     /// Number of iterations of GBP per timestep
     // pub iterations_per_timestep: usize,
     pub iteration_schedule: GbpIterationSchedule,
     #[serde(default)]
     pub factors_enabled: FactorsEnabledSection,
+}
+
+fn default_smoothing() -> f32 {
+    10.0
 }
 
 impl Default for GbpSection {
@@ -514,6 +521,7 @@ impl Default for GbpSection {
             sigma_factor_obstacle: 0.01,
             sigma_factor_tracking: 0.1,
             lookahead_multiple: 3,
+            tracking_smoothing: 10.0,
             // iterations_per_timestep: 10,
             iteration_schedule: Default::default(),
             // FIXME: not properly read when desirialized from toml

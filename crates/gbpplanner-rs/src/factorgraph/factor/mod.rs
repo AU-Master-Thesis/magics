@@ -257,15 +257,18 @@ impl FactorNode {
         strength: Float,
         measurement: Vector<Float>,
         linearisation_point: Vector<Float>,
+        tracking_smoothing: f64,
         rrt_path: Vec<Vec2>,
         enabled: bool,
     ) -> Self {
         let state = FactorState::new(measurement, strength, TrackingFactor::NEIGHBORS)
             .with_linearisation_point(linearisation_point.clone());
-        let tracking_factor = TrackingFactor::new(rrt_path).with_last_measurement(
-            Vec2::new(linearisation_point[0] as f32, linearisation_point[1] as f32),
-            0.0,
-        );
+        let tracking_factor = TrackingFactor::new(rrt_path)
+            .with_last_measurement(
+                Vec2::new(linearisation_point[0] as f32, linearisation_point[1] as f32),
+                0.0,
+            )
+            .with_smoothing(tracking_smoothing);
         let kind = FactorKind::Tracking(tracking_factor);
         Self::new(factorgraph_id, state, kind, enabled)
     }
@@ -279,7 +282,12 @@ impl FactorNode {
     // fn measure(&self, x: &Vector<Float>) -> Vector<Float> {
     fn measure(&self, x: &Vector<Float>) -> Measurement {
         if matches!(self.kind, FactorKind::Tracking(_)) {
-            println!("measuring {}: {:?}", self.kind.name(), self.node_index);
+            use colored::Colorize;
+            println!(
+                "measuring {}: {:?}",
+                self.kind.name().red(),
+                self.node_index
+            );
         }
         self.kind.measure(&self.state, x)
         // self.state.cached_measurement = self.kind.measure(&self.state, x);
@@ -363,6 +371,11 @@ impl FactorNode {
         } = self.measure(&self.state.linearisation_point);
         // In case the measurement function wants to update the linearisation point
         if let Some(new_linearisation_point) = measurement_position {
+            use colored::Colorize;
+            println!(
+                "updating linearisation point to {}",
+                new_linearisation_point.to_string().green()
+            );
             self.state.linearisation_point = new_linearisation_point;
         }
 

@@ -298,8 +298,12 @@ impl FactorGraph {
         // TODO: explain why we send an empty message
         variable.receive_message_from(factor_id, Message::empty());
 
+        let variable_message = variable.prepare_message().clone();
         let node = &mut self.graph[factor_id.factor_index.0];
         match node.kind {
+            NodeKind::Factor(ref mut factor) if factor.is_tracking() => {
+                factor.receive_message_from(variable_id, variable_message);
+            }
             NodeKind::Factor(ref mut factor) => {
                 // NOTE: If this message were not empty, half a variable iteration will have
                 // happened manually in secret, which is not wanted
