@@ -44,7 +44,7 @@ sigma-factor-tracking   = 0.1
 # iterations-per-timestep = 10
 lookahead-multiple = 3
 [gbp.iteration-schedule]
-internal = 20
+internal = 10
 external = 10
 schedule = "interleave-evenly"
 
@@ -59,14 +59,14 @@ max = 2.0
 
 [robot.communication]
 radius       = 20.0
-failure-rate = 0.05
+failure-rate = 0.0
 
 [simulation]
 # t0                 = 0.25
 max-time           = 10000.0
 time-scale         = 1.0
 manual-step-factor = 1
-hz                 = 20.0
+hz                 = 10.0
 # world-size                                = 100.0
 prng-seed                                 = 2
 pause-on-spawn                            = false
