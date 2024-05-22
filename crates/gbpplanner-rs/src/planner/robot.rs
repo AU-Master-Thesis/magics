@@ -1108,9 +1108,7 @@ impl RobotBundle {
             }
         };
 
-        dbg!(&mission);
-
-        let use_tracking = true;
+        // dbg!(&mission);
         // Create Tracking factors for all variables, excluding the start
         // if config.gbp.factors_enabled.tracking {
         for i in 1..variable_timesteps.len() - 1 {
