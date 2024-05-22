@@ -139,7 +139,7 @@ fn ui_settings_panel(
         theme.lavender(),
     ]);
 
-    let slider_right_margin = 10.0;
+    // let slider_right_margin = 10.0;
 
     // let panel_resizable = false;
 
@@ -728,7 +728,7 @@ fn ui_settings_panel(
 
                         // INFINITE GRID
                         let mut query = world.query::<(&mut Visibility, &InfiniteGrid)>();
-                        if let Ok((mut visibility, infinite_grid)) = query.get_single_mut(world) {
+                        if let Ok((mut visibility, _)) = query.get_single_mut(world) {
                             ui.label("Infinite Grid");
                             custom::float_right(ui, |ui| {
                                 let mut visible = Visibility::Hidden != *visibility;
@@ -764,9 +764,12 @@ fn ui_settings_panel(
                                     #[allow(clippy::needless_collect)] // clippy is wrong about
                                     // this one
                                     for (id, sim) in simulation_manager.ids_and_names().collect::<Vec<(SimulationId, SmolStr)>>()  {
-                                        ui.vertical_centered_justified(|ui| {
+                                        ui.vertical(|ui| {
+                                        //ui.vertical_centered_justified(|ui| {
                                             let name: String = sim.into();
-                                            if ui.button(name).clicked() {
+                                            let button = egui::Button::new(name).wrap(false);
+                                            if ui.add(button).clicked() {
+                                            //if ui.button(name).clicked() {
                                                 simulation_manager.load(id);
                                                 ui.close_menu();
                                             }
