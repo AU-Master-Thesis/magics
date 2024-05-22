@@ -404,6 +404,7 @@ fn advance_time(
             });
 
             if config.simulation.pause_on_spawn {
+                // error!("pausing on spawn");
                 evw_pause_play.send(PausePlay::Pause);
             }
         }
