@@ -7,7 +7,7 @@ use parry2d::{
     na::{Complex, Isometry, Unit},
 };
 
-use super::{robot::Ball, RobotState};
+use super::{robot::Ball, RobotConnections};
 use crate::{
     // environment::map_generator::Colliders,
     simulation_loader::{LoadSimulation, ReloadSimulation},
@@ -40,6 +40,8 @@ impl Plugin for RobotCollisionsPlugin {
                     render_robot_environment_collisions,
                     toggle_visibility_of_robot_environment_collisions,
                     on_obstacle_clicked_on,
+                    record_aabb_when_two_robots_collide,
+                    record_aabb_when_robot_collides_with_environment,
                     // toggle_visibility_of_robot_environment_collisions
                     //     .run_if(input_just_pressed(KeyCode::F10)),
                 ),
@@ -58,7 +60,7 @@ fn clear_robot_robot_collisions(mut robot_collisions: ResMut<resources::RobotRob
 
 fn update_robot_robot_collisions(
     mut robot_collisions: ResMut<resources::RobotRobotCollisions>,
-    robots: Query<(Entity, &Transform, &Ball), With<RobotState>>,
+    robots: Query<(Entity, &Transform, &Ball), With<RobotConnections>>,
     // PERF: store bounding spheres in a Local<> vec to reuse the allocation between system calls
     mut aabbs: Local<
         Vec<(
@@ -176,13 +178,32 @@ pub mod resources {
                 .into()
         }
 
-        pub fn collisions(&self) -> usize {
+        pub fn num_collisions(&self) -> usize {
             self.collisions
             // self.inner.values().map(|c| c.collisions()).sum::<usize>()
         }
 
         pub(super) fn clear(&mut self) {
             self.inner.clear();
+        }
+
+        pub(super) fn record_collision(&mut self, event: &events::RobotRobotCollision) {
+            if let Some(entry) = self.inner.get_mut(&(event.robot_a, event.robot_b)) {
+                entry.aabbs.push(event.intersection.clone());
+            } else if let Some(entry) = self.inner.get_mut(&(event.robot_b, event.robot_a)) {
+                entry.aabbs.push(event.intersection.clone());
+            }
+        }
+
+        pub fn collisions(
+            &self,
+        ) -> impl '_ + Iterator<Item = ((Entity, Entity), &[parry2d::bounding_volume::Aabb])>
+// TODO:create iterator struct for this
+        {
+            self.inner
+                .iter()
+                .map(|(k, v)| (*k, v.aabbs.as_slice()))
+                .filter(|(_, v)| v.len() > 0)
         }
     }
 
@@ -240,13 +261,58 @@ pub mod resources {
                 .into()
         }
 
-        pub fn collisions(&self) -> usize {
+        pub fn num_collisions(&self) -> usize {
             self.collisions
             // self.inner.values().map(|c| c.collisions()).sum::<usize>()
         }
 
+        pub fn collisions(
+            &self,
+        ) -> impl '_ + Iterator<Item = ((Entity, Entity), &[parry2d::bounding_volume::Aabb])> // TODO:
+        // create iterator struct for this
+        {
+            self.inner
+                .iter()
+                .map(|(k, v)| (*k, v.aabbs.as_slice()))
+                .filter(|(_, v)| v.len() > 0)
+        }
+
         fn clear(&mut self) {
             self.inner.clear();
+        }
+
+        pub fn robots_collided_with(&self, obstacle_entity: Entity) -> Option<Vec<Entity>> {
+            let mut exists = false;
+            for (_, entity) in self.inner.keys() {
+                if *entity == obstacle_entity {
+                    exists = true;
+                    break;
+                }
+            }
+
+            if !exists {
+                return None;
+            }
+
+            let robot_entities = self
+                .inner
+                .iter()
+                .filter_map(|((e1, e2), history)| {
+                    if *e2 == obstacle_entity && history.times > 0 {
+                        Some(*e1)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            Some(robot_entities)
+        }
+
+        pub(super) fn record_collision(&mut self, event: &events::RobotEnvironmentCollision) {
+            if let Some(entry) = self.inner.get_mut(&(event.robot, event.obstacle)) {
+                entry.aabbs.push(event.intersection.clone());
+            }
         }
     }
 
@@ -277,7 +343,7 @@ pub mod events {
 
 fn update_robot_environment_collisions(
     env_colliders: Res<Colliders>,
-    robots: Query<(Entity, &Transform, &Ball), With<RobotState>>,
+    robots: Query<(Entity, &Transform, &Ball), With<RobotConnections>>,
     mut robot_environment_collisions: ResMut<resources::RobotEnvironmentCollisions>,
     mut aabbs: Local<
         Vec<(
@@ -367,6 +433,7 @@ struct CollisionHistory {
     times: usize,
     /// The current state of the collision
     state: CollisionState,
+    pub(super) aabbs: Vec<parry2d::bounding_volume::Aabb>,
 }
 
 impl CollisionHistory {
@@ -374,6 +441,7 @@ impl CollisionHistory {
         Self {
             times: 0,
             state: CollisionState::Free,
+            aabbs: Vec::new(),
         }
     }
 
@@ -547,8 +615,48 @@ fn on_obstacle_clicked_on(
     mut evr_obstacle_clicked_on: EventReader<
         crate::environment::map_generator::events::ObstacleClickedOn,
     >,
+    robot_environment_collisions: Res<resources::RobotEnvironmentCollisions>,
 ) {
+    use colored::Colorize;
     for event in evr_obstacle_clicked_on.read() {
-        println!("{}:{} {:?}", file!(), line!(), event);
+        // print all the robots that have hit the obstacle
+        let obstacle_entity: Entity = event.0;
+        println!("obstacle: {:?}", obstacle_entity);
+        if let Some(robot_entities) =
+            robot_environment_collisions.robots_collided_with(obstacle_entity)
+        {
+            println!("collisions: {}", robot_entities.len());
+            for robot_entity in robot_entities {
+                println!("  robot: {}", format!("{:?}", robot_entity).red());
+            }
+        }
+
+        robot_environment_collisions
+            .collisions()
+            .filter(|((_, obstacle), aabbs)| *obstacle == obstacle_entity && !aabbs.is_empty())
+            .for_each(|((robot, _), aabbs)| {
+                println!("  robot: {}", format!("{:?}", robot).red());
+                for aabb in aabbs {
+                    println!("    {:?}", aabb);
+                }
+            });
+    }
+}
+
+fn record_aabb_when_two_robots_collide(
+    mut evr_robots_collided: EventReader<events::RobotRobotCollision>,
+    mut robot_collisions: ResMut<resources::RobotRobotCollisions>,
+) {
+    for event in evr_robots_collided.read() {
+        robot_collisions.record_collision(event);
+    }
+}
+
+fn record_aabb_when_robot_collides_with_environment(
+    mut evr_robots_collided: EventReader<events::RobotEnvironmentCollision>,
+    mut robot_collisions: ResMut<resources::RobotEnvironmentCollisions>,
+) {
+    for event in evr_robots_collided.read() {
+        robot_collisions.record_collision(event);
     }
 }

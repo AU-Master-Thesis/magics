@@ -49,7 +49,8 @@ external = 10
 schedule = "interleave-evenly"
 
 [robot]
-planning-horizon = 13.33 # 2r / initial speed
+# planning-horizon = 13.33 # 2r / initial speed
+planning-horizon = 3.0
 # planning-horizon                       = 6.677 # 2r / initial speed
 max-speed                              = 15.0
 inter-robot-safety-distance-multiplier = 2.2

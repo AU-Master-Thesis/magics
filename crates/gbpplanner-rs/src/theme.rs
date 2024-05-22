@@ -659,7 +659,7 @@ fn handle_robots(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query_robot: Query<
         (&mut Handle<StandardMaterial>, &ColorAssociation),
-        With<planner::RobotState>,
+        With<planner::RobotConnections>,
     >,
 ) {
     for _ in theme_changed_event.read() {
@@ -708,7 +708,7 @@ fn handle_variables(
         (&mut Handle<StandardMaterial>, &RobotTracker),
         With<planner::VariableVisualiser>,
     >,
-    query_robot: Query<(Entity, &ColorAssociation), With<planner::RobotState>>,
+    query_robot: Query<(Entity, &ColorAssociation), With<planner::RobotConnections>>,
 ) {
     for _ in theme_changed_event.read() {
         for (handle, robot_tracker) in &mut query_variable {

@@ -347,12 +347,19 @@ fn main() -> anyhow::Result<()> {
     // app.insert_resource(Time::<Fixed>::from_hz(config.simulation.hz))
     // let hz = 60.0;
     // app.insert_resource(Time::<Fixed>::from_hz(hz))
+
+    // let default_plugins = if cli.headless {
+    //    DefaultPlugins.set(image_plugin)
+    //} else {
+    //    DefaultPlugins.set(window_plugin).set(image_plugin)
+    //};
+
     app
+        //.add_plugins(default_plugins)
         // bevy builtin plugins
         .add_plugins(DefaultPlugins
             .set(window_plugin)
             .set(image_plugin)
-            // .set(log_plugin)
         )
         // third-party plugins
         .add_plugins((

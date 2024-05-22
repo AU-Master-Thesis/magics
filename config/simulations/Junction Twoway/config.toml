@@ -46,7 +46,7 @@ lookahead-multiple      = 3
 
 [gbp.factors-enabled]
 tracking = false
-obstacle = false
+obstacle = true
 
 [gbp.iteration-schedule]
 internal = 10
@@ -54,7 +54,7 @@ external = 10
 schedule = "interleave-evenly"
 
 [robot]
-planning-horizon                       = 5.0
+planning-horizon                       = 2.0
 max-speed                              = 15.0
 inter-robot-safety-distance-multiplier = 2.2
 
@@ -73,14 +73,31 @@ manual-step-factor = 1
 hz                 = 10.0
 # world-size                                = 100.0
 prng-seed                                 = 2
-pause-on-spawn                            = true
-despawn-robot-when-final-waypoint-reached = true
+pause-on-spawn                            = false
+despawn-robot-when-final-waypoint-reached = false
+
 
 [rrt]
-max-iterations       = 1000000
-step-size            = 0.5
-collision-radius     = 0.1
-neighbourhood-radius = 10.0
+max-iterations       = 5000000
+step-size            = 5.0
+collision-radius     = 3.0
+neighbourhood-radius = 8.0
+
+[rrt.smoothing]
+enabled        = true
+max-iterations = 500
+step-size      = 0.5
+
+# [rrt]
+# max-iterations       = 10000000
+# step-size            = 0.5
+# collision-radius     = 0.1
+# neighbourhood-radius = 10.0
+#
+# [rrt.smoothing]
+# enabled        = false
+# max-iterations = 100
+# step-size      = 1.0
 
 [graphviz]
 export-location = "./assets/export/"

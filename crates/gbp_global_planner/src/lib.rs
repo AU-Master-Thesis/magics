@@ -97,7 +97,7 @@ impl Collider {
         self.shape.compute_aabb(&self.isometry)
     }
 }
-/// **Bevy** [`Component`] for storing a list of colliders
+/// **Bevy** [`Resource`] for storing a list of colliders
 #[derive(Resource, Default, Clone)]
 pub struct Colliders(Vec<Collider>);
 

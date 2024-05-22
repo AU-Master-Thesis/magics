@@ -12,7 +12,7 @@ use crate::{
     input::DrawSettingsEvent,
     planner::{
         robot::{RobotDespawned, RobotSpawned},
-        RobotState,
+        RobotConnections,
     },
     simulation_loader::{self, EndSimulation},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
@@ -43,10 +43,10 @@ impl Plugin for FactorGraphVisualiserPlugin {
 fn remove_rendered_factorgraph_when_robot_despawns(
     mut commands: Commands,
     query: Query<(Entity, &RobotTracker)>,
-    mut despawn_robot_event: EventReader<RobotDespawned>,
+    mut evr_robot_despawned: EventReader<RobotDespawned>,
 ) {
-    for RobotDespawned(robot_id) in despawn_robot_event.read() {
-        for (entity, tracker) in query.iter() {
+    for RobotDespawned(robot_id) in evr_robot_despawned.read() {
+        for (entity, tracker) in &query {
             if tracker.robot_id == *robot_id {
                 if let Some(mut entitycommands) = commands.get_entity(entity) {
                     entitycommands.despawn();
@@ -86,7 +86,7 @@ impl From<ListenerInput<Pointer<Click>>> for VariableClickedOn {
 fn on_variable_clicked(
     mut evr_variable_clicked_on: EventReader<VariableClickedOn>,
     q_robottracker: Query<&RobotTracker, With<VariableVisualiser>>,
-    q_factorgraph: Query<&FactorGraph, With<RobotState>>,
+    q_factorgraph: Query<&FactorGraph, With<RobotConnections>>,
     config: Res<Config>,
 ) {
     for VariableClickedOn(entity) in evr_variable_clicked_on.read() {
@@ -159,7 +159,7 @@ fn create_factorgraph_visualizer(
     mut commands: Commands,
     mut spawn_robot_event: EventReader<RobotSpawned>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    query: Query<(Entity, &FactorGraph, &ColorAssociation), With<RobotState>>,
+    query: Query<(Entity, &FactorGraph, &ColorAssociation), With<RobotConnections>>,
     config: Res<Config>,
     // scene_assets: Res<SceneAssets>,
     meshes: Res<Meshes>,

@@ -26,13 +26,22 @@ pub enum MinLenVecError {
     /// Happens when you call [`MinLenVec::new`] with a vector that has less
     /// than N elements. Or when you call [`MinLenVec::pop`] and the vector
     /// has exactly N elements.
-    NotEnoughElements(usize),
+    // NotEnoughElements(usize),
+    NotEnoughElements {
+        /// Minimum number of elements
+        min:    usize,
+        /// Actual number of elements
+        actual: usize,
+    },
 }
 
 impl std::fmt::Display for MinLenVecError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::NotEnoughElements(n) => write!(f, "Not enough elements, expected at least {n}"),
+            Self::NotEnoughElements { min, actual } => write!(
+                f,
+                "Not enough elements, expected at least {min}, got {actual}"
+            ),
         }
     }
 }
@@ -52,7 +61,10 @@ impl<T, const N: usize> MinLenVec<T, N> {
     /// Will return `Err` if then length of `data` is less than `N`
     pub fn new(data: Vec<T>) -> Result<Self> {
         if data.len() < N {
-            return Err(MinLenVecError::NotEnoughElements(N));
+            return Err(MinLenVecError::NotEnoughElements {
+                min:    N,
+                actual: data.len(),
+            });
         }
         Ok(Self(data))
     }
@@ -107,7 +119,10 @@ impl<T, const N: usize> MinLenVec<T, N> {
     #[allow(clippy::missing_panics_doc)] // if it panics, it means there is a bug in our implementation
     pub fn pop(&mut self) -> Result<T> {
         if self.0.len() <= N {
-            return Err(MinLenVecError::NotEnoughElements(N));
+            return Err(MinLenVecError::NotEnoughElements {
+                min:    N,
+                actual: self.0.len(),
+            });
         }
         Ok(self.0.pop().expect("there is always at least N elements"))
     }
@@ -231,7 +246,10 @@ mod tests {
     fn test_min_len_vec() {
         assert!(matches!(
             MinLenVec::<_, 3>::new(vec![1, 2]),
-            Err(MinLenVecError::NotEnoughElements(3))
+            Err(MinLenVecError::NotEnoughElements {
+                min:    3,
+                actual: 2,
+            })
         ));
 
         assert!(matches!(
@@ -245,7 +263,10 @@ mod tests {
         ));
         assert!(matches!(
             MinLenVec::<i32, 1>::new(vec![]),
-            Err(MinLenVecError::NotEnoughElements(1))
+            Err(MinLenVecError::NotEnoughElements {
+                min:    1,
+                actual: 0,
+            })
         ));
     }
 
@@ -267,9 +288,21 @@ mod tests {
         assert_eq!(v.len(), 4);
         assert_eq!(v.pop(), Ok(4));
         assert_eq!(v.len(), 3);
-        assert_eq!(v.pop(), Err(MinLenVecError::NotEnoughElements(3)));
+        assert_eq!(
+            v.pop(),
+            Err(MinLenVecError::NotEnoughElements {
+                min:    3,
+                actual: 3,
+            })
+        );
         assert_eq!(v.len(), 3);
-        assert_eq!(v.pop(), Err(MinLenVecError::NotEnoughElements(3)));
+        assert_eq!(
+            v.pop(),
+            Err(MinLenVecError::NotEnoughElements {
+                min:    3,
+                actual: 3,
+            })
+        );
         assert_eq!(v.len(), 3);
     }
 
@@ -325,5 +358,24 @@ mod tests {
 
         let v = two_or_more![1, 2, 3];
         assert_eq!(v.into_inner(), vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_try_into() {
+        let v = vec![1, 2];
+        let mlv: MinLenVec<_, 2> = TryFrom::try_from(v).unwrap();
+
+        assert_eq!(mlv.len(), 2);
+        assert_eq!(mlv[0], 1);
+        assert_eq!(mlv[1], 2);
+
+        let v = vec![1];
+        assert!(matches!(
+            MinLenVec::<_, 2>::try_from(v),
+            Err(MinLenVecError::NotEnoughElements {
+                min:    2,
+                actual: 1,
+            })
+        ));
     }
 }

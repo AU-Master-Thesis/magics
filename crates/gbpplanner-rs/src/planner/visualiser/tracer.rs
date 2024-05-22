@@ -12,7 +12,7 @@ use gbp_config::Config;
 use crate::{
     planner::{
         robot::{RobotDespawned, RobotSpawned},
-        RobotId, RobotState,
+        RobotConnections, RobotId,
     },
     simulation_loader::{LoadSimulation, ReloadSimulation},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
@@ -63,7 +63,7 @@ fn remove_trace_of_despawned_robot(
 }
 
 fn create_tracer_when_a_robot_is_spawned(
-    query: Query<(RobotId, &Transform, &ColorAssociation), With<RobotState>>,
+    query: Query<(RobotId, &Transform, &ColorAssociation), With<RobotConnections>>,
     mut traces: ResMut<Traces>,
     mut spawn_robot_event: EventReader<RobotSpawned>,
     theme: Res<CatppuccinTheme>,
@@ -88,7 +88,10 @@ fn create_tracer_when_a_robot_is_spawned(
 /// To update the [`Traces`] resource
 #[allow(clippy::type_complexity)]
 fn track_robots(
-    query: Query<(RobotId, &Transform, &ColorAssociation), (With<RobotState>, Changed<Transform>)>,
+    query: Query<
+        (RobotId, &Transform, &ColorAssociation),
+        (With<RobotConnections>, Changed<Transform>),
+    >,
     mut traces: ResMut<Traces>,
 ) {
     for (robot_id, transform, color_association) in &query {

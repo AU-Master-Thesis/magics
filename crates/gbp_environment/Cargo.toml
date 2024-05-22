@@ -12,7 +12,6 @@ bevy.workspace         = true
 serde.workspace        = true
 typed_floats.workspace = true
 derive_more.workspace  = true
-clap.workspace         = true
 thiserror.workspace    = true
 strum.workspace        = true
 strum_macros.workspace = true
@@ -24,6 +23,12 @@ serde_yaml.workspace = true
 angle        = { path = "../angle" }
 gbp_linalg   = { path = "../gbp_linalg" }
 gbp_geometry = { path = "../gbp_geometry" }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# open = "5.1"
+clap = { version = "4.5", default-features = false, features = [
+  "derive",
+] }
 
 [lints]
 workspace = true

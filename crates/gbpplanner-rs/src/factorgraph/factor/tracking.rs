@@ -13,7 +13,7 @@ use super::{Factor, FactorState, Measurement};
 #[derive(Debug)]
 pub struct Tracking {
     /// The path to follow
-    path:      Vec<Vec2>,
+    path:      Option<Vec<Vec2>>,
     /// Which index in the path, the horizon is currently moving towards
     index:     usize,
     /// Tracking record
@@ -27,7 +27,7 @@ pub struct Tracking {
 impl Default for Tracking {
     fn default() -> Self {
         Self {
-            path:      Vec::new(),
+            path:      None,
             index:     0,
             record:    Default::default(),
             smoothing: 10.0,
@@ -37,7 +37,7 @@ impl Default for Tracking {
 
 impl Tracking {
     pub fn with_path(mut self, path: Vec<Vec2>) -> Self {
-        self.path = path;
+        self.path = Some(path);
         self
     }
 
@@ -75,15 +75,25 @@ impl TrackingFactor {
     pub const NEIGHBORS: usize = 1;
 
     /// Creates a new [`TrackingFactor`].
-    pub fn new(tracking_path: Vec<Vec2>) -> Self {
-        assert!(
-            tracking_path.len() >= 2,
-            "Tracking path must have at least 2 points"
-        );
+    pub fn new(tracking_path: Option<min_len_vec::TwoOrMore<Vec2>>) -> Self {
+        // assert!(
+        //    tracking_path.len() >= 2,
+        //    "Tracking path must have at least 2 points"
+        //);
+
+        // let mut tracking = Tracking::default();
+        // if let Some(tracking_path) = tracking_path {
+        //    tracking.with_path(tracking_path.into());
+        //}
         Self {
             // tracking_path,
             // tracking: Tracking::default(),
-            tracking: Tracking::default().with_path(tracking_path),
+            tracking: if let Some(path) = tracking_path {
+                Tracking::default().with_path(path.into())
+            } else {
+                Tracking::default()
+            },
+            // tracking: Tracking::default().with_path(tracking_path),
             // last_measurement: Mutex::new(Cell::new(Vec2::ZERO)),
             last_measurement: Default::default(),
         }
@@ -111,6 +121,10 @@ impl TrackingFactor {
     /// Get the tracking path
     pub fn tracking(&self) -> &Tracking {
         &self.tracking
+    }
+
+    pub fn set_tracking_path(&mut self, tracking_path: min_len_vec::TwoOrMore<Vec2>) {
+        self.tracking.path = Some(tracking_path.into());
     }
 }
 
@@ -143,11 +157,15 @@ impl Factor for TrackingFactor {
         //    the `self.tracking.record` e.g. if `self.tracking.record` is 3, then track
         //    the line between waypoint 3 and 4
         let current_record = self.tracking.record.lock().unwrap().get();
+        dbg!((&self.tracking.path));
         let [start, end]: [Vec2; 2] = self
             .tracking
             .path
+            .as_ref()
+            .unwrap()
             .windows(2)
-            .nth(current_record)
+            .inspect(|it| println!("{it:?}"))
+            .nth(dbg!(current_record))
             .unwrap()
             .try_into()
             .expect("My ass");
@@ -211,7 +229,7 @@ impl Factor for TrackingFactor {
     #[inline(always)]
     fn skip(&self, _state: &FactorState) -> bool {
         // skip if `self.tracking.path` is empty
-        if self.tracking.path.is_empty() {
+        if self.tracking.path.is_none() {
             println!("Skipping factor because path is empty");
             return true;
         }
@@ -231,7 +249,17 @@ impl Factor for TrackingFactor {
 
 impl std::fmt::Display for TrackingFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "tracking_path: {:?}", self.tracking)?;
+        use colored::Colorize;
+
+        if let Some(tracking_path) = &self.tracking.path {
+            writeln!(f, "tracking_path: {}", tracking_path.len())?;
+            let width = (tracking_path.len() as f32).log10().ceil() as usize;
+            for (i, pos) in tracking_path.iter().enumerate() {
+                writeln!(f, "  [{:>width$}] = [{:>6.2}, {:>6.2}]", i, pos.x, pos.y)?;
+            }
+        } else {
+            writeln!(f, "tracking_path: {}", "None".red())?;
+        }
         write!(f, "last_measurement: {:?}", self.last_measurement())
     }
 }

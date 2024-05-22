@@ -90,7 +90,7 @@ image = { version = "0.25", default-features = false, features = [
 leafwing-input-manager = "0.13.3"
 # bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
 bevy_infinite_grid = { git = "https://github.com/AU-Master-Thesis/bevy_infinite_grid", branch = "bevy-v0.13.0" }
-bevy_more_shapes = { git = "https://github.com/AU-Master-Thesis/bevy_more_shapes", branch = "bevy-v0.13.0" }
+bevy_more_shapes   = { git = "https://github.com/AU-Master-Thesis/bevy_more_shapes", branch = "bevy-v0.13.0" }
 # bevy_mesh_terrain = "0.6.1"
 
 bevy_asset_loader = "0.20"
@@ -100,8 +100,8 @@ bevy_mod_debugdump = "0.10.0"
 # bevy-notify      = "0.2.0"
 
 
-heck            = "0.5.0"
-catppuccin      = "1.4.0"
+heck       = "0.5.0"
+catppuccin = "1.4.0"
 
 serde = { version = "1.0.196", features = [
   "derive",
@@ -109,24 +109,24 @@ serde = { version = "1.0.196", features = [
 clap_complete = "4.5.2"
 
 # color-eyre = "0.6.2"
-rand      = "0.8.5"
-petgraph  = "0.6"
+rand     = "0.8.5"
+petgraph = "0.6"
 # ndarray         = "0.15.6"
-ndarray-inverse   = "0.1.9"
-glob              = "0.3.1"
-better-panic      = "0.3.0"
+ndarray-inverse = "0.1.9"
+glob            = "0.3.1"
+better-panic    = "0.3.0"
 
 tap = "1.0.1"
 
 
-ringbuf               = "0.3.3"
-bevy_dev_console      = { git = "https://github.com/doonv/bevy_dev_console.git", version = "0.1.0" }
-termsize              = "0.1.6"
-paste                 = "1.0.14"
-egui_plot             = "0.26"
-egui_graphs           = "0.19.0"
-colored               = "2.1.0"
-chrono                = "0.4.37"
+ringbuf          = "0.3.3"
+bevy_dev_console = { git = "https://github.com/doonv/bevy_dev_console.git", version = "0.1.0" }
+termsize         = "0.1.6"
+paste            = "1.0.14"
+egui_plot        = "0.26"
+egui_graphs      = "0.19.0"
+colored          = "2.1.0"
+chrono           = "0.4.37"
 # parry3d = "0.13.7"
 
 # font-kit = { version = "0.13.0", features = ["freetype"] }
@@ -143,23 +143,30 @@ rand_chacha = { version = "0.3.1", features = [
 
 typed-builder = "0.18.2"
 atty          = "0.2.14"
-bat           = "0.24.0"
 dhat          = { version = "0.3.3", optional = true }
 indexmap      = "2.2.6"
 # colored-diff  = "0.2.3"
-serde_json    = "1.0.116"
-colorgrad     = "0.6.2"
-open          = "5.1.0"
+serde_json = "1.0.116"
+colorgrad  = "0.6.2"
+# open          = "5.1.0"
 ordered-float = "4.2.0"
 # dialoguer = { version = "0.11.0", features = ["fuzzy-select"] }
 
-# TODO: change to not wasm
-[target.'cfg(linux)'.dependencies]
-open = "5.1.0"
+# # TODO: change to not wasm
+# [target.'cfg(linux)'.dependencies]
+# open = "5.1.0"
+
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+open = "5.1"
+clap = { version = "4.5", default-features = false, features = [
+  "derive",
+] }
+bat = "0.24"
 
 [dev-dependencies]
 pretty_assertions.workspace = true
-approx            = "0.5.1"
+approx                      = "0.5.1"
 
 [build-dependencies]
 embed-resource = "2.4.2"

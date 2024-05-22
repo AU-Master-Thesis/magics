@@ -42,7 +42,7 @@ impl PluginGroup for UiPlugins {
         bevy::app::PluginGroupBuilder::start::<Self>()
             .add(ControlsPanelPlugin)
             .add(SettingsPanelPlugin)
-            .add(DataPanelPlugin)
+            //.add(DataPanelPlugin)
             .add(MetricsPlugin::default())
             .add(ScaleUiPlugin::default())
     }
