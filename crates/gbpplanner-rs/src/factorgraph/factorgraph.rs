@@ -673,6 +673,8 @@ impl FactorGraph {
         messages_to_external_factors
     }
 
+    /// Internal Factor Iteration in Gaussian Belief Propagation (GBP).
+    /// Only takes into account factors that are not interrobot factors.
     pub fn internal_factor_iteration(&mut self) {
         for i in 0..self.factor_indices.len() {
             let ix = self.factor_indices[i];
@@ -696,6 +698,8 @@ impl FactorGraph {
         }
     }
 
+    /// External Factor Iteration in Gaussian Belief Propagation (GBP).
+    /// Only takes into account factors that are interrobot factors.
     #[must_use]
     pub fn external_factor_iteration(&mut self) -> Vec<FactorToVariableMessage> {
         // Each interrobot factor is connected to an internal variable

@@ -1112,42 +1112,37 @@ impl RobotBundle {
 
         let use_tracking = true;
         // Create Tracking factors for all variables, excluding the start
-        if config.gbp.factors_enabled.tracking {
-            for i in 1..variable_timesteps.len() - 1 {
-                // for var_ix in &variable_node_indices[1..] {
-                let init_linearisation_point =
-                    concatenate![Axis(0), init_variable_means[i].clone(), array![0.0, 0.0]];
-                println!("init_linearisation_point: {:?}", init_linearisation_point);
-                let initial_route = mission.active_route().unwrap();
-                let waypoints = initial_route
-                    .waypoints
-                    .iter()
-                    .map(|w| w.position())
-                    .collect::<Vec<Vec2>>();
-                let tracking_factor = FactorNode::new_tracking_factor(
-                    factorgraph.id(),
-                    Float::from(config.gbp.sigma_factor_tracking),
-                    array![0.0],
-                    init_linearisation_point,
-                    config.gbp.tracking_smoothing as f64,
-                    Some(waypoints.try_into().unwrap()),
-                    // route
-                    //     .waypoints()
-                    //     .iter()
-                    //     .map(|wp| wp.position())
-                    //     .collect::<Vec<Vec2>>(),
-                    config.gbp.factors_enabled.tracking,
-                );
+        // if config.gbp.factors_enabled.tracking {
+        for i in 1..variable_timesteps.len() - 1 {
+            // for var_ix in &variable_node_indices[1..] {
+            let init_linearisation_point =
+                concatenate![Axis(0), init_variable_means[i].clone(), array![0.0, 0.0]];
+            println!("init_linearisation_point: {:?}", init_linearisation_point);
+            let initial_route = mission.active_route().unwrap();
+            let waypoints = initial_route
+                .waypoints
+                .iter()
+                .map(|w| w.position())
+                .collect::<Vec<Vec2>>();
+            let tracking_factor = FactorNode::new_tracking_factor(
+                factorgraph.id(),
+                Float::from(config.gbp.sigma_factor_tracking),
+                array![0.0],
+                init_linearisation_point,
+                config.gbp.tracking_smoothing as f64,
+                Some(waypoints.try_into().unwrap()),
+                config.gbp.factors_enabled.tracking,
+            );
 
-                let factor_node_index = factorgraph.add_factor(tracking_factor);
-                let factor_id = FactorId::new(factorgraph.id(), factor_node_index);
-                let _ = factorgraph.add_internal_edge(
-                    // VariableId::new(factorgraph.id(), variable_node_indices[i]),
-                    VariableId::new(factorgraph.id(), variable_node_indices[i]),
-                    factor_id,
-                );
-            }
+            let factor_node_index = factorgraph.add_factor(tracking_factor);
+            let factor_id = FactorId::new(factorgraph.id(), factor_node_index);
+            let _ = factorgraph.add_internal_edge(
+                // VariableId::new(factorgraph.id(), variable_node_indices[i]),
+                VariableId::new(factorgraph.id(), variable_node_indices[i]),
+                factor_id,
+            );
         }
+        // }
 
         Self {
             factorgraph,

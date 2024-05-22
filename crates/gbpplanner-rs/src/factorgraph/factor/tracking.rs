@@ -1,8 +1,8 @@
 //! Tracking Factor (extension)
-
 use std::{borrow::Cow, cell::Cell, sync::Mutex};
 
 use bevy::{math::Vec2, utils::smallvec::ToSmallVec};
+use colored::Colorize;
 use gbp_linalg::prelude::*;
 use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
@@ -44,6 +44,19 @@ impl Tracking {
     pub fn with_smoothing(mut self, smoothing: f64) -> Self {
         self.smoothing = smoothing;
         self
+    }
+
+    /// Increments record, but clamped to the bounds of the path
+    fn increment_record(&self) {
+        let record = self.record.lock().unwrap();
+
+        let new_record = if let Some(path) = &self.path {
+            (record.get() + 1).min(path.len() - 2)
+        } else {
+            0
+        };
+
+        record.set(new_record);
     }
 }
 
@@ -141,23 +154,45 @@ impl Factor for TrackingFactor {
     }
 
     #[inline]
-    fn jacobian(&self, state: &FactorState, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+    fn jacobian(
+        &self,
+        state: &FactorState,
+        linearisation_point: &Vector<Float>,
+    ) -> Cow<'_, Matrix<Float>> {
         // Same as PoseFactor
         // TODO: change to not clone x
-        Cow::Owned(self.first_order_jacobian(state, x.clone()))
+        // Cow::Owned(self.first_order_jacobian(state, x.clone()))
+        let mut linearisation_point = linearisation_point.to_owned();
+
+        let h0 = array![self.last_measurement.lock().unwrap().get().value];
+        let mut jacobian = Matrix::<Float>::zeros((h0.len(), linearisation_point.len()));
+
+        let delta = self.jacobian_delta();
+
+        for i in 0..linearisation_point.len() {
+            linearisation_point[i] += delta; // perturb by delta
+            let Measurement {
+                value: h1,
+                position: _,
+            } = self.measure(state, &linearisation_point);
+            let derivatives = (&h1 - &h0) / delta;
+            jacobian.column_mut(i).assign(&derivatives);
+            linearisation_point[i] -= delta; // reset the perturbation
+        }
+
+        Cow::Owned(jacobian)
     }
 
     // fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
     fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Measurement {
-        use colored::Colorize;
-        println!("x: {}", x.to_string().blue());
+        let current_record = self.tracking.record.lock().unwrap().get();
         let x_pos = x.slice(s![0..2]).to_owned();
+
+        println!("x_pos: {}", x_pos.to_string().truecolor(254, 100, 11));
 
         // 1. Find which line in the `self.tracking.path` to project to, based off of
         //    the `self.tracking.record` e.g. if `self.tracking.record` is 3, then track
         //    the line between waypoint 3 and 4
-        let current_record = self.tracking.record.lock().unwrap().get();
-        dbg!((&self.tracking.path));
         let [start, end]: [Vec2; 2] = self
             .tracking
             .path
@@ -174,41 +209,38 @@ impl Factor for TrackingFactor {
             end.y as Float
         ]);
 
+        println!("start: {}\nend: {}", start, end);
+
         // 2. Project the current position onto the line between `start` and `end`
         let line = &end - &start;
-        // let projected_point = x_pos.project_onto(line);
-
-        // let projected = &p1 + (&x_pos - &p1).dot(&line) / &line.dot(&line) * &line;
         let projected_point = &start + (&x_pos - &start).dot(&line) / &line.dot(&line) * &line;
 
-        // 3. if within 2m of end, increment `self.tracking.record`
+        println!("projected: {}", projected_point.to_string().cyan());
+
+        // 3. if within `self.tracking.smoothing` of end, increment
+        //    `self.tracking.record`
         let projected_point_to_end = (&end - &projected_point).l1_norm();
-        println!(
-            "current_record: {}, distance to end: {}, lin: {}",
-            current_record, projected_point_to_end, x_pos
-        );
+
         if projected_point_to_end < self.tracking.smoothing.powi(2) {
-            println!("to end: {}", projected_point_to_end);
-            self.tracking.record.lock().unwrap().set(current_record + 1)
+            // println!("incre", projected_point_to_end);
+            self.tracking.increment_record();
         }
 
-        let max_length = 1.0;
+        let max_length = 1.0f64;
 
         // let projected_point = array![projected_point.x as f64, projected_point.y as
         // f64];
-        let x_to_projection = &projected_point - x.slice(s![0..2]).to_owned();
-        // clamp the distance to the max length
-        let x_to_projection = if x_to_projection.euclidean_norm() > max_length {
-            (x_to_projection.normalized() * max_length).normalized()
-        } else {
-            x_to_projection.normalized()
-        };
+        let x_to_projection = &projected_point - &x_pos;
+        // // clamp the distance to the max length
+        println!("Euc norm: {}", x_to_projection.euclidean_norm());
 
-        let measurement = x_to_projection.euclidean_norm();
+        let measurement = 1.0 - f64::min(x_to_projection.euclidean_norm(), max_length);
         self.last_measurement.lock().unwrap().set(LastMeasurement {
             pos:   Vec2::new(projected_point[0] as f32, projected_point[1] as f32),
             value: measurement,
         });
+
+        println!("measurement: {}", measurement);
 
         Measurement::new(array![measurement]).with_position(concatenate![
             Axis(0),
@@ -229,7 +261,10 @@ impl Factor for TrackingFactor {
     #[inline(always)]
     fn skip(&self, _state: &FactorState) -> bool {
         // skip if `self.tracking.path` is empty
-        if self.tracking.path.is_none() {
+        if self.tracking.path.is_none()
+            || self.tracking.record.lock().unwrap().get()
+                >= self.tracking.path.as_ref().map_or(1, |p| p.len()) - 1
+        {
             println!("Skipping factor because path is empty");
             return true;
         }

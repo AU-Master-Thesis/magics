@@ -108,6 +108,7 @@ pub trait Factor: std::fmt::Display {
             value: h0,
             position: _,
         } = self.measure(state, &linearization_point); // value at linearization point
+                                                       // let h0 = self.
         let mut jacobian = Matrix::<Float>::zeros((h0.len(), linearization_point.len()));
 
         let delta = self.jacobian_delta();
@@ -365,6 +366,8 @@ impl FactorNode {
             self.message_count.sent += messages_sent;
             return messages;
         }
+
+        // let mut linearisation_point =
 
         // 1. Perform factor measurement
         let Measurement {
