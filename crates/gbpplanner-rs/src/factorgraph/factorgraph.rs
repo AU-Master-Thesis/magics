@@ -690,41 +690,6 @@ impl FactorGraph {
                 variable.receive_message_from(factor_id, message);
             }
         }
-        // for i in 0..self.dynamic_factor_indices.len() {
-        //     let ix = self.dynamic_factor_indices[i];
-        //     let node = &mut self.graph[ix];
-        //     let factor = node.factor_mut();
-        //     let variable_messages = factor.update();
-        //     let factor_id = FactorId::new(self.id, FactorIndex(ix));
-        //
-        //     for (variable_id, message) in variable_messages {
-        //         debug_assert_eq!(
-        //             variable_id.factorgraph_id, self.id,
-        //             "non interrobot factors can only have variable neighbours
-        // in the same graph"
-        //         );
-        //         let variable = self.variable_mut(variable_id.variable_index);
-        //         variable.receive_message_from(factor_id, message);
-        //     }
-        // }
-        //
-        // for i in 0..self.obstacle_factor_indices.len() {
-        //     let ix = self.obstacle_factor_indices[i];
-        //     let node = &mut self.graph[ix];
-        //     let factor = node.factor_mut();
-        //     let variable_messages = factor.update();
-        //     let factor_id = FactorId::new(self.id, FactorIndex(ix));
-        //
-        //     for (variable_id, message) in variable_messages {
-        //         debug_assert_eq!(
-        //             variable_id.factorgraph_id, self.id,
-        //             "non interrobot factors can only have variable neighbours
-        // in the same graph"
-        //         );
-        //         let variable = self.variable_mut(variable_id.variable_index);
-        //         variable.receive_message_from(factor_id, message);
-        //     }
-        // }
     }
 
     #[must_use]

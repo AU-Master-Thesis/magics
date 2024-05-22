@@ -237,8 +237,8 @@ impl FactorNode {
     }
 
     #[inline]
-    fn measure(&self, x: &Vector<Float>) -> Vector<Float> {
-        self.kind.measure(&self.state, x)
+    fn measure(&self, linearisation_point: &Vector<Float>) -> Vector<Float> {
+        self.kind.measure(&self.state, linearisation_point)
         // self.state.cached_measurement = self.kind.measure(&self.state, x);
         // self.state.cached_measurement.clone()
     }
@@ -278,31 +278,7 @@ impl FactorNode {
     /// Update the factor using the gbp message passing algorithm
     #[must_use]
     pub fn update(&mut self) -> MessagesToVariables {
-        // debug_assert_eq!(
-        //     self.state.linearisation_point.len(),
-        //     DOFS * self.inbox.len()
-        // );
-
-        // if self.state.linearisation_point.len() != DOFS * self.inbox.len() {
-        //     eprintln!(
-        //         "self.state.linearisation_point.len() = {}, DOFS * self.inbox.len() =
-        // {}",         self.state.linearisation_point.len(),
-        //         DOFS * self.inbox.len()
-        //     );
-        //     panic!("should not happen");
-        // }
-
-        // // let chunks = self.state.linearisation_point.exact_chunks_mut(DOFS);
-        // for chunk in
-        // self.state.linearisation_point.exact_chunks_mut(DOFS).into_iter() {
-        //     // chunk.into_slice_memory_order()
-        //     if let Some(data) = chunk.as_slice_memory_order_mut() {
-        //         data.assign_elem(0.0);
-        //     } else {
-        //         panic!("should not happen, is 1d");
-        //     }
-        // }
-
+        // update the linearisation point
         for (i, (_, message)) in self.inbox.iter().enumerate() {
             let mut slice = self
                 .state
@@ -373,11 +349,6 @@ impl FactorNode {
                 if other_message.is_empty() {
                     continue;
                 }
-
-                // let message_eta = other_message.information_vector().expect("it better be
-                // there"); information_vec
-                //     .slice_mut(s![j * DOFS..(j + 1) * DOFS])
-                //     .add_assign(message_eta);
 
                 if let Some(message_information) = other_message.information_vector() {
                     information_vec
@@ -495,7 +466,6 @@ impl Factor for FactorKind {
 
     fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>) -> Vector<Float> {
         match self {
-            // Self::Pose(f) => f.measure(state, x),
             Self::Dynamic(f) => f.measure(state, linearisation_point),
             Self::InterRobot(f) => f.measure(state, linearisation_point),
             Self::Obstacle(f) => f.measure(state, linearisation_point),
