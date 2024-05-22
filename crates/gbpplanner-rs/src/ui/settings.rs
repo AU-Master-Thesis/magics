@@ -659,7 +659,10 @@ fn ui_settings_panel(
                                 for (name, _) in config.visualisation.draw.clone().iter() {
                                     body.row(25., |mut row| {
                                         //row.col(|col| {col.label(DrawSection::to_display_string(name));});
-                                        row.col(|col| {custom::center_y(col, |col| {col.label(name);});});
+
+                                        row.col(|col| {custom::center_y(col, |col| {
+                                            let label = DrawSection::to_display_string(name);
+                                            col.label(label);});});
                                         row.col(|ui|  {
                                             let setting = config
                                                 .visualisation
