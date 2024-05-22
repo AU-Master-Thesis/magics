@@ -169,12 +169,9 @@ impl Factor for TrackingFactor {
 
     // fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
     fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Measurement {
-        // println!("x: {}", x.to_string().truecolor(230, 69, 83));
         let current_record = self.tracking.record.lock().unwrap().get();
         let x_pos = x.slice(s![0..2]).to_owned();
         let x_vel = x.slice(s![2..4]).to_owned();
-
-        // println!("x_pos: {}", x_pos.to_string().truecolor(254, 100, 11));
 
         // 1. Find which line in the `self.tracking.path` to project to, based off of
         //    the `self.tracking.record` e.g. if `self.tracking.record` is 3, then track
@@ -187,51 +184,62 @@ impl Factor for TrackingFactor {
             .windows(2)
             .collect_vec();
 
-        // let [start, end]: [Vec2; 2] = self
-        //     .tracking
-        //     .path
-        //     .as_ref()
-        //     .unwrap()
-        //     .windows(2)
-        //     // .inspect(|it| println!("{it:?}"))
-        //     .nth(current_record)
-        //     .unwrap()
-        //     .try_into()
-        //     .expect("My ass");
-        let [start, end]: &[Vec2; 2] = lines[current_record].try_into().unwrap();
-        let (start, end) = (array![start.x as Float, start.y as Float], array![
-            end.x as Float,
-            end.y as Float
-        ]);
+        let [current_start, current_end]: &[Vec2; 2] = lines[current_record].try_into().unwrap();
+        let (current_start, current_end) = (
+            array![current_start.x as Float, current_start.y as Float],
+            array![current_end.x as Float, current_end.y as Float],
+        );
 
-        // println!("start: {}\nend: {}", start, end);
+        // 2. Project the current position onto the line between `current_start` and
+        //    `current_end`
+        let line = &current_end - &current_start;
+        let projected_point =
+            &current_start + (&x_pos - &current_start).dot(&line) / &line.dot(&line) * &line;
 
-        // 2. Project the current position onto the line between `start` and `end`
-        let line = &end - &start;
-        let projected_point = &start + (&x_pos - &start).dot(&line) / &line.dot(&line) * &line;
+        // 4. If within `self.tracking.smoothing` of start, project to the previous line
+        //    if it exists
+        //   as well, and take the average of the two projections
+        // let consideration_distance =
+        //     x_vel.l1_norm() + self.tracking.config.switch_padding.powi(2) as f64;
+        let consideration_distance = self.tracking.config.switch_padding.powi(2) as Float;
+        let current_projected_point_to_end = (&current_end - &projected_point).l1_norm();
+        let vel_contribution = line.normalized() * x_vel.euclidean_norm() as Float;
 
-        // println!("projected: {}", projected_point.to_string().cyan());
+        let projection_to_previous = if current_record > 0 {
+            let [previous_start, previous_end]: &[Vec2; 2] =
+                lines[current_record - 1].try_into().unwrap();
+            let (previous_start, previous_end) = (
+                array![previous_start.x as Float, previous_start.y as Float],
+                array![previous_end.x as Float, previous_end.y as Float],
+            );
+
+            let line = &previous_end - &previous_start;
+            let projected_point =
+                &previous_start + (&x_pos - &previous_start).dot(&line) / &line.dot(&line) * &line;
+
+            let previous_projected_point_to_end = (&current_start - &projected_point).l1_norm();
+            if previous_projected_point_to_end < consideration_distance {
+                Some(projected_point)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
         // 3. if within `self.tracking.smoothing` of end, increment
         //    `self.tracking.record`
-        let projected_point_to_end = (&end - &projected_point).l1_norm();
-
-        // if projected_point_to_end < self.tracking.smoothing.powi(2) {
-        if projected_point_to_end
-            < x_vel.l1_norm() + self.tracking.config.switch_padding.powi(2) as f64
-        {
-            // println!("incre", projected_point_to_end);
+        if current_projected_point_to_end < consideration_distance + vel_contribution.l1_norm() {
             self.tracking.increment_record();
         }
 
-        // let self.tracking.config. = 1.0f64;
+        let measurement_point = match projection_to_previous {
+            Some(projection) => (projected_point + projection) / 2.0,
+            None => projected_point, // + line.normalized() * x_vel.euclidean_norm() as Float,
+        };
 
-        // let projected_point = array![projected_point.x as f64, projected_point.y as
-        // f64];
-        let x_to_projection = &projected_point - &x_pos;
-        // // clamp the distance to the max length
-        // println!("Euc norm: {}", x_to_projection.euclidean_norm());
-
+        // 5. Normalise length to `self.tracking.config.attraction_distance`
+        let x_to_projection = &measurement_point - &x_pos;
         let x_to_projection_distance = x_to_projection.euclidean_norm();
         let attraction_distance_f64 = self.tracking.config.attraction_distance as f64;
         let normalised_distance = if x_to_projection_distance < attraction_distance_f64 {
@@ -240,17 +248,19 @@ impl Factor for TrackingFactor {
             1.0
         };
 
-        let measurement = 1.0 - normalised_distance;
+        // 6. Invert the measurement
+        // let measurement = 1.0 - normalised_distance;
+        let measurement = normalised_distance;
+
+        // Update last measurement and return
         self.last_measurement.lock().unwrap().set(LastMeasurement {
-            pos:   Vec2::new(projected_point[0] as f32, projected_point[1] as f32),
+            pos:   Vec2::new(measurement_point[0] as f32, measurement_point[1] as f32),
             value: measurement,
         });
 
-        // println!("measurement: {}", measurement);
-
         Measurement::new(array![measurement]).with_position(concatenate![
             Axis(0),
-            projected_point,
+            measurement_point,
             x.slice(s![2..4]).to_owned()
         ])
     }

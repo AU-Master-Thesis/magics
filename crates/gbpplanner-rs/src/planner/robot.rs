@@ -1156,7 +1156,7 @@ impl RobotBundle {
             // for var_ix in &variable_node_indices[1..] {
             let init_linearisation_point =
                 concatenate![Axis(0), init_variable_means[i].clone(), array![0.0, 0.0]];
-            println!("init_linearisation_point: {:?}", init_linearisation_point);
+            // println!("init_linearisation_point: {:?}", init_linearisation_point);
             let initial_route = mission.active_route().unwrap();
             let waypoints = initial_route
                 .waypoints
