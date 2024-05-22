@@ -13,24 +13,24 @@ use super::{Factor, FactorState, Measurement};
 #[derive(Debug)]
 pub struct Tracking {
     /// The path to follow
-    path:      Option<Vec<Vec2>>,
+    path:   Option<Vec<Vec2>>,
     /// Which index in the path, the horizon is currently moving towards
-    index:     usize,
+    index:  usize,
     /// Tracking record
     /// Implicitly tells which waypoint the factor has reached
     /// e.g. if the record is 3, the factor has been to waypoint 1, 2, and 3
-    record:    Mutex<Cell<usize>>,
-    /// The smoothing factor in meters
-    smoothing: f64,
+    record: Mutex<Cell<usize>>,
+    /// The tracking config from the `gbp_config` input `config.toml`
+    config: gbp_config::TrackingSection,
 }
 
 impl Default for Tracking {
     fn default() -> Self {
         Self {
-            path:      None,
-            index:     0,
-            record:    Default::default(),
-            smoothing: 10.0,
+            path:   None,
+            index:  0,
+            record: Mutex::new(Cell::new(0)),
+            config: gbp_config::TrackingSection::default(),
         }
     }
 }
@@ -41,8 +41,8 @@ impl Tracking {
         self
     }
 
-    pub fn with_smoothing(mut self, smoothing: f64) -> Self {
-        self.smoothing = smoothing;
+    pub fn with_config(mut self, config: gbp_config::TrackingSection) -> Self {
+        self.config = config;
         self
     }
 
@@ -89,25 +89,9 @@ impl TrackingFactor {
 
     /// Creates a new [`TrackingFactor`].
     pub fn new(tracking_path: Option<min_len_vec::TwoOrMore<Vec2>>) -> Self {
-        // assert!(
-        //    tracking_path.len() >= 2,
-        //    "Tracking path must have at least 2 points"
-        //);
-
-        // let mut tracking = Tracking::default();
-        // if let Some(tracking_path) = tracking_path {
-        //    tracking.with_path(tracking_path.into());
-        //}
         Self {
-            // tracking_path,
-            // tracking: Tracking::default(),
-            tracking: if let Some(path) = tracking_path {
-                Tracking::default().with_path(path.into())
-            } else {
-                Tracking::default()
-            },
-            // tracking: Tracking::default().with_path(tracking_path),
-            // last_measurement: Mutex::new(Cell::new(Vec2::ZERO)),
+            tracking: Tracking::default()
+                .with_path(tracking_path.map_or_else(Vec::new, |p| p.into())),
             last_measurement: Default::default(),
         }
     }
@@ -121,8 +105,8 @@ impl TrackingFactor {
         self
     }
 
-    pub fn with_smoothing(mut self, smoothing: f64) -> Self {
-        self.tracking.smoothing = smoothing;
+    pub fn with_config(mut self, config: gbp_config::TrackingSection) -> Self {
+        self.tracking.config = config;
         self
     }
 
@@ -185,62 +169,84 @@ impl Factor for TrackingFactor {
 
     // fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Vector<Float> {
     fn measure(&self, _state: &FactorState, x: &Vector<Float>) -> Measurement {
+        // println!("x: {}", x.to_string().truecolor(230, 69, 83));
         let current_record = self.tracking.record.lock().unwrap().get();
         let x_pos = x.slice(s![0..2]).to_owned();
+        let x_vel = x.slice(s![2..4]).to_owned();
 
-        println!("x_pos: {}", x_pos.to_string().truecolor(254, 100, 11));
+        // println!("x_pos: {}", x_pos.to_string().truecolor(254, 100, 11));
 
         // 1. Find which line in the `self.tracking.path` to project to, based off of
         //    the `self.tracking.record` e.g. if `self.tracking.record` is 3, then track
         //    the line between waypoint 3 and 4
-        let [start, end]: [Vec2; 2] = self
+        let lines = self
             .tracking
             .path
             .as_ref()
             .unwrap()
             .windows(2)
-            .inspect(|it| println!("{it:?}"))
-            .nth(dbg!(current_record))
-            .unwrap()
-            .try_into()
-            .expect("My ass");
+            .collect_vec();
+
+        // let [start, end]: [Vec2; 2] = self
+        //     .tracking
+        //     .path
+        //     .as_ref()
+        //     .unwrap()
+        //     .windows(2)
+        //     // .inspect(|it| println!("{it:?}"))
+        //     .nth(current_record)
+        //     .unwrap()
+        //     .try_into()
+        //     .expect("My ass");
+        let [start, end]: &[Vec2; 2] = lines[current_record].try_into().unwrap();
         let (start, end) = (array![start.x as Float, start.y as Float], array![
             end.x as Float,
             end.y as Float
         ]);
 
-        println!("start: {}\nend: {}", start, end);
+        // println!("start: {}\nend: {}", start, end);
 
         // 2. Project the current position onto the line between `start` and `end`
         let line = &end - &start;
         let projected_point = &start + (&x_pos - &start).dot(&line) / &line.dot(&line) * &line;
 
-        println!("projected: {}", projected_point.to_string().cyan());
+        // println!("projected: {}", projected_point.to_string().cyan());
 
         // 3. if within `self.tracking.smoothing` of end, increment
         //    `self.tracking.record`
         let projected_point_to_end = (&end - &projected_point).l1_norm();
 
-        if projected_point_to_end < self.tracking.smoothing.powi(2) {
+        // if projected_point_to_end < self.tracking.smoothing.powi(2) {
+        if projected_point_to_end
+            < x_vel.l1_norm() + self.tracking.config.switch_padding.powi(2) as f64
+        {
             // println!("incre", projected_point_to_end);
             self.tracking.increment_record();
         }
 
-        let max_length = 1.0f64;
+        // let self.tracking.config. = 1.0f64;
 
         // let projected_point = array![projected_point.x as f64, projected_point.y as
         // f64];
         let x_to_projection = &projected_point - &x_pos;
         // // clamp the distance to the max length
-        println!("Euc norm: {}", x_to_projection.euclidean_norm());
+        // println!("Euc norm: {}", x_to_projection.euclidean_norm());
 
-        let measurement = 1.0 - f64::min(x_to_projection.euclidean_norm(), max_length);
+        let x_to_projection_distance = x_to_projection.euclidean_norm();
+        let attraction_distance_f64 = self.tracking.config.attraction_distance as f64;
+        let normalised_distance = if x_to_projection_distance < attraction_distance_f64 {
+            x_to_projection_distance / attraction_distance_f64
+        } else {
+            1.0
+        };
+
+        let measurement = 1.0 - normalised_distance;
         self.last_measurement.lock().unwrap().set(LastMeasurement {
             pos:   Vec2::new(projected_point[0] as f32, projected_point[1] as f32),
             value: measurement,
         });
 
-        println!("measurement: {}", measurement);
+        // println!("measurement: {}", measurement);
 
         Measurement::new(array![measurement]).with_position(concatenate![
             Axis(0),

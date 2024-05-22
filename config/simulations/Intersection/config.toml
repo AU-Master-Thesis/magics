@@ -48,7 +48,10 @@ sigma-factor-interrobot = 0.01
 sigma-factor-obstacle   = 0.01
 sigma-factor-tracking   = 30
 lookahead-multiple      = 3
-tracking-smoothing      = 5.0
+
+[gbp.tracking]
+attraction-distance = 1.0
+switch-padding      = 1.0
 
 [gbp.iteration-schedule]
 internal = 1

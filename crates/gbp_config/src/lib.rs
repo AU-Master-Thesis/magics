@@ -493,6 +493,38 @@ impl Default for FactorsEnabledSection {
     }
 }
 
+/// **Tracking Section**
+/// Contains parameters for the tracking factor
+/// - `switch_padding`: Padding around the switch point
+/// - `attraction_distance`: Distance to the tracking line to normalise around
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct TrackingSection {
+    #[serde(default = "default_switch_padding")]
+    pub switch_padding:      f32,
+    #[serde(default = "default_attraction_distance")]
+    pub attraction_distance: f32,
+}
+
+/// Default value for the attraction distance
+fn default_attraction_distance() -> f32 {
+    2.0
+}
+
+/// Default value for the switch padding
+fn default_switch_padding() -> f32 {
+    1.0
+}
+
+impl Default for TrackingSection {
+    fn default() -> Self {
+        Self {
+            switch_padding:      default_switch_padding(),
+            attraction_distance: default_attraction_distance(),
+        }
+    }
+}
+
 /// **GBP Section**
 /// Contains parameters for the GBP algorithm. These paraneters are used for
 /// initialisation of factors and prediction horizon steps.
@@ -511,18 +543,14 @@ pub struct GbpSection {
     pub sigma_factor_tracking: f32,
     /// Parameter affecting how planned path is spaced out in time
     pub lookahead_multiple: usize,
-    /// Tracking smoothing in meters
-    #[serde(default = "default_smoothing")]
-    pub tracking_smoothing: f32,
-    /// Number of iterations of GBP per timestep
-    // pub iterations_per_timestep: usize,
+    /// Tracking section
+    #[serde(default)]
+    pub tracking: TrackingSection,
+    /// Schedule for how many iterations to run different parts of the GBP
     pub iteration_schedule: GbpIterationSchedule,
+    /// Section for enabling/disabling factors
     #[serde(default)]
     pub factors_enabled: FactorsEnabledSection,
-}
-
-fn default_smoothing() -> f32 {
-    10.0
 }
 
 impl Default for GbpSection {
@@ -534,11 +562,12 @@ impl Default for GbpSection {
             sigma_factor_obstacle: 0.01,
             sigma_factor_tracking: 0.1,
             lookahead_multiple: 3,
-            tracking_smoothing: 10.0,
+            tracking: TrackingSection::default(),
             // iterations_per_timestep: 10,
-            iteration_schedule: Default::default(),
+            iteration_schedule: GbpIterationSchedule::default(),
             // FIXME: not properly read when desirialized from toml
             factors_enabled: FactorsEnabledSection::default(),
+            // ..Default::default()
         }
     }
 }

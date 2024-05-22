@@ -1127,7 +1127,8 @@ impl RobotBundle {
                 Float::from(config.gbp.sigma_factor_tracking),
                 array![0.0],
                 init_linearisation_point,
-                config.gbp.tracking_smoothing as f64,
+                // config.gbp.tracking_smoothing as f64,
+                config.gbp.tracking.clone(),
                 Some(waypoints.try_into().unwrap()),
                 config.gbp.factors_enabled.tracking,
             );

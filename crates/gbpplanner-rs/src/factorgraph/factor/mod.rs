@@ -258,7 +258,8 @@ impl FactorNode {
         strength: Float,
         measurement: Vector<Float>,
         linearisation_point: Vector<Float>,
-        tracking_smoothing: f64,
+        tracking_config: gbp_config::TrackingSection,
+        // tracking_smoothing: f64,
         // rrt_path: Vec<Vec2>,
         rrt_path: Option<min_len_vec::TwoOrMore<Vec2>>,
         enabled: bool,
@@ -270,7 +271,7 @@ impl FactorNode {
                 Vec2::new(linearisation_point[0] as f32, linearisation_point[1] as f32),
                 0.0,
             )
-            .with_smoothing(tracking_smoothing);
+            .with_config(tracking_config);
         let kind = FactorKind::Tracking(tracking_factor);
         Self::new(factorgraph_id, state, kind, enabled)
     }
@@ -283,14 +284,14 @@ impl FactorNode {
     #[inline]
     // fn measure(&self, linearisation_point: &Vector<Float>) -> Vector<Float> {
     fn measure(&self, linearisation_point: &Vector<Float>) -> Measurement {
-        if matches!(self.kind, FactorKind::Tracking(_)) {
-            use colored::Colorize;
-            println!(
-                "measuring {}: {:?}",
-                self.kind.name().red(),
-                self.node_index
-            );
-        }
+        // if matches!(self.kind, FactorKind::Tracking(_)) {
+        //     use colored::Colorize;
+        //     println!(
+        //         "measuring {}: {:?}",
+        //         self.kind.name().red(),
+        //         self.node_index
+        //     );
+        // }
         self.kind.measure(&self.state, linearisation_point)
         // self.state.cached_measurement = self.kind.measure(&self.state, x);
         // self.state.cached_measurement.clone()
@@ -376,11 +377,11 @@ impl FactorNode {
         } = self.measure(&self.state.linearisation_point);
         // In case the measurement function wants to update the linearisation point
         if let Some(new_linearisation_point) = measurement_position {
-            use colored::Colorize;
-            println!(
-                "updating linearisation point to {}",
-                new_linearisation_point.to_string().green()
-            );
+            // use colored::Colorize;
+            // println!(
+            //     "updating linearisation point to {}",
+            //     new_linearisation_point.to_string().green()
+            // );
             self.state.linearisation_point = new_linearisation_point;
         }
 
