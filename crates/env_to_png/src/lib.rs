@@ -60,6 +60,11 @@ impl Percentage {
     pub fn invert(&mut self) {
         self.0 = 1.0 - self.0;
     }
+
+    /// Get the value of the percentage.
+    pub fn get(&self) -> f32 {
+        self.0
+    }
 }
 
 /// Custom type for percentage coordinates.
@@ -338,6 +343,7 @@ fn is_tile_obstacle(
     let almost_full = Percentage::new(1.0 - path_width.clone().0);
     let obstacle_width = Percentage::new(almost_full.0 / 2.0);
     let obstacle_and_path_width = obstacle_width + path_width.clone();
+    let half = Percentage::new(0.5 - expansion.get() / 2.0);
 
     match tile {
         '─' => {
@@ -353,7 +359,7 @@ fn is_tile_obstacle(
         '╴' => {
             if percentage.y() < obstacle_width
                 || percentage.y() > obstacle_and_path_width
-                || percentage.x() > almost_full
+                || percentage.x() > Percentage::new(0.5 - expansion.get() / 2.0)
             {
                 return true;
             }
@@ -361,7 +367,7 @@ fn is_tile_obstacle(
         '╶' => {
             if percentage.y() < obstacle_width
                 || percentage.y() > obstacle_and_path_width
-                || percentage.x() < path_width
+                || percentage.x() < Percentage::new(0.5 + expansion.get() / 2.0)
             {
                 return true;
             }
@@ -369,7 +375,7 @@ fn is_tile_obstacle(
         '╷' => {
             if percentage.x() < obstacle_width
                 || percentage.x() > obstacle_and_path_width
-                || percentage.y() > almost_full
+                || percentage.y() < Percentage::new(0.5 + expansion.get() / 2.0)
             {
                 return true;
             }
@@ -377,7 +383,7 @@ fn is_tile_obstacle(
         '╵' => {
             if percentage.x() < obstacle_width
                 || percentage.x() > obstacle_and_path_width
-                || percentage.y() < path_width
+                || percentage.y() > Percentage::new(0.5 - expansion.get() / 2.0)
             {
                 return true;
             }
