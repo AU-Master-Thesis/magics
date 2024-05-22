@@ -1,5 +1,3 @@
-use std::ops::{Range, RangeBounds};
-
 use bevy::{
     ecs::{component::Component, entity::Entity},
     log::{debug, info},
@@ -11,8 +9,8 @@ use typed_floats::StrictlyPositiveFinite;
 
 use super::{
     factor::{
-        dynamic, interrobot::InterRobotFactor, obstacle::ObstacleFactor, tracking::TrackingFactor,
-        Factor, FactorKind, FactorNode,
+        interrobot::InterRobotFactor, obstacle::ObstacleFactor, tracking::TrackingFactor, Factor,
+        FactorKind, FactorNode,
     },
     id::{FactorId, VariableId},
     message::{FactorToVariableMessage, VariableToFactorMessage},
@@ -63,6 +61,12 @@ impl From<VariableIndex> for usize {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+struct IterationCount {
+    variable: usize,
+    factor:   usize,
+}
+
 /// A factor graph is a bipartite graph consisting of two types of nodes:
 /// factors and variables.
 #[derive(Component, Debug)]
@@ -76,6 +80,8 @@ pub struct FactorGraph {
     id:    FactorGraphId,
     /// The underlying graph data structure
     graph: Graph,
+
+    iteration_count: IterationCount,
 
     message_count:    MessageCount,
     /// In **gbpplanner** the sequence in which variables are inserted/created
@@ -141,6 +147,7 @@ impl FactorGraph {
             id,
             graph: Graph::with_capacity(0, 0),
             message_count: MessageCount::default(),
+            iteration_count: IterationCount::default(),
             variable_indices: Vec::new(),
             factor_indices: Vec::new(),
             interrobot_factor_indices: Vec::new(),
@@ -160,6 +167,7 @@ impl FactorGraph {
             variable_indices: Vec::with_capacity(nodes),
             factor_indices: Vec::with_capacity(edges),
             message_count: MessageCount::default(),
+            iteration_count: IterationCount::default(),
             interrobot_factor_indices: Vec::new(),
             obstacle_factor_indices: Vec::new(),
             dynamic_factor_indices: Vec::new(),
@@ -681,11 +689,15 @@ impl FactorGraph {
             let node = &mut self.graph[ix];
             let factor = node.factor_mut();
             // Ignore if interrobot factor
-            if let FactorKind::InterRobot(_) = factor.kind {
-                continue;
-            }
+
             if !factor.enabled {
                 continue;
+            }
+
+            match factor.kind {
+                FactorKind::InterRobot(_) => continue,
+                FactorKind::Tracking(_) if self.iteration_count.factor < 10 => continue,
+                _ => (),
             }
 
             let variable_messages = factor.update();
@@ -696,6 +708,7 @@ impl FactorGraph {
                 variable.receive_message_from(factor_id, message);
             }
         }
+        self.iteration_count.factor += 1;
     }
 
     /// External Factor Iteration in Gaussian Belief Propagation (GBP).
@@ -742,6 +755,9 @@ impl FactorGraph {
                 }
             }
         }
+
+        self.iteration_count.factor += 1;
+
         messages_to_external_variables
     }
 
@@ -771,6 +787,8 @@ impl FactorGraph {
                 factor.receive_message_from(variable_id, message);
             }
         }
+
+        self.iteration_count.variable += 1;
     }
 
     // TODO(kpbaks): does this method even make sense?
@@ -803,6 +821,8 @@ impl FactorGraph {
                 // factor.receive_message_from(variable_id, message);
             }
         }
+
+        self.iteration_count.variable += 1;
 
         messages_to_external_factors
     }
