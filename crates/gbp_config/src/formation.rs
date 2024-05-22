@@ -160,7 +160,7 @@ impl Repeat {
 /// How to evaluate if a robot has reached a waypoint
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, Component)]
 #[serde(rename_all = "kebab-case")]
-pub enum WaypointReachedWhenIntersects {
+pub enum ReachedWhenIntersects {
     /// When the current variable i.e. the robots current position intersects
     /// the waypoint
     Current,
@@ -200,7 +200,9 @@ pub struct Formation {
     pub initial_position: InitialPosition,
     /// List of waypoints.
     pub waypoints: OneOrMore<Waypoint>,
-    pub waypoint_reached_when_intersects: WaypointReachedWhenIntersects,
+    pub waypoint_reached_when_intersects: ReachedWhenIntersects,
+    #[serde(default = "Formation::default_finished_when_intersects")]
+    pub finished_when_intersects: ReachedWhenIntersects,
 }
 
 impl Default for Formation {
@@ -226,6 +228,10 @@ impl Default for Formation {
 }
 
 impl Formation {
+    fn default_finished_when_intersects() -> ReachedWhenIntersects {
+        ReachedWhenIntersects::Current
+    }
+
     pub fn robots_to_spawn(&self) -> usize {
         let times = self.repeat.map_or(1, |repeat| match repeat.times {
             RepeatTimes::Infinite => usize::MAX,
@@ -261,7 +267,8 @@ impl Formation {
                 placement_strategy: InitialPlacementStrategy::Equal,
             },
             waypoints: one_or_more![Waypoint::new(circle, ProjectionStrategy::Cross)],
-            waypoint_reached_when_intersects: WaypointReachedWhenIntersects::Horizon,
+            waypoint_reached_when_intersects: ReachedWhenIntersects::Horizon,
+            finished_when_intersects: ReachedWhenIntersects::Current,
         }
     }
 
@@ -719,7 +726,8 @@ impl FormationGroup {
                         ProjectionStrategy::Identity
                     ),],
 
-                    waypoint_reached_when_intersects: WaypointReachedWhenIntersects::Horizon,
+                    waypoint_reached_when_intersects: ReachedWhenIntersects::Horizon,
+                    finished_when_intersects: ReachedWhenIntersects::Current,
                 },
                 Formation {
                     // repeat: Some(Duration::from_secs(4)),
@@ -739,7 +747,8 @@ impl FormationGroup {
                         line![(1.25, 0.45), (1.25, 0.55)],
                         ProjectionStrategy::Identity,
                     ),],
-                    waypoint_reached_when_intersects: WaypointReachedWhenIntersects::Horizon,
+                    waypoint_reached_when_intersects: ReachedWhenIntersects::Horizon,
+                    finished_when_intersects: ReachedWhenIntersects::Current,
                 },
             ],
         }

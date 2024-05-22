@@ -13,7 +13,7 @@ use bevy::{
 use bevy_prng::WyRand;
 use bevy_rand::{component::EntropyComponent, prelude::GlobalEntropy};
 use gbp_config::{
-    formation::{PlanningStrategy, WaypointReachedWhenIntersects},
+    formation::{PlanningStrategy, ReachedWhenIntersects},
     Config,
 };
 use gbp_global_planner::PathfindingTask;
@@ -397,6 +397,10 @@ impl Route {
         self.waypoints.get(self.target_index - 1)
     }
 
+    pub fn next_waypoint_is_last(&self) -> bool {
+        self.target_index == self.waypoints.len() - 1
+    }
+
     /// Advances to the next waypoint, updating the finished time if the route
     /// is completed.
     ///
@@ -695,16 +699,23 @@ fn progress_missions(
 
 #[derive(Debug, Component)]
 pub struct RobotMission {
-    pub routes:    Vec<Route>,
+    pub routes: Vec<Route>,
     pub waypoints: Vec<StateVector>,
-    active_route:  usize,
-    started_at:    f64,
-    finished_at:   Option<f64>,
-    pub state:     RobotMissionState,
+    active_route: usize,
+    started_at: f64,
+    finished_at: Option<f64>,
+    pub state: RobotMissionState,
+    finished_when_intersects: ReachedWhenIntersects,
+    waypoint_reached_when_intersects: ReachedWhenIntersects,
 }
 
 impl RobotMission {
-    pub fn local(waypoints: min_len_vec::TwoOrMore<StateVector>, started_at: f64) -> Self {
+    pub fn local(
+        waypoints: min_len_vec::TwoOrMore<StateVector>,
+        started_at: f64,
+        finished_when_intersects: ReachedWhenIntersects,
+        waypoint_reached_when_intersects: ReachedWhenIntersects,
+    ) -> Self {
         let route = Route::new(
             waypoints.iter().copied().collect_vec().try_into().unwrap(),
             started_at,
@@ -716,21 +727,36 @@ impl RobotMission {
             started_at,
             finished_at: None,
             state: RobotMissionState::Active,
+            finished_when_intersects,
+            waypoint_reached_when_intersects,
         }
 
         // Self::new(waypoints, started_at, RobotMissionState::Active)
     }
 
-    pub fn global(waypoints: min_len_vec::TwoOrMore<StateVector>, started_at: f64) -> Self {
-        Self::new(waypoints, started_at, RobotMissionState::Idle {
-            waiting_for_waypoints: false,
-        })
+    pub fn global(
+        waypoints: min_len_vec::TwoOrMore<StateVector>,
+        started_at: f64,
+        finished_when_intersects: ReachedWhenIntersects,
+        waypoint_reached_when_intersects: ReachedWhenIntersects,
+    ) -> Self {
+        Self::new(
+            waypoints,
+            started_at,
+            RobotMissionState::Idle {
+                waiting_for_waypoints: false,
+            },
+            finished_when_intersects,
+            waypoint_reached_when_intersects,
+        )
     }
 
     fn new(
         waypoints: min_len_vec::TwoOrMore<StateVector>,
         started_at: f64,
         state: RobotMissionState,
+        finished_when_intersects: ReachedWhenIntersects,
+        waypoint_reached_when_intersects: ReachedWhenIntersects,
     ) -> Self {
         assert_ne!(state, RobotMissionState::Completed);
         let first_route = Route::new(
@@ -750,6 +776,8 @@ impl RobotMission {
             started_at,
             finished_at: None,
             state,
+            finished_when_intersects,
+            waypoint_reached_when_intersects,
         }
     }
 
@@ -778,6 +806,13 @@ impl RobotMission {
         self.routes
             .get(self.active_route)
             .and_then(|r| r.last_waypoint())
+    }
+
+    pub fn next_waypoint_is_last(&self) -> bool {
+        self.active_route == self.routes.len() - 1
+            && self
+                .active_route()
+                .is_some_and(|r| r.next_waypoint_is_last())
     }
 
     pub fn active_route(&self) -> Option<&Route> {
@@ -892,10 +927,9 @@ pub struct RobotBundle {
     finished_path: FinishedPath,
 
     pub mission: RobotMission,
-    /// Criteria determining when the robot is considered to have reached a
-    /// waypoint.
-    pub intersects_when: WaypointReachedWhenIntersects,
-
+    // / Criteria determining when the robot is considered to have reached a
+    // / waypoint.
+    // pub intersects_when: ReachedWhenIntersects,
     pub planning_strategy: PlanningStrategy,
 }
 
@@ -962,7 +996,8 @@ impl RobotBundle {
         waypoints: min_len_vec::TwoOrMore<StateVector>,
         // use_tracking: bool,
         planning_strategy: PlanningStrategy,
-        intersects_when: WaypointReachedWhenIntersects,
+        waypoint_reached_when_intersects: ReachedWhenIntersects,
+        finished_when_intersects: ReachedWhenIntersects,
     ) -> Self {
         assert!(
             !variable_timesteps.is_empty(),
@@ -1100,12 +1135,18 @@ impl RobotBundle {
         }
 
         let mission = match planning_strategy {
-            PlanningStrategy::OnlyLocal => {
-                RobotMission::local(waypoints.try_into().unwrap(), started_at)
-            }
-            PlanningStrategy::RrtStar => {
-                RobotMission::global(waypoints.try_into().unwrap(), started_at)
-            }
+            PlanningStrategy::OnlyLocal => RobotMission::local(
+                waypoints.try_into().unwrap(),
+                started_at,
+                finished_when_intersects,
+                waypoint_reached_when_intersects,
+            ),
+            PlanningStrategy::RrtStar => RobotMission::global(
+                waypoints.try_into().unwrap(),
+                started_at,
+                finished_when_intersects,
+                waypoint_reached_when_intersects,
+            ),
         };
 
         // dbg!(&mission);
@@ -1156,7 +1197,7 @@ impl RobotBundle {
             // task_state:
             // mission: RobotMission::local(waypoints.try_into().unwrap(), started_at),
             mission,
-            intersects_when,
+            // intersects_when,
             planning_strategy,
         }
     }
@@ -1885,7 +1926,8 @@ fn reached_waypoint(
         &FactorGraph,
         &Radius,
         &mut RobotMission,
-        &WaypointReachedWhenIntersects,
+        //&ReachedWhenIntersects,
+        //&PlanningStrategy,
     )>,
     config: Res<Config>,
     time: Res<Time>,
@@ -1893,23 +1935,30 @@ fn reached_waypoint(
     mut evw_robot_despawned: EventWriter<RobotDespawned>,
     mut evw_robot_finalized_path: EventWriter<RobotFinishedRoute>,
 ) {
-    for (robot_entity, fgraph, r, mut mission, intersects_when) in &mut q {
+    for (robot_entity, fgraph, r, mut mission) in &mut q {
         let Some(next_waypoint) = mission.next_waypoint() else {
             continue;
         };
 
         let r_sq = r.0 * r.0;
         let reached = {
-            let variable = match intersects_when {
-                WaypointReachedWhenIntersects::Current => fgraph.first_variable(),
-                WaypointReachedWhenIntersects::Horizon => fgraph.last_variable(),
-                WaypointReachedWhenIntersects::Variable(ix) => {
-                    let ix: usize = Into::into(*ix);
+            use ReachedWhenIntersects::{Current, Horizon, Variable};
+            let when_intersects = if mission.next_waypoint_is_last() {
+                mission.finished_when_intersects
+            } else {
+                mission.waypoint_reached_when_intersects
+            };
+
+            let variable = match when_intersects {
+                Current => fgraph.first_variable(),
+                Horizon => fgraph.last_variable(),
+                Variable(ix) => {
+                    let ix: usize = Into::into(ix);
                     fgraph.nth_variable(ix).or_else(|| fgraph.last_variable())
                 }
             }
             .map(|(_, v)| v)
-            .expect("nth variable exists");
+            .expect("variable exists");
 
             let estimated_pos = variable.estimated_position_vec2();
             // Use square distance comparison to avoid sqrt computation
@@ -1926,7 +1975,7 @@ fn reached_waypoint(
         }
 
         if mission.is_completed() {
-            error!("robot {:?} completed its mission", robot_entity);
+            info!("robot {:?} completed its mission", robot_entity);
             evw_robot_finalized_path.send(RobotFinishedRoute(robot_entity));
             if config.simulation.despawn_robot_when_final_waypoint_reached {
                 evw_robot_despawned.send(RobotDespawned(robot_entity));
