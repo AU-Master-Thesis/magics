@@ -22,10 +22,11 @@ impl Plugin for CameraPlugin {
             .add_systems(
                 Update,
                 (
+                    // update_main_camera.run_if(resource_exists_and_changed::<Config>),
                     reset_main_camera.run_if(on_event::<events::ResetCamera>()),
                     (
                         // reset_main_camera,
-                        activate_main_camera
+                        activate_main_camera,
                     )
                         .chain()
                         .run_if(
@@ -155,8 +156,23 @@ fn reset_main_camera(
     orbit.origin = Vec3::ZERO;
 }
 
-fn activate_main_camera(mut main_camera: Query<&mut Camera, With<MainCamera>>) {
-    let mut main_camera = main_camera.single_mut();
+fn activate_main_camera(
+    mut q: Query<(&mut Camera, &mut Transform), With<MainCamera>>,
+    mut cam_settings: ResMut<CameraSettings>,
+    config: Res<Config>,
+) {
+    let (mut main_camera, mut tf) = q.single_mut();
     main_camera.is_active = true;
-    info!("Activated main camera");
+    tf.translation.y = -config.interaction.default_cam_distance;
+    cam_settings.start_pos.y = -config.interaction.default_cam_distance;
+    // cam_settings.
+    // info!("Activated main camera");
+
+    // std::backtrace::Backtrace::force_capture().print
 }
+
+// fn update_main_camera(mut main_camera: Query<&mut Camera, With<MainCamera>>,
+// config: Res<Config>) {    let mut main_camera = main_camera.single_mut();
+//    main_camera.is_active = config.interaction.use_main_camera;
+//    info!("Updated main camera");
+//}
