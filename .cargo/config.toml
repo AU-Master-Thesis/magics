@@ -5,6 +5,7 @@ rustflags = [
   "-Clink-arg=-fuse-ld=mold", # Use mold Linker
   "-Zshare-generics=y",       # (Nightly) Make the current crate share its generic instantiations
   "-Zthreads=8",              # (Nightly) Use improved multithreading with the recommended amount of threads.
+  # "-Ctarget-feature=+simd128",
 ]
 
 # compile simulation as a wasm binary for static webpage
@@ -12,6 +13,7 @@ rustflags = [
 # runner = "wasm-server-runner"
 rustflags = [
   "--cfg=web_sys_unstable_apis",
+  # "-Ctarget-feature=+simd128",
 ]
 
 [build]
@@ -21,4 +23,5 @@ rustflags = [
   "target-cpu=native",
   "-Z",
   "threads=8",
+  # "-Ctarget-feature=+simd128",
 ]

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use gbp_config::Config;
 
 use crate::{
-    planner::{robot::RadioAntenna, RobotState},
+    planner::{robot::RadioAntenna, RobotConnections},
     theme::{CatppuccinTheme, ColorFromCatppuccinColourExt},
 };
 

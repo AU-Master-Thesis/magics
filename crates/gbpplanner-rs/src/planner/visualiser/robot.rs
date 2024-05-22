@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 use gbp_config::DrawSetting;
 
-use crate::{boolean_bevy_resource, input::DrawSettingsEvent, planner::RobotState};
+use crate::{boolean_bevy_resource, input::DrawSettingsEvent, planner::RobotConnections};
 
 pub struct RobotVisualiserPlugin;
 
@@ -17,7 +17,7 @@ boolean_bevy_resource!(RobotVisualiserEnabled, default = true);
 
 fn toggle_visibility_of_robot_meshes(
     mut enabled: ResMut<RobotVisualiserEnabled>,
-    mut query: Query<&mut Visibility, With<RobotState>>,
+    mut query: Query<&mut Visibility, With<RobotConnections>>,
     mut evr_draw_settings: EventReader<DrawSettingsEvent>,
 ) {
     for event in evr_draw_settings.read() {

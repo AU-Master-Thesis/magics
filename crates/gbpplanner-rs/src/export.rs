@@ -1,15 +1,13 @@
 use std::{collections::HashMap, io::Write};
 
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
-use gbp_config::Config;
+use gbp_config::formation::PlanningStrategy;
+use itertools::Itertools;
 
 use self::events::TakeSnapshotOfRobot;
 use crate::{
     factorgraph::prelude::FactorGraph,
-    planner::{
-        self,
-        robot::{Radius, Route},
-    },
+    planner::{self, robot::Radius},
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };
 
@@ -26,7 +24,7 @@ impl Plugin for ExportPlugin {
             .add_systems(
                 Update,
                 (
-                    export,
+                    export.run_if(resource_exists::<gbp_global_planner::Colliders>),
                     open_latest_export,
                     send_default_export_event.run_if(
                         input_just_pressed(KeyCode::F7)
@@ -105,13 +103,25 @@ fn open_latest_export(
 
 #[derive(serde::Serialize)]
 pub struct RobotData {
-    radius:     f32,
-    positions:  Vec<[f32; 2]>,
+    radius: f32,
+    positions: Vec<[f32; 2]>,
     // velocities: Vec<[f32; 2]>,
     velocities: Vec<planner::tracking::VelocityMeasurement>,
-    collisions: CollisionData,
-    messages:   MessageData,
-    route:      RouteData,
+    collisions: CollisionCountData,
+    messages: MessageData,
+    // route: RouteData,
+    mission: MissionData,
+    planning_strategy: PlanningStrategy,
+    color: String,
+}
+
+#[derive(serde::Serialize)]
+struct MissionData {
+    // waypoints: Vec<[f32; 4]>, // [x, y, x', y']
+    waypoints:   Vec<[f32; 2]>, // [x, y]
+    started_at:  f64,
+    finished_at: f64,
+    routes:      Vec<RouteData>,
 }
 
 #[derive(serde::Serialize)]
@@ -119,29 +129,84 @@ struct RouteData {
     waypoints:   Vec<[f32; 2]>,
     started_at:  f64,
     finished_at: f64,
-    duration:    f64,
 }
 
-impl RouteData {
-    fn new(waypoints: Vec<[f32; 2]>, started_at: f64, finished_at: f64) -> Self {
-        assert!(waypoints.len() >= 2);
-        if finished_at < started_at {
-            dbg!(finished_at, started_at);
-            panic!("finished_at must be after started_at");
-        }
-        // assert!(finished_at > started_at);
-        let duration = finished_at - started_at;
+// impl std::convert::From<planner::robot::Route> for RouteData {
+//     fn from(route: planner::robot::Route) -> Self {
+//         Self {
+//             waypoints:   route.waypoints,
+//             started_at:  route.started_at(),
+//             finished_at: route.finished_at,
+//         }
+//     }
+// }
+
+// impl RouteData {
+//     fn new(waypoints: Vec<[f32; 2]>, started_at: f64, finished_at: f64) ->
+// Self {         assert!(waypoints.len() >= 2);
+//         if finished_at < started_at {
+//             dbg!(finished_at, started_at);
+//             panic!("finished_at must be after started_at");
+//         }
+//         // assert!(finished_at > started_at);
+//         let duration = finished_at - started_at;
+//         Self {
+//             waypoints,
+//             started_at,
+//             finished_at,
+//             duration,
+//         }
+//     }
+// }
+
+#[derive(serde::Serialize)]
+struct RobotRobotCollision {
+    robot_a: Entity,
+    robot_b: Entity,
+    aabbs:   Vec<parry2d::bounding_volume::Aabb>,
+}
+
+impl std::convert::From<((Entity, Entity), &[parry2d::bounding_volume::Aabb])>
+    for RobotRobotCollision
+{
+    fn from((k, v): ((Entity, Entity), &[parry2d::bounding_volume::Aabb])) -> Self {
         Self {
-            waypoints,
-            started_at,
-            finished_at,
-            duration,
+            robot_a: k.0,
+            robot_b: k.1,
+            aabbs:   v.into_iter().copied().collect(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+struct RobotEnvironmentCollision {
+    robot:    Entity,
+    obstacle: Entity,
+    aabbs:    Vec<parry2d::bounding_volume::Aabb>,
+}
+
+impl std::convert::From<((Entity, Entity), &[parry2d::bounding_volume::Aabb])>
+    for RobotEnvironmentCollision
+{
+    fn from((k, v): ((Entity, Entity), &[parry2d::bounding_volume::Aabb])) -> Self {
+        Self {
+            robot:    k.0,
+            obstacle: k.1,
+            aabbs:    v.into_iter().copied().collect(),
         }
     }
 }
 
 #[derive(serde::Serialize)]
 struct CollisionData {
+    // robots:      usize,
+    // environment: usize,
+    robots:      Vec<RobotRobotCollision>,
+    environment: Vec<RobotEnvironmentCollision>,
+}
+
+#[derive(serde::Serialize)]
+struct CollisionCountData {
     robots:      usize,
     environment: usize,
 }
@@ -160,11 +225,23 @@ struct MessageCount {
 
 #[derive(serde::Serialize)]
 struct ExportData {
-    environment: String,
+    scenario: String,
     makespan: f64,
     delta_t: f64,
     gbp: GbpData,
     robots: HashMap<Entity, RobotData>,
+    prng_seed: u64,
+    config: gbp_config::Config,
+    // obstacles: Vec<Obstacle>,
+    obstacles: HashMap<Entity, Obstacle>,
+    collisions: CollisionData,
+}
+
+#[derive(serde::Serialize)]
+#[serde(tag = "type")]
+enum Obstacle {
+    Circle { center: [f32; 2], radius: f32 },
+    Polygon { vertices: Vec<[f32; 2]> },
 }
 
 #[derive(serde::Serialize)]
@@ -189,14 +266,21 @@ fn export(
         &planner::tracking::PositionTracker,
         &planner::tracking::VelocityTracker,
         &Radius,
-        &Route,
+        // &Route,
+        &planner::robot::RobotMission,
+        &PlanningStrategy,
+        &crate::theme::ColorAssociation,
+        // &ColorAssociation,
+        // &ColorAssociation,
     )>,
     robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
     environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
     sim_manager: Res<crate::simulation_loader::SimulationManager>,
-    config: Res<Config>,
+    config: Res<gbp_config::Config>,
     time_virtual: Res<Time<Virtual>>,
     time_fixed: Res<Time<Fixed>>,
+    catppuccin: Res<crate::theme::CatppuccinTheme>,
+    obstacles: Res<gbp_global_planner::Colliders>,
 ) {
     // schema:
     //
@@ -248,7 +332,17 @@ fn export(
         let makespan = time_virtual.elapsed_seconds() as f64;
         // take a snapshot of all robots, that do not already have one
 
-        for (robot_entity, graph, positions, velocities, radius, route) in q_robots.iter() {
+        for (
+            robot_entity,
+            graph,
+            positions,
+            velocities,
+            radius,
+            mission,
+            planning_strategy,
+            color_assoc,
+        ) in q_robots.iter()
+        {
             if robot_snapshots.contains_key(&robot_entity) {
                 continue;
             }
@@ -259,23 +353,54 @@ fn export(
             let robot_collisions = robot_collisions.get(robot_entity).unwrap_or(0);
             let environment_collisions = environment_collisions.get(robot_entity).unwrap_or(0);
 
+            let catppuccin::Colour(r, g, b) = catppuccin.get_display_colour(&color_assoc.name);
+            let color: String = format!("#{:2x}{:2x}{:2x}", r, g, b);
+
             // let id = format!("{:?}", robot_entity);
             let robot_data = RobotData {
                 radius: radius.0,
                 positions,
                 velocities,
-                route: RouteData::new(
-                    route
-                        .waypoints()
+                mission: MissionData {
+                    waypoints:   mission
+                        .waypoints
                         .iter()
                         .map(|wp| wp.position().into())
                         .collect(),
-                    route.started_at(),
-                    route
+                    started_at:  mission.started_at(),
+                    finished_at: mission
                         .finished_at()
-                        .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
-                ),
-                collisions: CollisionData {
+                        .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
+                    // routes:      mission.routes.iter().map(Into::into).collect(),
+                    routes:      mission
+                        .routes
+                        .iter()
+                        .map(|r| RouteData {
+                            waypoints:   r
+                                .waypoints()
+                                .iter()
+                                .map(|wp| wp.position().into())
+                                .collect(),
+                            started_at:  r.started_at(),
+                            finished_at: r
+                                .finished_at()
+                                .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
+                        })
+                        .collect(),
+                },
+
+                // route: RouteData::new(
+                //     route
+                //         .waypoints()
+                //         .iter()
+                //         .map(|wp| wp.position().into())
+                //         .collect(),
+                //     route.started_at(),
+                //     route
+                //         .finished_at()
+                //         .unwrap_or_else(|| time_virtual.elapsed_seconds_f64()),
+                // ),
+                collisions: CollisionCountData {
                     robots:      robot_collisions,
                     environment: environment_collisions,
                 },
@@ -289,6 +414,8 @@ fn export(
                         external: graph.messages_received().external,
                     },
                 },
+                planning_strategy: *planning_strategy,
+                color,
             };
 
             robot_snapshots.insert(robot_entity, robot_data);
@@ -347,12 +474,70 @@ fn export(
             },
         };
 
+        let obstacles = obstacles
+            .iter()
+            .map(|ob| {
+                let obstacle = {
+                    if let Some(triangle) = ob.shape.downcast_ref::<parry2d::shape::Triangle>() {
+                        Obstacle::Polygon {
+                            vertices: triangle.vertices().iter().map(|v| [v.x, v.y]).collect(),
+                        }
+                    } else if let Some(circle) = ob.shape.downcast_ref::<parry2d::shape::Ball>() {
+                        Obstacle::Circle {
+                            radius: circle.radius,
+                            center: [ob.isometry.translation.x, ob.isometry.translation.y],
+                        }
+                    } else if let Some(convex_polygon) =
+                        ob.shape.downcast_ref::<parry2d::shape::ConvexPolygon>()
+                    {
+                        let x = ob.isometry.translation.x;
+                        let y = ob.isometry.translation.y;
+                        Obstacle::Polygon {
+                            vertices: convex_polygon
+                                .points()
+                                .iter()
+                                .map(|p| [p.x + x, p.y + y])
+                                .collect(),
+                        }
+                    } else {
+                        let aabb = ob.aabb();
+                        let center = aabb.center();
+                        let half_extents = aabb.half_extents();
+
+                        Obstacle::Polygon {
+                            vertices: vec![
+                                [center.x - half_extents.x, center.y - half_extents.y],
+                                [center.x + half_extents.x, center.y - half_extents.y],
+                                [center.x + half_extents.x, center.y + half_extents.y],
+                                [center.x - half_extents.x, center.y + half_extents.y],
+                            ],
+                        }
+                    }
+                };
+
+                let entity = ob.associated_mesh.unwrap();
+                (entity, obstacle)
+
+                // if let Some(circle) =
+                // ob.shape.downcast_ref::<parry2d::shape::Ci
+            })
+            .collect();
+
+        let collisions = CollisionData {
+            robots:      robot_collisions.collisions().map_into().collect(),
+            environment: environment_collisions.collisions().map_into().collect(),
+        };
+
         let export_data = ExportData {
-            environment: environment.to_string(),
+            scenario: environment.to_string(),
             makespan,
             delta_t: time_fixed.delta_seconds_f64(),
             gbp,
             robots: robot_snapshots.drain().collect(),
+            prng_seed: config.simulation.prng_seed,
+            config: config.clone(),
+            obstacles,
+            collisions,
         };
 
         let json = serde_json::to_string_pretty(&export_data).unwrap();
@@ -429,19 +614,33 @@ impl Default for ExportSavePostfix {
 
 fn take_snapshot_of_robot(
     robot_entity: Entity,
+    // q_robots: &Query<(
+    //     &FactorGraph,
+    //     &planner::tracking::PositionTracker,
+    //     &planner::tracking::VelocityTracker,
+    //     &Radius,
+    //     &Route,
+    // )>,
     q_robots: &Query<(
         &FactorGraph,
         &planner::tracking::PositionTracker,
         &planner::tracking::VelocityTracker,
         &Radius,
-        &Route,
+        // &Route,
+        &planner::robot::RobotMission,
+        &PlanningStrategy,
+        &crate::theme::ColorAssociation,
     )>,
+
     robot_collisions: &crate::planner::collisions::resources::RobotRobotCollisions,
     environment_collisions: &crate::planner::collisions::resources::RobotEnvironmentCollisions,
     // time_virtual: &Time<Virtual>,
     time_fixed: &Time<Fixed>,
+    catppuccin: &crate::theme::CatppuccinTheme,
 ) -> anyhow::Result<RobotData> {
-    let Ok((fgraph, positions, velocities, radius, route)) = q_robots.get(robot_entity) else {
+    let Ok((fgraph, positions, velocities, radius, mission, planning_strategy, color_assoc)) =
+        q_robots.get(robot_entity)
+    else {
         anyhow::bail!(
             "cannot take snapshot of non-existing robot {:?}",
             robot_entity
@@ -455,22 +654,25 @@ fn take_snapshot_of_robot(
     let robot_collisions = robot_collisions.get(robot_entity).unwrap_or(0);
     let environment_collisions = environment_collisions.get(robot_entity).unwrap_or(0);
 
+    let catppuccin::Colour(r, g, b) = catppuccin.get_display_colour(&color_assoc.name);
+    let color: String = format!("#{:2x}{:2x}{:2x}", r, g, b);
+
     let robot_data = RobotData {
         radius: radius.0,
         positions,
         velocities,
-        route: RouteData::new(
-            route
-                .waypoints()
-                .iter()
-                .map(|wp| wp.position().into())
-                .collect(),
-            route.started_at(),
-            route
-                .finished_at()
-                .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
-        ),
-        collisions: CollisionData {
+        // route: RouteData::new(
+        //     route
+        //         .waypoints()
+        //         .iter()
+        //         .map(|wp| wp.position().into())
+        //         .collect(),
+        //     route.started_at(),
+        //     route
+        //         .finished_at()
+        //         .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
+        // ),
+        collisions: CollisionCountData {
             robots:      robot_collisions,
             environment: environment_collisions,
         },
@@ -484,6 +686,35 @@ fn take_snapshot_of_robot(
                 external: fgraph.messages_received().external,
             },
         },
+        planning_strategy: *planning_strategy,
+        color,
+        mission: MissionData {
+            started_at:  mission.started_at(),
+            finished_at: mission
+                .finished_at()
+                .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
+            waypoints:   mission
+                .waypoints
+                .iter()
+                .map(|wp| wp.position().into())
+                .collect(),
+            // routes:      mission.routes.iter().map(Into::into).collect(),
+            routes:      mission
+                .routes
+                .iter()
+                .map(|r| RouteData {
+                    waypoints:   r
+                        .waypoints()
+                        .iter()
+                        .map(|wp| wp.position().into())
+                        .collect(),
+                    started_at:  r.started_at(),
+                    finished_at: r
+                        .finished_at()
+                        .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
+                })
+                .collect(),
+        },
     };
 
     Ok(robot_data)
@@ -493,16 +724,28 @@ fn await_robot_snapshot_request(
     mut evr_submit_robot_data: EventReader<events::TakeSnapshotOfRobot>,
     mut submitted_robots: ResMut<resources::SnapshottedRobots>,
 
+    // q_robots: Query<(
+    //     &FactorGraph,
+    //     &planner::tracking::PositionTracker,
+    //     &planner::tracking::VelocityTracker,
+    //     &Radius,
+    //     &Route,
+    // )>,
     q_robots: Query<(
         &FactorGraph,
         &planner::tracking::PositionTracker,
         &planner::tracking::VelocityTracker,
         &Radius,
-        &Route,
+        // &Route,
+        &planner::robot::RobotMission,
+        &PlanningStrategy,
+        &crate::theme::ColorAssociation,
     )>,
+
     robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
     environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
     // time_virtual: Res<Time<Virtual>>,
+    catppuccin: Res<crate::theme::CatppuccinTheme>,
     time_fixed: Res<Time<Fixed>>,
 ) {
     for TakeSnapshotOfRobot(robot_id) in evr_submit_robot_data.read() {
@@ -516,6 +759,7 @@ fn await_robot_snapshot_request(
             &robot_collisions,
             &environment_collisions,
             &time_fixed,
+            &catppuccin,
         ) else {
             error!(
                 "failed to take snapshot of robot {:?}, reason entity does not exist",

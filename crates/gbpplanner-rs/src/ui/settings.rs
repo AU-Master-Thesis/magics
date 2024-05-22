@@ -11,7 +11,7 @@ use bevy_notify::ToastEvent;
 use catppuccin::Colour;
 use gbp_config::{Config, DrawSection, DrawSetting};
 use gbp_linalg::Float;
-use gbp_schedule::GbpScheduleAtTimestep;
+use gbp_schedule::GbpScheduleAtIteration;
 use repeating_array::RepeatingArray;
 use smol_str::SmolStr;
 use struct_iterable::Iterable;
@@ -139,6 +139,8 @@ fn ui_settings_panel(
         theme.lavender(),
     ]);
 
+    // let slider_right_margin = 10.0;
+
     // let panel_resizable = false;
 
     let width = 400.0;
@@ -157,6 +159,9 @@ fn ui_settings_panel(
             egui::ScrollArea::vertical()
                 .drag_to_scroll(true)
                 .show(ui, |ui| {
+
+
+                    let max_rect = ui.max_rect();
                     ui.add_space(10.0);
                     custom::subheading(
                         ui,
@@ -176,8 +181,12 @@ fn ui_settings_panel(
                                     catppuccin::Flavour::Macchiato,
                                     catppuccin::Flavour::Mocha,
                                 ] {
-                                    ui.vertical_centered_justified(|ui| {
-                                        if ui.button(flavour.to_display_string()).clicked() {
+                                    // ui.vertical_centered_justified(|ui| {
+                                    ui.vertical(|ui| {
+                                        let button = egui::Button::new(flavour.to_display_string()).wrap(false);
+
+                                        if ui.add(button).clicked() {
+                                        // if ui.button(flavour.to_display_string()).clicked() {
                                             world.send_event::<CycleTheme>(CycleTheme(*flavour));
                                             // theme_event.send(ThemeEvent(*flavour));
                                             ui.close_menu();
@@ -193,8 +202,11 @@ fn ui_settings_panel(
                         ui.vertical_centered_justified(|ui| {
                             ui.menu_button(ui_state.scale_type.to_display_string(), |ui| {
                                 for scale in UiScaleType::iter() {
-                                    ui.vertical_centered_justified(|ui| {
-                                        if ui.button(scale.to_display_string()).clicked() {
+                                    // ui.vertical_centered_justified(|ui| {
+                                    ui.vertical(|ui| {
+                                        let button = egui::Button::new(scale.to_display_string()).wrap(false);
+                                        if ui.add(button).clicked() {
+                                        // if ui.button(scale.to_display_string()).clicked() {
                                             ui_state.scale_type = scale;
                                             // world.send_event::<UiScaleEvent>(UiScaleEvent);
                                             // scale_event.send(UiScaleEvent);
@@ -214,33 +226,39 @@ fn ui_settings_panel(
                             },
                         );
 
-                        // ui.spacing_mut().slider_width = ui.available_size_before_wrap().x;
-                        // ui.spacing_mut().slider_width = ui.available_width();
-                        ui.spacing_mut().slider_width =
-                            ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let enabled = matches!(ui_state.scale_type, UiScaleType::Custom);
-                        let slider = egui::Slider::new(
-                                &mut ui_state.scale_percent,
-                                UiState::VALID_SCALE_INTERVAL,
-                            )
+                        ui.horizontal(|ui| {
+                            ui.label(format!("{}%", ui_state.scale_percent));
+                            // ui.spacing_mut().slider_width = ui.available_size_before_wrap().x;
+                            // ui.spacing_mut().slider_width = ui.available_width();
+                            // ui.spacing_mut().slider_width =
+                            //     ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                            ui.spacing_mut().slider_width =
+                                ui.available_width();
+                            let enabled = matches!(ui_state.scale_type, UiScaleType::Custom);
+                            let slider = egui::Slider::new(
+                                    &mut ui_state.scale_percent,
+                                    UiState::VALID_SCALE_INTERVAL,
+                                )
 
-                            .suffix("%")
-                            .show_value(true);
+                                // .suffix("%")
 
-                        let slider_response = ui.add_enabled(
-                            enabled,
-                            slider
-                        );
-                        // Only trigger ui scale update when the slider is released or lost focus
-                        // otherwise it would be imposssible to drag the slider while the ui is
-                        // scaling
-                        #[allow(clippy::cast_precision_loss)]
-                        if slider_response.drag_released() || slider_response.lost_focus() {
-                        // if slider_response.changed() {
-                            world.send_event::<ScaleUi>(ScaleUi::Set(
-                                ui_state.scale_percent as f32 / 100.0,
-                            ));
-                        }
+                                .show_value(false);
+
+                            let slider_response = ui.add_enabled(
+                                enabled,
+                                slider
+                            );
+                            // Only trigger ui scale update when the slider is released or lost focus
+                            // otherwise it would be imposssible to drag the slider while the ui is
+                            // scaling
+                            #[allow(clippy::cast_precision_loss)]
+                            if slider_response.drag_released() || slider_response.lost_focus() {
+                            // if slider_response.changed() {
+                                world.send_event::<ScaleUi>(ScaleUi::Set(
+                                    ui_state.scale_percent as f32 / 100.0,
+                                ));
+                            }
+                        });
 
                         ui.end_row();
 
@@ -272,6 +290,7 @@ fn ui_settings_panel(
                             let te_output = egui::TextEdit::singleline(&mut text)
                                 .char_limit(3)
                                 .interactive(time_virtual.is_paused())
+                                .desired_width(f32::INFINITY)
                                 .show(ui);
 
                             // if te_output.response.lost_focus() && te_output.response.changed() {
@@ -292,7 +311,7 @@ fn ui_settings_panel(
                             let te_output = egui::TextEdit::singleline(&mut text)
                                 .char_limit(3)
                                 .interactive(time_virtual.is_paused())
-                                // .cursor_at_end(true)
+                                .desired_width(f32::INFINITY)
                                 .show(ui);
 
                             if  te_output.response.changed() {
@@ -312,12 +331,11 @@ fn ui_settings_panel(
                             {
                                 let n = config.gbp.iteration_schedule.internal.max(config.gbp.iteration_schedule.external);
 
-                                let schedule_config = gbp_schedule::GbpScheduleConfig {
+                                let schedule_config = gbp_schedule::GbpScheduleParams {
                                     internal: config.gbp.iteration_schedule.internal as u8,
                                     external: config.gbp.iteration_schedule.external as u8,
                                 };
                                 // let size = ui.available_size();
-                                let max_rect = ui.max_rect();
                                 // dbg!((&max_rect, &size));
 
                                 // let painter_rect = egui::Rect {min: egui::Pos2::new(max_rect.left(), ui.cursor().top()), max: egui::Pos2::new(max_rect.right(), ui.cursor().top() + 30.0)};
@@ -352,7 +370,7 @@ fn ui_settings_panel(
                                 let mut x = start_x;
                                 let mut y = start_y;
 
-                                for GbpScheduleAtTimestep { internal, external } in schedule {
+                                for GbpScheduleAtIteration { internal, external } in schedule {
                                     let internal_color = if internal {
                                         Color32::from_catppuccin_colour(theme.sky())
                                     } else {
@@ -398,9 +416,12 @@ fn ui_settings_panel(
                                 let current: &'static str = config.gbp.iteration_schedule.schedule.into();
                                 ui.menu_button(current, |ui| {
                                     for schedule in gbp_config::GbpIterationScheduleKind::iter() {
-                                        ui.vertical_centered_justified(|ui| {
+                                        ui.vertical(|ui| {
+                                        // ui.vertical_centered(|ui| {
+                                        // ui.vertical_centered_justified(|ui| {
                                             let text: &'static str = schedule.into();
-                                            if ui.button(text).clicked() {
+                                            let button = egui::Button::new(text).wrap(false);
+                                            if ui.add(button).clicked() {
                                                 let new_schedule = schedule.into();
                                                 config.gbp.iteration_schedule.schedule = new_schedule;
                                                 world.send_event::<crate::planner::robot::GbpScheduleChanged>(config.gbp.iteration_schedule.into());
@@ -446,48 +467,56 @@ fn ui_settings_panel(
 
                         custom::grid("gbp_grid", 2).show(ui, |ui| {
                             ui.label("Safety Distance");
-                            ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                            let mut safety_dist_multiplier = config.robot.inter_robot_safety_distance_multiplier.get();
-                            // let mut available_size = ui.available_size();
-                            // available_size.x += 10.0;
-                            // let slider_response = ui.add_sized(available_size,
-                               let slider_response = ui.add_enabled(
-                                   time_virtual.is_paused(),
-                                      egui::Slider::new(&mut safety_dist_multiplier, 1.0..=10.0)
-                                    .suffix("r")
-                                    // .text(" * radius")
-                                    .fixed_decimals(1)
-                                    .trailing_fill(true));
-                            if slider_response.enabled() && slider_response.changed() {
-                                config.robot.inter_robot_safety_distance_multiplier = safety_dist_multiplier.try_into().expect("slider range set to [0.1, 10.0]");
+                            ui.horizontal(|ui| {
+                                let mut safety_dist_multiplier = config.robot.inter_robot_safety_distance_multiplier.get();
+                                ui.label(format!("{:.1}r ", safety_dist_multiplier));
 
-                                let mut query = world.query::<&mut FactorGraph>();
-                                for mut factorgraph in query.iter_mut(world) {
-                                    factorgraph.update_inter_robot_safety_distance_multiplier(Float::from(config.robot.inter_robot_safety_distance_multiplier.get()).try_into().expect("> 0.0"));
+                                // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                                ui.spacing_mut().slider_width = ui.available_width();
+                                // let mut available_size = ui.available_size();
+                                // available_size.x += 10.0;
+                                // let slider_response = ui.add_sized(available_size,
+                                   let slider_response = ui.add_enabled(
+                                       time_virtual.is_paused(),
+                                          egui::Slider::new(&mut safety_dist_multiplier, 1.0..=10.0)
+                                        // .suffix("r")
+                                        // .text(" * radius")
+                                        .fixed_decimals(1)
+                                        .show_value(false)
+                                        .trailing_fill(true));
+                                if slider_response.enabled() && slider_response.changed() {
+                                    config.robot.inter_robot_safety_distance_multiplier = safety_dist_multiplier.try_into().expect("slider range set to [0.1, 10.0]");
+
+                                    let mut query = world.query::<&mut FactorGraph>();
+                                    for mut factorgraph in query.iter_mut(world) {
+                                        factorgraph.update_inter_robot_safety_distance_multiplier(Float::from(config.robot.inter_robot_safety_distance_multiplier.get()).try_into().expect("> 0.0"));
+                                    }
                                 }
-                            }
+                            });
 
                             ui.end_row();
 
                             ui.label("Max Speed");
-                            // slider for robot max speed  in (0.0, 10.]
-                            // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
-                            ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                            ui.horizontal(|ui| {
+                                let mut max_speed = config.robot.max_speed.get();
+                                ui.label(format!("{:.1}m/s", max_speed));
+                                // slider for robot max speed  in (0.0, 10.]
+                                // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
+                                // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                                ui.spacing_mut().slider_width = ui.available_width();
 
-                            let mut max_speed = config.robot.max_speed.get();
-                            // let mut available_size = ui.available_size();
-                            // available_size.x += 10.0;
-                            // let slider_response = ui.add_sized(available_size,
-                               let slider_response = ui.add_enabled(
-                                   time_virtual.is_paused(),
-                                                                      egui::Slider::new(&mut max_speed, 0.1..=100.0)
+                                   let slider_response = ui.add_enabled(
+                                       time_virtual.is_paused(),
+                                                                          egui::Slider::new(&mut max_speed, 0.1..=100.0)
 
-                                    .suffix("m/s")
-                                    .fixed_decimals(1)
-                                    .trailing_fill(true));
-                            if slider_response.enabled() && slider_response.changed() {
-                                config.robot.max_speed = max_speed.try_into().expect("slider range set to [0.1, 10.0]");
-                            }
+                                        // .suffix("m/s")
+                                        .fixed_decimals(1)
+                                        .show_value(false)
+                                        .trailing_fill(true));
+                                if slider_response.enabled() && slider_response.changed() {
+                                    config.robot.max_speed = max_speed.try_into().expect("slider range set to [0.1, 10.0]");
+                                }
+                            });
 
                             ui.end_row();
                         });
@@ -502,40 +531,50 @@ fn ui_settings_panel(
 
                     custom::grid("communication_grid", 2).show(ui,|ui| {
                         ui.label("Radius");
-                        // slider for communication radius in (0.0, 50.]
-                        ui.spacing_mut().slider_width =
-                            ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let mut comms_radius = config.robot.communication.radius.get();
-                        let slider_response = ui.add(
-                            egui::Slider::new(&mut comms_radius, 0.1..=50.0)
-                                .suffix("m")
-                                .fixed_decimals(1)
-                                .trailing_fill(true)
+                        ui.horizontal(|ui| {
+                            let mut comms_radius = config.robot.communication.radius.get();
+                            ui.label(format!("{:.1}m", comms_radius));
+                            // slider for communication radius in (0.0, 50.]
+                            // ui.spacing_mut().slider_width =
+                            //     ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
 
-                        );
-                        if slider_response.changed() {
-                            config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 50.0]");
-                            // TODO: this should not be done with a query here, but there is not
-                            // much time left.
-                            let mut query = world.query::<&mut RadioAntenna>();
-                            for mut antenna in query.iter_mut(world) {
-                                antenna.radius = comms_radius;
+                            ui.spacing_mut().slider_width = ui.available_width();
+                            let slider_response = ui.add(
+                                egui::Slider::new(&mut comms_radius, 0.1..=50.0)
+                                    // .suffix("m")
+                                    .fixed_decimals(1)
+                                    .trailing_fill(true)
+                                    .show_value(false)
+                            );
+                            if slider_response.changed() {
+                                config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 50.0]");
+                                // TODO: this should not be done with a query here, but there is not
+                                // much time left.
+                                let mut query = world.query::<&mut RadioAntenna>();
+                                for mut antenna in query.iter_mut(world) {
+                                    antenna.radius = comms_radius;
+                                }
                             }
-                        }
+                        });
                         ui.end_row();
                         // Slider for communication failure rate (probability) in [0.0, 1.0]
                         ui.label("Failure");
-                        ui.spacing_mut().slider_width = ui.available_width()  - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let mut failure_rate = config.robot.communication.failure_rate;
-                        let slider_response = ui.add(
-                            egui::Slider::new(&mut failure_rate, 0.0..=1.0)
-                                .suffix("%")
-                                .fixed_decimals(2)
-                                .trailing_fill(true)
-                        );
-                        if slider_response.changed() {
-                            config.robot.communication.failure_rate = failure_rate;
-                        }
+                        ui.horizontal(|ui| {
+                            let mut failure_rate = config.robot.communication.failure_rate;
+                            ui.label(format!("{:.2}%", failure_rate));
+                            // ui.spacing_mut().slider_width = ui.available_width()  - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
+                            ui.spacing_mut().slider_width = ui.available_width();
+                            let slider_response = ui.add(
+                                egui::Slider::new(&mut failure_rate, 0.0..=1.0)
+                                    // .suffix("%")
+                                    .fixed_decimals(2)
+                                    .trailing_fill(true)
+                                    .show_value(false)
+                            );
+                            if slider_response.changed() {
+                                config.robot.communication.failure_rate = failure_rate;
+                            }
+                        });
                         ui.end_row();
                     });
 
@@ -610,46 +649,68 @@ fn ui_settings_panel(
                     ui.add_space(2.5);
                     ui.separator();
 
-                    // egui::CollapsingHeader::new("").default_open(true).show(ui, |ui| {
-                    custom::grid("draw_grid", 2).show(ui, |ui| {
-                        // CONFIG DRAW SECTION
-                        // This should add a toggle for each draw setting in the config
-                        // Should be 4 toggles
-                        for (name, _) in config.visualisation.draw.clone().iter() {
-                            ui.label(DrawSection::to_display_string(name));
-                            let setting = config
-                                .visualisation
-                                .draw
-                                .get_field_mut::<bool>(name)
-                                .expect("is bool"
-                                );
-                            custom::float_right(ui, |ui| {
-                                if custom::toggle_ui(ui, setting).clicked() {
-                                    println!("name: {}", name);
-                                    if let Ok(setting_kind) = name.parse::<DrawSetting>() {
-                                        let event = DrawSettingsEvent {
-                                            setting: setting_kind,
-                                            draw:    *setting,
-                                        };
-                                        world.send_event::<DrawSettingsEvent>(event);
-                                    } else {
-                                        error!("Failed to parse into a `DrawSection`: {}", name);
-                                    }
-                                    //
-                                    // let setting_kind: DrawSetting = name.parse().expect(
-                                    //     "the ui strings are generated from the enum, so parse \
-                                    //      should not fail",
-                                    // );
-                                    // let event = DrawSettingsEvent {
-                                    //     setting: setting_kind,
-                                    //     draw:    *setting,
-                                    // };
-                                    // world.send_event::<DrawSettingsEvent>(event);
+                    ui.push_id("draw_table", |ui| {
+                        egui_extras::TableBuilder::new(ui)
+                            .striped(true)
+                            .vscroll(false)
+                            .column(egui_extras::Column::initial(max_rect.width() * 0.8))
+                            .column(egui_extras::Column::remainder())
+                            .body(|mut body| {
+                                for (name, _) in config.visualisation.draw.clone().iter() {
+                                    body.row(25., |mut row| {
+                                        //row.col(|col| {col.label(DrawSection::to_display_string(name));});
+                                        row.col(|col| {custom::center_y(col, |col| {col.label(name);});});
+                                        row.col(|ui|  {
+                                            let setting = config
+                                                .visualisation
+                                                .draw
+                                                .get_field_mut::<bool>(name)
+                                                .expect("is bool"
+                                                );
+                                            custom::float_right(ui, |ui| {
+                                                if custom::toggle_ui(ui, setting).clicked() {
+                                                    println!("name: {}", name);
+                                                    if let Ok(setting_kind) = name.parse::<DrawSetting>() {
+                                                        let event = DrawSettingsEvent {
+                                                            setting: setting_kind,
+                                                            draw:    *setting,
+                                                        };
+                                                        world.send_event::<DrawSettingsEvent>(event);
+                                                    } else {
+                                                        error!("Failed to parse into a `DrawSection`: {}", name);
+                                                    }
+                                                }
+                                            });
+                                        });
+                                    });
                                 }
                             });
-                            ui.end_row();
-                        }
 
+
+                        //for (name, _) in config.visualisation.draw.clone().iter() {
+                        //    ui.label(DrawSection::to_display_string(name));
+                        //    let setting = config
+                        //        .visualisation
+                        //        .draw
+                        //        .get_field_mut::<bool>(name)
+                        //        .expect("is bool"
+                        //        );
+                        //    custom::float_right(ui, |ui| {
+                        //        if custom::toggle_ui(ui, setting).clicked() {
+                        //            println!("name: {}", name);
+                        //            if let Ok(setting_kind) = name.parse::<DrawSetting>() {
+                        //                let event = DrawSettingsEvent {
+                        //                    setting: setting_kind,
+                        //                    draw:    *setting,
+                        //                };
+                        //                world.send_event::<DrawSettingsEvent>(event);
+                        //            } else {
+                        //                error!("Failed to parse into a `DrawSection`: {}", name);
+                        //            }
+                        //        }
+                        //    });
+                        //    ui.end_row();
+                        //}
                     });
 
                     ui.add_space(2.5);
@@ -667,7 +728,7 @@ fn ui_settings_panel(
 
                         // INFINITE GRID
                         let mut query = world.query::<(&mut Visibility, &InfiniteGrid)>();
-                        if let Ok((mut visibility, infinite_grid)) = query.get_single_mut(world) {
+                        if let Ok((mut visibility, _)) = query.get_single_mut(world) {
                             ui.label("Infinite Grid");
                             custom::float_right(ui, |ui| {
                                 let mut visible = Visibility::Hidden != *visibility;
@@ -679,7 +740,6 @@ fn ui_settings_panel(
                         }
                     });
 
-
                     custom::subheading(
                         ui,
                         "Simulation",
@@ -687,6 +747,7 @@ fn ui_settings_panel(
                             title_colors.next_or_first(),
                         )),
                     );
+
                     custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
                         ui.label("Active Simulation");
                         custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
@@ -703,9 +764,12 @@ fn ui_settings_panel(
                                     #[allow(clippy::needless_collect)] // clippy is wrong about
                                     // this one
                                     for (id, sim) in simulation_manager.ids_and_names().collect::<Vec<(SimulationId, SmolStr)>>()  {
-                                        ui.vertical_centered_justified(|ui| {
+                                        ui.vertical(|ui| {
+                                        //ui.vertical_centered_justified(|ui| {
                                             let name: String = sim.into();
-                                            if ui.button(name).clicked() {
+                                            let button = egui::Button::new(name).wrap(false);
+                                            if ui.add(button).clicked() {
+                                            //if ui.button(name).clicked() {
                                                 simulation_manager.load(id);
                                                 ui.close_menu();
                                             }
@@ -739,19 +803,26 @@ fn ui_settings_panel(
 
                         // slider for simulation time between 0 and 100
                         ui.label("Simulation Speed");
-                        // slider for simulation speed (time scale) between 0.1 and 10
-                        ui.spacing_mut().slider_width =
-                            ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
-                        let slider_response = ui.add(
-                            egui::Slider::new(&mut config.simulation.time_scale.get(), 0.1..=5.0)
-                                .suffix("x")
-                                .trailing_fill(true)
-                                .show_value(true),
-                        );
-                        if slider_response.drag_released() || slider_response.lost_focus() {
-                            info!("time scale changed: {}", config.simulation.time_scale);
-                            time_virtual.set_relative_speed(config.simulation.time_scale.get());
-                        }
+
+
+                        ui.horizontal(|ui| {
+                            let mut time_scale = config.simulation.time_scale.get();
+                            ui.label(format!("{:.2}x", time_scale));
+                            ui.spacing_mut().slider_width = ui.available_width();
+                            let slider_response = ui.add(
+                                egui::Slider::new(&mut time_scale, 0.1..=5.0)
+                                    // .suffix("x")
+                                    .trailing_fill(true)
+                                    .show_value(false),
+                            );
+                            if slider_response.changed() {
+                            // if slider_response.drag_released() || slider_response.lost_focus() {
+                                config.simulation.time_scale = time_scale.try_into().unwrap();
+                                info!("time scale changed: {}", config.simulation.time_scale);
+                                time_virtual.set_relative_speed(config.simulation.time_scale.get());
+                            }
+                        });
+
                         ui.end_row();
 
                         ui.label("Manual Controls");
@@ -800,11 +871,12 @@ fn ui_settings_panel(
 
                         ui.label("Timesteps per Step");
 
-                        let mut text = config.manual.timesteps_per_step.to_string();
+                        let mut text: String = config.manual.timesteps_per_step.to_string();
 
                         let te_output = egui::TextEdit::singleline(&mut text)
                             .char_limit(3)
                             .interactive(time_virtual.is_paused())
+                            .desired_width(f32::INFINITY) // maximize
                             .show(ui);
 
                         if te_output.response.changed() {

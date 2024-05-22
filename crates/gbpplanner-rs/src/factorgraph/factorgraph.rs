@@ -255,6 +255,7 @@ impl FactorGraph {
             obstacle:   self.obstacle_factor_indices.len(),
             interrobot: self.interrobot_factor_indices.len(),
             dynamic:    self.dynamic_factor_indices.len(),
+            tracking:   self.tracking_factor_indices.len(),
         }
     }
 
@@ -693,41 +694,6 @@ impl FactorGraph {
                 variable.receive_message_from(factor_id, message);
             }
         }
-        // for i in 0..self.dynamic_factor_indices.len() {
-        //     let ix = self.dynamic_factor_indices[i];
-        //     let node = &mut self.graph[ix];
-        //     let factor = node.factor_mut();
-        //     let variable_messages = factor.update();
-        //     let factor_id = FactorId::new(self.id, FactorIndex(ix));
-        //
-        //     for (variable_id, message) in variable_messages {
-        //         debug_assert_eq!(
-        //             variable_id.factorgraph_id, self.id,
-        //             "non interrobot factors can only have variable neighbours
-        // in the same graph"
-        //         );
-        //         let variable = self.variable_mut(variable_id.variable_index);
-        //         variable.receive_message_from(factor_id, message);
-        //     }
-        // }
-        //
-        // for i in 0..self.obstacle_factor_indices.len() {
-        //     let ix = self.obstacle_factor_indices[i];
-        //     let node = &mut self.graph[ix];
-        //     let factor = node.factor_mut();
-        //     let variable_messages = factor.update();
-        //     let factor_id = FactorId::new(self.id, FactorIndex(ix));
-        //
-        //     for (variable_id, message) in variable_messages {
-        //         debug_assert_eq!(
-        //             variable_id.factorgraph_id, self.id,
-        //             "non interrobot factors can only have variable neighbours
-        // in the same graph"
-        //         );
-        //         let variable = self.variable_mut(variable_id.variable_index);
-        //         variable.receive_message_from(factor_id, message);
-        //     }
-        // }
     }
 
     #[must_use]
@@ -951,6 +917,8 @@ pub struct FactorCount {
     pub interrobot: usize,
     /// Number of `DynamicFactor`s
     pub dynamic:    usize,
+    /// Number of `TrackingFactor`s
+    pub tracking:   usize,
 }
 
 /// Iterator over the factors in the factorgraph.
@@ -1462,6 +1430,20 @@ impl FactorGraph {
         FactorsDyn {
             graph: &self.graph,
             iter:  self.factor_indices.iter(),
+        }
+    }
+}
+
+impl FactorGraph {
+    /// Modify the tracking factors in the factorgraph
+    pub fn modify_tracking_factors(&mut self, mut f: impl FnMut(&mut TrackingFactor)) {
+        for ix in &self.tracking_factor_indices {
+            let node = &mut self.graph[*ix];
+            let factor = node.factor_mut();
+            let FactorKind::Tracking(ref mut inner) = factor.kind else {
+                panic!("Expected a tracking factor");
+            };
+            f(inner);
         }
     }
 }

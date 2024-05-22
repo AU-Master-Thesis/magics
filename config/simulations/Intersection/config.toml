@@ -36,7 +36,10 @@ robot-robot-collisions             = false
 robot-environment-collisions       = false
 
 [gbp.factors-enabled]
-tracking = true
+tracking   = false
+obstacle   = true
+dynamic    = true
+interrobot = false
 
 [gbp]
 sigma-pose-fixed        = 0.000000000000001

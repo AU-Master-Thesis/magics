@@ -1,4 +1,4 @@
-use crate::{GbpSchedule, GbpScheduleAtTimestep, GbpScheduleConfig, GbpScheduleIterator};
+use crate::{GbpSchedule, GbpScheduleAtIteration, GbpScheduleIterator, GbpScheduleParams};
 
 pub struct LateAsPossible;
 
@@ -51,7 +51,7 @@ mod private {
 }
 
 impl LateAsPossibleIter {
-    pub fn new(config: GbpScheduleConfig) -> Self {
+    pub fn new(config: GbpScheduleParams) -> Self {
         // use std::iter::repeat_n;
         // let max = config.max() as usize;
         let max = config.max();
@@ -72,19 +72,19 @@ impl LateAsPossibleIter {
 }
 
 impl std::iter::Iterator for LateAsPossibleIter {
-    type Item = GbpScheduleAtTimestep;
+    type Item = GbpScheduleAtIteration;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|(internal, external)| GbpScheduleAtTimestep { internal, external })
+            .map(|(internal, external)| GbpScheduleAtIteration { internal, external })
     }
 }
 
 impl GbpScheduleIterator for LateAsPossibleIter {}
 
 impl GbpSchedule for LateAsPossible {
-    fn schedule(config: GbpScheduleConfig) -> impl GbpScheduleIterator {
+    fn schedule(config: GbpScheduleParams) -> impl GbpScheduleIterator {
         LateAsPossibleIter::new(config)
     }
 }
@@ -93,13 +93,13 @@ impl GbpSchedule for LateAsPossible {
 mod tests {
     use super::*;
 
-    const fn ts(internal: bool, external: bool) -> GbpScheduleAtTimestep {
-        GbpScheduleAtTimestep { internal, external }
+    const fn ts(internal: bool, external: bool) -> GbpScheduleAtIteration {
+        GbpScheduleAtIteration { internal, external }
     }
 
     #[test]
     fn internal_greater_than_external() {
-        let config = GbpScheduleConfig {
+        let config = GbpScheduleParams {
             internal: 10,
             external: 5,
         };
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn internal_less_than_external() {
-        let config = GbpScheduleConfig {
+        let config = GbpScheduleParams {
             internal: 3,
             external: 6,
         };
@@ -136,7 +136,7 @@ mod tests {
 
         assert_eq!(schedule.next(), None);
 
-        let config = GbpScheduleConfig {
+        let config = GbpScheduleParams {
             internal: 3,
             external: 10,
         };
@@ -158,7 +158,7 @@ mod tests {
 
     #[test]
     fn internal_external_even() {
-        let config = GbpScheduleConfig {
+        let config = GbpScheduleParams {
             internal: 3,
             external: 3,
         };
@@ -171,7 +171,7 @@ mod tests {
 
     #[test]
     fn both_zero() {
-        let config = GbpScheduleConfig {
+        let config = GbpScheduleParams {
             internal: 0,
             external: 0,
         };
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn internal_zero_external_not() {
-        let config = GbpScheduleConfig {
+        let config = GbpScheduleParams {
             internal: 0,
             external: 2,
         };
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn external_zero_internal_not() {
-        let config = GbpScheduleConfig {
+        let config = GbpScheduleParams {
             internal: 2,
             external: 0,
         };

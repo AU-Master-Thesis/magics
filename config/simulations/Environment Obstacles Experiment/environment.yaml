@@ -7,7 +7,7 @@ tiles:
     obstacle-height: 1.0
     sdf:
       resolution: 200
-      expansion: 0.025
+      expansion: 0.0125
       blur: 0.01
 obstacles:
 - shape: !regular-polygon

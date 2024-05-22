@@ -258,7 +258,8 @@ impl FactorNode {
         measurement: Vector<Float>,
         linearisation_point: Vector<Float>,
         tracking_smoothing: f64,
-        rrt_path: Vec<Vec2>,
+        // rrt_path: Vec<Vec2>,
+        rrt_path: Option<min_len_vec::TwoOrMore<Vec2>>,
         enabled: bool,
     ) -> Self {
         let state = FactorState::new(measurement, strength, TrackingFactor::NEIGHBORS)
@@ -279,8 +280,8 @@ impl FactorNode {
     }
 
     #[inline]
-    // fn measure(&self, x: &Vector<Float>) -> Vector<Float> {
-    fn measure(&self, x: &Vector<Float>) -> Measurement {
+    // fn measure(&self, linearisation_point: &Vector<Float>) -> Vector<Float> {
+    fn measure(&self, linearisation_point: &Vector<Float>) -> Measurement {
         if matches!(self.kind, FactorKind::Tracking(_)) {
             use colored::Colorize;
             println!(
@@ -289,7 +290,7 @@ impl FactorNode {
                 self.node_index
             );
         }
-        self.kind.measure(&self.state, x)
+        self.kind.measure(&self.state, linearisation_point)
         // self.state.cached_measurement = self.kind.measure(&self.state, x);
         // self.state.cached_measurement.clone()
     }
@@ -329,6 +330,7 @@ impl FactorNode {
     /// Update the factor using the gbp message passing algorithm
     #[must_use]
     pub fn update(&mut self) -> MessagesToVariables {
+        // update the linearisation point
         for (i, (_, message)) in self.inbox.iter().enumerate() {
             let mut slice = self
                 .state
@@ -535,7 +537,6 @@ impl Factor for FactorKind {
     // -> Vector<Float> {
     fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>) -> Measurement {
         match self {
-            // Self::Pose(f) => f.measure(state, x),
             Self::Dynamic(f) => f.measure(state, linearisation_point),
             Self::InterRobot(f) => f.measure(state, linearisation_point),
             Self::Obstacle(f) => f.measure(state, linearisation_point),

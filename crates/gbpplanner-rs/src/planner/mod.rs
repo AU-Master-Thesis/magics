@@ -6,7 +6,7 @@ pub mod tracking;
 mod visualiser;
 
 use bevy::prelude::*;
-pub use robot::{RobotId, RobotState};
+pub use robot::{RobotConnections, RobotId};
 pub use visualiser::{
     factorgraphs::VariableVisualiser, waypoints::WaypointVisualiser, RobotTracker,
 };
