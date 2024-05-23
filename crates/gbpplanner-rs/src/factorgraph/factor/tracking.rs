@@ -1,8 +1,7 @@
 //! Tracking Factor (extension)
 use std::{borrow::Cow, cell::Cell, sync::Mutex};
 
-use bevy::{math::Vec2, utils::smallvec::ToSmallVec};
-use colored::Colorize;
+use bevy::math::Vec2;
 use gbp_linalg::prelude::*;
 use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
@@ -28,7 +27,7 @@ impl Default for Tracking {
     fn default() -> Self {
         Self {
             path:   None,
-            index:  0,
+            index:  1,
             record: Mutex::new(Cell::new(0)),
             config: gbp_config::TrackingSection::default(),
         }
@@ -122,6 +121,13 @@ impl TrackingFactor {
 
     pub fn set_tracking_path(&mut self, tracking_path: min_len_vec::TwoOrMore<Vec2>) {
         self.tracking.path = Some(tracking_path.into());
+    }
+
+    pub fn set_tracking_index(&mut self, index: usize) {
+        if let Some(path) = &self.tracking.path {
+            assert!(index < path.len() - 1);
+            self.tracking.index = index;
+        }
     }
 }
 
@@ -301,6 +307,10 @@ impl std::fmt::Display for TrackingFactor {
         } else {
             writeln!(f, "tracking_path: {}", "None".red())?;
         }
+        writeln!(f, "index: {}", self.tracking.index)?;
+        writeln!(f, "record: {}", self.tracking.record.lock().unwrap().get())?;
+        writeln!(f, "config: {:?}", self.tracking.config)?;
+
         write!(f, "last_measurement: {:?}", self.last_measurement())
     }
 }
