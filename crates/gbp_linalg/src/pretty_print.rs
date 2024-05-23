@@ -663,7 +663,7 @@ macro_rules! pretty_print_matrix {
     ($name:expr) => {
         println!(
             "{}",
-            $crate::pretty_print::_pretty_print_matrix(
+            $crate::pretty_print::_pretty_format_matrix(
                 $name,
                 Some(stringify!($name)),
                 Some(file!()),

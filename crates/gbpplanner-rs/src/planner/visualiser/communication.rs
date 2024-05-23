@@ -95,7 +95,7 @@ fn draw_communication_graph_v3(
             &disconnected_color
         };
 
-        for connected_with_id in &robot_state.ids_of_robots_connected_with {
+        for connected_with_id in &robot_state.robots_connected_with {
             let Ok((_, _, _, other_transform)) = query.get(*connected_with_id) else {
                 continue;
             };

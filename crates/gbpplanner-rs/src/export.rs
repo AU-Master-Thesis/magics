@@ -363,7 +363,7 @@ fn export(
                 velocities,
                 mission: MissionData {
                     waypoints:   mission
-                        .waypoints
+                        .taskpoints
                         .iter()
                         .map(|wp| wp.position().into())
                         .collect(),
@@ -694,7 +694,7 @@ fn take_snapshot_of_robot(
                 .finished_at()
                 .unwrap_or_else(|| time_fixed.elapsed_seconds_f64()),
             waypoints:   mission
-                .waypoints
+                .taskpoints
                 .iter()
                 .map(|wp| wp.position().into())
                 .collect(),

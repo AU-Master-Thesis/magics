@@ -345,6 +345,19 @@ pub struct Route {
     finished_at:  Option<f64>,
 }
 
+impl std::fmt::Display for Route {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "waypoints:")?;
+        for wp in &self.waypoints {
+            writeln!(f, "  {}", wp)?;
+        }
+
+        writeln!(f, "target_index: {}", self.target_index)?;
+        writeln!(f, "started_at: {}", self.started_at)?;
+        writeln!(f, "finished_at: {:?}", self.finished_at)
+    }
+}
+
 // /// Represents the initial pose of the robot using a four-dimensional vector.
 // #[derive(Component, Debug)]
 // pub struct InitialPose(pub Vec4);
@@ -493,10 +506,10 @@ impl RadioAntenna {
 pub struct RobotConnections {
     /// List of robot ids that are within the communication radius of this
     /// robot. called `neighbours_` in **gbpplanner**.
-    pub ids_of_robots_within_comms_range: BTreeSet<RobotId>,
+    pub robots_within_comms_range: BTreeSet<RobotId>,
     /// List of robot ids that are currently connected via inter-robot factors
     /// to this robot called `connected_r_ids_` in **gbpplanner**.
-    pub ids_of_robots_connected_with:     BTreeSet<RobotId>,
+    pub robots_connected_with:     BTreeSet<RobotId>,
 }
 
 impl RobotConnections {
@@ -504,8 +517,8 @@ impl RobotConnections {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            ids_of_robots_within_comms_range: BTreeSet::new(),
-            ids_of_robots_connected_with:     BTreeSet::new(),
+            robots_within_comms_range: BTreeSet::new(),
+            robots_connected_with:     BTreeSet::new(),
         }
     }
 }
@@ -536,18 +549,6 @@ impl FromWorld for GbpIterationSchedule {
         }
     }
 }
-
-// fn poll_pathfinding_tasks(
-//    mut commands: Commands,
-//    mut q: Query<&mut PathfindingTask>,
-//) {
-//    for mut task in &mut q {
-//        if let Some(result) = future::block_on(future::poll_once(&mut task.0))
-// {            info!("Pathfinding task completed");
-//            commands.entity(task.1).remove::<PathfindingTask>();
-//        }
-//    }
-//}
 
 fn progress_missions(
     mut commands: Commands,
@@ -581,8 +582,8 @@ fn progress_missions(
                     //    .map(|w| w.position())
                     //    .unwrap();
                     // let end = active_route.waypoints.last().map(|w| w.position()).unwrap();
-                    let start = mission.waypoints[mission.active_route].position();
-                    let end = mission.waypoints[mission.active_route + 1].position();
+                    let start = mission.taskpoints[mission.active_route].position();
+                    let end = mission.taskpoints[mission.active_route + 1].position();
                     // let start = mission.last_waypoint().unwrap().position();
                     // let end = mission.next_waypoint().unwrap().position();
                     info!(
@@ -700,14 +701,24 @@ fn progress_missions(
 #[derive(Debug, Component)]
 pub struct RobotMission {
     pub routes: Vec<Route>,
-    pub waypoints: Vec<StateVector>,
+    pub taskpoints: Vec<StateVector>,
     active_route: usize,
+    // total_routes: usize,
     started_at: f64,
     finished_at: Option<f64>,
     pub state: RobotMissionState,
     finished_when_intersects: ReachedWhenIntersects,
-    waypoint_reached_when_intersects: ReachedWhenIntersects,
+    taskpoint_reached_when_intersects: ReachedWhenIntersects,
 }
+
+// impl std::fmt::Display for RobotMission {
+//    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//        writeln!(f, "robot-mission:")?;
+//        writeln!(f, "  routes: {}", self.routes)?;
+//        writeln!(f, "  waypoints: {}", self.waypoints)?;
+//        writeln!(f, "")
+//    }
+//}
 
 impl RobotMission {
     pub fn local(
@@ -722,13 +733,14 @@ impl RobotMission {
         );
         Self {
             routes: vec![route],
-            waypoints: waypoints.into(),
+            taskpoints: vec![*waypoints.first(), *waypoints.last()],
             active_route: 0,
+            // total_routes: 1,
             started_at,
             finished_at: None,
             state: RobotMissionState::Active,
             finished_when_intersects,
-            waypoint_reached_when_intersects,
+            taskpoint_reached_when_intersects: waypoint_reached_when_intersects,
         }
 
         // Self::new(waypoints, started_at, RobotMissionState::Active)
@@ -771,13 +783,14 @@ impl RobotMission {
         );
         Self {
             routes: vec![first_route],
-            waypoints: waypoints.into(),
+            // total_routes: waypoints.len() - 1,
+            taskpoints: waypoints.into(),
             active_route: 0,
             started_at,
             finished_at: None,
             state,
             finished_when_intersects,
-            waypoint_reached_when_intersects,
+            taskpoint_reached_when_intersects: waypoint_reached_when_intersects,
         }
     }
 
@@ -837,12 +850,13 @@ impl RobotMission {
             _ => {
                 self.active_route += 1;
                 // if self.active_route >= self.routes.len() {
-                if self.active_route >= self.waypoints.len() - 1 {
+                if self.active_route >= self.taskpoints.len() - 1 {
+                    // if self.active_route >= self.total_routes {
                     self.state = RobotMissionState::Completed;
                     self.finished_at = Some(time.elapsed().as_secs_f64());
                 } else {
                     let waypoints: Vec<StateVector> = self
-                        .waypoints
+                        .taskpoints
                         .iter()
                         .skip(self.active_route)
                         .take(2)
@@ -946,6 +960,16 @@ pub struct RobotBundle {
     derive_more::Sub,
 )]
 pub struct StateVector(pub bevy::math::Vec4);
+
+impl std::fmt::Display for StateVector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[{:.4}, {:.4}, {:.4}, {:.4}]",
+            self.0.x, self.0.y, self.0.z, self.0.w
+        )
+    }
+}
 
 impl StateVector {
     /// Access the position vector of the robot state
@@ -1212,7 +1236,7 @@ fn update_robot_neighbours(
 ) {
     // TODO: use kdtree to speed up, and to have something in the report
     for (robot_id, transform, mut robotstate) in &mut query {
-        robotstate.ids_of_robots_within_comms_range = robots
+        robotstate.robots_within_comms_range = robots
             .iter()
             .filter_map(|(other_robot_id, other_transform)| {
                 if other_robot_id == robot_id
@@ -1238,8 +1262,8 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
 
     for (robot_id, _, mut robotstate) in &mut query {
         let ids_of_robots_connected_with_outside_comms_range: BTreeSet<_> = robotstate
-            .ids_of_robots_connected_with
-            .difference(&robotstate.ids_of_robots_within_comms_range)
+            .robots_connected_with
+            .difference(&robotstate.robots_within_comms_range)
             .copied()
             .collect();
 
@@ -1250,7 +1274,7 @@ fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut Ro
         );
 
         for id in ids_of_robots_connected_with_outside_comms_range {
-            robotstate.ids_of_robots_connected_with.remove(&id);
+            robotstate.robots_connected_with.remove(&id);
         }
     }
 
@@ -1296,8 +1320,8 @@ fn create_interrobot_factors(
         .iter()
         .map(|(entity, _, robotstate, _)| {
             let new_connections = robotstate
-                .ids_of_robots_within_comms_range
-                .difference(&robotstate.ids_of_robots_connected_with)
+                .robots_within_comms_range
+                .difference(&robotstate.robots_connected_with)
                 .copied()
                 .collect::<Vec<_>>();
 
@@ -1386,9 +1410,7 @@ fn create_interrobot_factors(
                 external_edges_to_add.push((robot_id, factor_index, *other_robot_id, i));
             }
 
-            robotstate
-                .ids_of_robots_connected_with
-                .insert(*other_robot_id);
+            robotstate.robots_connected_with.insert(*other_robot_id);
         }
     }
 
@@ -1947,7 +1969,7 @@ fn reached_waypoint(
             let when_intersects = if mission.next_waypoint_is_last() {
                 mission.finished_when_intersects
             } else {
-                mission.waypoint_reached_when_intersects
+                mission.taskpoint_reached_when_intersects
             };
 
             let variable = match when_intersects {
@@ -2383,18 +2405,24 @@ fn on_robot_clicked(
         &Ball,
         &RadioAntenna,
         &RobotMission,
+        &PlanningStrategy,
     )>,
     robot_robot_collisions: Res<RobotRobotCollisions>,
     robot_environment_collisions: Res<RobotEnvironmentCollisions>,
 ) {
-    // let print_line = |text: &str,
-    //     println!("{}", text);
-    // };
-
     use colored::Colorize;
     for RobotClickedOn(robot_id) in evr_robot_clicked_on.read() {
-        let Ok((_, transform, factorgraph, robotstate, radius, ball, antenna, mission)) =
-            robots.get(*robot_id)
+        let Ok((
+            _,
+            transform,
+            factorgraph,
+            robotstate,
+            radius,
+            ball,
+            antenna,
+            mission,
+            planning_strategy,
+        )) = robots.get(*robot_id)
         else {
             error!("robot_id {:?} does not exist", robot_id);
             continue;
@@ -2426,12 +2454,12 @@ fn on_robot_clicked(
         println!(
             "    {}: {:?}",
             "neighbours".cyan(),
-            robotstate.ids_of_robots_within_comms_range
+            robotstate.robots_within_comms_range
         );
         println!(
             "    {}: {:?}",
             "connected".cyan(),
-            robotstate.ids_of_robots_connected_with
+            robotstate.robots_connected_with
         );
         let node_counts = factorgraph.node_count();
         let edge_count = factorgraph.edge_count();
@@ -2499,7 +2527,18 @@ fn on_robot_clicked(
             aabb.maxs.y
         );
         println!("    {}: {:.4} m^2", "volume".cyan(), aabb.volume());
+        println!("  {}: {:?}", "planning_strategy".cyan(), planning_strategy);
         println!("");
+        println!("  {}:", "mission".magenta());
+        println!("    {}:", "waypoints".cyan());
+        mission.taskpoints.iter().for_each(|wp| {
+            println!("      {}", wp);
+        });
+        println!("    {}:", "routes".cyan());
+        mission.routes.iter().for_each(|route| {
+            println!("      {}", route);
+        });
+        // println!("    {}: {}", "active_route".cyan(), mission.)
 
         println!("{:#?}", mission);
     }
