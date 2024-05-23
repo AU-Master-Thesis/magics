@@ -376,14 +376,14 @@ impl FactorNode {
             position: measurement_position,
         } = self.measure(&self.state.linearisation_point);
         // In case the measurement function wants to update the linearisation point
-        if let Some(new_linearisation_point) = measurement_position {
-            // use colored::Colorize;
-            // println!(
-            //     "updating linearisation point to {}",
-            //     new_linearisation_point.to_string().green()
-            // );
-            self.state.linearisation_point = new_linearisation_point;
-        }
+        // if let Some(new_linearisation_point) = measurement_position {
+        //     // use colored::Colorize;
+        //     // println!(
+        //     //     "updating linearisation point to {}",
+        //     //     new_linearisation_point.to_string().green()
+        //     // );
+        //     self.state.linearisation_point = new_linearisation_point;
+        // }
 
         let jacobian = self.jacobian(&self.state.linearisation_point);
 

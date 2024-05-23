@@ -1,5 +1,5 @@
 //! Tracking Factor (extension)
-use std::{borrow::Cow, cell::Cell, sync::Mutex};
+use std::{borrow::Cow, cell::Cell, ops::Sub, sync::Mutex};
 
 use bevy::{math::Vec2, utils::smallvec::ToSmallVec};
 use colored::Colorize;
@@ -8,6 +8,7 @@ use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
 
 use super::{Factor, FactorState, Measurement};
+use crate::factorgraph::DOFS;
 
 /// Tracking information for each tracking factor to follow
 #[derive(Debug)]
@@ -133,7 +134,7 @@ impl TrackingFactor {
 
     pub fn set_tracking_index(&mut self, index: usize) {
         if let Some(path) = &self.tracking.path {
-            assert!(index < path.len() - 1);
+            assert!(index < path.len());
             self.tracking.index = index;
         }
     }
@@ -160,25 +161,37 @@ impl Factor for TrackingFactor {
         // Same as PoseFactor
         // TODO: change to not clone x
         // Cow::Owned(self.first_order_jacobian(state, x.clone()))
-        let mut linearisation_point = linearisation_point.to_owned();
+        // let mut linearisation_point = linearisation_point.to_owned();
+        let last_measurement = self.last_measurement.lock().unwrap().get();
+        let h0 = array![last_measurement.value];
 
-        let h0 = array![self.last_measurement.lock().unwrap().get().value];
-        let mut jacobian = Matrix::<Float>::zeros((h0.len(), linearisation_point.len()));
+        let m = last_measurement.pos;
+        let pos = linearisation_point.slice(s![..DOFS / 2]).to_owned();
+        let temp = array![m.x as Float, m.y as Float];
+        let x_diff = pos - temp;
 
-        let delta = self.jacobian_delta();
+        let mut jacobian = Matrix::<Float>::zeros((h0.len(), DOFS));
+        jacobian
+            .slice_mut(s![0, ..DOFS / 2])
+            .assign(&(1.0 / h0 * &x_diff));
 
-        for i in 0..linearisation_point.len() {
-            linearisation_point[i] += delta; // perturb by delta
-            let Measurement {
-                value: h1,
-                position: _,
-            } = self.measure(state, &linearisation_point);
-            let derivatives = (&h1 - &h0) / delta;
-            jacobian.column_mut(i).assign(&derivatives);
-            linearisation_point[i] -= delta; // reset the perturbation
-        }
+        // let mut jacobian = Matrix::<Float>::zeros((h0.len(),
+        // linearisation_point.len()));
 
-        // pretty_print_matrix!(&jacobian);
+        // let delta = self.jacobian_delta();
+
+        // for i in 0..linearisation_point.len() {
+        //     linearisation_point[i] += delta; // perturb by delta
+        //     let Measurement {
+        //         value: h1,
+        //         position: _,
+        //     } = self.measure(state, &linearisation_point);
+        //     let derivatives = (&h1 - &h0) / delta;
+        //     jacobian.column_mut(i).assign(&derivatives);
+        //     linearisation_point[i] -= delta; // reset the perturbation
+        // }
+
+        pretty_print_matrix!(&jacobian);
 
         Cow::Owned(jacobian)
     }
@@ -218,7 +231,20 @@ impl Factor for TrackingFactor {
         // let consideration_distance =
         //     x_vel.euclidean_norm() + self.tracking.config.switch_padding.powi(2) as
         // f64;
-        let consideration_distance = self.tracking.config.switch_padding as Float;
+        let consideration_distance = {
+            let d = self.tracking.config.switch_padding as Float;
+            if self
+                .tracking
+                .index
+                .saturating_sub(self.tracking.get_record())
+                > 1
+            {
+                (d * 2.0, d)
+            } else {
+                (d, d)
+            }
+        };
+
         let current_projected_point_to_current_end =
             (&current_end - &current_projection).euclidean_norm();
         // let current_projected_point_to_current_start =
@@ -250,9 +276,10 @@ impl Factor for TrackingFactor {
             let previous_projected_point_to_previous_end =
                 (&current_start - &previous_projected_point).euclidean_norm();
             // if previous_projected_point_to_previous_end < consideration_distance {
-            if current_projected_point_to_previous_end < consideration_distance
-                && previous_projected_point_to_previous_end < consideration_distance
+            if current_projected_point_to_previous_end < consideration_distance.0
+                && previous_projected_point_to_previous_end < consideration_distance.1
             {
+                // if true == false {
                 Some((
                     previous_projected_point,
                     current_projected_point_to_previous_end,
@@ -267,13 +294,7 @@ impl Factor for TrackingFactor {
 
         // 4. if within `self.tracking.smoothing` of end, increment
         //    `self.tracking.record`
-        if current_projected_point_to_current_end < consideration_distance
-            || (self
-                .tracking
-                .index
-                .saturating_sub(self.tracking.get_record()))
-                > 0
-        {
+        if current_projected_point_to_current_end < consideration_distance.0 {
             self.tracking.increment_record();
         }
 

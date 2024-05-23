@@ -88,12 +88,12 @@ impl InterRobotFactor {
 
     fn diff_between_estimated_positions(
         &self,
-        lineraisation_point: &Vector<Float>,
+        linearisation_point: &Vector<Float>,
     ) -> Vector<Float> {
         let offset = DOFS / 2;
-        let mut diff_between_estimated_positions = lineraisation_point
+        let mut diff_between_estimated_positions = linearisation_point
             .slice(s![..offset])
-            .sub(&lineraisation_point.slice(s![DOFS..DOFS + offset]));
+            .sub(&linearisation_point.slice(s![DOFS..DOFS + offset]));
         for i in 0..offset {
             // Add a tiny random offset to avoid div/0 errors
             // x_diff[i] += 1e-6 *
