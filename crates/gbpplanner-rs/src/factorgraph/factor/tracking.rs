@@ -158,10 +158,6 @@ impl Factor for TrackingFactor {
         state: &FactorState,
         linearisation_point: &Vector<Float>,
     ) -> Cow<'_, Matrix<Float>> {
-        // Same as PoseFactor
-        // TODO: change to not clone x
-        // Cow::Owned(self.first_order_jacobian(state, x.clone()))
-        // let mut linearisation_point = linearisation_point.to_owned();
         let last_measurement = self.last_measurement.lock().unwrap().get();
         let h0 = array![last_measurement.value];
 
@@ -175,23 +171,7 @@ impl Factor for TrackingFactor {
             .slice_mut(s![0, ..DOFS / 2])
             .assign(&(1.0 / h0 * &x_diff));
 
-        // let mut jacobian = Matrix::<Float>::zeros((h0.len(),
-        // linearisation_point.len()));
-
-        // let delta = self.jacobian_delta();
-
-        // for i in 0..linearisation_point.len() {
-        //     linearisation_point[i] += delta; // perturb by delta
-        //     let Measurement {
-        //         value: h1,
-        //         position: _,
-        //     } = self.measure(state, &linearisation_point);
-        //     let derivatives = (&h1 - &h0) / delta;
-        //     jacobian.column_mut(i).assign(&derivatives);
-        //     linearisation_point[i] -= delta; // reset the perturbation
-        // }
-
-        pretty_print_matrix!(&jacobian);
+        // pretty_print_matrix!(&jacobian);
 
         Cow::Owned(jacobian)
     }
@@ -239,9 +219,9 @@ impl Factor for TrackingFactor {
                 .saturating_sub(self.tracking.get_record())
                 > 1
             {
-                (d * 2.0, d)
+                (d, d * 0.01)
             } else {
-                (d, d)
+                (d, d * 0.01)
             }
         };
 
@@ -275,11 +255,11 @@ impl Factor for TrackingFactor {
                 (&previous_end - &current_projection).euclidean_norm();
             let previous_projected_point_to_previous_end =
                 (&current_start - &previous_projected_point).euclidean_norm();
-            // if previous_projected_point_to_previous_end < consideration_distance {
+
             if current_projected_point_to_previous_end < consideration_distance.0
-                && previous_projected_point_to_previous_end < consideration_distance.1
+                && current_projected_point_to_previous_end > consideration_distance.1
+                && previous_projected_point_to_previous_end < consideration_distance.0
             {
-                // if true == false {
                 Some((
                     previous_projected_point,
                     current_projected_point_to_previous_end,
@@ -303,14 +283,6 @@ impl Factor for TrackingFactor {
             Some((previous_projection, a, b)) => {
                 // connections should be 2
                 self.tracking.connections.lock().unwrap().set(2);
-                // find direction from `x_pos` to measurement point
-                // let measurement_direction = (&projected_point - &projection).normalized();
-
-                // find diagonal of the rectangle with side-lengths `a` and `b`
-                // let diagonal = (a.powi(2) + b.powi(2)).sqrt();
-
-                // &measurement_direction * diagonal
-                // (projected_point + projection) / 2.0
 
                 // vector from `x_pos` to `current_projection`
                 let x_to_current = &current_projection - &x_pos;
@@ -323,10 +295,11 @@ impl Factor for TrackingFactor {
             None => {
                 // connections should be 1
                 self.tracking.connections.lock().unwrap().set(1);
-                current_projection // + line.normalized() *
-                                   //   x_vel.euclidean_norm() as Float
+                current_projection + line.normalized() * x_vel.euclidean_norm() as Float / 5.0
             }
         };
+
+        // TODO: FIX THE SWITCHING LOGIC
 
         // 6. Normalise length to `self.tracking.config.attraction_distance`
         let x_to_projection = &measurement_point - &x_pos;
@@ -361,7 +334,7 @@ impl Factor for TrackingFactor {
         // TODO: Tune this
         // NOTE: Maybe this should be influenced by the distance from variable to the
         // measurement
-        1e-2
+        1e-8
         // let base = 1e-2;
         // base / (2.0
         //     * self.last_measurement.lock().unwrap().get().value
