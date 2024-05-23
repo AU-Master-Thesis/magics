@@ -405,6 +405,15 @@ impl Route {
         self.waypoints.get(self.target_index)
     }
 
+    pub fn current_waypoint_index(&self) -> Option<usize> {
+        if self.is_completed() {
+            None
+        } else {
+            Some(self.target_index)
+        }
+        // self.target_index.checked_sub(1)
+    }
+
     /// Returns a reference to the last waypoint, if available.
     pub fn last_waypoint(&self) -> Option<&StateVector> {
         self.waypoints.get(self.target_index - 1)
@@ -813,6 +822,12 @@ impl RobotMission {
             .get(self.active_route)
             .and_then(|r| r.next_waypoint())
         // self.routes[self.active_route].next_waypoint()
+    }
+
+    pub fn current_waypoint_index(&self) -> Option<usize> {
+        self.routes
+            .get(self.active_route)
+            .and_then(|r| r.current_waypoint_index())
     }
 
     pub fn last_waypoint(&self) -> Option<&StateVector> {
@@ -1946,19 +1961,20 @@ fn iterate_gbp(
 fn reached_waypoint(
     mut q: Query<(
         Entity,
-        &FactorGraph,
+        &mut FactorGraph,
         &Radius,
         &mut RobotMission,
         //&ReachedWhenIntersects,
         //&PlanningStrategy,
     )>,
+    // mut factorgraphs: Query<&mut FactorGraph>,
     config: Res<Config>,
     time: Res<Time>,
     mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
     mut evw_robot_despawned: EventWriter<RobotDespawned>,
     mut evw_robot_finalized_path: EventWriter<RobotFinishedRoute>,
 ) {
-    for (robot_entity, fgraph, r, mut mission) in &mut q {
+    for (robot_entity, mut fgraph, r, mut mission) in &mut q {
         let Some(next_waypoint) = mission.next_waypoint() else {
             continue;
         };
@@ -1995,6 +2011,18 @@ fn reached_waypoint(
                 robot_id:       robot_entity,
                 waypoint_index: 0,
             });
+
+            error!("robot: {:?} reached a waypoint", robot_entity);
+
+            if let Some(current_waypoint_index) = mission.current_waypoint_index() {
+                error!(
+                    "updating waypoint index of tracking factors to {}",
+                    current_waypoint_index
+                );
+                fgraph.modify_tracking_factors(|tracking| {
+                    tracking.set_tracking_index(current_waypoint_index);
+                });
+            }
         }
 
         if mission.is_completed() {
