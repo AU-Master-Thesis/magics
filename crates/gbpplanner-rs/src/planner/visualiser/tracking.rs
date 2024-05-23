@@ -42,7 +42,7 @@ fn visualise_tracking_factors(
             //     theme.get_display_colour(&color_association.name),
             //     0.5,
             // );
-            let color = gradient.at(1.0 - last_measurement.value);
+            let color = gradient.at(last_measurement.value);
             let color = Color::rgba(
                 color.r as f32,
                 color.g as f32,
