@@ -61,6 +61,10 @@ impl Tracking {
 
         record.set(new_record);
     }
+
+    pub fn get_record(&self) -> usize {
+        self.record.lock().unwrap().get()
+    }
 }
 
 #[derive(Debug)]
@@ -198,7 +202,7 @@ impl Factor for TrackingFactor {
         // 2. Project the current position onto the line between `current_start` and
         //    `current_end`
         let line = &current_end - &current_start;
-        let projected_point =
+        let current_projection =
             &current_start + (&x_pos - &current_start).dot(&line) / &line.dot(&line) * &line;
 
         // 3. If within `self.tracking.smoothing` of start, project to the previous line
@@ -209,7 +213,7 @@ impl Factor for TrackingFactor {
         // f64;
         let consideration_distance = self.tracking.config.switch_padding as Float;
         let current_projected_point_to_current_end =
-            (&current_end - &projected_point).euclidean_norm();
+            (&current_end - &current_projection).euclidean_norm();
         // let current_projected_point_to_current_start =
         //     (&current_start - &projected_point).euclidean_norm();
         // let vel_distance_contribution = line.normalized() * x_vel.euclidean_norm() as
@@ -235,14 +239,18 @@ impl Factor for TrackingFactor {
 
             // Check if the projected is to be considered
             let current_projected_point_to_previous_end =
-                (&previous_end - &projected_point).euclidean_norm();
+                (&previous_end - &current_projection).euclidean_norm();
             let previous_projected_point_to_previous_end =
                 (&current_start - &previous_projected_point).euclidean_norm();
             // if previous_projected_point_to_previous_end < consideration_distance {
             if current_projected_point_to_previous_end < consideration_distance
                 && previous_projected_point_to_previous_end < consideration_distance
             {
-                Some(previous_projected_point)
+                Some((
+                    previous_projected_point,
+                    current_projected_point_to_previous_end,
+                    previous_projected_point_to_previous_end,
+                ))
             } else {
                 None
             }
@@ -252,22 +260,43 @@ impl Factor for TrackingFactor {
 
         // 4. if within `self.tracking.smoothing` of end, increment
         //    `self.tracking.record`
-        if current_projected_point_to_current_end < consideration_distance {
+        if current_projected_point_to_current_end < consideration_distance
+            || (self
+                .tracking
+                .index
+                .saturating_sub(self.tracking.get_record()))
+                > 0
+        {
             self.tracking.increment_record();
         }
 
         // 5. Take the average of the two projections
         let measurement_point = match projection_to_previous {
-            Some(projection) => {
+            Some((previous_projection, a, b)) => {
                 // connections should be 2
                 self.tracking.connections.lock().unwrap().set(2);
-                (projected_point + projection) / 2.0
+                // find direction from `x_pos` to measurement point
+                // let measurement_direction = (&projected_point - &projection).normalized();
+
+                // find diagonal of the rectangle with side-lengths `a` and `b`
+                // let diagonal = (a.powi(2) + b.powi(2)).sqrt();
+
+                // &measurement_direction * diagonal
+                // (projected_point + projection) / 2.0
+
+                // vector from `x_pos` to `current_projection`
+                let x_to_current = &current_projection - &x_pos;
+                // vector from `x_pos` to `previous_projection`
+                let x_to_previous = &previous_projection - &x_pos;
+
+                let measurement_vector = &x_to_current + &x_to_previous;
+                &x_pos + &measurement_vector
             }
             None => {
                 // connections should be 1
                 self.tracking.connections.lock().unwrap().set(1);
-                projected_point // + line.normalized() * x_vel.euclidean_norm()
-                                //   as Float
+                current_projection // + line.normalized() *
+                                   //   x_vel.euclidean_norm() as Float
             }
         };
 
