@@ -3,7 +3,7 @@ use std::{borrow::Cow, cell::Cell, sync::Mutex};
 
 use bevy::{math::Vec2, utils::smallvec::ToSmallVec};
 use colored::Colorize;
-use gbp_linalg::prelude::*;
+use gbp_linalg::{prelude::*, pretty_print_matrix};
 use itertools::Itertools;
 use ndarray::{array, concatenate, s, Axis};
 
@@ -13,13 +13,15 @@ use super::{Factor, FactorState, Measurement};
 #[derive(Debug)]
 pub struct Tracking {
     /// The path to follow
-    path:   Option<Vec<Vec2>>,
+    path: Option<Vec<Vec2>>,
     /// Which index in the path, the horizon is currently moving towards
-    index:  usize,
+    index: usize,
     /// Tracking record
     /// Implicitly tells which waypoint the factor has reached
     /// e.g. if the record is 3, the factor has been to waypoint 1, 2, and 3
     record: Mutex<Cell<usize>>,
+    /// Amount of projects being considered
+    connections: Mutex<Cell<usize>>,
     /// The tracking config from the `gbp_config` input `config.toml`
     config: gbp_config::TrackingSection,
 }
@@ -27,9 +29,10 @@ pub struct Tracking {
 impl Default for Tracking {
     fn default() -> Self {
         Self {
-            path:   None,
-            index:  0,
+            path: None,
+            index: 0,
             record: Mutex::new(Cell::new(0)),
+            connections: Mutex::new(Cell::new(1)),
             config: gbp_config::TrackingSection::default(),
         }
     }
@@ -164,6 +167,8 @@ impl Factor for TrackingFactor {
             linearisation_point[i] -= delta; // reset the perturbation
         }
 
+        // pretty_print_matrix!(&jacobian);
+
         Cow::Owned(jacobian)
     }
 
@@ -196,16 +201,25 @@ impl Factor for TrackingFactor {
         let projected_point =
             &current_start + (&x_pos - &current_start).dot(&line) / &line.dot(&line) * &line;
 
-        // 4. If within `self.tracking.smoothing` of start, project to the previous line
+        // 3. If within `self.tracking.smoothing` of start, project to the previous line
         //    if it exists
         //   as well, and take the average of the two projections
         // let consideration_distance =
-        //     x_vel.l1_norm() + self.tracking.config.switch_padding.powi(2) as f64;
-        let consideration_distance = self.tracking.config.switch_padding.powi(2) as Float;
-        let current_projected_point_to_end = (&current_end - &projected_point).l1_norm();
-        let vel_contribution = line.normalized() * x_vel.euclidean_norm() as Float;
+        //     x_vel.euclidean_norm() + self.tracking.config.switch_padding.powi(2) as
+        // f64;
+        let consideration_distance = self.tracking.config.switch_padding as Float;
+        let current_projected_point_to_current_end =
+            (&current_end - &projected_point).euclidean_norm();
+        // let current_projected_point_to_current_start =
+        //     (&current_start - &projected_point).euclidean_norm();
+        // let vel_distance_contribution = line.normalized() * x_vel.euclidean_norm() as
+        // Float;
+        // let should_be_considered = current_projected_point_to_current_end <
+        // consideration_distance;
 
+        // Get projection to previous line only if there is a previous line
         let projection_to_previous = if current_record > 0 {
+            // Retrieve the previous line
             let [previous_start, previous_end]: &[Vec2; 2] =
                 lines[current_record - 1].try_into().unwrap();
             let (previous_start, previous_end) = (
@@ -213,13 +227,22 @@ impl Factor for TrackingFactor {
                 array![previous_end.x as Float, previous_end.y as Float],
             );
 
+            // Project the linearisation point onto the line between `previous_start` and
+            // `previous_end`
             let line = &previous_end - &previous_start;
-            let projected_point =
+            let previous_projected_point =
                 &previous_start + (&x_pos - &previous_start).dot(&line) / &line.dot(&line) * &line;
 
-            let previous_projected_point_to_end = (&current_start - &projected_point).l1_norm();
-            if previous_projected_point_to_end < consideration_distance {
-                Some(projected_point)
+            // Check if the projected is to be considered
+            let current_projected_point_to_previous_end =
+                (&previous_end - &projected_point).euclidean_norm();
+            let previous_projected_point_to_previous_end =
+                (&current_start - &previous_projected_point).euclidean_norm();
+            // if previous_projected_point_to_previous_end < consideration_distance {
+            if current_projected_point_to_previous_end < consideration_distance
+                && previous_projected_point_to_previous_end < consideration_distance
+            {
+                Some(previous_projected_point)
             } else {
                 None
             }
@@ -227,18 +250,28 @@ impl Factor for TrackingFactor {
             None
         };
 
-        // 3. if within `self.tracking.smoothing` of end, increment
+        // 4. if within `self.tracking.smoothing` of end, increment
         //    `self.tracking.record`
-        if current_projected_point_to_end < consideration_distance + vel_contribution.l1_norm() {
+        if current_projected_point_to_current_end < consideration_distance {
             self.tracking.increment_record();
         }
 
+        // 5. Take the average of the two projections
         let measurement_point = match projection_to_previous {
-            Some(projection) => (projected_point + projection) / 2.0,
-            None => projected_point, // + line.normalized() * x_vel.euclidean_norm() as Float,
+            Some(projection) => {
+                // connections should be 2
+                self.tracking.connections.lock().unwrap().set(2);
+                (projected_point + projection) / 2.0
+            }
+            None => {
+                // connections should be 1
+                self.tracking.connections.lock().unwrap().set(1);
+                projected_point // + line.normalized() * x_vel.euclidean_norm()
+                                //   as Float
+            }
         };
 
-        // 5. Normalise length to `self.tracking.config.attraction_distance`
+        // 6. Normalise length to `self.tracking.config.attraction_distance`
         let x_to_projection = &measurement_point - &x_pos;
         let x_to_projection_distance = x_to_projection.euclidean_norm();
         let attraction_distance_f64 = self.tracking.config.attraction_distance as f64;
@@ -248,7 +281,7 @@ impl Factor for TrackingFactor {
             1.0
         };
 
-        // 6. Invert the measurement
+        // 7. Invert the measurement
         // let measurement = 1.0 - normalised_distance;
         let measurement = normalised_distance;
 
@@ -272,6 +305,10 @@ impl Factor for TrackingFactor {
         // NOTE: Maybe this should be influenced by the distance from variable to the
         // measurement
         1e-2
+        // let base = 1e-2;
+        // base / (2.0
+        //     * self.last_measurement.lock().unwrap().get().value
+        //     * self.tracking.connections.lock().unwrap().get() as Float)
     }
 
     #[inline(always)]
