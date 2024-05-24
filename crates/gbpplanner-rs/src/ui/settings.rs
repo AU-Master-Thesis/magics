@@ -717,13 +717,14 @@ fn ui_settings_panel(
                     });
 
                     ui.add_space(2.5);
-                    ui.add(egui::Separator::default().shrink(20.0));
+                    ui.separator();
+                    //ui.add(egui::Separator::default().shrink(20.0));
                     custom::grid("special_draw_grid", 2).show(ui, |ui| {
                         // GIZMOS
-                        let (gizmo_config, _) =
-                            config_store.config_mut::<DefaultGizmoConfigGroup>();
                         ui.label("Gizmos");
                         custom::float_right(ui, |ui| {
+                            let (gizmo_config, _) =
+                                config_store.config_mut::<DefaultGizmoConfigGroup>();
                             custom::toggle_ui(ui, &mut gizmo_config.enabled);
                         });
 

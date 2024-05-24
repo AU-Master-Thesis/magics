@@ -81,7 +81,7 @@ impl Plugin for SimulationLoaderPlugin {
                     .file_name()
                     .into_string()
                     .expect("failed to parse simulation name");
-                println!("about to load: {name:?}");
+                // println!("about to load: {name:?}");
                 let config_path = dir.path().join("config.toml");
                 let config = Config::from_file(config_path).unwrap();
                 let environment_path = dir.path().join("environment.yaml");
@@ -127,7 +127,7 @@ impl Plugin for SimulationLoaderPlugin {
                     // raw: Raw(raw_image_buffer.into()),
                 };
 
-                println!("loaded: {name:?}");
+                // println!("loaded: {name:?}");
 
                 (name, simulation)
             })
@@ -539,19 +539,6 @@ fn handle_requests(
     info!("requests pending: {:?}", simulation_manager.requests.len());
 
     match request {
-        Request::Load(_) | Request::Reload => {
-            let is_paused = time_virtual.is_paused();
-
-            let virtual_time = time_virtual.bypass_change_detection();
-            *virtual_time = Time::<Virtual>::default();
-            if is_paused {
-                virtual_time.unpause();
-            }
-        }
-        _ => {}
-    }
-
-    match request {
         Request::LoadInitial => todo!(),
         // Request::Load(id) if simulation_loader.active.is_none() => {
         //     simulation_manager.active = Some(id.0);
@@ -579,6 +566,8 @@ fn handle_requests(
             // config.simulation.t0 =
             *environment = simulation_manager.simulations[id.0].environment.clone();
             *sdf = simulation_manager.simulations[id.0].sdf.clone();
+
+            time_virtual.set_relative_speed(config.simulation.time_scale.get());
             // *raw = simulation_manager.simulations[id.0].raw.clone();
             // *variable_timesteps = VariableTimesteps::from(config.as_ref());
             let seed: [u8; 8] = config.simulation.prng_seed.to_le_bytes();
@@ -640,6 +629,23 @@ fn handle_requests(
                 error!("no active simulation to end");
             }
         },
+    }
+
+    match request {
+        Request::Load(_) | Request::Reload => {
+            let is_paused = time_virtual.is_paused();
+            // let relative_speed = time_virtual.
+
+            let virtual_time = time_virtual.bypass_change_detection();
+            *virtual_time = Time::<Virtual>::default();
+            if is_paused {
+                virtual_time.unpause();
+            }
+
+            virtual_time.set_relative_speed(config.simulation.time_scale.get());
+        }
+
+        _ => {}
     }
 }
 
