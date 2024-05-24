@@ -1,5 +1,6 @@
 {
   description = "gbp-rs";
+
   inputs = {
     # wgsl_analyzer.url = "github:wgsl-analyzer/wgsl-analyzer";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -20,7 +21,7 @@
     flake-utils,
     ...
   } @ inputs:
-    inputs.flake-utils.lib.eachDefaultSystem (system: let
+    flake-utils.lib.eachDefaultSystem (system: let
       overlays = [(import rust-overlay)];
       pkgs = import inputs.nixpkgs {inherit system overlays;};
       rust-extensions = [
@@ -28,7 +29,7 @@
         "rust-analyzer"
         "llvm-tools-preview" # used with `cargo-pgo`
       ];
-      rust-targets = ["wasm32-unknown-unknown"];
+      rust-additional-targets = ["wasm32-unknown-unknown"];
       # wgsl-analyzer-pkgs = import inputs.wgsl_analyzer {inherit system;};
       bevy-deps = with pkgs; [
         udev
@@ -41,6 +42,8 @@
         libxkbcommon
         wayland
         egl-wayland
+        freetype
+        fontconfig
         # wgsl-analyzer-pkgs.wgsl_analyzer
         # wgsl_analyzer.packages.${system}
         # wgsl_analyzer.outputs.packages.${system}.default
@@ -74,17 +77,37 @@
           clang # For linking
           gdb # debugger
           # lldb # debugger
-          rr # time-traveling debugger
+          # rr # time-traveling debugger
           ra-multiplex
+          trunk # rust wasm bundler
+          wasm-bindgen-cli
+          # binaryen # wasm-opt
+          sass
+          tailwindcss
+          graphviz
+          blas
+          # openblas
+          openssl
+          # lapack
+          gcc
+          gfortran
+          zlib
         ]
         ++ cargo-subcommands;
+      dev-deps = with pkgs; [
+        nodejs
+        nodejs
+        just
+        typos # spell checker
+        act # run github actions local in a docker container
+        dot-language-server
+        gh
+      ];
     in
       with pkgs; {
         formatter.${system} = pkgs.alejandra;
         devShells.default = pkgs.mkShell rec {
-          nativeBuildInputs = with pkgs; [
-            pkgs.pkg-config
-          ];
+          nativeBuildInputs = [pkgs.pkg-config];
           buildInputs =
             [
               # (rust-bin.stable.latest.default.override
@@ -106,32 +129,10 @@
                     targets = ["wasm32-unknown-unknown"];
                   })
               )
-
-              nodejs
-              just
-              typos # spell checker
-              freetype
-              fontconfig
-              act # run github actions local in a docker container
-              trunk # rust wasm bundler
-              wasm-bindgen-cli
-              # binaryen # wasm-opt
-              sass
-              tailwindcss
-              d2
-              graphviz
-              dot-language-server
-              blas
-              # openblas
-              openssl
-              # lapack
-              gcc
-              gfortran
-              zlib
-              gh
             ]
             ++ bevy-deps
-            ++ rust-deps;
+            ++ rust-deps
+            ++ dev-deps;
 
           LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
         };
