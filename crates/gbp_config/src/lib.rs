@@ -66,12 +66,12 @@ impl Default for GraphvizSection {
                 active:   GraphvizEdgeAttributes {
                     style: "solid".to_string(),
                     len:   8.0,
-                    color: "red".to_string(),
+                    color: "green".to_string(),
                 },
                 inactive: GraphvizEdgeAttributes {
                     style: "dashed".to_string(),
                     len:   4.0,
-                    color: "black".to_string(),
+                    color: "green".to_string(),
                 },
             },
             export_location: "./assets/".to_string(),

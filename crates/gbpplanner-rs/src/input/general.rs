@@ -228,25 +228,48 @@ fn export_factorgraphs_as_graphviz(
                 _ => None,
             };
 
+            let label = match node.kind {
+                NodeKind::Variable { .. } => format!("v{}", node.index),
+                NodeKind::InterRobotFactor { .. } => "fr".to_string(),
+                NodeKind::DynamicFactor => "fd".to_string(),
+                NodeKind::ObstacleFactor => "fo".to_string(),
+                NodeKind::TrackingFactor => "ft".to_string(),
+            };
+
             let line = {
                 let mut line = String::with_capacity(32);
                 line.push_str(&format!(
-                    r#""{:?}_{:?}" [label="{:?}", fillcolor="{}", shape={}, width="{}""#,
+                    r#""{:?}_{:?}" [label="{}", fillcolor="{}", shape={}, width="{}""#,
                     robot_id,
                     node.index,
-                    node.index,
+                    label,
+                    // node.index,
                     node.color(),
                     node.shape(),
                     node.width()
                 ));
                 if let Some((x, y)) = pos {
-                    line.push_str(&format!(r#", pos="{x}, {y}""#));
+                    // line.push_str(&format!(r#", pos="{x},{y}!""#));
+                    // line.push_str(&format!(r#", pos="{x}, {y}""#));
                 }
                 line.push(']');
                 line
             };
 
             append_line_to_output(&line);
+
+            // let mut line = String::with_capacity(32);
+            // line.push_str(&format!(
+            //    r#""{:?}_{:?}" [label="{}", fillcolor="{}", shape={},
+            // width="{}""#,    robot_id,
+            //    node.index * 10,
+            //    "fp",
+            //    // node.index,
+            //    "purple",
+            //    // node.color(),
+            //    node.shape(),
+            //    node.width()
+            //));
         }
         append_line_to_output("}");
 
@@ -290,7 +313,7 @@ fn export_factorgraphs_as_graphviz(
     for (from_robot_id, from_connections) in all_external_connections {
         for (from_factor, (to_robot_id, to_variable_index, active)) in from_connections {
             append_line_to_output(&format!(
-                r#" "{:?}_{:?}" -- "{:?}_{:?}" [len={}, style={}, color="{}"]"#,
+                r#" "{:?}_{:?}" -- "{:?}_{:?}" [len={}, style={}, color="{}", penwidth=3.0]"#,
                 from_robot_id,
                 from_factor,
                 to_robot_id,
@@ -408,12 +431,14 @@ fn handle_export_graph(
 
     IoTaskPool::get()
         .spawn(async move {
-            let png_output_path = dot_output_path.with_extension("png");
+            let extension = "png";
+            let image_output_path = dot_output_path.with_extension(extension);
             let args = [
                 "-T",
-                "png",
+                extension,
+                //"png",
                 "-o",
-                png_output_path.to_str().expect("is valid UTF8"),
+                image_output_path.to_str().expect("is valid UTF8"),
                 dot_output_path.to_str().expect("is valid UTF8"),
             ];
             let Ok(output) = std::process::Command::new("dot").args(args).output() else {
@@ -432,28 +457,16 @@ fn handle_export_graph(
             };
 
             if output.status.success() {
-                // let msg = format!("successfully compiled ./{:?} with dot", dot_output_path,);
                 info!(
                     "compiled {:?} to {:?} with dot",
-                    dot_output_path, png_output_path
+                    dot_output_path, image_output_path
                 );
-                // export_graph_finished_event.
-                // send(ExportGraphFinishedEvent::Success(
-                //     png_output_path.to_string_lossy().to_string(),
-                // ));
             } else {
                 error!(
                     "attempting to compile graph with dot, returned a non-zero exit status: {:?}",
                     output
                 );
-                // export_graph_finished_event.
-                // send(ExportGraphFinishedEvent::Failure(
-                //     png_output_path.to_string_lossy().to_string(),
-                // ));
             }
-
-            // TODO: create a popup with egui informing the user of the
-            // success/failure
         })
         .detach();
 

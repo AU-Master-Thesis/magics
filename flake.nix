@@ -85,6 +85,7 @@
           sass
           tailwindcss
           graphviz
+          dot2tex
           blas
           # openblas
           openssl

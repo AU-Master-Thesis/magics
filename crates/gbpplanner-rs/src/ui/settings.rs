@@ -918,13 +918,13 @@ fn ui_settings_panel(
                                 if cfg!(target_arch = "wasm32") {
                                     world.send_event::<ToastEvent>(ToastEvent::warning("Not supported on wasm32"));
                                 } else {
-                                    let png_output_path = Path::new("factorgraphs.png");
 
-                                    if !png_output_path.exists() {
+                                    let image_output_path = Path::new("factorgraphs.png");
+                                    if !image_output_path.exists() {
                                         world.send_event::<ToastEvent>(ToastEvent::warning("No factorgraph has been exported yet"));
                                     } else {
-                                        if let Err(err) = open::that_detached(png_output_path) {
-                                            let err_msg = format!("Failed to open {}: {}", png_output_path.display(), err);
+                                        if let Err(err) = open::that_detached(image_output_path) {
+                                            let err_msg = format!("Failed to open {}: {}", image_output_path.display(), err);
                                             error!(err_msg);
                                             world.send_event::<ToastEvent>(ToastEvent::error(err_msg));
                                         }

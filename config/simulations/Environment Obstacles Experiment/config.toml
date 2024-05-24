@@ -52,7 +52,7 @@ schedule = "interleave-evenly"
 
 [robot]
 planning-horizon                       = 5.0
-max-speed                              = 15.0
+max-speed                              = 3.0
 inter-robot-safety-distance-multiplier = 2.2
 
 [robot.radius]
@@ -91,13 +91,15 @@ export-location = "./assets/export/"
 
 [graphviz.interrobot.active]
 style = "dashed"
-len   = 8.0
-color = "red"
+len   = 5.0
+# color = "green"
+color = "#40a02b"
 
 [graphviz.interrobot.inactive]
 style = "dashed"
-len   = 8.0
-color = "gray"
+len   = 5.0
+color = "#d20f39"
+# color = "red"
 
 
 [manual]
