@@ -173,7 +173,7 @@ fn attach_despawn_timer_when_robot_finishes_route(
         return;
     }
 
-    let duration = Duration::from_millis(500);
+    let duration = Duration::from_millis(100);
     for RobotFinishedRoute(robot_id) in evr_robot_finished_route.read() {
         info!(
             "attaching despawn timer to robot: {:?} with duration: {:?}",
@@ -609,7 +609,7 @@ fn progress_missions(
                         &mut commands,
                         start,
                         end,
-                        dbg!(config.rrt.clone()),
+                        config.rrt.clone(),
                         colliders.clone(),
                         pathfinder,
                         Some(Box::new(prng.clone())),
@@ -659,7 +659,7 @@ fn progress_missions(
                                     .map_into()
                                     .collect_vec();
 
-                                dbg!(&waypoints);
+                                // dbg!(&waypoints);
 
                                 if let Ok(mut fgraph) = factorgraphs.get_mut(robot_entity) {
                                     fgraph.modify_tracking_factors(|tracking| {
@@ -2080,7 +2080,7 @@ fn update_prior_of_horizon_state(
                 robot_id,
                 mission.finished_at()
             );
-            dbg!(&mission);
+            // dbg!(&mission);
             finished_path.0 = true;
             robots_to_despawn.push(robot_id);
             continue;

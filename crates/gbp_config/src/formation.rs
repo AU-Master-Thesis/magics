@@ -229,7 +229,7 @@ impl Default for Formation {
 
 impl Formation {
     fn default_finished_when_intersects() -> ReachedWhenIntersects {
-        ReachedWhenIntersects::Current
+        ReachedWhenIntersects::Horizon
     }
 
     pub fn robots_to_spawn(&self) -> usize {

@@ -577,7 +577,7 @@ fn spawn_formation(
                 // config
                 formation.planning_strategy,
                 formation.waypoint_reached_when_intersects,
-                formation.finished_when_intersects,
+                dbg!(formation.finished_when_intersects),
                 // matches!(formation.planning_strategy, PlanningStrategy::RrtStar
                 // ),
             );
