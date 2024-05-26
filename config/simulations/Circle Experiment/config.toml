@@ -5,7 +5,7 @@ formation_group   = "./config/simulations/ClearCircle/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance    = 100.0
+default-cam-distance    = 150.0
 
 [visualisation.uncertainty]
 max-radius = 2.5
@@ -49,8 +49,9 @@ external = 10
 schedule = "interleave-evenly"
 
 [robot]
-# planning-horizon = 13.33 # 2r / initial speed
-planning-horizon = 3.0
+planning-horizon = 13.33 # 2r / initial speed
+# planning-horizon = 12.4 # 2r / initial speed
+# planning-horizon = 3.0
 # planning-horizon                       = 6.677 # 2r / initial speed
 max-speed                              = 15.0
 inter-robot-safety-distance-multiplier = 2.2
@@ -66,7 +67,7 @@ failure-rate = 0.0
 [simulation]
 # t0                                        = 0.25
 max-time           = 10000.0
-time-scale         = 1.0
+time-scale         = 5.0
 manual-step-factor = 1
 hz                 = 10.0
 # world-size                                = 100.0

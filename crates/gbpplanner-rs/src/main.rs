@@ -7,6 +7,7 @@ pub mod despawn_entity_after;
 mod diagnostic;
 mod environment;
 mod factorgraph;
+pub mod goal_area;
 mod input;
 mod moveable_object;
 mod movement;
@@ -382,7 +383,8 @@ fn main() -> anyhow::Result<()> {
             planner::PlannerPlugin,
             bevy_notify::NotifyPlugin::default(),
             export::ExportPlugin::default(),
-            bevy_fullscreen::ToggleFullscreenPlugin::default()
+            bevy_fullscreen::ToggleFullscreenPlugin::default(),
+            goal_area::GoalAreaPlugin,
         ))
         .add_systems(Update, draw_coordinate_system.run_if(input_just_pressed(KeyCode::F1)))
         .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));

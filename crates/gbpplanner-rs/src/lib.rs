@@ -10,6 +10,7 @@ pub mod diagnostic;
 pub mod environment;
 pub mod export;
 pub mod factorgraph;
+pub mod goal_area;
 pub mod input;
 pub mod moveable_object;
 pub mod movement;

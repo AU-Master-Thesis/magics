@@ -7,6 +7,7 @@ use itertools::Itertools;
 use self::events::TakeSnapshotOfRobot;
 use crate::{
     factorgraph::prelude::FactorGraph,
+    goal_area,
     planner::{self, robot::Radius},
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };
@@ -224,6 +225,21 @@ struct MessageCount {
 }
 
 #[derive(serde::Serialize)]
+struct GoalAreaData {
+    aabb:    parry2d::bounding_volume::Aabb,
+    history: std::collections::HashMap<Entity, f32>,
+}
+
+impl std::convert::From<&goal_area::components::GoalArea> for GoalAreaData {
+    fn from(ga: &goal_area::components::GoalArea) -> Self {
+        Self {
+            aabb:    ga.aabb,
+            history: ga.history().clone(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
 struct ExportData {
     scenario: String,
     makespan: f64,
@@ -235,6 +251,7 @@ struct ExportData {
     // obstacles: Vec<Obstacle>,
     obstacles: HashMap<Entity, Obstacle>,
     collisions: CollisionData,
+    goal_areas: HashMap<Entity, GoalAreaData>,
 }
 
 #[derive(serde::Serialize)]
@@ -273,6 +290,7 @@ fn export(
         // &ColorAssociation,
         // &ColorAssociation,
     )>,
+    q_goal_areas: Query<(Entity, &goal_area::components::GoalArea)>,
     robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
     environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
     sim_manager: Res<crate::simulation_loader::SimulationManager>,
@@ -528,6 +546,11 @@ fn export(
             environment: environment_collisions.collisions().map_into().collect(),
         };
 
+        let goal_areas = q_goal_areas
+            .iter()
+            .map(|(entity, area)| (entity, area.into()))
+            .collect();
+
         let export_data = ExportData {
             scenario: environment.to_string(),
             makespan,
@@ -538,6 +561,7 @@ fn export(
             config: config.clone(),
             obstacles,
             collisions,
+            goal_areas,
         };
 
         let json = serde_json::to_string_pretty(&export_data).unwrap();
