@@ -1,19 +1,19 @@
 formations:
 - repeat:
     every:
-      secs: 1
-      nanos: 0
+      secs: 0
+      nanos: 333333333
     times: !infinite
   delay:
     secs: 0
-    nanos: 0
+    nanos: 500000000
   robots: 1
   planning-strategy: only-local
   initial-position:
     shape: !line-segment
-    - x: -0.05
+    - x: -0.0
       y: 0.45
-    - x: -0.05
+    - x: -0.0
       y: 0.55
     placement-strategy: !random
       attempts: 2000
@@ -29,8 +29,8 @@ formations:
 
 - repeat:
     every:
-      secs: 1
-      nanos: 0
+      secs: 0
+      nanos: 333333333
     times: !infinite
   delay:
     secs: 0
@@ -40,9 +40,9 @@ formations:
   initial-position:
     shape: !line-segment
     - x: 0.45
-      y: 1.05
+      y: 1.0
     - x: 0.55
-      y: 1.05
+      y: 1.0
     placement-strategy: !random
       attempts: 1000
   waypoints:

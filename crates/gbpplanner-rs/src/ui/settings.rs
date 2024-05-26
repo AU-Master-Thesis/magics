@@ -894,6 +894,19 @@ fn ui_settings_panel(
                                 },
                             }
                         }
+
+                        ui.end_row();
+
+                        ui.label("Pause on Spawn");
+                        custom::float_right(ui, |ui| {
+                            custom::toggle_ui(ui, &mut config.simulation.pause_on_spawn);
+                        });
+
+                        ui.end_row();
+                        ui.label("Exit when scenario finishes");
+                        custom::float_right(ui, |ui| {
+                            custom::toggle_ui(ui, &mut config.simulation.exit_application_on_scenario_finished);
+                        });
                     });
 
                     custom::subheading(
