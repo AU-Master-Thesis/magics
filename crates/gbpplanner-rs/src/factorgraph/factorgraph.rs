@@ -1378,6 +1378,12 @@ impl<'fg> Iterator for VariableNeighbours<'fg> {
     }
 }
 
+// impl<'fg> std::iter::ExactSizeIterator for VariableNeighbours<'fg> {
+//    fn len(&self) -> usize {
+//        self.neighbours.len()
+//    }
+//}
+
 impl FactorGraph {
     /// Returns an iterator over the factor neighbours of a variable
     /// If the variable does not exist in the factorgraph, returns None

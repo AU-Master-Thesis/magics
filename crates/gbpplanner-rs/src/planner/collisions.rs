@@ -621,23 +621,23 @@ fn on_obstacle_clicked_on(
     for event in evr_obstacle_clicked_on.read() {
         // print all the robots that have hit the obstacle
         let obstacle_entity: Entity = event.0;
-        println!("obstacle: {:?}", obstacle_entity);
+        println!("{}: {:?}", "obstacle".magenta(), obstacle_entity);
         if let Some(robot_entities) =
             robot_environment_collisions.robots_collided_with(obstacle_entity)
         {
-            println!("collisions: {}", robot_entities.len());
-            for robot_entity in robot_entities {
-                println!("  robot: {}", format!("{:?}", robot_entity).red());
-            }
+            println!("  {}: {}", "collisions".cyan(), robot_entities.len());
+            // for robot_entity in robot_entities {
+            //    println!("  robot: {}", format!("{:?}", robot_entity).red());
+            //}
         }
 
         robot_environment_collisions
             .collisions()
             .filter(|((_, obstacle), aabbs)| *obstacle == obstacle_entity && !aabbs.is_empty())
             .for_each(|((robot, _), aabbs)| {
-                println!("  robot: {}", format!("{:?}", robot).red());
+                println!("    - robot: {}", format!("{:?}", robot).red());
                 for aabb in aabbs {
-                    println!("    {:?}", aabb);
+                    println!("      collision intersection: {:?}", aabb);
                 }
             });
     }
