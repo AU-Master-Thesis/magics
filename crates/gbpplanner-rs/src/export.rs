@@ -27,7 +27,7 @@ impl Plugin for ExportPlugin {
             .init_resource::<resources::LatestExport>()
             .add_systems(
                 FixedUpdate,
-                send_default_export_event.run_if(once_after_delay(Duration::from_secs(50))),
+                send_default_export_event.run_if(once_after_delay(Duration::from_secs(60))),
             )
             .add_systems(
                 Update,

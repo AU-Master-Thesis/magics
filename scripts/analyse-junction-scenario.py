@@ -14,26 +14,19 @@
 #! nix-shell -p texliveFull
 
 
-import dataclasses
-import statistics
 import json
 import sys
 import argparse
 import itertools
 from pathlib import Path
-from dataclasses import dataclass
 import collections
 from concurrent.futures import ProcessPoolExecutor
-import math
 
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 from rich import print, pretty
-# from tabulate import tabulate
-# import toolz
-# from toolz.curried import get
 from typing import  Iterable
 import pretty_errors
 from catppuccin import PALETTE
@@ -72,16 +65,26 @@ def extract_data_from_file(file_path):
     makespan = data['makespan']
     num_of_robots_reached_goal: int = sum((len(goal_area['history']) for goal_area in goal_areas))
     num_robots: int = len(data['robots'])
-    print(f"{num_of_robots_reached_goal=}, {num_robots=} {makespan=}")
+    # print(f"{num_of_robots_reached_goal=}, {num_robots=} {makespan=}")
+
+    robot_ids: set[str] = set(data['robots'].keys())
+    robots_not_reached_goal: set[str] = robot_ids - set(flatten((goal_area['history'].keys() for goal_area in goal_areas)))
+    # print(f"{robots_not_reached_goal=}")
+
+    # print the start time of the robots not reached goal
+    # for entity, robot_data in data['robots'].items():
+    #     if entity in robots_not_reached_goal:
+    #         print(f"{entity=} {robot_data['mission']['started_at']=}")
 
 
-
-    start_at: float = 6.7
+    # start_at: float = 6.7
+    ignore_after: float = 50.0
     num_robots_reached_goal: int = 0
     num_robots_after_ten_secs: int = 0
     for entity, robot_data in data['robots'].items():
         started_at: float = robot_data['mission']['started_at']
-        if started_at <= start_at:
+        if started_at >= ignore_after:
+        # if started_at <= start_at:
             continue
 
         reached_goal: bool = False
@@ -101,7 +104,8 @@ def extract_data_from_file(file_path):
     # print(f"{num_robots=} {num_robots_reached_goal=} {num_robots_after_ten_secs=}")
 
 
-    t: float = makespan -  start_at
+    # t: float = makespan -  start_at
+    t: float = ignore_after
     return (1 / (t / num_robots_reached_goal))
 
 
@@ -155,55 +159,47 @@ def main():
     print(f"{sys.executable = }")
     print(f"{sys.version = }")
 
-    parser = argparse.ArgumentParser()
-    # parser.add_argument('-i', '--input', type=Path)
-    # parser.add_argument('-p', '--plot', action='store_true')
-    args = parser.parse_args()
-
-    # for file in RESULTS_DIR.glob('qin-*.json'):
-    #     qin_value = float(file.stem.split('-')[1])
-    #     print(f"{file=} {qin_value=}")
-        # extracted_value = extract_data(file)
-        # aggregated_data[qin_value].append(extracted_value)
-
-
     aggregated_data = collections.defaultdict(list)
 
     with ProcessPoolExecutor() as executor:
         results = executor.map(process_file, RESULTS_DIR.glob('qin-*.json'))
 
     # Aggregate results in a single-threaded manner to avoid data races
-    for qin_value, extracted_value in results:
-        aggregated_data[qin_value].append(extracted_value)
-
-    # print(f"{aggregated_data=}")
+    for Qin, extracted_value in results:
+        aggregated_data[Qin].append(extracted_value)
 
     xs: list[float] = []
     ys: list[float] = []
-    for qin_value, values in sorted(aggregated_data.items(), key=lambda x: x[0]):
-        # values_flattened = flatten(values)
+    for Qin, values in sorted(aggregated_data.items(), key=lambda x: x[0]):
         avg = sum(values) / len(values)
         ys.append(avg)
-        xs.append(qin_value)
-        print(f"{qin_value=} {avg=}")
-    #     # aggregated_data[qin_value] = sum(values) / len(values)
-
+        xs.append(Qin)
+        print(f"{Qin=} {avg=}")
 
     xs.insert(0, 0.)
     ys.insert(0, 0.)
 
     # plt.plot(xs, xs, color=flavor.red.hex)
-    plt.plot([0., 7.], [0., 7.], linestyle='--', dashes=(10, 5), color=flavor.overlay2.hex)
-    plt.plot(xs, ys, marker='o', color=flavor.blue.hex)
-    plt.xlabel(r'Input Flowrate $Q_{in}$ [robots/s]', fontsize=18)
-    plt.ylabel(r'Output Flowrate $Q_{out}$ [robots/s]', fontsize=18)
-    plt.tick_params(axis='both', which='major', labelsize=14)
+    # plt.plot(range(0, 8), range(0, 8), linestyle='--', dashes=(10, 5), color=flavor.overlay2.hex, legend='Ideal')
+    # plt.plot([0., 7.], [0., 7.], linestyle='--', dashes=(10, 5), color=flavor.overlay2.hex, label='Ideal')
+    x_max, y_max = (8., 8.)
+    plt.plot([0., x_max], [0., y_max], linestyle='--', dashes=(10, 5), color=flavor.overlay2.hex, label="$Q_{in} = Q_{out}$")
+    plt.plot(xs[:-1], ys[:-1], marker='o', color=flavor.lavender.hex, label='Average flowrate over $50s$')
+    plt.plot(xs[-2:], ys[-2:], marker='x', linestyle='--', color=flavor.lavender.hex)
+    plt.xlabel(r'Input Flowrate $Q_{in}$ [robots/s]', fontsize=12)
+    plt.ylabel(r'Output Flowrate $Q_{out}$ [robots/s]', fontsize=12)
+    plt.tick_params(axis='both', which='major', labelsize=10)
     plt.ylim(0, 7)
     plt.xlim(0, 7)
-    plt.xticks(np.arange(0, 7.5, 0.5))
-    plt.yticks(np.arange(0, 7.5, 0.5))
+    plt.xticks(np.arange(0, x_max + 0.5, 0.5))
+    plt.yticks(np.arange(0, y_max + 0.5, 0.5))
     # plt.aspect(1 / 1.414) # A4 paper
     plt.gca().set_aspect(1 / 1.414) # A4 paper
+    legend = plt.legend(borderpad=0.5, framealpha=0.8, frameon=True)
+    # legend = plt.legend(loc='upper left', bbox_to_anchor=(1.05, 1), borderaxespad=0.)
+    # legend.get_frame().set_facecolor('lightgrey')  # Change background color
+    legend.get_frame().set_facecolor(flavor.surface0.hex)  # Change background color
+    # plt.legend()
     plt.savefig('qin-vs-qout.svg')
     plt.show()
 

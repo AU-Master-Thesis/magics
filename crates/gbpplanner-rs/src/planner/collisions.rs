@@ -27,16 +27,23 @@ impl Plugin for RobotCollisionsPlugin {
             .add_event::<events::RobotRobotCollision>()
             .add_event::<events::RobotEnvironmentCollision>()
             .add_systems(
+                FixedUpdate,
+                (
+                    update_robot_robot_collisions,
+                    update_robot_environment_collisions.run_if(resource_exists::<Colliders>),
+                ),
+            )
+            .add_systems(
                 Update,
                 (
-                    update_robot_robot_collisions.run_if(on_timer(Self::UPDATE_EVERY)),
+                    // update_robot_robot_collisions.run_if(on_timer(Self::UPDATE_EVERY)),
                     render_robot_robot_collisions,
                     toggle_visibility_of_robot_robot_collisions,
                     // toggle_visibility_of_robot_robot_collisions
                     //     .run_if(input_just_pressed(KeyCode::F10)),
-                    update_robot_environment_collisions.run_if(
-                        on_timer(Self::UPDATE_EVERY).and_then(resource_exists::<Colliders>),
-                    ),
+                    // update_robot_environment_collisions.run_if(
+                    //     on_timer(Self::UPDATE_EVERY).and_then(resource_exists::<Colliders>),
+                    // ),
                     render_robot_environment_collisions,
                     toggle_visibility_of_robot_environment_collisions,
                     on_obstacle_clicked_on,

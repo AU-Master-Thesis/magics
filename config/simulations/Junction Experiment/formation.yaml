@@ -1,8 +1,8 @@
 formations:
 - repeat:
     every:
-      secs: 0
-      nanos: 333333333
+      secs: 4
+      nanos: 0
     times: !infinite
   delay:
     secs: 0
@@ -29,8 +29,8 @@ formations:
 
 - repeat:
     every:
-      secs: 0
-      nanos: 333333333
+      secs: 4
+      nanos: 0
     times: !infinite
   delay:
     secs: 0

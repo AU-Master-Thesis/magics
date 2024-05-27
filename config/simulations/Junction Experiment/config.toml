@@ -63,8 +63,8 @@ radius       = 20.0
 failure-rate = 0.0
 
 [simulation]
-max-time           = 55.0
-time-scale         = 0.75
+max-time           = 61.0
+time-scale         = 5.0
 manual-step-factor = 1
 hz                 = 10.0
 # world-size                                = 100.0

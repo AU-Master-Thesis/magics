@@ -102,15 +102,15 @@ fn detect_collisions(
 fn setup_goal_areas_for_junction_scenario(mut commands: Commands) {
     commands.spawn(components::GoalArea::new(
         parry2d::bounding_volume::Aabb::new(
-            parry2d::na::Point2::new(-8.0, -49.5),
-            parry2d::na::Point2::new(8.0, -50.5),
+            parry2d::na::Point2::new(-8.0, -48.),
+            parry2d::na::Point2::new(8.0, -52.),
         ),
     ));
 
     commands.spawn(components::GoalArea::new(
         parry2d::bounding_volume::Aabb::new(
-            parry2d::na::Point2::new(49.5, -8.0),
-            parry2d::na::Point2::new(50.5, 8.0),
+            parry2d::na::Point2::new(48., -8.0),
+            parry2d::na::Point2::new(52., 8.0),
         ),
     ));
 }
