@@ -2554,21 +2554,43 @@ fn on_robot_clicked(
             aabb.maxs.x,
             aabb.maxs.y
         );
-        println!("    {}: {:.4} m^2", "volume".cyan(), aabb.volume());
-        println!("  {}: {:?}", "planning_strategy".cyan(), planning_strategy);
-        println!("");
+        println!("    {}: {:.4} m^2", "area".cyan(), aabb.volume());
+        println!(
+            "  {}: {:?}",
+            "planning_strategy".magenta(),
+            planning_strategy
+        );
         println!("  {}:", "mission".magenta());
-        println!("    {}:", "waypoints".cyan());
+        println!("    {}:", "taskpoints".cyan());
         mission.taskpoints.iter().for_each(|wp| {
-            println!("      {}", wp);
+            println!("      - {}", wp);
         });
         println!("    {}:", "routes".cyan());
         mission.routes.iter().for_each(|route| {
-            println!("      {}", route);
+            println!("      - {}: {}", "target_index".red(), route.target_index);
+            println!("      - {}:", "waypoints".red());
+            route.waypoints.iter().for_each(|wp| {
+                println!("        - {}", wp);
+            });
         });
+        println!("    {}: {}s", "started_at".cyan(), mission.started_at());
+        println!("    {}: {:?}", "finished_at".cyan(), mission.finished_at());
+        println!("    {}: {:?}", "state".cyan(), mission.state);
+        println!("    {}: {}", "active_route".cyan(), mission.active_route);
+        println!(
+            "    {}: {:?}",
+            "finished_when_intersects".cyan(),
+            mission.finished_when_intersects
+        );
+        println!(
+            "    {}: {:?}",
+            "taskpoint_reached_when_intersects".cyan(),
+            mission.taskpoint_reached_when_intersects
+        );
+
         // println!("    {}: {}", "active_route".cyan(), mission.)
 
-        println!("{:#?}", mission);
+        // println!("{:#?}", mission);
     }
 }
 
