@@ -18,7 +18,7 @@ end
 
 printf '%sinfo%s: starting experiment\n' (set_color green) (set_color normal) >&2
 
-for seed in 0 31 227 252 805
+for seed in 0 # 31 227 252 805
     sed --regexp-extended "s/prng-seed\s*=\s*([0-9]+)/prng-seed = $seed/" -i $config_file
     for num_robots in (seq 5 5 50)
         sed --regexp-extended "s/robots:\s+(\d+)/robots: $num_robots/" -i $formation_file

@@ -439,7 +439,7 @@ fn ui_settings_panel(
                         ui.separator();
 
                         // ui.label("Factors");
-                        ui.label(egui::RichText::new("Factors").size(16.0));
+                        ui.label(egui::RichText::new("Factors Enabled").size(16.0));
 
                         custom::grid("factors_enabled_grid", 2).show(ui, |ui| {
                             let copy = config.gbp.factors_enabled.clone();
@@ -474,7 +474,7 @@ fn ui_settings_panel(
                                 // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                                 ui.spacing_mut().slider_width = ui.available_width();
                                 // let mut available_size = ui.available_size();
-                                // available_size.x += 10.0;
+                                    // available_size.x += 10.0;
                                 // let slider_response = ui.add_sized(available_size,
                                    let slider_response = ui.add_enabled(
                                        time_virtual.is_paused(),
@@ -903,7 +903,7 @@ fn ui_settings_panel(
                         });
 
                         ui.end_row();
-                        ui.label("Exit when scenario finishes");
+                        ui.label("Exit at End");
                         custom::float_right(ui, |ui| {
                             custom::toggle_ui(ui, &mut config.simulation.exit_application_on_scenario_finished);
                         });
