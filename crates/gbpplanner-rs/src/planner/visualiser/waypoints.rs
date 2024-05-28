@@ -27,12 +27,16 @@ impl Plugin for WaypointVisualiserPlugin {
             (
                 remove_when_robot_reached_waypoint,
                 create_waypoint_visualizer,
-                visualize_waypoints,
+                visualize_waypoints.run_if(enabled),
                 // delete_mesh_of_reached_waypoints,
                 show_or_hide_waypoint_visualizers.run_if(event_exists::<DrawSettingsEvent>),
             ),
         );
     }
+}
+
+fn enabled(config: Res<Config>) -> bool {
+    config.visualisation.draw.waypoints
 }
 
 fn visualize_waypoints(
@@ -43,7 +47,7 @@ fn visualize_waypoints(
 ) {
     use crate::theme::ColorFromCatppuccinColourExt;
 
-    let height = config.visualisation.height.objects;
+    let height = -config.visualisation.height.objects;
     for (mission, color_assoc) in &missions {
         let colour = theme.get_display_colour(&color_assoc.name);
         let color = Color::from_catppuccin_colour_with_alpha(colour, 0.25);

@@ -5,7 +5,7 @@ formation_group   = "./config/simulations/Circle/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance    = 100.0
+default-cam-distance    = 250.0
 
 [visualisation.uncertainty]
 max-radius = 2.5
@@ -43,7 +43,7 @@ sigma-factor-interrobot = 0.005
 sigma-factor-obstacle   = 0.005
 sigma-factor-tracking   = 0.1
 # iterations-per-timestep = 10
-lookahead-multiple = 3
+lookahead-multiple = 1
 
 [gbp.iteration-schedule]
 internal = 50
@@ -51,8 +51,8 @@ external = 10
 schedule = "interleave-evenly"
 
 [robot]
-planning-horizon                       = 5.0
-max-speed                              = 3.0
+planning-horizon                       = 13.33
+max-speed                              = 15.0
 inter-robot-safety-distance-multiplier = 2.2
 
 [robot.radius]

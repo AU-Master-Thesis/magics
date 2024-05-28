@@ -551,6 +551,15 @@ pub struct GbpSection {
     /// Section for enabling/disabling factors
     #[serde(default)]
     pub factors_enabled: FactorsEnabledSection,
+    /// Number of variables to create
+    #[serde(default = "GbpSection::default_variables")]
+    pub variables: usize,
+}
+
+impl GbpSection {
+    fn default_variables() -> usize {
+        10
+    }
 }
 
 impl Default for GbpSection {
@@ -567,6 +576,7 @@ impl Default for GbpSection {
             iteration_schedule: GbpIterationSchedule::default(),
             // FIXME: not properly read when desirialized from toml
             factors_enabled: FactorsEnabledSection::default(),
+            variables: Self::default_variables(),
             // ..Default::default()
         }
     }

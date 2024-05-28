@@ -5,10 +5,10 @@ pub struct GoalAreaPlugin;
 impl Plugin for GoalAreaPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<events::GoalAreaReached>()
-            .add_systems(
-                Startup,
+            //.add_systems(
+            //    Startup,
                 // setup_goal_areas_for_junction_scenario
-            )
+            //)
             .add_systems(FixedUpdate, detect_collisions);
         //.add_systems(
         //    Update,

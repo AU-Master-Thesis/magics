@@ -279,7 +279,8 @@ fn ui_settings_panel(
                             )),
                         );
 
-                        ui.label("Iterations Per Timestep");
+                        //ui.label("Iterations Per Timestep");
+                        ui.label(egui::RichText::new("Iterations Per Timestep").size(14.0));
                         ui.separator();
                         // ui.add_space(2.5);
 
@@ -500,16 +501,12 @@ fn ui_settings_panel(
                             ui.horizontal(|ui| {
                                 let mut max_speed = config.robot.max_speed.get();
                                 ui.label(format!("{:.1}m/s", max_speed));
-                                // slider for robot max speed  in (0.0, 10.]
-                                // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
-                                // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                                 ui.spacing_mut().slider_width = ui.available_width();
 
                                    let slider_response = ui.add_enabled(
                                        time_virtual.is_paused(),
-                                                                          egui::Slider::new(&mut max_speed, 0.1..=100.0)
+                                                                          egui::Slider::new(&mut max_speed, 0.1..=40.0)
 
-                                        // .suffix("m/s")
                                         .fixed_decimals(1)
                                         .show_value(false)
                                         .trailing_fill(true));
@@ -519,8 +516,80 @@ fn ui_settings_panel(
                             });
 
                             ui.end_row();
+
                         });
                     }
+
+                    ui.separator();
+                    ui.add_space(2.5);
+
+                    custom::grid("variable_grid", 2).show(ui, |ui| {
+                            ui.label("Lookahead Multiple");
+                            ui.horizontal(|ui| {
+                                let mut lookahead_multiple = config.gbp.lookahead_multiple;
+                                ui.label(format!("{}", lookahead_multiple));
+
+                                ui.spacing_mut().slider_width = ui.available_width();
+
+                                let slider_response = ui.add_enabled(
+                                    time_virtual.is_paused(),
+                                    egui::Slider::new(&mut lookahead_multiple, 1..=5)
+                                    .fixed_decimals(0)
+                                    .show_value(false)
+                                    .trailing_fill(true));
+                                if slider_response.enabled() && slider_response.changed() {
+                                    config.gbp.lookahead_multiple = lookahead_multiple;
+                                }
+                            });
+
+                            ui.end_row();
+
+                            ui.label("Lookahead Horizon");
+                            ui.horizontal(|ui| {
+                                let mut lookahead_horizon = config.robot.planning_horizon.get();
+                                ui.label(format!("{:.1}s", lookahead_horizon));
+
+                                ui.spacing_mut().slider_width = ui.available_width();
+
+                                let slider_response = ui.add_enabled(
+                                    time_virtual.is_paused(),
+                                    egui::Slider::new(&mut lookahead_horizon, 1.0..=15.0)
+                                    .fixed_decimals(1)
+                                    .show_value(false)
+                                    .trailing_fill(true));
+                                if slider_response.enabled() && slider_response.changed() {
+                                    config.robot.planning_horizon = lookahead_horizon.try_into().unwrap();
+                                }
+                            });
+
+                            ui.end_row();
+
+                            ui.label("Variables");
+                            let mut text = config.gbp.variables.to_string();
+
+                            let te_output = egui::TextEdit::singleline(&mut text)
+                                .char_limit(3)
+                                .interactive(time_virtual.is_paused())
+                                .desired_width(f32::INFINITY)
+                                .show(ui);
+
+                            // if te_output.response.lost_focus() && te_output.response.changed() {
+                            if  te_output.response.changed() {
+                                match text.parse::<usize>() {
+                                    Ok(x) if x >= 2 => {
+                                        config.gbp.variables = x;
+                                    },
+                                    Ok(x) => {
+                                        error!("less than 2 variables not allowed. {}", x);
+                                    }
+                                    _ => {
+                                        error!("failed to parse {} as usize", text);
+                                    },
+                                }
+                            }
+                            ui.end_row();
+
+                    });
 
                     custom::subheading(ui, "Communication",
                         Some(Color32::from_catppuccin_colour(
