@@ -7,8 +7,8 @@ tiles:
     obstacle-height: 1.0
     sdf:
       resolution: 200
-      expansion: 0.001
-      blur: 0.001
+      expansion: 0.015
+      blur: 0.01
 obstacles:
 - shape: !regular-polygon
     sides: 4
@@ -52,9 +52,9 @@ obstacles:
     col: 0
 - shape: !triangle
     angles:
-      A: 0.5235987755982988
-      B: 0.5235987755982988
-    radius: 0.05
+      A: 1.22
+      B: 1.22
+    radius: 0.025
   rotation: 0.0
   translation:
     x: 0.5575
@@ -64,10 +64,10 @@ obstacles:
     col: 0
 - shape: !triangle
     angles:
-      A: 1.9198621771937625
-      B: 0.6981317007977318
-    radius: 0.03
-  rotation: 5.225
+      A: 0.6981317007977318
+      B: 1.9198621771937625
+    radius: 0.01
+  rotation: 5.2
   translation:
     x: 0.38
     y: 0.432

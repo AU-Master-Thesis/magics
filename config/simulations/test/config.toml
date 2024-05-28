@@ -16,16 +16,17 @@ objects    = 0.5
 height-map = 1.0
 
 [visualisation.draw]
-robots                             = true
-communication-graph                = true
-predicted-trajectories             = false
-waypoints                          = false
-uncertainty                        = false
-paths                              = false
-generated-map                      = true
+robots                 = true
+communication-graph    = false
+predicted-trajectories = true
+waypoints              = true
+uncertainty            = false
+paths                  = true
+generated-map          = true
+# height-map                         = false
 sdf                                = true
 communication-radius               = false
-obstacle-factors                   = false
+obstacle-factors                   = true
 tracking                           = false
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
@@ -45,13 +46,13 @@ sigma-factor-tracking   = 0.1
 lookahead-multiple = 3
 
 [gbp.iteration-schedule]
-internal = 50
-external = 10
+internal = 5
+external = 0
 schedule = "interleave-evenly"
 
 [robot]
-planning-horizon                       = 10.0
-max-speed                              = 10.0
+planning-horizon                       = 2.0
+max-speed                              = 15.0
 inter-robot-safety-distance-multiplier = 2.2
 
 [robot.radius]
@@ -60,7 +61,7 @@ max = 3.0
 
 [robot.communication]
 radius       = 50.0
-failure-rate = 0.1
+failure-rate = 0.0
 
 [simulation]
 # t0                                        = 0.1
@@ -71,14 +72,18 @@ hz                 = 10.0
 # world-size                                = 100.0
 prng-seed                                 = 0
 pause-on-spawn                            = false
-despawn-robot-when-final-waypoint-reached = true
-exit-application-on-scenario-finished     = true
+despawn-robot-when-final-waypoint-reached = false
 
 [rrt]
 max-iterations       = 1000000
 step-size            = 0.5
 collision-radius     = 0.1
 neighbourhood-radius = 10.0
+
+[rrt.smoothing]
+enabled        = true
+max-iterations = 500
+step-size      = 0.5
 
 [graphviz]
 export-location = "./assets/export/"

@@ -5,9 +5,9 @@ formations:
       nanos: 0
     times: !finite 1
   delay:
-    secs: 0
+    secs: 1
     nanos: 0
-  robots: 21
+  robots: 5
   planning-strategy: only-local
   initial-position:
     shape: !circle
@@ -25,5 +25,4 @@ formations:
     projection-strategy: cross
   # waypoint-reached-when-intersects: horizon
   waypoint-reached-when-intersects: current
-  finished-when-intersects: current
   # waypoint-reached-when-intersects: !variable 5

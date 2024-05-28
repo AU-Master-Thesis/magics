@@ -42,7 +42,7 @@ sigma-factor-interrobot = 0.005
 sigma-factor-obstacle   = 0.005
 sigma-factor-tracking   = 0.1
 # iterations-per-timestep = 10
-lookahead-multiple = 3
+lookahead-multiple = 1
 [gbp.iteration-schedule]
 internal = 50
 external = 10
@@ -51,7 +51,8 @@ schedule = "interleave-evenly"
 [robot]
 # planning-horizon = 13.33 # 2r / initial speed
 # planning-horizon = 12.4 # 2r / initial speed
-planning-horizon = 2.0
+# planning-horizon = 13.33
+planning-horizon = 5
 # planning-horizon                       = 6.677 # 2r / initial speed
 max-speed                              = 15.0
 inter-robot-safety-distance-multiplier = 2.2
@@ -72,7 +73,7 @@ manual-step-factor = 1
 hz                 = 10.0
 # world-size                                = 100.0
 prng-seed                                 = 0
-pause-on-spawn                            = true
+pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = false
 
 [rrt]
