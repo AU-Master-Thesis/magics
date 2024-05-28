@@ -1,6 +1,7 @@
 [package]
 name                   = "as_variant"
 edition                = "2021"
+description            = "AsVariant derive macro"
 version.workspace      = true
 repository.workspace   = true
 authors.workspace      = true

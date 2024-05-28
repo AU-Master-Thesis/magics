@@ -1,11 +1,12 @@
 [package]
-name = "angle"
-edition = "2021"
-version.workspace = true
-repository.workspace = true
-authors.workspace = true
+name                   = "angle"
+edition                = "2021"
+description            = "Angle type to robustly represent angles in either degrees or radians"
+version.workspace      = true
+repository.workspace   = true
+authors.workspace      = true
 rust-version.workspace = true
-license.workspace = true
+license.workspace      = true
 
 [dependencies]
 serde.workspace = true
@@ -14,4 +15,4 @@ serde.workspace = true
 workspace = true
 
 [dev-dependencies]
-approx = "0.5.1"
+approx = "0.5"
