@@ -1,9 +1,9 @@
 #!/usr/bin/env nix-shell
 #!nix-shell -i python3 -p python3Packages.numpy python3Packages.scipy python3Packages.rich python3Packages.tabulate python3Packages.matplotlib
 
+import sys
 import statistics
 import json
-import sys
 import argparse
 from pathlib import Path
 

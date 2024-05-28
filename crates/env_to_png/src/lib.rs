@@ -154,7 +154,7 @@ pub fn env_to_sdf_image(
 ) -> anyhow::Result<RgbImage> {
     let image = env_to_image(env, resolution, expansion).unwrap();
     let blur_pixels = blur_percent.0 * resolution.get() as f32;
-    println!("Blur pixels: {}", blur_pixels);
+    // println!("Blur pixels: {}", blur_pixels);
     if blur_pixels < 1.0 {
         return Ok(image);
     }

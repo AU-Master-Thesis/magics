@@ -22,15 +22,23 @@ pub struct TracerVisualiserPlugin;
 
 impl Plugin for TracerVisualiserPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Traces>().add_systems(
-            Update,
-            (
-                create_tracer_when_a_robot_is_spawned,
-                track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
-                draw_traces.run_if(enabled),
-                reset.run_if(on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>())),
-            ),
-        );
+        app.init_resource::<Traces>()
+            .add_systems(
+                FixedUpdate,
+                track_robots,
+                // track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
+            )
+            .add_systems(
+                Update,
+                (
+                    create_tracer_when_a_robot_is_spawned,
+                    // track_robots.run_if(on_timer(Duration::from_secs_f32(SAMPLE_DELAY))),
+                    draw_traces.run_if(enabled),
+                    reset.run_if(
+                        on_event::<LoadSimulation>().or_else(on_event::<ReloadSimulation>()),
+                    ),
+                ),
+            );
     }
 }
 

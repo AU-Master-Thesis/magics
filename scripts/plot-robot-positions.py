@@ -39,8 +39,11 @@ def plot_robot_paths_plotly(data, filepath="robot-positions.html"):
         x_coords = [pos[0] for pos in positions]
         y_coords = [pos[1] for pos in positions]
 
+        positions = np.array(robot_data['positions'])
+        total_distance: float = np.sum(np.linalg.norm(np.diff(positions, axis=1), axis=0))
+
         fig.add_trace(go.Scatter(x=x_coords, y=y_coords, mode='lines+markers',
-                                 name=f'Robot {robot_id} (Radius: {robot_data["radius"]})'))
+                                 name=f'Robot {robot_id} (Radius: {robot_data["radius"]}, Distance: {total_distance:.2f})'))
 
     # # Plot obstacles
     # for obstacle in data['obstacles']:
@@ -123,7 +126,10 @@ def plot_robot_paths_matplotlib(data, filepath="robot-positions.svg"):
         y_coords = [pos[1] for pos in positions]
         color: str = robot_data['color']
 
-        ax.plot(x_coords, y_coords, marker='o', color=color, label=f'Robot {robot_id} (Radius: {robot_data["radius"]})')
+        distance_traveled: float = np.sum(np.linalg.norm(np.diff(positions, axis=0), axis=1))
+        # print(f"{robot_id=} {distance_travelled=}")
+
+        ax.plot(x_coords, y_coords, marker='o', color=color, label=f'Robot {robot_id} (Radius: {robot_data["radius"]} Distance Traveled: {distance_traveled})')
 
     # Plot obstacles
     for entity, obstacle in data['obstacles'].items():
@@ -169,6 +175,18 @@ def plot_robot_paths_matplotlib(data, filepath="robot-positions.svg"):
     print(f"Plot saved to '{filepath}'.")
 
 def main():
+
+    # positions = np.array([
+    #     [0, 0],
+    #     [1, 0],
+    #     [1, 2],
+    # ])
+    #
+    # distance_traveled: float = np.sum(np.linalg.norm(np.diff(positions, axis=0), axis=1))
+    # print(f"{distance_traveled=}")
+    #
+    # sys.exit(0)
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type=Path, help="Input JSON file containing robot data")
     parser.add_argument('-o', '--output', type=Path, default="robot-positions.svg", help="Output HTML file")
@@ -179,7 +197,7 @@ def main():
 
     # Plot the paths of each robot
     # output_html = "robot-positions.html"
-    plot_robot_paths_plotly(data, args.output)
+    # plot_robot_paths_plotly(data, args.output)
     plot_robot_paths_matplotlib(data, args.output)
 
     # Check if `xdg-open` exists in path, and if it does then open the plot with it

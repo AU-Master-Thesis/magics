@@ -693,7 +693,7 @@ impl FormationGroup {
         self.formations
             .iter()
             .map(Formation::robots_to_spawn)
-            .inspect(|it| println!("  {}", it))
+            // .inspect(|it| println!("  {}", it))
             .fold(0usize, |acc, it| acc.saturating_add(it))
     }
 
