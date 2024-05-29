@@ -73,12 +73,13 @@ mod environment_colliders {
         isometry: &parry2d::na::Isometry2<f32>,
         triangle: &parry2d::shape::Triangle,
     ) {
+        let center = &isometry.translation;
         let top_surface = triangle
             .vertices()
             .iter()
             .cycle()
             .take(4)
-            .map(|v| Vec3::new(v.x, height, v.y));
+            .map(|v| Vec3::new(v.x + center.x, height, v.y + center.y));
         // let bottom_surface = triangle
         //     .vertices()
         //     .iter()
@@ -92,8 +93,8 @@ mod environment_colliders {
         // draw 4 vertical lines lines connecting the top surface vertices with their
         // corresponding bottom ones
         for v in triangle.vertices() {
-            let start = Vec3::new(v.x, height, v.y);
-            let end = Vec3::new(v.x, 0.0, v.y);
+            let start = Vec3::new(v.x + center.x, height, v.y + center.y);
+            let end = Vec3::new(v.x + center.x, 0.0, v.y + center.y);
             gizmos.line(start, end, COLOR);
         }
     }

@@ -504,6 +504,10 @@ fn spawn_formation(
             .map(ordered_float::OrderedFloat)
             .min()
             .expect("not empty");
+
+        #[rustfmt::skip]
+        let max_radius = radii.iter().copied().map(ordered_float::OrderedFloat).max().expect("not empty");
+
         for (i, initial_pose) in initial_pose_for_each_robot.iter().enumerate() {
             let mut waypoints: Vec<Vec4> = waypoint_poses_for_each_robot
                 .iter()
@@ -550,11 +554,10 @@ fn spawn_formation(
 
             //     globals.T_HORIZON / globals.T0, globals.LOOKAHEAD_MULTIPLE);
             // num_variables_ = variable_timesteps.size();
-            let t0: f32 = radii[i] / 2.0 / config.robot.max_speed.get();
+            // let t0: f32 = radii[i] / 2.0 / config.robot.max_speed.get();
 
-            // let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / t0) as
-            // u32;
-            let divisor: f32 = (min_radius / 2.0 / config.robot.max_speed.get()).into();
+            // let divisor: f32 = (min_radius / 2.0 / config.robot.max_speed.get()).into();
+            let divisor: f32 = (max_radius / 2.0 / config.robot.max_speed.get()).into();
 
             let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / divisor) as u32;
             // let lookahead_horizon: u32 = (config.robot.planning_horizon.get()
@@ -619,8 +622,8 @@ fn spawn_formation(
                 simulation_loader::Reloadable,
                 // super::tracking::PositionTracker::new(1000, Duration::from_millis(50)),
                 // super::tracking::VelocityTracker::new(1000, Duration::from_millis(50)),
-                super::tracking::PositionTracker::new(5000, Duration::from_millis(100)),
-                super::tracking::VelocityTracker::new(5000, Duration::from_millis(100)),
+                super::tracking::PositionTracker::new(10000, Duration::from_millis(100)),
+                super::tracking::VelocityTracker::new(10000, Duration::from_millis(100)),
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickedOn>(),
                 ColorAssociation { name: random_color },

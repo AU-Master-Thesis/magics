@@ -5,6 +5,7 @@ rustflags = [
   "-Clink-arg=-fuse-ld=mold", # Use mold Linker
   "-Zshare-generics=y",       # (Nightly) Make the current crate share its generic instantiations
   "-Zthreads=8",              # (Nightly) Use improved multithreading with the recommended amount of threads.
+  "-Ctarget-cpu=native",
   # "-Ctarget-feature=+simd128",
 ]
 

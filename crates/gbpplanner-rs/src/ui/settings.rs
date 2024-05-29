@@ -609,14 +609,14 @@ fn ui_settings_panel(
 
                             ui.spacing_mut().slider_width = ui.available_width();
                             let slider_response = ui.add(
-                                egui::Slider::new(&mut comms_radius, 0.1..=50.0)
+                                egui::Slider::new(&mut comms_radius, 0.1..=100.0)
                                     // .suffix("m")
                                     .fixed_decimals(1)
                                     .trailing_fill(true)
                                     .show_value(false)
                             );
                             if slider_response.changed() {
-                                config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 50.0]");
+                                config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 100.0]");
                                 // TODO: this should not be done with a query here, but there is not
                                 // much time left.
                                 let mut query = world.query::<&mut RadioAntenna>();

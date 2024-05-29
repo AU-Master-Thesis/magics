@@ -29,6 +29,15 @@ fn visualize_interrobot_factors(
     q: Query<(&FactorGraph, &RadioAntenna)>,
     config: Res<Config>,
 ) {
+    let red = colorgrad::Color::from_linear_rgba(1.0, 0.0, 0.0, 200.0);
+    let yellow = colorgrad::Color::from_linear_rgba(1.0, 1.0, 0.0, 200.0);
+    let gradient = colorgrad::CustomGradient::new()
+        .colors(&[red, yellow])
+        .domain(&[0.0, 1.0])
+        .mode(colorgrad::BlendMode::Hsv)
+        .build()
+        .unwrap();
+
     // let height = 0.5f32;
     let height = -config.visualisation.height.objects;
 
@@ -53,40 +62,67 @@ fn visualize_interrobot_factors(
             // let distance_sq = estimated_position.distance_squared(external_position);
             let safety_dist = interrobot.safety_distance();
 
-            let (line_color, circle_color) = if antenna.active {
-                let dist = estimated_position.distance(external_position);
-                if dist < safety_dist as f32 {
-                    let ratio = dist / safety_dist as f32;
-                    let g = 1.0 * ratio;
-                    let r = 1.0 - g;
-                    (Color::rgb(r, g, 0.0), Color::ORANGE)
-                    // Color::RED
-                } else {
-                    (Color::GREEN, Color::ORANGE)
-                }
-            } else {
-                // greyed out to indicate that the connection is not active/used
-                (Color::GRAY, Color::GRAY)
-            };
+            let dist = estimated_position.distance(external_position);
 
             if config.visualisation.draw.interrobot_factors {
-                let offset = 0.15; // 0.3 / 2.0;
-                let start = estimated_position + dir * offset;
-                let end = external_position + dir * offset;
-                gizmos.line(
-                    start.extend(height).xzy(),
-                    end.extend(height).xzy(),
-                    line_color,
-                );
+                if dist < safety_dist as f32 {
+                    let offset = 0.15; // 0.3 / 2.0;
+                    let start = estimated_position + dir * offset;
+                    let end = external_position + dir * offset;
+                    let ratio = dist / safety_dist as f32;
+                    let color = gradient.at(ratio as f64);
+                    let color = Color::rgb(color.r as f32, color.g as f32, color.b as f32);
+                    gizmos.line(start.extend(height).xzy(), end.extend(height).xzy(), color);
+                }
             }
 
+            // let (line_color, circle_color) = if antenna.active {
+            //    if dist < safety_dist as f32 {
+            //        let ratio = dist / safety_dist as f32;
+            //        let color = gradient.at(ratio as f64);
+            //        let color = Color::rgb(color.r as f32, color.g as f32, color.b as
+            // f32);        (color, Color::ORANGE)
+            //
+            //        // let g = 1.0 * ratio;
+            //        // let r = 1.0 - g;
+            //        //(Color::rgb(r, g, 0.0), Color::ORANGE)
+            //        //(Color::rgba(0.0, 1.0, 0.0, 1.0))
+            //
+            //        // Color::RED
+            //    } else {
+            //        (Color::rgba(0.0, 1.0, 0.0, 0.1), Color::ORANGE)
+            //        //(Color::GREEN, Color::ORANGE)
+            //    }
+            //} else {
+            //    // greyed out to indicate that the connection is not active/used
+            //    let gray = Color::rgba(0.5, 0.5, 0.5, 0.2);
+            //    (gray, gray)
+            //    //(Color::GRAY, Color::GRAY)
+            //};
+
+            // if config.visualisation.draw.interrobot_factors {
+            //    let offset = 0.15; // 0.3 / 2.0;
+            //    let start = estimated_position + dir * offset;
+            //    let end = external_position + dir * offset;
+            //    gizmos.line(
+            //        start.extend(height).xzy(),
+            //        end.extend(height).xzy(),
+            //        line_color,
+            //    );
+            //}
+
             if config.visualisation.draw.interrobot_factors_safety_distance {
+                let color = if antenna.active {
+                    Color::ORANGE
+                } else {
+                    Color::GRAY
+                };
                 gizmos
                     .circle(
                         estimated_position.extend(height).xzy(),
                         Direction3d::Y,
                         safety_dist as f32,
-                        circle_color,
+                        color,
                     )
                     .segments(18);
             }

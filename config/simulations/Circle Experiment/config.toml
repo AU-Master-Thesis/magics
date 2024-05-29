@@ -51,7 +51,7 @@ schedule = "interleave-evenly"
 [robot]
 # planning-horizon = 13.33 # 2r / initial speed
 # planning-horizon = 12.4 # 2r / initial speed
-planning-horizon = 13.33
+planning-horizon = 5
 # planning-horizon = 10
 # planning-horizon                       = 6.677 # 2r / initial speed
 max-speed                              = 15.0

@@ -2,13 +2,14 @@ tiles:
   grid:
   - █
   settings:
-    tile-size: 100.0
+    tile-size: 200.0
     path-width: 0.1
     obstacle-height: 1.0
     sdf:
-      resolution: 200
-      expansion: 0.015
-      blur: 0.01
+      resolution: 500
+      expansion: 0.01
+      blur: 0.005
+
 obstacles:
 - shape: !regular-polygon
     sides: 4
@@ -41,8 +42,8 @@ obstacles:
     row: 0
     col: 0
 - shape: !rectangle
-    width: 0.0875
-    height: 0.035
+    width: 0.035
+    height: 0.0875
   translation:
     x: 0.589
     y: 0.3965

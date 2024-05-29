@@ -1653,12 +1653,7 @@ fn iterate_gbp_external_sync(
 
 fn iterate_gbp_v2(
     mut query: Query<
-        (
-            Entity,
-            &mut FactorGraph,
-            &GbpIterationSchedule,
-            &RadioAntenna,
-        ),
+        (&mut FactorGraph, &GbpIterationSchedule, &RadioAntenna),
         With<RobotConnections>,
     >,
     config: Res<Config>,
@@ -1671,15 +1666,19 @@ fn iterate_gbp_v2(
 
     for gbp_schedule::GbpScheduleAtIteration { internal, external } in schedule {
         if internal {
-            query.par_iter_mut().for_each(|(_, mut factorgraph, _, _)| {
-                factorgraph.internal_factor_iteration();
-                factorgraph.internal_variable_iteration();
-            });
+            query
+                .par_iter_mut()
+                .for_each(|(mut factorgraph, _, antenna)| {
+                    if antenna.active {
+                        factorgraph.internal_factor_iteration();
+                        factorgraph.internal_variable_iteration();
+                    }
+                });
         }
 
         if external {
             let mut messages_to_external_variables = vec![];
-            for (_, mut factorgraph, _, antenna) in query.iter_mut() {
+            for (mut factorgraph, _, antenna) in query.iter_mut() {
                 if !antenna.active {
                     continue;
                 }
@@ -1689,19 +1688,16 @@ fn iterate_gbp_v2(
 
             // Send messages to external variables
             for message in messages_to_external_variables.into_iter() {
-                let Ok((_, mut external_factorgraph, _, antenna)) =
+                let Ok((mut external_factorgraph, _, antenna)) =
                     query.get_mut(message.to.factorgraph_id)
                 else {
                     continue;
                 };
 
-                // .expect(
-                //     "the factorgraph_id of the receiving variable should exist in the world",
-                // );
+                // if !antenna.active {
+                //    continue;
+                //}
 
-                if !antenna.active {
-                    continue;
-                }
                 if let Some(variable) =
                     external_factorgraph.get_variable_mut(message.to.variable_index)
                 {
@@ -1710,7 +1706,7 @@ fn iterate_gbp_v2(
             }
 
             let mut messages_to_external_factors = vec![];
-            for (_, mut factorgraph, _, antenna) in query.iter_mut() {
+            for (mut factorgraph, _, antenna) in query.iter_mut() {
                 if !antenna.active {
                     continue;
                 }
@@ -1720,18 +1716,15 @@ fn iterate_gbp_v2(
 
             // Send messages to external factors
             for message in messages_to_external_factors.into_iter() {
-                let Ok((_, mut external_factorgraph, _, antenna)) =
+                let Ok((mut external_factorgraph, _, antenna)) =
                     query.get_mut(message.to.factorgraph_id)
                 else {
                     continue;
                 };
 
-                // .expect("the factorgraph_id of the receiving factor should exist in the
-                // world");
-
-                if !antenna.active {
-                    continue;
-                }
+                // if !antenna.active {
+                //    continue;
+                //}
 
                 if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
                     factor.receive_message_from(message.from, message.message);
@@ -2051,6 +2044,7 @@ fn update_prior_of_horizon_state(
             &RobotMission,
             &mut FinishedPath,
             &Radius,
+            &RadioAntenna,
             // &GbpIterationSchedule,
         ),
         With<RobotConnections>,
@@ -2062,14 +2056,14 @@ fn update_prior_of_horizon_state(
     // the vector is cleared between calls, by calling .drain(..) at the end of every call
     mut all_messages_to_external_factors: Local<Vec<VariableToFactorMessage>>,
 ) {
-    // println!("dt: {}", time.delta_seconds());
     let delta_t = Float::from(time.delta_seconds());
+
     let max_speed = Float::from(config.robot.max_speed.get());
 
     let mut robots_to_despawn = Vec::new();
 
-    for (robot_id, mut factorgraph, mission, mut finished_path, radius) in &mut query {
-        if finished_path.0 || mission.state.idle() {
+    for (robot_id, mut factorgraph, mission, mut finished_path, radius, antenna) in &mut query {
+        if finished_path.0 || mission.state.idle() || !antenna.active {
             continue;
         }
 
@@ -2090,28 +2084,6 @@ fn update_prior_of_horizon_state(
             continue;
         }
 
-        // let robot_radius_squared = radius.0.powi(2);
-
-        // 1. update the mean of the horizon variable
-        // 2. find the variable configured to use for the waypoint intersection check
-        // let reached_waypoint = {
-        //     let variable = match route.intersects_when {
-        //         WaypointReachedWhenIntersects::Current =>
-        // factorgraph.first_variable(),
-        //         WaypointReachedWhenIntersects::Horizon =>
-        // factorgraph.last_variable(),
-        //         WaypointReachedWhenIntersects::Variable(ix) =>
-        // factorgraph.nth_variable(ix.into()),     }
-        //     .map(|(_, v)| v)
-        //     .expect("variable exists");
-        //
-        //     let estimated_pos = variable.estimated_position_vec2();
-        //     // Use square distance comparison to avoid sqrt computation
-        //     let dist2waypoint =
-        // estimated_pos.distance_squared(next_waypoint.position());
-        //     dist2waypoint < robot_radius_squared
-        // };
-
         let (horizon_variable_index, horizon_variable) = factorgraph
             .last_variable_mut()
             .expect("factorgraph has a horizon variable");
@@ -2130,50 +2102,38 @@ fn update_prior_of_horizon_state(
 
         // Update horizon state with new position and velocity
         let new_mean = concatenate![Axis(0), new_position, new_velocity];
-        // debug_assert_eq!(new_mean.len(), 4);
 
         horizon_variable.belief.mean.clone_from(&new_mean);
 
         let messages_to_external_factors =
             factorgraph.change_prior_of_variable(horizon_variable_index, new_mean);
         all_messages_to_external_factors.extend(messages_to_external_factors);
-
-        // if reached_waypoint && !route.is_completed() {
-        //     route.advance(time.elapsed());
-        //     evw_robot_reached_waypoint.send(RobotReachedWaypoint {
-        //         robot_id,
-        //         waypoint_index: 0,
-        //     });
-        // }
     }
 
     // Send messages to external factors
     for message in all_messages_to_external_factors.drain(..) {
-        let Ok((_, mut external_factorgraph, _, _, _)) = query.get_mut(message.to.factorgraph_id)
+        let Ok((_, mut external_factorgraph, _, _, _, _)) =
+            query.get_mut(message.to.factorgraph_id)
         else {
             continue;
         };
-        // .expect("the factorgraph of the receiving factor exists in the world");
 
         if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
             factor.receive_message_from(message.from, message.message);
         }
     }
-
-    // if !robots_to_despawn.is_empty() {
-    //     evw_robot_finalized_path
-    //         .send_batch(robots_to_despawn.iter().copied().
-    // map(RobotFinishedRoute));     if config.simulation.
-    // despawn_robot_when_final_waypoint_reached {
-    //         evw_robot_despawned.send_batch(robots_to_despawn.into_iter().
-    // map(RobotDespawned));     }
-    // }
 }
 
 /// Called `Robot::updateCurrent` in **gbpplanner**
 fn update_prior_of_current_state_v3(
     mut query: Query<
-        (&mut FactorGraph, &mut Transform, &T0, &RobotMission),
+        (
+            &mut FactorGraph,
+            &mut Transform,
+            &T0,
+            &RobotMission,
+            &RadioAntenna,
+        ),
         With<RobotConnections>,
     >,
     config: Res<Config>,
@@ -2183,8 +2143,8 @@ fn update_prior_of_current_state_v3(
 
     let mut messages_to_external_factors: Vec<FactorToVariableMessage> = vec![];
 
-    for (mut factorgraph, mut transform, &t0, mission) in &mut query {
-        if mission.state.idle() {
+    for (mut factorgraph, mut transform, &t0, mission, antenna) in &mut query {
+        if mission.state.idle() || !antenna.active {
             continue;
         }
 
@@ -2215,28 +2175,6 @@ fn update_prior_of_current_state_v3(
 
         transform.translation += position_increment;
     }
-
-    // if !messages_to_external_factors.is_empty() {
-    //     error!(
-    //         "current prior sending messages to {:?}",
-    //         messages_to_external_factors
-    //     );
-    // }
-    //
-    // // let guard = messages_to_external_factors.lock().unwrap();
-    // // messages_to_external_factors.dra
-    // for message in messages_to_external_factors.drain(..) {
-    //     let (mut external_factorgraph, _) = query
-    //         .get_mut(message.to.factorgraph_id)
-    //         .expect("the factorgraph of the receiving factor exists in the
-    // world");
-    //
-    //     if let Some(factor) =
-    // external_factorgraph.get_factor_mut(message.to.factor_index) {
-    //         error!("current prior sending message to {:?}", message.to);
-    //         factor.receive_message_from(message.from, message.message);
-    //     }
-    // }
 }
 
 // /// Called `Robot::updateCurrent` in **gbpplanner**

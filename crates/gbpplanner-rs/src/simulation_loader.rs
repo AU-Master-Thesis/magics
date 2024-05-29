@@ -74,7 +74,7 @@ impl SimulationLoaderPlugin {
                 .map_or(InitialSimulation::FirstFoundInFolder, |name| {
                     InitialSimulation::Name(name)
                 }),
-            reload_after: Some(Duration::from_secs(150)), // for experiments purposes to run
+            reload_after: Some(Duration::from_secs(80)), // for experiments purposes to run
             // overnight
 
             //..Default::default()

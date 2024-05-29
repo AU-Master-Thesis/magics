@@ -4,7 +4,7 @@ use bevy::{prelude::*, time::common_conditions::on_timer};
 use itertools::Itertools;
 use ringbuf::{Rb, StaticRb};
 
-const MAX_TRACE_LENGTH: usize = 100;
+const MAX_TRACE_LENGTH: usize = 10000;
 const SAMPLE_DELAY: f32 = 0.5;
 
 use gbp_config::Config;

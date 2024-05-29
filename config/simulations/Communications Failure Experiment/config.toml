@@ -17,7 +17,7 @@ height-map = 1.0
 
 [visualisation.draw]
 robots                             = true
-communication-graph                = true
+communication-graph                = false
 predicted-trajectories             = false
 waypoints                          = false
 uncertainty                        = false
@@ -30,9 +30,9 @@ tracking                           = false
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 robot-colliders                    = false
-environment-colliders              = true
-robot-robot-collisions             = true
-robot-environment-collisions       = true
+environment-colliders              = false
+robot-robot-collisions             = false
+robot-environment-collisions       = false
 
 [gbp]
 # sigma-pose-fixed        = 0.000000000000001
@@ -55,12 +55,12 @@ max-speed                              = 10.0
 inter-robot-safety-distance-multiplier = 2.2
 
 [robot.radius]
-min = 2.0
-max = 3.0
+min = 2.5
+max = 2.5
 
 [robot.communication]
 radius       = 50.0
-failure-rate = 0.1
+failure-rate = 0.2
 
 [simulation]
 # t0                                        = 0.1
