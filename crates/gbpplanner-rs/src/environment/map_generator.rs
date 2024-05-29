@@ -252,39 +252,24 @@ fn build_obstacles(
 
                 let rotation_angle: f32 =
                     std::f32::consts::FRAC_PI_2 - obstacle.rotation.as_radians() as f32;
-                let rotation = Quat::from_rotation_y(
-                    // std::f32::consts::FRAC_PI_2
-                    rotation_angle, /* std::f32::consts::FRAC_PI_2 -
-                                     * obstacle.rotation.as_radians() as f32,
-                                     * 0.0, */
-                );
+                let rotation = Quat::from_rotation_y(rotation_angle);
 
                 let isometry = Isometry2::new(
                     parry2d::na::Vector2::new(center.x, center.z),
-                    rotation_angle,
+                    rotation_angle - std::f32::consts::FRAC_PI_2,
                 );
 
                 let transform = Transform::from_translation(center).with_rotation(rotation);
-                // let transform = Transform::from_translation(center);
 
-                let center_xy = center.xz();
-                let shape = parry2d::shape::Triangle::new(
-                    // (center_xy + p1).to_array().into(),
-                    // (center_xy + p2).to_array().into(),
-                    // (center_xy + p3).to_array().into(),
-                    (rotation.mul_vec3(p1.extend(0.0).xzy()) + center)
+                let rotate = |p: Vec2| {
+                    rotation
+                        .mul_vec3(p.extend(0.0).xzy())
                         .xz()
                         .to_array()
-                        .into(),
-                    (rotation.mul_vec3(p2.extend(0.0).xzy()) + center)
-                        .xz()
-                        .to_array()
-                        .into(),
-                    (rotation.mul_vec3(p3.extend(0.0).xzy()) + center)
-                        .xz()
-                        .to_array()
-                        .into(),
-                );
+                        .into()
+                };
+
+                let shape = parry2d::shape::Triangle::new(rotate(p1), rotate(p2), rotate(p3));
                 let shape: Arc<dyn shape::Shape> = Arc::new(shape);
 
                 Some((mesh, transform, isometry, shape))

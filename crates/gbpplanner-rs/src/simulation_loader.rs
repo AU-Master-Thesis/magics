@@ -1,12 +1,12 @@
 use std::{
     collections::{BTreeMap, VecDeque},
-    path::PathBuf,
     time::Duration,
 };
 
 use bevy::{
-    input::common_conditions::input_just_pressed, prelude::*,
-    time::common_conditions::on_real_timer,
+    input::common_conditions::input_just_pressed,
+    prelude::*,
+    time::common_conditions::{on_real_timer, on_timer},
 };
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use gbp_config::{Config, FormationGroup};
@@ -29,6 +29,7 @@ pub struct SimulationLoaderPlugin {
     // pub simulations_dir: std::path::PathBuf,
     pub show_toasts: bool,
     pub initial_simulation: InitialSimulation,
+    pub reload_after: Option<Duration>,
 }
 
 impl Default for SimulationLoaderPlugin {
@@ -36,7 +37,15 @@ impl Default for SimulationLoaderPlugin {
         Self {
             show_toasts: true,
             initial_simulation: InitialSimulation::FirstFoundInFolder,
+            reload_after: None,
         }
+    }
+}
+
+impl SimulationLoaderPlugin {
+    pub fn reload_after(mut self, duration: Duration) -> Self {
+        self.reload_after = Some(duration);
+        self
     }
 }
 
@@ -65,8 +74,54 @@ impl SimulationLoaderPlugin {
                 .map_or(InitialSimulation::FirstFoundInFolder, |name| {
                     InitialSimulation::Name(name)
                 }),
+            reload_after: Some(Duration::from_secs(150)), // for experiments purposes to run
+            // overnight
+
+            //..Default::default()
         }
     }
+
+    // fn reload_after_system( &self,
+    //    time: Res<Time<Fixed>>,
+    //    mut evw_reload_simulation: EventWriter<ReloadSimulation>,
+    //    simulation_manager: Res<SimulationManager>,
+    //) {
+    //    if self
+    //        .reload_after
+    //        .as_ref()
+    //        .is_some_and(|after| time.elapsed() >= *after)
+    //    {
+    //        if let Some(id) = simulation_manager.active_id() {
+    //            evw_reload_simulation.send(ReloadSimulation(id));
+    //        };
+    //    }
+    //}
+}
+
+fn reload_after(
+    duration: Duration,
+) -> impl FnMut(Res<Time<Fixed>>, EventWriter<ReloadSimulation>, ResMut<SimulationManager>) {
+    move |time: Res<Time<Fixed>>,
+          mut evw_reload_simulation: EventWriter<ReloadSimulation>,
+          mut simulation_manager: ResMut<SimulationManager>| {
+        println!("elapsed: {:?}", time.elapsed());
+        if time.elapsed() >= duration {
+            if let Some(id) = simulation_manager.active_id() {
+                simulation_manager.reload();
+                // evw_reload_simulation.send(ReloadSimulation(id));
+            };
+        }
+    }
+}
+
+// fn elapsed_time_exceeds(duration: Duration) -> impl FnMut(Res<Time>) -> bool
+// + Clone {    move |time: Res<Time>| time.elapsed() >= duration
+//}
+
+fn elapsed_virtual_time_exceeds(
+    duration: Duration,
+) -> impl FnMut(Res<Time<Virtual>>) -> bool + Clone {
+    move |time: Res<Time<Virtual>>| time.elapsed() >= duration
 }
 
 impl Plugin for SimulationLoaderPlugin {
@@ -183,6 +238,19 @@ impl Plugin for SimulationLoaderPlugin {
                     load_previous_simulation.run_if(input_just_pressed(KeyCode::F4)),
                 )
             );
+
+        if let Some(after) = self.reload_after {
+            app.add_systems(
+                FixedUpdate,
+                (
+                    reload_simulation
+                        .run_if(on_timer(after).and_then(elapsed_virtual_time_exceeds(after))),
+                    //(|time: Res<Time<Virtual>>| println!("time exceeded {:?}", time.elapsed()))
+                    //    .run_if(elapsed_virtual_time_exceeds(after)),
+                ),
+            );
+            // app.add_systems(FixedUpdate, reload_after(after));
+        }
     }
 }
 
