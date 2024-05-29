@@ -1,6 +1,7 @@
 [package]
 name                   = "bevy_fullscreen"
 edition                = "2021"
+description            = "Fullscreen plugin for Bevy"
 version.workspace      = true
 repository.workspace   = true
 authors.workspace      = true

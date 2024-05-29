@@ -1,11 +1,12 @@
 [package]
-name = "seq"
-edition = "2021"
-version.workspace = true
-repository.workspace = true
-authors.workspace = true
+name                   = "seq"
+edition                = "2021"
+description            = "Iterators for common sequences"
+version.workspace      = true
+repository.workspace   = true
+authors.workspace      = true
 rust-version.workspace = true
-license.workspace = true
+license.workspace      = true
 
 [dependencies]
 

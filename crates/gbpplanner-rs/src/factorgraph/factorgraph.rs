@@ -742,11 +742,7 @@ impl FactorGraph {
             // block
             for (variable_id, message) in variable_messages {
                 let in_internal_graph = variable_id.factorgraph_id == self.id;
-                if in_internal_graph {
-                    // let variable =
-                    // self.variable_mut(variable_id.variable_index);
-                    // variable.receive_message_from(factor_id, message);
-                } else {
+                if !in_internal_graph {
                     messages_to_external_variables.push(FactorToVariableMessage {
                         from: factor_id,
                         to: variable_id,
@@ -1377,6 +1373,12 @@ impl<'fg> Iterator for VariableNeighbours<'fg> {
         })
     }
 }
+
+// impl<'fg> std::iter::ExactSizeIterator for VariableNeighbours<'fg> {
+//    fn len(&self) -> usize {
+//        self.neighbours.len()
+//    }
+//}
 
 impl FactorGraph {
     /// Returns an iterator over the factor neighbours of a variable

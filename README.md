@@ -2,11 +2,53 @@
 https://github.com/aalpatya/gbpplanner reimplemented in Rust!
 
 
-FrameCountPlugin
+## External Dependencies
 
-EntityCountDiagnosticsPlugin
-SystemInformationDiagnosticsPlugin
-GizmoPlugin
-ScreenShotPlugin
+Most dependencies used are available through the `crates.io` registry. And should work on all major platforms supported by the `cargo` build tool. Still some external dependencies are needed for the graphical session.
 
-Create a function to output a graphviz representation of the factor graph similar to how "visual introduction gbp" shows their factor graphs
+| Dependencies | Platform Specific |
+|--------------|----------|
+| `udev` | Linux |
+| `alsa-lib` | Linux |
+| `vulkan-loader` |  |
+| `xorg.libX11` | Linux + X11 |
+| `xorg.libXcursor` | Linux + X11 |
+| `xorg.libXi` | Linux + X11 |
+| `xorg.libXrandr` | Linux + X11 |
+| `libxkbcommon` | Linux + X11 |
+| `wayland` | Linux + Wayland |
+| `egl-wayland` | Linux + Wayland |
+| `freetype` | |
+| `fontconfig` |  |
+
+The exact name of the dependency might vary between platforms, and even between Linux distributions. Consult the respective package management tool used on your system for their exact names.
+
+
+### Nix/NixOS
+
+The `./flake.nix` file provides a development shell with all the necessary dependencies to run the project. If you have `direnv` installed you can simply use the provided `.envrc` and type `direnv allow` to automatically enter it. Otherwise you can run:
+
+```sh
+# To enter the development environment
+nix develop
+```
+
+## Build
+
+The entire project can be build with the following command:
+
+```
+cargo build --release
+```
+
+## Run
+
+
+```sh
+cargo run --release --bin gbpplanner-rs # Open the simulator
+cargo run --release --bin gbpplanner-rs -- --list # List all available scenarios
+
+# Run a specific scenario
+cargo run --release --bin gbpplanner-rs -- -i <SCENARIO_NAME>
+cargo run --release --bin gbpplanner-rs -- --initial-scenario <SCENARIO_NAME>
+```

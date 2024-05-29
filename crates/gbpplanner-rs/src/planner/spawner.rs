@@ -504,8 +504,12 @@ fn spawn_formation(
             .map(ordered_float::OrderedFloat)
             .min()
             .expect("not empty");
+
+        #[rustfmt::skip]
+        let max_radius = radii.iter().copied().map(ordered_float::OrderedFloat).max().expect("not empty");
+
         for (i, initial_pose) in initial_pose_for_each_robot.iter().enumerate() {
-            let waypoints: Vec<Vec4> = waypoint_poses_for_each_robot
+            let mut waypoints: Vec<Vec4> = waypoint_poses_for_each_robot
                 .iter()
                 .map(|wps| wps[i])
                 .collect();
@@ -526,40 +530,34 @@ fn spawn_formation(
                 position:  pose.xy(),
             }));
 
-            // let route = Route::new(
-            //     std::iter::once(initial_pose)
-            //         .chain(waypoints.iter())
-            //         .copied()
-            //         .map_into::<StateVector>()
-            //         .collect::<Vec<_>>()
-            //         .try_into()
-            //         .unwrap(),
-            //     formation.waypoint_reached_when_intersects,
-            //     time_fixed.elapsed().as_secs_f64(),
-            // );
+            // let second_last = waypoints.get(waypoints.len() - 2).copied().unwrap();
+            // let last = waypoints.last_mut().unwrap();
+            // last.z = second_last.z;
+            // last.w = second_last.w;
 
-            let waypoints = std::iter::once(initial_pose)
+            // let mu
+            let mut waypoints = std::iter::once(initial_pose)
                 .chain(waypoints.iter())
                 .copied()
                 .map_into::<StateVector>()
                 .collect::<Vec<_>>();
 
-            // TODO:
-            // match formation.planning_strategy {
-            //     PlanningStrategy::OnlyLocal => todo!(),
-            //     PlanningStrategy::RrtStar => todo!(),
-            // }
+            let second_last = waypoints.get(waypoints.len() - 2).copied().unwrap();
+            let last = waypoints.last_mut().unwrap();
+            last.update_velocity(second_last.velocity());
+            // last.z = second_last.z;
+            // last.w = second_last.w;
+            //
 
             // let lookahead_horizon = (5.0 / 0.25) as u32;
             // let lookahead_multiple = 3;
 
             //     globals.T_HORIZON / globals.T0, globals.LOOKAHEAD_MULTIPLE);
             // num_variables_ = variable_timesteps.size();
-            let t0: f32 = radii[i] / 2.0 / config.robot.max_speed.get();
+            // let t0: f32 = radii[i] / 2.0 / config.robot.max_speed.get();
 
-            // let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / t0) as
-            // u32;
-            let divisor: f32 = (min_radius / 2.0 / config.robot.max_speed.get()).into();
+            // let divisor: f32 = (min_radius / 2.0 / config.robot.max_speed.get()).into();
+            let divisor: f32 = (max_radius / 2.0 / config.robot.max_speed.get()).into();
 
             let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / divisor) as u32;
             // let lookahead_horizon: u32 = (config.robot.planning_horizon.get()
@@ -622,8 +620,10 @@ fn spawn_formation(
                 pbrbundle,
                 prng.fork_rng(),
                 simulation_loader::Reloadable,
-                super::tracking::PositionTracker::new(1000, Duration::from_millis(50)),
-                super::tracking::VelocityTracker::new(1000, Duration::from_millis(50)),
+                // super::tracking::PositionTracker::new(1000, Duration::from_millis(50)),
+                // super::tracking::VelocityTracker::new(1000, Duration::from_millis(50)),
+                super::tracking::PositionTracker::new(10000, Duration::from_millis(100)),
+                super::tracking::VelocityTracker::new(10000, Duration::from_millis(100)),
                 PickableBundle::default(),
                 On::<Pointer<Click>>::send_event::<RobotClickedOn>(),
                 ColorAssociation { name: random_color },
@@ -633,6 +633,9 @@ fn spawn_formation(
                          from 0, NaN, and infinity.",
                     ))
                     .with_attached(true),
+                crate::goal_area::components::Collider(Box::new(parry2d::shape::Ball::new(
+                    radii[i],
+                ))),
             ));
 
             evw_robot_spawned.send(RobotSpawned(robot_entity));

@@ -18,11 +18,12 @@ from rich import print, inspect, pretty
 from tabulate import tabulate
 import toolz
 from toolz.curried import get
+from typing import Generator, Iterable
 # from matplotlib.patches import Polygon
 
 pretty.install()
 
-def sliding_window(iterable, n):
+def sliding_window(iterable: Iterable, n: int):
     "Collect data into overlapping fixed-length chunks or blocks."
     # sliding_window('ABCDEFG', 4) → ABCD BCDE CDEF DEFG
     iterator = iter(iterable)

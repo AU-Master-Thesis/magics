@@ -1,12 +1,14 @@
 use std::{collections::HashMap, ops::Deref, time::Duration};
 
 use bevy::{prelude::*, time::common_conditions::on_timer};
+use bevy_mod_picking::prelude::*;
 use gbp_global_planner::Colliders;
 use parry2d::{
     bounding_volume::BoundingVolume,
     na::{Complex, Isometry, Unit},
 };
 
+use self::events::RobotCollisionClickedOn;
 use super::{robot::Ball, RobotConnections};
 use crate::{
     // environment::map_generator::Colliders,
@@ -26,17 +28,25 @@ impl Plugin for RobotCollisionsPlugin {
             .init_resource::<resources::RobotEnvironmentCollisions>()
             .add_event::<events::RobotRobotCollision>()
             .add_event::<events::RobotEnvironmentCollision>()
+            .add_event::<events::RobotCollisionClickedOn>()
+            .add_systems(
+                FixedUpdate,
+                (
+                    update_robot_robot_collisions,
+                    update_robot_environment_collisions.run_if(resource_exists::<Colliders>),
+                ),
+            )
             .add_systems(
                 Update,
                 (
-                    update_robot_robot_collisions.run_if(on_timer(Self::UPDATE_EVERY)),
+                    // update_robot_robot_collisions.run_if(on_timer(Self::UPDATE_EVERY)),
                     render_robot_robot_collisions,
                     toggle_visibility_of_robot_robot_collisions,
                     // toggle_visibility_of_robot_robot_collisions
                     //     .run_if(input_just_pressed(KeyCode::F10)),
-                    update_robot_environment_collisions.run_if(
-                        on_timer(Self::UPDATE_EVERY).and_then(resource_exists::<Colliders>),
-                    ),
+                    // update_robot_environment_collisions.run_if(
+                    //     on_timer(Self::UPDATE_EVERY).and_then(resource_exists::<Colliders>),
+                    // ),
                     render_robot_environment_collisions,
                     toggle_visibility_of_robot_environment_collisions,
                     on_obstacle_clicked_on,
@@ -44,6 +54,7 @@ impl Plugin for RobotCollisionsPlugin {
                     record_aabb_when_robot_collides_with_environment,
                     // toggle_visibility_of_robot_environment_collisions
                     //     .run_if(input_just_pressed(KeyCode::F10)),
+                    log_information_when_robot_robot_collision_mesh_clicked_on,
                 ),
             )
             .add_systems(
@@ -70,6 +81,7 @@ fn update_robot_robot_collisions(
         )>,
     >,
     mut evw_robots_collided: EventWriter<events::RobotRobotCollision>,
+    time_virtual: Res<Time<Virtual>>,
 ) {
     aabbs.clear();
 
@@ -119,6 +131,7 @@ fn update_robot_robot_collisions(
                     robot_a: aabbs[c].0,
                     robot_b: aabbs[r].0,
                     intersection,
+                    happened_at: time_virtual.elapsed_seconds(),
                 });
             }
             _ => {}
@@ -325,6 +338,7 @@ pub mod resources {
 
 pub mod events {
     use bevy::prelude::*;
+    use bevy_mod_picking::prelude::*;
 
     #[derive(Debug, Event)]
     pub struct RobotEnvironmentCollision {
@@ -333,11 +347,21 @@ pub mod events {
         pub intersection: parry2d::bounding_volume::Aabb,
     }
 
-    #[derive(Event)]
+    #[derive(Event, Component, Clone, Copy, Debug)]
     pub struct RobotRobotCollision {
         pub robot_a:      Entity,
         pub robot_b:      Entity,
         pub intersection: parry2d::bounding_volume::Aabb,
+        pub happened_at:  f32,
+    }
+
+    #[derive(Event)]
+    pub(super) struct RobotCollisionClickedOn(pub Entity);
+
+    impl From<ListenerInput<Pointer<Click>>> for RobotCollisionClickedOn {
+        fn from(value: ListenerInput<Pointer<Click>>) -> Self {
+            Self(value.target)
+        }
     }
 }
 
@@ -498,7 +522,7 @@ fn render_robot_robot_collisions(
         // aabb.mins.y) / 2.0;
         let cuboid = Cuboid::from_size(Vec3::new(
             aabb.maxs.x - aabb.mins.x,
-            -2.0,
+            2.0,
             aabb.maxs.y - aabb.mins.y,
         ));
 
@@ -518,7 +542,31 @@ fn render_robot_robot_collisions(
             },
             crate::simulation_loader::Reloadable,
             markers::RobotRobotCollision,
+            bevy_mod_picking::PickableBundle::default(),
+            *event,
+            On::<Pointer<Click>>::send_event::<events::RobotCollisionClickedOn>(),
         ));
+    }
+}
+
+fn log_information_when_robot_robot_collision_mesh_clicked_on(
+    mut evr_robot_collision_clicked_on: EventReader<events::RobotCollisionClickedOn>,
+    q: Query<&events::RobotRobotCollision, With<markers::RobotRobotCollision>>,
+) {
+    use colored::Colorize;
+    for RobotCollisionClickedOn(entity) in evr_robot_collision_clicked_on.read() {
+        if let Ok(robot_robot_collision) = q.get(*entity) {
+            #[rustfmt::skip]
+            println!("{}: {:?}", "robot robot collision".magenta(), entity);
+            #[rustfmt::skip]
+            println!("  {}: {:?}", "robot a".cyan(), robot_robot_collision.robot_a);
+            #[rustfmt::skip]
+            println!("  {}: {:?}", "robot b".cyan(), robot_robot_collision.robot_b);
+            #[rustfmt::skip]
+            println!("  {}: {:?} s", "happened_at".cyan(), robot_robot_collision.happened_at);
+            #[rustfmt::skip]
+            println!("  {}: {:?}", "intersection".cyan(), robot_robot_collision.intersection);
+        }
     }
 }
 
@@ -621,23 +669,23 @@ fn on_obstacle_clicked_on(
     for event in evr_obstacle_clicked_on.read() {
         // print all the robots that have hit the obstacle
         let obstacle_entity: Entity = event.0;
-        println!("obstacle: {:?}", obstacle_entity);
+        println!("{}: {:?}", "obstacle".magenta(), obstacle_entity);
         if let Some(robot_entities) =
             robot_environment_collisions.robots_collided_with(obstacle_entity)
         {
-            println!("collisions: {}", robot_entities.len());
-            for robot_entity in robot_entities {
-                println!("  robot: {}", format!("{:?}", robot_entity).red());
-            }
+            println!("  {}: {}", "collisions".cyan(), robot_entities.len());
+            // for robot_entity in robot_entities {
+            //    println!("  robot: {}", format!("{:?}", robot_entity).red());
+            //}
         }
 
         robot_environment_collisions
             .collisions()
             .filter(|((_, obstacle), aabbs)| *obstacle == obstacle_entity && !aabbs.is_empty())
             .for_each(|((robot, _), aabbs)| {
-                println!("  robot: {}", format!("{:?}", robot).red());
+                println!("    - robot: {}", format!("{:?}", robot).red());
                 for aabb in aabbs {
-                    println!("    {:?}", aabb);
+                    println!("      collision intersection: {:?}", aabb);
                 }
             });
     }

@@ -365,6 +365,34 @@ impl Factor for TrackingFactor {
     }
 }
 
+impl std::fmt::Display for LastMeasurement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use colored::Colorize;
+        // let v = self.value * 255.0;
+        // let r = v as u8;
+        // let g = 255 - r;
+
+        let green = colorgrad::Color::from_linear_rgba(0.0, 255.0, 0.0, 255.0);
+        let red = colorgrad::Color::from_linear_rgba(255.0, 0.0, 0.0, 255.0);
+        let gradient = colorgrad::CustomGradient::new()
+            .colors(&[green, red])
+            .domain(&[0.0, 1.0])
+            .mode(colorgrad::BlendMode::Hsv)
+            .build()
+            .unwrap();
+
+        let color = gradient.at(self.value);
+        let [r, g, _, _] = color.to_rgba8();
+
+        write!(
+            f,
+            "[pos: {}, value: {}]",
+            self.pos,
+            format!("{:.4}", self.value).truecolor(r, g, 0u8)
+        )
+    }
+}
+
 impl std::fmt::Display for TrackingFactor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use colored::Colorize;
@@ -382,6 +410,6 @@ impl std::fmt::Display for TrackingFactor {
         writeln!(f, "record: {}", self.tracking.record.lock().unwrap().get())?;
         writeln!(f, "config: {:?}", self.tracking.config)?;
 
-        write!(f, "last_measurement: {:?}", self.last_measurement())
+        write!(f, "last_measurement: {}", self.last_measurement())
     }
 }

@@ -25,4 +25,5 @@ formations:
     projection-strategy: cross
   # waypoint-reached-when-intersects: horizon
   waypoint-reached-when-intersects: current
+  finished-when-intersects: current
   # waypoint-reached-when-intersects: !variable 5

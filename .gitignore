@@ -24,3 +24,7 @@ flamegraphs/*
 
 *.json
 !results/*.json
+
+*.html
+
+experiments/

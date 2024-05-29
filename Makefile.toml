@@ -1,0 +1,21 @@
+[tasks.wasm]
+script = [
+  "echo hello",
+]
+
+[tasks.docs]
+description = "Generate rust documentation."
+command = "cargo"
+args = [
+  "doc",
+  "--no-deps",
+]
+
+[tasks.format]
+description   = "Runs the cargo rustfmt plugin."
+install_crate = "rustfmt"
+command       = "cargo"
+# args = ["fmt", "--", "--write-mode=overwrite"]
+args = [
+  "fmt",
+]

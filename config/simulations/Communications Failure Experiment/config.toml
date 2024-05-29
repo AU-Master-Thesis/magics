@@ -18,10 +18,10 @@ height-map = 1.0
 [visualisation.draw]
 robots                             = true
 communication-graph                = false
-predicted-trajectories             = true
+predicted-trajectories             = false
 waypoints                          = false
 uncertainty                        = false
-paths                              = true
+paths                              = false
 generated-map                      = true
 sdf                                = true
 communication-radius               = false
@@ -30,9 +30,9 @@ tracking                           = false
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 robot-colliders                    = false
-environment-colliders              = true
-robot-robot-collisions             = true
-robot-environment-collisions       = true
+environment-colliders              = false
+robot-robot-collisions             = false
+robot-environment-collisions       = false
 
 [gbp]
 # sigma-pose-fixed        = 0.000000000000001
@@ -50,17 +50,17 @@ external = 10
 schedule = "interleave-evenly"
 
 [robot]
-planning-horizon                       = 5.0
+planning-horizon                       = 10.0
 max-speed                              = 10.0
 inter-robot-safety-distance-multiplier = 2.2
 
 [robot.radius]
-min = 2.0
-max = 3.0
+min = 2.5
+max = 2.5
 
 [robot.communication]
 radius       = 50.0
-failure-rate = 0.0
+failure-rate = 0.2
 
 [simulation]
 # t0                                        = 0.1
@@ -71,7 +71,8 @@ hz                 = 10.0
 # world-size                                = 100.0
 prng-seed                                 = 0
 pause-on-spawn                            = false
-despawn-robot-when-final-waypoint-reached = false
+despawn-robot-when-final-waypoint-reached = true
+exit-application-on-scenario-finished     = true
 
 [rrt]
 max-iterations       = 1000000

@@ -229,7 +229,7 @@ impl Default for Formation {
 
 impl Formation {
     fn default_finished_when_intersects() -> ReachedWhenIntersects {
-        ReachedWhenIntersects::Current
+        ReachedWhenIntersects::Horizon
     }
 
     pub fn robots_to_spawn(&self) -> usize {
@@ -693,7 +693,7 @@ impl FormationGroup {
         self.formations
             .iter()
             .map(Formation::robots_to_spawn)
-            .inspect(|it| println!("  {}", it))
+            // .inspect(|it| println!("  {}", it))
             .fold(0usize, |acc, it| acc.saturating_add(it))
     }
 

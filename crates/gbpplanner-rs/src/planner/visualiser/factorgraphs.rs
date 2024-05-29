@@ -89,6 +89,8 @@ fn on_variable_clicked(
     q_factorgraph: Query<&FactorGraph, With<RobotConnections>>,
     config: Res<Config>,
 ) {
+    use colored::Colorize;
+
     for VariableClickedOn(entity) in evr_variable_clicked_on.read() {
         let Ok(tracker) = q_robottracker.get(*entity) else {
             error!("the clicked variable mesh is not associated with any existing factorgraph!");
@@ -111,39 +113,94 @@ fn on_variable_clicked(
         };
 
         let hr = "=".repeat(80);
-        println!(
-            "variable {} in factorgraph {:?}",
-            node_index.index(),
-            factorgraph.id()
-        );
+        println!("{}: {}", "variable".magenta(), node_index.index());
+        println!("  {}: {}", "factorgraph".cyan(), factorgraph.id().index());
+        if config.debug.on_variable_clicked.variable {
+            println!("  {}:", "belief".cyan());
+            // println!("    {}:", "mean".red());
+            // gbp_linalg::pretty_format_vector!()
+            for line in
+                gbp_linalg::pretty_format_vector!("mean", &variable.belief.mean, None).lines()
+            {
+                println!("    {}", line);
+            }
+
+            // println!(
+            //    "    {}:",
+            //    "variance".red(),
+            //    // variable.belief.precision_matrix
+            //);
+
+            for line in gbp_linalg::pretty_format_matrix!(
+                "precision",
+                &variable.belief.precision_matrix,
+                None
+            )
+            .lines()
+            {
+                println!("    {}", line);
+            }
+
+            // println!(
+            //    "    {}:",
+            //    "information vector".red(),
+            //    // variable.belief.information_vector
+            //);
+
+            for line in gbp_linalg::pretty_format_vector!(
+                "information",
+                &variable.belief.information_vector,
+                None
+            )
+            .lines()
+            {
+                println!("    {}", line);
+            }
+            // TODO: do not use debug print here
+            // println!("{:#?}", variable);
+        }
+        println!("  {}:", "connected factors".cyan());
         for (i, neighbour) in neighbours.enumerate() {
             // println!("name: {}", neighbour.kind.name());
+            use std::fmt::Write;
+
             use colored::Colorize;
 
             use crate::factorgraph::factor::FactorKind::{Dynamic, InterRobot, Obstacle, Tracking};
             // println!("factor[{i}]: {}", <neighbour.kind as &dyn Factor>::name());
             let [r, g, b] = neighbour.kind.color();
-            println!("factor[{i}]: {}", neighbour.kind.name().truecolor(r, g, b));
+            println!("   - {}: {}", "neighbour_ix".red(), i);
+            println!(
+                "     {}: {}",
+                "kind",
+                neighbour.kind.name().truecolor(r, g, b)
+            );
+            // println!("factor[{i}]: {}", neighbour.kind.name().truecolor(r, g, b));
+
+            let mut content = String::new();
             match neighbour.kind {
                 InterRobot(ref interrobot) if config.debug.on_variable_clicked.interrobot => {
-                    println!("{}", interrobot)
+                    write!(&mut content, "{}", interrobot).unwrap();
+                    // println!("{}", interrobot)
                 }
                 Dynamic(ref dynanic) if config.debug.on_variable_clicked.dynamic => {
-                    println!("{}", dynanic)
+                    write!(&mut content, "{}", dynanic).unwrap();
+                    // println!("{}", dynanic)
                 }
                 Obstacle(ref obstacle) if config.debug.on_variable_clicked.obstacle => {
-                    println!("{}", obstacle)
+                    write!(&mut content, "{}", obstacle).unwrap();
+                    // println!("{}", obstacle)
                 }
                 Tracking(ref tracking) if config.debug.on_variable_clicked.tracking => {
-                    println!("{}", tracking)
+                    write!(&mut content, "{}", tracking).unwrap();
+                    // println!("{}", tracking)
                 }
                 _ => {}
             }
-        }
 
-        if config.debug.on_variable_clicked.variable {
-            // TODO: do not use debug print here
-            println!("{:#?}", variable);
+            for line in content.lines() {
+                println!("       {}", line);
+            }
         }
 
         println!("{}", hr);

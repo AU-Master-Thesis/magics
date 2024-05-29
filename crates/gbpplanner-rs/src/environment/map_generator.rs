@@ -199,7 +199,12 @@ fn build_obstacles(
                 let shape = parry2d::shape::Ball::new(radius);
                 let shape: Arc<dyn shape::Shape> = Arc::new(shape);
 
-                Some((mesh, transform, shape))
+                let isometry = Isometry2::new(
+                    parry2d::na::Vector2::new(transform.translation.x, transform.translation.z),
+                    na::zero(),
+                );
+
+                Some((mesh, transform, isometry, shape))
             }
             PlaceableShape::Triangle(ref triangle_shape @ Triangle { angles, radius }) => {
                 let center = Vec3::new(
@@ -245,35 +250,29 @@ fn build_obstacles(
                     .expect("Failed to create triangle mesh"),
                 );
 
-                let rotation = Quat::from_rotation_y(
-                    // std::f32::consts::FRAC_PI_2
-                    std::f32::consts::FRAC_PI_2 - obstacle.rotation.as_radians() as f32,
-                    // 0.0,
-                );
-                let transform = Transform::from_translation(center).with_rotation(rotation);
-                // let transform = Transform::from_translation(center);
+                let rotation_angle: f32 =
+                    std::f32::consts::FRAC_PI_2 - obstacle.rotation.as_radians() as f32;
+                let rotation = Quat::from_rotation_y(rotation_angle);
 
-                let center_xy = center.xz();
-                let shape = parry2d::shape::Triangle::new(
-                    // (center_xy + p1).to_array().into(),
-                    // (center_xy + p2).to_array().into(),
-                    // (center_xy + p3).to_array().into(),
-                    (rotation.mul_vec3(p1.extend(0.0).xzy()) + center)
-                        .xz()
-                        .to_array()
-                        .into(),
-                    (rotation.mul_vec3(p2.extend(0.0).xzy()) + center)
-                        .xz()
-                        .to_array()
-                        .into(),
-                    (rotation.mul_vec3(p3.extend(0.0).xzy()) + center)
-                        .xz()
-                        .to_array()
-                        .into(),
+                let isometry = Isometry2::new(
+                    parry2d::na::Vector2::new(center.x, center.z),
+                    rotation_angle - std::f32::consts::FRAC_PI_2,
                 );
+
+                let transform = Transform::from_translation(center).with_rotation(rotation);
+
+                let rotate = |p: Vec2| {
+                    rotation
+                        .mul_vec3(p.extend(0.0).xzy())
+                        .xz()
+                        .to_array()
+                        .into()
+                };
+
+                let shape = parry2d::shape::Triangle::new(rotate(p1), rotate(p2), rotate(p3));
                 let shape: Arc<dyn shape::Shape> = Arc::new(shape);
 
-                Some((mesh, transform, shape))
+                Some((mesh, transform, isometry, shape))
             }
             PlaceableShape::RegularPolygon(ref polygon @ RegularPolygon { sides, radius }) => {
                 let center = Vec3::new(
@@ -301,8 +300,11 @@ fn build_obstacles(
                 //     std::f32::consts::FRAC_PI_4
                 // );
 
+                let rotation_angle =
+                    std::f32::consts::FRAC_PI_4 + obstacle.rotation.as_radians() as f32;
                 let rotation = Quat::from_rotation_y(
-                    std::f32::consts::FRAC_PI_4 + obstacle.rotation.as_radians() as f32,
+                    rotation_angle, /* std::f32::consts::FRAC_PI_4 +
+                                     * obstacle.rotation.as_radians() as f32, */
                 );
                 let transform = Transform::from_translation(center).with_rotation(rotation);
 
@@ -336,16 +338,11 @@ fn build_obstacles(
 
                 // let rotation2 = Quat::from_rotation_y(std::f32::consts::PI / polygon.sides as
                 // f32);
+
+                let rotation_angle = obstacle.rotation.as_radians() as f32 + rotation_offset;
                 let rotation2 =
                     Quat::from_rotation_z(obstacle.rotation.as_radians() as f32 + rotation_offset);
                 // let rotation2 = Quat::from_rotation_z(rotation_offset);
-
-                println!(
-                    "rotation in radians = {}",
-                    obstacle.rotation.as_radians() as f32
-                );
-
-                // dbg!(&rotation2);
 
                 // let points: Vec<parry2d::math::Point<parry2d::math::Real>> = polygon
                 let scale = tile_size / 2.0;
@@ -373,8 +370,12 @@ fn build_obstacles(
                     .expect("polygon is always convex");
 
                 let shape: Arc<dyn shape::Shape> = Arc::new(shape);
+                let isometry = Isometry2::new(
+                    parry2d::na::Vector2::new(transform.translation.x, transform.translation.z),
+                    rotation_angle,
+                );
 
-                Some((mesh, transform, shape))
+                Some((mesh, transform, isometry, shape))
             }
             PlaceableShape::Rectangle(Rectangle { width, height }) => {
                 // dbg!((
@@ -417,14 +418,19 @@ fn build_obstacles(
 
                 let shape: Arc<dyn shape::Shape> = Arc::new(shape);
 
-                Some((mesh, transform, shape))
+                let isometry = Isometry2::new(
+                    parry2d::na::Vector2::new(transform.translation.x, transform.translation.z),
+                    na::zero(),
+                );
+
+                Some((mesh, transform, isometry, shape))
             }
         }
     });
 
     obstacles_to_spawn
         .flatten() // filter out None
-        .for_each(|(mesh, transform, shape)| {
+        .for_each(|(mesh, transform, isometry, shape)| {
             // TODO: remember to get rotation of obstacle, i.e. for triangles
             let entity = commands.spawn((
                 PbrBundle {
@@ -445,10 +451,11 @@ fn build_obstacles(
 
             colliders.push(
                 Some(entity),
-                Isometry2::new(parry2d::na::Vector2::new(
-                    transform.translation.x,
-                    transform.translation.z,
-                ), na::zero()), // FIXME: add rotation
+                isometry,
+                //Isometry2::new(parry2d::na::Vector2::new(
+                //    transform.translation.x,
+                //    transform.translation.z,
+                //), na::zero()), // FIXME: add rotation
                 shape
             );
         });

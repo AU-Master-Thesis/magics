@@ -7,6 +7,7 @@ pub mod despawn_entity_after;
 mod diagnostic;
 mod environment;
 mod factorgraph;
+pub mod goal_area;
 mod input;
 mod moveable_object;
 mod movement;
@@ -28,6 +29,10 @@ pub(crate) mod macros;
 #[cfg(feature = "dhat-heap")]
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
+
+#[cfg(not(feature = "dhat-heap"))]
+#[global_allocator]
+static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 use std::path::Path;
 
@@ -382,7 +387,8 @@ fn main() -> anyhow::Result<()> {
             planner::PlannerPlugin,
             bevy_notify::NotifyPlugin::default(),
             export::ExportPlugin::default(),
-            bevy_fullscreen::ToggleFullscreenPlugin::default()
+            bevy_fullscreen::ToggleFullscreenPlugin::default(),
+            goal_area::GoalAreaPlugin,
         ))
         .add_systems(Update, draw_coordinate_system.run_if(input_just_pressed(KeyCode::F1)))
         .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));
@@ -436,11 +442,13 @@ fn virtual_time_exceeds_max_time(time: Res<Time<Virtual>>, config: Res<Config>) 
 }
 
 /// Ends the simulation.
-fn end_simulation(config: Res<Config>) {
+fn end_simulation(config: Res<Config>, mut evw_app_exit: EventWriter<bevy::app::AppExit>) {
     println!(
         "ending simulation, reason: time elapsed exceeds configured max time: {} seconds",
         config.simulation.max_time.get()
     );
+
+    evw_app_exit.send(bevy::app::AppExit);
     // std::process::exit(0);
 }
 

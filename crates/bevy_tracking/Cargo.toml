@@ -1,6 +1,7 @@
 [package]
 name                   = "bevy_tracking"
 edition                = "2021"
+description            = "Track position and velocity of Bevy entities"
 version.workspace      = true
 repository.workspace   = true
 authors.workspace      = true

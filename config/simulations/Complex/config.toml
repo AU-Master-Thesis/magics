@@ -54,6 +54,10 @@ internal = 10
 external = 10
 schedule = "interleave-evenly"
 
+[gbp.tracking]
+attraction-distance = 1.0
+switch-padding      = 5.0
+
 [robot]
 planning-horizon                       = 5.0
 max-speed                              = 7.0

@@ -483,7 +483,6 @@ impl FactorNode {
 #[allow(missing_docs)]
 #[derive(Debug, derive_more::IsVariant, strum_macros::EnumTryAs)]
 pub enum FactorKind {
-    // Pose(PoseFactor),
     /// `InterRobotFactor`
     InterRobot(InterRobotFactor),
     /// `DynamicFactor`

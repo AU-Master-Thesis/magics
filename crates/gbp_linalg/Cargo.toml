@@ -1,6 +1,7 @@
 [package]
 name                   = "gbp_linalg"
 edition                = "2021"
+description            = "Linear algebra utilities"
 version.workspace      = true
 repository.workspace   = true
 authors.workspace      = true

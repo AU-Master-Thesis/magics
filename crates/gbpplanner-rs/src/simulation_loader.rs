@@ -1,12 +1,12 @@
 use std::{
     collections::{BTreeMap, VecDeque},
-    path::PathBuf,
     time::Duration,
 };
 
 use bevy::{
-    input::common_conditions::input_just_pressed, prelude::*,
-    time::common_conditions::on_real_timer,
+    input::common_conditions::input_just_pressed,
+    prelude::*,
+    time::common_conditions::{on_real_timer, on_timer},
 };
 use bevy_notify::{ToastEvent, ToastLevel, ToastOptions};
 use gbp_config::{Config, FormationGroup};
@@ -29,6 +29,7 @@ pub struct SimulationLoaderPlugin {
     // pub simulations_dir: std::path::PathBuf,
     pub show_toasts: bool,
     pub initial_simulation: InitialSimulation,
+    pub reload_after: Option<Duration>,
 }
 
 impl Default for SimulationLoaderPlugin {
@@ -36,7 +37,15 @@ impl Default for SimulationLoaderPlugin {
         Self {
             show_toasts: true,
             initial_simulation: InitialSimulation::FirstFoundInFolder,
+            reload_after: None,
         }
+    }
+}
+
+impl SimulationLoaderPlugin {
+    pub fn reload_after(mut self, duration: Duration) -> Self {
+        self.reload_after = Some(duration);
+        self
     }
 }
 
@@ -65,8 +74,54 @@ impl SimulationLoaderPlugin {
                 .map_or(InitialSimulation::FirstFoundInFolder, |name| {
                     InitialSimulation::Name(name)
                 }),
+            reload_after: Some(Duration::from_secs(80)), // for experiments purposes to run
+            // overnight
+
+            //..Default::default()
         }
     }
+
+    // fn reload_after_system( &self,
+    //    time: Res<Time<Fixed>>,
+    //    mut evw_reload_simulation: EventWriter<ReloadSimulation>,
+    //    simulation_manager: Res<SimulationManager>,
+    //) {
+    //    if self
+    //        .reload_after
+    //        .as_ref()
+    //        .is_some_and(|after| time.elapsed() >= *after)
+    //    {
+    //        if let Some(id) = simulation_manager.active_id() {
+    //            evw_reload_simulation.send(ReloadSimulation(id));
+    //        };
+    //    }
+    //}
+}
+
+fn reload_after(
+    duration: Duration,
+) -> impl FnMut(Res<Time<Fixed>>, EventWriter<ReloadSimulation>, ResMut<SimulationManager>) {
+    move |time: Res<Time<Fixed>>,
+          mut evw_reload_simulation: EventWriter<ReloadSimulation>,
+          mut simulation_manager: ResMut<SimulationManager>| {
+        println!("elapsed: {:?}", time.elapsed());
+        if time.elapsed() >= duration {
+            if let Some(id) = simulation_manager.active_id() {
+                simulation_manager.reload();
+                // evw_reload_simulation.send(ReloadSimulation(id));
+            };
+        }
+    }
+}
+
+// fn elapsed_time_exceeds(duration: Duration) -> impl FnMut(Res<Time>) -> bool
+// + Clone {    move |time: Res<Time>| time.elapsed() >= duration
+//}
+
+fn elapsed_virtual_time_exceeds(
+    duration: Duration,
+) -> impl FnMut(Res<Time<Virtual>>) -> bool + Clone {
+    move |time: Res<Time<Virtual>>| time.elapsed() >= duration
 }
 
 impl Plugin for SimulationLoaderPlugin {
@@ -81,7 +136,7 @@ impl Plugin for SimulationLoaderPlugin {
                     .file_name()
                     .into_string()
                     .expect("failed to parse simulation name");
-                println!("about to load: {name:?}");
+                // println!("about to load: {name:?}");
                 let config_path = dir.path().join("config.toml");
                 let config = Config::from_file(config_path).unwrap();
                 let environment_path = dir.path().join("environment.yaml");
@@ -127,7 +182,7 @@ impl Plugin for SimulationLoaderPlugin {
                     // raw: Raw(raw_image_buffer.into()),
                 };
 
-                println!("loaded: {name:?}");
+                // println!("loaded: {name:?}");
 
                 (name, simulation)
             })
@@ -183,6 +238,19 @@ impl Plugin for SimulationLoaderPlugin {
                     load_previous_simulation.run_if(input_just_pressed(KeyCode::F4)),
                 )
             );
+
+        if let Some(after) = self.reload_after {
+            app.add_systems(
+                FixedUpdate,
+                (
+                    reload_simulation
+                        .run_if(on_timer(after).and_then(elapsed_virtual_time_exceeds(after))),
+                    //(|time: Res<Time<Virtual>>| println!("time exceeded {:?}", time.elapsed()))
+                    //    .run_if(elapsed_virtual_time_exceeds(after)),
+                ),
+            );
+            // app.add_systems(FixedUpdate, reload_after(after));
+        }
     }
 }
 
@@ -539,19 +607,6 @@ fn handle_requests(
     info!("requests pending: {:?}", simulation_manager.requests.len());
 
     match request {
-        Request::Load(_) | Request::Reload => {
-            let is_paused = time_virtual.is_paused();
-
-            let virtual_time = time_virtual.bypass_change_detection();
-            *virtual_time = Time::<Virtual>::default();
-            if is_paused {
-                virtual_time.unpause();
-            }
-        }
-        _ => {}
-    }
-
-    match request {
         Request::LoadInitial => todo!(),
         // Request::Load(id) if simulation_loader.active.is_none() => {
         //     simulation_manager.active = Some(id.0);
@@ -579,6 +634,8 @@ fn handle_requests(
             // config.simulation.t0 =
             *environment = simulation_manager.simulations[id.0].environment.clone();
             *sdf = simulation_manager.simulations[id.0].sdf.clone();
+
+            time_virtual.set_relative_speed(config.simulation.time_scale.get());
             // *raw = simulation_manager.simulations[id.0].raw.clone();
             // *variable_timesteps = VariableTimesteps::from(config.as_ref());
             let seed: [u8; 8] = config.simulation.prng_seed.to_le_bytes();
@@ -640,6 +697,23 @@ fn handle_requests(
                 error!("no active simulation to end");
             }
         },
+    }
+
+    match request {
+        Request::Load(_) | Request::Reload => {
+            let is_paused = time_virtual.is_paused();
+            // let relative_speed = time_virtual.
+
+            let virtual_time = time_virtual.bypass_change_detection();
+            *virtual_time = Time::<Virtual>::default();
+            if is_paused {
+                virtual_time.unpause();
+            }
+
+            virtual_time.set_relative_speed(config.simulation.time_scale.get());
+        }
+
+        _ => {}
     }
 }
 

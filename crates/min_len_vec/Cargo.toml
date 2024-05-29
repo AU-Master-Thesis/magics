@@ -1,11 +1,12 @@
 [package]
-name = "min_len_vec"
-edition = "2021"
-version.workspace = true
-repository.workspace = true
-authors.workspace = true
+name                   = "min_len_vec"
+edition                = "2021"
+description            = "A vector with a quarenteed minimum length"
+version.workspace      = true
+repository.workspace   = true
+authors.workspace      = true
 rust-version.workspace = true
-license.workspace = true
+license.workspace      = true
 
 [dependencies]
 serde.workspace = true

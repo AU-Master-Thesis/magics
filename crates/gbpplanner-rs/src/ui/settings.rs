@@ -279,7 +279,8 @@ fn ui_settings_panel(
                             )),
                         );
 
-                        ui.label("Iterations Per Timestep");
+                        //ui.label("Iterations Per Timestep");
+                        ui.label(egui::RichText::new("Iterations Per Timestep").size(14.0));
                         ui.separator();
                         // ui.add_space(2.5);
 
@@ -439,7 +440,7 @@ fn ui_settings_panel(
                         ui.separator();
 
                         // ui.label("Factors");
-                        ui.label(egui::RichText::new("Factors").size(16.0));
+                        ui.label(egui::RichText::new("Factors Enabled").size(16.0));
 
                         custom::grid("factors_enabled_grid", 2).show(ui, |ui| {
                             let copy = config.gbp.factors_enabled.clone();
@@ -474,7 +475,7 @@ fn ui_settings_panel(
                                 // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                                 ui.spacing_mut().slider_width = ui.available_width();
                                 // let mut available_size = ui.available_size();
-                                // available_size.x += 10.0;
+                                    // available_size.x += 10.0;
                                 // let slider_response = ui.add_sized(available_size,
                                    let slider_response = ui.add_enabled(
                                        time_virtual.is_paused(),
@@ -500,16 +501,12 @@ fn ui_settings_panel(
                             ui.horizontal(|ui| {
                                 let mut max_speed = config.robot.max_speed.get();
                                 ui.label(format!("{:.1}m/s", max_speed));
-                                // slider for robot max speed  in (0.0, 10.]
-                                // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING - 16.0);
-                                // ui.spacing_mut().slider_width = ui.available_width() - (custom::SLIDER_EXTRA_WIDE + custom::SPACING);
                                 ui.spacing_mut().slider_width = ui.available_width();
 
                                    let slider_response = ui.add_enabled(
                                        time_virtual.is_paused(),
-                                                                          egui::Slider::new(&mut max_speed, 0.1..=100.0)
+                                                                          egui::Slider::new(&mut max_speed, 0.1..=40.0)
 
-                                        // .suffix("m/s")
                                         .fixed_decimals(1)
                                         .show_value(false)
                                         .trailing_fill(true));
@@ -519,8 +516,80 @@ fn ui_settings_panel(
                             });
 
                             ui.end_row();
+
                         });
                     }
+
+                    ui.separator();
+                    ui.add_space(2.5);
+
+                    custom::grid("variable_grid", 2).show(ui, |ui| {
+                            ui.label("Lookahead Multiple");
+                            ui.horizontal(|ui| {
+                                let mut lookahead_multiple = config.gbp.lookahead_multiple;
+                                ui.label(format!("{}", lookahead_multiple));
+
+                                ui.spacing_mut().slider_width = ui.available_width();
+
+                                let slider_response = ui.add_enabled(
+                                    time_virtual.is_paused(),
+                                    egui::Slider::new(&mut lookahead_multiple, 1..=5)
+                                    .fixed_decimals(0)
+                                    .show_value(false)
+                                    .trailing_fill(true));
+                                if slider_response.enabled() && slider_response.changed() {
+                                    config.gbp.lookahead_multiple = lookahead_multiple;
+                                }
+                            });
+
+                            ui.end_row();
+
+                            ui.label("Lookahead Horizon");
+                            ui.horizontal(|ui| {
+                                let mut lookahead_horizon = config.robot.planning_horizon.get();
+                                ui.label(format!("{:.1}s", lookahead_horizon));
+
+                                ui.spacing_mut().slider_width = ui.available_width();
+
+                                let slider_response = ui.add_enabled(
+                                    time_virtual.is_paused(),
+                                    egui::Slider::new(&mut lookahead_horizon, 1.0..=15.0)
+                                    .fixed_decimals(1)
+                                    .show_value(false)
+                                    .trailing_fill(true));
+                                if slider_response.enabled() && slider_response.changed() {
+                                    config.robot.planning_horizon = lookahead_horizon.try_into().unwrap();
+                                }
+                            });
+
+                            ui.end_row();
+
+                            ui.label("Variables");
+                            let mut text = config.gbp.variables.to_string();
+
+                            let te_output = egui::TextEdit::singleline(&mut text)
+                                .char_limit(3)
+                                .interactive(time_virtual.is_paused())
+                                .desired_width(f32::INFINITY)
+                                .show(ui);
+
+                            // if te_output.response.lost_focus() && te_output.response.changed() {
+                            if  te_output.response.changed() {
+                                match text.parse::<usize>() {
+                                    Ok(x) if x >= 2 => {
+                                        config.gbp.variables = x;
+                                    },
+                                    Ok(x) => {
+                                        error!("less than 2 variables not allowed. {}", x);
+                                    }
+                                    _ => {
+                                        error!("failed to parse {} as usize", text);
+                                    },
+                                }
+                            }
+                            ui.end_row();
+
+                    });
 
                     custom::subheading(ui, "Communication",
                         Some(Color32::from_catppuccin_colour(
@@ -540,14 +609,14 @@ fn ui_settings_panel(
 
                             ui.spacing_mut().slider_width = ui.available_width();
                             let slider_response = ui.add(
-                                egui::Slider::new(&mut comms_radius, 0.1..=50.0)
+                                egui::Slider::new(&mut comms_radius, 0.1..=100.0)
                                     // .suffix("m")
                                     .fixed_decimals(1)
                                     .trailing_fill(true)
                                     .show_value(false)
                             );
                             if slider_response.changed() {
-                                config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 50.0]");
+                                config.robot.communication.radius = comms_radius.try_into().expect("slider range set to [0.1, 100.0]");
                                 // TODO: this should not be done with a query here, but there is not
                                 // much time left.
                                 let mut query = world.query::<&mut RadioAntenna>();
@@ -717,13 +786,14 @@ fn ui_settings_panel(
                     });
 
                     ui.add_space(2.5);
-                    ui.add(egui::Separator::default().shrink(20.0));
+                    ui.separator();
+                    //ui.add(egui::Separator::default().shrink(20.0));
                     custom::grid("special_draw_grid", 2).show(ui, |ui| {
                         // GIZMOS
-                        let (gizmo_config, _) =
-                            config_store.config_mut::<DefaultGizmoConfigGroup>();
                         ui.label("Gizmos");
                         custom::float_right(ui, |ui| {
+                            let (gizmo_config, _) =
+                                config_store.config_mut::<DefaultGizmoConfigGroup>();
                             custom::toggle_ui(ui, &mut gizmo_config.enabled);
                         });
 
@@ -893,6 +963,19 @@ fn ui_settings_panel(
                                 },
                             }
                         }
+
+                        ui.end_row();
+
+                        ui.label("Pause on Spawn");
+                        custom::float_right(ui, |ui| {
+                            custom::toggle_ui(ui, &mut config.simulation.pause_on_spawn);
+                        });
+
+                        ui.end_row();
+                        ui.label("Exit at End");
+                        custom::float_right(ui, |ui| {
+                            custom::toggle_ui(ui, &mut config.simulation.exit_application_on_scenario_finished);
+                        });
                     });
 
                     custom::subheading(
@@ -917,13 +1000,13 @@ fn ui_settings_panel(
                                 if cfg!(target_arch = "wasm32") {
                                     world.send_event::<ToastEvent>(ToastEvent::warning("Not supported on wasm32"));
                                 } else {
-                                    let png_output_path = Path::new("factorgraphs.png");
 
-                                    if !png_output_path.exists() {
+                                    let image_output_path = Path::new("factorgraphs.png");
+                                    if !image_output_path.exists() {
                                         world.send_event::<ToastEvent>(ToastEvent::warning("No factorgraph has been exported yet"));
                                     } else {
-                                        if let Err(err) = open::that_detached(png_output_path) {
-                                            let err_msg = format!("Failed to open {}: {}", png_output_path.display(), err);
+                                        if let Err(err) = open::that_detached(image_output_path) {
+                                            let err_msg = format!("Failed to open {}: {}", image_output_path.display(), err);
                                             error!(err_msg);
                                             world.send_event::<ToastEvent>(ToastEvent::error(err_msg));
                                         }
