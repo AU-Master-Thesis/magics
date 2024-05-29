@@ -48,8 +48,17 @@ plt.rcParams.update({
 sns.set_theme()
 pretty.install()
 
-RESULTS_DIR = Path('./experiments/circle')
-assert RESULTS_DIR.is_dir() and RESULTS_DIR.exists()
+RESULTS_DIRS = [
+    Path('./experiments/circle-experiment-lm-3-th-5'),
+    Path('./experiments/circle-experiment-lm-3-th-13'),
+    Path('./experiments/circle-experiment-lm-1-th-13')
+]
+
+for RESULTS_DIR in RESULTS_DIRS:
+    assert RESULTS_DIR.is_dir() and RESULTS_DIR.exists()
+
+# RESULTS_DIR = Path('./experiments/circle-experiment-lm-3-th-5')
+# assert RESULTS_DIR.is_dir() and RESULTS_DIR.exists()
 
 flavor = PALETTE.latte.colors
 # num-robots-10-seed-0.json
@@ -116,33 +125,36 @@ def main():
     print(f"{sys.executable = }")
     print(f"{sys.version = }")
 
-    aggregated_data_distance_travelled = collections.defaultdict(list)
+    data = []
+    for RESULTS_DIR in RESULTS_DIRS:
+        with ProcessPoolExecutor() as executor:
+            results = executor.map(process_file, RESULTS_DIR.glob('*.json'))
 
-    with ProcessPoolExecutor() as executor:
-        results = executor.map(process_file, RESULTS_DIR.glob('*.json'))
+        # Aggregate results in a single-threaded manner to avoid data
+        aggregated_data_distance_travelled: dict[int, list[float]] = collections.defaultdict(list)
+        aggregated_data_makespan: dict[int, list[float]] = collections.defaultdict(list)
+        aggregated_data_ldj: dict[int, list[float]] = collections.defaultdict(list)
 
-    # Aggregate results in a single-threaded manner to avoid data races
-    aggregated_data_distance_travelled: dict[int, list[float]] = collections.defaultdict(list)
-    aggregated_data_makespan: dict[int, list[float]] = collections.defaultdict(list)
-    aggregated_data_ldj: dict[int, list[float]] = collections.defaultdict(list)
+        for num_robots, distance_travelled_for_each_robot, makespan, ldj_for_each_robot in results:
+            aggregated_data_distance_travelled[num_robots].extend(distance_travelled_for_each_robot)
+            aggregated_data_makespan[num_robots].append(makespan)
+            aggregated_data_ldj[num_robots].extend(ldj_for_each_robot)
 
-    for num_robots, distance_travelled_for_each_robot, makespan, ldj_for_each_robot in results:
-        aggregated_data_distance_travelled[num_robots].extend(distance_travelled_for_each_robot)
-        aggregated_data_makespan[num_robots].append(makespan)
-        aggregated_data_ldj[num_robots].extend(ldj_for_each_robot)
+        data_distance = [aggregated_data_distance_travelled[key] for key in sorted(aggregated_data_distance_travelled.keys())]
+        labels_distance = sorted(aggregated_data_distance_travelled.keys())
 
-    data = [aggregated_data_distance_travelled[key] for key in sorted(aggregated_data_distance_travelled.keys())]
-    labels = sorted(aggregated_data_distance_travelled.keys())
+        data.append(
+            {
+                'distance': data_distance,
+                'labels_distance': labels_distance,
+                'makespan': aggregated_data_makespan,
+                'ldj': aggregated_data_ldj
+            }
+        )
 
-    a4_ratio = 1 / 1.414
-    fig, ax = plt.subplots(figsize=(8 * a4_ratio, 8))
+    # plot distance travelled
+    fig, ax = plt.subplots(figsize=(4, 3))
 
-# showmeans=False, showfliers=False,
-#                 medianprops={"color": "white", "linewidth": 0.5},
-#                 boxprops={"facecolor": "C0", "edgecolor": "white",
-#                           "linewidth": 0.5},
-#                 whiskerprops={"color": "C0", "linewidth": 1.5},
-#                 capprops={"color": "C0", "linewidth": 1.5})
     boxplot_opts = dict(
         showmeans=False, showfliers=True,
         # medianprops={"color": flavor.blue.hex, "linewidth": 0.5},
@@ -153,7 +165,11 @@ def main():
         flierprops=dict(marker='D', color=flavor.lavender.hex, markersize=8)
     )
 
-    ax.boxplot(data, labels=labels, **boxplot_opts)
+    for i, d in enumerate(data):
+        distance_data = d['distance']
+        labels = d['labels_distance']
+        ax.boxplot(distance_data, labels=labels, **boxplot_opts)
+    # ax.boxplot(data, labels=labels, **boxplot_opts)
 
     # violin_parts = plt.violinplot(data, showmeans=False, showmedians=True)
 
@@ -162,23 +178,22 @@ def main():
     ax.tick_params(axis='both', which='major', labelsize=10)
 
     ax.set_ylim(0, 250)
-    # ax.set_aspect(1 / 1.414) # A4 paper
 
     # Draw optimal line
     ax.axhline(y=100, color=flavor.overlay2.hex, linestyle='--', linewidth=1.5)
 
-    plt.tight_layout()
-    plt.savefig('circle-experiment-distance-travelled.svg')
+    fig.tight_layout()
+    fig.savefig('circle-experiment-distance-travelled.svg')
 
-    # fig, ax = plt.subplots(figsize=(8 * a4_ratio, 8))
+    # plot makespan
+    fig, ax = plt.subplots(figsize=(4, 3))
+    for i, d in enumerate(data):
+        aggregated_data_makespan = d['makespan']
+        makespan_data = [aggregated_data_makespan[key] for key in sorted(aggregated_data_makespan.keys())]
+        labels = sorted(aggregated_data_makespan.keys())
+        makespan_data = [np.mean(makespan) for makespan in makespan_data]
+        ax.plot(labels, makespan_data, marker='o', color=flavor.lavender.hex, label='Circle Scenario')
 
-    a4_width = 8.27
-    a4_height = 11.69
-    fig, ax = plt.subplots(figsize=(a4_width, a4_height))
-    data = [aggregated_data_makespan[key] for key in sorted(aggregated_data_makespan.keys())]
-    labels = sorted(aggregated_data_makespan.keys())
-    data = [np.mean(makespan) for makespan in data]
-    ax.plot(labels, data, marker='o', color=flavor.lavender.hex, label='Circle Scenario')
     ax.set_ylim(0, 200)
     # ax.set_aspect(1 / 1.414) # A4 paper
     # ax.boxplot(data, labels=labels, flierprops=dict(marker='D', color='r', markersize=8))
@@ -189,12 +204,17 @@ def main():
     legend = ax.legend(borderpad=0.5, framealpha=0.8, frameon=True)
     legend.get_frame().set_facecolor(flavor.surface0.hex)  # Change background color
     # plt.tight_layout()
-    plt.savefig('circle-experiment-makespan.svg')
+    fig.savefig('circle-experiment-makespan.svg')
+    
 
-    fig, ax = plt.subplots(figsize=(8 * a4_ratio, 8))
-    data = [aggregated_data_ldj[key] for key in sorted(aggregated_data_ldj.keys())]
-    labels = sorted(aggregated_data_ldj.keys())
-    ax.boxplot(data, labels=labels, **boxplot_opts)
+    # plot ldj
+    fig, ax = plt.subplots(figsize=(4, 3))
+
+    for i, d in enumerate(data):
+        aggregated_data_ldj = d['ldj']
+        data_ldj = [aggregated_data_ldj[key] for key in sorted(aggregated_data_ldj.keys())]
+        labels = sorted(aggregated_data_ldj.keys())
+        ax.boxplot(data_ldj, labels=labels, **boxplot_opts)
 
     ax.set_ylim(-25, 0)
     # ax.set_aspect(1 / 1.414) # A4 paper
@@ -202,10 +222,10 @@ def main():
     ax.set_ylabel(r'Log Dimensionless Jerk $[m/s^3]$', fontsize=12)
     ax.tick_params(axis='both', which='major', labelsize=10)
 
-    plt.tight_layout()
-    plt.savefig('circle-experiment-ldj.svg')
+    fig.tight_layout()
+    fig.savefig('circle-experiment-ldj.svg')
 
-    plt.show()
+    fig.show()
 
 
 if __name__ == '__main__':

@@ -30,6 +30,23 @@
         "llvm-tools-preview" # used with `cargo-pgo`
       ];
       rust-additional-targets = ["wasm32-unknown-unknown"];
+
+      python-deps = with pkgs.python3Packages; [
+        numpy
+        scipy
+        rich
+        tabulate
+        matplotlib
+        toolz
+        seaborn
+        result
+        pretty-errors
+        seaborn
+        catppuccin
+        jupyter
+        notebook
+        pip
+      ];
       # wgsl-analyzer-pkgs = import inputs.wgsl_analyzer {inherit system;};
       bevy-deps = with pkgs; [
         udev
@@ -104,6 +121,7 @@
         act # run github actions local in a docker container
         dot-language-server
         gh
+        texliveFull
       ];
     in
       with pkgs; {
@@ -134,7 +152,8 @@
             ]
             ++ bevy-deps
             ++ rust-deps
-            ++ dev-deps;
+            ++ dev-deps
+            ++ python-deps;
 
           LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
         };

@@ -28,3 +28,5 @@ flamegraphs/*
 *.html
 
 experiments/
+
+**/__pycache__/
