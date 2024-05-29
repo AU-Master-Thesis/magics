@@ -42,7 +42,7 @@ sigma-factor-interrobot = 0.005
 sigma-factor-obstacle   = 0.005
 sigma-factor-tracking   = 0.1
 # iterations-per-timestep = 10
-lookahead-multiple = 3
+lookahead-multiple = 1
 
 [gbp.iteration-schedule]
 internal = 50
@@ -50,9 +50,9 @@ external = 10
 schedule = "interleave-evenly"
 
 [robot]
-planning-horizon                       = 10.0
+planning-horizon                       = 7.0
 max-speed                              = 10.0
-inter-robot-safety-distance-multiplier = 2.2
+inter-robot-safety-distance-multiplier = 2.4
 
 [robot.radius]
 min = 2.5
