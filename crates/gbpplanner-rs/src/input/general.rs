@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use bevy::{app::AppExit, prelude::*, tasks::IoTaskPool};
 use bevy_notify::prelude::*;
+use chrono::Duration;
 use gbp_config::{Config, DrawSetting};
 use leafwing_input_manager::prelude::*;
 use strum::IntoEnumIterator;
@@ -20,6 +21,7 @@ use crate::{
     },
     pause_play::PausePlay,
     planner::{robot::RadioAntenna, RobotConnections, RobotId},
+    simulation_loader::SaveSettings,
     theme::CatppuccinTheme,
 };
 
@@ -51,7 +53,7 @@ impl Plugin for GeneralInputPlugin {
                         event_exists::<ToastEvent>
                             .and_then(on_event::<ExportFactorGraphAsGraphvizFinished>()),
                     ),
-                    screenshot,
+                    // screenshot,
                     quit_application_system,
                 ),
             );
@@ -129,8 +131,10 @@ pub enum GeneralAction {
     CycleTheme,
     /// Export all factorgraphs as `graphviz` format
     ExportGraph,
+    ///// Take a screenshot of the primary window and save it to disk
+    // ScreenShot,
     /// Take a screenshot of the primary window and save it to disk
-    ScreenShot,
+    SaveSettings,
     /// Quit the application, and end the program
     QuitApplication,
     /// Toggle the simulation time between paused and playing
@@ -142,7 +146,7 @@ impl std::fmt::Display for GeneralAction {
         write!(f, "{}", match self {
             Self::CycleTheme => "Cycle Theme",
             Self::ExportGraph => "Export Graph",
-            Self::ScreenShot => "Take Screenshot",
+            Self::SaveSettings => "Save Settings",
             Self::QuitApplication => "Quit Application",
             Self::PausePlaySimulation => "Pause/Play Simulation",
         })
@@ -154,7 +158,7 @@ impl GeneralAction {
         match action {
             Self::CycleTheme => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyT)),
             Self::ExportGraph => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG)),
-            Self::ScreenShot => {
+            Self::SaveSettings => {
                 UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyS))
             }
             Self::QuitApplication => {
@@ -522,6 +526,8 @@ fn general_actions_system(
     // mut app_exit_event: EventWriter<AppExit>,
     mut quit_application_event: EventWriter<QuitApplication>,
     export_graph_finished_event: EventWriter<ExportFactorGraphAsGraphvizFinished>,
+    mut evw_save_settings: EventWriter<SaveSettings>,
+    mut evw_toast: EventWriter<ToastEvent>,
     // mut pause_play_event: EventWriter<PausePlay>,
     // toast_event: EventWriter<ToastEvent>,
 ) {
@@ -551,10 +557,20 @@ fn general_actions_system(
         // info!("quitting application");
         // app_exit_event.send(AppExit);
     }
-    // else if action_state.just_pressed(&GeneralAction::PausePlaySimulation) {
-    //     info!("toggling pause/play simulation");
-    //     pause_play_event.send(PausePlay::Toggle);
-    // }
+
+    if action_state.just_pressed(&GeneralAction::SaveSettings) {
+        evw_save_settings.send(SaveSettings);
+        let toast = ToastEvent {
+            caption: "saved settings to config.toml".to_string(),
+            options: ToastOptions {
+                duration: Some(std::time::Duration::from_millis(500)),
+                level: ToastLevel::Success,
+                show_progress_bar: false,
+                closable: false,
+            },
+        };
+        evw_toast.send(toast);
+    }
 }
 
 fn pause_play_simulation(
@@ -590,7 +606,7 @@ fn screenshot(
         return;
     };
 
-    if action_state.just_pressed(&GeneralAction::ScreenShot) {
+    if action_state.just_pressed(&GeneralAction::SaveSettings) {
         info!("Sending TakeScreenshot::default() event");
         screen_shot_event.send(TakeScreenshot::default());
     }
