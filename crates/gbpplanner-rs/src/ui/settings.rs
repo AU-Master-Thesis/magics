@@ -822,7 +822,7 @@ fn ui_settings_panel(
                     );
 
                     custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
-                        ui.label("Active Simulation");
+                        ui.label("Active Scenario");
                         custom::grid("simulation_settings_grid", 2).show(ui, |ui| {
 
                             ui.centered_and_justified(|ui| {

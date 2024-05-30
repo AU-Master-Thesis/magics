@@ -67,7 +67,7 @@ time-scale         = 1.0
 manual-step-factor = 1
 hz                 = 10.0
 # world-size                                = 100.0
-prng-seed                                 = 0
+prng-seed = 0
 pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = true
 

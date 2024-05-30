@@ -1669,10 +1669,10 @@ fn iterate_gbp_v2(
             query
                 .par_iter_mut()
                 .for_each(|(mut factorgraph, _, antenna)| {
-                    if antenna.active {
-                        factorgraph.internal_factor_iteration();
-                        factorgraph.internal_variable_iteration();
-                    }
+                    // if antenna.active {
+                    factorgraph.internal_factor_iteration();
+                    factorgraph.internal_variable_iteration();
+                    // }
                 });
         }
 
@@ -1694,9 +1694,10 @@ fn iterate_gbp_v2(
                     continue;
                 };
 
-                // if !antenna.active {
-                //    continue;
-                //}
+                // cannot receive any new messages if antenna is turned off
+                if !antenna.active {
+                    continue;
+                }
 
                 if let Some(variable) =
                     external_factorgraph.get_variable_mut(message.to.variable_index)
@@ -1722,9 +1723,10 @@ fn iterate_gbp_v2(
                     continue;
                 };
 
-                // if !antenna.active {
-                //    continue;
-                //}
+                // cannot receive any new messages if antenna is turned off
+                if !antenna.active {
+                    continue;
+                }
 
                 if let Some(factor) = external_factorgraph.get_factor_mut(message.to.factor_index) {
                     factor.receive_message_from(message.from, message.message);
@@ -2063,7 +2065,9 @@ fn update_prior_of_horizon_state(
     let mut robots_to_despawn = Vec::new();
 
     for (robot_id, mut factorgraph, mission, mut finished_path, radius, antenna) in &mut query {
-        if finished_path.0 || mission.state.idle() || !antenna.active {
+        if finished_path.0 || mission.state.idle()
+        // || !antenna.active
+        {
             continue;
         }
 
@@ -2144,7 +2148,9 @@ fn update_prior_of_current_state_v3(
     let mut messages_to_external_factors: Vec<FactorToVariableMessage> = vec![];
 
     for (mut factorgraph, mut transform, &t0, mission, antenna) in &mut query {
-        if mission.state.idle() || !antenna.active {
+        if mission.state.idle()
+        // || !antenna.active
+        {
             continue;
         }
 

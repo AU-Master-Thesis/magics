@@ -37,7 +37,9 @@ for seed in 0 31 227 252 805
     printf '%sinfo%s: changed prng-seed to: %d\n' $green $reset $seed >&2
 
     for comms_radius in 20 40 60 80
-        sed "s/^radius\s*=\s*[0-9]\+$/radius = $comms_radius/" -i $config_file
+        # sed "s/^radius\s*=\s*([0-9]\+)/radius = $comms_radius/" -i $config_file
+        sed --regexp-extended "s/^radius\s*=\s*[0-9]+/radius = $comms_radius/" -i $config_file
+
         printf '%sinfo%s: changed comms-radius to: %d\n' $green $reset $comms_radius >&2
 
         set -l output_file experiments/varying-network-connectivity/comms-radius-$comms_radius-seed-$seed.json
