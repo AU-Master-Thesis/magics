@@ -46,6 +46,7 @@
         jupyter
         notebook
         pip
+        numpy
       ];
       # wgsl-analyzer-pkgs = import inputs.wgsl_analyzer {inherit system;};
       bevy-deps = with pkgs; [
