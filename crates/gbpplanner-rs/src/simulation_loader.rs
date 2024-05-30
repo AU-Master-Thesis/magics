@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, VecDeque},
+    io::Write,
     time::Duration,
 };
 
@@ -228,6 +229,7 @@ impl Plugin for SimulationLoaderPlugin {
             .add_event::<ReloadSimulation>()
             .add_event::<LoadSimulation>()
             .add_event::<EndSimulation>()
+            .add_event::<SaveSettings>()
             .insert_resource(SimulationManager::new(simulations, Some(initial_simulation_name)))
             .add_systems(Update, handle_requests.run_if(on_real_timer(Duration::from_millis(500))))
             .add_systems(
@@ -236,6 +238,7 @@ impl Plugin for SimulationLoaderPlugin {
                     reload_simulation.run_if(input_just_pressed(KeyCode::F5)),
                     load_next_simulation.run_if(input_just_pressed(KeyCode::F6)),
                     load_previous_simulation.run_if(input_just_pressed(KeyCode::F4)),
+                    save_settings.run_if(on_event::<SaveSettings>()),
                 )
             );
 
@@ -488,6 +491,9 @@ pub struct ReloadSimulation(pub SimulationId);
 #[derive(Event)]
 pub struct EndSimulation(pub SimulationId);
 
+#[derive(Event)]
+pub struct SaveSettings;
+
 // TODO: send an simulation generation or id with
 #[derive(Event, Default)]
 pub struct SimulationReloaded;
@@ -725,4 +731,25 @@ fn load_previous_simulation(mut simulation_manager: ResMut<SimulationManager>) {
 #[inline]
 fn load_next_simulation(mut simulation_manager: ResMut<SimulationManager>) {
     simulation_manager.load_next();
+}
+
+/// Save the current state of the `Config` resource to the config.toml of the
+/// current scenario from which it was originally loaded from
+fn save_settings(mut simulation_manager: ResMut<SimulationManager>, config: Res<Config>) {
+    let Some(name) = simulation_manager.active_name() else {
+        return;
+    };
+
+    let dir = std::path::Path::new(SIMULATIONS_DIR).join(name);
+
+    // serialize to toml
+    let toml = toml::to_string_pretty(config.as_ref()).unwrap();
+    std::fs::write(dir.join("config.toml"), toml).unwrap();
+
+    // update the simulation manager instance of the config object, such that if the
+    // user loads another scenario, and then this, the current, again the changes
+    // will be persisted across this application instance
+    let ix = simulation_manager.active.unwrap();
+    simulation_manager.simulations[ix].config = config.clone();
+    info!("saved settings to: {}", dir.join("config.toml").display());
 }

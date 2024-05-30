@@ -26,7 +26,7 @@ use crate::{
     },
     pause_play::PausePlay,
     planner::robot::RadioAntenna,
-    simulation_loader::{SimulationId, SimulationManager},
+    simulation_loader::{SaveSettings, SimulationId, SimulationManager},
     theme::{CatppuccinTheme, CycleTheme, FromCatppuccinColourExt},
 };
 
@@ -269,6 +269,17 @@ fn ui_settings_panel(
                             }
                         });
                         ui.end_row();
+
+                        ui.label("Save Settings");
+                        //ui.label("Save Settings 💾");
+                        custom::fill_x(ui, |ui| {
+                            if ui.button("").clicked() {
+                                info!("Saving settings");
+                                world.send_event::<SaveSettings>(SaveSettings);
+                            }
+                        });
+
+
                     });
 
 
@@ -564,30 +575,30 @@ fn ui_settings_panel(
 
                             ui.end_row();
 
-                            ui.label("Variables");
-                            let mut text = config.gbp.variables.to_string();
-
-                            let te_output = egui::TextEdit::singleline(&mut text)
-                                .char_limit(3)
-                                .interactive(time_virtual.is_paused())
-                                .desired_width(f32::INFINITY)
-                                .show(ui);
-
-                            // if te_output.response.lost_focus() && te_output.response.changed() {
-                            if  te_output.response.changed() {
-                                match text.parse::<usize>() {
-                                    Ok(x) if x >= 2 => {
-                                        config.gbp.variables = x;
-                                    },
-                                    Ok(x) => {
-                                        error!("less than 2 variables not allowed. {}", x);
-                                    }
-                                    _ => {
-                                        error!("failed to parse {} as usize", text);
-                                    },
-                                }
-                            }
-                            ui.end_row();
+                            //ui.label("Variables");
+                            //let mut text = config.gbp.variables.to_string();
+                            //
+                            //let te_output = egui::TextEdit::singleline(&mut text)
+                            //    .char_limit(3)
+                            //    .interactive(time_virtual.is_paused())
+                            //    .desired_width(f32::INFINITY)
+                            //    .show(ui);
+                            //
+                            //// if te_output.response.lost_focus() && te_output.response.changed() {
+                            //if  te_output.response.changed() {
+                            //    match text.parse::<usize>() {
+                            //        Ok(x) if x >= 2 => {
+                            //            config.gbp.variables = x;
+                            //        },
+                            //        Ok(x) => {
+                            //            error!("less than 2 variables not allowed. {}", x);
+                            //        }
+                            //        _ => {
+                            //            error!("failed to parse {} as usize", text);
+                            //        },
+                            //    }
+                            //}
+                            //ui.end_row();
 
                     });
 
@@ -960,6 +971,27 @@ fn ui_settings_panel(
                                 },
                                 _ => {
                                     error!("failed to parse {} as usize", text);
+                                },
+                            }
+                        }
+
+                        ui.end_row();
+
+                        ui.label("Prng Seed");
+
+                        let mut text: String = config.simulation.prng_seed.to_string();
+
+                        let te_output = egui::TextEdit::singleline(&mut text)
+                            .desired_width(f32::INFINITY) // maximize
+                            .show(ui);
+
+                        if te_output.response.changed() {
+                            match text.parse::<u64>() {
+                                Ok(x) => {
+                                    config.simulation.prng_seed = x;
+                                },
+                                _ => {
+                                    error!("failed to parse {} as u64", text);
                                 },
                             }
                         }
