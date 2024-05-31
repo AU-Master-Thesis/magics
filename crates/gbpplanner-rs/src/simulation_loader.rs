@@ -138,11 +138,15 @@ impl Plugin for SimulationLoaderPlugin {
                     .expect("failed to parse simulation name");
                 // println!("about to load: {name:?}");
                 let config_path = dir.path().join("config.toml");
-                let config = Config::from_file(config_path).unwrap();
+                let config = Config::from_file(config_path)
+                    .expect(format!("failed to load config for simulation: {name:?}").as_str());
                 let environment_path = dir.path().join("environment.yaml");
-                let environment = Environment::from_file(environment_path).unwrap();
+                let environment = Environment::from_file(environment_path).expect(
+                    format!("failed to load environment for simulation: {name:?}").as_str(),
+                );
                 let formation_path = dir.path().join("formation.yaml");
-                let formation = FormationGroup::from_yaml_file(formation_path).unwrap();
+                let formation = FormationGroup::from_yaml_file(formation_path)
+                    .expect(format!("failed to load formation for simulation: {name:?}").as_str());
 
                 // println!("name: {name:?}");
                 let sdf_image_buffer = env_to_png::env_to_sdf_image(
