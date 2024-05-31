@@ -1,0 +1,118 @@
+# environment = "junction"
+environment_image = "junction_twoway"
+environment       = "./config/simulations/Complex/environment.yaml"
+formation_group   = "./config/simulations/Complex/formation.ron"
+
+[interaction]
+ui-focus-cancels-inputs = true
+default-cam-distance    = 300.0
+
+[visualisation.uncertainty]
+max-radius = 2.5
+scale      = 300.0
+
+[visualisation.height]
+objects    = 0.5
+height-map = 2.0
+
+[visualisation.draw]
+robots                             = true
+communication-graph                = true
+predicted-trajectories             = true
+waypoints                          = false
+uncertainty                        = false
+paths                              = true
+generated-map                      = true
+height-map                         = false
+sdf                                = false
+communication-radius               = false
+obstacle-factors                   = false
+tracking                           = true
+interrobot-factors                 = false
+interrobot-factors-safety-distance = false
+robot-colliders                    = false
+environment-colliders              = false
+robot-robot-collisions             = true
+robot-environment-collisions       = true
+
+[gbp.factors-enabled]
+tracking   = false
+obstacle   = true
+dynamic    = true
+interrobot = true
+
+[gbp]
+sigma-pose-fixed        = 1e-15
+sigma-factor-dynamics   = 0.5
+sigma-factor-interrobot = 0.01
+sigma-factor-obstacle   = 0.01
+sigma-factor-tracking   = 0.3
+lookahead-multiple      = 3
+
+[gbp.iteration-schedule]
+internal = 10
+external = 10
+schedule = "interleave-evenly"
+
+[gbp.tracking]
+attraction-distance = 1.0
+switch-padding      = 5.0
+
+[robot]
+planning-horizon                       = 5.0
+max-speed                              = 7.0
+inter-robot-safety-distance-multiplier = 3.2
+
+[robot.radius]
+min = 2.0
+max = 2.0
+
+[robot.communication]
+radius       = 20.0
+failure-rate = 0.0
+
+[simulation]
+# t0                 = 0.25
+max-time           = 10000.0
+time-scale         = 1.0
+manual-step-factor = 1
+hz                 = 10.0
+# world-size                                = 100.0
+prng-seed                                 = 2
+pause-on-spawn                            = false
+despawn-robot-when-final-waypoint-reached = true
+
+[rrt]
+max-iterations       = 5000000
+step-size            = 5.0
+collision-radius     = 3.0
+neighbourhood-radius = 8.0
+
+[rrt.smoothing]
+enabled        = true
+max-iterations = 500
+step-size      = 0.5
+
+
+[graphviz.interrobot.active]
+style = "dashed"
+len   = 8.0
+color = "red"
+
+[graphviz.interrobot.inactive]
+style = "dashed"
+len   = 8.0
+color = "gray"
+
+[graphviz]
+export-location = "./assets/export/"
+
+[manual]
+timesteps-per-step = 1
+
+[debug.on-variable-clicked]
+tracking   = true
+obstacle   = true
+dynamic    = false
+interrobot = false
+variable   = false
