@@ -77,7 +77,8 @@ impl ToUiString for GeneralAction {
         match self {
             Self::CycleTheme => "Toggle Theme".to_string(),
             Self::ExportGraph => "Export Graph".to_string(),
-            Self::SaveSettings => "Take Screenshot".to_string(),
+            Self::SaveSettings => "Save Settings".to_string(),
+            Self::ScreenShot => "Take Screenshot".to_string(),
             Self::QuitApplication => "Quit Application".to_string(),
             Self::PausePlaySimulation => "Pause/Play Simulation".to_string(),
         }

@@ -118,6 +118,16 @@ impl Message {
         })
     }
 
+    pub fn zero() -> Self {
+        Self {
+            payload: Some(Box::new(Payload {
+                information_vector: Vector::<Float>::zeros(DOFS),
+                precision_matrix: Matrix::<Float>::zeros((DOFS, DOFS)),
+                mean: Vector::<Float>::zeros(DOFS),
+            })),
+        }
+    }
+
     /// Create an empty message
     // PERF(kpbaks): set to None instead
     #[must_use]

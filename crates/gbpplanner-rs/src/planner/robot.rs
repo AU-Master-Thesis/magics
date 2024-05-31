@@ -710,16 +710,16 @@ fn progress_missions(
 
                                     let start: Vec4 = waypoints.first().copied().unwrap().into();
                                     let next: Vec4 = waypoints.get(1).copied().unwrap().into();
-                                    dbg!((start, next));
+                                    // dbg!((start, next));
                                     let dir = next - start;
                                     let dir_normalized = dir.normalize();
-                                    dbg!(dir);
+                                    // dbg!(dir);
                                     let horizon = f32::min(
                                         dir.length(),
                                         (config.robot.planning_horizon * config.robot.target_speed)
                                             .get(),
                                     ) * dir.normalize();
-                                    dbg!(horizon);
+                                    // dbg!(horizon);
 
                                     // let last_ts =
                                     // variable_timesteps.0.last().unwrap().to_owned();
@@ -2184,8 +2184,8 @@ fn update_prior_of_horizon_state(
         //}
 
         let (horizon_variable_index, horizon_variable) = factorgraph.last_variable_mut().unwrap();
-        dbg!(&horizon_variable_index);
-        dbg!(&horizon_variable.belief.mean);
+        // dbg!(&horizon_variable_index);
+        // dbg!(&horizon_variable.belief.mean);
         let estimated_position = horizon_variable.belief.mean.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
 
         let next_waypoint_pos = array![
@@ -2193,7 +2193,7 @@ fn update_prior_of_horizon_state(
             Float::from(next_waypoint.position().y)
         ];
 
-        dbg!((&estimated_position, &next_waypoint_pos));
+        // dbg!((&estimated_position, &next_waypoint_pos));
 
         let horizon2waypoint = next_waypoint_pos - estimated_position;
         let horizon2goal_dist = horizon2waypoint.euclidean_norm();
@@ -2203,12 +2203,12 @@ fn update_prior_of_horizon_state(
 
         // Update horizon state with new position and velocity
         let new_mean = concatenate![Axis(0), new_position, new_velocity];
-        dbg!(&new_mean);
+        // dbg!(&new_mean);
 
         // let time_scale = time_fixed.delta_seconds() / config.simulation.t0.get();
-        error!("mean before: {:?}", &horizon_variable.belief.mean);
+        // error!("mean before: {:?}", &horizon_variable.belief.mean);
         horizon_variable.belief.mean.clone_from(&new_mean);
-        error!("mean after: {:?}", &horizon_variable.belief.mean);
+        // error!("mean after: {:?}", &horizon_variable.belief.mean);
 
         let messages_to_external_factors =
             factorgraph.change_prior_of_variable(horizon_variable_index, new_mean);

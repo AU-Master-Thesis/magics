@@ -223,6 +223,7 @@ impl VariableNode {
         // PERF: do we need to reset the inbox?
         for message in self.inbox.values_mut() {
             *message = Message::empty();
+            //*message = Message::zero();
         }
 
         messages

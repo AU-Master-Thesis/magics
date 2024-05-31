@@ -65,6 +65,8 @@ impl InterRobotFactor {
 
         // println!("robot_number: {}", robot_number.get());
 
+        // dbg!(safety_distance);
+
         Self {
             safety_distance,
             robot_radius,

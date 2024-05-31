@@ -354,7 +354,7 @@ fn build_obstacles(
                         // let p = Vec3::new(*x as f32, 0.0, *y as f32);
                         // let p_rotated = rotation.mul_vec3(p);
                         let p_rotated = rotation2.mul_vec3(p);
-                        dbg!((&p, &p_rotated));
+                        //dbg!((&p, &p_rotated));
 
                         // let p_rotated = p;
                         parry2d::math::Point::new(

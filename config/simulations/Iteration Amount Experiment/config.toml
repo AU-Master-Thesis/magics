@@ -1,7 +1,7 @@
 # environment = "junction"
-environment_image = "junction_twoway"
-environment       = "./config/simulations/Intersection/environment.yaml"
-formation_group   = "./config/simulations/Intersection/formation.ron"
+environment_image = "empty"
+environment       = "./config/simulations/ClearCircle/environment.yaml"
+formation_group   = "./config/simulations/ClearCircle/formation.ron"
 
 [interaction]
 ui-focus-cancels-inputs = true
@@ -9,7 +9,7 @@ default-cam-distance    = 150.0
 
 [visualisation.uncertainty]
 max-radius = 2.5
-scale      = 30.0
+scale      = 300.0
 
 [visualisation.height]
 objects    = 0.5
@@ -19,7 +19,7 @@ height-map = 1.0
 robots                             = true
 communication-graph                = false
 predicted-trajectories             = false
-waypoints                          = true
+waypoints                          = false
 uncertainty                        = false
 paths                              = false
 generated-map                      = true
@@ -32,45 +32,50 @@ interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 robot-colliders                    = false
 environment-colliders              = false
-robot-robot-collisions             = false
+robot-robot-collisions             = true
 robot-environment-collisions       = false
-
 
 [gbp]
 sigma-pose-fixed        = 1e-15
-sigma-factor-dynamics   = 0.5
+sigma-factor-dynamics   = 1.0
 sigma-factor-interrobot = 0.005
 sigma-factor-obstacle   = 0.005
-sigma-factor-tracking   = 0.01
-lookahead-multiple      = 3
-
+sigma-factor-tracking   = 0.1
+# iterations-per-timestep = 10
+lookahead-multiple = 3
 [gbp.iteration-schedule]
-internal = 50
-external = 10
+internal = 5
+external = 25
 schedule = "interleave-evenly"
 
 [robot]
-planning-horizon                       = 2.0
-target-speed                           = 15.0
-inter-robot-safety-distance-multiplier = 2.2
+# planning-horizon = 13.33 # 2r / initial speed
+# planning-horizon = 12.4 # 2r / initial speed
+planning-horizon = 7
+# planning-horizon = 10
+# planning-horizon                       = 6.677 # 2r / initial speed
+target-speed                           = 10.0
+inter-robot-safety-distance-multiplier = 2.5
 
 [robot.radius]
-min = 2.5
-max = 2.5
+min = 2.0
+max = 3.0
 
 [robot.communication]
-radius       = 20.0
+radius       = 50.0
 failure-rate = 0.0
 
 [simulation]
-max-time           = 61.0
-time-scale         = 5.0
+# t0                                        = 0.25
+max-time           = 10000.0
+time-scale         = 1.0
 manual-step-factor = 1
 hz                 = 10.0
 # world-size                                = 100.0
-prng-seed                                 = 805
+prng-seed = 0
 pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = true
+exit-application-on-scenario-finished     = true
 
 [rrt]
 max-iterations       = 1000000
@@ -78,10 +83,9 @@ step-size            = 0.5
 collision-radius     = 0.1
 neighbourhood-radius = 10.0
 
-[rrt.smoothing]
-enabled        = true
-max-iterations = 500
-step-size      = 0.5
+# [rrt.smoothing]
+# max-iterations = 500
+# step-size      = 0.5
 
 [graphviz]
 export-location = "./assets/export/"
