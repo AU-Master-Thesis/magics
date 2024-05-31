@@ -53,7 +53,7 @@ impl Plugin for GeneralInputPlugin {
                         event_exists::<ToastEvent>
                             .and_then(on_event::<ExportFactorGraphAsGraphvizFinished>()),
                     ),
-                    // screenshot,
+                    screenshot,
                     quit_application_system,
                 ),
             );
@@ -131,8 +131,8 @@ pub enum GeneralAction {
     CycleTheme,
     /// Export all factorgraphs as `graphviz` format
     ExportGraph,
-    ///// Take a screenshot of the primary window and save it to disk
-    // ScreenShot,
+    /// Take a screenshot of the primary window and save it to disk
+    ScreenShot,
     /// Take a screenshot of the primary window and save it to disk
     SaveSettings,
     /// Quit the application, and end the program
@@ -146,6 +146,7 @@ impl std::fmt::Display for GeneralAction {
         write!(f, "{}", match self {
             Self::CycleTheme => "Cycle Theme",
             Self::ExportGraph => "Export Graph",
+            Self::ScreenShot => "Take ScreenShot",
             Self::SaveSettings => "Save Settings",
             Self::QuitApplication => "Quit Application",
             Self::PausePlaySimulation => "Pause/Play Simulation",
@@ -160,6 +161,9 @@ impl GeneralAction {
             Self::ExportGraph => UserInput::Single(InputKind::PhysicalKey(KeyCode::KeyG)),
             Self::SaveSettings => {
                 UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyS))
+            }
+            Self::ScreenShot => {
+                UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyP))
             }
             Self::QuitApplication => {
                 UserInput::modified(Modifier::Control, InputKind::PhysicalKey(KeyCode::KeyQ))
@@ -606,7 +610,7 @@ fn screenshot(
         return;
     };
 
-    if action_state.just_pressed(&GeneralAction::SaveSettings) {
+    if action_state.just_pressed(&GeneralAction::ScreenShot) {
         info!("Sending TakeScreenshot::default() event");
         screen_shot_event.send(TakeScreenshot::default());
     }
