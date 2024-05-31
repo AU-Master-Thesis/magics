@@ -159,6 +159,12 @@ fn on_variable_clicked(
             // TODO: do not use debug print here
             // println!("{:#?}", variable);
         }
+
+        if config.debug.on_variable_clicked.inbox {
+            println!("  {}:", "inbox".cyan());
+            dbg!(&variable.inbox);
+        }
+
         println!("  {}:", "connected factors".cyan());
         for (i, neighbour) in neighbours.enumerate() {
             // println!("name: {}", neighbour.kind.name());
@@ -201,9 +207,13 @@ fn on_variable_clicked(
             for line in content.lines() {
                 println!("       {}", line);
             }
-        }
+            if config.debug.on_variable_clicked.inbox {
+                println!("  {}:", "inbox".cyan());
+                dbg!(&neighbour.inbox);
+            }
 
-        println!("{}", hr);
+            println!("{}", hr);
+        }
     }
 }
 

@@ -49,7 +49,7 @@ schedule = "interleave-evenly"
 
 [robot]
 planning-horizon                       = 5.0
-max-speed                              = 4.0
+target-speed                           = 4.0
 inter-robot-safety-distance-multiplier = 2.2
 
 [robot.radius]

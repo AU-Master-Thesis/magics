@@ -278,8 +278,6 @@ fn ui_settings_panel(
                                 world.send_event::<SaveSettings>(SaveSettings);
                             }
                         });
-
-
                     });
 
 
@@ -453,26 +451,103 @@ fn ui_settings_panel(
                         // ui.label("Factors");
                         ui.label(egui::RichText::new("Factors Enabled").size(16.0));
 
-                        custom::grid("factors_enabled_grid", 2).show(ui, |ui| {
-                            let copy = config.gbp.factors_enabled.clone();
-                            for (field, _) in copy.iter() {
-                                ui.label(field);
-                                let value = config.gbp.factors_enabled.get_field_mut::<bool>(field).unwrap();
-                                // this shit ugly as f
-                                custom::float_right(ui, |ui| {
-                                    if custom::toggle_ui(ui, value).clicked() {
-                                        // drop(value);
-                                        let mut settings = copy.clone();
-                                        settings.get_field_mut::<bool>(field).unwrap().clone_from(value);
-                                        let mut query = world.query::<&mut FactorGraph>();
-                                        for mut fgraph in query.iter_mut(world) {
-                                            fgraph.change_factor_enabled(settings);
-                                        }
-                                    }
-                                });
-                                ui.end_row();
+                        let update_float = |ui: &mut egui::Ui, value: &mut f32| {
+                            let mut text = if *value == 0.0 { "0.0".to_string() } else { value.to_string() };
+                            let te_output = egui::TextEdit::singleline(&mut text)
+                                //.char_limit()
+                                .interactive(time_virtual.is_paused())
+                                .desired_width(f32::INFINITY) // maximize
+                                .show(ui);
+                            //if te_output.response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                            if te_output.response.changed() {
+                                //error!("text is {text}");
+                                if let Ok(x) = text.parse::<f32>() {
+                                    //error!("parsed {x}");
+                                    *value = x;
+                                } else if text.is_empty() {
+                                    //error!("empty text, setting to 0.0");
+                                    *value = 0.0;
+                                } else {
+                                    //error!("failed to parse {} as f32", text);
+                                }
                             }
+                        };
+                        custom::grid("factor_grid", 3).show(ui, |ui| {
+                            ui.label("Factor");
+                            ui.label("Sigma");
+                            ui.label("Enabled");
+                            ui.end_row();
+
+                            let mut update_enabled_factors = |settings: gbp_config::FactorsEnabledSection| {
+                                let mut query = world.query::<&mut FactorGraph>();
+                                for mut fgraph in query.iter_mut(world) {
+                                    fgraph.change_factor_enabled(settings);
+                                }
+                            };
+
+
+                            //let mut enabled_settings = config.gbp.factors_enabled.clone();
+                            ui.label("Dynamic");
+                            update_float(ui, &mut config.gbp.sigma_factor_dynamics);
+                            custom::float_right(ui, |ui| {
+                                if custom::toggle_ui(ui, &mut config.gbp.factors_enabled.dynamic).clicked() {
+                                    update_enabled_factors(config.gbp.factors_enabled.clone());
+                                }
+                            });
+                            ui.end_row();
+
+                            ui.label("Interrobot");
+                            update_float(ui, &mut config.gbp.sigma_factor_interrobot);
+                            custom::float_right(ui, |ui| {
+                                if custom::toggle_ui(ui, &mut config.gbp.factors_enabled.interrobot).clicked() {
+                                    update_enabled_factors(config.gbp.factors_enabled.clone());
+                                }
+                            });
+                            ui.end_row();
+
+                            ui.label("Obstacle");
+                            update_float(ui, &mut config.gbp.sigma_factor_obstacle);
+                            custom::float_right(ui, |ui| {
+                                if custom::toggle_ui(ui, &mut config.gbp.factors_enabled.obstacle).clicked() {
+                                    update_enabled_factors(config.gbp.factors_enabled.clone());
+                                }
+                            });
+                            ui.end_row();
+
+                            ui.label("Tracking");
+                            update_float(ui, &mut config.gbp.sigma_factor_tracking);
+                            custom::float_right(ui, |ui| {
+                                if custom::toggle_ui(ui, &mut config.gbp.factors_enabled.tracking).clicked() {
+                                    update_enabled_factors(config.gbp.factors_enabled.clone());
+                                }
+                            });
+                            ui.end_row();
                         });
+                        //
+                        //custom::grid("factors_enabled_grid", 2).show(ui, |ui| {
+                        //    let copy = config.gbp.factors_enabled.clone();
+                        //
+                        //
+                        //
+                        //    for (field, _) in copy.iter() {
+                        //        ui.label(field);
+                        //        let value = config.gbp.factors_enabled.get_field_mut::<bool>(field).unwrap();
+                        //        // this shit ugly as f
+                        //        custom::float_right(ui, |ui| {
+                        //            if custom::toggle_ui(ui, value).clicked() {
+                        //                // drop(value);
+                        //                let mut settings = copy.clone();
+                        //                settings.get_field_mut::<bool>(field).unwrap().clone_from(value);
+                        //                let mut query = world.query::<&mut FactorGraph>();
+                        //                for mut fgraph in query.iter_mut(world) {
+                        //                    fgraph.change_factor_enabled(settings);
+                        //                }
+                        //            }
+                        //        });
+                        //
+                        //        ui.end_row();
+                        //    }
+                        //});
 
                         ui.separator();
                         ui.add_space(2.5);
@@ -510,7 +585,7 @@ fn ui_settings_panel(
 
                             ui.label("Max Speed");
                             ui.horizontal(|ui| {
-                                let mut max_speed = config.robot.max_speed.get();
+                                let mut max_speed = config.robot.target_speed.get();
                                 ui.label(format!("{:.1}m/s", max_speed));
                                 ui.spacing_mut().slider_width = ui.available_width();
 
@@ -522,7 +597,7 @@ fn ui_settings_panel(
                                         .show_value(false)
                                         .trailing_fill(true));
                                 if slider_response.enabled() && slider_response.changed() {
-                                    config.robot.max_speed = max_speed.try_into().expect("slider range set to [0.1, 10.0]");
+                                    config.robot.target_speed = max_speed.try_into().expect("slider range set to [0.1, 10.0]");
                                 }
                             });
 

@@ -476,6 +476,11 @@ impl FactorNode {
     pub fn is_tracking(&self) -> bool {
         self.kind.is_tracking()
     }
+
+    pub fn empty_inbox(&mut self) {
+        // empty_inbox
+        self.inbox.values_mut().for_each(|m| *m = Message::empty());
+    }
 }
 
 /// Static dispatch enum for the various factors in the factorgraph

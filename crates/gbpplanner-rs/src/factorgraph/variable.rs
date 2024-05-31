@@ -1,3 +1,4 @@
+use bevy::log::info;
 use gbp_linalg::{Float, Matrix, Vector};
 use ndarray_inverse::Inverse;
 
@@ -6,7 +7,7 @@ use super::{
     id::FactorId,
     message::{InformationVec, Mean, Message, MessagesToFactors, PrecisionMatrix},
     node::{FactorGraphNode, RemoveConnectionToError},
-    MessageCount, MessagesReceived, MessagesSent,
+    MessageCount, MessagesReceived, MessagesSent, DOFS,
 };
 
 /// Variable prior distribution
@@ -343,6 +344,18 @@ impl VariableNode {
     #[inline]
     pub const fn finite_covariance(&self) -> bool {
         self.belief.valid
+    }
+
+    pub fn reset(&mut self, mean: &[f64; 4], sigma: f64) {
+        self.belief.mean = Vector::from_iter(mean.to_owned());
+        self.belief.precision_matrix = Matrix::from_diag_elem(DOFS, sigma);
+        self.inbox.values_mut().for_each(|message| {
+            *message = Message::empty();
+        });
+        info!(
+            "resetting variable to have mean: {:?}, sigma: {}",
+            mean, sigma
+        );
     }
 }
 

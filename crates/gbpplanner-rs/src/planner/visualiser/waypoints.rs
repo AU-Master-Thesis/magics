@@ -9,7 +9,7 @@ use crate::{
     bevy_utils::run_conditions::event_exists,
     input::DrawSettingsEvent,
     planner::{
-        robot::{RobotMission, RobotReachedWaypoint},
+        robot::{Mission, RobotReachedWaypoint},
         spawner::WaypointCreated,
         RobotId,
     },
@@ -41,7 +41,7 @@ fn enabled(config: Res<Config>) -> bool {
 
 fn visualize_waypoints(
     mut gizmos: Gizmos,
-    missions: Query<(&RobotMission, &ColorAssociation)>,
+    missions: Query<(&Mission, &ColorAssociation)>,
     config: Res<Config>,
     theme: Res<crate::theme::CatppuccinTheme>,
 ) {

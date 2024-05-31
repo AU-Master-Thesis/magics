@@ -477,7 +477,7 @@ fn spawn_formation(
             )
             .map(|(from, to)| {
                 let d = *to - *from;
-                let v = d.normalize_or_zero() * config.robot.max_speed.get();
+                let v = d.normalize_or_zero() * config.robot.target_speed.get();
                 Vec4::new(from.x, from.y, v.x, v.y)
             })
             .collect();
@@ -491,7 +491,7 @@ fn spawn_formation(
                     .zip(b.iter())
                     .map(|(from, to)| {
                         let d = *to - *from;
-                        let v = d.normalize_or_zero() * config.robot.max_speed.get();
+                        let v = d.normalize_or_zero() * config.robot.target_speed.get();
                         Vec4::new(from.x, from.y, v.x, v.y)
                     })
                     .collect::<Vec<_>>()
@@ -557,7 +557,7 @@ fn spawn_formation(
             // let t0: f32 = radii[i] / 2.0 / config.robot.max_speed.get();
 
             // let divisor: f32 = (min_radius / 2.0 / config.robot.max_speed.get()).into();
-            let divisor: f32 = (max_radius / 2.0 / config.robot.max_speed.get()).into();
+            let divisor: f32 = (max_radius / 2.0 / config.robot.target_speed.get()).into();
 
             let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / divisor) as u32;
             // let lookahead_horizon: u32 = (config.robot.planning_horizon.get()

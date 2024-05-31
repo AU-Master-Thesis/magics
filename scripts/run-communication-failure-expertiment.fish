@@ -25,7 +25,7 @@ for seed in 0 31 227 252 805
     for v0 in 10 15
         sed --regexp-extended "s/max-speed\s*=\s*([0-9]+)/max-speed = $v0/" -i $config_file
 
-        seq 0.0 0.1 0.9 | string replace ',' '.' | while read failure_probability
+        seq 0.0 0.1 0.7 | string replace ',' '.' | while read failure_probability
             sed --regexp-extended "s/failure-rate\s*=\s*(.*)/failure-rate = $failure_probability/" -i $config_file
             printf '%sinfo%s: seed=%d v0=%d failure-probability=%s\n' (set_color green) (set_color normal) $seed $v0 $failure_probability >&2
             set -l output_file experiments/communications-failure/v0-$v0-failure-$failure_probability-seed-$seed.json

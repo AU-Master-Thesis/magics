@@ -95,10 +95,10 @@ impl Plugin for RobotPlugin {
                     // iterate_gbp_internal_sync,
                     // iterate_gbp_external_sync,
                     // iterate_gbp,
-                    iterate_gbp_v2,
                     // update_prior_of_horizon_state_v2,
                     update_prior_of_horizon_state,
                     update_prior_of_current_state_v3,
+                    iterate_gbp_v2,
                     // update_prior_of_current_state,
                     // despawn_robots,
                     finish_manual_step.run_if(ManualModeState::enabled),
@@ -561,10 +561,10 @@ impl FromWorld for GbpIterationSchedule {
 
 fn progress_missions(
     mut commands: Commands,
-    mut q: Query<(Entity, &mut RobotMission, &PlanningStrategy)>,
+    mut q: Query<(Entity, &mut Mission, &PlanningStrategy)>,
     mut pathfinders: Query<(Entity, &mut EntropyComponent<WyRand>), Without<PathfindingTask>>,
     mut tasks: Query<&mut PathfindingTask>,
-    mut factorgraphs: Query<&mut FactorGraph>,
+    mut factorgraphs: Query<(&mut FactorGraph, &VariableTimesteps)>,
     config: Res<Config>,
     time: Res<Time>,
     colliders: Res<gbp_global_planner::Colliders>,
@@ -653,7 +653,7 @@ fn progress_missions(
                                             dir = Vec2::ZERO;
                                         }
 
-                                        let vel = config.robot.max_speed.get() * dir;
+                                        let vel = config.robot.target_speed.get() * dir;
                                         Vec4::new(from.x, from.y, vel.x, vel.y)
                                     })
                                     .map_into()
@@ -661,7 +661,9 @@ fn progress_missions(
 
                                 // dbg!(&waypoints);
 
-                                if let Ok(mut fgraph) = factorgraphs.get_mut(robot_entity) {
+                                if let Ok((mut fgraph, variable_timesteps)) =
+                                    factorgraphs.get_mut(robot_entity)
+                                {
                                     fgraph.modify_tracking_factors(|tracking| {
                                         let waypoints = waypoints
                                             .iter()
@@ -677,11 +679,90 @@ fn progress_missions(
                                          {:?}",
                                         robot_entity
                                     );
+
+                                    // let horizon = start
+                                    //    + f32::min( start2goal.length(),
+                                    //      (config.robot.planning_horizon *
+                                    //      config.robot.max_speed).get(),
+                                    //    ) * start2goal.normalize();
+
+                                    // start
+                                    //    + (horizon - start)
+                                    //        * (variable_timestep as f32 / last_variable_timestep
+                                    //          as f32)
+
+                                    // TODO: also update the precision matrix
+
+                                    // let sigma = if i == 0 || i == n_variables - 1 {
+                                    //    // Start and Horizon state variables should be 'fixed'
+                                    // during optimisation at a
+                                    //    // timestep SIGMA_POSE_FIXED
+                                    //    1e30
+                                    //    // 1e20
+                                    //} else {
+                                    //    // 4e9
+                                    //    // 0.0
+                                    //    // 1e30
+                                    //    Float::INFINITY
+                                    //};
+                                    // let precision_matrix = Matrix::<Float>::from_diag_elem(DOFS,
+                                    // sigma);
+
+                                    let start: Vec4 = waypoints.first().copied().unwrap().into();
+                                    let next: Vec4 = waypoints.get(1).copied().unwrap().into();
+                                    dbg!((start, next));
+                                    let dir = next - start;
+                                    let dir_normalized = dir.normalize();
+                                    dbg!(dir);
+                                    let horizon = f32::min(
+                                        dir.length(),
+                                        (config.robot.planning_horizon * config.robot.target_speed)
+                                            .get(),
+                                    ) * dir.normalize();
+                                    dbg!(horizon);
+
+                                    // let last_ts =
+                                    // variable_timesteps.0.last().unwrap().to_owned();
+                                    // let means = variable_timesteps
+                                    //    .0
+                                    //    .iter()
+                                    //    .map(|&ts| {
+                                    //        start + (horizon - start) * (ts as f32 / last_ts as
+                                    // f32)    })
+                                    //    //.map(|it| it.xy().as_dvec2().to_array())
+                                    //    .map(|it| it.as_dvec4().to_array())
+                                    //    .collect_vec();
+                                    //
+
+                                    let n = variable_timesteps.0.len();
+                                    // lerp positions between start and next, and have the velocity
+                                    // part be the normalized direction times max_speed
+                                    // let next = next.length() * 0.8 * dir_normalized;
+                                    let next = start + dir.length() * 0.8 * dir_normalized;
+                                    let means = (0..n)
+                                        .map(|i| i as f32 / n as f32)
+                                        .map(|r| {
+                                            let pos = start.xy().lerp(next.xy(), r);
+                                            let vel =
+                                                config.robot.target_speed.get() * dir_normalized;
+                                            Vec4::new(pos.x, pos.y, vel.x, vel.y)
+                                        })
+                                        .map(|it| it.as_dvec4().to_array())
+                                        .collect_vec();
+
+                                    fgraph.reset_variables(&means, 1e30, Float::INFINITY);
+                                    // fgraph.reset_variable_positions(positions.as_slice());
+                                    error!(
+                                        "updated variable positions of robot: {:?}",
+                                        robot_entity
+                                    );
                                 }
 
                                 info!("updating route waypoints: {:?}", waypoints);
                                 active_route.update_waypoints(waypoints.try_into().unwrap());
                                 mission.state = RobotMissionState::Active;
+                                // TODO: update the variable placements of the
+                                // factorgraph
                             }
                             Err(e) => {
                                 error!("Pathfinding error: {:?}", e);
@@ -708,7 +789,7 @@ fn progress_missions(
 }
 
 #[derive(Debug, Component)]
-pub struct RobotMission {
+pub struct Mission {
     pub routes: Vec<Route>,
     pub taskpoints: Vec<StateVector>,
     active_route: usize,
@@ -729,7 +810,7 @@ pub struct RobotMission {
 //    }
 //}
 
-impl RobotMission {
+impl Mission {
     pub fn local(
         waypoints: min_len_vec::TwoOrMore<StateVector>,
         started_at: f64,
@@ -955,11 +1036,13 @@ pub struct RobotBundle {
     /// additional states in the future
     finished_path: FinishedPath,
 
-    pub mission: RobotMission,
+    pub mission: Mission,
     // / Criteria determining when the robot is considered to have reached a
     // / waypoint.
     // pub intersects_when: ReachedWhenIntersects,
     pub planning_strategy: PlanningStrategy,
+
+    pub variable_timesteps: VariableTimesteps,
 }
 
 /// State vector of a robot
@@ -978,10 +1061,15 @@ pub struct StateVector(pub bevy::math::Vec4);
 
 impl std::fmt::Display for StateVector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let precision = 3;
         write!(
             f,
-            "[{:.4}, {:.4}, {:.4}, {:.4}]",
-            self.0.x, self.0.y, self.0.z, self.0.w
+            "[{:.precision$}, {:.precision$}, {:.precision$}, {:.precision$}]",
+            self.0.x,
+            self.0.y,
+            self.0.z,
+            self.0.w,
+            precision = precision,
         )
     }
 }
@@ -1054,7 +1142,7 @@ impl RobotBundle {
         let horizon = start
             + f32::min(
                 start2goal.length(),
-                (config.robot.planning_horizon * config.robot.max_speed).get(),
+                (config.robot.planning_horizon * config.robot.target_speed).get(),
             ) * start2goal.normalize();
 
         let mut factorgraph = FactorGraph::new(robot_id);
@@ -1111,7 +1199,7 @@ impl RobotBundle {
             variable_node_indices.push(variable_index);
         }
 
-        let t0 = radius / 2.0 / config.robot.max_speed.get();
+        let t0 = radius / 2.0 / config.robot.target_speed.get();
 
         // Create Dynamic factors between variables
         for i in 0..variable_timesteps.len() - 1 {
@@ -1174,13 +1262,13 @@ impl RobotBundle {
         }
 
         let mission = match planning_strategy {
-            PlanningStrategy::OnlyLocal => RobotMission::local(
+            PlanningStrategy::OnlyLocal => Mission::local(
                 waypoints.try_into().unwrap(),
                 started_at,
                 finished_when_intersects,
                 waypoint_reached_when_intersects,
             ),
-            PlanningStrategy::RrtStar => RobotMission::global(
+            PlanningStrategy::RrtStar => Mission::global(
                 waypoints.try_into().unwrap(),
                 started_at,
                 finished_when_intersects,
@@ -1239,9 +1327,13 @@ impl RobotBundle {
             mission,
             // intersects_when,
             planning_strategy,
+            variable_timesteps: VariableTimesteps(variable_timesteps.to_owned()),
         }
     }
 }
+
+#[derive(Component)]
+pub struct VariableTimesteps(Vec<u32>);
 
 /// Called `Simulator::calculateRobotNeighbours` in **gbpplanner**
 fn update_robot_neighbours(
@@ -1958,7 +2050,7 @@ fn reached_waypoint(
         Entity,
         &mut FactorGraph,
         &Radius,
-        &mut RobotMission,
+        &mut Mission,
         //&ReachedWhenIntersects,
         //&PlanningStrategy,
     )>,
@@ -2036,14 +2128,13 @@ pub struct FinishedPath(pub bool);
 /// Called `Robot::updateHorizon` in **gbpplanner**
 fn update_prior_of_horizon_state(
     config: Res<Config>,
-    // time_virtual: Res<Time<Virtual>>,
     time: Res<Time>,
     mut query: Query<
         (
             Entity,
             &mut FactorGraph,
             // &mut Route,
-            &RobotMission,
+            &Mission,
             &mut FinishedPath,
             &Radius,
             &RadioAntenna,
@@ -2051,16 +2142,16 @@ fn update_prior_of_horizon_state(
         ),
         With<RobotConnections>,
     >,
-    mut evw_robot_despawned: EventWriter<RobotDespawned>,
-    mut evw_robot_finalized_path: EventWriter<RobotFinishedRoute>,
-    mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
+    // mut evw_robot_despawned: EventWriter<RobotDespawned>,
+    // mut evw_robot_finalized_path: EventWriter<RobotFinishedRoute>,
+    // mut evw_robot_reached_waypoint: EventWriter<RobotReachedWaypoint>,
     // PERF: we reuse the same vector between system calls
     // the vector is cleared between calls, by calling .drain(..) at the end of every call
     mut all_messages_to_external_factors: Local<Vec<VariableToFactorMessage>>,
 ) {
     let delta_t = Float::from(time.delta_seconds());
 
-    let max_speed = Float::from(config.robot.max_speed.get());
+    let max_speed = Float::from(config.robot.target_speed.get());
 
     let mut robots_to_despawn = Vec::new();
 
@@ -2088,15 +2179,21 @@ fn update_prior_of_horizon_state(
             continue;
         }
 
-        let (horizon_variable_index, horizon_variable) = factorgraph
-            .last_variable_mut()
-            .expect("factorgraph has a horizon variable");
+        // for (ix, v) in factorgraph.variables() {
+        //    v.
+        //}
+
+        let (horizon_variable_index, horizon_variable) = factorgraph.last_variable_mut().unwrap();
+        dbg!(&horizon_variable_index);
+        dbg!(&horizon_variable.belief.mean);
         let estimated_position = horizon_variable.belief.mean.slice(s![..2]); // the mean is a 4x1 vector with [x, y, x', y']
 
         let next_waypoint_pos = array![
             Float::from(next_waypoint.position().x),
             Float::from(next_waypoint.position().y)
         ];
+
+        dbg!((&estimated_position, &next_waypoint_pos));
 
         let horizon2waypoint = next_waypoint_pos - estimated_position;
         let horizon2goal_dist = horizon2waypoint.euclidean_norm();
@@ -2106,8 +2203,12 @@ fn update_prior_of_horizon_state(
 
         // Update horizon state with new position and velocity
         let new_mean = concatenate![Axis(0), new_position, new_velocity];
+        dbg!(&new_mean);
 
+        // let time_scale = time_fixed.delta_seconds() / config.simulation.t0.get();
+        error!("mean before: {:?}", &horizon_variable.belief.mean);
         horizon_variable.belief.mean.clone_from(&new_mean);
+        error!("mean after: {:?}", &horizon_variable.belief.mean);
 
         let messages_to_external_factors =
             factorgraph.change_prior_of_variable(horizon_variable_index, new_mean);
@@ -2135,7 +2236,7 @@ fn update_prior_of_current_state_v3(
             &mut FactorGraph,
             &mut Transform,
             &T0,
-            &RobotMission,
+            &Mission,
             &RadioAntenna,
         ),
         With<RobotConnections>,
@@ -2143,9 +2244,7 @@ fn update_prior_of_current_state_v3(
     config: Res<Config>,
     time_fixed: Res<Time<Fixed>>,
 ) {
-    // let time_scale = time_fixed.delta_seconds() / config.simulation.t0.get();
-
-    let mut messages_to_external_factors: Vec<FactorToVariableMessage> = vec![];
+    // let mut messages_to_external_factors: Vec<FactorToVariableMessage> = vec![];
 
     for (mut factorgraph, mut transform, &t0, mission, antenna) in &mut query {
         if mission.state.idle()
@@ -2179,7 +2278,9 @@ fn update_prior_of_current_state_v3(
         let position_increment =
             Vec3::new(change_in_state[0] as f32, 0.0, change_in_state[1] as f32);
 
-        transform.translation += position_increment;
+        transform.translation.x += change_in_state[0] as f32;
+        transform.translation.z += change_in_state[1] as f32;
+        // transform.translation += position_increment;
     }
 }
 
@@ -2376,7 +2477,7 @@ fn on_robot_clicked(
         &Radius,
         &Ball,
         &RadioAntenna,
-        &RobotMission,
+        &Mission,
         &PlanningStrategy,
     )>,
     robot_robot_collisions: Res<RobotRobotCollisions>,

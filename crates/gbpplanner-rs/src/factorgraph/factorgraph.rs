@@ -1,6 +1,7 @@
 use bevy::{
     ecs::{component::Component, entity::Entity},
     log::{debug, info},
+    math::Vec2,
 };
 // use gbp_linalg::Float;
 use gbp_linalg::prelude::*;
@@ -1535,4 +1536,41 @@ impl FactorGraph {
             };
         }
     }
+
+    pub fn reset_variables(
+        &mut self,
+        means: &[[f64; 4]],
+        first_last_sigma: f64,
+        inbetween_sigma: f64,
+    ) {
+        assert_eq!(self.variable_indices.len(), means.len());
+
+        for (i, ix) in self.variable_indices.iter().enumerate() {
+            let variable = self.graph[*ix].as_variable_mut().unwrap();
+            let mean = means[i];
+            let sigma = if i == 0 || i == means.len() - 1 {
+                first_last_sigma
+            } else {
+                inbetween_sigma
+            };
+
+            variable.reset(&mean, sigma);
+        }
+
+        for ix in self.factor_indices.iter() {
+            self.graph[*ix].as_factor_mut().unwrap().empty_inbox();
+        }
+    }
+
+    // pub fn reset_variable_positions(&mut self, positions: &[[f64; 2]]) {
+    //    assert_eq!(self.variable_indices.len(), positions.len());
+    //
+    //    for (i, ix) in self.variable_indices.iter().enumerate() {
+    //        let variable = self.graph[*ix].as_variable_mut().unwrap();
+    //        let pos = positions[i];
+    //
+    //        variable.belief.mean[0] = pos[0];
+    //        variable.belief.mean[1] = pos[1];
+    //    }
+    //}
 }

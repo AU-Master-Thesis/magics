@@ -641,7 +641,7 @@ pub struct RobotSection {
     /// SI unit: s
     pub planning_horizon: StrictlyPositiveFinite<f32>,
     /// SI unit: m/s
-    pub max_speed: StrictlyPositiveFinite<f32>,
+    pub target_speed: StrictlyPositiveFinite<f32>,
     /// Radius of the robot.
     /// If the robot is not a perfect circle, then set radius to be the smallest
     /// circle that fully encompass the shape of the robot. **constraint**:
@@ -656,7 +656,7 @@ impl Default for RobotSection {
     fn default() -> Self {
         Self {
             planning_horizon: StrictlyPositiveFinite::<f32>::new(5.0).expect("5.0 > 0.0"),
-            max_speed: StrictlyPositiveFinite::<f32>::new(4.0).expect("2.0 > 0.0"),
+            target_speed: StrictlyPositiveFinite::<f32>::new(4.0).expect("2.0 > 0.0"),
             // radius: StrictlyPositiveFinite::<f32>::new(1.0).expect("1.0 > 0.0"),
             radius: RobotRadiusSection::default(),
             communication: CommunicationSection::default(),
@@ -766,6 +766,7 @@ pub struct OnVariableClickedSection {
     pub interrobot: bool,
     pub tracking:   bool,
     pub variable:   bool,
+    pub inbox:      bool,
 }
 
 impl Default for OnVariableClickedSection {
@@ -776,6 +777,7 @@ impl Default for OnVariableClickedSection {
             interrobot: false,
             tracking:   false,
             variable:   false,
+            inbox:      false,
         }
     }
 }
