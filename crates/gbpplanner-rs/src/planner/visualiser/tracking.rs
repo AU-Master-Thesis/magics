@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use crate::{
     factorgraph::prelude::FactorGraph,
-    planner::robot::{Route, StateVector},
+    planner::robot::{Mission, Route, StateVector},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt},
 };
 
@@ -25,23 +25,39 @@ impl Plugin for TrackingVisualizerPlugin {
     }
 }
 
+fn gradient(a: &Color, b: &Color) -> colorgrad::Gradient {
+    // let [r, g, b] = a.
+    // let a colorgrad::Color::from_linear_rgba(r, g, b, a)
+    let a = colorgrad::Color::from_linear_rgba(a.r() as f64, a.g() as f64, a.b() as f64, 255.0);
+    let b = colorgrad::Color::from_linear_rgba(b.r() as f64, b.g() as f64, b.b() as f64, 255.0);
+    colorgrad::CustomGradient::new()
+        .colors(&[a, b])
+        .domain(&[0.0, 1.0])
+        .mode(colorgrad::BlendMode::Hsv)
+        .build()
+        .unwrap()
+}
+
 fn visualise_tracking_factors(
     mut gizmos: Gizmos,
-    factorgraphs: Query<(&FactorGraph, &ColorAssociation)>,
-    theme: Res<CatppuccinTheme>,
+    factorgraphs: Query<(&FactorGraph, &Mission)>,
+    // theme: Res<CatppuccinTheme>,
     config: Res<Config>,
 ) {
-    let gradient = theme.gradient(theme.green(), theme.red());
-    for (factorgraph, color_association) in &factorgraphs {
+    let red = Color::RED;
+    let green = Color::GREEN;
+    let gradient = gradient(&green, &red);
+    // let gradient = theme.gradient(theme.green(), theme.red());
+
+    for (factorgraph, mission) in &factorgraphs {
+        if mission.state.idle() {
+            continue;
+        }
+
         for (variable, tracking_factor) in factorgraph.variable_and_their_tracking_factors() {
-            // info!("BOB");
             let last_measurement = tracking_factor.last_measurement();
             let estimated_position = variable.estimated_position_vec2();
 
-            // let color = Color::from_catppuccin_colour_with_alpha(
-            //     theme.get_display_colour(&color_association.name),
-            //     0.5,
-            // );
             let color = gradient.at(last_measurement.value);
             let color = Color::rgba(
                 color.r as f32,

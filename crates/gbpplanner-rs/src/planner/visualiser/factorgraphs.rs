@@ -11,7 +11,7 @@ use crate::{
     factorgraph::{factor::Factor, factorgraph::VariableIndex, prelude::FactorGraph},
     input::DrawSettingsEvent,
     planner::{
-        robot::{RobotDespawned, RobotSpawned},
+        robot::{Radius, RobotDespawned, RobotSpawned},
         RobotConnections,
     },
     simulation_loader::{self, EndSimulation},
@@ -226,26 +226,34 @@ fn create_factorgraph_visualizer(
     mut commands: Commands,
     mut spawn_robot_event: EventReader<RobotSpawned>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    query: Query<(Entity, &FactorGraph, &ColorAssociation), With<RobotConnections>>,
+    query: Query<(Entity, &FactorGraph, &ColorAssociation, &Radius), With<RobotConnections>>,
     config: Res<Config>,
     // scene_assets: Res<SceneAssets>,
     meshes: Res<Meshes>,
     theme: Res<CatppuccinTheme>,
 ) {
     for RobotSpawned(robot_id) in spawn_robot_event.read() {
-        let Some((_, factorgraph, color_association)) =
-            query.iter().find(|(entity, _, _)| entity == robot_id)
-        else {
+        let Ok((_, factorgraph, color_association, radius)) = query.get(*robot_id) else {
             error!(
                 "should not happen, a factorgraph should be attached to the newly spawned robot"
             );
             continue;
         };
 
+        // let Some((_, factorgraph, color_association, radius)) =
+        //    query.iter().find(|(entity, _, _)| entity == robot_id)
+        // else {
+        //    error!(
+        //        "should not happen, a factorgraph should be attached to the newly
+        // spawned robot"    );
+        //    continue;
+        //};
+
         for (i, (index, variable)) in factorgraph.variables().enumerate() {
             let [x, y] = variable.estimated_position();
             #[allow(clippy::cast_possible_truncation)]
-            let transform = Vec3::new(x as f32, -config.visualisation.height.objects, y as f32);
+            // let transform = Vec3::new(x as f32, -config.visualisation.height.objects, y as f32);
+            let transform = Vec3::new(x as f32, -radius.0, y as f32);
             let robottracker = RobotTracker {
                 robot_id: *robot_id,
                 variable_index: index.index(),

@@ -1791,8 +1791,10 @@ fn iterate_gbp_v2(
                 .for_each(|(mut factorgraph, _, antenna, mission)| {
                     // if antenna.active {
                     // if matches!(mission.state, MissionState::Active) {
-                    factorgraph.internal_factor_iteration();
-                    factorgraph.internal_variable_iteration();
+                    if !mission.state.idle() {
+                        factorgraph.internal_factor_iteration();
+                        factorgraph.internal_variable_iteration();
+                    }
                     //}
                     // }
                 });
@@ -1801,9 +1803,7 @@ fn iterate_gbp_v2(
         if external {
             let mut messages_to_external_variables = vec![];
             for (mut factorgraph, _, antenna, mission) in query.iter_mut() {
-                if !antenna.active
-                // || matches!(mission.state, MissionState::Active)
-                {
+                if !antenna.active || mission.state.idle() {
                     continue;
                 }
                 messages_to_external_variables
@@ -2082,6 +2082,7 @@ fn reached_waypoint(
         Entity,
         &mut FactorGraph,
         &Radius,
+        &Transform,
         &mut Mission,
         //&ReachedWhenIntersects,
         //&PlanningStrategy,
@@ -2093,13 +2094,31 @@ fn reached_waypoint(
     mut evw_robot_despawned: EventWriter<RobotDespawned>,
     mut evw_robot_finalized_path: EventWriter<RobotFinishedRoute>,
 ) {
-    for (robot_entity, mut fgraph, r, mut mission) in &mut q {
+    for (robot_entity, mut fgraph, r, transform, mut mission) in &mut q {
         let Some(next_waypoint) = mission.next_waypoint() else {
             continue;
         };
 
         let r_sq = r.0 * r.0;
-        let reached = {
+        // if mission.next_waypoint_is_last() {
+        //    let
+        //    mission.advance_to_next_waypoint(&time);
+        //    assert!(matches!(mission.state, MissionState::Completed));
+        //}
+
+        let reached = if mission.next_waypoint_is_last() {
+            let next_waypoint = mission.next_waypoint().unwrap();
+            let distance = match mission.finished_when_intersects.distance {
+                IntersectionDistance::RobotRadius => r.0,
+                IntersectionDistance::Meter(meter) => meter,
+            };
+
+            let reached = next_waypoint
+                .position()
+                .distance(transform.translation.xz())
+                < distance;
+            reached
+        } else {
             use CheckIntersectionWith::{Current, Horizon, Variable};
             let when_intersects = if mission.next_waypoint_is_last() {
                 mission.finished_when_intersects

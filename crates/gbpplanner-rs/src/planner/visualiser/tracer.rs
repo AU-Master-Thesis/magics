@@ -1,6 +1,6 @@
-use std::{collections::BTreeMap, time::Duration};
+use std::collections::BTreeMap;
 
-use bevy::{prelude::*, time::common_conditions::on_timer};
+use bevy::prelude::*;
 use itertools::Itertools;
 use ringbuf::{Rb, StaticRb};
 
@@ -80,7 +80,9 @@ fn create_tracer_when_a_robot_is_spawned(
         for (other_robot_id, transform, color_association) in query.iter() {
             // initialise the first position of the robot into the ring buffer
             let mut ring_buffer = StaticRb::default();
-            let _ = ring_buffer.push_overwrite(transform.translation);
+            let mut position = transform.translation;
+            position.y = 0.05;
+            let _ = ring_buffer.push_overwrite(position);
 
             if other_robot_id == *robot_id {
                 let _ = traces.0.entry(*robot_id).or_insert(Trace {
@@ -103,6 +105,8 @@ fn track_robots(
     mut traces: ResMut<Traces>,
 ) {
     for (robot_id, transform, color_association) in &query {
+        let mut position = transform.translation;
+        position.y = 0.05;
         let _ = traces
             .0
             .entry(robot_id)
@@ -111,7 +115,7 @@ fn track_robots(
                 ring_buffer: StaticRb::default(),
             })
             .ring_buffer
-            .push_overwrite(transform.translation);
+            .push_overwrite(position);
     }
 }
 

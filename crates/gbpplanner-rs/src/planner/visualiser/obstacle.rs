@@ -11,11 +11,7 @@ pub struct ObstacleFactorVisualizerPlugin;
 
 impl Plugin for ObstacleFactorVisualizerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            visualize_obstacle_factors.run_if(enabled),
-            // visualize_obstacle_factors.run_if(on_timer(std::time::Duration::from_millis(500))),
-        );
+        app.add_systems(Update, visualize_obstacle_factors.run_if(enabled));
     }
 }
 
