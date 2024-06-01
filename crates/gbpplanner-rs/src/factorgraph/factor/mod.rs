@@ -342,9 +342,9 @@ impl FactorNode {
             if let Some(mean) = message.mean() {
                 slice.assign(mean);
             } else {
-                // for x in slice {
-                //    *x = 0.0;
-                //}
+                for x in slice {
+                    *x = 0.0;
+                }
             }
         }
 

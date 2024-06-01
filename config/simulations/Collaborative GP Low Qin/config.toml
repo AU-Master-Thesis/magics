@@ -1,15 +1,6 @@
-# environment = "junction"
 environment_image = "junction_twoway"
 environment       = "./config/simulations/Collaborative GP/environment.yaml"
 formation_group   = "./config/simulations/Collaborative GP/formation.ron"
-
-[interaction]
-ui-focus-cancels-inputs = true
-default-cam-distance    = 300.0
-
-[visualisation.uncertainty]
-max-radius = 2.5
-scale      = 300.0
 
 [visualisation.height]
 objects    = 0.5
@@ -22,65 +13,72 @@ predicted-trajectories             = true
 waypoints                          = true
 uncertainty                        = false
 paths                              = true
-generated-map                      = true
-height-map                         = false
-sdf                                = false
 communication-radius               = false
 obstacle-factors                   = false
-tracking                           = false
+tracking                           = true
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
+generated-map                      = true
+sdf                                = false
 robot-colliders                    = false
 environment-colliders              = false
 robot-robot-collisions             = true
 robot-environment-collisions       = true
 
-[gbp.factors-enabled]
-tracking   = false
-obstacle   = true
-dynamic    = true
-interrobot = true
+[visualisation.uncertainty]
+max-radius = 2.5
+scale      = 300.0
+
+[interaction]
+ui-focus-cancels-inputs = true
+default-cam-distance    = 300.0
 
 [gbp]
-sigma-pose-fixed        = 1e-15
-sigma-factor-dynamics   = 0.5
-sigma-factor-interrobot = 0.01
-sigma-factor-obstacle   = 0.01
-sigma-factor-tracking   = 0.3
+sigma-pose-fixed        = 0.0000000000000010000000036274937
+sigma-factor-dynamics   = 0.10000000149011612
+sigma-factor-interrobot = 0.009999999776482582
+sigma-factor-obstacle   = 0.009999999776482582
+sigma-factor-tracking   = 0.15000000596046448
 lookahead-multiple      = 3
+variables               = 10
+
+[gbp.tracking]
+switch-padding      = 5.0
+attraction-distance = 1.0
 
 [gbp.iteration-schedule]
 internal = 10
 external = 10
 schedule = "interleave-evenly"
 
-[gbp.tracking]
-attraction-distance = 1.0
-switch-padding      = 5.0
+[gbp.factors-enabled]
+dynamic    = true
+interrobot = true
+obstacle   = true
+tracking   = true
 
 [robot]
 planning-horizon                       = 5.0
 target-speed                           = 7.0
-inter-robot-safety-distance-multiplier = 3.2
+inter-robot-safety-distance-multiplier = 3.200000047683716
 
 [robot.radius]
-min = 1.0
-max = 1.0
+min = 2.0
+max = 2.0
 
 [robot.communication]
 radius       = 20.0
 failure-rate = 0.0
 
 [simulation]
-# t0                 = 0.25
-max-time           = 10000.0
-time-scale         = 1.0
-manual-step-factor = 1
-hz                 = 10.0
-# world-size                                = 100.0
+max-time                                  = 10000.0
+time-scale                                = 1.0
+manual-step-factor                        = 1
+hz                                        = 10.0
 prng-seed                                 = 2
 pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = true
+exit-application-on-scenario-finished     = false
 
 [rrt]
 max-iterations       = 5000000
@@ -93,6 +91,8 @@ enabled        = true
 max-iterations = 500
 step-size      = 0.5
 
+[graphviz]
+export-location = "./assets/export/"
 
 [graphviz.interrobot.active]
 style = "dashed"
@@ -104,16 +104,13 @@ style = "dashed"
 len   = 8.0
 color = "gray"
 
-[graphviz]
-export-location = "./assets/export/"
-
 [manual]
 timesteps-per-step = 1
 
 [debug.on-variable-clicked]
-tracking   = true
 obstacle   = true
 dynamic    = false
 interrobot = false
+tracking   = true
 variable   = false
 inbox      = true

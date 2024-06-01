@@ -1580,8 +1580,8 @@ impl FactorGraph {
                 };
 
                 let mean = Vec2::new(mean[0] as f32, mean[1] as f32);
-                tracking.set_linearisation_point(mean);
-                tracking.set_timeout(1000);
+                // tracking.set_linearisation_point(mean);
+                tracking.set_timeout(10);
             }
         }
 
