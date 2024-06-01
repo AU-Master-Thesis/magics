@@ -107,8 +107,8 @@ formations:
     distance: robot-radius
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 50
-    intersects-with: !variable 5
+    distance: !meter 8
+    intersects-with: current
 
 # Formation 4: red south->north
 - repeat:
@@ -142,8 +142,8 @@ formations:
     distance: robot-radius
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 50
-    intersects-with: !variable 5
+    distance: !meter 8
+    intersects-with: current
 
 # Formation 5: blue south->north-west
 - repeat:
@@ -177,8 +177,8 @@ formations:
     distance: robot-radius
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 50
-    intersects-with: !variable 5
+    distance: !meter 8
+    intersects-with: current
 
 # Formation 6: orange west->north-east
 - repeat:
@@ -212,8 +212,8 @@ formations:
     distance: robot-radius
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 50
-    intersects-with: !variable 5
+    distance: !meter 8
+    intersects-with: current
 
 # Formation 7: green west->north
 - repeat:
@@ -247,8 +247,10 @@ formations:
     distance: robot-radius
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 50
-    intersects-with: !variable 5
+    # distance: !meter 50
+    # intersects-with: !variable 5
+    distance: !meter 8
+    intersects-with: current
 
 # Formation 8: yellow north2->north-west
 - repeat:
@@ -282,8 +284,10 @@ formations:
     distance: robot-radius
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 50
-    intersects-with: !variable 5
+    # distance: !meter 50
+    # intersects-with: !variable 5
+    distance: !meter 8
+    intersects-with: current
 
 # Formation 9: dark purple north2->west
 - repeat:
@@ -317,8 +321,10 @@ formations:
     distance: robot-radius
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 50
-    intersects-with: !variable 5
+    # distance: !meter 50
+    # intersects-with: !variable 5
+    distance: !meter 8
+    intersects-with: current
 
 # Formation 10: light blue north2->north-east
 - repeat:
@@ -352,5 +358,7 @@ formations:
     distance: robot-radius
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 50
-    intersects-with: !variable 5
+    # distance: !meter 50
+    # intersects-with: !variable 5
+    distance: !meter 8
+    intersects-with: current

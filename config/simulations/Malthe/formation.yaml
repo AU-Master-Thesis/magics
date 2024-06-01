@@ -29,4 +29,3 @@ formations:
   finished-when-intersects:
     distance: robot-radius
     intersects-with: current
-

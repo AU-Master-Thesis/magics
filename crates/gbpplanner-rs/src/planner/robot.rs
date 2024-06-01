@@ -687,75 +687,74 @@ fn progress_missions(
                                         robot_entity
                                     );
 
-                                    // let horizon = start
-                                    //    + f32::min( start2goal.length(),
-                                    //      (config.robot.planning_horizon *
-                                    //      config.robot.max_speed).get(),
-                                    //    ) * start2goal.normalize();
-
-                                    // start
-                                    //    + (horizon - start)
-                                    //        * (variable_timestep as f32 / last_variable_timestep
-                                    //          as f32)
-
-                                    // TODO: also update the precision matrix
-
-                                    // let sigma = if i == 0 || i == n_variables - 1 {
-                                    //    // Start and Horizon state variables should be 'fixed'
-                                    // during optimisation at a
-                                    //    // timestep SIGMA_POSE_FIXED
-                                    //    1e30
-                                    //    // 1e20
-                                    //} else {
-                                    //    // 4e9
-                                    //    // 0.0
-                                    //    // 1e30
-                                    //    Float::INFINITY
-                                    //};
-                                    // let precision_matrix = Matrix::<Float>::from_diag_elem(DOFS,
-                                    // sigma);
-
                                     let start: Vec4 = waypoints.first().copied().unwrap().into();
                                     let next: Vec4 = waypoints.get(1).copied().unwrap().into();
-                                    // dbg!((start, next));
                                     let dir = next - start;
                                     let dir_normalized = dir.normalize();
-                                    // dbg!(dir);
                                     let horizon = f32::min(
                                         dir.length(),
                                         (config.robot.planning_horizon * config.robot.target_speed)
                                             .get(),
                                     ) * dir.normalize();
-                                    // dbg!(horizon);
 
-                                    // let last_ts =
-                                    // variable_timesteps.0.last().unwrap().to_owned();
-                                    // let means = variable_timesteps
-                                    //    .0
-                                    //    .iter()
-                                    //    .map(|&ts| {
-                                    //        start + (horizon - start) * (ts as f32 / last_ts as
-                                    // f32)    })
-                                    //    //.map(|it| it.xy().as_dvec2().to_array())
-                                    //    .map(|it| it.as_dvec4().to_array())
-                                    //    .collect_vec();
-                                    //
+                                    let last_ts = variable_timesteps.0.last().unwrap().to_owned();
+                                    dbg!(&variable_timesteps);
+                                    let means = {
+                                        let means = variable_timesteps
+                                            .0
+                                            .iter()
+                                            .map(|&ts| {
+                                                start
+                                                    + (horizon - start)
+                                                        * (ts as f32 / last_ts as f32)
+                                            })
+                                            .map(|it| it.as_dvec4())
+                                            .map(|v| {
+                                                let mut v = v;
+                                                let mut velocity = v.zw();
+                                                if velocity.length()
+                                                    > config.robot.target_speed.get() as f64
+                                                {
+                                                    velocity = velocity.normalize()
+                                                        * config.robot.target_speed.get() as f64;
+                                                }
 
-                                    let n = variable_timesteps.0.len();
-                                    // lerp positions between start and next, and have the velocity
-                                    // part be the normalized direction times max_speed
-                                    // let next = next.length() * 0.8 * dir_normalized;
-                                    let next = start + dir.length() * 0.8 * dir_normalized;
-                                    let means = (0..n)
-                                        .map(|i| i as f32 / n as f32)
-                                        .map(|r| {
-                                            let pos = start.xy().lerp(next.xy(), r);
-                                            let vel =
-                                                config.robot.target_speed.get() * dir_normalized;
-                                            Vec4::new(pos.x, pos.y, vel.x, vel.y)
-                                        })
-                                        .map(|it| it.as_dvec4().to_array())
-                                        .collect_vec();
+                                                v[2] = velocity.x;
+                                                v[3] = velocity.y;
+                                                v
+                                            })
+                                            .map(|v| v.to_array())
+                                            .collect_vec();
+
+                                        let first: Vec2 =
+                                            Vec2::new(means[0][0] as f32, means[0][1] as f32);
+                                        let last = means.last().unwrap();
+                                        let last = Vec2::new(last[0] as f32, last[1] as f32);
+                                        if first.distance(last) < dir.xy().length() {
+                                            means
+                                        } else {
+                                            // FIXME: only lerp variable timesteps are greater than
+                                            // the
+                                            // length of the path segment
+                                            let n = variable_timesteps.0.len();
+                                            // lerp positions between start and next, and have the
+                                            // velocity
+                                            // part be the normalized direction times max_speed
+                                            // let next = next.length() * 0.8 * dir_normalized;
+                                            let next = start + dir.length() * 0.9 * dir_normalized;
+                                            let means = (0..n)
+                                                .map(|i| i as f32 / n as f32)
+                                                .map(|r| {
+                                                    let pos = start.xy().lerp(next.xy(), r);
+                                                    let vel = config.robot.target_speed.get()
+                                                        * dir_normalized;
+                                                    Vec4::new(pos.x, pos.y, vel.x, vel.y)
+                                                })
+                                                .map(|it| it.as_dvec4().to_array())
+                                                .collect_vec();
+                                            means
+                                        }
+                                    };
 
                                     fgraph.reset_variables(&means, 1e30, Float::INFINITY);
                                     fgraph.reset_tracking_factors();
@@ -1347,7 +1346,7 @@ impl RobotBundle {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct VariableTimesteps(Vec<u32>);
 
 /// Called `Simulator::calculateRobotNeighbours` in **gbpplanner**

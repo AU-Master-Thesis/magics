@@ -178,7 +178,7 @@ impl Factor for TrackingFactor {
 
         let m = last_measurement.pos;
         let pos = linearisation_point.slice(s![..DOFS / 2]).to_owned();
-        dbg!(&pos);
+        // dbg!(&pos);
 
         let temp = array![m.x as Float, m.y as Float];
         let x_diff = pos - temp;

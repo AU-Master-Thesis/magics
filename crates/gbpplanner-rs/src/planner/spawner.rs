@@ -560,6 +560,9 @@ fn spawn_formation(
             let divisor: f32 = (max_radius / 2.0 / config.robot.target_speed.get()).into();
 
             let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / divisor) as u32;
+            let lookahead_horizon: u32 = config.robot.planning_horizon.get() as u32;
+            let lookahead_horizon: u32 =
+                (config.robot.target_speed * config.robot.planning_horizon).get() as u32;
             // let lookahead_horizon: u32 = (config.robot.planning_horizon.get()
             //     / radii.iter().map(ordered_float::OrderedFloat).min().unwrap())
             //     as u32;
