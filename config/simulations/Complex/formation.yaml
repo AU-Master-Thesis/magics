@@ -25,7 +25,14 @@ formations:
     - x: 0.85
       y: 0.8
     projection-strategy: identity
-  waypoint-reached-when-intersects: horizon
+  # waypoint-reached-when-intersects: horizon
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: robot-radius
+    intersects-with: current
+
 
 # - repeat:
 #     every:

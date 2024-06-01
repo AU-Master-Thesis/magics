@@ -25,7 +25,7 @@ set -l internal 50
 
 for seed in 0
     sed --regexp-extended "s/prng-seed\s*=\s*([0-9]+)/prng-seed = $seed/" -i $config_file
-    for schedule in interleave-evenly soon-as-possible late-as-possible centered half-at-the-beginning-half-at-the-end
+    for schedule in interleave-evenly soon-as-possible late-as-possible centered half-beginning-half-end
 
         sed --regexp-extended "s/schedule\s*=\s*(.*)/schedule = '$schedule'/" -i $config_file
 

@@ -89,5 +89,5 @@ fn visualise_tracking_paths(
 /// **Bevy** run condition for drawing obstacle factors
 #[inline]
 fn enabled(config: Res<Config>) -> bool {
-    config.visualisation.draw.tracking
+    config.visualisation.draw.tracking && config.gbp.factors_enabled.tracking
 }

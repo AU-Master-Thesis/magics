@@ -157,10 +157,35 @@ impl Repeat {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum IntersectionDistance {
+    #[default]
+    RobotRadius,
+    Meter(f32),
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ReachedWhen {
+    #[serde(default)]
+    pub distance: IntersectionDistance,
+    pub intersects_with: CheckIntersectionWith,
+}
+
+impl ReachedWhen {
+    pub fn same_as_paper() -> Self {
+        Self {
+            distance: IntersectionDistance::RobotRadius,
+            intersects_with: CheckIntersectionWith::Horizon,
+        }
+    }
+}
+
 /// How to evaluate if a robot has reached a waypoint
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, Component)]
 #[serde(rename_all = "kebab-case")]
-pub enum ReachedWhenIntersects {
+pub enum CheckIntersectionWith {
     /// When the current variable i.e. the robots current position intersects
     /// the waypoint
     Current,
@@ -200,9 +225,9 @@ pub struct Formation {
     pub initial_position: InitialPosition,
     /// List of waypoints.
     pub waypoints: OneOrMore<Waypoint>,
-    pub waypoint_reached_when_intersects: ReachedWhenIntersects,
+    pub waypoint_reached_when_intersects: ReachedWhen,
     #[serde(default = "Formation::default_finished_when_intersects")]
-    pub finished_when_intersects: ReachedWhenIntersects,
+    pub finished_when_intersects: ReachedWhen,
 }
 
 impl Default for Formation {
@@ -228,8 +253,11 @@ impl Default for Formation {
 }
 
 impl Formation {
-    fn default_finished_when_intersects() -> ReachedWhenIntersects {
-        ReachedWhenIntersects::Horizon
+    fn default_finished_when_intersects() -> ReachedWhen {
+        ReachedWhen {
+            distance: IntersectionDistance::RobotRadius,
+            intersects_with: CheckIntersectionWith::Horizon,
+        }
     }
 
     pub fn robots_to_spawn(&self) -> usize {
@@ -267,8 +295,8 @@ impl Formation {
                 placement_strategy: InitialPlacementStrategy::Equal,
             },
             waypoints: one_or_more![Waypoint::new(circle, ProjectionStrategy::Cross)],
-            waypoint_reached_when_intersects: ReachedWhenIntersects::Horizon,
-            finished_when_intersects: ReachedWhenIntersects::Current,
+            waypoint_reached_when_intersects: ReachedWhen::same_as_paper(),
+            finished_when_intersects: ReachedWhen::same_as_paper(),
         }
     }
 
@@ -726,8 +754,11 @@ impl FormationGroup {
                         ProjectionStrategy::Identity
                     ),],
 
-                    waypoint_reached_when_intersects: ReachedWhenIntersects::Horizon,
-                    finished_when_intersects: ReachedWhenIntersects::Current,
+                    waypoint_reached_when_intersects: ReachedWhen::same_as_paper(),
+                    finished_when_intersects: ReachedWhen {
+                        distance: IntersectionDistance::RobotRadius,
+                        intersects_with: CheckIntersectionWith::Current,
+                    },
                 },
                 Formation {
                     // repeat: Some(Duration::from_secs(4)),
@@ -747,8 +778,12 @@ impl FormationGroup {
                         line![(1.25, 0.45), (1.25, 0.55)],
                         ProjectionStrategy::Identity,
                     ),],
-                    waypoint_reached_when_intersects: ReachedWhenIntersects::Horizon,
-                    finished_when_intersects: ReachedWhenIntersects::Current,
+
+                    waypoint_reached_when_intersects: ReachedWhen::same_as_paper(),
+                    finished_when_intersects: ReachedWhen {
+                        distance: IntersectionDistance::RobotRadius,
+                        intersects_with: CheckIntersectionWith::Current,
+                    },
                 },
             ],
         }

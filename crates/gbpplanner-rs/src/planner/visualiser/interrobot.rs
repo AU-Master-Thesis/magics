@@ -9,19 +9,16 @@ pub struct InterRobotFactorVisualizerPlugin;
 
 impl Plugin for InterRobotFactorVisualizerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            visualize_interrobot_factors.run_if(enabled),
-            // visualize_obstacle_factors.run_if(on_timer(std::time::Duration::from_millis(500))),
-        );
+        app.add_systems(Update, visualize_interrobot_factors.run_if(enabled));
     }
 }
 
 /// **Bevy** run condition for drawing obstacle factors
 fn enabled(config: Res<Config>) -> bool {
     // config.visualisation.draw.interrobot_factors
-    config.visualisation.draw.interrobot_factors_safety_distance
-        || config.visualisation.draw.interrobot_factors
+    (config.visualisation.draw.interrobot_factors_safety_distance
+        || config.visualisation.draw.interrobot_factors)
+        && config.gbp.factors_enabled.interrobot
 }
 
 fn visualize_interrobot_factors(
@@ -75,41 +72,6 @@ fn visualize_interrobot_factors(
                     gizmos.line(start.extend(height).xzy(), end.extend(height).xzy(), color);
                 }
             }
-
-            // let (line_color, circle_color) = if antenna.active {
-            //    if dist < safety_dist as f32 {
-            //        let ratio = dist / safety_dist as f32;
-            //        let color = gradient.at(ratio as f64);
-            //        let color = Color::rgb(color.r as f32, color.g as f32, color.b as
-            // f32);        (color, Color::ORANGE)
-            //
-            //        // let g = 1.0 * ratio;
-            //        // let r = 1.0 - g;
-            //        //(Color::rgb(r, g, 0.0), Color::ORANGE)
-            //        //(Color::rgba(0.0, 1.0, 0.0, 1.0))
-            //
-            //        // Color::RED
-            //    } else {
-            //        (Color::rgba(0.0, 1.0, 0.0, 0.1), Color::ORANGE)
-            //        //(Color::GREEN, Color::ORANGE)
-            //    }
-            //} else {
-            //    // greyed out to indicate that the connection is not active/used
-            //    let gray = Color::rgba(0.5, 0.5, 0.5, 0.2);
-            //    (gray, gray)
-            //    //(Color::GRAY, Color::GRAY)
-            //};
-
-            // if config.visualisation.draw.interrobot_factors {
-            //    let offset = 0.15; // 0.3 / 2.0;
-            //    let start = estimated_position + dir * offset;
-            //    let end = external_position + dir * offset;
-            //    gizmos.line(
-            //        start.extend(height).xzy(),
-            //        end.extend(height).xzy(),
-            //        line_color,
-            //    );
-            //}
 
             if config.visualisation.draw.interrobot_factors_safety_distance {
                 let color = if antenna.active {

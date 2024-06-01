@@ -24,7 +24,7 @@ pub struct Tracking {
     /// Amount of projects being considered
     connections: Mutex<Cell<usize>>,
     /// The tracking config from the `gbp_config` input `config.toml`
-    config: gbp_config::TrackingSection,
+    pub config: gbp_config::TrackingSection,
 }
 
 impl Default for Tracking {
@@ -74,6 +74,8 @@ pub struct TrackingFactor {
     tracking: Tracking,
     /// Most recent measurement
     last_measurement: Mutex<Cell<LastMeasurement>>,
+
+    timeout: Mutex<Cell<Option<usize>>>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -101,6 +103,7 @@ impl TrackingFactor {
             tracking: Tracking::default()
                 .with_path(tracking_path.map_or_else(Vec::new, |p| p.into())),
             last_measurement: Default::default(),
+            timeout: Default::default(),
         }
     }
 
@@ -138,6 +141,18 @@ impl TrackingFactor {
             self.tracking.index = index;
         }
     }
+
+    pub fn set_linearisation_point(&mut self, mean: Vec2) {
+        // self.tracking.path = None;
+        self.last_measurement.lock().unwrap().set(LastMeasurement {
+            pos:   mean,
+            value: 0.0,
+        });
+    }
+
+    pub fn set_timeout(&mut self, iterations: usize) {
+        self.timeout.lock().unwrap().set(Some(iterations));
+    }
 }
 
 impl Factor for TrackingFactor {
@@ -163,6 +178,8 @@ impl Factor for TrackingFactor {
 
         let m = last_measurement.pos;
         let pos = linearisation_point.slice(s![..DOFS / 2]).to_owned();
+        dbg!(&pos);
+
         let temp = array![m.x as Float, m.y as Float];
         let x_diff = pos - temp;
 
@@ -343,6 +360,15 @@ impl Factor for TrackingFactor {
 
     #[inline(always)]
     fn skip(&self, _state: &FactorState) -> bool {
+        let timeout = self.timeout.lock().unwrap();
+        if let Some(left) = timeout.get() {
+            if left == 0 {
+                timeout.set(None);
+            } else {
+                timeout.set(Some(left - 1));
+                return true;
+            }
+        }
         // skip if `self.tracking.path` is empty
         if self.tracking.path.is_none()
             || self.tracking.record.lock().unwrap().get()

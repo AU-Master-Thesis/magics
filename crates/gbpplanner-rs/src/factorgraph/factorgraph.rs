@@ -5,6 +5,7 @@ use bevy::{
 };
 // use gbp_linalg::Float;
 use gbp_linalg::prelude::*;
+use itertools::Itertools;
 use petgraph::{stable_graph::EdgeReference, visit::EdgeRef, Undirected};
 use typed_floats::StrictlyPositiveFinite;
 
@@ -1560,6 +1561,39 @@ impl FactorGraph {
         for ix in self.factor_indices.iter() {
             self.graph[*ix].as_factor_mut().unwrap().empty_inbox();
         }
+    }
+
+    pub fn reset_tracking_factors(&mut self) {
+        for ix in &self.variable_indices[1..self.variable_indices.len() - 1] {
+            let mean = {
+                let var = self.graph[*ix].as_variable().unwrap();
+                var.belief.mean.clone()
+            };
+            let neighbours = self.graph.neighbors(*ix).collect_vec();
+            for n in &neighbours {
+                let Some(factor) = self.graph[*n].as_factor_mut() else {
+                    continue;
+                };
+
+                let FactorKind::Tracking(ref mut tracking) = factor.kind else {
+                    continue;
+                };
+
+                let mean = Vec2::new(mean[0] as f32, mean[1] as f32);
+                tracking.set_linearisation_point(mean);
+                tracking.set_timeout(1000);
+            }
+        }
+
+        // self.variable_indices
+        //    .iter()
+        //    .map(|ix| self.graph[*ix].as_variable().unwrap())
+        //    .map(|v| v.belief.mean.clone())
+        //    .for_each(|mean| {
+        //        for ix in &self.tracking_factor_indices {
+        //            let tracking_factor =
+        // self.graph[*ix].as_factor_mut().unwrap();        }
+        //    });
     }
 
     // pub fn reset_variable_positions(&mut self, positions: &[[f64; 2]]) {

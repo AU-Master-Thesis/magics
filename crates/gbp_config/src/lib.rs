@@ -500,27 +500,38 @@ impl Default for FactorsEnabledSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TrackingSection {
-    #[serde(default = "default_switch_padding")]
+    #[serde(default = "TrackingSection::default_switch_padding")]
     pub switch_padding:      f32,
-    #[serde(default = "default_attraction_distance")]
+    #[serde(default = "TrackingSection::default_attraction_distance")]
     pub attraction_distance: f32,
+    //#[serde(default = "TrackingSection::default_enabled")]
+    // pub enabled: bool,
+}
+
+impl TrackingSection {
+    fn default_enabled() -> bool {
+        true
+    }
+
+    fn default_attraction_distance() -> f32 {
+        2.0
+    }
+
+    fn default_switch_padding() -> f32 {
+        1.0
+    }
 }
 
 /// Default value for the attraction distance
-fn default_attraction_distance() -> f32 {
-    2.0
-}
 
 /// Default value for the switch padding
-fn default_switch_padding() -> f32 {
-    1.0
-}
 
 impl Default for TrackingSection {
     fn default() -> Self {
         Self {
-            switch_padding:      default_switch_padding(),
-            attraction_distance: default_attraction_distance(),
+            switch_padding:      Self::default_switch_padding(),
+            attraction_distance: Self::default_attraction_distance(),
+            // enabled: Self::default_enabled(),
         }
     }
 }

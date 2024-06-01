@@ -277,8 +277,8 @@ impl FactorNode {
     }
 
     #[inline(always)]
-    fn jacobian(&self, x: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
-        self.kind.jacobian(&self.state, x)
+    fn jacobian(&self, linearisation_point: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+        self.kind.jacobian(&self.state, linearisation_point)
     }
 
     #[inline]
@@ -342,9 +342,9 @@ impl FactorNode {
             if let Some(mean) = message.mean() {
                 slice.assign(mean);
             } else {
-                for x in slice {
-                    *x = 0.0;
-                }
+                // for x in slice {
+                //    *x = 0.0;
+                //}
             }
         }
 

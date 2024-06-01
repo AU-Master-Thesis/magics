@@ -13,7 +13,7 @@ use bevy::{
 use bevy_prng::WyRand;
 use bevy_rand::{component::EntropyComponent, prelude::GlobalEntropy};
 use gbp_config::{
-    formation::{PlanningStrategy, ReachedWhenIntersects},
+    formation::{CheckIntersectionWith, IntersectionDistance, PlanningStrategy, ReachedWhen},
     Config,
 };
 use gbp_global_planner::PathfindingTask;
@@ -571,17 +571,24 @@ fn progress_missions(
 ) {
     for (robot_entity, mut mission, plannning_strategy) in &mut q {
         match (mission.state, plannning_strategy) {
-            (RobotMissionState::Idle { .. }, PlanningStrategy::OnlyLocal) => {
+            (MissionState::Idle { .. }, PlanningStrategy::OnlyLocal) => {
                 // no need to do anything
-                info!("(Idle {{ .. }}, OnlyLocal) => Active");
-                mission.state = RobotMissionState::Active;
+                mission.state = MissionState::Active;
             }
             (
-                RobotMissionState::Idle {
+                MissionState::Idle {
                     waiting_for_waypoints: false,
                 },
                 PlanningStrategy::RrtStar,
             ) => {
+                // disable tracking factors
+                // factorgraphs.iter_mut().for_each(|(mut factorgraph, _)| {
+                //    let mut settings = config.gbp.factors_enabled;
+                //    settings.tracking = false;
+                //    factorgraph.change_factor_enabled(settings);
+                //});
+                // info!("disabled tracking factors while idle");
+
                 if let Ok((pathfinder, prng)) = pathfinders.get_mut(robot_entity) {
                     let active_route = mission.active_route().unwrap();
                     //    let start = active_route
@@ -616,7 +623,7 @@ fn progress_missions(
                     );
                 }
 
-                mission.state = RobotMissionState::Idle {
+                mission.state = MissionState::Idle {
                     waiting_for_waypoints: true,
                 };
 
@@ -625,7 +632,7 @@ fn progress_missions(
                 // mission.state = RobotMissionState::Active;
             }
             (
-                RobotMissionState::Idle {
+                MissionState::Idle {
                     waiting_for_waypoints: true,
                 },
                 PlanningStrategy::RrtStar,
@@ -751,6 +758,7 @@ fn progress_missions(
                                         .collect_vec();
 
                                     fgraph.reset_variables(&means, 1e30, Float::INFINITY);
+                                    fgraph.reset_tracking_factors();
                                     // fgraph.reset_variable_positions(positions.as_slice());
                                     error!(
                                         "updated variable positions of robot: {:?}",
@@ -760,13 +768,20 @@ fn progress_missions(
 
                                 info!("updating route waypoints: {:?}", waypoints);
                                 active_route.update_waypoints(waypoints.try_into().unwrap());
-                                mission.state = RobotMissionState::Active;
+
+                                // factorgraphs.iter_mut().for_each(|(mut factorgraph, _)| {
+                                //    let mut settings = config.gbp.factors_enabled;
+                                //    settings.tracking = true;
+                                //    factorgraph.change_factor_enabled(settings);
+                                //});
+
+                                mission.state = MissionState::Active;
                                 // TODO: update the variable placements of the
                                 // factorgraph
                             }
                             Err(e) => {
                                 error!("Pathfinding error: {:?}", e);
-                                mission.state = RobotMissionState::Idle {
+                                mission.state = MissionState::Idle {
                                     waiting_for_waypoints: false, // try again
                                 }
                             }
@@ -774,7 +789,7 @@ fn progress_missions(
                     }
                 }
             }
-            (RobotMissionState::Active, _) => {
+            (MissionState::Active, _) => {
                 // info!("(Active)");
                 // check if route is completed, and advance to either completed or idle
                 let route = mission.active_route().unwrap();
@@ -783,7 +798,7 @@ fn progress_missions(
                     mission.next_route(&time);
                 }
             }
-            (RobotMissionState::Completed, _) => {}
+            (MissionState::Completed, _) => {}
         }
     }
 }
@@ -796,9 +811,9 @@ pub struct Mission {
     // total_routes: usize,
     started_at: f64,
     finished_at: Option<f64>,
-    pub state: RobotMissionState,
-    finished_when_intersects: ReachedWhenIntersects,
-    taskpoint_reached_when_intersects: ReachedWhenIntersects,
+    pub state: MissionState,
+    finished_when_intersects: ReachedWhen,
+    taskpoint_reached_when_intersects: ReachedWhen,
 }
 
 // impl std::fmt::Display for RobotMission {
@@ -814,8 +829,8 @@ impl Mission {
     pub fn local(
         waypoints: min_len_vec::TwoOrMore<StateVector>,
         started_at: f64,
-        finished_when_intersects: ReachedWhenIntersects,
-        waypoint_reached_when_intersects: ReachedWhenIntersects,
+        finished_when_intersects: ReachedWhen,
+        waypoint_reached_when_intersects: ReachedWhen,
     ) -> Self {
         let route = Route::new(
             waypoints.iter().copied().collect_vec().try_into().unwrap(),
@@ -828,7 +843,7 @@ impl Mission {
             // total_routes: 1,
             started_at,
             finished_at: None,
-            state: RobotMissionState::Active,
+            state: MissionState::Active,
             finished_when_intersects,
             taskpoint_reached_when_intersects: waypoint_reached_when_intersects,
         }
@@ -839,13 +854,13 @@ impl Mission {
     pub fn global(
         waypoints: min_len_vec::TwoOrMore<StateVector>,
         started_at: f64,
-        finished_when_intersects: ReachedWhenIntersects,
-        waypoint_reached_when_intersects: ReachedWhenIntersects,
+        finished_when_intersects: ReachedWhen,
+        waypoint_reached_when_intersects: ReachedWhen,
     ) -> Self {
         Self::new(
             waypoints,
             started_at,
-            RobotMissionState::Idle {
+            MissionState::Idle {
                 waiting_for_waypoints: false,
             },
             finished_when_intersects,
@@ -856,11 +871,11 @@ impl Mission {
     fn new(
         waypoints: min_len_vec::TwoOrMore<StateVector>,
         started_at: f64,
-        state: RobotMissionState,
-        finished_when_intersects: ReachedWhenIntersects,
-        waypoint_reached_when_intersects: ReachedWhenIntersects,
+        state: MissionState,
+        finished_when_intersects: ReachedWhen,
+        waypoint_reached_when_intersects: ReachedWhen,
     ) -> Self {
-        assert_ne!(state, RobotMissionState::Completed);
+        assert_ne!(state, MissionState::Completed);
         let first_route = Route::new(
             waypoints
                 .iter()
@@ -895,7 +910,7 @@ impl Mission {
     }
 
     pub fn is_completed(&self) -> bool {
-        self.state == RobotMissionState::Completed
+        self.state == MissionState::Completed
     }
 
     pub fn next_waypoint(&self) -> Option<&StateVector> {
@@ -942,13 +957,13 @@ impl Mission {
 
     pub fn next_route(&mut self, time: &Time) {
         match self.state {
-            RobotMissionState::Completed => {}
+            MissionState::Completed => {}
             _ => {
                 self.active_route += 1;
                 // if self.active_route >= self.routes.len() {
                 if self.active_route >= self.taskpoints.len() - 1 {
                     // if self.active_route >= self.total_routes {
-                    self.state = RobotMissionState::Completed;
+                    self.state = MissionState::Completed;
                     self.finished_at = Some(time.elapsed().as_secs_f64());
                 } else {
                     let waypoints: Vec<StateVector> = self
@@ -961,7 +976,7 @@ impl Mission {
                     let next_route =
                         Route::new(waypoints.try_into().unwrap(), time.elapsed_seconds_f64());
                     self.routes.push(next_route);
-                    self.state = RobotMissionState::Idle {
+                    self.state = MissionState::Idle {
                         waiting_for_waypoints: false,
                     }
                 }
@@ -971,14 +986,14 @@ impl Mission {
 
     pub fn advance_to_next_waypoint(&mut self, time: &Time) {
         match self.state {
-            RobotMissionState::Active => {
+            MissionState::Active => {
                 let current_route = self.routes.get_mut(self.active_route).unwrap();
                 current_route.advance(time.elapsed());
                 if current_route.is_completed() {
                     self.next_route(time);
                 }
             }
-            RobotMissionState::Completed | RobotMissionState::Idle { .. } => return,
+            MissionState::Completed | MissionState::Idle { .. } => return,
         }
     }
 
@@ -988,15 +1003,15 @@ impl Mission {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RobotMissionState {
+pub enum MissionState {
     Idle { waiting_for_waypoints: bool },
     Active,
     Completed,
 }
 
-impl RobotMissionState {
+impl MissionState {
     pub fn idle(&self) -> bool {
-        matches!(self, RobotMissionState::Idle { .. })
+        matches!(self, MissionState::Idle { .. })
     }
 }
 
@@ -1123,8 +1138,8 @@ impl RobotBundle {
         waypoints: min_len_vec::TwoOrMore<StateVector>,
         // use_tracking: bool,
         planning_strategy: PlanningStrategy,
-        waypoint_reached_when_intersects: ReachedWhenIntersects,
-        finished_when_intersects: ReachedWhenIntersects,
+        waypoint_reached_when_intersects: ReachedWhen,
+        finished_when_intersects: ReachedWhen,
     ) -> Self {
         assert!(
             !variable_timesteps.is_empty(),
@@ -1745,7 +1760,12 @@ fn iterate_gbp_external_sync(
 
 fn iterate_gbp_v2(
     mut query: Query<
-        (&mut FactorGraph, &GbpIterationSchedule, &RadioAntenna),
+        (
+            &mut FactorGraph,
+            &GbpIterationSchedule,
+            &RadioAntenna,
+            &Mission,
+        ),
         With<RobotConnections>,
     >,
     config: Res<Config>,
@@ -1760,18 +1780,22 @@ fn iterate_gbp_v2(
         if internal {
             query
                 .par_iter_mut()
-                .for_each(|(mut factorgraph, _, antenna)| {
+                .for_each(|(mut factorgraph, _, antenna, mission)| {
                     // if antenna.active {
+                    // if matches!(mission.state, MissionState::Active) {
                     factorgraph.internal_factor_iteration();
                     factorgraph.internal_variable_iteration();
+                    //}
                     // }
                 });
         }
 
         if external {
             let mut messages_to_external_variables = vec![];
-            for (mut factorgraph, _, antenna) in query.iter_mut() {
-                if !antenna.active {
+            for (mut factorgraph, _, antenna, mission) in query.iter_mut() {
+                if !antenna.active
+                // || matches!(mission.state, MissionState::Active)
+                {
                     continue;
                 }
                 messages_to_external_variables
@@ -1780,14 +1804,14 @@ fn iterate_gbp_v2(
 
             // Send messages to external variables
             for message in messages_to_external_variables.into_iter() {
-                let Ok((mut external_factorgraph, _, antenna)) =
+                let Ok((mut external_factorgraph, _, antenna, mission)) =
                     query.get_mut(message.to.factorgraph_id)
                 else {
                     continue;
                 };
 
                 // cannot receive any new messages if antenna is turned off
-                if !antenna.active {
+                if !antenna.active || mission.state.idle() {
                     continue;
                 }
 
@@ -1799,8 +1823,8 @@ fn iterate_gbp_v2(
             }
 
             let mut messages_to_external_factors = vec![];
-            for (mut factorgraph, _, antenna) in query.iter_mut() {
-                if !antenna.active {
+            for (mut factorgraph, _, antenna, mission) in query.iter_mut() {
+                if !antenna.active || mission.state.idle() {
                     continue;
                 }
                 messages_to_external_factors
@@ -1809,14 +1833,14 @@ fn iterate_gbp_v2(
 
             // Send messages to external factors
             for message in messages_to_external_factors.into_iter() {
-                let Ok((mut external_factorgraph, _, antenna)) =
+                let Ok((mut external_factorgraph, _, antenna, mission)) =
                     query.get_mut(message.to.factorgraph_id)
                 else {
                     continue;
                 };
 
                 // cannot receive any new messages if antenna is turned off
-                if !antenna.active {
+                if !antenna.active || mission.state.idle() {
                     continue;
                 }
 
@@ -2068,14 +2092,14 @@ fn reached_waypoint(
 
         let r_sq = r.0 * r.0;
         let reached = {
-            use ReachedWhenIntersects::{Current, Horizon, Variable};
+            use CheckIntersectionWith::{Current, Horizon, Variable};
             let when_intersects = if mission.next_waypoint_is_last() {
                 mission.finished_when_intersects
             } else {
                 mission.taskpoint_reached_when_intersects
             };
 
-            let variable = match when_intersects {
+            let variable = match when_intersects.intersects_with {
                 Current => fgraph.first_variable(),
                 Horizon => fgraph.last_variable(),
                 Variable(ix) => {
@@ -2087,9 +2111,15 @@ fn reached_waypoint(
             .expect("variable exists");
 
             let estimated_pos = variable.estimated_position_vec2();
+            let distance_squared = match when_intersects.distance {
+                IntersectionDistance::RobotRadius => r_sq,
+                IntersectionDistance::Meter(meter) => meter * meter,
+            };
+
             // Use square distance comparison to avoid sqrt computation
             let dist2waypoint = estimated_pos.distance_squared(next_waypoint.position());
-            dist2waypoint < r_sq
+            // dist2waypoint < r_sq
+            dist2waypoint < distance_squared
         };
 
         if reached {

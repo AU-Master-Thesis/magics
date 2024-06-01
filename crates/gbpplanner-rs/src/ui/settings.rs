@@ -449,7 +449,7 @@ fn ui_settings_panel(
                         ui.separator();
 
                         // ui.label("Factors");
-                        ui.label(egui::RichText::new("Factors Enabled").size(16.0));
+                        //ui.label(egui::RichText::new("Factors Enabled").size(16.0));
 
                         let update_float = |ui: &mut egui::Ui, value: &mut f32| {
                             let mut text = if *value == 0.0 { "0.0".to_string() } else { value.to_string() };
@@ -473,9 +473,20 @@ fn ui_settings_panel(
                             }
                         };
                         custom::grid("factor_grid", 3).show(ui, |ui| {
+
                             ui.label("Factor");
                             ui.label("Sigma");
-                            ui.label("Enabled");
+                            //ui.label("Enabled");
+
+                            ui.horizontal(|ui| {
+                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                                    //ui.label("Factor");
+                                    //ui.label("Sigma");
+                                    ui.label("Enabled");
+                                    //ui.label("Right Aligned Label");
+                                });
+                            });
+
                             ui.end_row();
 
                             let mut update_enabled_factors = |settings: gbp_config::FactorsEnabledSection| {

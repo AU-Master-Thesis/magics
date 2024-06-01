@@ -161,5 +161,5 @@ fn visualize_obstacle_factors(
 /// **Bevy** run condition for drawing obstacle factors
 #[inline]
 fn enabled(config: Res<Config>) -> bool {
-    config.visualisation.draw.obstacle_factors
+    config.visualisation.draw.obstacle_factors && config.gbp.factors_enabled.obstacle
 }

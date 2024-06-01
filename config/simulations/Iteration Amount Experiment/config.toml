@@ -44,8 +44,8 @@ sigma-factor-tracking   = 0.1
 # iterations-per-timestep = 10
 lookahead-multiple = 3
 [gbp.iteration-schedule]
-internal = 5
-external = 25
+internal = 30
+external = 30
 schedule = "interleave-evenly"
 
 [robot]
