@@ -88,7 +88,7 @@ fn visualise_tracking_paths(
     for (factorgraph, color_association, route, initial_state) in &factorgraphs {
         let color = Color::from_catppuccin_colour_with_alpha(
             theme.get_display_colour(&color_association.name),
-            0.25,
+            0.5,
         );
 
         let points = route.waypoints().iter().map(|waypoint| waypoint.position());
