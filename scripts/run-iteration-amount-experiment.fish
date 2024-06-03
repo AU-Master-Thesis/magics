@@ -15,15 +15,41 @@ if not test -f $config_file
     exit 1
 end
 
+#function fib -a n
+#    if test $n -eq 0
+#        echo 0
+#    else if test $n -eq 1
+#        echo 1
+#    else
+#        set -l a (fib (math "$n - 1"))
+#        set -l b (fib (math "$n - 2"))
+#        math "$a + $b"
+#    end
+#end
+
+function fib -a n
+    set -l a 0
+    set -l b 1
+    for i in (seq 1 $n)
+        echo $a
+        set -l temp $b
+        set b (math "$a + $b")
+        set a $temp
+    end
+end
+
 set -l t_start (date "+%s")
 
 printf '%sinfo%s: starting experiment\n' (set_color green) (set_color normal) >&2
 
-for seed in 0
+set -l internals (fib 10 | tail +3)
+set -l externals (fib 10 | tail +3)
+
+for seed in 0 31 227 252 805
     sed --regexp-extended "s/prng-seed\s*=\s*([0-9]+)/prng-seed = $seed/" -i $config_file
-    for internal in (seq 5 5 30)
+    for internal in $internals
         sed --regexp-extended "s/internal\s*=\s*(.*)/internal = $internal/" -i $config_file
-        for external in (seq 5 5 30)
+        for external in $externals
             sed --regexp-extended "s/external\s*=\s*(.*)/external = $external/" -i $config_file
 
             printf '%sinfo%s: testing seed: %d, internal: %s, external: %d\n' (set_color green) (set_color normal) $seed $internal $external >&2
@@ -50,6 +76,7 @@ for seed in 0
             set -l dirname (path dirname "$output_file")
             command mkdir -p "$dirname"
             mv "$exported_json" "$output_file"
+
         end
     end
 end

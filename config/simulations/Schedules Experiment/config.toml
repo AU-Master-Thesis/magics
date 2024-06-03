@@ -45,8 +45,8 @@ sigma-factor-tracking   = 0.1
 lookahead-multiple = 3
 [gbp.iteration-schedule]
 internal = 50
-external = 25
-schedule = 'half-beginning-half-end'
+external = 20
+schedule = 'centered'
 
 [robot]
 # planning-horizon = 13.33 # 2r / initial speed
@@ -72,7 +72,7 @@ time-scale         = 1.0
 manual-step-factor = 1
 hz                 = 10.0
 # world-size                                = 100.0
-prng-seed = 0
+prng-seed = 31
 pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = true
 exit-application-on-scenario-finished     = true

@@ -177,9 +177,9 @@ impl CollisionProblem {
         !intersecting
     }
 
-    fn random_sample(&self, rng: &mut dyn RngCore) -> Vec<f64> {
+    fn random_sample(&self, mut rng: &mut dyn RngCore) -> Vec<f64> {
         let between = Uniform::new(-2000.0, 2000.0);
-        let mut rng = rng;
+        // let mut rng = rng;
         vec![between.sample(&mut rng), between.sample(&mut rng)]
     }
 }

@@ -2,14 +2,6 @@ environment_image = "junction_twoway"
 environment       = "./config/simulations/Solo GP/environment.yaml"
 formation_group   = "./config/simulations/Solo GP/formation.ron"
 
-[interaction]
-ui-focus-cancels-inputs = true
-default-cam-distance    = 300.0
-
-[visualisation.uncertainty]
-max-radius = 2.5
-scale      = 300.0
-
 [visualisation.height]
 objects    = 0.5
 height-map = 2.0
@@ -21,26 +13,32 @@ predicted-trajectories             = true
 waypoints                          = true
 uncertainty                        = false
 paths                              = true
-height-map                         = false
-sdf                                = false
 communication-radius               = false
 obstacle-factors                   = false
-tracking                           = false
+tracking = true
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 generated-map                      = true
+sdf                                = false
 robot-colliders                    = false
 environment-colliders              = false
 robot-robot-collisions             = true
 robot-environment-collisions       = true
 
+[visualisation.uncertainty]
+max-radius = 2.5
+scale      = 300.0
+
+[interaction]
+ui-focus-cancels-inputs = true
+default-cam-distance    = 300.0
 
 [gbp]
-sigma-pose-fixed        = 1e-15
-sigma-factor-dynamics   = 0.2
-sigma-factor-interrobot = 0.01
-sigma-factor-obstacle   = 0.01
-sigma-factor-tracking   = 0.15
+sigma-pose-fixed        = 0.0000000000000010000000036274937
+sigma-factor-dynamics   = 0.10000000149011612
+sigma-factor-interrobot = 0.009999999776482582
+sigma-factor-obstacle   = 0.009999999776482582
+sigma-factor-tracking   = 0.15000000596046448
 lookahead-multiple      = 3
 variables               = 10
 
@@ -57,12 +55,12 @@ schedule = "interleave-evenly"
 dynamic    = true
 interrobot = true
 obstacle   = true
-tracking   = true
+tracking = true
 
 [robot]
 planning-horizon                       = 5.0
 target-speed                           = 7.0
-inter-robot-safety-distance-multiplier = 3.2
+inter-robot-safety-distance-multiplier = 3.200000047683716
 
 [robot.radius]
 min = 2.0
@@ -74,13 +72,13 @@ failure-rate = 0.0
 
 [simulation]
 max-time                                  = 10000.0
-time-scale                                = 1.0
+time-scale                                = 10.0
 manual-step-factor                        = 1
 hz                                        = 10.0
-prng-seed                                 = 0
-pause-on-spawn                            = true
+prng-seed = 805
+pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = true
-exit-application-on-scenario-finished     = false
+exit-application-on-scenario-finished     = true
 
 [rrt]
 max-iterations       = 5000000
@@ -113,6 +111,6 @@ timesteps-per-step = 1
 obstacle   = false
 dynamic    = false
 interrobot = false
+tracking = true
 variable   = false
-tracking   = false
 inbox      = true

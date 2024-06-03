@@ -9,7 +9,7 @@ height-map = 1.0
 [visualisation.draw]
 robots                             = true
 communication-graph                = false
-predicted-trajectories             = true
+predicted-trajectories             = false
 waypoints                          = false
 uncertainty                        = false
 paths                              = false
@@ -58,9 +58,9 @@ obstacle   = true
 tracking   = false
 
 [robot]
-planning-horizon                       = 13.33
+planning-horizon                       = 13.329999923706055
 target-speed                           = 15.0
-inter-robot-safety-distance-multiplier = 2.2
+inter-robot-safety-distance-multiplier = 2.200000047683716
 
 [robot.radius]
 min = 2.0
@@ -68,14 +68,14 @@ max = 3.0
 
 [robot.communication]
 radius       = 50.0
-failure-rate = 0.7
+failure-rate = 0.3
 
 [simulation]
 max-time                                  = 10000.0
 time-scale                                = 1.0
 manual-step-factor                        = 1
 hz                                        = 10.0
-prng-seed                                 = 805
+prng-seed = 0
 pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = true
 exit-application-on-scenario-finished     = true

@@ -59,6 +59,7 @@ pub fn spawn_pathfinding_task(
                             |x| collision_solver.is_feasible(x),
                             rrt_params.step_size.get() as f64,
                             rrt_params.smoothing.max_iterations.get(),
+                            &mut *rng_source,
                         );
                     }
                     resulting_path
@@ -131,6 +132,7 @@ pub fn spawn_pathfinding_task_full_tree(
                             |x| collision_solver.is_feasible(x),
                             rrt_params.step_size.get() as f64,
                             rrt_params.smoothing.max_iterations.get(),
+                            &mut *rng_source,
                         );
                     }
                     resulting_path
