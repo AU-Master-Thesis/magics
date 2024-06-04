@@ -37,6 +37,7 @@ for seed in 0 31 227 252 805
     for num_robots in (seq 5 5 50)
         # sed --regexp-extended "s/robots:\s+(\d+)/robots: $num_robots/" -i $formation_file
         sed "s/\(\s*robots:\s*\)[0-9]\+/\1 $num_robots/" -i $formation_file
+        # sed --regexp-extended "s/robots\s*=\s*[0-9]+/robots = $num_robots" -
         printf '%sinfo%s: changed num-robots to: %d\n' $green $reset $num_robots >&2
 
         set -l output_file experiments/environment-obstacles/num-robots-$num_robots-seed-$seed.json
@@ -44,7 +45,7 @@ for seed in 0 31 227 252 805
         set -l t_end (date "+%s")
         set -l t_diff (math "$t_end - $t_start")
         if functions -q peopletime
-            printf '%sinfo%s: time elapsed: \n' $green $reset (peopletime (math "$t_diff * 1000")) >&2
+            printf '%sinfo%s: time elapsed: %s\n' $green $reset (peopletime (math "$t_diff * 1000")) >&2
         end
 
         if test -f $output_file
@@ -56,7 +57,7 @@ for seed in 0 31 227 252 805
             end
         end
 
-        RUST_LOG=gbpplanner_rs=error ./target/release/gbpplanner-rs -i 'Environment Obstacles Experiment' 2>/dev/null
+        RUST_LOG=magics=error ./target/release/magics -i 'Environment Obstacles Experiment' 2>/dev/null
         set -l exported_json (printf '%s\n' export_environment\ obstacles\ experiment*.json | tail -n 1)
         set -l dirname (path dirname "$output_file")
         command mkdir -p "$dirname"

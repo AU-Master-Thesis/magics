@@ -608,14 +608,20 @@ fn render_robot_environment_collisions(
         // }
 
         let aabb = &event.intersection;
-        let center = Vec3::new(aabb.mins.x + aabb.maxs.x, 0.0, aabb.mins.y + aabb.maxs.y) / 2.0;
+        let mut center = Vec3::new(aabb.mins.x + aabb.maxs.x, 0.0, aabb.mins.y + aabb.maxs.y) / 2.0;
+        center.y = -config.visualisation.height.objects * 2.1;
+
+        //-config.visualisation.height.objects - 1.5,
+
         // let half_size = Vec3::new(aabb.maxs.x - aabb.mins.x, 0.0, aabb.maxs.y -
         // aabb.mins.y) / 2.0;
-        let cuboid = Cuboid::from_size(Vec3::new(
-            aabb.maxs.x - aabb.mins.x,
-            2.0,
-            aabb.maxs.y - aabb.mins.y,
-        ));
+        let cuboid = Cuboid::from_size(
+            Vec3::new(
+                aabb.maxs.x - aabb.mins.x,
+                config.visualisation.height.objects * 4.5,
+                aabb.maxs.y - aabb.mins.y,
+            ) * 1.05,
+        );
 
         let initial_visibility = if config.visualisation.draw.robot_environment_collisions {
             Visibility::Visible

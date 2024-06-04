@@ -849,7 +849,7 @@ impl Default for Config {
         // TODO: make a bit more robust
         // let cwd = std::env::current_dir().expect("The current working directory
         // exists"); let default_environment =
-        // cwd.join("gbpplanner-rs/assets/imgs/junction.png");
+        // cwd.join("magics/assets/imgs/junction.png");
         let default_environment_image = "junction".to_string();
         let default_environment_config = "./config/environment.yaml".to_string();
         let default_formation_config = "./config/formation.ron".to_string();

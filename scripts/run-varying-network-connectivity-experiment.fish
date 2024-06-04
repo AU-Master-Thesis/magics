@@ -42,12 +42,12 @@ for seed in 0 31 227 252 805
 
         printf '%sinfo%s: changed comms-radius to: %d\n' $green $reset $comms_radius >&2
 
-        set -l output_file experiments/varying-network-connectivity/comms-radius-$comms_radius-seed-$seed.json
+        set -l output_file experiments/varying-network-connectivity-lm-3-tk-13.33/comms-radius-$comms_radius-seed-$seed.json
 
         set -l t_end (date "+%s")
         set -l t_diff (math "$t_end - $t_start")
         if functions -q peopletime
-            printf '%sinfo%s: time elapsed: \n' $green $reset (peopletime (math "$t_diff * 1000")) >&2
+            printf '%sinfo%s: time elapsed: %s\n' $green $reset (peopletime (math "$t_diff * 1000")) >&2
         end
 
         if test -f $output_file
@@ -59,7 +59,7 @@ for seed in 0 31 227 252 805
             end
         end
 
-        RUST_LOG=gbpplanner_rs=error ./target/release/gbpplanner-rs -i 'Varying Network Connectivity Experiment' 2>/dev/null
+        RUST_LOG=magics=error ./target/release/magics -i 'Varying Network Connectivity Experiment' 2>/dev/null
         set -l exported_json (printf '%s\n' export_varying\ network\ connectivity\ experiment*.json | tail -n 1)
         set -l dirname (path dirname "$output_file")
         command mkdir -p "$dirname"

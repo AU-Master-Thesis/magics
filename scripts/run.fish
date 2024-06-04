@@ -8,5 +8,5 @@ function run
 end
 
 set -l jobs (math (nproc) - 1) # leave one CPU core for interactivity
-set -lx RUST_LOG error, gbpplanner_rs=info
-cargo run --jobs=$jobs --bin gbpplanner-rs -- $argv
+set -lx RUST_LOG error, magics=info
+cargo run --jobs=$jobs --bin magics -- $argv

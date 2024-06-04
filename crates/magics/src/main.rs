@@ -51,7 +51,7 @@ use colored::Colorize;
 use gbp_config::{read_config, Config, FormationGroup};
 // use config::{environment::EnvironmentType, Environment};
 use gbp_environment::{Environment, EnvironmentType};
-use gbpplanner_rs::AppState;
+use magics::AppState;
 
 use crate::cli::DumpDefault;
 

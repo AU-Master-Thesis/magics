@@ -44,10 +44,11 @@ for seed in 0 31 227 252 805
             end
         end
 
-        RUST_LOG=gbpplanner_rs=error ./target/release/gbpplanner-rs -i "$experiment" 2>/dev/null
-        set -l exported_json (printf '%s\n' export_solo\ gp\ experiment*.json | tail -n 1)
+        RUST_LOG=magics=error ./target/release/magics -i "$experiment" 2>/dev/null
+        set -l exported_json (printf '%s\n' export_solo\ gp*.json | tail -n 1)
         set -l dirname (path dirname "$output_file")
         command mkdir -p "$dirname"
+        echo mv "$exported_json" "$output_file"
         mv "$exported_json" "$output_file"
     end
 end

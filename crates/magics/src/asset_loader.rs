@@ -87,7 +87,7 @@ impl FromWorld for Materials {
                 .get_resource::<CatppuccinTheme>()
                 .expect("CatppuccinTheme exists in the world");
             (
-                Color::from_catppuccin_colour_with_alpha(catppuccin_theme.maroon(), 0.5),
+                Color::from_catppuccin_colour_with_alpha(catppuccin_theme.maroon(), 0.8),
                 Color::from_catppuccin_colour_with_alpha(catppuccin_theme.maroon(), 0.2),
                 Color::from_catppuccin_colour(catppuccin_theme.text()),
             )

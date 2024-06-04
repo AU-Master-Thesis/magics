@@ -15,7 +15,7 @@ command = [
   "--color",
   "always",
   "--package",
-  "gbpplanner-rs",
+  "magics",
 ]
 need_stdout = false
 

@@ -23,7 +23,7 @@ printf '%sinfo%s: starting experiment\n' (set_color green) (set_color normal) >&
 
 set -l internal 50
 
-for seed in 0
+for seed in 0 31 227 252 805
     sed --regexp-extended "s/prng-seed\s*=\s*([0-9]+)/prng-seed = $seed/" -i $config_file
     for schedule in interleave-evenly soon-as-possible late-as-possible centered half-beginning-half-end
 
@@ -51,7 +51,7 @@ for seed in 0
                 end
             end
 
-            RUST_LOG=gbpplanner_rs=error ./target/release/gbpplanner-rs -i $experiment 2>/dev/null
+            RUST_LOG=magics=error ./target/release/magics -i $experiment 2>/dev/null
             set -l exported_json (printf '%s\n' export_schedules\ experiment*.json | tail -n 1)
             set -l dirname (path dirname "$output_file")
             command mkdir -p "$dirname"

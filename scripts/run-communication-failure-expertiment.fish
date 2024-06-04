@@ -3,6 +3,16 @@
 
 argparse f/force -- $argv; or exit 2
 
+set -l reset (set_color normal)
+set -l bold (set_color --bold)
+set -l italics (set_color --italics)
+set -l red (set_color red)
+set -l green (set_color green)
+set -l yellow (set_color yellow)
+set -l blue (set_color blue)
+set -l cyan (set_color cyan)
+set -l magenta (set_color magenta)
+
 function run
     echo $argv | fish_indent --ansi
     eval $argv
@@ -28,7 +38,7 @@ for seed in 0 31 227 252 805
         seq 0.0 0.1 0.7 | string replace ',' '.' | while read failure_probability
             sed --regexp-extended "s/failure-rate\s*=\s*(.*)/failure-rate = $failure_probability/" -i $config_file
             printf '%sinfo%s: seed=%d v0=%d failure-probability=%s\n' (set_color green) (set_color normal) $seed $v0 $failure_probability >&2
-            set -l output_file experiments/communications-failure/v0-$v0-failure-$failure_probability-seed-$seed.json
+            set -l output_file experiments/communications-failure-lm-3-tk-13.33/v0-$v0-failure-$failure_probability-lm-3-tk-13.33-seed-$seed.json
 
             set -l t_end (date "+%s")
             set -l t_diff (math "$t_end - $t_start")
@@ -45,7 +55,7 @@ for seed in 0 31 227 252 805
                 end
             end
 
-            RUST_LOG=gbpplanner_rs=error ./target/release/gbpplanner-rs -i 'Communications Failure Experiment' 2>/dev/null
+            RUST_LOG=magics=error ./target/release/magics -i 'Communications Failure Experiment' 2>/dev/null
             set -l exported_json (printf '%s\n' export_communications\ failure\ experiment*.json | tail -n 1)
             set -l dirname (path dirname "$output_file")
             command mkdir -p "$dirname"
