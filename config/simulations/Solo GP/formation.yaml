@@ -10,7 +10,7 @@ formations:
     secs: 0
     nanos: 0
   robots: 1
-  planning-strategy: rrt-star
+  planning-strategy: only-local
   initial-position:
     shape: !line-segment
     - x: 0.15
