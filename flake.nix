@@ -47,6 +47,8 @@
         notebook
         pip
         numpy
+        polars
+        pandas
       ];
       # wgsl-analyzer-pkgs = import inputs.wgsl_analyzer {inherit system;};
       bevy-deps = with pkgs; [

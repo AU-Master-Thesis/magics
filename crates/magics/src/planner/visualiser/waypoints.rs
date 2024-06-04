@@ -50,7 +50,7 @@ fn visualize_waypoints(
     let height = -config.visualisation.height.objects;
     for (mission, color_assoc) in &missions {
         let colour = theme.get_display_colour(&color_assoc.name);
-        let color = Color::from_catppuccin_colour_with_alpha(colour, 0.8);
+        let color = Color::from_catppuccin_colour_with_alpha(colour, 0.25);
         // let color = theme.from_catppuccin_colour(color_assoc.name.);
         for (wp1, wp2) in mission.waypoints().tuple_windows() {
             gizmos.line(
