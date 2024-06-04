@@ -1,0 +1,364 @@
+formations:
+
+# xmin = 0.075
+# ymin = 0.1
+# xmax = 0.925
+# ymax = 0.9
+
+# Formation 1: brown east->north
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 0
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.925
+      y: 0.357
+    - x: 0.925
+      y: 0.357
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.55
+      y: 0.9
+    - x: 0.55
+      y: 0.9
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 5
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: !meter 10
+    intersects-with: !variable 5
+
+# Formation 2: yellow east->west
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 5
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.925
+      y: 0.357
+    - x: 0.925
+      y: 0.357
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.15
+      y: 0.1
+    - x: 0.15
+      y: 0.1
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 5
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: !meter 10
+    intersects-with: !variable 5
+
+# Formation 3: purple south->north-east
+- repeat:
+    every:
+      secs: 15
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 0
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.55
+      y: 0.1
+    - x: 0.55
+      y: 0.1
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.925
+      y: 0.786
+    - x: 0.925
+      y: 0.786
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 5
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: !meter 10
+    intersects-with: current
+
+# Formation 4: red south->north
+- repeat:
+    every:
+      secs: 15
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 5
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.55
+      y: 0.1
+    - x: 0.55
+      y: 0.1
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.55
+      y: 0.9
+    - x: 0.55
+      y: 0.9
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 5
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: !meter 10
+    intersects-with: current
+
+# Formation 5: blue south->north-west
+- repeat:
+    every:
+      secs: 15
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 10
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.55
+      y: 0.1
+    - x: 0.55
+      y: 0.1
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.075
+      y: 0.643
+    - x: 0.075
+      y: 0.643
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 5
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: !meter 10
+    intersects-with: current
+
+# Formation 6: orange west->north-east
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 0
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.075
+      y: 0.5
+    - x: 0.075
+      y: 0.5
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.925
+      y: 0.786
+    - x: 0.925
+      y: 0.786
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 5
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: !meter 10
+    intersects-with: current
+
+# Formation 7: green west->north
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 5
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.075
+      y: 0.5
+    - x: 0.075
+      y: 0.5
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.55
+      y: 0.9
+    - x: 0.55
+      y: 0.9
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 5
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    # distance: !meter 10
+    # intersects-with: !variable 5
+    distance: !meter 10
+    intersects-with: current
+
+# Formation 8: yellow north2->north-west
+- repeat:
+    every:
+      secs: 15
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 0
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.35
+      y: 0.9
+    - x: 0.35
+      y: 0.9
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.075
+      y: 0.643
+    - x: 0.075
+      y: 0.643
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 5
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    # distance: !meter 10
+    # intersects-with: !variable 5
+    distance: !meter 10
+    intersects-with: current
+
+# Formation 9: dark purple north2->west
+- repeat:
+    every:
+      secs: 15
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 5
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.35
+      y: 0.9
+    - x: 0.35
+      y: 0.9
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.15
+      y: 0.1
+    - x: 0.15
+      y: 0.1
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 5
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    # distance: !meter 10
+    # intersects-with: !variable 5
+    distance: !meter 10
+    intersects-with: current
+
+# Formation 10: light blue north2->north-east
+- repeat:
+    every:
+      secs: 15
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 10
+    nanos: 0
+  robots: 1
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !line-segment
+    - x: 0.35
+      y: 0.9
+    - x: 0.35
+      y: 0.9
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.925
+      y: 0.786
+    - x: 0.925
+      y: 0.786
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 5
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    # distance: !meter 10
+    # intersects-with: !variable 5
+    distance: !meter 10
+    intersects-with: current

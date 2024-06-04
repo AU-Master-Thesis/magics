@@ -1,6 +1,7 @@
-use bevy::diagnostic::DiagnosticsStore;
-use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
-use bevy::prelude::*;
+use bevy::{
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 
 use crate::asset_loader::SceneAssets;
 
@@ -30,67 +31,61 @@ fn setup_fps_counter_system(mut commands: Commands, scene_assets: Res<SceneAsset
     // create our UI root node
     // this is the wrapper/container for the text
     let root = commands
-        .spawn((
-            FpsRoot,
-            NodeBundle {
-                // give it a dark background for readability
-                background_color: BackgroundColor(Color::BLACK.with_a(0.5)),
-                // make it "always on top" by setting the Z index to maximum
-                // we want it to be displayed over all other UI
-                z_index: ZIndex::Global(i32::MAX),
-                style: Style {
-                    position_type: PositionType::Absolute,
-                    // position it at the top-right corner
-                    // 1% away from the top window edge
-                    right: Val::Percent(1.),
-                    top: Val::Percent(1.),
-                    // set bottom/left to Auto, so it can be
-                    // automatically sized depending on the text
-                    bottom: Val::Auto,
-                    left: Val::Auto,
-                    // give it some padding for readability
-                    padding: UiRect::all(Val::Px(4.0)),
-                    ..Default::default()
-                },
+        .spawn((FpsRoot, NodeBundle {
+            // give it a dark background for readability
+            background_color: BackgroundColor(Color::BLACK.with_a(0.5)),
+            // make it "always on top" by setting the Z index to maximum
+            // we want it to be displayed over all other UI
+            z_index: ZIndex::Global(i32::MAX),
+            style: Style {
+                position_type: PositionType::Absolute,
+                // position it at the top-right corner
+                // 1% away from the top window edge
+                right: Val::Percent(1.),
+                top: Val::Percent(1.),
+                // set bottom/left to Auto, so it can be
+                // automatically sized depending on the text
+                bottom: Val::Auto,
+                left: Val::Auto,
+                // give it some padding for readability
+                padding: UiRect::all(Val::Px(4.0)),
                 ..Default::default()
             },
-        ))
+            ..Default::default()
+        }))
         .id();
     // create our text
     let text_fps = commands
-        .spawn((
-            FpsText,
-            TextBundle {
-                // use two sections, so it is easy to update just the number
-                text: Text::from_sections([
-                    TextSection {
-                        value: "FPS: ".into(),
-                        style: TextStyle {
-                            font: scene_assets.main_font.clone(),
-                            font_size: 16.0,
-                            color: Color::WHITE,
-                            // if you want to use your game's font asset,
-                            // uncomment this and provide the handle:
-                            // font: my_font_handle
-                            // ..default()
-                        },
+        .spawn((FpsText, TextBundle {
+            // use two sections, so it is easy to update just the number
+            text: Text::from_sections([
+                TextSection {
+                    value: "FPS: ".into(),
+                    style: TextStyle {
+                        font:      scene_assets.main_font.clone(),
+                        font_size: 16.0,
+                        color:     Color::WHITE,
+                        // if you want to use your game's font asset,
+                        // uncomment this and provide the handle:
+                        // font: my_font_handle
+                        // ..default()
                     },
-                    TextSection {
-                        value: " N/A".into(),
-                        style: TextStyle {
-                            font: scene_assets.main_font.clone(),
-                            font_size: 16.0,
-                            color: Color::WHITE,
-                            // if you want to use your game's font asset,
-                            // uncomment this and provide the handle:
-                            // font: my_font_handle
-                            // ..default()
-                        },
+                },
+                TextSection {
+                    value: " N/A".into(),
+                    style: TextStyle {
+                        font:      scene_assets.main_font.clone(),
+                        font_size: 16.0,
+                        color:     Color::WHITE,
+                        // if you want to use your game's font asset,
+                        // uncomment this and provide the handle:
+                        // font: my_font_handle
+                        // ..default()
                     },
-                ]),
-                ..Default::default()
-            },
-        ))
+                },
+            ]),
+            ..Default::default()
+        }))
         .id();
     commands.entity(root).push_children(&[text_fps]);
 }
@@ -110,10 +105,10 @@ fn fps_to_color(fps: f64) -> Color {
     //     // Above 120 FPS, use green color
     //     120.0.. => Color::rgb(0.0, 1.0, 0.0),
     //     // Between 60-120 FPS, gradually transition from yellow to green
-    //     60.0.. => Color::rgb((1.0 - (fps - 60.0) / (120.0 - 60.0)) as f32, 1.0, 0.0),
-    //     // Between 30-60 FPS, gradually transition from red to yellow
-    //     30.0.. => Color::rgb(1.0, ((fps - 30.0) / (60.0 - 30.0)) as f32, 0.0),
-    //     // Below 30 FPS, use red color
+    //     60.0.. => Color::rgb((1.0 - (fps - 60.0) / (120.0 - 60.0)) as f32,
+    // 1.0, 0.0),     // Between 30-60 FPS, gradually transition from red to
+    // yellow     30.0.. => Color::rgb(1.0, ((fps - 30.0) / (60.0 - 30.0))
+    // as f32, 0.0),     // Below 30 FPS, use red color
     //     _ => Color::rgb(1.0, 0.0, 0.0),
     // }
 }
@@ -141,9 +136,9 @@ fn update_fps_text_system(
             //     // Above 120 FPS, use green color
             //     Color::rgb(0.0, 1.0, 0.0)
             // } else if value >= 60.0 {
-            //     // Between 60-120 FPS, gradually transition from yellow to green
-            //     Color::rgb((1.0 - (value - 60.0) / (120.0 - 60.0)) as f32, 1.0, 0.0)
-            // } else if value >= 30.0 {
+            //     // Between 60-120 FPS, gradually transition from yellow to
+            // green     Color::rgb((1.0 - (value - 60.0) / (120.0 -
+            // 60.0)) as f32, 1.0, 0.0) } else if value >= 30.0 {
             //     // Between 30-60 FPS, gradually transition from red to yellow
             //     Color::rgb(1.0, ((value - 30.0) / (60.0 - 30.0)) as f32, 0.0)
             // } else {

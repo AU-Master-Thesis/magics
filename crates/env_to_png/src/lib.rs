@@ -1,11 +1,11 @@
-//! This crate converts an [`Environment`] Configuration from the gbpplanner_rs
+//! This crate converts an [`Environment`] Configuration from the magics
 //! crate to a PNG image. It is possible to customize the colors of the
 //! different elements of the environment. And it can blur the edges to mimic an
 //! SDF.
 
 use std::num::NonZeroU32;
 
-// use gbpplanner_rs::config::Environment;
+// use magics::config::Environment;
 use gbp_environment::{Environment, PlaceableShape, RegularPolygon};
 use gbp_geometry::RelativePoint;
 use glam::{Vec2, Vec3Swizzles};

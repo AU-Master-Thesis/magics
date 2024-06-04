@@ -10,7 +10,7 @@ use gbp_config::Config;
 use gbp_global_planner::{
     rrtstar::spawn_pathfinding_task, Colliders, Path, PathFinder, PathfindingTask,
 };
-use gbpplanner_rs::{
+use magics::{
     asset_loader::AssetLoaderPlugin,
     environment::EnvironmentPlugin,
     input::{camera::CameraInputPlugin, general::GeneralInputPlugin, ChangingBinding},

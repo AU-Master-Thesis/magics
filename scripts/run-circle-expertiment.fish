@@ -37,7 +37,7 @@ for seed in 0 31 227 252 805
             end
         end
 
-        RUST_LOG=gbpplanner_rs=error ./target/release/gbpplanner-rs -i 'Circle Experiment' 2>/dev/null
+        RUST_LOG=magics=error ./target/release/magics -i 'Circle Experiment' 2>/dev/null
         set -l exported_json (printf '%s\n' export_circle\ experiment*.json | tail -n 1)
         # command mkdir -p (path basename "$output_file")
         mv "$exported_json" "$output_file"

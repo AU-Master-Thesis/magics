@@ -10,7 +10,7 @@ use bevy_infinite_grid::InfiniteGridSettings;
 use bevy_notify::NotifyPlugin;
 use derive_more::Index;
 use gbp_environment::Environment;
-use gbpplanner_rs::{
+use magics::{
     asset_loader::{AssetLoaderPlugin, Fonts},
     cli,
     config::{read_config, Config, FormationGroup, RrtSection},

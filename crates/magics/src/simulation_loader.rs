@@ -161,7 +161,7 @@ impl Plugin for SimulationLoaderPlugin {
                 .expect("it all just works");
 
                 // let sdf_path = PathBuf::new()
-                //     .join("crates/gbpplanner-rs/assets/imgs/obstacles")
+                //     .join("crates/magics/assets/imgs/obstacles")
                 //     .join(format!("{}.sdf.png", config.environment_image));
                 // info!("sdf_path: {sdf_path:?}");
                 // let sdf_image_buffer =
@@ -173,7 +173,7 @@ impl Plugin for SimulationLoaderPlugin {
                 // );
 
                 // let raw_path = PathBuf::new()
-                //     .join("crates/gbpplanner-rs/assets/imgs/obstacles")
+                //     .join("crates/magics/assets/imgs/obstacles")
                 //     .join(format!("{}.png", config.environment_image));
                 // let raw_image_buffer =
                 // image::io::Reader::open(raw_path).unwrap().decode().unwrap();

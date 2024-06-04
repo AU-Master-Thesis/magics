@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGridSettings};
 use catppuccin::Flavour;
 use gbp_environment::Environment;
-use gbpplanner_rs::{
+use magics::{
     asset_loader::AssetLoaderPlugin,
     cli,
     config::{read_config, Config, FormationGroup},

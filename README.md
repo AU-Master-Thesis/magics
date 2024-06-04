@@ -45,10 +45,10 @@ cargo build --release
 
 
 ```sh
-cargo run --release --bin gbpplanner-rs # Open the simulator
-cargo run --release --bin gbpplanner-rs -- --list # List all available scenarios
+cargo run --release --bin magics # Open the simulator
+cargo run --release --bin magics -- --list # List all available scenarios
 
 # Run a specific scenario
-cargo run --release --bin gbpplanner-rs -- -i <SCENARIO_NAME>
-cargo run --release --bin gbpplanner-rs -- --initial-scenario <SCENARIO_NAME>
+cargo run --release --bin magics -- -i <SCENARIO_NAME>
+cargo run --release --bin magics -- --initial-scenario <SCENARIO_NAME>
 ```

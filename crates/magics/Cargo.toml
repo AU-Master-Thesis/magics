@@ -1,6 +1,6 @@
 [package]
 edition                = "2021"
-name                   = "gbpplanner-rs"
+name                   = "magics"
 description            = "Rust implementation and improvement of the GBP planner algorithm"
 version.workspace      = true
 repository.workspace   = true

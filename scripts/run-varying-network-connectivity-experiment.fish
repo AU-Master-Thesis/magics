@@ -59,7 +59,7 @@ for seed in 0 31 227 252 805
             end
         end
 
-        RUST_LOG=gbpplanner_rs=error ./target/release/gbpplanner-rs -i 'Varying Network Connectivity Experiment' 2>/dev/null
+        RUST_LOG=magics=error ./target/release/magics -i 'Varying Network Connectivity Experiment' 2>/dev/null
         set -l exported_json (printf '%s\n' export_varying\ network\ connectivity\ experiment*.json | tail -n 1)
         set -l dirname (path dirname "$output_file")
         command mkdir -p "$dirname"

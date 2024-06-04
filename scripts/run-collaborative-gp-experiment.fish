@@ -62,7 +62,7 @@ for seed in $seeds
                 end
             end
 
-            RUST_LOG=gbpplanner_rs=error ./target/release/gbpplanner-rs -i "$experiment" 2>/dev/null
+            RUST_LOG=magics=error ./target/release/magics -i "$experiment" 2>/dev/null
             set -l exported_json (printf '%s\n' export_collaborative\ gp*.json | tail -n 1)
             set -l dirname (path dirname "$output_file")
             command mkdir -p "$dirname"

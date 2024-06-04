@@ -9,7 +9,7 @@
 //! # Examples
 //! ```rust
 //! use bevy::prelude::*;
-//! use gbpplanner_rs::toggle_fullscreen::ToggleFullscreenPlugin;
+//! use magics::toggle_fullscreen::ToggleFullscreenPlugin;
 //!
 //! App::new()
 //!     .add_plugins(DefaultPlugins)
