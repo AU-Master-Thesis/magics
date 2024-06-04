@@ -1,0 +1,178 @@
+formations:
+- repeat:
+    every:
+      secs: 1
+      nanos: 0
+    times: !infinite
+  delay:
+    secs: 0
+    nanos: 500000000
+  robots: 1
+  planning-strategy: only-local
+  initial-position:
+    shape: !line-segment
+    - x: -0.0
+      y: 0.45
+    - x: -0.0
+      y: 0.55
+    placement-strategy: !random
+      attempts: 2000
+  waypoints:
+  - shape: !line-segment
+    - x: 1.15
+      y: 0.45
+    - x: 1.15
+      y: 0.55
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: horizon
+
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+
+- repeat:
+    every:
+      secs: 1
+      nanos: 0
+    times: !infinite
+  delay:
+    secs: 0
+    nanos: 0
+  robots: 1
+  planning-strategy: only-local
+  initial-position:
+    shape: !line-segment
+    - x: 0.45
+      y: 1.0
+    - x: 0.55
+      y: 1.0
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.45
+      y: -0.15
+    - x: 0.55
+      y: -0.15
+    projection-strategy: identity
+  # waypoint-reached-when-intersects: horizon
+  # finished-when-intersects: !variable 4
+  # finished-when-intersects: horizon
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+
+# - repeat:
+#     every:
+#       secs: 1
+#       nanos: 0
+#     times: !finite 25
+#   delay:
+#     secs: 0
+#     nanos: 500000000
+#   robots: 1
+#   planning-strategy: only-local
+#   initial-position:
+#     shape: !line-segment
+#     - x: -0.05
+#       y: 0.45
+#     - x: -0.05
+#       y: 0.45
+#     placement-strategy: !random
+#       attempts: 1000
+#   waypoints:
+#   - shape: !line-segment
+#     - x: 1.3
+#       y: 0.45
+#     - x: 1.3
+#       y: 0.45
+#     projection-strategy: identity
+#   waypoint-reached-when-intersects: horizon
+#
+# - repeat:
+#     every:
+#       secs: 1
+#       nanos: 0
+#     times: !finite 20
+#   delay:
+#     secs: 0
+#     nanos: 0
+#   robots: 1
+#   planning-strategy: only-local
+#   initial-position:
+#     shape: !line-segment
+#     - x: -0.05
+#       y: 0.55
+#     - x: -0.05
+#       y: 0.55
+#     placement-strategy: !random
+#       attempts: 1000
+#   waypoints:
+#   - shape: !line-segment
+#     - x: 1.3
+#       y: 0.55
+#     - x: 1.3
+#       y: 0.55
+#     projection-strategy: identity
+#   waypoint-reached-when-intersects: horizon
+#
+# - repeat:
+#     every:
+#       secs: 1
+#       nanos: 500000000
+#     times: !finite 10
+#   delay:
+#     secs: 0
+#     nanos: 500000000
+#   robots: 1
+#   planning-strategy: only-local
+#   initial-position:
+#     shape: !line-segment
+#     - x: 0.45
+#       y: 1.05
+#     - x: 0.45
+#       y: 1.05
+#     placement-strategy: !random
+#       attempts: 1000
+#   waypoints:
+#   - shape: !line-segment
+#     - x: 0.45
+#       y: -0.3
+#     - x: 0.45
+#       y: -0.3
+#     projection-strategy: identity
+#   waypoint-reached-when-intersects: horizon
+#
+# - repeat:
+#     every:
+#       secs: 2
+#       nanos: 0
+#     times: !finite 10
+#   delay:
+#     secs: 0
+#     nanos: 0
+#   robots: 1
+#   planning-strategy: only-local
+#   initial-position:
+#     shape: !line-segment
+#     - x: 0.55
+#       y: 1.05
+#     - x: 0.55
+#       y: 1.05
+#     placement-strategy: !random
+#       attempts: 1000
+#   waypoints:
+#   - shape: !line-segment
+#     - x: 0.55
+#       y: -0.3
+#     - x: 0.55
+#       y: -0.3
+#     projection-strategy: identity
+#   waypoint-reached-when-intersects: horizon
