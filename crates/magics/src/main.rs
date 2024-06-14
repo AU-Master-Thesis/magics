@@ -26,11 +26,11 @@ pub mod export;
 pub(crate) mod escape_codes;
 pub(crate) mod macros;
 
-#[cfg(feature = "dhat-heap")]
-#[global_allocator]
-static ALLOC: dhat::Alloc = dhat::Alloc;
+// #[cfg(feature = "dhat-heap")]
+// #[global_allocator]
+// static ALLOC: dhat::Alloc = dhat::Alloc;
 
-#[cfg(not(feature = "dhat-heap"))]
+// #[cfg(not(feature = "dhat-heap"))]
 #[global_allocator]
 static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 

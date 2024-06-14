@@ -218,7 +218,8 @@ pub struct Formation {
     /// should spawn.
     pub delay: Duration,
     /// Number of robots to spawn every iteration
-    pub robots: NonZeroUsize,
+    // pub robots: NonZeroUsize,
+    pub robots: usize,
     /// Planning strategy
     pub planning_strategy: PlanningStrategy,
     /// Where to spawn the formation
@@ -265,15 +266,8 @@ impl Formation {
             RepeatTimes::Infinite => usize::MAX,
             RepeatTimes::Finite(times) => times,
         });
-        self.robots.get().saturating_mul(times)
-        // self.robots.get().saturating_mul(rhs)
-        // // FIXME(kpbaks): handle of 1 by in repeat count
-        // dbg!(&self.robots);
-        // self.robots.get()
-        //     * (self.repeat.map_or(0, |repeat| match repeat.times {
-        //       RepeatTimes::Infinite => unreachable!("ehh ..."),
-        //       RepeatTimes::Finite(times) => times,
-        //     }))
+        // self.robots.get().saturating_mul(times)
+        self.robots.saturating_mul(times)
     }
 
     /// Return a new `Formation` matching the used in the **gbpplanner** paper
@@ -349,7 +343,8 @@ impl Formation {
                     }
                 }?;
 
-                assert_eq!(lerp_amounts.len(), self.robots.get());
+                // assert_eq!(lerp_amounts.len(), self.robots.get());
+                assert_eq!(lerp_amounts.len(), self.robots);
 
                 let initial_positions: Vec<_> = lerp_amounts
                     .iter()
@@ -399,8 +394,8 @@ impl Formation {
                 // dbg!(&center);
                 let angles: Vec<f32> = match self.initial_position.placement_strategy {
                     InitialPlacementStrategy::Equal => {
-                        let angle = 2.0 * PI / self.robots.get() as f32;
-                        let angles = (0..self.robots.get()).map(|i| i as f32 * angle).collect();
+                        let angle = 2.0 * PI / self.robots as f32;
+                        let angles = (0..self.robots).map(|i| i as f32 * angle).collect();
                         Some(angles)
                     }
                     InitialPlacementStrategy::Random { attempts } => {
@@ -418,7 +413,7 @@ impl Formation {
                         // )
                     }
                 }?;
-                assert_eq!(angles.len(), self.robots.get());
+                assert_eq!(angles.len(), self.robots);
 
                 let initial_positions: Vec<Vec2> = angles
                     .iter()
