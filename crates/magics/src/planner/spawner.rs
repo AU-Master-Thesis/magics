@@ -502,18 +502,6 @@ fn spawn_formation(
         let Some(min_radius) = radii.iter().copied().map(ordered_float::OrderedFloat).min() else {
             return;
         };
-
-        // let min_radius = radii
-        //     .iter()
-        //     .copied()
-        //     .map(ordered_float::OrderedFloat)
-        //     .min()
-        //     .expect("not empty");
-
-        // #[rustfmt::skip]
-        // let max_radius =
-        // radii.iter().copied().map(ordered_float::OrderedFloat).max().expect("not
-        // empty");
         #[rustfmt::skip]
         let Some(max_radius) = radii.iter().copied().map(ordered_float::OrderedFloat).max() else {
             return;
