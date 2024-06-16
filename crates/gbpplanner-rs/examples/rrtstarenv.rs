@@ -6,8 +6,9 @@ use bevy::{
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task},
 };
-use bevy_infinite_grid::InfiniteGridSettings;
+use bevy_infinite_grid::{InfiniteGrid, InfiniteGridSettings};
 use bevy_notify::NotifyPlugin;
+use catppuccin::Flavour;
 use derive_more::Index;
 use gbp_environment::Environment;
 use gbpplanner_rs::{
@@ -17,7 +18,7 @@ use gbpplanner_rs::{
     environment::{map_generator::Colliders, EnvironmentPlugin},
     input::{camera::CameraInputPlugin, general::GeneralInputPlugin, ChangingBinding},
     simulation_loader::{InitialSimulation, SimulationLoaderPlugin},
-    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt, ThemePlugin},
+    theme::{CatppuccinTheme, ColorFromCatppuccinColourExt, CycleTheme, ThemePlugin},
 };
 use parry2d::{
     na::{self, Isometry2, Vector2},
@@ -35,42 +36,8 @@ const END: Vec2 = Vec2::new(100.0 - 12.5, -62.5 + 12.5);
 fn main() -> anyhow::Result<()> {
     better_panic::debug_install();
 
-    let cli = cli::parse_arguments();
-
-    let (config, formation, environment): (Config, FormationGroup, Environment) = if cli.default {
-        (
-            Config::default(),
-            FormationGroup::default(),
-            Environment::default(),
-        )
-    } else {
-        let config = read_config(cli.config.as_ref())?;
-        if let Some(ref inner) = cli.config {
-            println!(
-                "successfully read config from: {}",
-                inner.as_os_str().to_string_lossy()
-            );
-        }
-
-        let formation = FormationGroup::from_ron_file(&config.formation_group)?;
-        println!(
-            "successfully read formation config from: {}",
-            config.formation_group
-        );
-        let environment = Environment::from_file(&config.environment)?;
-        println!(
-            "successfully read environment config from: {}",
-            config.environment
-        );
-
-        (config, formation, environment)
-    };
-
     let mut app = App::new();
-    app.insert_resource(config)
-        .insert_resource(formation)
-        .insert_resource(environment)
-        .init_resource::<ChangingBinding>()
+    app.init_resource::<ChangingBinding>()
         .init_resource::<Path>()
         .init_resource::<RRTStarTree>()
         .add_event::<PathFoundEvent>()
@@ -96,7 +63,7 @@ fn main() -> anyhow::Result<()> {
                 // init_path_info_text
             ),
         )
-        .add_systems(PostStartup, change_infinite_grid_settings)
+        .add_systems(PostStartup, (change_infinite_grid_settings))
         .add_systems(
             Update,
             (
@@ -469,15 +436,25 @@ impl<'world> CollisionProblem<'world> {
 }
 
 fn change_infinite_grid_settings(
-    mut query: Query<&mut InfiniteGridSettings>,
-    theme: Res<CatppuccinTheme>,
+    mut query: Query<&mut Visibility, With<InfiniteGrid>>,
+    // theme: Res<CatppuccinTheme>,
+    mut event_writer: EventWriter<CycleTheme>,
 ) {
-    let mut infinite_grid_settings = query.get_single_mut().unwrap();
+    let mut visibility = query.get_single_mut().unwrap();
 
-    let colour = theme.grid_colour();
+    *visibility = Visibility::Hidden;
 
-    infinite_grid_settings.x_axis_color = colour;
-    infinite_grid_settings.z_axis_color = colour;
+    event_writer.send(CycleTheme(Flavour::Latte));
+    // infinite_grid.vi
+
+    // let mut infinite_grid_settings = query.get_single_mut().unwrap();
+
+    // let colour = *theme.grid_colour().clone().set_a(1.0);
+
+    // infinite_grid_settings.x_axis_color = colour;
+    // infinite_grid_settings.z_axis_color = colour;
+    // infinite_grid_settings.major_line_color = colour;
+    // infinite_grid_settings.minor_line_color = colour;
 }
 
 /// **Bevy** [`Component`] for marking the [`Text`] entity for the path length

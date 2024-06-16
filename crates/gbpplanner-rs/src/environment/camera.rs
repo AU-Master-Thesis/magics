@@ -7,7 +7,7 @@ use crate::{
     simulation_loader::{LoadSimulation, ReloadSimulation},
 };
 
-const CAMERA_UP: Vec3 = Vec3::NEG_Y;
+const CAMERA_UP: Vec3 = Vec3::NEG_Z;
 const CAMERA_INITIAL_TARGET: Vec3 = Vec3::ZERO;
 
 pub struct CameraPlugin;
@@ -118,10 +118,14 @@ pub enum CameraMovement {
 // fn spawn_main_camera(mut commands: Commands, config: Res<Config>) {
 fn spawn_main_camera(mut commands: Commands) {
     let default_cam_distance = 250.0;
-    let transform = Transform::from_xyz(0.0, default_cam_distance, 0.0).looking_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
+    let transform = Transform::from_xyz(0.0, default_cam_distance, 0.0)
+        .looking_at(CAMERA_INITIAL_TARGET, CAMERA_UP);
 
     commands.spawn((
-        Camera3dBundle { transform, ..default() },
+        Camera3dBundle {
+            transform,
+            ..default()
+        },
         LinearMovementBundle::default(),
         OrbitMovementBundle::default(),
         Local,

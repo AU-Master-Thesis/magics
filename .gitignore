@@ -17,3 +17,9 @@
 **/*rustc-ice*
 
 .bacon-locations
+
+**/*.json
+
+**/__pycache__/
+
+**/experiments/
