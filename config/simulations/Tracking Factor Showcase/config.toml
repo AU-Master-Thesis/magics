@@ -1,29 +1,29 @@
 environment_image = "junction_twoway"
-environment = "./config/simulations/Collaborative GP/environment.yaml"
-formation_group = "./config/simulations/Collaborative GP/formation.ron"
+environment = "./config/simulations/Intersection/environment.yaml"
+formation_group = "./config/simulations/Intersection/formation.ron"
 
 [visualisation.height]
 objects = 0.5
-height-map = 2.0
+height-map = 1.0
 
 [visualisation.draw]
 robots = true
-communication-graph = true
+communication-graph = false
 predicted-trajectories = true
 waypoints = true
-uncertainty = false
-paths = false
+uncertainty = true
+paths = true
 communication-radius = false
 obstacle-factors = false
 tracking = true
 interrobot-factors = false
 interrobot-factors-safety-distance = false
-generated-map = true
+generated-map = false
 sdf = false
 robot-colliders = false
 environment-colliders = false
-robot-robot-collisions = true
-robot-environment-collisions = true
+robot-robot-collisions = false
+robot-environment-collisions = false
 
 [visualisation.uncertainty]
 max-radius = 2.5
@@ -31,7 +31,7 @@ scale = 300.0
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance = 300.0
+default-cam-distance = 100.0
 
 [gbp]
 sigma-pose-fixed = 0.0000000000000010000000036274937
@@ -47,44 +47,44 @@ switch-padding = 5.0
 attraction-distance = 1.0
 
 [gbp.iteration-schedule]
-internal = 10
-external = 10
+internal = 1
+external = 1
 schedule = "interleave-evenly"
 
 [gbp.factors-enabled]
 dynamic = true
-interrobot = true
-obstacle = true
+interrobot = false
+obstacle = false
 tracking = true
 
 [robot]
 planning-horizon = 5.0
-target-speed = 7.0
-inter-robot-safety-distance-multiplier = 4.0
+target-speed = 4.0
+inter-robot-safety-distance-multiplier = 2.200000047683716
 
 [robot.radius]
 min = 2.0
-max = 2.0
+max = 3.0
 
 [robot.communication]
 radius = 20.0
-failure-rate = 0.0
+failure-rate = 0.20000000298023224
 
 [simulation]
 max-time = 10000.0
-time-scale = 1.0
+time-scale = 2.0
 manual-step-factor = 1
-hz = 10.0
-prng-seed = 2
+hz = 60.0
+prng-seed = 0
 pause-on-spawn = false
-despawn-robot-when-final-waypoint-reached = true
+despawn-robot-when-final-waypoint-reached = false
 exit-application-on-scenario-finished = false
 
 [rrt]
-max-iterations = 5000000
-step-size = 5.0
-collision-radius = 3.0
-neighbourhood-radius = 8.0
+max-iterations = 1000000
+step-size = 0.5
+collision-radius = 0.10000000149011612
+neighbourhood-radius = 10.0
 
 [rrt.smoothing]
 enabled = true
@@ -105,12 +105,12 @@ len = 8.0
 color = "gray"
 
 [manual]
-timesteps-per-step = 20
+timesteps-per-step = 1
 
 [debug.on-variable-clicked]
 obstacle = false
 dynamic = false
 interrobot = false
-tracking = true
+tracking = false
 variable = false
 inbox = false

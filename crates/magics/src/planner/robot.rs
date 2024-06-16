@@ -2100,25 +2100,21 @@ fn reached_waypoint(
         };
 
         let r_sq = r.0 * r.0;
-        // if mission.next_waypoint_is_last() {
-        //    let
-        //    mission.advance_to_next_waypoint(&time);
-        //    assert!(matches!(mission.state, MissionState::Completed));
-        //}
 
-        let reached = if mission.next_waypoint_is_last() {
-            let next_waypoint = mission.next_waypoint().unwrap();
-            let distance = match mission.finished_when_intersects.distance {
-                IntersectionDistance::RobotRadius => r.0,
-                IntersectionDistance::Meter(meter) => meter,
-            };
+        let reached = {
+            // if mission.next_waypoint_is_last() {
+            //     let next_waypoint = mission.next_waypoint().unwrap();
+            //     let distance = match mission.finished_when_intersects.distance {
+            //         IntersectionDistance::RobotRadius => r.0,
+            //         IntersectionDistance::Meter(meter) => meter,
+            //     };
 
-            let reached = next_waypoint
-                .position()
-                .distance(transform.translation.xz())
-                < distance;
-            reached
-        } else {
+            //     let reached = next_waypoint
+            //         .position()
+            //         .distance(transform.translation.xz())
+            //         < distance;
+            //     reached
+            // } else {
             use CheckIntersectionWith::{Current, Horizon, Variable};
             let when_intersects = if mission.next_waypoint_is_last() {
                 mission.finished_when_intersects

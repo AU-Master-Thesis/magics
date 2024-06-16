@@ -445,7 +445,7 @@ fn spawn_formation(
 
         let max_placement_attempts = NonZeroUsize::new(1000).expect("1000 is not zero");
 
-        let radii = (0..formation.robots.get())
+        let radii = (0..formation.robots)
             .map(|_| prng.gen_range(config.robot.radius.range()))
             .collect::<Vec<_>>();
 
@@ -498,15 +498,14 @@ fn spawn_formation(
             })
             .collect();
 
-        let min_radius = radii
-            .iter()
-            .copied()
-            .map(ordered_float::OrderedFloat)
-            .min()
-            .expect("not empty");
-
         #[rustfmt::skip]
-        let max_radius = radii.iter().copied().map(ordered_float::OrderedFloat).max().expect("not empty");
+        let Some(min_radius) = radii.iter().copied().map(ordered_float::OrderedFloat).min() else {
+            return;
+        };
+        #[rustfmt::skip]
+        let Some(max_radius) = radii.iter().copied().map(ordered_float::OrderedFloat).max() else {
+            return;
+        };
 
         for (i, initial_pose) in initial_pose_for_each_robot.iter().enumerate() {
             let mut waypoints: Vec<Vec4> = waypoint_poses_for_each_robot
