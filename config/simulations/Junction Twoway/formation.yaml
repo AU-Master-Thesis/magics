@@ -2,7 +2,7 @@ formations:
   # start left: turn left (red)
 - repeat:
     every:
-      secs: 5
+      secs: 6
       nanos: 0
     times: !infinite
   delay:
@@ -42,12 +42,12 @@ formations:
   # start left: turn right (blue)
 - repeat:
     every:
-      secs: 4
+      secs: 6
       nanos: 0
     times: !infinite
   delay:
-    secs: 0
-    nanos: 500000000
+    secs: 2
+    nanos: 0
   robots: 1
   planning-strategy: only-local
   initial-position:
@@ -80,12 +80,12 @@ formations:
   # start left: drive across (green)
 - repeat:
     every:
-      secs: 7
+      secs: 6
       nanos: 0
     times: !infinite
   delay:
-    secs: 0
-    nanos: 750000000
+    secs: 4
+    nanos: 0
   robots: 1
   planning-strategy: only-local
   initial-position:
@@ -113,7 +113,7 @@ formations:
   # start top: turn left (red)
 - repeat:
     every:
-      secs: 5
+      secs: 6
       nanos: 0
     times: !infinite
   delay:
@@ -152,12 +152,12 @@ formations:
   # start top: turn right (blue)
 - repeat:
     every:
-      secs: 4
+      secs: 6
       nanos: 0
     times: !infinite
   delay:
-    secs: 0
-    nanos: 500000000
+    secs: 2
+    nanos: 0
   robots: 1
   planning-strategy: only-local
   initial-position:
@@ -191,12 +191,12 @@ formations:
   # start top: drive across (green)
 - repeat:
     every:
-      secs: 7
+      secs: 6
       nanos: 0
     times: !infinite
   delay:
-    secs: 0
-    nanos: 750000000
+    secs: 4
+    nanos: 0
   robots: 1
   planning-strategy: only-local
   initial-position:
@@ -225,7 +225,7 @@ formations:
   # start right: turn left (red)
 - repeat:
     every:
-      secs: 5
+      secs: 6
       nanos: 0
     times: !infinite
   delay:
@@ -261,16 +261,54 @@ formations:
     distance: !meter 10
     intersects-with: !variable 5
 
+  # start right: turn right (blue)
+- repeat:
+    every:
+      secs: 6
+      nanos: 0
+    times: !infinite
+  delay:
+    secs: 2
+    nanos: 0
+  robots: 1
+  planning-strategy: only-local
+  initial-position:
+    shape: !line-segment
+    - x: 1.0
+      y: 0.435
+    - x: 1.0
+      y: 0.485
+    placement-strategy: !random
+      attempts: 2000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.435
+      y: 0.435
+    - x: 0.485
+      y: 0.485
+    projection-strategy: identity
+  - shape: !line-segment
+    - x: 0.435
+      y: 1.15
+    - x: 0.485
+      y: 1.15
+    projection-strategy: identity
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: !meter 10
+    intersects-with: !variable 5
 
   # start right: drive across (green)
 - repeat:
     every:
-      secs: 7
+      secs: 6
       nanos: 0
     times: !infinite
   delay:
-    secs: 0
-    nanos: 450000000
+    secs: 4
+    nanos: 0
   robots: 1
   planning-strategy: only-local
   initial-position:
@@ -299,12 +337,12 @@ formations:
   # start bottom: turn left (red)
 - repeat:
     every:
-      secs: 5
+      secs: 6
       nanos: 0
     times: !infinite
   delay:
     secs: 0
-    nanos: 500000000
+    nanos: 0
   robots: 1
   planning-strategy: only-local
   initial-position:
@@ -339,11 +377,11 @@ formations:
   # start bottom: drive across (green)
 - repeat:
     every:
-      secs: 7
+      secs: 6
       nanos: 0
     times: !infinite
   delay:
-    secs: 0
+    secs: 4
     nanos: 0
   robots: 1
   planning-strategy: only-local
@@ -377,8 +415,8 @@ formations:
       nanos: 0
     times: !infinite
   delay:
-    secs: 0
-    nanos: 800000000
+    secs: 2
+    nanos: 0
   robots: 1
   planning-strategy: only-local
   initial-position:

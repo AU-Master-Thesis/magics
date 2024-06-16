@@ -8,15 +8,15 @@ height-map = 1.0
 
 [visualisation.draw]
 robots = true
-communication-graph = true
+communication-graph = false
 predicted-trajectories = true
-waypoints = true
+waypoints = false
 uncertainty = false
 paths = false
 communication-radius = false
 obstacle-factors = false
 tracking = false
-interrobot-factors = true
+interrobot-factors = false
 interrobot-factors-safety-distance = false
 generated-map = true
 sdf = false
@@ -72,7 +72,7 @@ failure-rate = 0.0
 
 [simulation]
 max-time = 10000.0
-time-scale = 2.0
+time-scale = 1.2699999809265137
 manual-step-factor = 1
 hz = 10.0
 prng-seed = 2
