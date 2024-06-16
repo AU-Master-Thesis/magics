@@ -76,6 +76,10 @@ pub enum PathfindingError {
 #[derive(Component, Debug)]
 pub struct PathfindingTask(pub Task<Result<Path, PathfindingError>>);
 
+/// **Bevy** [`Component`] for storing the pathfinding task
+#[derive(Component, Debug)]
+pub struct PathfindingTaskTree(pub Task<Result<Tree, PathfindingError>>);
+
 /// **Bevy** marker [`Component`] for attaching a [`PathFindingTask`]
 #[derive(Component, Debug)]
 pub struct PathFinder;

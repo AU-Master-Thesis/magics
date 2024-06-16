@@ -7,7 +7,9 @@ use bevy_prng::WyRand;
 use gbp_config::RRTSection;
 use rand::{RngCore, SeedableRng};
 
-use crate::{Colliders, CollisionProblem, Path, PathfindingError, PathfindingTask};
+use crate::{
+    Colliders, CollisionProblem, Path, PathfindingError, PathfindingTask, PathfindingTaskTree,
+};
 
 /// Standalone function to spawn an async task for pathfinding
 /// - Used to run path-finding tasks that may take longer than a single frame to
@@ -89,7 +91,6 @@ pub fn spawn_pathfinding_task_full_tree(
     commands: &mut Commands,
     start: Vec2,
     end: Vec2,
-    // smooth: bool,
     rrt_params: RRTSection,
     colliders: Colliders,
     task_target: Entity,
@@ -151,5 +152,7 @@ pub fn spawn_pathfinding_task_full_tree(
         .map_err(|_| PathfindingError::ReachedMaxIterations)
     });
 
-    commands.entity(task_target).insert(PathfindingTask(task));
+    commands
+        .entity(task_target)
+        .insert(PathfindingTaskTree(task));
 }
