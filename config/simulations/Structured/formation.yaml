@@ -1,6 +1,10 @@
 formations:
   # red, turn left
-- repeat: null
+- repeat:
+    every:
+      secs: 8
+      nanos: 0
+    times: !finite 10
   delay:
     secs: 0
     nanos: 0
@@ -36,9 +40,13 @@ formations:
     distance: !meter 10
     intersects-with: !variable 5
   # red, turn left, right, left, right
-- repeat: null
+- repeat:
+    every:
+      secs: 8
+      nanos: 0
+    times: !finite 10
   delay:
-    secs: 1
+    secs: 2
     nanos: 0
   robots: 1
   planning-strategy: only-local
@@ -90,9 +98,13 @@ formations:
     distance: !meter 10
     intersects-with: !variable 5
   # red, turn right
-- repeat: null
+- repeat:
+    every:
+      secs: 8
+      nanos: 0
+    times: !finite 10
   delay:
-    secs: 2
+    secs: 4
     nanos: 0
   robots: 1
   planning-strategy: only-local
@@ -125,8 +137,60 @@ formations:
     # intersects-with: horizon
     distance: !meter 10
     intersects-with: !variable 5
+
+  # red, turn right, left
+- repeat:
+    every:
+      secs: 8
+      nanos: 0
+    times: !finite 10
+  delay:
+    secs: 6
+    nanos: 0
+  robots: 1
+  planning-strategy: only-local
+  initial-position:
+    shape: !line-segment
+    - x: 0.07
+      y: 0.515
+    - x: 0.07
+      y: 0.515
+    placement-strategy: !random
+      attempts: 2000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.56
+      y: 0.515
+    - x: 0.56
+      y: 0.515
+    projection-strategy: identity
+  - shape: !line-segment
+    - x: 0.56
+      y: 0.365
+    - x: 0.56
+      y: 0.365
+    projection-strategy: identity
+  - shape: !line-segment
+    - x: 0.915
+      y: 0.365
+    - x: 0.915  
+      y: 0.365
+    projection-strategy: identity
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    # distance: robot-radius
+    # intersects-with: horizon
+    distance: !meter 10
+    intersects-with: !variable 5
+
   # yellow, straigt
-- repeat: null
+- repeat:
+    every:
+      secs: 9
+      nanos: 0
+    times: !finite 10
   delay:
     secs: 0
     nanos: 0
@@ -156,9 +220,13 @@ formations:
     distance: !meter 10
     intersects-with: !variable 5
   # yellow, left
-- repeat: null
+- repeat:
+    every:
+      secs: 9
+      nanos: 0
+    times: !finite 10
   delay:
-    secs: 1
+    secs: 3
     nanos: 0
   robots: 1
   planning-strategy: only-local
@@ -192,9 +260,13 @@ formations:
     distance: !meter 10
     intersects-with: !variable 5
   # yellow, right, left, right
-- repeat: null
+- repeat:
+    every:
+      secs: 9
+      nanos: 0
+    times: !finite 10
   delay:
-    secs: 2
+    secs: 6
     nanos: 0
   robots: 1
   planning-strategy: only-local
@@ -241,7 +313,11 @@ formations:
     intersects-with: !variable 5
 
   # blue, up, right, left, left
-- repeat: null
+- repeat:
+    every:
+      secs: 12
+      nanos: 0
+    times: !finite 10
   delay:
     secs: 0
     nanos: 0
@@ -288,7 +364,11 @@ formations:
     intersects-with: !variable 5
 
   # blue, up, right, left, right
-- repeat: null
+- repeat:
+    every:
+      secs: 12
+      nanos: 0
+    times: !finite 10
   delay:
     secs: 1
     nanos: 0
@@ -335,7 +415,11 @@ formations:
     intersects-with: !variable 5
 
   # blue, up, right, left, left, right, right, left
-- repeat: null
+- repeat:
+    every:
+      secs: 12
+      nanos: 0
+    times: !finite 10
   delay:
     secs: 2
     nanos: 0
@@ -376,15 +460,15 @@ formations:
     projection-strategy: identity
   - shape: !line-segment
     - x: 0.14
-      y: 0.66   
+      y: 0.66
     - x: 0.14
-      y: 0.66   
+      y: 0.66
     projection-strategy: identity
   - shape: !line-segment
     - x: 0.34
-      y: 0.66   
+      y: 0.66
     - x: 0.34
-      y: 0.66   
+      y: 0.66
     projection-strategy: identity
   - shape: !line-segment
     - x: 0.34
@@ -400,7 +484,11 @@ formations:
     intersects-with: !variable 5
 
 # dark green, lllr
-- repeat: null
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 10
   delay:
     secs: 0
     nanos: 0
@@ -459,10 +547,14 @@ formations:
     intersects-with: !variable 5
 
 # dark green, rslr
-- repeat: null
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 10
   delay:
-    secs: 0
-    nanos: 0
+    secs: 2
+    nanos: 500000000
   robots: 1
   planning-strategy: only-local
   initial-position:
@@ -506,9 +598,13 @@ formations:
     intersects-with: !variable 5
 
 # dark green, rlrs
-- repeat: null
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 10
   delay:
-    secs: 1
+    secs: 5
     nanos: 0
   robots: 1
   planning-strategy: only-local
@@ -553,10 +649,14 @@ formations:
     intersects-with: !variable 5
 
 # dark green, sssrlrl
-- repeat: null
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 10
   delay:
-    secs: 2
-    nanos: 0
+    secs: 7
+    nanos: 500000000
   robots: 1
   planning-strategy: only-local
   initial-position:
@@ -606,9 +706,13 @@ formations:
     intersects-with: !variable 5
 
 # light green, ssslrsl
-- repeat: null
+- repeat:
+    every:
+      secs: 9
+      nanos: 500000000
+    times: !finite 10
   delay:
-    secs: 2
+    secs: 4
     nanos: 0
   robots: 1
   planning-strategy: only-local
@@ -653,9 +757,13 @@ formations:
     intersects-with: !variable 5
 
 # light green, ssrlsrsrl
-- repeat: null
+- repeat:
+    every:
+      secs: 9
+      nanos: 500000000
+    times: !finite 10
   delay:
-    secs: 0
+    secs: 5
     nanos: 0
   robots: 1
   planning-strategy: only-local
@@ -712,7 +820,11 @@ formations:
     intersects-with: !variable 5
 
 # purple, srs
-- repeat: null
+- repeat:
+    every:
+      secs: 9
+      nanos: 0
+    times: !finite 10
   delay:
     secs: 0
     nanos: 0
@@ -747,9 +859,13 @@ formations:
     intersects-with: !variable 5
 
 # purple, lrssss
-- repeat: null
+- repeat:
+    every:
+      secs: 9
+      nanos: 0
+    times: !finite 10
   delay:
-    secs: 0
+    secs: 3
     nanos: 0
   robots: 1
   planning-strategy: only-local
@@ -788,9 +904,13 @@ formations:
     intersects-with: !variable 5
 
 # purple, lsrsl
-- repeat: null
+- repeat:
+    every:
+      secs: 9
+      nanos: 0
+    times: !finite 10
   delay:
-    secs: 0
+    secs: 6
     nanos: 0
   robots: 1
   planning-strategy: only-local
