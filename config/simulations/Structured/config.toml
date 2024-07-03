@@ -9,10 +9,10 @@ height-map = 1.0
 [visualisation.draw]
 robots = true
 communication-graph = false
-predicted-trajectories = false
-waypoints = false
+predicted-trajectories = true
+waypoints = true
 uncertainty = false
-paths = true
+paths = false
 communication-radius = false
 obstacle-factors = false
 tracking = false
@@ -31,13 +31,13 @@ scale = 30.0
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance = 150.0
+default-cam-distance = 200.0
 
 [gbp]
 sigma-pose-fixed = 0.0000000000000010000000036274937
-sigma-factor-dynamics = 0.5
-sigma-factor-interrobot = 0.004999999888241291
-sigma-factor-obstacle = 0.004999999888241291
+sigma-factor-dynamics = 0.10000000149011612
+sigma-factor-interrobot = 0.009999999776482582
+sigma-factor-obstacle = 0.009999999776482582
 sigma-factor-tracking = 0.009999999776482582
 lookahead-multiple = 3
 variables = 10
@@ -58,13 +58,13 @@ obstacle = true
 tracking = false
 
 [robot]
-planning-horizon = 2.0
-target-speed = 15.0
-inter-robot-safety-distance-multiplier = 2.200000047683716
+planning-horizon = 5.0
+target-speed = 5.0
+inter-robot-safety-distance-multiplier = 2.5
 
 [robot.radius]
-min = 2.5
-max = 2.5
+min = 1.0
+max = 1.0
 
 [robot.communication]
 radius = 20.0
@@ -72,19 +72,19 @@ failure-rate = 0.0
 
 [simulation]
 max-time = 10000.0
-time-scale = 1.5
+time-scale = 4.0
 manual-step-factor = 1
 hz = 10.0
-prng-seed = 805
+prng-seed = 2
 pause-on-spawn = false
 despawn-robot-when-final-waypoint-reached = true
 exit-application-on-scenario-finished = false
 
 [rrt]
-max-iterations = 1000000
-step-size = 0.5
-collision-radius = 0.10000000149011612
-neighbourhood-radius = 10.0
+max-iterations = 5000000
+step-size = 5.0
+collision-radius = 3.0
+neighbourhood-radius = 8.0
 
 [rrt.smoothing]
 enabled = true

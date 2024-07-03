@@ -78,7 +78,7 @@ hz = 10.0
 prng-seed = 805
 pause-on-spawn = true
 despawn-robot-when-final-waypoint-reached = true
-exit-application-on-scenario-finished = true
+exit-application-on-scenario-finished = false
 
 [rrt]
 max-iterations = 5000000

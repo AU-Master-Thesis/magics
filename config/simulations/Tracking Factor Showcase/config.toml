@@ -55,7 +55,7 @@ schedule = "interleave-evenly"
 dynamic = true
 interrobot = false
 obstacle = false
-tracking = true
+tracking = false
 
 [robot]
 planning-horizon = 5.0
@@ -76,7 +76,7 @@ time-scale = 2.0
 manual-step-factor = 1
 hz = 60.0
 prng-seed = 0
-pause-on-spawn = false
+pause-on-spawn = true
 despawn-robot-when-final-waypoint-reached = false
 exit-application-on-scenario-finished = false
 

@@ -10,7 +10,7 @@ height-map = 2.0
 robots = true
 communication-graph = true
 predicted-trajectories = true
-waypoints = true
+waypoints = false
 uncertainty = false
 paths = false
 communication-radius = false
@@ -38,7 +38,7 @@ sigma-pose-fixed = 0.0000000000000010000000036274937
 sigma-factor-dynamics = 0.10000000149011612
 sigma-factor-interrobot = 0.009999999776482582
 sigma-factor-obstacle = 0.009999999776482582
-sigma-factor-tracking = 0.5
+sigma-factor-tracking = 0.20000000298023224
 lookahead-multiple = 3
 variables = 10
 
@@ -55,7 +55,7 @@ schedule = "interleave-evenly"
 dynamic = true
 interrobot = true
 obstacle = true
-tracking = true
+tracking = false
 
 [robot]
 planning-horizon = 5.0
@@ -72,7 +72,7 @@ failure-rate = 0.0
 
 [simulation]
 max-time = 10000.0
-time-scale = 2.0
+time-scale = 1.5
 manual-step-factor = 1
 hz = 10.0
 prng-seed = 805
