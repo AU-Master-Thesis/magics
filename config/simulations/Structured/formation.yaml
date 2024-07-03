@@ -582,15 +582,15 @@ formations:
     projection-strategy: identity
   - shape: !line-segment
     - x: 0.46
-      y: 0.225
+      y: 0.2
     - x: 0.46
-      y: 0.225
+      y: 0.2
     projection-strategy: identity
   - shape: !line-segment
     - x: 0.16
-      y: 0.225
+      y: 0.2
     - x: 0.16
-      y: 0.225
+      y: 0.2
     projection-strategy: identity
   - shape: !line-segment
     - x: 0.16
@@ -629,15 +629,15 @@ formations:
     projection-strategy: identity
   - shape: !line-segment
     - x: 0.46
-      y: 0.225
+      y: 0.2
     - x: 0.46
-      y: 0.225
+      y: 0.2
     projection-strategy: identity
   - shape: !line-segment
     - x: 0.16
-      y: 0.225
+      y: 0.2
     - x: 0.16
-      y: 0.225
+      y: 0.2
     projection-strategy: identity
   - shape: !line-segment
     - x: 0.16
