@@ -173,7 +173,7 @@ formations:
   - shape: !line-segment
     - x: 0.915
       y: 0.365
-    - x: 0.915  
+    - x: 0.915
       y: 0.365
     projection-strategy: identity
   waypoint-reached-when-intersects:
