@@ -1,6 +1,9 @@
 # gbp-rs
-https://github.com/aalpatya/gbpplanner reimplemented in Rust!
+https://github.com/aalpatya/gbpplanner reimplemented and extended in Rust!
 
+## Thesis
+
+The accompanying thesis is available online [here](https://drive.google.com/file/d/12g-7bqcy_yfkZdpKzxQAErayFJQhu4sE/view?usp=sharing).
 
 ## External Dependencies
 
