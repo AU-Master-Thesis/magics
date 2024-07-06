@@ -8,7 +8,8 @@ import json
 from typing import Iterable, List
 
 import numpy as np
-from scripts.ldj import ldj
+# from scripts.ldj import ldj
+from ldj import ldj
 
 
 rgba_to_float = lambda rgba: [x / 255 for x in rgba]

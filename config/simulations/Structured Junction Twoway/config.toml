@@ -68,7 +68,7 @@ max = 1.0
 
 [robot.communication]
 radius = 20.0
-failure-rate = 0.4
+failure-rate = 0.7
 
 [simulation]
 max-time = 10000.0
