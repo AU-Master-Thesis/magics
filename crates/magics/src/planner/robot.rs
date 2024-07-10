@@ -2152,10 +2152,10 @@ fn reached_waypoint(
                 waypoint_index: 0,
             });
 
-            error!("robot: {:?} reached a waypoint", robot_entity);
+            info!("robot: {:?} reached a waypoint", robot_entity);
 
             if let Some(current_waypoint_index) = mission.current_waypoint_index() {
-                error!(
+                info!(
                     "updating waypoint index of tracking factors to {}",
                     current_waypoint_index
                 );

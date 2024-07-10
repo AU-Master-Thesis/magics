@@ -1,0 +1,18 @@
+tiles:
+  grid:
+  - '   ╷ ╷    '
+  - ' ┌─┼─┼─┐┌╴'
+  - '╶┼─┘┌┼┬┼┘ '
+  - '╶┴┬─┴┼┘│  '
+  - ' ┌┴┐┌┼─┴┬╴'
+  - ' ├─┴┘├──┘ '
+  - ' ╵   ╵    '
+  settings:
+    tile-size: 25.0
+    path-width: 0.5
+    obstacle-height: 2.25
+    sdf:
+      resolution: 200
+      expansion: 0.1
+      blur: 0.02
+obstacles: []
