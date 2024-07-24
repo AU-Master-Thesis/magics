@@ -13,10 +13,6 @@ import matplotlib.pyplot as plt
 from rich import print, inspect, pretty
 from tabulate import tabulate
 
-pretty.install()
-
-print(f"{sys.executable = }")
-print(f"{sys.version = }")
 
 def ldj(velocities: np.ndarray, timesteps: np.ndarray) -> float:
     """ Calculate the Log Dimensionless Jerk (LDJ) metric. """
@@ -71,6 +67,9 @@ def plot_ldj(ldjs):
     plt.show()
 
 def main():
+    pretty.install()
+    # print(f"{sys.executable =❯ bat ~/.jupyter/lab/user-settings/@jupyterlab/apputils-extension/notification.jupyterlab-settings }")
+    # print(f"{sys.version = }")
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type=Path)
     parser.add_argument('-p', '--plot', action='store_true')

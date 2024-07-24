@@ -118,7 +118,6 @@
         ++ cargo-subcommands;
       dev-deps = with pkgs; [
         nodejs
-        nodejs
         just
         typos # spell checker
         act # run github actions local in a docker container

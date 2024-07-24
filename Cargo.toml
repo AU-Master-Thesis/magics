@@ -53,7 +53,7 @@ serde = { version = "1.0", features = [
   "derive",
 ] }
 bevy = { version = "0.13", default-features = true, features = [
-  # "wayland",
+  "wayland",
   # "dynamic_linking",
 ] }
 derive_more = "0.99.17"
