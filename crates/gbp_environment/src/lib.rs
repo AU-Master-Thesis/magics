@@ -359,12 +359,23 @@ impl Rectangle {
     }
 }
 
+/// A irregular polygon to be placed in the environment
+/// - A [`PlaceableShape`] variant
+#[derive(Debug, Serialize, Deserialize, Clone, derive_more::Constructor)]
+#[serde(rename_all = "kebab-case")]
+pub struct Polygon {
+    /// The points of the polygon
+    /// Each point with an x and y coordinate in the range [0, 1]
+    pub points: Vec<[StrictlyPositiveFinite<Float>; 2]>,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, strum_macros::EnumTryAs)]
 #[serde(rename_all = "kebab-case")]
 pub enum PlaceableShape {
     Circle(Circle),
     Triangle(Triangle),
     RegularPolygon(RegularPolygon),
+    Polygon(Polygon),
     Rectangle(Rectangle),
 }
 
