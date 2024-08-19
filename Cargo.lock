@@ -3451,6 +3451,7 @@ dependencies = [
  "derive_more",
  "gbp_geometry",
  "gbp_linalg",
+ "itertools 0.13.0",
  "ron",
  "serde",
  "serde_yaml",

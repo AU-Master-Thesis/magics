@@ -6,8 +6,9 @@ use bevy::{
     math::Vec2,
 };
 use derive_more::IntoIterator;
-use gbp_geometry::RelativePoint;
+use gbp_geometry::{Point, RelativePoint};
 use gbp_linalg::Float;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 
@@ -366,7 +367,77 @@ impl Rectangle {
 pub struct Polygon {
     /// The points of the polygon
     /// Each point with an x and y coordinate in the range [0, 1]
-    pub points: Vec<[StrictlyPositiveFinite<Float>; 2]>,
+    pub points: Vec<Point>,
+}
+
+impl Polygon {
+    /// Expand the polygon's size by scaling around the average pointmass by
+    /// `expansion` as an addition
+    pub fn expanded(&self, expansion: Float) -> Self {
+
+        let point_center = {
+            let acc = self.points.clone().into_iter().fold([0.0, 0.0], |acc, p| {
+                [acc[0] + p.x, acc[1] + p.y]
+            });
+
+            [
+                acc[0] / self.points.len() as Float,
+                acc[1] / self.points.len() as Float,
+            ]
+        };
+
+        let new_points = {
+            self.points
+                .iter()
+                .map(|p| {
+                    let direction = [p.x - point_center[0], p.y - point_center[1]];
+                    Point::new(
+                        p.x + direction[0] * 4.0 * expansion,
+                        p.y + direction[1] * 4.0 * expansion,
+                    )
+                })
+                .collect()
+        };
+
+        Polygon::new(new_points)
+    }
+
+    /// Check if a given point is inside the polygon by checking if a ray cast
+    /// directly to the left from any given point intersects the walls of
+    /// the polygon an even or odd amount of times Expects translation and
+    /// rotation to be performed beforehand
+    pub fn inside(&self, point: Vec2) -> bool {
+        is_point_in_polygon(
+            (
+                point.x as f64,
+                point.y as f64
+            ),
+            self.points
+                .iter()
+                .map(|relative_point| {
+                    (relative_point.x, relative_point.y)
+                }).collect::<Vec<_>>()
+                .as_slice()
+        )
+    }
+}
+
+fn is_point_in_polygon(point: (f64, f64), polygon: &[(f64, f64)]) -> bool {
+    let (px, py) = point;
+    let mut inside = false;
+    let mut j = polygon.len() - 1;
+
+    for i in 0..polygon.len() {
+        let (ix, iy) = polygon[i];
+        let (jx, jy) = polygon[j];
+
+        if (iy > py) != (jy > py) && px < (jx - ix) * (py - iy) / (jy - iy) + ix {
+            inside = !inside;
+        }
+        j = i;
+    }
+
+    inside
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, strum_macros::EnumTryAs)]
@@ -441,7 +512,10 @@ impl PlaceableShape {
         match self {
             Self::Circle(circle) => Self::Circle(circle.expanded(factor)),
             Self::Triangle(triangle) => Self::Triangle(triangle.expanded(factor)),
-            Self::RegularPolygon(polygon) => Self::RegularPolygon(polygon.expanded(factor)),
+            Self::RegularPolygon(regular_polygon) => {
+                Self::RegularPolygon(regular_polygon.expanded(factor))
+            }
+            Self::Polygon(polygon) => Self::Polygon(polygon.expanded(factor)),
             Self::Rectangle(rectangle) => Self::Rectangle(rectangle.expanded(factor)),
         }
     }
@@ -451,7 +525,8 @@ impl PlaceableShape {
         match self {
             Self::Circle(circle) => circle.inside(point),
             Self::Triangle(triangle) => triangle.inside(point),
-            Self::RegularPolygon(polygon) => polygon.inside(point),
+            Self::RegularPolygon(regular_polygon) => regular_polygon.inside(point),
+            Self::Polygon(polygon) => polygon.inside(point),
             Self::Rectangle(rectangle) => rectangle.inside(point),
         }
     }

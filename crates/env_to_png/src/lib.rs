@@ -6,7 +6,7 @@
 use std::num::NonZeroU32;
 
 // use magics::config::Environment;
-use gbp_environment::{Environment, PlaceableShape, RegularPolygon};
+use gbp_environment::{Environment, PlaceableShape, Polygon, RegularPolygon};
 use gbp_geometry::RelativePoint;
 use glam::{Vec2, Vec3Swizzles};
 use image::{imageops::FilterType::Triangle, RgbImage};
@@ -312,6 +312,7 @@ fn is_placeable_obstacle(
                         0.0
                     }
             }
+            PlaceableShape::Polygon{ .. } => 0.0,
             _ => std::f32::consts::FRAC_PI_2,
         };
 
@@ -321,6 +322,10 @@ fn is_placeable_obstacle(
                 .xy();
 
         let inside_placeable_shape = expanded_shape.inside(rotated);
+
+        // if matches!(obstacle.shape, PlaceableShape::Polygon{ .. }) {
+        //     println!("Expanded shape: {:?}\nPoint: {:?}\nInside: {:?}", expanded_shape, translated, inside_placeable_shape);
+        // }
 
         if inside_placeable_shape {
             return true;

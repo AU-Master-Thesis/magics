@@ -19,7 +19,7 @@ impl Plugin for TrackingVisualizerPlugin {
             Update,
             (
                 visualise_tracking_factors.run_if(enabled),
-                visualise_tracking_paths.run_if(enabled),
+                // visualise_tracking_paths.run_if(enabled),
             ),
         );
     }
@@ -80,27 +80,28 @@ fn visualise_tracking_factors(
     }
 }
 
-fn visualise_tracking_paths(
-    mut gizmos: Gizmos,
-    factorgraphs: Query<(&FactorGraph, &ColorAssociation, &Route, &StateVector)>,
-    theme: Res<CatppuccinTheme>,
-) {
-    for (factorgraph, color_association, route, initial_state) in &factorgraphs {
-        let color = Color::from_catppuccin_colour_with_alpha(
-            theme.get_display_colour(&color_association.name),
-            0.5,
-        );
+// fn visualise_tracking_paths(
+//     mut gizmos: Gizmos,
+//     factorgraphs: Query<(&FactorGraph, &ColorAssociation, &Route,
+// &StateVector)>,     theme: Res<CatppuccinTheme>,
+// ) {
+//     for (factorgraph, color_association, route, initial_state) in
+// &factorgraphs {         let color = Color::from_catppuccin_colour_with_alpha(
+//             theme.get_display_colour(&color_association.name),
+//             0.75,
+//         );
 
-        let points = route.waypoints().iter().map(|waypoint| waypoint.position());
+//         let points = route.waypoints().iter().map(|waypoint|
+// waypoint.position());
 
-        points.tuple_windows().for_each(|(start, end)| {
-            let start = start.extend(0.0).xzy();
-            let end = end.extend(0.0).xzy();
+//         points.tuple_windows().for_each(|(start, end)| {
+//             let start = start.extend(0.0).xzy();
+//             let end = end.extend(0.0).xzy();
 
-            gizmos.line(start, end, color);
-        });
-    }
-}
+//             gizmos.line(start, end, color);
+//         });
+//     }
+// }
 
 /// **Bevy** run condition for drawing obstacle factors
 #[inline]

@@ -13,49 +13,17 @@ formations:
   initial-position:
     shape: !line-segment
     - x: 0.0
-      y: 0.325
+      y: 0.375
     - x: 0.0
-      y: 0.325
+      y: 0.375
     placement-strategy: !random
       attempts: 1000
   waypoints:
   - shape: !line-segment
     - x: 1.0
-      y: 0.325
+      y: 0.375
     - x: 1.0
-      y: 0.325
-    projection-strategy: identity
-  waypoint-reached-when-intersects:
-    distance: robot-radius
-    intersects-with: horizon
-  finished-when-intersects:
-    distance: !meter 40
-    intersects-with: current
-
-- repeat:
-    every:
-      secs: 1
-      nanos: 500000000
-    times: !finite 50
-  delay:
-    secs: 0
-    nanos: 0
-  robots: 1
-  planning-strategy: only-local
-  initial-position:
-    shape: !line-segment
-    - x: 0.0
-      y: 0.425
-    - x: 0.0
-      y: 0.425
-    placement-strategy: !random
-      attempts: 1000
-  waypoints:
-  - shape: !line-segment
-    - x: 1.0
-      y: 0.425
-    - x: 1.0
-      y: 0.425
+      y: 0.375
     projection-strategy: identity
   waypoint-reached-when-intersects:
     distance: robot-radius
@@ -76,24 +44,61 @@ formations:
   planning-strategy: only-local
   initial-position:
     shape: !line-segment
-    - x: 0.3875
+    - x: 0.195
       y: 0.725
-    - x: 0.3875
+    - x: 0.195
       y: 0.725
     placement-strategy: !random
       attempts: 1000
   waypoints:
   - shape: !line-segment
-    - x: 0.5
-      y: 0.425
-    - x: 0.5
-      y: 0.425
+    - x: 0.375
+      y: 0.375
+    - x: 0.375
+      y: 0.375
     projection-strategy: identity
   - shape: !line-segment
     - x: 1.0
-      y: 0.425
+      y: 0.375
     - x: 1.0
-      y: 0.425
+      y: 0.375
+    projection-strategy: identity
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: !meter 40
+    intersects-with: current
+- repeat:
+    every:
+      secs: 2
+      nanos: 800000000
+    times: !finite 50
+  delay:
+    secs: 5
+    nanos: 0
+  robots: 1
+  planning-strategy: only-local
+  initial-position:
+    shape: !line-segment
+    - x: 0.445
+      y: 0.725
+    - x: 0.445
+      y: 0.725
+    placement-strategy: !random
+      attempts: 1000
+  waypoints:
+  - shape: !line-segment
+    - x: 0.625
+      y: 0.375
+    - x: 0.625
+      y: 0.375
+    projection-strategy: identity
+  - shape: !line-segment
+    - x: 1.0
+      y: 0.375
+    - x: 1.0
+      y: 0.375
     projection-strategy: identity
   waypoint-reached-when-intersects:
     distance: robot-radius
