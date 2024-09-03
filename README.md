@@ -1,7 +1,9 @@
-# gbp-rs
+# magics 
+
 https://github.com/aalpatya/gbpplanner reimplemented and extended in Rust!
 
 ## Thesis
+[magics-functionality-demo-trimmed-for-github.webm](https://github.com/user-attachments/assets/8f5d0db6-dd2c-41a3-9a12-4ccddf80d4f3)
 
 The accompanying thesis is available online [here](https://drive.google.com/file/d/12g-7bqcy_yfkZdpKzxQAErayFJQhu4sE/view?usp=sharing).
 
