@@ -1,9 +1,14 @@
 # magics 
 
-https://github.com/aalpatya/gbpplanner reimplemented and extended in Rust!
+> Master Thesis Project in Computer Engineering at Aarhus University 2024 on "Simulating Multi-agent Path Planning in Complex environments using Gaussian Belief Propagation and Global Path Finding". Available here (https://drive.google.com/file/d/12g-7bqcy_yfkZdpKzxQAErayFJQhu4sE/view?usp=sharing)
+
+## Demo
+
+> The video below demonstrates some of the features of the simulation tool, and shows how the GBP algorithm can handle complex scenarios such as a multi-lane twoway junction.
+
+[magics-functionality-demo-trimmed-for-github.webm](https://github.com/user-attachments/assets/8f5d0db6-dd2c-41a3-9a12-4ccddf80d4f3)
 
 ## Thesis
-[magics-functionality-demo-trimmed-for-github.webm](https://github.com/user-attachments/assets/8f5d0db6-dd2c-41a3-9a12-4ccddf80d4f3)
 
 The accompanying thesis is available online [here](https://drive.google.com/file/d/12g-7bqcy_yfkZdpKzxQAErayFJQhu4sE/view?usp=sharing).
 
@@ -57,3 +62,8 @@ cargo run --release --bin magics -- --list # List all available scenarios
 cargo run --release --bin magics -- -i <SCENARIO_NAME>
 cargo run --release --bin magics -- --initial-scenario <SCENARIO_NAME>
 ```
+
+## Credits
+
+The primary algorithm for GBP path planning is based on [gbpplanner](https://github.com/aalpatya/gbpplanner) by [Aalok Patwardhan](https://aalok.uk/) from  Imperial College London and Dyson Robotics Lab. As part of this thesis we have reimplemented and extended upon in Rust!
+
