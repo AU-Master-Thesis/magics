@@ -10,7 +10,7 @@ end
 
 set -l experiment "Schedules Experiment"
 
-set -l config_file "config/simulations/$experiment/config.toml"
+set -l config_file "config/scenarios/$experiment/config.toml"
 
 if not test -f $config_file
     printf '%serror%s: %s does not exist!\n' (set_color red) (set_color normal) $config_file >&2

@@ -13,8 +13,8 @@ set -l blue (set_color blue)
 set -l cyan (set_color cyan)
 set -l magenta (set_color magenta)
 
-set -l config_file config/simulations/Environment\ Obstacles\ Experiment/config.toml
-set -l formation_file config/simulations/Environment\ Obstacles\ Experiment/formation.yaml
+set -l config_file config/scenarios/Environment\ Obstacles\ Experiment/config.toml
+set -l formation_file config/scenarios/Environment\ Obstacles\ Experiment/formation.yaml
 
 if not test -f $config_file
     printf '%serror%s: %s does not exist!\n' $red $reset $config_file >&2

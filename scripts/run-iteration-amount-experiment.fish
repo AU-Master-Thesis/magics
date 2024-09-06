@@ -8,7 +8,7 @@ function run
     eval $argv
 end
 
-set -l config_file config/simulations/Iteration\ Amount\ Experiment/config.toml
+set -l config_file config/scenarios/Iteration\ Amount\ Experiment/config.toml
 
 if not test -f $config_file
     printf '%serror%s: %s does not exist!\n' (set_color red) (set_color normal) $config_file >&2

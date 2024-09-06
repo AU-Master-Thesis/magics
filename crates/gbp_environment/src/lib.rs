@@ -374,11 +374,12 @@ impl Polygon {
     /// Expand the polygon's size by scaling around the average pointmass by
     /// `expansion` as an addition
     pub fn expanded(&self, expansion: Float) -> Self {
-
         let point_center = {
-            let acc = self.points.clone().into_iter().fold([0.0, 0.0], |acc, p| {
-                [acc[0] + p.x, acc[1] + p.y]
-            });
+            let acc = self
+                .points
+                .clone()
+                .into_iter()
+                .fold([0.0, 0.0], |acc, p| [acc[0] + p.x, acc[1] + p.y]);
 
             [
                 acc[0] / self.points.len() as Float,
@@ -408,16 +409,12 @@ impl Polygon {
     /// rotation to be performed beforehand
     pub fn inside(&self, point: Vec2) -> bool {
         is_point_in_polygon(
-            (
-                point.x as f64,
-                point.y as f64
-            ),
+            (point.x as f64, point.y as f64),
             self.points
                 .iter()
-                .map(|relative_point| {
-                    (relative_point.x, relative_point.y)
-                }).collect::<Vec<_>>()
-                .as_slice()
+                .map(|relative_point| (relative_point.x, relative_point.y))
+                .collect::<Vec<_>>()
+                .as_slice(),
         )
     }
 }

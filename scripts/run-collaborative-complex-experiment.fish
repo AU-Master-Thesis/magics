@@ -20,7 +20,7 @@ end
 
 set -l scenario 'Collaborative Complex'
 
-set -l config_file config/simulations/$scenario/config.toml
+set -l config_file config/scenarios/$scenario/config.toml
 
 if not test -f $config_file
     printf '%serror%s: %s does not exist!\n' $red $reset $config_file >&2

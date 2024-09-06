@@ -16,7 +16,7 @@ use smol_str::SmolStr;
 /// Which simulation to load initially
 #[derive(Debug, Default)]
 pub enum InitialSimulation {
-    /// Use the first simulation found in the `config/simulations` folder
+    /// Use the first simulation found in the `config/scenarios` folder
     /// Ordered lexiographically
     #[default]
     FirstFoundInFolder,
@@ -64,7 +64,7 @@ pub struct Raw(pub RawImage);
 // struct Simulations(BTreeMap<String, Simulation>);
 type Simulations = BTreeMap<String, Simulation>;
 
-const SIMULATIONS_DIR: &'static str = "./config/simulations";
+const SIMULATIONS_DIR: &'static str = "./config/scenarios";
 
 impl SimulationLoaderPlugin {
     pub fn new(show_toasts: bool, initial_simulation: Option<String>) -> Self {
