@@ -13,8 +13,8 @@ set -l seeds 0 31 227 252 805
 # --- Low Qin ---
 
 set -l experiment "Collaborative GP"
-set -l config_file "config/simulations/$experiment/config.toml"
-set -l formation_file "config/simulations/$experiment/formation.yaml"
+set -l config_file "config/scenarios/$experiment/config.toml"
+set -l formation_file "config/scenarios/$experiment/formation.yaml"
 
 if not test -f $config_file
     printf '%serror%s: %s does not exist!\n' (set_color red) (set_color normal) $config_file >&2

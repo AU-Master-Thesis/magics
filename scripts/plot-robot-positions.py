@@ -1,6 +1,9 @@
 #!/usr/bin/env nix-shell
 #! nix-shell -i python3
+#! nix-shell -p python311
 #! nix-shell -p python3Packages.matplotlib
+#! nix-shell -p qt5.qtbase
+#! nix-shell -p qt5.qtwayland
 #! nix-shell -p python3Packages.plotly
 #! nix-shell -p python3Packages.rich
 #! nix-shell -p python3Packages.toolz
@@ -16,13 +19,17 @@ import sys
 import subprocess
 import shutil
 from pathlib import Path
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('Agg')  # Use the Agg backend (no GUI)
 
 from rich import print, inspect, pretty
 pretty.install()
 
-print(f"{sys.executable = }")
-print(f"{sys.version = }")
+# print(f"{sys.executable = }")
+# print(f"{sys.version = }")
+
+# sys.exit(0)
 
 def load_data(filepath):
     """ Load the JSON data from the given filepath. """
@@ -117,26 +124,78 @@ def plot_robot_paths_plotly(data, filepath="robot-positions.html"):
 
 def plot_robot_paths_matplotlib(data, filepath="robot-positions.svg"):
     """ Plot the paths for each robot using their position data. """
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12, 10))
 
     # Plot robot paths
+    n: int = 0
     for robot_id, robot_data in data['robots'].items():
         positions = robot_data['positions']
+        # match positions.shape:
+        #     case (_, 2):
+        #         pass
+        #     case _:
+        #         print(f"wrong shape {positions.shape=}")
+        #         sys.exit(1)
+
+        # for i in range(len(positions) - 1, -1, -1):
+        #     point = positions[i]
+        #     if abs(point[0]) > 95 or abs(point[1]) > 55:
+        #         _ = positions.pop()
+
         x_coords = [pos[0] for pos in positions]
         y_coords = [pos[1] for pos in positions]
         color: str = robot_data['color']
 
         distance_traveled: float = np.sum(np.linalg.norm(np.diff(positions, axis=0), axis=1))
+
+        waypoints = []
+        mission = robot_data['mission']
+        for route in mission['routes']:
+            waypoints.append(route['waypoints'][0])
+            for wp in route['waypoints'][1:]:
+                waypoints.append(wp)
+
+        waypoints = np.array(waypoints)
+        waypoints = np.squeeze(waypoints)
+
+        for ix in [0, -1]:
+            x =waypoints[ix][0]
+            xlimit = 95
+            if abs(x) > xlimit:
+                sign: int = -1 if x < 0.0 else 1
+                x = sign * xlimit
+                waypoints[ix][0] = x
+
+            ylimit = 60
+            y =waypoints[ix][1]
+            if abs(y) > ylimit:
+                sign: int = -1 if y < 0.0 else 1
+                y = sign * ylimit
+                waypoints[ix][1] = y
+
+
+                # [-50, 50]
+
+        ax.plot([pos[0] for pos in waypoints], [pos[1] for pos in waypoints], color='black')
+
+        def accumulated_distance(points):
+            # Compute pairwise Euclidean distances between successive points
+            distances = np.sum(np.sqrt(np.sum(np.diff(points, axis=0)**2, axis=1)))
+            return distances
+
         # print(f"{robot_id=} {distance_travelled=}")
 
-        ax.plot(x_coords, y_coords, marker='o', color=color, label=f'Robot {robot_id} (Radius: {robot_data["radius"]} Distance Traveled: {distance_traveled})')
+        ax.plot(x_coords, y_coords, marker='o', markersize=2, color=color, label=f'Robot {robot_id} (Radius: {robot_data["radius"]} Distance Traveled: {distance_traveled})')
+        n += 1
+        if n == 12:
+            break
 
     # Plot obstacles
     for entity, obstacle in data['obstacles'].items():
         color = 'gray'
 
         for collision in data['collisions']['environment']:
-            print(f"{entity=} {collision=}")
+            # print(f"{entity=} {collision=}")
             if collision['obstacle'] == int(entity):
                 color = 'red'
                 break
@@ -149,28 +208,29 @@ def plot_robot_paths_matplotlib(data, filepath="robot-positions.svg"):
             polygon = plt.Polygon(vertices, color=color, fill=True, alpha=0.5)
             ax.add_patch(polygon)
 
-    for collision in data['collisions']['robots']:
-        robot_a = collision['robot_a']
-        robot_b = collision['robot_b']
-        for aabb in collision['aabbs']:
-            mins: list[float] = aabb['mins']
-            maxs: list[float] = aabb['maxs']
+    # for collision in data['collisions']['robots']:
+    #     robot_a = collision['robot_a']
+    #     robot_b = collision['robot_b']
+    #     for aabb in collision['aabbs']:
+    #         mins: list[float] = aabb['mins']
+    #         maxs: list[float] = aabb['maxs']
 
-            x_coords = [mins[0], maxs[0], maxs[0], mins[0], mins[0]]
-            y_coords = [mins[1], mins[1], maxs[1], maxs[1], mins[1]]
+    #         x_coords = [mins[0], maxs[0], maxs[0], mins[0], mins[0]]
+    #         y_coords = [mins[1], mins[1], maxs[1], maxs[1], mins[1]]
 
-            ax.plot(x_coords, y_coords, color='red', linewidth=2)
+    #         ax.plot(x_coords, y_coords, color='red', linewidth=2)
 
 
     ax.set_title(f'Paths of Robots in Environment: {data["scenario"]}')
     ax.set_xlabel('X Coordinate')
     ax.set_ylabel('Y Coordinate')
     ax.set_aspect('equal', adjustable='box')
-    ax.legend()
-    ax.grid(True)
+    # ax.legend()
+    # ax.grid(True)
 
     # Save the plot to an image file
     plt.savefig(filepath)
+    plt.tight_layout()
     plt.show()
     print(f"Plot saved to '{filepath}'.")
 
@@ -200,9 +260,13 @@ def main():
     # plot_robot_paths_plotly(data, args.output)
     plot_robot_paths_matplotlib(data, args.output)
 
+    if shutil.which('timg') is not None and args.plot:
+        print(f"input: {args.input}")
+        subprocess.run(['timg', '--center', args.output])
+
     # Check if `xdg-open` exists in path, and if it does then open the plot with it
-    if shutil.which('xdg-open') is not None and args.plot:
-        subprocess.run(['xdg-open', args.output])
+    # if shutil.which('xdg-open') is not None and args.plot:
+    #     subprocess.run(['xdg-open', args.output])
 
 
 if __name__ == '__main__':

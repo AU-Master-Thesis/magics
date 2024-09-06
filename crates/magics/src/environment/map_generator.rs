@@ -377,6 +377,56 @@ fn build_obstacles(
 
                 Some((mesh, transform, isometry, shape))
             }
+            PlaceableShape::Polygon(gbp_environment::Polygon { points }) => {
+                let center = Vec3::new(
+                    (translation.x.get() as f32).mul_add(tile_size, offset_x) - pos_offset,
+                    obstacle_height / 2.0,
+                    (translation.y.get() as f32).mul_add(tile_size, offset_z) - pos_offset,
+                );
+
+                // let center = Vec3::new(0.0, 0.0, 0.0);
+
+                info!("Spawning polygon: at {:?}", center);
+
+                let mesh = meshes.add(
+                    Mesh::try_from(bevy_more_shapes::Polygon {
+                        points: points
+                            .iter()
+                            .map(|point| {
+                                Vec2::new(
+                                    (point.x as f32) * tile_size,
+                                    (point.y as f32) * tile_size,
+                                )
+                            })
+                            .rev()
+                            .collect(),
+                    })
+                    .expect("Failed to create irregular polygon mesh"),
+                );
+
+                let rotation = Quat::from_rotation_y(obstacle.rotation.as_radians() as f32);
+                let transform = Transform::from_translation(center).with_rotation(rotation);
+
+                let points: Vec<parry2d::math::Point<parry2d::math::Real>> = points
+                    .iter()
+                    .map(|point| {
+                        parry2d::math::Point::new(
+                            (point.x as f32) * tile_size,
+                            (point.y as f32) * tile_size,
+                        )
+                    })
+                    .collect();
+                let shape = parry2d::shape::ConvexPolygon::from_convex_hull(points.as_slice())
+                    .expect("polygon is always convex");
+
+                let shape: Arc<dyn shape::Shape> = Arc::new(shape);
+                let isometry = Isometry2::new(
+                    parry2d::na::Vector2::new(transform.translation.x, transform.translation.z),
+                    na::zero(),
+                );
+
+                Some((mesh, transform, isometry, shape))
+            }
             PlaceableShape::Rectangle(Rectangle { width, height }) => {
                 // dbg!((
                 //     "Rectangle",

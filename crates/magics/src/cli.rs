@@ -41,9 +41,9 @@ pub struct Cli {
 
     // #[arg(short, long, value_name = "DIR")]
     /// Path to directory with simuliations to load. [default:
-    /// ./config/simulations]
+    /// ./config/scenarios]
     // #[arg(short, long, group = "configuration", default_value_t =
-    // String::from("./config/simulations"))]
+    // String::from("./config/scenarios"))]
     #[arg(short, long, group = "configuration")]
     pub simulations_dir: Option<std::path::PathBuf>,
 

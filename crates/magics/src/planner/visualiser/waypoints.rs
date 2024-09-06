@@ -25,7 +25,7 @@ impl Plugin for WaypointVisualiserPlugin {
         app.add_systems(
             Update,
             (
-                remove_when_robot_reached_waypoint,
+                // remove_when_robot_reached_waypoint,
                 create_waypoint_visualizer,
                 visualize_waypoints.run_if(enabled),
                 // delete_mesh_of_reached_waypoints,
@@ -50,7 +50,7 @@ fn visualize_waypoints(
     let height = -config.visualisation.height.objects;
     for (mission, color_assoc) in &missions {
         let colour = theme.get_display_colour(&color_assoc.name);
-        let color = Color::from_catppuccin_colour_with_alpha(colour, 0.25);
+        let color = Color::from_catppuccin_colour_with_alpha(colour, 0.5);
         // let color = theme.from_catppuccin_colour(color_assoc.name.);
         for (wp1, wp2) in mission.waypoints().tuple_windows() {
             gizmos.line(

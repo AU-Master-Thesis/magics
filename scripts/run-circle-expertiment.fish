@@ -8,8 +8,8 @@ function run
     eval $argv
 end
 
-set -l config_file config/simulations/Circle\ Experiment/config.toml
-set -l formation_file config/simulations/Circle\ Experiment/formation.yaml
+set -l config_file config/scenarios/Circle\ Experiment/config.toml
+set -l formation_file config/scenarios/Circle\ Experiment/formation.yaml
 
 if not test -f $config_file
     printf '%serror%s: %s does not exist!\n' (set_color red) (set_color normal) $config_file >&2

@@ -198,7 +198,7 @@ fn main() -> anyhow::Result<()> {
     }
 
     if cli.list_scenarios {
-        let scenario_dir = Path::new("./config/simulations");
+        let scenario_dir = Path::new("./config/scenarios");
         assert!(scenario_dir.exists());
         let mut directories = Vec::new();
         let entries = scenario_dir.read_dir()?; // .sort_by(|a, b| a.file_name().cmp(&b.file_name()));

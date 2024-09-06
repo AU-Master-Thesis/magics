@@ -18,7 +18,7 @@ function run
     eval $argv
 end
 
-set -l config_file config/simulations/Structured\ Junction\ Twoway/config.toml
+set -l config_file config/scenarios/Structured\ Junction\ Twoway/config.toml
 
 if not test -f $config_file
     printf '%serror%s: %s does not exist!\n' (set_color red) (set_color normal) $config_file >&2
