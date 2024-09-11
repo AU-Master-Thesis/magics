@@ -34,19 +34,30 @@ pub(crate) mod macros;
 #[global_allocator]
 static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-use std::path::Path;
+use std::{path::Path, time::Duration};
 
 use bevy::{
     asset::AssetMetaCheck,
     input::common_conditions::input_just_pressed,
     prelude::*,
-    window::{WindowMode, WindowResolution},
+    render::{
+        camera::RenderTarget,
+        render_resource::{
+            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+        },
+        RenderPlugin,
+    },
+    time::common_conditions::once_after_real_delay,
+    window::{PrimaryWindow, WindowMode, WindowResolution},
+};
+use bevy_image_export::{
+    ImageExportBundle, ImageExportPlugin, ImageExportSettings, ImageExportSource,
 };
 use colored::Colorize;
 // use iyes_perf_ui::prelude::*;
 
 // use rand::{Rng, SeedableRng};
-
+use environment::MainCamera;
 // use iyes_perf_ui::prelude::*;
 use gbp_config::{read_config, Config, FormationGroup};
 // use config::{environment::EnvironmentType, Environment};
@@ -302,14 +313,29 @@ fn main() -> anyhow::Result<()> {
             ..Default::default()
         }
     } else {
+        let default_window_resolution = WindowResolution::default();
+        let width = cli
+            .width
+            .unwrap_or(default_window_resolution.physical_width());
+        let height = cli
+            .height
+            .unwrap_or(default_window_resolution.physical_height());
+
         WindowPlugin {
             primary_window: Some(Window {
                 name: Some(NAME.to_string()),
                 focused: true,
                 mode: window_mode,
                 window_theme: None,
+                position: WindowPosition::Centered(MonitorSelection::Primary),
                 visible: true,
-                resolution: WindowResolution::default().with_scale_factor_override(1.0),
+                resizable: !cli.record,
+                resolution: WindowResolution::new(width as f32, height as f32)
+                    .with_scale_factor_override(1.0),
+
+                // physical_width: 1280,
+                // physical_height: 720,
+                // resolution: WindowResolution::default().with_scale_factor_override(1.0),
                 ..Default::default()
             }),
 
@@ -359,12 +385,19 @@ fn main() -> anyhow::Result<()> {
     //    DefaultPlugins.set(window_plugin).set(image_plugin)
     //};
 
+    let export_plugin = ImageExportPlugin::default();
+    let export_threads = export_plugin.threads.clone();
+
     app
         //.add_plugins(default_plugins)
         // bevy builtin plugins
         .add_plugins(DefaultPlugins
             .set(window_plugin)
             .set(image_plugin)
+            .set(RenderPlugin {
+                                    synchronous_pipeline_compilation: true,
+                                    ..default()
+            })
         )
         // third-party plugins
         .add_plugins((
@@ -424,9 +457,111 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    if cli.record {
+        app.add_plugins(export_plugin);
+        app.add_systems(
+            Update,
+            setup_image_export.run_if(once_after_real_delay(Duration::from_secs(1))),
+        );
+    }
+
     app.run();
 
+    if cli.record {
+        // This line is optional but recommended.
+        // It blocks the main thread until all image files have been saved successfully.
+        export_threads.finish();
+
+        // std::process::Command::new("ffmpeg")
+        //     .arg()
+    }
+
     Ok(())
+}
+
+fn setup_image_export(
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    mut export_sources: ResMut<Assets<ImageExportSource>>,
+    primary_window: Query<&Window, With<PrimaryWindow>>,
+    main_camera: Query<(Entity, &Camera3d), With<MainCamera>>,
+) {
+    let (width, height) = {
+        let primary_window = primary_window.get_single().unwrap();
+        let width = primary_window.resolution.width();
+        let height = primary_window.resolution.height();
+        (width as u32, height as u32)
+    };
+
+    info!("image_export: width={width} height={height}");
+
+    // Create an output texture.
+    let output_texture_handle = {
+        let size = Extent3d {
+            width,
+            height,
+            // width: 900,
+            // height: 900,
+            ..default()
+        };
+        let mut export_texture = Image {
+            texture_descriptor: TextureDescriptor {
+                label: None,
+                size,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::Rgba8UnormSrgb,
+                mip_level_count: 1,
+                sample_count: 1,
+                usage: TextureUsages::COPY_DST
+                    | TextureUsages::COPY_SRC
+                    | TextureUsages::RENDER_ATTACHMENT,
+                view_formats: &[],
+            },
+            ..default()
+        };
+        export_texture.resize(size);
+
+        images.add(export_texture)
+    };
+
+    let main_camera = main_camera.get_single().unwrap().0;
+
+    commands.entity(main_camera).with_children(|parent| {
+        parent.spawn(Camera3dBundle {
+            camera: Camera {
+                target: RenderTarget::Image(output_texture_handle.clone()),
+                ..default()
+            },
+            ..default()
+        });
+    });
+
+    // commands
+    //     .spawn(Camera3dBundle {
+    //         transform: Transform::from_translation(5.0 * Vec3::Z),
+    //         ..default()
+    //     })
+    //     .with_children(|parent| {
+    //         parent.spawn(Camera3dBundle {
+    //             camera: Camera {
+    //                 // Connect the output texture to a camera as a RenderTarget.
+    //                 target: RenderTarget::Image(output_texture_handle.clone()),
+    //                 ..default()
+    //             },
+    //             ..default()
+    //         });
+    //     });
+
+    // Spawn the ImageExportBundle to initiate the export of the output texture.
+    commands.spawn(ImageExportBundle {
+        source:   export_sources.add(output_texture_handle),
+        settings: ImageExportSettings {
+            // Frames will be saved to "./out/[#####].png".
+            output_dir: "out".into(),
+            // Choose "exr" for HDR renders.
+            extension:  "png".into(),
+        },
+    });
 }
 
 /// Returns true if the time has exceeded the max configured simulation time.

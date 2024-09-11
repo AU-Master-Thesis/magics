@@ -97,6 +97,8 @@ bevy_more_shapes   = { git = "https://github.com/AU-Master-Thesis/bevy_more_shap
 bevy_asset_loader = "0.20"
 
 bevy_mod_debugdump = "0.10.0"
+
+bevy_image_export = "0.10"
 # bevy_file_dialog   = "0.5.0"
 # bevy-notify      = "0.2.0"
 

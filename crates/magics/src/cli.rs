@@ -85,7 +85,20 @@ pub struct Cli {
 
     /// Increases logging verbosity each use for up to 3 times
     #[arg(short, long, action = clap::ArgAction::Count)]
-    verbose: u8,
+    pub verbose: u8,
+
+    /// Width of the graphical window, default 1280 px
+    #[arg(long)]
+    pub width: Option<u32>,
+
+    /// Height of the graphical window, default 720 px
+    #[arg(long)]
+    pub height: Option<u32>,
+
+    /// Record image sequences of the running game, that later can be
+    /// concatenated into a video with `ffmpeg`
+    #[arg(long)]
+    pub record: bool,
 }
 
 /// Verbosity level
