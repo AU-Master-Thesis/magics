@@ -2,6 +2,28 @@
 
 > Master Thesis Project in Computer Engineering at Aarhus University 2024 on "Simulating Multi-agent Path Planning in Complex environments using Gaussian Belief Propagation and Global Path Finding". Available here (https://drive.google.com/file/d/12g-7bqcy_yfkZdpKzxQAErayFJQhu4sE/view?usp=sharing)
 
+## Motivating Example
+
+
+<!-- https://github.com/user-attachments/assets/832fe84b-4b8b-4473-bfe1-9d87153988af -->
+
+
+<!-- https://github.com/user-attachments/assets/501aa26a-1b72-4c93-a5a4-22551b6c6d4b -->
+
+
+
+<!-- https://github.com/user-attachments/assets/6b8df209-d1db-4f35-9271-1c61ef660ab6 -->
+
+
+|:---------------------------------------------------------:|:---------------------------------------------------------:|
+| **Waypoint Tracking** | **Path Tracking** |
+| https://github.com/user-attachments/assets/832fe84b-4b8b-4473-bfe1-9d87153988af | https://github.com/user-attachments/assets/6b8df209-d1db-4f35-9271-1c61ef660ab6 |
+
+<!-- | <img src="https://github.com/user-attachments/assets/832fe84b-4b8b-4473-bfe1-9d87153988af
+" alt="GIF 3" width="380"/> | <img src="https://github.com/user-attachments/assets/6b8df209-d1db-4f35-9271-1c61ef660ab6" alt="GIF 4" width="380"/> |
+-->
+
+
 ## Demo
 
 > The video below demonstrates some of the features of the simulation tool, and shows how the GBP algorithm can handle complex scenarios such as a multi-lane twoway junction.
