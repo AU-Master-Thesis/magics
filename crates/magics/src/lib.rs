@@ -1,6 +1,7 @@
 //! Library interface to the GBPPlanner
 use bevy::ecs::schedule::States;
 
+pub mod api;
 pub mod asset_loader;
 pub mod bevy_utils;
 pub mod cli;

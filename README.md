@@ -15,6 +15,9 @@
       - [Nix/NixOS](#nixnixos)
     - [Building](#building)
     - [Running the Simulator](#running-the-simulator)
+    - [Python API](#python-api)
+      - [Building the Python API](#building-the-python-api)
+      - [Using the Python API](#using-the-python-api)
     - [WSL Configuration (windows 10.)](#wsl-configuration-windows-10)
   - [Keyboard Controls](#keyboard-controls)
     - [UI Controls](#ui-controls)
@@ -92,9 +95,64 @@ RUSTFLAGS=-Awarnings cargo run --release --bin magics -- --list-scenarios
 # Run a specific scenario
 RUSTFLAGS=-Awarnings cargo run --release --bin magics -- -i <SCENARIO_NAME> # fx. "Circle Experiment"
 RUSTFLAGS=-Awarnings cargo run --release --bin magics -- --initial-scenario <SCENARIO_NAME> # fx. "Circle Experiment"
+
+# Run with Python API enabled
+RUSTFLAGS=-Awarnings cargo run --release --bin magics --features api
 ```
 
 > **Important**: When specifying a scenario, use the exact name as shown in the `--list-scenarios` output. Do not use file paths.
+
+### Python API
+
+Magics includes a Python API that allows controlling the simulation from Python, particularly for reinforcement learning applications. The API is implemented using PyO3 and provides an OpenAI Gym environment.
+
+#### Building the Python API
+
+1. Build the Python bindings:
+   ```bash
+   cd crates/magics_python
+   maturin develop
+   ```
+
+2. Install the OpenAI Gym environment:
+   ```bash
+   cd crates/magics_python/python
+   pip install -e .
+   ```
+
+#### Using the Python API
+
+1. Run the simulation with the API feature enabled:
+   ```bash
+   RUSTFLAGS=-Awarnings cargo run --release --bin magics --features api
+   ```
+
+2. Use the API in Python:
+   ```python
+   import magics_gym
+   
+   # Create the environment
+   env = magics_gym.MagicsEnv()
+   
+   # Reset the environment
+   observation = env.reset()
+   
+   # Run for 100 steps
+   for i in range(100):
+       # Sample a random action (factor weights)
+       action = env.action_space.sample()
+       
+       # Take a step in the environment
+       observation, reward, done, info = env.step(action)
+       
+       if done:
+           break
+   
+   # Close the environment
+   env.close()
+   ```
+
+See the `crates/magics_python/README.md` file for more details on the Python API.
 
 ### WSL Configuration (windows 10.)
 

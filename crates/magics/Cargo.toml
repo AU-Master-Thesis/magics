@@ -28,6 +28,10 @@ visualization = [
   "visualization-obstacle-factors",
 ]
 
+api = [
+  "dep:pyo3",
+]
+
 
 [dependencies]
 percentage              = { path = "../percentage" }
@@ -155,6 +159,7 @@ colorgrad  = "0.6.2"
 ordered-float = "4.2.0"
 mimalloc      = "0.1.42"
 # dialoguer = { version = "0.11.0", features = ["fuzzy-select"] }
+pyo3 = { version = "0.18", optional = true, features = ["extension-module"] }
 
 # # TODO: change to not wasm
 # [target.'cfg(linux)'.dependencies]
