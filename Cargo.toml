@@ -1,6 +1,6 @@
-cargo-features = [
-  "codegen-backend",
-]
+# cargo-features = [
+#   "codegen-backend",
+# ]
 
 [workspace]
 resolver = "2" # Important! wgpu/bevy needs this!

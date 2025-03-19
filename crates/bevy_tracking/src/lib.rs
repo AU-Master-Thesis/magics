@@ -1,7 +1,9 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use bevy::prelude::*;
-use ringbuf::{ring_buffer::RbBase, HeapRb, Rb};
+use ringbuf::{HeapRb, SharedRb};
+use ringbuf::storage::Heap;
+use ringbuf::traits::{Consumer, Observer, Producer, RingBuffer};
 
 /// A Bevy plugin to track the positions and or velocities of entities over
 /// time.
@@ -13,27 +15,25 @@ pub struct TrackingPlugin;
 impl Plugin for TrackingPlugin {
     /// Adds the tracking system to the Bevy app.
     fn build(&self, app: &mut App) {
-        app.add_systems(FixedUpdate, (track_positions, track_velocities));
+        app.add_systems(FixedUpdate, (track_positions::<()>, track_velocities));
     }
 }
 
 pub mod components {
-
-    use measurements::PositionMeasurement;
-
     use super::*;
+    use super::measurements::PositionMeasurement;
     /// A component that tracks position data of an entity using a ring buffer.
     ///
     /// It stores position vectors (`Vec3`) and utilizes a timer to determine
     /// when to capture and store an entity's current position into the ring
     /// buffer.
     #[derive(Component)]
-    pub struct PositionTracker<T: Default = ()> {
-        ringbuf: HeapRb<PositionMeasurement>,
-        timer: Timer,
-        measurements_performed: usize,
-        first_measurement_recorded_at: Option<f64>,
-        _marker: std::marker::PhantomData<T>,
+    pub struct PositionTracker<T: Default + Send + Sync + 'static = ()> {
+        pub ringbuf: HeapRb<PositionMeasurement>,
+        pub timer: Timer,
+        pub measurements_performed: usize,
+        pub first_measurement_recorded_at: Option<f64>,
+        pub _marker: std::marker::PhantomData<T>,
     }
 
     impl PositionTracker {
@@ -49,6 +49,7 @@ pub mod components {
                 ringbuf: HeapRb::new(capacity),
                 timer: Timer::new(duration, TimerMode::Repeating),
                 measurements_performed: 0,
+                first_measurement_recorded_at: None,
                 _marker: std::marker::PhantomData,
             }
         }
@@ -72,7 +73,7 @@ pub mod components {
         }
 
         /// Provides an iterator over the positions stored in the ring buffer.
-        pub fn positions(&self) -> impl Iterator<Item = Vec2> + '_ {
+        pub fn positions(&self) -> impl Iterator<Item = Vec3> + '_ {
             self.ringbuf.iter().cloned().map(|m| m.position)
         }
 
@@ -80,7 +81,6 @@ pub mod components {
             self.ringbuf
                 .iter()
                 .map(|m| Vec2::new(m.position.x, m.position.z))
-                .copied()
         }
 
         /// Clears all stored positions from the ring buffer.
@@ -91,12 +91,14 @@ pub mod components {
 
         /// Returns the number of positions currently stored in the ring buffer.
         pub fn len(&self) -> usize {
-            self.ringbuf.len()
+            // Use the Consumer trait's method directly
+            self.ringbuf.iter().count()
         }
 
         /// Determines whether the ring buffer is empty.
         pub fn is_empty(&self) -> bool {
-            self.ringbuf.is_empty()
+            // Use the Consumer trait's method directly
+            self.ringbuf.iter().next().is_none()
         }
     }
 
@@ -109,8 +111,8 @@ pub mod components {
     }
 
     #[derive(Clone, Copy, serde::Serialize)]
-    struct PreviousPosition {
-        position:      Vec3,
+    pub struct PreviousPosition {
+        pub position:  Vec3,
         pub timestamp: f64,
         // timestamp: Instant,
     }
@@ -119,12 +121,12 @@ pub mod components {
     /// using a ring buffer.
     #[derive(Component)]
     pub struct VelocityTracker {
-        ringbuf: HeapRb<VelocityMeasurement>,
+        pub ringbuf: HeapRb<VelocityMeasurement>,
         // last_position: Option<Vec3>,
-        timer: Timer,
-        previous_position: Option<PreviousPosition>,
+        pub timer: Timer,
+        pub previous_position: Option<PreviousPosition>,
         // first_measurement_at: Option<Instant>,
-        first_measurement_at: Option<f64>,
+        pub first_measurement_at: Option<f64>,
     }
 
     impl VelocityTracker {
@@ -196,22 +198,22 @@ pub mod bundles {
 ///
 /// It checks if the update interval specified by the internal timer has elapsed
 /// and updates the ring buffer with the current position of the entity.
-fn track_positions<T: Default>(
+fn track_positions<T: Default + Send + Sync + 'static>(
     mut q: Query<(&Transform, &mut components::PositionTracker<T>), Changed<Transform>>,
     time: Res<Time>,
 ) {
-    for (transform, mut tracker) in &mut q {
+    for (transform, mut tracker) in q.iter_mut() {
         tracker.timer.tick(time.delta());
         if tracker.timer.just_finished() {
-            let measurement = PositionMeasurement {
+            let measurement = measurements::PositionMeasurement {
                 position:  transform.translation,
-                timestamp: Instant::now(),
+                timestamp: time.elapsed_seconds_f64(),
             };
             // tracker.ringbuf.push_overwrite(transform.translation);
             tracker.ringbuf.push_overwrite(measurement);
 
-            if tracker.first_measurement_at.is_none() {
-                tracker.first_measurement_at = Some(Instant::now());
+            if tracker.first_measurement_recorded_at.is_none() {
+                tracker.first_measurement_recorded_at = Some(time.elapsed_seconds_f64());
             }
         }
     }
@@ -223,10 +225,10 @@ fn track_positions<T: Default>(
 /// It checks if the update interval specified by the internal timer has elapsed
 /// and updates the ring buffer with the current velocity of the entity.
 fn track_velocities(
-    mut q: Query<(&Transform, &mut VelocityTracker), Changed<Transform>>,
+    mut q: Query<(&Transform, &mut components::VelocityTracker), Changed<Transform>>,
     time: Res<Time>,
 ) {
-    for (transform, mut tracker) in &mut q {
+    for (transform, mut tracker) in q.iter_mut() {
         tracker.timer.tick(time.delta());
         if tracker.timer.just_finished() {
             // let now = Instant::now();
@@ -234,7 +236,7 @@ fn track_velocities(
 
             if let Some(previous_position) = tracker.previous_position {
                 let dt = now - previous_position.timestamp;
-                let measurement = VelocityMeasurement {
+                let measurement = components::VelocityMeasurement {
                     velocity:      (transform.translation - previous_position.position) / dt as f32,
                     timestamp:     now,
                     measured_over: Duration::from_secs_f64(dt),
@@ -242,7 +244,7 @@ fn track_velocities(
                 // tracker.ringbuf.push_overwrite(transform.translation);
                 tracker.ringbuf.push_overwrite(measurement);
             }
-            tracker.previous_position = Some(PreviousPosition {
+            tracker.previous_position = Some(components::PreviousPosition {
                 position:  transform.translation,
                 timestamp: now,
             });

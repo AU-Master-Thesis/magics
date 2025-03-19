@@ -2,9 +2,9 @@
 [target.x86_64-unknown-linux-gnu]
 # linker = "clang"
 rustflags = [
-  "-Clink-arg=-fuse-ld=mold", # Use mold Linker
-  "-Zshare-generics=y",       # (Nightly) Make the current crate share its generic instantiations
-  "-Zthreads=8",              # (Nightly) Use improved multithreading with the recommended amount of threads.
+  # "-Clink-arg=-fuse-ld=mold", # Use mold Linker
+  #"-Zshare-generics=y",       # (Nightly) Make the current crate share its generic instantiations
+  #"-Zthreads=8",              # (Nightly) Use improved multithreading with the recommended amount of threads.
   "-Ctarget-cpu=native",
   # "-Ctarget-feature=+simd128",
 ]
@@ -19,10 +19,10 @@ rustflags = [
 
 [build]
 rustflags = [
-  "-Clink-arg=-fuse-ld=mold",
+  # "-Clink-arg=-fuse-ld=mold",
   "-C",
   "target-cpu=native",
-  "-Z",
+  #"-Z",
   "threads=8",
   # "-Ctarget-feature=+simd128",
 ]
