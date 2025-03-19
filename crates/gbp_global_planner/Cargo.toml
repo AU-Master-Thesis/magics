@@ -14,7 +14,7 @@ rrt.workspace         = true
 derive_more.workspace = true
 parry2d.workspace     = true
 bevy_rand.workspace   = true
-bevy_prng.workspace   = true
+bevy_prng            = { workspace = true, features = ["wyrand"] }
 rand.workspace        = true
 delegate.workspace    = true
 gbp_config            = { path = "../gbp_config" }

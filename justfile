@@ -9,6 +9,9 @@ default:
 build:
     cargo build
 
+build-nw:
+    RUSTFLAGS=-Awarnings cargo build --release 
+
 run:
     cargo run
 

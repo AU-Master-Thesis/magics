@@ -1,0 +1,65 @@
+//! Core planning algorithms for the simulation
+//!
+//! This module contains the planner implementation for the GBP algorithm.
+
+use crate::environment::GbpSimulationEnvironment;
+use crate::factorgraph::FactorGraph;
+use crate::error::SimulationError;
+
+/// Planner trait for different planning algorithms
+pub trait Planner {
+    /// Initialize the planner
+    fn initialize(&mut self) -> Result<(), SimulationError>;
+    
+    /// Plan the next steps for all agents
+    fn plan(&mut self, dt: f64) -> Result<(), SimulationError>;
+    
+    /// Reset the planner
+    fn reset(&mut self) -> Result<(), SimulationError>;
+}
+
+/// GBP planner implementation
+pub struct GbpPlanner {
+    /// Factorgraph for the planner
+    factorgraph: FactorGraph,
+    /// Planning horizon
+    horizon: f64,
+    /// Time step for planning
+    dt: f64,
+}
+
+impl GbpPlanner {
+    /// Create a new GBP planner
+    pub fn new(horizon: f64, dt: f64) -> Self {
+        Self {
+            factorgraph: FactorGraph::new(),
+            horizon,
+            dt,
+        }
+    }
+}
+
+impl Default for GbpPlanner {
+    fn default() -> Self {
+        Self::new(5.0, 0.1)
+    }
+}
+
+impl Planner for GbpPlanner {
+    fn initialize(&mut self) -> Result<(), SimulationError> {
+        // In a real implementation, this would set up the factorgraph
+        // and prepare for planning
+        Ok(())
+    }
+    
+    fn plan(&mut self, dt: f64) -> Result<(), SimulationError> {
+        // In a real implementation, this would compute the next steps
+        // for all agents using the factorgraph
+        Ok(())
+    }
+    
+    fn reset(&mut self) -> Result<(), SimulationError> {
+        self.factorgraph = FactorGraph::new();
+        Ok(())
+    }
+}

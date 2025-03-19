@@ -8,7 +8,6 @@ authors.workspace      = true
 rust-version.workspace = true
 license.workspace      = true
 
-
 [features]
 dev = [
   "bevy/dynamic_linking",
@@ -20,16 +19,23 @@ dhat-ad-hoc = [
   "dep:dhat",
 ] # if you are doing ad hoc profiling
 
-# TODO: use this feature, to only sample last measurement when enabled
-visualization-obstacle-factors = [
-]
+# Feature for headless mode
+headless = []
 
+# TODO: use this feature, to only sample last measurement when enabled
+visualization-obstacle-factors = []
 visualization = [
   "visualization-obstacle-factors",
 ]
 
-
 [dependencies]
+# Core crates for headless and UI modes
+magics-core = { path = "../magics-core" }
+magics-cli = { path = "../magics-cli" }
+# UI-specific crate that's only used in non-headless mode
+magics-bevy = { path = "../magics-bevy" }
+
+# Existing dependencies for backward compatibility
 percentage              = { path = "../percentage" }
 angle                   = { path = "../angle" }
 unit_interval           = { path = "../unit_interval" }
@@ -77,7 +83,9 @@ typed_floats.workspace    = true
 delegate.workspace        = true
 derive_more.workspace     = true
 rrt.workspace             = true
+serde.workspace           = true
 serde_yaml.workspace      = true
+serde_json.workspace      = true
 
 egui_extras = { version = "0.26.2", features = [
   "all_loaders",
@@ -106,9 +114,6 @@ bevy_image_export = "0.10"
 heck       = "0.5.0"
 catppuccin = "1.4.0"
 
-serde = { version = "1.0.196", features = [
-  "derive",
-] }
 clap_complete = "4.5.2"
 
 # color-eyre = "0.6.2"
@@ -149,7 +154,6 @@ atty          = "0.2.14"
 dhat          = { version = "0.3.3", optional = true }
 indexmap      = "2.2.6"
 # colored-diff  = "0.2.3"
-serde_json = "1.0.116"
 colorgrad  = "0.6.2"
 # open          = "5.1.0"
 ordered-float = "4.2.0"

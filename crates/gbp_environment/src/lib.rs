@@ -12,6 +12,8 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 
+pub mod serde_adapters;
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Component)]
 #[serde(rename_all = "kebab-case")]
 pub struct TileCoordinates {
@@ -118,6 +120,7 @@ pub struct Cell {
 pub struct Circle {
     /// The radius of the circle
     /// This is a value in the range [0, 1]
+    #[serde(with = "serde_adapters::strictly_positive_finite_float")]
     pub radius: StrictlyPositiveFinite<Float>,
     // /// The center of the circle,
     // pub center: RelativePoint,
@@ -160,6 +163,7 @@ pub struct Triangle {
     /// Third angle is calculated as 180 - (A + B)
     pub angles: Angles,
     /// The radius of the inscribed circle
+    #[serde(with = "serde_adapters::strictly_positive_finite_float")]
     pub radius: StrictlyPositiveFinite<Float>,
 }
 
@@ -238,6 +242,7 @@ pub struct RegularPolygon {
     /// The number of sides of the polygon
     pub sides:  usize,
     /// The radius of the polygon
+    #[serde(with = "serde_adapters::strictly_positive_finite_float")]
     pub radius: StrictlyPositiveFinite<Float>,
     // /// Side length of the polygon
     // pub side_length: StrictlyPositiveFinite<Float>,
@@ -320,9 +325,11 @@ impl RegularPolygon {
 pub struct Rectangle {
     /// The width of the rectangle
     /// This is a value in the range [0, 1]
+    #[serde(with = "serde_adapters::strictly_positive_finite_float")]
     pub width:  StrictlyPositiveFinite<Float>,
     /// The height of the rectangle
     /// This is a value in the range [0, 1]
+    #[serde(with = "serde_adapters::strictly_positive_finite_float")]
     pub height: StrictlyPositiveFinite<Float>,
     // /// The center of the rectangle
     // pub translation: RelativePoint,

@@ -1,0 +1,680 @@
+//! Factor implementation for the factor graph
+//!
+//! This module contains the implementation of factors used in the
+//! Gaussian Belief Propagation algorithm.
+
+use std::{borrow::Cow, num::NonZeroUsize, ops::AddAssign};
+
+use gbp_linalg::{prelude::*, pretty_format_matrix, pretty_format_vector};
+use ndarray::{array, s};
+use typed_floats::StrictlyPositiveFinite;
+
+use self::{
+    dynamic::DynamicFactor, interrobot::InterRobotFactor, obstacle::ObstacleFactor,
+    tracking::TrackingFactor,
+};
+use super::{
+    factorgraph::{FactorGraphId, NodeIndex},
+    id::VariableId,
+    message::MessagesToVariables,
+    node::FactorGraphNode,
+    prelude::Message,
+    MessageCount, MessagesReceived, MessagesSent, DOFS,
+};
+use crate::types::Vector2;
+
+pub mod dynamic;
+pub mod interrobot;
+mod marginalise_factor_distance;
+pub mod obstacle;
+pub mod pose;
+pub mod tracking;
+mod velocity;
+mod sdf_image;
+
+pub use sdf_image::SdfImage;
+
+use marginalise_factor_distance::marginalise_factor_distance;
+
+pub use crate::factorgraph::factor::interrobot::ExternalVariableId;
+
+
+/// The value and position of a measurement
+pub struct Measurement {
+    /// The value of the measurement
+    value: Vector<Float>,
+    /// The position of the measurement
+    position: Option<Vector<Float>>,
+}
+
+impl Measurement {
+    /// Create a new measurement
+    pub fn new(value: Vector<Float>) -> Self {
+        Self {
+            value,
+            position: None,
+        }
+    }
+
+    /// Set the position of the measurement
+    pub fn with_position(mut self, pos: Vector<Float>) -> Self {
+        self.position = Some(pos);
+        self
+    }
+}
+
+/// Common interface for all factors
+pub trait Factor: std::fmt::Display {
+    /// The name of the factor. Used for debugging and visualization.
+    fn name(&self) -> &'static str;
+    /// The color of the factor. Used for visualization.
+    fn color(&self) -> [u8; 3];
+
+    /// The delta for the jacobian calculation
+    fn jacobian_delta(&self) -> Float;
+
+    /// Returns the number of neighbours this factor expects
+    fn neighbours(&self) -> usize;
+
+    /// Whether to skip this factor in the update step
+    /// In gbpplanner, this is only used for the interrobot factor.
+    /// The other factors are always included in the update step.
+    fn skip(&self, state: &FactorState) -> bool;
+
+    /// Whether the factor is linear or non-linear
+    fn linear(&self) -> bool;
+
+    /// The jacobian of the factor
+    #[must_use]
+    #[inline]
+    fn jacobian(
+        &self,
+        state: &FactorState,
+        linearisation_point: &Vector<Float>,
+    ) -> Cow<'_, Matrix<Float>> {
+        Cow::Owned(self.first_order_jacobian(state, linearisation_point.clone()))
+    }
+
+    /// Measurement function
+    #[must_use]
+    fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>) -> Measurement;
+
+    /// The first order jacobian
+    /// This is a default impl as factor variants should compute the first order
+    /// jacobian the same way
+    fn first_order_jacobian(
+        &self,
+        state: &FactorState,
+        mut linearization_point: Vector<Float>,
+    ) -> Matrix<Float> {
+        let Measurement {
+            value: h0,
+            position: _,
+        } = self.measure(state, &linearization_point); // value at linearization point
+                                                       
+        let mut jacobian = Matrix::<Float>::zeros((h0.len(), linearization_point.len()));
+
+        let delta = self.jacobian_delta();
+
+        for i in 0..linearization_point.len() {
+            linearization_point[i] += delta; // perturb by delta
+            let Measurement {
+                value: h1,
+                position: _,
+            } = self.measure(state, &linearization_point);
+            let derivatives = (&h1 - &h0) / delta;
+            jacobian.column_mut(i).assign(&derivatives);
+            linearization_point[i] -= delta; // reset the perturbation
+        }
+
+        jacobian
+    }
+}
+
+/// Factor node in the factorgraph
+#[derive(Debug)]
+pub struct FactorNode {
+    factorgraph_id: FactorGraphId,
+    /// Unique identifier that associates the variable with the factorgraph it
+    /// is part of.
+    pub node_index: Option<NodeIndex>,
+    /// State common between all factor kinds
+    pub state: FactorState,
+    /// Variant storing the specialized behavior of each Factor kind.
+    pub kind: FactorKind,
+    /// Mailbox for incoming message storage
+    pub inbox: MessagesToVariables,
+
+    message_count: MessageCount,
+    /// Whether the factor is enabled
+    pub enabled: bool,
+}
+
+impl FactorNode {
+    fn new(
+        factorgraph_id: FactorGraphId,
+        state: FactorState,
+        kind: FactorKind,
+        enabled: bool,
+    ) -> Self {
+        Self {
+            factorgraph_id,
+            node_index: None,
+            state,
+            kind,
+            inbox: MessagesToVariables::new(),
+            message_count: MessageCount::default(),
+            enabled,
+        }
+    }
+
+    /// Returns the factorgraph id that the factor belongs to
+    #[inline]
+    pub fn factorgraph_id(&self) -> FactorGraphId {
+        self.factorgraph_id
+    }
+
+    /// Returns the node index of the factor
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node index has not been set, which should not happen.
+    #[inline]
+    #[allow(clippy::unwrap_used)]
+    pub fn node_index(&self) -> NodeIndex {
+        assert!(self.node_index.is_some(), "The node index has not been set");
+        self.node_index.unwrap()
+    }
+
+    /// Sets the node index of the factor
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node index has already been set.
+    pub fn set_node_index(&mut self, node_index: NodeIndex) {
+        assert!(self.node_index.is_none(), "The node index is already set");
+        self.node_index = Some(node_index);
+    }
+
+    /// Create a new dynamic factor
+    pub fn new_dynamic_factor(
+        factorgraph_id: FactorGraphId,
+        strength: Float,
+        measurement: Vector<Float>,
+        delta_t: Float,
+        enabled: bool,
+    ) -> Self {
+        let mut state = FactorState::new(measurement, strength, DynamicFactor::NEIGHBORS);
+        let dynamic_factor = DynamicFactor::new(&mut state, delta_t);
+        let kind = FactorKind::Dynamic(dynamic_factor);
+        Self::new(factorgraph_id, state, kind, enabled)
+    }
+
+    /// Create a new interrobot factor
+    pub fn new_interrobot_factor(
+        factorgraph_id: FactorGraphId,
+        strength: Float,
+        measurement: Vector<Float>,
+        robot_radius: StrictlyPositiveFinite<Float>,
+        safety_distance_multiplier: StrictlyPositiveFinite<Float>,
+        external_variable: ExternalVariableId,
+        robot_number: NonZeroUsize,
+        enabled: bool,
+    ) -> Self {
+        let interrobot_factor = InterRobotFactor::new(
+            robot_radius,
+            external_variable,
+            Some(safety_distance_multiplier),
+            robot_number,
+        );
+        let kind = FactorKind::InterRobot(interrobot_factor);
+        let state = FactorState::new(measurement, strength, InterRobotFactor::NEIGHBORS);
+
+        Self::new(factorgraph_id, state, kind, enabled)
+    }
+
+    /// Create a new obstacle factor
+    pub fn new_obstacle_factor(
+        factorgraph_id: FactorGraphId,
+        strength: Float,
+        measurement: Vector<Float>,
+        obstacle_sdf: SdfImage,
+        world_size: obstacle::WorldSize,
+        enabled: bool,
+    ) -> Self {
+        let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS);
+        let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
+        let kind = FactorKind::Obstacle(obstacle_factor);
+        Self::new(factorgraph_id, state, kind, enabled)
+    }
+
+    /// Create a new tracking factor
+    pub fn new_tracking_factor(
+        factorgraph_id: FactorGraphId,
+        strength: Float,
+        measurement: Vector<Float>,
+        linearisation_point: Vector<Float>,
+        tracking_config: gbp_config::TrackingSection,
+        rrt_path: Option<min_len_vec::TwoOrMore<Vector2>>,
+        enabled: bool,
+    ) -> Self {
+        let state = FactorState::new(measurement, strength, TrackingFactor::NEIGHBORS)
+            .with_linearisation_point(linearisation_point.clone());
+            
+        // Convert Vector2 to Vec2 for the tracking factor
+        let last_position = Vector2::new(linearisation_point[0], linearisation_point[1]);
+        
+        let tracking_factor = TrackingFactor::new(rrt_path)
+            .with_last_measurement(last_position, 0.0)
+            .with_config(tracking_config);
+            
+        let kind = FactorKind::Tracking(tracking_factor);
+        Self::new(factorgraph_id, state, kind, enabled)
+    }
+
+    #[inline(always)]
+    fn jacobian(&self, linearisation_point: &Vector<Float>) -> Cow<'_, Matrix<Float>> {
+        self.kind.jacobian(&self.state, linearisation_point)
+    }
+
+    #[inline]
+    fn measure(&self, linearisation_point: &Vector<Float>) -> Measurement {
+        self.kind.measure(&self.state, linearisation_point)
+    }
+
+    /// Check if the factor should be skipped in the update step
+    #[inline(always)]
+    fn skip(&mut self) -> bool {
+        self.kind.skip(&self.state)
+    }
+
+    /// Add a message to this factors inbox
+    pub fn receive_message_from(&mut self, from: VariableId, message: Message) {
+        if !self.enabled {
+            return;
+        }
+        let _ = self.inbox.insert(from, message);
+        if from.factorgraph_id == self.factorgraph_id {
+            self.message_count.received.internal += 1;
+        } else {
+            self.message_count.received.external += 1;
+        }
+    }
+
+    /// Calculates the residual between the current measurement and the initial
+    /// measurement
+    #[inline(always)]
+    #[must_use]
+    fn residual(&self) -> Vector<Float> {
+        &self.state.initial_measurement - &self.state.cached_measurement
+    }
+
+    /// Update the factor using the gbp message passing algorithm
+    #[must_use]
+    pub fn update(&mut self) -> MessagesToVariables {
+        // update the linearisation point
+        for (i, (_, message)) in self.inbox.iter().enumerate() {
+            let mut slice = self
+                .state
+                .linearisation_point
+                .slice_mut(s![i * DOFS..(i + 1) * DOFS]);
+
+            if let Some(mean) = message.mean() {
+                slice.assign(mean);
+            } else {
+                for x in slice {
+                    *x = 0.0;
+                }
+            }
+        }
+
+        // If the factor is to be skipped, send empty messages to all variables
+        if self.skip() {
+            let mut messages_sent = MessagesSent::new();
+            let messages: MessagesToVariables = self
+                .inbox
+                .keys()
+                .map(|variable_id| {
+                    if variable_id.factorgraph_id == self.factorgraph_id {
+                        messages_sent.internal += 1;
+                    } else {
+                        messages_sent.external += 1;
+                    }
+
+                    (*variable_id, Message::empty())
+                })
+                .collect();
+            self.message_count.sent += messages_sent;
+            return messages;
+        }
+
+        // 1. Perform factor measurement
+        let Measurement {
+            value: measurement,
+            position: measurement_position,
+        } = self.measure(&self.state.linearisation_point);
+
+        let jacobian = self.jacobian(&self.state.linearisation_point);
+
+        // 2. Compute the Factor potential, Lambda and eta
+        let potential_precision_matrix = jacobian
+            .t()
+            .dot(&self.state.measurement_precision)
+            .dot(jacobian.as_ref());
+
+        let residual = &self.state.initial_measurement - measurement;
+
+        let potential_information_vec = jacobian
+            .t()
+            .dot(&self.state.measurement_precision)
+            .dot(&(jacobian.dot(&self.state.linearisation_point) + residual));
+
+        self.state.initialized = true;
+
+        // 3. Marginalise Factor messages
+        let mut marginalisation_idx = 0;
+        let mut messages = MessagesToVariables::new();
+
+        let mut messages_sent = MessagesSent::new();
+
+        for variable_id in self.inbox.keys() {
+            let mut information_vec = potential_information_vec.clone();
+            let mut precision_matrix = potential_precision_matrix.clone();
+
+            for (j, (other_variable_id, other_message)) in self.inbox.iter().enumerate() {
+                if other_variable_id == variable_id {
+                    // Do not aggregate data from the variable we're sending to
+                    continue;
+                }
+
+                if other_message.is_empty() {
+                    continue;
+                }
+
+                if let Some(message_information) = other_message.information_vector() {
+                    information_vec
+                        .slice_mut(s![j * DOFS..(j + 1) * DOFS])
+                        .add_assign(message_information);
+                }
+
+                if let Some(message_precision) = other_message.precision_matrix() {
+                    precision_matrix
+                        .slice_mut(s![j * DOFS..(j + 1) * DOFS, j * DOFS..(j + 1) * DOFS])
+                        .add_assign(message_precision);
+                }
+            }
+
+            let message =
+                marginalise_factor_distance(information_vec, precision_matrix, marginalisation_idx);
+            messages.insert(*variable_id, message);
+
+            if variable_id.factorgraph_id == self.factorgraph_id {
+                messages_sent.internal += 1;
+            } else {
+                messages_sent.external += 1;
+            }
+
+            marginalisation_idx += DOFS;
+        }
+
+        self.message_count.sent += messages_sent;
+        messages
+    }
+
+    /// Check if the factor is an [`InterRobotFactor`]
+    #[inline(always)]
+    pub fn is_inter_robot(&self) -> bool {
+        self.kind.is_inter_robot()
+    }
+
+    /// Check if the factor is a [`DynamicFactor`]
+    #[inline(always)]
+    pub fn is_dynamic(&self) -> bool {
+        self.kind.is_dynamic()
+    }
+
+    /// Check if the factor is an [`ObstacleFactor`]
+    #[inline(always)]
+    pub fn is_obstacle(&self) -> bool {
+        self.kind.is_obstacle()
+    }
+
+    /// Check if the factor is a [`TrackingFactor`]
+    #[inline(always)]
+    pub fn is_tracking(&self) -> bool {
+        self.kind.is_tracking()
+    }
+
+    /// Empty the inbox of the factor
+    pub fn empty_inbox(&mut self) {
+        self.inbox.values_mut().for_each(|m| *m = Message::empty());
+    }
+}
+
+/// Static dispatch enum for the various factors in the factorgraph
+/// Used instead of dynamic dispatch
+#[allow(missing_docs)]
+#[derive(Debug, derive_more::IsVariant, strum_macros::EnumTryAs)]
+pub enum FactorKind {
+    /// `InterRobotFactor`
+    InterRobot(InterRobotFactor),
+    /// `DynamicFactor`
+    Dynamic(DynamicFactor),
+    /// `ObstacleFactor`
+    Obstacle(ObstacleFactor),
+    /// `TrackingFactor`
+    Tracking(TrackingFactor),
+}
+
+impl std::fmt::Display for FactorKind {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InterRobot(f) => f.fmt(formatter),
+            Self::Dynamic(f) => f.fmt(formatter),
+            Self::Obstacle(f) => f.fmt(formatter),
+            Self::Tracking(f) => f.fmt(formatter),
+        }
+    }
+}
+
+impl Factor for FactorKind {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::InterRobot(f) => f.name(),
+            Self::Dynamic(f) => f.name(),
+            Self::Obstacle(f) => f.name(),
+            Self::Tracking(f) => f.name(),
+        }
+    }
+
+    fn color(&self) -> [u8; 3] {
+        match self {
+            Self::InterRobot(f) => f.color(),
+            Self::Dynamic(f) => f.color(),
+            Self::Obstacle(f) => f.color(),
+            Self::Tracking(f) => f.color(),
+        }
+    }
+
+    fn jacobian(
+        &self,
+        state: &FactorState,
+        linearisation_point: &Vector<Float>,
+    ) -> Cow<'_, Matrix<Float>> {
+        match self {
+            Self::Dynamic(f) => f.jacobian(state, linearisation_point),
+            Self::InterRobot(f) => f.jacobian(state, linearisation_point),
+            Self::Obstacle(f) => f.jacobian(state, linearisation_point),
+            Self::Tracking(f) => f.jacobian(state, linearisation_point),
+        }
+    }
+
+    fn measure(&self, state: &FactorState, linearisation_point: &Vector<Float>) -> Measurement {
+        match self {
+            Self::Dynamic(f) => f.measure(state, linearisation_point),
+            Self::InterRobot(f) => f.measure(state, linearisation_point),
+            Self::Obstacle(f) => f.measure(state, linearisation_point),
+            Self::Tracking(f) => f.measure(state, linearisation_point),
+        }
+    }
+
+    fn skip(&self, state: &FactorState) -> bool {
+        match self {
+            Self::Dynamic(f) => f.skip(state),
+            Self::InterRobot(f) => f.skip(state),
+            Self::Obstacle(f) => f.skip(state),
+            Self::Tracking(f) => f.skip(state),
+        }
+    }
+
+    fn jacobian_delta(&self) -> Float {
+        match self {
+            Self::Dynamic(f) => f.jacobian_delta(),
+            Self::InterRobot(f) => f.jacobian_delta(),
+            Self::Obstacle(f) => f.jacobian_delta(),
+            Self::Tracking(f) => f.jacobian_delta(),
+        }
+    }
+
+    fn linear(&self) -> bool {
+        match self {
+            Self::Dynamic(f) => f.linear(),
+            Self::InterRobot(f) => f.linear(),
+            Self::Obstacle(f) => f.linear(),
+            Self::Tracking(f) => f.linear(),
+        }
+    }
+
+    fn neighbours(&self) -> usize {
+        match self {
+            FactorKind::InterRobot(f) => f.neighbours(),
+            FactorKind::Dynamic(f) => f.neighbours(),
+            FactorKind::Obstacle(f) => f.neighbours(),
+            FactorKind::Tracking(f) => f.neighbours(),
+        }
+    }
+}
+
+/// The state of the factor
+/// Struct encapsulating all the internal state of a factor, than every variant
+/// shares
+#[derive(Debug, Clone)]
+pub struct FactorState {
+    /// called `z_` in **gbpplanner**
+    pub initial_measurement: Vector<Float>,
+    /// called `meas_model_lambda_` in **gbpplanner**
+    pub measurement_precision: Matrix<Float>,
+    /// Stored linearisation point
+    /// called `X_` in **gbpplanner**, they use `Eigen::MatrixXd` instead
+    pub linearisation_point: Vector<Float>,
+    /// Strength of the factor. Called `sigma` in gbpplanner.
+    /// The factor precision $Lambda = sigma^-2 * Identify$
+    pub strength: Float,
+
+    /// Cached value of the factors jacobian function
+    /// called `J_` in **gbpplanner**
+    pub cached_jacobian: Matrix<Float>,
+
+    /// Cached value of the factors jacobian function
+    /// called `h_` in **gbpplanner**
+    pub cached_measurement: Vector<Float>,
+    
+    /// Set to true after the first call to `self.update()`
+    initialized: bool,
+}
+
+impl FactorState {
+    /// Create a new [`FactorState`]
+    fn new(initial_measurement: Vector<Float>, strength: Float, neighbor_amount: usize) -> Self {
+        // Initialise precision of the measurement function
+        let measurement_precision =
+            Matrix::<Float>::eye(initial_measurement.len()) / Float::powi(strength, 2);
+
+        Self {
+            initial_measurement,
+            measurement_precision,
+            linearisation_point: Vector::<Float>::zeros(DOFS * neighbor_amount),
+            strength,
+            cached_jacobian: array![[]],
+            cached_measurement: array![],
+            initialized: false,
+        }
+    }
+
+    /// Set the linearisation point
+    fn with_linearisation_point(mut self, linearisation_point: Vector<Float>) -> Self {
+        self.linearisation_point = linearisation_point;
+        self
+    }
+}
+
+impl std::fmt::Display for FactorState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            pretty_format_vector!("initial measurement", &self.initial_measurement, None)
+        )?;
+
+        write!(
+            f,
+            "{}",
+            pretty_format_matrix!("measurement precision", &self.measurement_precision, None)
+        )?;
+        write!(
+            f,
+            "{}",
+            pretty_format_vector!("linearisation point", &self.linearisation_point, None)
+        )?;
+        write!(
+            f,
+            "cached_jacobian:\n{}",
+            self.cached_jacobian.pretty_format()
+        )?;
+        write!(
+            f,
+            "cached_measurement:\n{}",
+            self.cached_measurement.pretty_format()
+        )?;
+        writeln!(f, "strength: {:?}", self.strength)?;
+        writeln!(f, "initialized: {:?}", self.initialized)
+    }
+}
+
+/// Error when removing a connection to a node fails
+#[derive(Debug)]
+pub struct RemoveConnectionToError;
+
+impl FactorGraphNode for FactorNode {
+    fn remove_connection_to(
+        &mut self,
+        factorgraph_id: super::factorgraph::FactorGraphId,
+    ) -> Result<(), super::node::RemoveConnectionToError> {
+        let connections_before = self.inbox.len();
+        self.inbox
+            .retain(|variable_id, _| variable_id.factorgraph_id != factorgraph_id);
+        let connections_after = self.inbox.len();
+
+        let no_connections_removed = connections_before == connections_after;
+        if no_connections_removed {
+            Err(super::node::RemoveConnectionToError)
+        } else {
+            Ok(())
+        }
+    }
+
+    #[inline(always)]
+    fn messages_sent(&self) -> MessagesSent {
+        self.message_count.sent
+    }
+
+    #[inline(always)]
+    fn messages_received(&self) -> MessagesReceived {
+        self.message_count.received
+    }
+
+    #[inline(always)]
+    fn reset_message_count(&mut self) {
+        self.message_count.reset();
+    }
+}

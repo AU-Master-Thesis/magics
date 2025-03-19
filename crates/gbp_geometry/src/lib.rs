@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 use unit_interval::UnitInterval;
 
+pub mod serde_adapters;
+
 // A regular point in 2D space.
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct Point {
@@ -135,6 +137,7 @@ impl From<RelativePoint> for bevy::math::Vec2 {
 #[serde(rename_all = "kebab-case")]
 pub enum Shape {
     Circle {
+        #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
         radius: StrictlyPositiveFinite<f32>,
         center: Point,
     },

@@ -2,6 +2,7 @@
 pub mod formation;
 pub mod geometry;
 pub mod reader;
+pub mod serde_adapters;
 
 use std::{num::NonZeroUsize, ops::RangeInclusive};
 
@@ -289,10 +290,12 @@ pub struct SimulationSection {
     // pub t0: PositiveFinite<f32>,
     /// Maximum time after which the simulation will terminate
     /// SI unit: s
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub max_time: StrictlyPositiveFinite<f32>,
 
     /// The relative scale of time in the simulation.
     /// 1.0 means real-time, 0.5 means half-speed, 2.0 means double-speed, etc.
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub time_scale: StrictlyPositiveFinite<f32>,
 
     /// How many steps of size 1.0 / hz to take when manually stepping the
@@ -603,6 +606,7 @@ impl Default for GbpSection {
 pub struct CommunicationSection {
     /// Inter-robot factors created if robots are within this range of each
     /// other SI unit: m
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub radius: StrictlyPositiveFinite<f32>,
 
     // TODO: use a percentage type instead of f32
@@ -624,7 +628,9 @@ type NaturalQuantity = StrictlyPositiveFinite<f32>;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct RobotRadiusSection {
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub min: StrictlyPositiveFinite<f32>,
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub max: StrictlyPositiveFinite<f32>,
 }
 
@@ -650,8 +656,10 @@ impl Default for RobotRadiusSection {
 #[serde(rename_all = "kebab-case")]
 pub struct RobotSection {
     /// SI unit: s
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub planning_horizon: StrictlyPositiveFinite<f32>,
     /// SI unit: m/s
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub target_speed: StrictlyPositiveFinite<f32>,
     /// Radius of the robot.
     /// If the robot is not a perfect circle, then set radius to be the smallest
@@ -660,6 +668,7 @@ pub struct RobotSection {
     pub radius: RobotRadiusSection,
     /// Communication parameters
     pub communication: CommunicationSection,
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub inter_robot_safety_distance_multiplier: StrictlyPositiveFinite<f32>,
 }
 
@@ -709,10 +718,13 @@ pub struct RRTSection {
     /// Maximum number of iterations to run the RRT algorithm
     pub max_iterations: NonZeroUsize,
     /// Length to extend the random branches by in each iteration
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub step_size: StrictlyPositiveFinite<f32>,
     /// The collision radius to check for each iteration
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub collision_radius: StrictlyPositiveFinite<f32>,
     /// Neighbourhood radius for RRT*
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub neighbourhood_radius: StrictlyPositiveFinite<f32>,
     /// The smoothing parameters
     #[serde(default)]
@@ -743,6 +755,7 @@ pub struct SmoothingSection {
     /// - Describes the amount of random samples to attempt to smooth the path
     pub max_iterations: NonZeroUsize,
     /// Idk actually but it's there
+    #[serde(with = "serde_adapters::strictly_positive_finite_f32")]
     pub step_size: StrictlyPositiveFinite<f32>,
 }
 

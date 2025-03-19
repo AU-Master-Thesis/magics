@@ -98,6 +98,7 @@ impl From<RelativePoint> for bevy::math::Vec2 {
 #[serde(rename_all = "kebab-case")]
 pub enum Shape {
     Circle {
+        #[serde(with = "crate::serde_adapters::strictly_positive_finite_f32")]
         radius: StrictlyPositiveFinite<f32>,
         center: Point,
     },

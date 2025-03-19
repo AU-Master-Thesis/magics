@@ -1,0 +1,148 @@
+//! Input handling for the Magics planner UI
+//!
+//! This module provides input handling functionality including camera controls,
+//! general application inputs, UI interaction, and more.
+
+use std::fmt::Display;
+
+use bevy::prelude::*;
+use strum_macros::EnumIter;
+
+pub mod camera;
+pub mod general;
+pub mod moveable_object;
+pub mod screenshot;
+pub mod ui;
+
+pub use camera::{CameraAction, CameraSensitivity};
+pub use general::{DrawSettingsEvent, ExportFactorGraphAsGraphviz, GeneralAction};
+pub use moveable_object::{MoveableObjectAction, MoveableObjectSensitivity};
+use screenshot::ScreenshotPlugin;
+pub use ui::UiAction;
+
+use self::{
+    camera::CameraInputPlugin,
+    general::GeneralInputPlugin,
+    moveable_object::MoveableObjectInputPlugin,
+    ui::UiInputPlugin,
+};
+use crate::ui::ToUiString;
+
+/// Enumeration to collect the different kinds of input bindings
+#[derive(Debug, EnumIter)]
+pub enum InputAction {
+    General(GeneralAction),
+    Camera(CameraAction),
+    MoveableObject(MoveableObjectAction),
+    Ui(UiAction),
+    Undefined,
+}
+
+impl Default for InputAction {
+    fn default() -> Self {
+        Self::Undefined
+    }
+}
+
+impl Display for InputAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Camera(_) => write!(f, "Camera"),
+            Self::General(_) => write!(f, "General"),
+            Self::MoveableObject(_) => write!(f, "Moveable Object"),
+            Self::Ui(_) => write!(f, "UI"),
+            Self::Undefined => write!(f, "Undefined"),
+        }
+    }
+}
+
+impl ToUiString for InputAction {
+    fn to_display_string(&self) -> String {
+        match self {
+            Self::Camera(action) => action.to_display_string(),
+            Self::General(action) => action.to_display_string(),
+            Self::MoveableObject(action) => action.to_display_string(),
+            Self::Ui(action) => action.to_display_string(),
+            Self::Undefined => "Undefined".to_string(),
+        }
+    }
+}
+
+/// Plugin for input handling functionality
+pub struct InputPlugin;
+
+impl Plugin for InputPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<ChangingBinding>()
+            .add_plugins((
+                CameraInputPlugin,
+                MoveableObjectInputPlugin,
+                GeneralInputPlugin,
+                UiInputPlugin,
+            ))
+            .add_systems(Update, binding_cooldown_system);
+
+        // Only add ScreenShotPlugin if it is not already added
+        if !app.is_plugin_added::<ScreenshotPlugin>() {
+            app.add_plugins(ScreenshotPlugin::default());
+        }
+    }
+}
+
+/// **Bevy** [`Resource`] to store the currently changing binding
+/// If this is not `default`, then all input will be captured and the binding
+/// will be updated Blocks ALL actions (including UI actions) while changing a
+/// binding
+#[derive(Debug, Default, Resource)]
+pub struct ChangingBinding {
+    pub action:  InputAction,
+    pub binding: usize,
+    cooldown:    f32,
+}
+
+impl ChangingBinding {
+    #[must_use]
+    pub const fn new(action: InputAction, binding: usize) -> Self {
+        Self {
+            action,
+            binding,
+            cooldown: 0.0,
+        }
+    }
+
+    #[inline]
+    pub const fn is_changing(&self) -> bool {
+        !matches!(self.action, InputAction::Undefined)
+    }
+
+    #[inline]
+    pub fn on_cooldown(&self) -> bool {
+        self.cooldown > 0.0
+    }
+
+    #[inline]
+    pub const fn with_cooldown(mut self, cooldown: f32) -> Self {
+        self.cooldown = cooldown;
+        self
+    }
+
+    /// Decrease the cooldown by `delta`, ensuring that it does not go below 0
+    pub fn decrease_cooldown(&mut self, delta: f32) {
+        self.cooldown -= delta;
+        if self.cooldown < 0.0 {
+            self.cooldown = 0.0;
+        }
+    }
+
+    /// Refresh the cooldown
+    #[inline]
+    pub fn refresh_cooldown(&mut self) {
+        self.cooldown = 0.1;
+    }
+}
+
+fn binding_cooldown_system(time: Res<Time>, mut currently_changing: ResMut<ChangingBinding>) {
+    if currently_changing.on_cooldown() {
+        currently_changing.decrease_cooldown(time.delta_seconds());
+    }
+}

@@ -1,172 +1,106 @@
-cargo-features = [
-  "codegen-backend",
-]
-
 [workspace]
-resolver = "2" # Important! wgpu/bevy needs this!
+resolver = "2"
+
 members = [
-  "crates/angle",
-  "crates/min_len_vec",
-  "crates/percentage",
-  "crates/unit_interval",
-  "crates/gbp_linalg",
-  "crates/gbp_multivariate_normal",
-  # "crates/bevy_undo_redo",
-  "crates/magics",
-  "crates/bevy_notify",
-  "crates/units",
-  "crates/repeating_array",
-  "crates/bevy_fullscreen",
-  "crates/bevy_touchpad",
-  "crates/seq",
-  "crates/as_variant",
-  "crates/interleave_evenly",
-  "crates/gbp_schedule",
-  "crates/env_to_png",
-  "crates/gbp_environment",
-  "crates/gbp_geometry",
-  "crates/gbp_global_planner",
-  "crates/gbp_config",
-  "crates/bevy_tracking",
+    "crates/magics-core",
+    "crates/magics-bevy",
+    "crates/magics-cli",
 ]
 
 [workspace.package]
-version = "2.0.0"
-edition = "2021"
-repository = "https://github.com/AU-Master-Thesis/gbp-rs"
-authors = [
-  "Jens Høigaard Jensen <jens.jens@live.dk>",
-  "Kristoffer Plagborg Bak Sørensen <kristoffer.pbs@tuta.io>",
-]
-rust-version = "1.78"
-license = "MIT"
+edition       = "2021"
+version       = "2.0.0"
+authors       = ["Simon Norup Krammer <simon.krammer@hotmail.com>"]
+repository    = "https://github.com/AU-Master-Thesis/magics"
+rust-version  = "1.76"
+license       = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
+bevy              = { version = "0.13.0" }
+bevy_rand         = { version = "0.8.0" } 
+bevy_prng         = { version = "0.8.0" }
+parry3d           = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = ["serde-serialize"] }
+parry2d           = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = ["serde-serialize"] }
+rrt               = { git = "https://github.com/AU-Master-Thesis/rrt", branch = "main" }
+struct_iterable   = "0.1"
+toml              = "0.8.8"
+thiserror         = "1.0.50"
+anyhow            = "1.0.75"
+clap              = "4.4.11"
+itertools         = "0.11.0"
+ndarray           = "0.15.6"
+num-traits        = "0.2.17"
+ron               = "0.8.1"
+strum             = "0.25.0"
+strum_macros      = "0.25.3"
+typed_floats      = "1.0.0"
+delegate          = "0.12.0"
+derive_more       = "0.99.17"
 pretty_assertions = "1.4.0"
-ndarray = { version = "0.15.6", features = [
-  # "blas",
-] }
+serde             = { version = "1.0", features = ["derive"] }
+serde_json        = "1.0"
+serde_yaml        = "0.9"
+rand              = "0.8.5"
+rand_chacha       = { version = "0.3.1", features = ["simd"] }
+petgraph          = "0.6"
+ndarray-inverse   = "0.1.9"
+glob              = "0.3.1"
+better-panic      = "0.3.0"
+tap               = "1.0.1"
+ringbuf           = "0.3.3"
+termsize          = "0.1.6"
+paste             = "1.0.14"
+egui_plot         = "0.26"
+egui_graphs       = "0.19.0"
+colored           = "2.1.0"
+chrono            = "0.4.37"
+dark-light        = "1.1.1"
+bevy_dev          = "0.3.0"
+once_cell         = "1.19.0"
+smol_str          = "0.2.1"
+fastrand          = "2.0.2"
+typed-builder     = "0.18.2"
+atty              = "0.2.14"
+dhat              = "0.3.3"
+indexmap          = "2.2.6"
+colorgrad         = "0.6.2"
+ordered-float     = "4.2.0"
+mimalloc          = "0.1.42"
 
-anyhow = "1.0"
-thiserror = "1.0"
-serde = { version = "1.0", features = [
-  "derive",
-] }
-bevy = { version = "0.13", default-features = true, features = [
-  "wayland",
-  # "dynamic_linking",
-] }
-derive_more = "0.99.17"
-
-typed_floats = { version = "1.0.0", features = [
-  "serde",
-] }
-# clap = { version = "4.4.18", no-default-features = true, features = [
-
-clap = { version = "4.5", default-features = false, features = [
-  "derive",
-] }
-ron = "0.8.1"
-toml = "0.8.8"
-serde_yaml = "0.9.34"
-rrt = { git = "https://github.com/AU-Master-Thesis/rrt", branch = "main" }
-
-parry3d = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
-  "bevy",
-  # "serde",
-  "serde-serialize",
-] }
-parry2d = { git = "https://github.com/AU-Master-Thesis/parry", branch = "feat/bevy-conversions", features = [
-  "bevy",
-  # "serde",
-  "serde-serialize",
-] }
-bevy_rand = "0.6"
-bevy_prng = { version = "0.6", features = [
-  "rand_chacha",
-  "wyrand",
-] }
-struct_iterable = "0.1.1"
-strum = "0.26.1"
-strum_macros = "0.26.1"
-rand = "0.8.5"
-num-traits = "0.2.18"
-itertools = "0.13"
-delegate = "0.12.0"
-
-
-# [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-# clap = { version = "4.5", default-features = false, features = [
-#   "derive",
-# ] }
-
-
-[workspace.lints.rust]
-# unsafe_code = "forbid"
-missing_debug_implementations = "allow"
-missing_docs                  = "allow"
-
-
-[workspace.lints.clippy]
-undocumented_unsafe_blocks       = "warn"
-enum_glob_use                    = "warn"
-cast_possible_truncation         = "warn"
-tests_outside_test_module        = "warn"
-assertions_on_result_states      = "warn"
-pedantic                         = "warn"
-nursery                          = "warn"
-unwrap_used                      = "deny"
-inline_always                    = "allow"
-default_constructed_unit_structs = "allow" # nice for adding plugins, that may later have config values
-needless_pass_by_value           = "allow" # bevy uses a lot of pass by value wrapper types like `Query`, `Res` etc.
-module_name_repetitions          = "allow"
-must_use_candidate               = "allow"
-
-# expect_used = "deny"
-dbg_macro = "warn"
-todo      = "warn"
-
-
-[profile.release-optimized]
-inherits = "release"
-
-[profile.release]
-codegen-units    = 1
-debug            = false
-debug-assertions = false
-lto              = "fat"
-opt-level        = 3
-panic            = "abort"
-rpath            = false
-# strip            = true
-# strip = "debuginfo"
-strip       = "symbols"
-incremental = true
-
-# Enable a small amount of optimization in debug mode
-[profile.dev]
-opt-level   = 1
-incremental = true
-# codegen-backend = "cranelift" # requires nightly
-# debug       = false
-# strip = "debuginfo"
-
-# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
 opt-level = 3
 
-[profile.wasm]
-inherits      = "release"
-opt-level     = "z"
-debug         = false
-strip         = true
-lto           = true
-codegen-units = 1
-incremental   = false
-panic         = "abort"
+[profile.dev]
+opt-level = 1
 
+[profile.dev.package.bevy_internal]
+opt-level = 3
+debug = false
 
-[profile.flamegraph]
+[profile.release]
+opt-level = 3
+
+[profile.dist]
 inherits = "release"
-debug    = true
-# strip    = false
+lto = "thin"
+
+[workspace.lints.rust]
+unsafe_code = "warn"
+
+[workspace.lints.clippy]
+pedantic = "warn"
+
+# Magics repository root package
+[package]
+name                   = "magics-root"
+description            = "Root package for Magics planner repository"
+version.workspace      = true
+authors.workspace      = true
+edition.workspace      = true
+repository.workspace   = true
+rust-version.workspace = true
+license.workspace      = true
+publish                = false
+
+[dependencies]
+# Add no dependencies here
