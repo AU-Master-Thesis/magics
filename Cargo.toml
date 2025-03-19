@@ -13,6 +13,7 @@ members = [
   "crates/gbp_multivariate_normal",
   # "crates/bevy_undo_redo",
   "crates/magics",
+  "crates/magics_python",
   "crates/bevy_notify",
   "crates/units",
   "crates/repeating_array",

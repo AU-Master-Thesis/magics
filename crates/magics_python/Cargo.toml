@@ -1,0 +1,28 @@
+[package]
+name = "magics_python"
+description = "Python bindings for the Magics simulation"
+version.workspace = true
+edition = "2021"
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "magics_api"
+crate-type = ["cdylib"]
+
+[dependencies]
+magics = { path = "../magics", features = ["api"] }
+pyo3 = { version = "0.18", features = ["extension-module"] }
+numpy = "0.18"
+ndarray.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+bevy.workspace = true
+
+[build-dependencies]
+pyo3-build-config = "0.18"
+
+[lints]
+workspace = true

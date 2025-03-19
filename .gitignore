@@ -30,3 +30,5 @@ flamegraphs/*
 experiments/
 
 **/__pycache__/
+
+.venv/

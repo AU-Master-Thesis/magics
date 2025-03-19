@@ -22,6 +22,10 @@ visualization = [
   "visualization-obstacle-factors",
 ]
 
+api = [
+  "dep:pyo3",
+]
+
 
 [dependencies]
 percentage              = { path = "../percentage" }
@@ -129,6 +133,7 @@ colorgrad  = "0.6.2"
 # open          = "5.1.0"
 ordered-float = "4.2.0"
 # dialoguer = { version = "0.11.0", features = ["fuzzy-select"] }
+pyo3 = { version = "0.18", optional = true, features = ["extension-module"] }
 
 open = "5.1"
 
