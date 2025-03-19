@@ -1,5 +1,4 @@
 //! Library interface to the GBPPlanner
-#![feature(iter_repeat_n)]
 use bevy::ecs::schedule::States;
 
 pub mod asset_loader;
