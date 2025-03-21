@@ -35,7 +35,7 @@ pub struct FactorGraphState {
 }
 
 /// Weights for different factor types in the factor graph.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct FactorWeights {
     /// Weight for dynamic factors.
     pub dynamic: f32,
@@ -126,6 +126,7 @@ impl ApiState {
     /// Mark a step as completed.
     pub fn complete_step(&self) {
         self.step_completed.store(true, Ordering::SeqCst);
+        
         self.step_requested.store(false, Ordering::SeqCst);
     }
 

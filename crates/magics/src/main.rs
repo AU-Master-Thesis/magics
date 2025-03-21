@@ -423,7 +423,7 @@ fn main() -> anyhow::Result<()> {
             export::ExportPlugin::default(),
             bevy_fullscreen::ToggleFullscreenPlugin::default(),
             goal_area::GoalAreaPlugin,
-            api::ApiPlugin,
+            api::ApiPlugin::default(),
         ))
         .add_systems(Update, draw_coordinate_system.run_if(input_just_pressed(KeyCode::F1)))
         .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));

@@ -1,4 +1,6 @@
-# Magics Python API
+# Magics Python API (DEPRECATED)
+
+**WARNING: This crate is deprecated and will be replaced by a ZeroMQ-based implementation. Please see the `python_api` directory for the new implementation.**
 
 This crate provides Python bindings for the Magics simulation using PyO3. It allows controlling the simulation from Python, particularly for reinforcement learning applications.
 
@@ -19,7 +21,8 @@ Then, to build the Python bindings:
 
 ```bash
 cd crates/magics_python
-maturin develop
+export RUSTFLAGS="--cfg feature=\"api\""
+maturin develop --cargo-extra-args="--features magics/api"
 ```
 
 This will build the Python bindings and install them in your current Python environment.

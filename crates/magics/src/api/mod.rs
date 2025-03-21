@@ -1,13 +1,17 @@
 //! API module for external control of the simulation.
 //!
 //! This module provides functionality for controlling the simulation from external
-//! sources, particularly for integration with Python via PyO3.
+//! sources, particularly for integration with external clients via ZeroMQ.
 
 mod plugin;
 mod state;
+mod message;
+mod zmq_server;
 
 pub use plugin::ApiPlugin;
 pub use state::{AgentState, ApiState, EnvironmentState, WeightUpdate, FactorWeights, FactorGraphState};
+pub use zmq_server::{ZmqServer, DEFAULT_PORT};
+pub use message::{Request, Response, Command, Status, ResponseData, Error};
 
 /// Feature flag for enabling the API functionality
 #[cfg(feature = "api")]
