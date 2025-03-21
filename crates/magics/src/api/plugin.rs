@@ -3,31 +3,76 @@
 //! This module provides a Bevy plugin that integrates the API functionality
 //! with the simulation.
 
+use std::sync::Arc;
 use bevy::prelude::*;
 use crate::pause_play::PausePlay;
 use super::state::{AgentState, ApiState, EnvironmentState, FactorGraphState, FactorWeights, WeightUpdate};
+use super::zmq_server::{ZmqServer, DEFAULT_PORT};
 use crate::factorgraph::factorgraph::FactorGraph;
 use crate::planner::robot::{RobotConnections, StateVector};
 use crate::environment::ObstacleMarker;
 use gbp_config::Config;
 
 /// Plugin for API integration.
-pub struct ApiPlugin;
+pub struct ApiPlugin {
+    /// Port for the ZMQ server
+    pub port: Option<u16>,
+}
+
+impl Default for ApiPlugin {
+    fn default() -> Self {
+        Self {
+            port: Some(DEFAULT_PORT),
+        }
+    }
+}
+
+impl ApiPlugin {
+    /// Create a new API plugin with a specific port.
+    pub fn with_port(port: u16) -> Self {
+        Self {
+            port: Some(port),
+        }
+    }
+}
 
 impl Plugin for ApiPlugin {
     fn build(&self, app: &mut App) {
         // Initialize the API state
-        app.init_resource::<ApiState>()
+        app.init_resource::<ApiState>();
+        
+        // Get the API state and create the ZMQ server
+        let api_state = app.world.resource::<ApiState>().clone();
+        let mut zmq_server = ZmqServer::new(Arc::new(api_state), self.port);
+        
+        // Start the ZMQ server if the API feature is enabled
+        #[cfg(feature = "api")]
+        if let Err(err) = zmq_server.start() {
+            error!("Failed to start ZMQ server: {:?}", err);
+        }
+        
+        // Register the ZMQ server as a resource
+        app.insert_resource(zmq_server);
+        
+        // Add systems
+        app
            // Add system to pause the simulation when API is active
            // Run in PostStartup to ensure all resources are properly initialized
            .add_systems(PostStartup, pause_on_api_active)
-           // Add systems
+           // Add cleanup system for ZMQ server
+           .add_systems(Last, cleanup_zmq_server)
+           // Add systems for weight updates and state extraction
            .add_systems(PreUpdate, apply_weight_updates)
            // Add a system to ensure the simulation stays paused when API is active
            .add_systems(Update, ensure_paused_when_api_active.run_if(api_mode_active))
            .add_systems(PostUpdate, extract_state)
            .add_systems(PostUpdate, wait_for_step_command.run_if(api_mode_active));
     }
+}
+
+/// Clean up the ZMQ server on app exit.
+fn cleanup_zmq_server(mut zmq_server: ResMut<ZmqServer>) {
+    zmq_server.stop();
 }
 
 /// System that pauses the simulation when the API is active.
