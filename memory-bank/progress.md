@@ -16,15 +16,19 @@
   - [x] Create message protocol
   - [x] Implement ZMQ server
   - [x] Fix API plugin conditional loading
-  - [ ] Fix environment loading issues
+  - [x] Simplify API stepping approach (remove manual stepping)
+  - [x] Fix virtual time advancement using FixedUpdate counting
+  - [ ] Add config Hz access via API
+  - [ ] Expand agent and environment data extraction
 - [ ] OpenAI Gym Environment
   - [x] Create Python client
   - [ ] Implement observation and action spaces
   - [ ] Create step, reset, render methods
   - [ ] Add reward calculation
 - [ ] Scenario Organization
-  - [ ] Rename scenario folders to PascalCase (no spaces)
-  - [ ] Update all references in config files
+  - [x] Rename scenario folders to PascalCase (no spaces)
+  - [x] Update all references in config files
+  - [x] Test to ensure all scenarios load correctly
 
 ## Pending Features
 - [ ] Per-agent Factor Graph Weights
@@ -32,30 +36,30 @@
 - [ ] Real-time Performance Visualization for ML
 - [ ] Expanded Reward Functions
 - [ ] Distributed Multi-robot Coordination
-- [ ] Investigate how robots are moving. We might want to control x amount of fixed update per API step call.
 
 ## Current Tasks
 
-### 1. API Feature Fix
-- [x] Modify main.rs to conditionally add ApiPlugin only when the "api" feature is enabled
-- [ ] Test running without the API feature to ensure it doesn't auto-pause
+### 1. Expand API Data Extraction
+- [ ] Ensure all agent data is properly exposed through the API
+- [ ] Verify environment data extraction is complete and accurate
+- [ ] Add any missing state information needed for ML algorithms
 
-### 2. Environment Loading Investigation
-- [ ] Check environment file contents
-- [ ] Verify rendering systems are working correctly
-- [ ] Test with a simple environment to isolate the issue
+### 2. Add Config Hz Access
+- [ ] Implement API endpoint to get the simulation Hz
+- [ ] Add functionality to set the Hz if needed
+- [ ] Update message protocol to support these operations
 
-### 3. Scenario Folder Renaming
-- [ ] Create a systematic approach to rename all folders
-- [ ] Update all config files to reference the new paths
-- [ ] Test to ensure all scenarios load correctly
+### 3. Complete OpenAI Gym Integration
+- [ ] Implement observation and action spaces
+- [ ] Create step, reset, and render methods
+- [ ] Add reward calculation
+- [ ] Ensure proper state conversion between Rust and Python
 
 ## Known Issues
 - Performance bottlenecks in message passing
 - Limited scenario complexity
 - Potential numerical stability challenges
 - Thread safety concerns with concurrent API access
-- Environment not loading properly in scenarios
 
 ## Performance Metrics
 - Current Scenario Complexity: Medium

@@ -201,6 +201,8 @@ impl ZmqServer {
             Command::IsApiActive => "IsApiActive".to_string(),
             Command::SetApiActive { active } => format!("SetApiActive({})", active),
             Command::SetIterationsPerStep { iterations } => format!("SetIterationsPerStep({})", iterations),
+            Command::GetSimulationHz => "GetSimulationHz".to_string(),
+            Command::SetSimulationHz { hz } => format!("SetSimulationHz({})", hz),
         };
         
         info!("📥 Received API request: {} (ID: {})", command_name, request_id_str);
@@ -330,6 +332,39 @@ impl ZmqServer {
                     request_id: request_id.clone(),
                 }
             },
+            Command::GetSimulationHz => {
+                // Get the simulation Hz from the config
+                let hz = api_state.get_simulation_hz();
+                
+                info!("Getting simulation Hz: {}", hz);
+                
+                Response {
+                    status: Status::Success,
+                    data: Some(ResponseData::Number(hz)),
+                    error: None,
+                    request_id: request_id.clone(),
+                }
+            },
+            Command::SetSimulationHz { hz } => {
+                // Set the simulation Hz in the config
+                if hz <= 0.0 {
+                    return Err(Error::Command("Simulation Hz must be greater than 0".to_string()));
+                }
+                
+                // Update the Hz in the config
+                if let Err(err) = api_state.set_simulation_hz(hz) {
+                    return Err(Error::ApiState(format!("Failed to set simulation Hz: {}", err)));
+                }
+                
+                info!("Set simulation Hz to {}", hz);
+                
+                Response {
+                    status: Status::Success,
+                    data: Some(ResponseData::None),
+                    error: None,
+                    request_id: request_id.clone(),
+                }
+            },
         };
         // Log the successful handling of the request with detailed response information
         
@@ -346,6 +381,9 @@ impl ZmqServer {
             },
             Some(ResponseData::Boolean(val)) => {
                 format!("Returning boolean value: {}", val)
+            },
+            Some(ResponseData::Number(val)) => {
+                format!("Returning numeric value: {}", val)
             },
             _ => "No detailed data to display".to_string()
         };
@@ -366,6 +404,8 @@ impl ZmqServer {
                 }
             },
             Command::SetIterationsPerStep { iterations } => format!("SetIterationsPerStep({})", iterations),
+            Command::GetSimulationHz => "GetSimulationHz".to_string(),
+            Command::SetSimulationHz { hz } => format!("SetSimulationHz({})", hz),
         };
         info!("📤 Successfully processed API request: {} (ID: {})", command_summary, request_id_str);
         
