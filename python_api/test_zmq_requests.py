@@ -197,6 +197,122 @@ def test_reset(socket):
     
     return False
 
+def test_get_simulation_hz(socket):
+    """Test the GetSimulationHz command."""
+    print("\n=== Testing GetSimulationHz ===")
+    response = send_request(socket, "GetSimulationHz")
+    
+    if response:
+        if response.get("status") == "Success":
+            print("✅ Command succeeded")
+            
+            data = response.get("data")
+            if data and data.get("type") == "Number":
+                hz = data.get("content")
+                print(f"Current simulation Hz: {hz}")
+                print("✅ Response format is correct")
+                return hz
+            else:
+                print(f"❌ Unexpected data format: {data}")
+        else:
+            print(f"❌ Command failed: {response.get('error', 'Unknown error')}")
+    
+    return None
+
+def test_set_simulation_hz(socket, hz):
+    """Test the SetSimulationHz command."""
+    print(f"\n=== Testing SetSimulationHz({hz}) ===")
+    response = send_request(socket, "SetSimulationHz", {"hz": hz})
+    
+    if response:
+        if response.get("status") == "Success":
+            print(f"✅ Successfully set simulation Hz to {hz}")
+            return True
+        else:
+            print(f"❌ Command failed: {response.get('error', 'Unknown error')}")
+    
+    return False
+
+def test_set_iterations_per_step(socket, iterations):
+    """Test the SetIterationsPerStep command."""
+    print(f"\n=== Testing SetIterationsPerStep({iterations}) ===")
+    response = send_request(socket, "SetIterationsPerStep", {"iterations": iterations})
+    
+    if response:
+        if response.get("status") == "Success":
+            print(f"✅ Successfully set iterations per step to {iterations}")
+            return True
+        else:
+            print(f"❌ Command failed: {response.get('error', 'Unknown error')}")
+    
+    return False
+
+def test_hz_functionality(socket):
+    """Test the Hz functionality with multiple steps."""
+    print("\n=== Testing Hz Functionality ===")
+    
+    # Get current Hz
+    current_hz = test_get_simulation_hz(socket)
+    if current_hz is None:
+        print("❌ Failed to get current Hz")
+        return False
+    
+    # Set a new Hz value
+    new_hz = 30.0  # Change to 30 Hz
+    if not test_set_simulation_hz(socket, new_hz):
+        print("❌ Failed to set new Hz")
+        return False
+    
+    # Verify the Hz was changed
+    updated_hz = test_get_simulation_hz(socket)
+    if updated_hz is None or abs(updated_hz - new_hz) > 0.001:
+        print(f"❌ Hz was not updated correctly. Expected: {new_hz}, Got: {updated_hz}")
+        return False
+    
+    # Set iterations per step
+    iterations = 3
+    if not test_set_iterations_per_step(socket, iterations):
+        print("❌ Failed to set iterations per step")
+        return False
+    
+    # Step the simulation a few times to see the effect
+    print("\nStepping simulation 3 times...")
+    for i in range(3):
+        print(f"Step {i+1}...")
+        start_time = time.time()
+        success = test_step(socket)
+        elapsed = time.time() - start_time
+        
+        if not success:
+            print(f"❌ Step {i+1} failed")
+            return False
+        
+        print(f"  Step completed in {elapsed:.4f} seconds")
+        
+        # Get agent states to verify simulation is running
+        agents = test_get_agent_state(socket)
+        if agents is None:
+            print("❌ Failed to get agent states after step")
+            return False
+        
+        # Brief pause between steps
+        time.sleep(0.5)
+    
+    # Restore original Hz
+    print(f"\nRestoring original Hz: {current_hz}...")
+    if not test_set_simulation_hz(socket, current_hz):
+        print("❌ Failed to restore original Hz")
+        return False
+    
+    # Confirm restoration
+    final_hz = test_get_simulation_hz(socket)
+    if final_hz is None or abs(final_hz - current_hz) > 0.001:
+        print(f"❌ Hz was not restored correctly. Expected: {current_hz}, Got: {final_hz}")
+        return False
+    
+    print("✅ Hz functionality test completed successfully")
+    return True
+
 def main():
     print("ZeroMQ Debug Client")
     print("===================")
@@ -225,7 +341,9 @@ def main():
         
         # Test modifying simulation
         test_set_factor_weights(socket)
-        test_step(socket)
+        
+        # Test Hz functionality
+        test_hz_functionality(socket)
         
         # Test reset
         test_reset(socket)

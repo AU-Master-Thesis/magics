@@ -49,7 +49,21 @@ impl Plugin for ApiPlugin {
         app.init_resource::<ApiState>();
 
         // Get the API state and create the ZMQ server
-        let api_state = app.world.resource::<ApiState>().clone();
+        let mut api_state = app.world.resource_mut::<ApiState>().clone();
+        
+        // Set up references to Config and Time<Fixed> resources
+        let config = app.world.resource::<Config>().clone();
+        let config_arc = Arc::new(RwLock::new(config));
+        api_state.set_config(config_arc.clone());
+        
+        let time_fixed = app.world.resource::<Time<Fixed>>().clone();
+        let time_fixed_arc = Arc::new(RwLock::new(time_fixed));
+        api_state.set_time_fixed(time_fixed_arc.clone());
+        
+        // Update the ApiState resource
+        app.insert_resource(api_state.clone());
+        
+        // Create the ZMQ server with the updated API state
         let mut zmq_server = ZmqServer::new(Arc::new(api_state), self.port);
 
         // Start the ZMQ server if the API feature is enabled

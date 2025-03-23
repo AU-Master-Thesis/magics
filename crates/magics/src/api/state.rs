@@ -11,7 +11,7 @@ use std::{
     },
 };
 
-use bevy::{math::Vec2, prelude::*};
+use bevy::{math::Vec2, prelude::*, time::Time};
 
 use crate::{factorgraph::factorgraph::FactorGraph, planner::robot::RobotConnections};
 
@@ -89,6 +89,10 @@ pub struct ApiState {
     pub step_iterations_remaining: Arc<AtomicUsize>,
     /// Number of iterations to use for each step
     pub iterations_per_step: Arc<AtomicUsize>,
+    /// Reference to the Config resource for accessing simulation parameters
+    pub config: Option<Arc<RwLock<gbp_config::Config>>>,
+    /// Reference to the Time<Fixed> resource for updating the fixed timestep
+    pub time_fixed: Option<Arc<RwLock<Time<Fixed>>>>,
 }
 
 impl Default for ApiState {
@@ -110,6 +114,8 @@ impl Default for ApiState {
             step_iterations_remaining: Arc::new(AtomicUsize::new(0)),
             // Default to 2 iterations per step
             iterations_per_step: Arc::new(AtomicUsize::new(2)),
+            config: None,
+            time_fixed: None,
         }
     }
 }
@@ -184,5 +190,52 @@ impl ApiState {
     /// Set the number of iterations to use for each step.
     pub fn set_iterations_per_step(&self, iterations: usize) {
         self.iterations_per_step.store(iterations, Ordering::SeqCst);
+    }
+    
+    /// Set the Config resource reference.
+    pub fn set_config(&mut self, config: Arc<RwLock<gbp_config::Config>>) {
+        self.config = Some(config);
+    }
+    
+    /// Set the Time<Fixed> resource reference.
+    pub fn set_time_fixed(&mut self, time_fixed: Arc<RwLock<Time<Fixed>>>) {
+        self.time_fixed = Some(time_fixed);
+    }
+    
+    /// Get the simulation Hz from the Config.
+    pub fn get_simulation_hz(&self) -> f64 {
+        if let Some(config) = &self.config {
+            if let Ok(config_guard) = config.read() {
+                return config_guard.simulation.hz;
+            }
+        }
+        // Return a default value if config is not available
+        60.0
+    }
+    
+    /// Set the simulation Hz in the Config and update the Time<Fixed> resource.
+    pub fn set_simulation_hz(&self, hz: f64) -> Result<(), String> {
+        // Update the config
+        if let Some(config) = &self.config {
+            if let Ok(mut config_guard) = config.write() {
+                config_guard.simulation.hz = hz;
+            } else {
+                return Err("Failed to acquire write lock on config".to_string());
+            }
+        } else {
+            return Err("Config not available".to_string());
+        }
+        
+        // Update the Time<Fixed> resource
+        if let Some(time_fixed) = &self.time_fixed {
+            if let Ok(mut time_fixed_guard) = time_fixed.write() {
+                *time_fixed_guard = Time::<Fixed>::from_hz(hz);
+                return Ok(());
+            } else {
+                return Err("Failed to acquire write lock on Time<Fixed>".to_string());
+            }
+        }
+        
+        Err("Time<Fixed> resource not available".to_string())
     }
 }

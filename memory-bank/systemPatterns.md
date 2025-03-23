@@ -27,7 +27,7 @@ Magics uses a modular, component-based architecture centered around the Factor G
    - REQ-REP socket pattern
    - JSON message serialization
    - Thread-safe state extraction
-   - Step-based simulation control
+   - FixedUpdate-based step control
    - Factor graph weight modification
 
 ## API Architecture
@@ -44,6 +44,7 @@ graph TB
         ApiState[API State Resource]
         Sim[Simulation Systems]
         FactorGraph[Factor Graph]
+        FixedUpdate[FixedUpdate System]
     end
     
     Gym -- "step(), reset()" --> PyClient
@@ -53,6 +54,8 @@ graph TB
     ApiPlugin -- "Manages" --> ZmqServer
     ApiPlugin -- "Controls" --> ApiState
     ApiState -- "Synchronizes" --> Sim
+    ApiState -- "Counts" --> FixedUpdate
+    FixedUpdate -- "Advances" --> Sim
     Sim -- "Updates" --> FactorGraph
 ```
 
@@ -89,6 +92,7 @@ graph TB
    - REQ-REP pattern for synchronous operations
    - JSON for human-readable message format
    - Thread-safe shared state
+   - FixedUpdate-based stepping for consistent time advancement
 
 ## Component Relationships
 ```mermaid
@@ -105,8 +109,10 @@ graph TD
     ApiPlugin --> PausePlay
     ApiPlugin --> StateExtraction
     ApiPlugin --> WeightModification
+    ApiPlugin --> FixedUpdateMonitoring
     StateExtraction --> AgentState
     StateExtraction --> EnvironmentState
+    FixedUpdateMonitoring --> StepCompletion
 ```
 
 ## API Data Flow
@@ -116,6 +122,7 @@ graph LR
         Step[Step Command]
         Weights[Factor Weights]
         Observation[State Observation]
+        Config[Config Access]
     end
     
     subgraph ZMQ
@@ -129,7 +136,8 @@ graph LR
         Control[Control System]
         Extraction[State Extraction]
         Modification[Weight Modification]
-        Simulation[Simulation Loop]
+        FixedUpdate[FixedUpdate System]
+        ConfigAccess[Config Access]
     end
     
     Step --> ReqSocket
@@ -137,7 +145,8 @@ graph LR
     RepSocket --> ZmqThread
     ZmqThread --> ApiState
     ApiState --> Control
-    Control --> Simulation
+    Control --> FixedUpdate
+    FixedUpdate --> Simulation
     Simulation --> Extraction
     Extraction --> ApiState
     ZmqThread --> ApiState
@@ -151,7 +160,36 @@ graph LR
     ZmqThread --> ApiState
     ApiState --> Modification
     Modification --> Simulation
+    
+    Config --> ReqSocket
+    ReqSocket --> RepSocket
+    RepSocket --> ZmqThread
+    ZmqThread --> ConfigAccess
+    ConfigAccess --> ApiState
+    ApiState --> RepSocket
+    RepSocket --> ReqSocket
+    ReqSocket --> Config
 ```
+
+## Stepping Mechanism
+The API now uses a simplified stepping approach based on FixedUpdate counting:
+
+1. When a step is requested:
+   - The API state sets the number of iterations to run
+   - The simulation is unpaused
+   - FixedUpdate iterations are counted
+
+2. During each FixedUpdate:
+   - The iteration counter is decremented
+   - The simulation advances by one fixed timestep
+   - State is extracted for API access
+
+3. When iterations are complete:
+   - The simulation is paused
+   - The step is marked as completed
+   - The ZMQ server responds to the client
+
+This approach ensures consistent time advancement regardless of frame rate or system performance.
 
 ## Computational Complexity
 - Message Passing: O(n) where n is number of factors/variables
@@ -167,3 +205,4 @@ graph LR
 - Thread safety for ZeroMQ server thread
 - Consistent state representation for ML algorithms
 - Timeout handling for synchronous operations
+- Consistent time advancement for reinforcement learning

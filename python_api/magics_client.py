@@ -211,15 +211,6 @@ class MagicsClient:
         """
         return self._send_request(command, **parameters)
     
-    def set_stepping_approach(self, approach: int) -> None:
-        """
-        Set the stepping approach (1 = Manual, 2 = FixedUpdate).
-        
-        Args:
-            approach: The stepping approach to use (1 or 2)
-        """
-        self._send_request("SetSteppingApproach", approach=approach)
-    
     def set_iterations_per_step(self, iterations: int) -> None:
         """
         Set the number of iterations per step.
@@ -228,6 +219,36 @@ class MagicsClient:
             iterations: The number of iterations per step
         """
         self._send_request("SetIterationsPerStep", iterations=iterations)
+    
+    def get_simulation_hz(self) -> float:
+        """
+        Get the simulation Hz (frequency).
+        
+        Returns:
+            The current simulation Hz
+        """
+        data = self._send_request("GetSimulationHz")
+        
+        # Check data format
+        if not data:
+            raise MagicsError("No data returned from get_simulation_hz")
+        
+        if "type" not in data or data["type"] != "Number":
+            raise MagicsError(f"Invalid response format for get_simulation_hz: {data}")
+        
+        return data["content"]
+    
+    def set_simulation_hz(self, hz: float) -> None:
+        """
+        Set the simulation Hz (frequency).
+        
+        Args:
+            hz: The new Hz value (must be greater than 0)
+        """
+        if hz <= 0:
+            raise ValueError("Hz must be greater than 0")
+        
+        self._send_request("SetSimulationHz", hz=hz)
     
     def close(self) -> None:
         """

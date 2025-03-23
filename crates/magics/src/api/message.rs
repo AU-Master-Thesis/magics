@@ -46,6 +46,15 @@ pub enum Command {
         /// The number of iterations per step
         iterations: usize,
     },
+    
+    /// Get the simulation Hz (frequency)
+    GetSimulationHz,
+    
+    /// Set the simulation Hz (frequency)
+    SetSimulationHz {
+        /// The new Hz value
+        hz: f64,
+    },
 }
 
 /// Request message sent from client to server.
@@ -92,6 +101,9 @@ pub enum ResponseData {
     
     /// Boolean result
     Boolean(bool),
+    
+    /// Numeric result (float)
+    Number(f64),
     
     /// No data
     None,
