@@ -1,14 +1,19 @@
 //! State definitions for the API.
 //!
-//! This module defines the state structures that are shared between the simulation
-//! and external API consumers.
+//! This module defines the state structures that are shared between the
+//! simulation and external API consumers.
 
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock, atomic::{AtomicBool, Ordering}};
-use bevy::prelude::*;
-use bevy::math::Vec2;
-use crate::factorgraph::factorgraph::FactorGraph;
-use crate::planner::robot::RobotConnections;
+use std::{
+    collections::HashMap,
+    sync::{
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+        Arc, RwLock,
+    },
+};
+
+use bevy::{math::Vec2, prelude::*};
+
+use crate::{factorgraph::factorgraph::FactorGraph, planner::robot::RobotConnections};
 
 /// State of an agent in the simulation.
 #[derive(Debug, Clone)]
@@ -38,20 +43,20 @@ pub struct FactorGraphState {
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct FactorWeights {
     /// Weight for dynamic factors.
-    pub dynamic: f32,
+    pub dynamic:    f32,
     /// Weight for obstacle factors.
-    pub obstacle: f32,
+    pub obstacle:   f32,
     /// Weight for inter-robot factors.
     pub interrobot: f32,
     /// Weight for tracking factors.
-    pub tracking: f32,
+    pub tracking:   f32,
 }
 
 /// State of the environment in the simulation.
 #[derive(Debug, Clone)]
 pub struct EnvironmentState {
     /// Positions of obstacles in the environment.
-    pub obstacles: Vec<Vec2>,
+    pub obstacles:  Vec<Vec2>,
     /// Boundaries of the environment.
     pub boundaries: (Vec2, Vec2),
 }
@@ -62,7 +67,7 @@ pub struct WeightUpdate {
     /// ID of the agent to update weights for, or None for system-wide update.
     pub agent_id: Option<Entity>,
     /// New weights to apply.
-    pub weights: FactorWeights,
+    pub weights:  FactorWeights,
 }
 
 /// State for the API.
@@ -80,6 +85,10 @@ pub struct ApiState {
     pub step_completed: Arc<AtomicBool>,
     /// Flag indicating whether the API is active.
     pub api_active: Arc<AtomicBool>,
+    /// Number of iterations remaining in the current step
+    pub step_iterations_remaining: Arc<AtomicUsize>,
+    /// Number of iterations to use for each step
+    pub iterations_per_step: Arc<AtomicUsize>,
 }
 
 impl Default for ApiState {
@@ -87,7 +96,7 @@ impl Default for ApiState {
         Self {
             agent_states: Arc::new(RwLock::new(HashMap::new())),
             environment_state: Arc::new(RwLock::new(EnvironmentState {
-                obstacles: Vec::new(),
+                obstacles:  Vec::new(),
                 boundaries: (Vec2::ZERO, Vec2::ZERO),
             })),
             weight_requests: Arc::new(RwLock::new(Vec::new())),
@@ -98,6 +107,9 @@ impl Default for ApiState {
             api_active: Arc::new(AtomicBool::new(true)),
             #[cfg(not(feature = "api"))]
             api_active: Arc::new(AtomicBool::new(false)),
+            step_iterations_remaining: Arc::new(AtomicUsize::new(0)),
+            // Default to 2 iterations per step
+            iterations_per_step: Arc::new(AtomicUsize::new(2)),
         }
     }
 }
@@ -126,7 +138,6 @@ impl ApiState {
     /// Mark a step as completed.
     pub fn complete_step(&self) {
         self.step_completed.store(true, Ordering::SeqCst);
-        
         self.step_requested.store(false, Ordering::SeqCst);
     }
 
@@ -145,5 +156,33 @@ impl ApiState {
         if let Ok(mut requests) = self.weight_requests.write() {
             requests.push(update);
         }
+    }
+
+    /// Get the number of iterations remaining in the current step.
+    pub fn get_step_iterations_remaining(&self) -> usize {
+        self.step_iterations_remaining.load(Ordering::SeqCst)
+    }
+
+    /// Set the number of iterations remaining in the current step.
+    pub fn set_step_iterations_remaining(&self, iterations: usize) {
+        self.step_iterations_remaining
+            .store(iterations, Ordering::SeqCst);
+    }
+
+    /// Decrement the number of iterations remaining and return the previous
+    /// value.
+    pub fn decrement_step_iterations_remaining(&self) -> usize {
+        self.step_iterations_remaining
+            .fetch_sub(1, Ordering::SeqCst)
+    }
+
+    /// Get the number of iterations to use for each step.
+    pub fn get_iterations_per_step(&self) -> usize {
+        self.iterations_per_step.load(Ordering::SeqCst)
+    }
+
+    /// Set the number of iterations to use for each step.
+    pub fn set_iterations_per_step(&self, iterations: usize) {
+        self.iterations_per_step.store(iterations, Ordering::SeqCst);
     }
 }

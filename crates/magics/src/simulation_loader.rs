@@ -716,7 +716,10 @@ fn handle_requests(
 
             let virtual_time = time_virtual.bypass_change_detection();
             *virtual_time = Time::<Virtual>::default();
+            // The below is not working if we are using API, as we want it to be paused.
             if is_paused {
+                virtual_time.pause();
+            } else {
                 virtual_time.unpause();
             }
 

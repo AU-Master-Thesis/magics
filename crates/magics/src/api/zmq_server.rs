@@ -7,12 +7,12 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::info};
 use zmq;
 use serde_json;
 
 use super::state::{ApiState, AgentState, EnvironmentState, WeightUpdate, FactorWeights};
-use super::message::{Request, Response, Command, Status, ResponseData, Error, SerializedAgentState, SerializedEnvironmentState};
+use super::message::{Request, AlternativeRequest, Response, Command, Status, ResponseData, Error, SerializedAgentState, SerializedEnvironmentState};
 
 /// Default port for the ZeroMQ server.
 pub const DEFAULT_PORT: u16 = 5555;
@@ -157,11 +157,34 @@ impl ZmqServer {
     
     /// Handle a message from a client.
     fn handle_message(message: &str, api_state: &Arc<ApiState>) -> Result<String, Error> {
-        let request: Request = serde_json::from_str(message)?;
+        info!("===================== API call to Server =============================");
+        // Try to parse as standard request first
+        let parse_result = serde_json::from_str::<Request>(message);
+        
+        // If that fails, try to parse as alternative request format
+        let (command, request_id) = match parse_result {
+            Ok(request) => {
+                info!("📥 Parsed standard request format");
+                (request.command, request.request_id)
+            },
+            Err(_) => {
+                // Try alternative format with nested command
+                match serde_json::from_str::<AlternativeRequest>(message) {
+                    Ok(alt_request) => {
+                        info!("📥 Parsed alternative request format with nested command");
+                        (alt_request.command, alt_request.request_id)
+                    },
+                    Err(err) => {
+                        error!("Failed to parse request in any format: {:?}", err);
+                        return Err(Error::Json(err));
+                    }
+                }
+            }
+        };
         
         // Log the incoming request with more details
-        let request_id = request.request_id.as_deref().unwrap_or("anonymous");
-        let command_name = match &request.command {
+        let request_id_str = request_id.as_deref().unwrap_or("anonymous");
+        let command_name = match &command {
             Command::GetAgentState => "GetAgentState".to_string(),
             Command::GetEnvironmentState => "GetEnvironmentState".to_string(),
             Command::SetFactorWeights { weights, agent_id } => {
@@ -177,12 +200,15 @@ impl ZmqServer {
             Command::Reset => "Reset".to_string(),
             Command::IsApiActive => "IsApiActive".to_string(),
             Command::SetApiActive { active } => format!("SetApiActive({})", active),
+            Command::SetIterationsPerStep { iterations } => format!("SetIterationsPerStep({})", iterations),
         };
         
-        info!("📥 Received API request: {} (ID: {})", command_name, request_id);
-        debug!("Request details: {}", serde_json::to_string(&request).unwrap_or_else(|_| "Failed to serialize request".to_string()));
+        info!("📥 Received API request: {} (ID: {})", command_name, request_id_str);
         
-        let response = match request.command {
+        // Log the raw request message for debugging
+        info!("📄 Raw request: {}", message);
+        
+        let response = match command {
             Command::GetAgentState => {
                 // Get agent states
                 if let Ok(agent_states) = api_state.agent_states.read() {
@@ -196,7 +222,7 @@ impl ZmqServer {
                     status: Status::Success,
                     data: Some(ResponseData::AgentStates(serialized_states)),
                     error: None,
-                    request_id: request.request_id.clone(),
+                    request_id: request_id.clone(),
                 }
                 } else {
                     return Err(Error::ApiState("Failed to read agent states".to_string()));
@@ -209,7 +235,7 @@ impl ZmqServer {
                         status: Status::Success,
                         data: Some(ResponseData::EnvironmentState(SerializedEnvironmentState::from(&*env_state))),
                         error: None,
-                        request_id: request.request_id.clone(),
+                        request_id: request_id.clone(),
                     }
                 } else {
                     return Err(Error::ApiState("Failed to read environment state".to_string()));
@@ -228,7 +254,7 @@ impl ZmqServer {
                     status: Status::Success,
                     data: Some(ResponseData::None),
                     error: None,
-                    request_id: request.request_id.clone(),
+                    request_id: request_id.clone(),
                 }
             },
             Command::Step => {
@@ -252,7 +278,7 @@ impl ZmqServer {
                     status: Status::Success,
                     data: Some(ResponseData::None),
                     error: None,
-                    request_id: request.request_id.clone(),
+                    request_id: request_id.clone(),
                 }
             },
             Command::Reset => {
@@ -261,7 +287,7 @@ impl ZmqServer {
                     status: Status::Success,
                     data: Some(ResponseData::None),
                     error: None,
-                    request_id: request.request_id.clone(),
+                    request_id: request_id.clone(),
                 }
             },
             Command::IsApiActive => {
@@ -272,7 +298,7 @@ impl ZmqServer {
                     status: Status::Success,
                     data: Some(ResponseData::Boolean(is_active)),
                     error: None,
-                    request_id: request.request_id.clone(),
+                    request_id: request_id.clone(),
                 }
             },
             Command::SetApiActive { active } => {
@@ -283,12 +309,29 @@ impl ZmqServer {
                     status: Status::Success,
                     data: Some(ResponseData::None),
                     error: None,
-                    request_id: request.request_id.clone(),
+                    request_id: request_id.clone(),
+                }
+            },
+            Command::SetIterationsPerStep { iterations } => {
+                // Set iterations per step
+                if iterations == 0 {
+                    return Err(Error::Command("Iterations per step must be greater than 0".to_string()));
+                }
+                
+                // Store the iterations per step for future use
+                api_state.set_iterations_per_step(iterations);
+                
+                info!("Set iterations per step to {}", iterations);
+                
+                Response {
+                    status: Status::Success,
+                    data: Some(ResponseData::None),
+                    error: None,
+                    request_id: request_id.clone(),
                 }
             },
         };
         // Log the successful handling of the request with detailed response information
-        let request_id = request.request_id.as_deref().unwrap_or("anonymous");
         
         // Prepare detailed response logs based on response type
         let response_details = match &response.data {
@@ -308,30 +351,43 @@ impl ZmqServer {
         };
         
         // Log summary of the processed request with basic info
-        info!("📤 Successfully processed API request: {} (ID: {})", 
-            match &request.command {
-                Command::GetAgentState => "GetAgentState",
-                Command::GetEnvironmentState => "GetEnvironmentState",
-                Command::SetFactorWeights { .. } => "SetFactorWeights",
-                Command::Step => "Step",
-                Command::Reset => "Reset",
-                Command::IsApiActive => "IsApiActive",
-                Command::SetApiActive { active } => if *active { "SetApiActive(true)" } else { "SetApiActive(false)" },
+        let command_summary = match &command {
+            Command::GetAgentState => "GetAgentState".to_string(),
+            Command::GetEnvironmentState => "GetEnvironmentState".to_string(),
+            Command::SetFactorWeights { .. } => "SetFactorWeights".to_string(),
+            Command::Step => "Step".to_string(),
+            Command::Reset => "Reset".to_string(),
+            Command::IsApiActive => "IsApiActive".to_string(),
+            Command::SetApiActive { active } => {
+                if *active { 
+                    "SetApiActive(true)".to_string() 
+                } else { 
+                    "SetApiActive(false)".to_string() 
+                }
             },
-            request_id);
+            Command::SetIterationsPerStep { iterations } => format!("SetIterationsPerStep({})", iterations),
+        };
+        info!("📤 Successfully processed API request: {} (ID: {})", command_summary, request_id_str);
         
         // Log the detailed response info
         info!("🔍 Response details: {}", response_details);
+        
+        // Serialize the response to JSON
+        let response_json = serde_json::to_string(&response).map_err(|e| {
+            error!("Failed to serialize response: {:?}", e);
+            Error::Json(e)
+        })?;
+        
+        // Log the raw JSON response for debugging
+        info!("📄 Raw response: {}", response_json);
         
         // Log the complete response at debug level for even more detail
         debug!("Complete response: {}", 
             serde_json::to_string_pretty(&response)
                 .unwrap_or_else(|_| "Failed to serialize response".to_string()));
         
-        serde_json::to_string(&response).map_err(|e| {
-            error!("Failed to serialize response: {:?}", e);
-            e.into()
-        })
+        info!("===================================================================");
+        Ok(response_json)
     }
 }
 

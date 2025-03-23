@@ -46,6 +46,7 @@ use bevy::{
         render_resource::{
             Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
         },
+        settings::{Backends, PowerPreference, WgpuSettings},
         RenderPlugin,
     },
     time::common_conditions::once_after_real_delay,
@@ -397,6 +398,12 @@ fn main() -> anyhow::Result<()> {
             .set(image_plugin)
             .set(RenderPlugin {
                                     synchronous_pipeline_compilation: true,
+                                    render_creation: WgpuSettings {
+                                        backends: Some(Backends::VULKAN),
+                                        device_label: Some("NVIDIA".into()), // <-- Explicit device label
+                                        ..Default::default()
+                                    }
+                                    .into(),
                                     ..default()
             })
         )
@@ -423,10 +430,14 @@ fn main() -> anyhow::Result<()> {
             export::ExportPlugin::default(),
             bevy_fullscreen::ToggleFullscreenPlugin::default(),
             goal_area::GoalAreaPlugin,
-            api::ApiPlugin::default(),
         ))
+        // Only add the API plugin when the "api" feature is enabled
         .add_systems(Update, draw_coordinate_system.run_if(input_just_pressed(KeyCode::F1)))
         .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));
+
+    // Only add the API plugin when the "api" feature is enabled
+    #[cfg(feature = "api")]
+    app.add_plugins(api::ApiPlugin::default());
 
     if let Some(schedule) = cli.schedule_graph {
         match schedule {

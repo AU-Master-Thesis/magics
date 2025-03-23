@@ -31,4 +31,6 @@ experiments/
 
 **/__pycache__/
 
-.venv/
+.venv
+*.egg-info
+__pycache__/*
