@@ -4,7 +4,7 @@ services:
   magics:
     build:
       context: ..
-      dockerfile: Dockerfile
+      dockerfile: .devcontainer/Dockerfile
     volumes:
       - ..:/home/developer/magics
       - cargo-cache:/home/developer/.cargo/registry
@@ -12,9 +12,6 @@ services:
       - DISPLAY=${DISPLAY}
       - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
       - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
-    devices:
-      - /dev/dri:/dev/dri
-    runtime: nvidia
     deploy:
       resources:
         reservations:

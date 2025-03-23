@@ -1,11 +1,12 @@
-# Docker Environment for Magics Project
+# Dev Container for Magics Project
 
-This directory contains Docker configuration for the Magics project with GPU support.
+This directory contains the Dev Container configuration for the Magics project with GPU support.
 
 ## Files
 
-- `Dockerfile`: Defines the container image with Rust 1.87, Python 3.10, and GPU support
+- `Dockerfile`: Defines the container image with Rust nightly, Python 3.10, and GPU support
 - `docker-compose.yml`: Configures the service with volume mounting and GPU access
+- `devcontainer.json`: VSCode Dev Container configuration
 - `entrypoint.sh`: Sets up the environment when the container starts
 - `.dockerignore`: Excludes unnecessary files from the build context
 
@@ -14,23 +15,28 @@ This directory contains Docker configuration for the Magics project with GPU sup
 - Docker
 - Docker Compose
 - NVIDIA Container Toolkit (for GPU support)
+- VSCode with Dev Containers extension
 
 ## Usage
 
-### Building the Docker Image
+### Using with VSCode
 
-From the `docker` directory:
+1. Open the project in VSCode
+2. Click on the "Reopen in Container" button when prompted
+3. VSCode will build the container and open the project inside it
+
+### Manual Building and Running
 
 ```bash
-docker-compose build
+# From the project root directory
+docker-compose -f .devcontainer/docker-compose.yml build
 ```
 
-### Running the Container
-
-From the `docker` directory:
+### Running the Container Manually
 
 ```bash
-docker-compose run --rm magics
+# From the project root directory
+docker-compose -f .devcontainer/docker-compose.yml run --rm magics
 ```
 
 ### For GUI Applications
@@ -39,7 +45,7 @@ Enable X11 forwarding:
 
 ```bash
 xhost +local:docker
-docker-compose run --rm magics
+docker-compose -f .devcontainer/docker-compose.yml run --rm magics
 ```
 
 ### Building Your Project
