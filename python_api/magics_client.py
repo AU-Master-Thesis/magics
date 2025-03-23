@@ -55,15 +55,23 @@ class MagicsClient:
             MagicsError: If the server returns an error
             zmq.ZMQError: If there's a ZMQ error
         """
-        # Create request
+        # Create request with nested command structure
         request = {
-            "command": command,
-            "parameters": parameters,
+            "command": {
+                "command": command
+            },
             "request_id": str(uuid.uuid4())
         }
         
+        # Add parameters if provided
+        if parameters:
+            request["command"]["parameters"] = parameters
+        
+        # Convert request to JSON
+        request_json = json.dumps(request)
+        
         # Send request
-        self.socket.send_string(json.dumps(request))
+        self.socket.send_string(request_json)
         
         # Receive response
         try:
@@ -75,7 +83,7 @@ class MagicsClient:
             raise
         
         # Check for errors
-        if response.get("status") == "error":
+        if response.get("status") != "Success":
             raise MagicsError(response.get("error", "Unknown error"))
         
         # Return data
@@ -89,8 +97,13 @@ class MagicsClient:
             Dictionary mapping agent IDs to agent states
         """
         data = self._send_request("GetAgentState")
-        if not data or "type" not in data or data["type"] != "AgentStates":
-            raise MagicsError("Invalid response format for get_agent_state")
+        
+        # Check data format
+        if not data:
+            raise MagicsError("No data returned from get_agent_state")
+        
+        if "type" not in data or data["type"] != "AgentStates":
+            raise MagicsError(f"Invalid response format for get_agent_state: {data}")
         
         # Process agent states
         result = {}
@@ -112,8 +125,13 @@ class MagicsClient:
             Dictionary containing environment state
         """
         data = self._send_request("GetEnvironmentState")
-        if not data or "type" not in data or data["type"] != "EnvironmentState":
-            raise MagicsError("Invalid response format for get_environment_state")
+        
+        # Check data format
+        if not data:
+            raise MagicsError("No data returned from get_environment_state")
+        
+        if "type" not in data or data["type"] != "EnvironmentState":
+            raise MagicsError(f"Invalid response format for get_environment_state: {data}")
         
         # Process environment state
         result = data["content"]
@@ -161,8 +179,14 @@ class MagicsClient:
             True if the API is active, False otherwise
         """
         data = self._send_request("IsApiActive")
-        if not data or "type" not in data or data["type"] != "Boolean":
-            raise MagicsError("Invalid response format for is_api_active")
+        
+        # Check data format
+        if not data:
+            raise MagicsError("No data returned from is_api_active")
+        
+        if "type" not in data or data["type"] != "Boolean":
+            raise MagicsError(f"Invalid response format for is_api_active: {data}")
+        
         return data["content"]
     
     def set_api_active(self, active: bool) -> None:
@@ -173,6 +197,37 @@ class MagicsClient:
             active: Whether to activate the API
         """
         self._send_request("SetApiActive", active=active)
+    
+    def send_command(self, command: str, parameters: Dict[str, Any]) -> Any:
+        """
+        Send a custom command to the server.
+        
+        Args:
+            command: Command name
+            parameters: Command parameters
+            
+        Returns:
+            The response data from the server
+        """
+        return self._send_request(command, **parameters)
+    
+    def set_stepping_approach(self, approach: int) -> None:
+        """
+        Set the stepping approach (1 = Manual, 2 = FixedUpdate).
+        
+        Args:
+            approach: The stepping approach to use (1 or 2)
+        """
+        self._send_request("SetSteppingApproach", approach=approach)
+    
+    def set_iterations_per_step(self, iterations: int) -> None:
+        """
+        Set the number of iterations per step.
+        
+        Args:
+            iterations: The number of iterations per step
+        """
+        self._send_request("SetIterationsPerStep", iterations=iterations)
     
     def close(self) -> None:
         """

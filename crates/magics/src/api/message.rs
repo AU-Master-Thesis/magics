@@ -40,12 +40,30 @@ pub enum Command {
         /// Whether to activate the API
         active: bool,
     },
+    
+    /// Set the number of iterations per step
+    SetIterationsPerStep {
+        /// The number of iterations per step
+        iterations: usize,
+    },
 }
 
 /// Request message sent from client to server.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Request {
     /// Command to execute
+    #[serde(flatten)]
+    pub command: Command,
+    
+    /// Request ID for matching responses
+    #[serde(default)]
+    pub request_id: Option<String>,
+}
+
+/// Alternative request format that can handle nested command structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AlternativeRequest {
+    /// Command object containing the command and parameters
     pub command: Command,
     
     /// Request ID for matching responses

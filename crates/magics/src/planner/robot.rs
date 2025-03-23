@@ -232,93 +232,6 @@ impl CreateVariableTimesteps for GbpplannerVariableTimesteps {
     }
 }
 
-// // #[derive(Component, Deref, DerefMut, derive_more::Index)]
-// #[derive(Resource, Deref, DerefMut, derive_more::Index)]
-// pub struct VariableTimesteps(pub Vec<u32>);
-//
-// impl VariableTimesteps {
-//     /// Returns the number of timesteps
-//     pub fn len(&self) -> usize {
-//         self.0.len()
-//     }
-//
-//     // pub fn from_config(config: &Config) -> Self {
-//     //     let lookahead_horizon: u32 =
-//     //         (config.robot.planning_horizon.get() /
-// config.simulation.t0.get()) as     // u32;     let lookahead_multiple =
-// config.gbp.lookahead_multiple as u32;     //     Self(get_variable_timesteps(
-//     //         lookahead_horizon,
-//     //         lookahead_multiple,
-//     //     ))
-//     // }
-// }
-//
-// impl From<&crate::config::Config> for VariableTimesteps {
-//     fn from(config: &crate::config::Config) -> Self {
-//         let lookahead_horizon: u32 =
-//             (config.robot.planning_horizon.get() /
-// config.simulation.t0.get()) as u32;         let lookahead_multiple =
-// config.gbp.lookahead_multiple as u32;         Self(get_variable_timesteps(
-//             lookahead_horizon,
-//             lookahead_multiple,
-//         ))
-//     }
-// }
-//
-// impl FromWorld for VariableTimesteps {
-//     fn from_world(world: &mut World) -> Self {
-//         if let Some(config) = world.get_resource::<crate::config::Config>() {
-//             Self::from(config)
-//         } else {
-//             Self(vec![])
-//         }
-//     }
-// }
-
-// /// Resource that stores the horizon timesteps sequence
-// #[derive(Resource, Debug, Index)]
-// pub struct VariableTimesteps {
-//     #[index]
-//     timesteps: Vec<u32>,
-// }
-//
-// impl VariableTimesteps {
-//     /// Extracts a slice containing the entire vector.
-//     #[inline(always)]
-//     pub fn as_slice(&self) -> &[u32] {
-//         self.timesteps.as_slice()
-//     }
-// }
-//
-// impl FromWorld for VariableTimesteps {
-//     // TODO: refactor
-//     fn from_world(world: &mut World) -> Self {
-//         // let config = world.resource::<Config>();
-//
-//         // let lookahead_horizon = config.robot.planning_horizon /
-// config.simulation.t0;         let lookahead_horizon = 5.0 / 0.25;
-//
-//         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-//         // FIXME(kpbaks): read settings from config
-//         Self {
-//             timesteps: get_variable_timesteps(
-//                 // lookahead_horizon.get() as u32,
-//                 lookahead_horizon as u32,
-//                 // config.gbp.lookahead_multiple as u32,
-//                 3,
-//             ),
-//         }
-//     }
-// }
-
-// #[derive(Debug, thiserror::Error)]
-// pub enum RobotInitError {
-//     #[error("No waypoints were provided")]
-//     NoWaypoints,
-//     #[error("No variable timesteps were provided")]
-//     NoVariableTimesteps,
-// }
-
 /// Component for entities with a radius, used for robots
 #[derive(Component, Debug, Deref, DerefMut)]
 pub struct Radius(pub f32);
@@ -2307,6 +2220,13 @@ fn update_prior_of_current_state_v3(
         }
 
         let time_scale = time_fixed.delta_seconds() / *t0;
+        // Log the fixed delta time and t0 values
+        // info!(
+        //     "Fixed delta: {:.6}s, t0: {:.6}s, ratio: {:.6}",
+        //     time_fixed.delta_seconds(),
+        //     *t0,
+        //     time_scale
+        // );
         let (current_variable_index, current_variable) = factorgraph
             .nth_variable(0)
             .expect("factorgraph should have a current variable");
@@ -2316,6 +2236,7 @@ fn update_prior_of_current_state_v3(
 
         let change_in_state =
             Float::from(time_scale) * (&next_variable.belief.mean - &current_variable.belief.mean);
+
         let mean_updated = &current_variable.belief.mean + &change_in_state;
 
         let external_factor_messages =
@@ -2337,113 +2258,8 @@ fn update_prior_of_current_state_v3(
     }
 }
 
-// /// Called `Robot::updateCurrent` in **gbpplanner**
-// fn update_prior_of_current_state_v2(
-//     mut query: Query<(&mut FactorGraph, &mut Transform), With<RobotState>>,
-//     config: Res<Config>,
-//     time_fixed: Res<Time<Fixed>>,
-//     messages_to_external_factors: Local<Mutex<Vec<VariableToFactorMessage>>>,
-// ) {
-//     let time_scale = time_fixed.delta_seconds() / config.simulation.t0.get();
-//     messages_to_external_factors.lock().unwrap().clear();
-//
-//     // let messages_to_external_factors:
-// Arc<Mutex<Vec<VariableToFactorMessage>>> =     // Arc::default();
-//     // let messages_to_external_factors: Mutex<Vec<VariableToFactorMessage>>
-// =     // Default::default();
-//
-//     query
-//         .par_iter_mut()
-//         .for_each(|(mut factorgraph, mut transform)| {
-//             let (current_variable_index, current_variable) = factorgraph
-//                 .nth_variable(0)
-//                 .expect("factorgraph should have a current variable");
-//             let (_, next_variable) = factorgraph
-//                 .nth_variable(1)
-//                 .expect("factorgraph should have a next variable");
-//
-//             let change_in_state = Float::from(time_scale)
-//                 * (&next_variable.belief.mean -
-//                   &current_variable.belief.mean);
-//             let mean_updated = &current_variable.belief.mean +
-// &change_in_state;
-//
-//             let external_factor_messages =
-//                 factorgraph.change_prior_of_variable(current_variable_index,
-// mean_updated);
-//
-//             let mut guard = messages_to_external_factors.lock().unwrap();
-//             guard.extend(external_factor_messages);
-//
-//             #[allow(clippy::cast_possible_truncation)]
-//             // bevy uses xzy coordinates, so the y component is put at the z
-// coordinate             let position_increment =
-//                 Vec3::new(change_in_state[0] as f32, 0.0, change_in_state[1]
-// as f32);
-//
-//             transform.translation += position_increment;
-//         });
-//
-//     let guard = messages_to_external_factors.lock().unwrap();
-//     for message in guard.iter() {
-//         let (mut external_factorgraph, _) = query
-//             .get_mut(message.to.factorgraph_id)
-//             .expect("the factorgraph of the receiving factor exists in the
-// world");
-//
-//         if let Some(factor) =
-// external_factorgraph.get_factor_mut(message.to.factor_index) {             //
-// PERF: avoid the clone here             error!("current prior sending message
-// to {:?}", message.to);             factor.receive_message_from(message.from,
-// message.message.clone());         }
-//     }
-// }
-
 #[derive(Component, Deref, Clone, Copy)]
 pub struct T0(pub f32);
-
-/// Called `Robot::updateCurrent` in **gbpplanner**
-fn update_prior_of_current_state(
-    mut query: Query<(&mut FactorGraph, &mut Transform, &T0), With<RobotConnections>>,
-    config: Res<Config>,
-    time: Res<Time>,
-) {
-    // let scale = time.delta_seconds() / config.simulation.t0.get();
-
-    for (mut factorgraph, mut transform, &t0) in &mut query {
-        let scale: f32 = time.delta_seconds() / *t0;
-        let (current_variable_index, current_variable) = factorgraph
-            .nth_variable(0)
-            .expect("factorgraph should have a current variable");
-        let (_, next_variable) = factorgraph
-            .nth_variable(1)
-            .expect("factorgraph should have a next variable");
-        let mean_of_current_variable = current_variable.belief.mean.clone();
-        let change_in_state =
-            Float::from(scale) * (&next_variable.belief.mean - &mean_of_current_variable);
-
-        let messages = factorgraph.change_prior_of_variable(
-            current_variable_index,
-            &mean_of_current_variable + &change_in_state,
-        );
-
-        if !messages.is_empty() {
-            error!(
-                "{} messages from update_prior_of_current_state:",
-                messages.len()
-            );
-            // continue;
-        }
-
-        #[allow(clippy::cast_possible_truncation)]
-        let position_increment =
-            Vec3::new(change_in_state[0] as f32, 0.0, change_in_state[1] as f32);
-
-        transform.translation += position_increment;
-    }
-}
-
-// boolean_bevy_resource!(ManualMode, default = false);
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ManualModeState {

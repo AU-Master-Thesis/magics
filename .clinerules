@@ -1,0 +1,82 @@
+# Cline Project Intelligence for Magics
+
+## Project Patterns
+- Implement efficient Gaussian Belief Propagation (GBP) for path planning
+- Design modular component architecture with clearly defined interfaces
+- Enforce type safety across Rust-Python boundary
+- Balance performance with reinforcement learning flexibility
+- Leverage Bevy ECS architecture for simulation components
+- Maintain clean separation between core simulation and Python API
+
+## Coding Conventions
+- Follow Rust idioms for core simulation code
+- Use snake_case for variables and functions
+- Use SCREAMING_SNAKE_CASE for constants
+- Apply PyO3 attribute macros consistently for Python exports
+- Keep Python-facing API simple and Pythonic
+- Document API boundary thoroughly
+- Use strong typing for API parameters with clear validation
+- Prefer immutable data structures where possible
+
+## GBP Implementation Guidelines
+- Optimize message passing for critical paths
+- Ensure numerical stability in belief updates
+- Minimize computational complexity in factor calculations
+- Support both system-wide and per-agent factor weights
+- Maintain clear separation between variables and factors
+- Implement efficient state extraction for external observation
+- Use fixed point optimization for performance-critical areas
+
+## Python API Guidelines
+- Design for OpenAI Gym compatibility
+- Provide clean error propagation from Rust to Python
+- Minimize data copying across language boundary
+- Create intuitive action and observation spaces
+- Support reinforcement learning workflows
+- Ensure thread safety in step-based execution
+- Implement efficient serialization between languages
+
+## Optimization Strategies
+- Cache factor graph state for API access
+- Optimize state extraction for minimal overhead
+- Use batch operations for weight updates
+- Implement efficient step synchronization
+- Leverage Rust's zero-cost abstractions
+- Profile both Rust and Python sides of the boundary
+- Minimize allocations during hot paths
+
+## Documentation Requirements
+- Document all Python-exposed functions thoroughly
+- Explain factor graph weight parameters and effects
+- Include examples for OpenAI Gym integration
+- Document reward function implementations
+- Provide clear API versioning
+- Include performance considerations
+- Add tutorials for reinforcement learning setup
+
+## Testing Approach
+- Unit test core simulation components
+- Test Python bindings separately
+- Create integration tests for end-to-end workflows
+- Benchmark API performance at various agent counts
+- Test with different reinforcement learning algorithms
+- Validate numerical stability with various weight configurations
+- Test thread safety and concurrent access
+
+## Performance Monitoring
+- Profile message passing efficiency
+- Measure serialization overhead
+- Track API call latency
+- Monitor memory usage during simulation steps
+- Benchmark step execution time
+- Compare performance with and without API active
+- Profile Python GIL impact
+
+## Research Directions
+- Optimize factor weights through reinforcement learning
+- Discover emergent multi-agent behaviors
+- Benchmark against other path planning approaches
+- Explore adaptive weight adjustment strategies
+- Investigate scaling laws with increasing agent count
+- Study communication patterns in multi-agent scenarios
+- Research transfer learning between simulation and reality

@@ -30,15 +30,19 @@ fn pause_play_virtual_time(
     for pause_play in evr_pause_play.read() {
         match pause_play {
             PausePlay::Pause => {
+                info!("Pausing simulation");
                 virtual_time.pause();
             }
             PausePlay::Play => {
+                info!("Resuming simulation");
                 virtual_time.unpause();
             }
             PausePlay::Toggle => {
                 if virtual_time.is_paused() {
+                    info!("Resuming simulation");
                     virtual_time.unpause();
                 } else {
+                    info!("Pausing simulation");
                     virtual_time.pause();
                 }
             }

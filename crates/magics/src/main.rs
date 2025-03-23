@@ -45,6 +45,7 @@ use bevy::{
         render_resource::{
             Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
         },
+        settings::{Backends, PowerPreference, WgpuSettings},
         RenderPlugin,
     },
     time::common_conditions::once_after_real_delay,
@@ -208,6 +209,12 @@ fn main() -> anyhow::Result<()> {
             .set(image_plugin)
             .set(RenderPlugin {
                                     synchronous_pipeline_compilation: true,
+                                    render_creation: WgpuSettings {
+                                        backends: Some(Backends::VULKAN),
+                                        device_label: Some("NVIDIA".into()), // <-- Explicit device label
+                                        ..Default::default()
+                                    }
+                                    .into(),
                                     ..default()
             })
         )
@@ -234,10 +241,53 @@ fn main() -> anyhow::Result<()> {
             export::ExportPlugin::default(),
             bevy_fullscreen::ToggleFullscreenPlugin::default(),
             goal_area::GoalAreaPlugin,
-            api::ApiPlugin::default(),
         ))
+        // Only add the API plugin when the "api" feature is enabled
         .add_systems(Update, draw_coordinate_system.run_if(input_just_pressed(KeyCode::F1)))
         .add_systems(PostUpdate, end_simulation.run_if(virtual_time_exceeds_max_time));
+
+    // Only add the API plugin when the "api" feature is enabled
+    #[cfg(feature = "api")]
+    app.add_plugins(api::ApiPlugin::default());
+
+    if let Some(schedule) = cli.schedule_graph {
+        match schedule {
+            cli::BevySchedule::PreStartup => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, PreStartup);
+            }
+            cli::BevySchedule::Startup => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, Startup);
+            }
+            cli::BevySchedule::PostStartup => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, PostStartup);
+            }
+            cli::BevySchedule::PreUpdate => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, PreUpdate);
+            }
+            cli::BevySchedule::Update => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, Update);
+            }
+            cli::BevySchedule::PostUpdate => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, PostUpdate);
+            }
+            cli::BevySchedule::FixedUpdate => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, FixedUpdate);
+            }
+            cli::BevySchedule::Last => {
+                bevy_mod_debugdump::print_schedule_graph(&mut app, Last);
+            }
+        }
+
+        return Ok(());
+    }
+
+    if cli.record {
+        app.add_plugins(export_plugin);
+        app.add_systems(
+            Update,
+            setup_image_export.run_if(once_after_real_delay(Duration::from_secs(1))),
+        );
+    }
 
     app.run();
 

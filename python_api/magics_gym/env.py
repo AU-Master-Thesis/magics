@@ -40,7 +40,16 @@ class MagicsEnv(gym.Env):
         self.client = MagicsClient(host=host, port=port)
         
         # Activate the API
-        self.client.set_api_active(True)
+        try:
+            # Check if API is already active
+            if not self.client.is_api_active():
+                self.client.set_api_active(True)
+                print("API activated successfully")
+        except MagicsError as e:
+            print(f"Error checking API status: {e}")
+            # Try to activate anyway
+            self.client.set_api_active(True)
+            print("API activation attempted")
         
         # Initialize state caches
         self.agent_states = {}

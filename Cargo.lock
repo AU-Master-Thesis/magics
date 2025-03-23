@@ -3876,20 +3876,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "magics_python"
-version = "2.0.0"
-dependencies = [
- "anyhow",
- "bevy",
- "magics",
- "ndarray",
- "numpy",
- "pyo3",
- "pyo3-build-config",
- "thiserror",
-]
-
-[[package]]
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4252,21 +4238,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.64",
-]
-
-[[package]]
-name = "numpy"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96b0fee4571867d318651c24f4a570c3f18408cf95f16ccb576b3ce85496a46e"
-dependencies = [
- "libc",
- "ndarray",
- "num-complex",
- "num-integer",
- "num-traits",
- "pyo3",
- "rustc-hash",
 ]
 
 [[package]]

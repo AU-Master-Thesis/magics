@@ -74,6 +74,7 @@ impl MetricsPlugin {
         config: Res<Config>,
         mut ui_state: ResMut<UiState>,
         mut current_pos: Local<egui::Pos2>,
+        time_virtual: Res<Time<Virtual>>,
     ) {
         if !ui_state.metrics_window_visible {
             return;
@@ -111,6 +112,9 @@ impl MetricsPlugin {
                         ui.label(format!("{}: {}", name, value));
                     }
                 }
+                
+                // Add virtual time display
+                ui.label(format!("Virtual Time: {:.2}s", time_virtual.elapsed_seconds()));
 
                 // ui.label(format!("{}", egui::special_emojis::GITHUB));
 

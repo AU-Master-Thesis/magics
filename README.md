@@ -15,9 +15,6 @@
       - [Nix/NixOS](#nixnixos)
     - [Building](#building)
     - [Running the Simulator](#running-the-simulator)
-    - [Python API](#python-api)
-      - [Building the Python API](#building-the-python-api)
-      - [Using the Python API](#using-the-python-api)
     - [WSL Configuration (windows 10.)](#wsl-configuration-windows-10)
   - [Keyboard Controls](#keyboard-controls)
     - [UI Controls](#ui-controls)
@@ -57,7 +54,7 @@ Magics is a Rust implementation and improvement of the Gaussian Belief Propagati
 
 ### Prerequisites
 
-- Rust toolchain (version 1.78+) (Nightly)
+- Rust toolchain (version 1.87) (Nightly tested)
 - Cargo build system
 - External dependencies for graphics (see [External Dependencies](#external-dependencies))
 
@@ -102,58 +99,6 @@ RUSTFLAGS=-Awarnings cargo run --release --bin magics --features magics/api
 
 > **Important**: When specifying a scenario, use the exact name as shown in the `--list-scenarios` output. Do not use file paths.
 
-### Python API
-
-Magics includes a Python API that allows controlling the simulation from Python, particularly for reinforcement learning applications. The API is implemented using PyO3 and provides an OpenAI Gym environment.
-
-#### Building the Python API
-
-1. Build the Python bindings:
-   ```bash
-   cd crates/magics_python
-   maturin develop
-   ```
-
-2. Install the OpenAI Gym environment:
-   ```bash
-   cd crates/magics_python/python
-   pip install -e .
-   ```
-
-#### Using the Python API
-
-1. Run the simulation with the API feature enabled:
-   ```bash
-   RUSTFLAGS=-Awarnings cargo run --release --bin magics --features api
-   ```
-
-2. Use the API in Python:
-   ```python
-   import magics_gym
-   
-   # Create the environment
-   env = magics_gym.MagicsEnv()
-   
-   # Reset the environment
-   observation = env.reset()
-   
-   # Run for 100 steps
-   for i in range(100):
-       # Sample a random action (factor weights)
-       action = env.action_space.sample()
-       
-       # Take a step in the environment
-       observation, reward, done, info = env.step(action)
-       
-       if done:
-           break
-   
-   # Close the environment
-   env.close()
-   ```
-
-See the `crates/magics_python/README.md` file for more details on the Python API.
-
 ### WSL Configuration (windows 10.)
 
 When running in Windows Subsystem for Linux (WSL), you need to configure an X server:
@@ -173,45 +118,45 @@ export WINIT_UNIX_BACKEND=x11
 
 ### UI Controls
 
-| Key | Function |
-|-----|----------|
-| H | Toggle Left Panel |
-| L | Toggle Right Panel |
-| K | Toggle Top Panel |
-| J | Toggle Bottom Panel |
-| D | Toggle Metrics Window |
-| U | Change Scale Kind |
+| Key | Function              |
+| --- | --------------------- |
+| H   | Toggle Left Panel     |
+| L   | Toggle Right Panel    |
+| K   | Toggle Top Panel      |
+| J   | Toggle Bottom Panel   |
+| D   | Toggle Metrics Window |
+| U   | Change Scale Kind     |
 
 ### Camera Controls
 
-| Key/Mouse | Function |
-|-----------|----------|
-| Arrow Keys | Move Camera |
-| C | Toggle Camera Movement Mode (Pan/Orbit) |
-| Tab | Switch Camera |
-| R | Reset Camera |
-| Mouse Wheel | Zoom In/Out |
+| Key/Mouse                          | Function                                     |
+| ---------------------------------- | -------------------------------------------- |
+| Arrow Keys                         | Move Camera                                  |
+| C                                  | Toggle Camera Movement Mode (Pan/Orbit)      |
+| Tab                                | Switch Camera                                |
+| R                                  | Reset Camera                                 |
+| Mouse Wheel                        | Zoom In/Out                                  |
 | Left Mouse Button + Mouse Movement | Move Camera (Pan or Orbit depending on mode) |
-| Middle Mouse Button | Pan Camera |
-| Right-click Drag | Rotate Camera |
+| Middle Mouse Button                | Pan Camera                                   |
+| Right-click Drag                   | Rotate Camera                                |
 
 ### Simulation Controls
 
-| Key | Function |
-|-----|----------|
-| F5 | Reload Current Simulation |
-| F6 | Load Next Simulation |
-| F4 | Load Previous Simulation |
-| Space | Pause/Play Simulation |
+| Key   | Function                  |
+| ----- | ------------------------- |
+| F5    | Reload Current Simulation |
+| F6    | Load Next Simulation      |
+| F4    | Load Previous Simulation  |
+| Space | Pause/Play Simulation     |
 
 ### General Controls
 
-| Key | Function |
-|-----|----------|
-| T | Cycle Theme |
-| G | Export Graph |
-| Ctrl+S | Save Settings |
-| Ctrl+P | Take Screenshot |
+| Key    | Function         |
+| ------ | ---------------- |
+| T      | Cycle Theme      |
+| G      | Export Graph     |
+| Ctrl+S | Save Settings    |
+| Ctrl+P | Take Screenshot  |
 | Ctrl+Q | Quit Application |
 
 ## Available Scenarios
@@ -230,20 +175,20 @@ Use the `--list-scenarios` command to see all available scenarios.
 
 Most dependencies are available through the `crates.io` registry and should work on all major platforms supported by the `cargo` build tool. However, some external dependencies are needed for the graphical session:
 
-| Dependencies | Platform Specific |
-|--------------|----------|
-| `udev` | Linux |
-| `alsa-lib` | Linux |
-| `vulkan-loader` |  |
-| `xorg.libX11` | Linux + X11 |
-| `xorg.libXcursor` | Linux + X11 |
-| `xorg.libXi` | Linux + X11 |
-| `xorg.libXrandr` | Linux + X11 |
-| `libxkbcommon` | Linux + X11 |
-| `wayland` | Linux + Wayland |
-| `egl-wayland` | Linux + Wayland |
-| `freetype` | |
-| `fontconfig` |  |
+| Dependencies      | Platform Specific |
+| ----------------- | ----------------- |
+| `udev`            | Linux             |
+| `alsa-lib`        | Linux             |
+| `vulkan-loader`   |                   |
+| `xorg.libX11`     | Linux + X11       |
+| `xorg.libXcursor` | Linux + X11       |
+| `xorg.libXi`      | Linux + X11       |
+| `xorg.libXrandr`  | Linux + X11       |
+| `libxkbcommon`    | Linux + X11       |
+| `wayland`         | Linux + Wayland   |
+| `egl-wayland`     | Linux + Wayland   |
+| `freetype`        |                   |
+| `fontconfig`      |                   |
 
 The exact name of the dependency might vary between platforms, and even between Linux distributions. Consult the respective package management tool used on your system for their exact names.
 

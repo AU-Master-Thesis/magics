@@ -1,6 +1,6 @@
-# cargo-features = [
-#   "codegen-backend",
-# ]
+cargo-features = [
+  "codegen-backend",
+]
 
 [workspace]
 resolver = "2" # Important! wgpu/bevy needs this!
@@ -13,7 +13,6 @@ members = [
   "crates/gbp_multivariate_normal",
   # "crates/bevy_undo_redo",
   "crates/magics",
-  "crates/magics_python",
   "crates/bevy_notify",
   "crates/units",
   "crates/repeating_array",
@@ -54,7 +53,7 @@ serde = { version = "1.0", features = [
   "derive",
 ] }
 bevy = { version = "0.13", default-features = true, features = [
-  # "wayland",
+  "wayland",
   # "dynamic_linking",
 ] }
 derive_more = "0.99.17"
@@ -142,7 +141,7 @@ incremental = true
 [profile.dev]
 opt-level   = 1
 incremental = true
-# codegen-backend = "cranelift" # requires nightly
+#codegen-backend = "cranelift" # requires nightly
 # debug       = false
 # strip = "debuginfo"
 

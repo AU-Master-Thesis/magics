@@ -1,15 +1,15 @@
 # environment = "junction"
-environment_image = "junction_twoway"
-environment       = "./config/scenarios/Screenshot/environment.yaml"
-formation_group   = "./config/scenarios/Screenshot/formation.yaml"
+environment_image = "circle_cluttered"
+environment       = "./config/scenarios/VaryingNetworkConnectivityExperiment/environment.yaml"
+formation_group   = "./config/scenarios/VaryingNetworkConnectivityExperiment/formation.yaml"
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance    = 150.0
+default-cam-distance    = 275.0
 
 [visualisation.uncertainty]
 max-radius = 2.5
-scale      = 30.0
+scale      = 300.0
 
 [visualisation.height]
 objects    = 0.5
@@ -19,11 +19,10 @@ height-map = 1.0
 robots                             = true
 communication-graph                = false
 predicted-trajectories             = false
-waypoints                          = true
+waypoints                          = false
 uncertainty                        = false
 paths                              = false
-generated-map                      = true
-height-map                         = false
+generated-map                      = false
 sdf                                = false
 communication-radius               = false
 obstacle-factors                   = false
@@ -35,13 +34,12 @@ environment-colliders              = false
 robot-robot-collisions             = false
 robot-environment-collisions       = false
 
-
 [gbp]
 sigma-pose-fixed        = 1e-15
-sigma-factor-dynamics   = 0.5
+sigma-factor-dynamics   = 1.0
 sigma-factor-interrobot = 0.005
 sigma-factor-obstacle   = 0.005
-sigma-factor-tracking   = 0.01
+sigma-factor-tracking   = 0.1
 lookahead-multiple      = 3
 
 [gbp.iteration-schedule]
@@ -50,27 +48,30 @@ external = 10
 schedule = "interleave-evenly"
 
 [robot]
-planning-horizon                       = 2.0
+# planning-horizon                       = 7.0
+planning-horizon                       = 13.33
 target-speed                           = 15.0
 inter-robot-safety-distance-multiplier = 2.2
 
 [robot.radius]
-min = 2.5
-max = 2.5
+min = 2.0
+max = 3.0
 
 [robot.communication]
-radius       = 20.0
+radius = 80.0
 failure-rate = 0.0
 
 [simulation]
-max-time           = 61.0
-time-scale         = 5.0
+# t0                                        = 0.1
+max-time           = 10000.0
+time-scale         = 1.0
 manual-step-factor = 1
 hz                 = 10.0
 # world-size                                = 100.0
-prng-seed                                 = 805
+prng-seed = 805
 pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = true
+exit-application-on-scenario-finished     = true
 
 [rrt]
 max-iterations       = 1000000
