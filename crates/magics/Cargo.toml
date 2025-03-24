@@ -8,6 +8,34 @@ authors.workspace      = true
 rust-version.workspace = true
 license.workspace      = true
 
+# Add optimization profiles for faster compilation
+[profile.dev]
+opt-level = 1            # Basic optimizations but fast compilation
+debug = true             # Full debug info
+codegen-units = 256      # Increase parallelism
+incremental = true       # Enable incremental compilation
+debug-assertions = true  # Keep debug assertions
+
+[profile.dev.package."*"]
+opt-level = 1            # Use optimization for all dependencies
+
+# Profile for faster testing
+[profile.test]
+opt-level = 1            # Basic optimizations for tests
+debug = true             # Full debug info
+codegen-units = 256      # Increase parallelism
+
+# Release profile optimizations - full optimization
+[profile.release]
+opt-level = 3            # Maximum optimization
+codegen-units = 1        # Single unit compilation for maximum cross-module optimization
+lto = "fat"              # Full link-time optimization for better performance
+strip = "symbols"        # Strip symbols from binary to reduce size
+debug            = false
+debug-assertions = false
+panic            = "abort"
+rpath            = false
+incremental = true
 
 [features]
 dev = [

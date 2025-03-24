@@ -49,12 +49,46 @@ def test_direct_api():
             agent_states = client.get_agent_state()
             print(f"There are {len(agent_states)} agents in the simulation")
             
-            # For each agent, print position and velocity
+            # For each agent, print detailed state information
             for agent_id, state in agent_states.items():
                 print(f"Agent {agent_id}:")
                 print(f"  Position: {state['position']}")
                 print(f"  Velocity: {state['velocity']}")
                 print(f"  Connected to {len(state.get('connected_neighbors', []))} neighbors")
+                
+                # Print planning strategy
+                if 'planning_strategy' in state:
+                    from magics_client import PlanningStrategy
+                    strategy = state['planning_strategy']
+                    if isinstance(strategy, PlanningStrategy):
+                        print(f"  Planning Strategy: {strategy.name}")
+                    else:
+                        print(f"  Planning Strategy: {strategy}")
+                
+                # Print mission state
+                if 'mission_state' in state:
+                    from magics_client import MissionState
+                    mission_state = state['mission_state']
+                    if isinstance(mission_state, dict):
+                        if 'type' in mission_state:
+                            mission_type = mission_state['type']
+                            print(f"  Mission State: {mission_type.name}")
+                            if mission_type == MissionState.IDLE and 'waiting_for_waypoints' in mission_state:
+                                print(f"    Waiting for waypoints: {mission_state['waiting_for_waypoints']}")
+                        elif 'Idle' in mission_state:
+                            print(f"  Mission State: IDLE")
+                            print(f"    Waiting for waypoints: {mission_state['Idle'].get('waiting_for_waypoints', False)}")
+                    else:
+                        print(f"  Mission State: {mission_state}")
+                
+                # Print mission progress if available
+                if 'mission_progress' in state:
+                    progress = state['mission_progress']
+                    print(f"  Mission Progress:")
+                    print(f"    Started at: {progress.get('started_at', 'N/A')}")
+                    print(f"    Finished at: {progress.get('finished_at', 'N/A')}")
+                    print(f"    Active route: {progress.get('active_route', 0)}/{progress.get('total_routes', 0)}")
+                    print(f"    Waypoints: {progress.get('total_waypoints', 0) - progress.get('remaining_waypoints', 0)}/{progress.get('total_waypoints', 0)}")
         except MagicsError as e:
             print(f"Error getting agent states: {e}")
         
@@ -126,9 +160,28 @@ def test_gym_env():
                     # Print results
                     print(f"  Reward: {reward}")
                     print(f"  Terminated: {terminated}")
-                    print(f"  Agent positions:")
-                    for j, pos in enumerate(observation["agents"]["positions"]):
-                        print(f"    Agent {j}: {pos}")
+                    
+                    # Print agent information including new fields
+                    print(f"  Agent information:")
+                    for j in range(len(observation["agents"]["positions"])):
+                        print(f"    Agent {j}:")
+                        print(f"      Position: {observation['agents']['positions'][j]}")
+                        print(f"      Velocity: {observation['agents']['velocities'][j]}")
+                        
+                        # Print planning strategy
+                        strategy_value = observation["agents"]["planning_strategies"][j]
+                        strategy_name = "RrtStar" if strategy_value == 1 else "OnlyLocal"
+                        print(f"      Planning Strategy: {strategy_name} ({strategy_value})")
+                        
+                        # Print mission state
+                        mission_value = observation["agents"]["mission_states"][j]
+                        mission_name = ["Idle", "Active", "Completed"][mission_value]
+                        print(f"      Mission State: {mission_name} ({mission_value})")
+                        
+                        # Print waiting for waypoints flag
+                        if mission_value == 0:  # If Idle
+                            waiting = observation["agents"]["waiting_for_waypoints"][j]
+                            print(f"      Waiting for waypoints: {bool(waiting)}")
                     
                     # Break if the episode is done
                     if terminated or truncated:

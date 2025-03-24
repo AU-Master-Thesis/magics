@@ -26,8 +26,6 @@
   - [Troubleshooting](#troubleshooting)
     - [Common Issues](#common-issues)
       - [Display Issues in WSL](#display-issues-in-wsl)
-- ["wayland",](#wayland)
-- ["dynamic\_linking",](#dynamic_linking)
       - [ld linking problem in WSL](#ld-linking-problem-in-wsl)
       - [Scenario Loading Issues](#scenario-loading-issues)
       - [Performance Issues](#performance-issues)
@@ -90,8 +88,8 @@ RUSTFLAGS=-Awarnings cargo run --release --bin magics
 RUSTFLAGS=-Awarnings cargo run --release --bin magics -- --list-scenarios
 
 # Run a specific scenario
-RUSTFLAGS=-Awarnings cargo run --release --bin magics -- -i <SCENARIO_NAME> # fx. "Circle Experiment"
-RUSTFLAGS=-Awarnings cargo run --release --bin magics -- --initial-scenario <SCENARIO_NAME> # fx. "Circle Experiment"
+RUSTFLAGS=-Awarnings cargo run --release --bin magics -- -i <SCENARIO_NAME> # fx. "CircleExperiment"
+RUSTFLAGS=-Awarnings cargo run --release --bin magics -- --initial-scenario <SCENARIO_NAME> # fx. "CircleExperiment"
 
 # Run with Python API enabled
 RUSTFLAGS=-Awarnings cargo run --release --bin magics --features api
@@ -200,12 +198,13 @@ The exact name of the dependency might vary between platforms, and even between 
 - **Problem**: "Failed to build event loop: Os(OsError { ... error: WaylandError(Connection(NoCompositor)) })"
 - **Solution**: Set `export DISPLAY=:0` and `export WINIT_UNIX_BACKEND=x11` and in `Cargo.toml` under `bevy` remove `wayland`:
 
+```
 bevy = { version = "0.13", default-features = true, features = [
   # "wayland",
   # "dynamic_linking",
 ] }
 derive_more = "0.99.17"
-
+```
 #### ld linking problem in WSL
 - **Problem**: "`cannot find 'ld'`",
 - **Solution**: You will have to go into .cargo and disable the use of mold:

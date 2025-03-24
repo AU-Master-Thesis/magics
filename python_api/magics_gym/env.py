@@ -97,7 +97,13 @@ class MagicsEnv(gym.Env):
             ),
             "connectivity": spaces.Box(
                 low=0, high=1, shape=(num_agents, num_agents), dtype=np.int32
-            )
+            ),
+            # Add planning strategy (0=OnlyLocal, 1=RrtStar)
+            "planning_strategies": spaces.MultiDiscrete([2] * num_agents),
+            # Add mission state (0=Idle, 1=Active, 2=Completed)
+            "mission_states": spaces.MultiDiscrete([3] * num_agents),
+            # Add waiting_for_waypoints flag for Idle state
+            "waiting_for_waypoints": spaces.MultiBinary(num_agents)
         })
         
         obstacle_space = spaces.Box(
@@ -134,6 +140,9 @@ class MagicsEnv(gym.Env):
         positions = np.zeros((num_agents, 2), dtype=np.float32)
         velocities = np.zeros((num_agents, 2), dtype=np.float32)
         connectivity = np.zeros((num_agents, num_agents), dtype=np.int32)
+        planning_strategies = np.zeros(num_agents, dtype=np.int32)
+        mission_states = np.zeros(num_agents, dtype=np.int32)
+        waiting_for_waypoints = np.zeros(num_agents, dtype=np.int32)
         
         # Fill arrays with agent data
         for i, agent_id in enumerate(agent_ids):
@@ -147,6 +156,49 @@ class MagicsEnv(gym.Env):
                     if neighbor_id in agent_ids:
                         j = agent_ids.index(neighbor_id)
                         connectivity[i, j] = 1
+            
+            # Process planning strategy
+            if "planning_strategy" in agent_state:
+                from magics_client import PlanningStrategy
+                strategy = agent_state["planning_strategy"]
+                if isinstance(strategy, str):
+                    # Handle string representation
+                    if strategy == "RrtStar":
+                        planning_strategies[i] = 1
+                else:
+                    # Handle enum representation
+                    if strategy == PlanningStrategy.RRT_STAR:
+                        planning_strategies[i] = 1
+            
+            # Process mission state
+            if "mission_state" in agent_state:
+                from magics_client import MissionState
+                mission_state = agent_state["mission_state"]
+                
+                if isinstance(mission_state, dict):
+                    # Handle structured mission state
+                    if "type" in mission_state:
+                        mission_type = mission_state["type"]
+                        if mission_type == MissionState.ACTIVE:
+                            mission_states[i] = 1
+                        elif mission_type == MissionState.COMPLETED:
+                            mission_states[i] = 2
+                        elif mission_type == MissionState.IDLE:
+                            mission_states[i] = 0
+                            # Check if waiting for waypoints
+                            if mission_state.get("waiting_for_waypoints", False):
+                                waiting_for_waypoints[i] = 1
+                    elif "Idle" in mission_state:
+                        mission_states[i] = 0
+                        # Check if waiting for waypoints
+                        if mission_state["Idle"].get("waiting_for_waypoints", False):
+                            waiting_for_waypoints[i] = 1
+                elif isinstance(mission_state, str):
+                    # Handle string representation
+                    if mission_state == "Active":
+                        mission_states[i] = 1
+                    elif mission_state == "Completed":
+                        mission_states[i] = 2
         
         # Get obstacle and boundary information
         obstacles = self.environment_state.get("obstacles", np.zeros((0, 2), dtype=np.float32))
@@ -160,7 +212,10 @@ class MagicsEnv(gym.Env):
             "agents": {
                 "positions": positions,
                 "velocities": velocities,
-                "connectivity": connectivity
+                "connectivity": connectivity,
+                "planning_strategies": planning_strategies,
+                "mission_states": mission_states,
+                "waiting_for_waypoints": waiting_for_waypoints
             },
             "obstacles": obstacles,
             "boundaries": boundaries

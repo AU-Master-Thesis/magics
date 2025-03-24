@@ -10,7 +10,21 @@ import uuid
 import json
 import zmq
 import numpy as np
-from typing import Dict, List, Optional, Any, Tuple
+import enum
+from typing import Dict, List, Optional, Any, Tuple, Union
+
+
+class PlanningStrategy(enum.Enum):
+    """Planning strategy used by an agent."""
+    ONLY_LOCAL = "OnlyLocal"
+    RRT_STAR = "RrtStar"
+
+
+class MissionState(enum.Enum):
+    """Mission state for an agent."""
+    IDLE = "Idle"
+    ACTIVE = "Active"
+    COMPLETED = "Completed"
 
 
 class MagicsError(Exception):
@@ -94,7 +108,22 @@ class MagicsClient:
         Get the state of all agents in the simulation.
         
         Returns:
-            Dictionary mapping agent IDs to agent states
+            Dictionary mapping agent IDs to agent states with the following fields:
+            - position: 2D position of the agent [x, y]
+            - velocity: 2D velocity of the agent [vx, vy]
+            - factor_graph_state: State of the agent's factor graph
+            - connected_neighbors: List of connected neighbor IDs
+            - mission_state: Current mission state (MissionState enum)
+            - planning_strategy: Planning strategy used (PlanningStrategy enum)
+            - radius: Radius of the agent
+            - communication_active: Whether the agent's communication is active
+            - communication_radius: Communication radius of the agent
+            - target_speed: Target speed of the agent
+            - current_waypoint_index: Index of the current waypoint
+            - next_waypoint: Information about the next waypoint
+            - goal_point: Position of the goal point
+            - mission_progress: Mission progress information
+            - factor_details: Detailed information about factor graph components
         """
         data = self._send_request("GetAgentState")
         
@@ -113,6 +142,48 @@ class MagicsClient:
                 state["position"] = np.array(state["position"], dtype=np.float32)
             if "velocity" in state:
                 state["velocity"] = np.array(state["velocity"], dtype=np.float32)
+            
+            # Process planning strategy
+            if "planning_strategy" in state:
+                strategy_str = state["planning_strategy"]
+                try:
+                    state["planning_strategy"] = PlanningStrategy(strategy_str)
+                except ValueError:
+                    # If the value doesn't match an enum, keep the original string
+                    print(f"Invalid planning strategy: {strategy_str}")
+            
+            # Process mission state
+            if "mission_state" in state:
+                mission_state = state["mission_state"]
+                if isinstance(mission_state, dict) and "Idle" in mission_state:
+                    # Handle Idle state with waiting_for_waypoints field
+                    state["mission_state"] = {
+                        "type": MissionState.IDLE,
+                        "waiting_for_waypoints": mission_state["Idle"].get("waiting_for_waypoints", False)
+                    }
+                else:
+                    # Handle Active and Completed states
+                    try:
+                        state["mission_state"] = {"type": MissionState(mission_state)}
+                    except ValueError:
+                        # If the value doesn't match an enum, keep the original
+                        print(f"Invalid mission state: {mission_state}")
+            
+            # Convert goal_point to numpy array if present
+            if "goal_point" in state and state["goal_point"] is not None:
+                state["goal_point"] = np.array(state["goal_point"], dtype=np.float32)
+            
+            # Convert next_waypoint to numpy arrays if present
+            if "next_waypoint" in state and state["next_waypoint"] is not None:
+                if "position" in state["next_waypoint"]:
+                    state["next_waypoint"]["position"] = np.array(
+                        state["next_waypoint"]["position"], dtype=np.float32
+                    )
+                if "velocity" in state["next_waypoint"]:
+                    state["next_waypoint"]["velocity"] = np.array(
+                        state["next_waypoint"]["velocity"], dtype=np.float32
+                    )
+            
             result[agent_id] = state
         
         return result

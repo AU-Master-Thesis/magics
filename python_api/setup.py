@@ -7,9 +7,9 @@ setup(
     author="Magics Team",
     packages=find_packages(),
     install_requires=[
-        "numpy>=1.19.0",
+        "numpy>=2.2.4",
         "pyzmq>=22.0.0",
         "gymnasium>=0.26.0",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.10",
 )
