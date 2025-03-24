@@ -142,6 +142,74 @@ pub struct SerializedAgentState {
     
     /// IDs of connected neighbors
     pub connected_neighbors: Vec<u32>,
+    
+    /// Current mission state
+    pub mission_state: SerializedMissionState,
+    
+    /// Planning strategy used by the agent
+    pub planning_strategy: String,
+    
+    /// Radius of the agent
+    pub radius: f32,
+    
+    /// Whether the agent's communication is active
+    pub communication_active: bool,
+    
+    /// Communication radius of the agent
+    pub communication_radius: f32,
+    
+    /// Target speed of the agent
+    pub target_speed: f32,
+    
+    /// Index of the current waypoint
+    pub current_waypoint_index: Option<usize>,
+    
+    /// Information about the next waypoint
+    pub next_waypoint: Option<SerializedStateVectorInfo>,
+    
+    /// Position of the goal point
+    pub goal_point: Option<[f32; 2]>,
+    
+    /// Mission progress information
+    pub mission_progress: SerializedMissionProgress,
+}
+
+/// Serialized mission state for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", content = "content")]
+pub enum SerializedMissionState {
+    /// Agent is idle, possibly waiting for waypoints.
+    Idle { waiting_for_waypoints: bool },
+    /// Agent is actively following a route.
+    Active,
+    /// Agent has completed its mission.
+    Completed,
+}
+
+/// Serialized state vector information for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedStateVectorInfo {
+    /// Position component of the state vector.
+    pub position: [f32; 2],
+    /// Velocity component of the state vector.
+    pub velocity: [f32; 2],
+}
+
+/// Serialized mission progress information for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedMissionProgress {
+    /// Time when the mission started.
+    pub started_at: f64,
+    /// Time when the mission finished, if completed.
+    pub finished_at: Option<f64>,
+    /// Index of the active route.
+    pub active_route: usize,
+    /// Total number of routes.
+    pub total_routes: usize,
+    /// Total number of waypoints.
+    pub total_waypoints: usize,
+    /// Number of remaining waypoints.
+    pub remaining_waypoints: usize,
 }
 
 /// Serialized factor graph state for API communication.
@@ -197,6 +265,40 @@ pub enum Error {
 
 impl From<&crate::api::state::AgentState> for SerializedAgentState {
     fn from(state: &crate::api::state::AgentState) -> Self {
+        // Convert mission state
+        let mission_state = match state.mission_state {
+            crate::api::state::MissionState::Idle { waiting_for_waypoints } => {
+                SerializedMissionState::Idle { waiting_for_waypoints }
+            }
+            crate::api::state::MissionState::Active => SerializedMissionState::Active,
+            crate::api::state::MissionState::Completed => SerializedMissionState::Completed,
+        };
+
+        // Convert planning strategy
+        let planning_strategy = match state.planning_strategy {
+            crate::api::state::PlanningStrategy::OnlyLocal => "OnlyLocal".to_string(),
+            crate::api::state::PlanningStrategy::RrtStar => "RrtStar".to_string(),
+        };
+
+        // Convert next waypoint if present
+        let next_waypoint = state.next_waypoint.as_ref().map(|wp| SerializedStateVectorInfo {
+            position: [wp.position.x, wp.position.y],
+            velocity: [wp.velocity.x, wp.velocity.y],
+        });
+
+        // Convert goal point if present
+        let goal_point = state.goal_point.map(|p| [p.x, p.y]);
+
+        // Convert mission progress
+        let mission_progress = SerializedMissionProgress {
+            started_at: state.mission_progress.started_at,
+            finished_at: state.mission_progress.finished_at,
+            active_route: state.mission_progress.active_route,
+            total_routes: state.mission_progress.total_routes,
+            total_waypoints: state.mission_progress.total_waypoints,
+            remaining_waypoints: state.mission_progress.remaining_waypoints,
+        };
+
         SerializedAgentState {
             position: [state.position.x, state.position.y],
             velocity: [state.velocity.x, state.velocity.y],
@@ -206,6 +308,16 @@ impl From<&crate::api::state::AgentState> for SerializedAgentState {
                 factor_count: state.factor_graph_state.factor_count,
             },
             connected_neighbors: state.connected_neighbors.iter().map(|e| e.index()).collect(),
+            mission_state,
+            planning_strategy,
+            radius: state.radius,
+            communication_active: state.communication_active,
+            communication_radius: state.communication_radius,
+            target_speed: state.target_speed,
+            current_waypoint_index: state.current_waypoint_index,
+            next_waypoint,
+            goal_point,
+            mission_progress,
         }
     }
 }

@@ -18,17 +18,17 @@
   - [x] Fix API plugin conditional loading
   - [x] Simplify API stepping approach (remove manual stepping)
   - [x] Fix virtual time advancement using FixedUpdate counting
-  - [ ] Add config Hz access via API
+  - [x] Add config Hz access via API
   - [ ] Expand agent and environment data extraction
+    - [x] Define expanded state structures
+    - [x] Implement Default trait for all structures
+    - [x] Add convenience methods to ApiState
+    - [ ] Populate all fields with actual data from ECS
 - [ ] OpenAI Gym Environment
   - [x] Create Python client
   - [ ] Implement observation and action spaces
   - [ ] Create step, reset, render methods
   - [ ] Add reward calculation
-- [ ] Scenario Organization
-  - [x] Rename scenario folders to PascalCase (no spaces)
-  - [x] Update all references in config files
-  - [x] Test to ensure all scenarios load correctly
 
 ## Pending Features
 - [ ] Per-agent Factor Graph Weights
@@ -45,9 +45,9 @@
 - [ ] Add any missing state information needed for ML algorithms
 
 ### 2. Add Config Hz Access
-- [ ] Implement API endpoint to get the simulation Hz
-- [ ] Add functionality to set the Hz if needed
-- [ ] Update message protocol to support these operations
+- [x] Implement API endpoint to get the simulation Hz
+- [x] Add functionality to set the Hz if needed
+- [x] Update message protocol to support these operations
 
 ### 3. Complete OpenAI Gym Integration
 - [ ] Implement observation and action spaces

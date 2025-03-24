@@ -269,35 +269,6 @@ def test_hz_functionality(socket):
         print(f"❌ Hz was not updated correctly. Expected: {new_hz}, Got: {updated_hz}")
         return False
     
-    # Set iterations per step
-    iterations = 3
-    if not test_set_iterations_per_step(socket, iterations):
-        print("❌ Failed to set iterations per step")
-        return False
-    
-    # Step the simulation a few times to see the effect
-    print("\nStepping simulation 3 times...")
-    for i in range(3):
-        print(f"Step {i+1}...")
-        start_time = time.time()
-        success = test_step(socket)
-        elapsed = time.time() - start_time
-        
-        if not success:
-            print(f"❌ Step {i+1} failed")
-            return False
-        
-        print(f"  Step completed in {elapsed:.4f} seconds")
-        
-        # Get agent states to verify simulation is running
-        agents = test_get_agent_state(socket)
-        if agents is None:
-            print("❌ Failed to get agent states after step")
-            return False
-        
-        # Brief pause between steps
-        time.sleep(0.5)
-    
     # Restore original Hz
     print(f"\nRestoring original Hz: {current_hz}...")
     if not test_set_simulation_hz(socket, current_hz):

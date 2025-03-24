@@ -1,34 +1,44 @@
 # Active Context
 
 ## Current Development Focus
-The current development focus is on three main areas:
+The current development focus is on implementing API expansions to support reinforcement learning research:
 
-1. **Expanding API Functionality**: Enhancing the API to expose all agent and environment data needed for reinforcement learning, and adding access to configuration parameters like simulation Hz.
+1. **Expanding State Structures**: Enhancing the AgentState, FactorGraphState, and EnvironmentState structures to expose comprehensive agent and environment data needed for reinforcement learning.
 
-2. **OpenAI Gym Integration**: Completing the Python API integration with OpenAI Gym, including observation and action spaces, step/reset methods, and reward calculation.
+2. **Implementing Serialization Protocol**: Updating the message protocol to support serialization of expanded state structures between Rust and Python.
 
-3. **API Data Flow Optimization**: Ensuring efficient and accurate data extraction and serialization between the Rust simulation and Python client.
+3. **Enhancing State Extraction**: Modifying the extract_state function to pull detailed agent and environment information from Bevy ECS components.
+
+4. **Updating Python Client**: Enhancing the Python client to handle the expanded state information and provide helper methods for accessing specific data.
 
 ## Recent Changes
-- Simplified the API stepping approach by removing manual stepping and standardizing on FixedUpdate-based stepping
-- Fixed virtual time advancement by using FixedUpdate counting for consistent step timing
-- Renamed scenario folders to PascalCase (no spaces) for better cross-platform compatibility
-- Updated all references in config files to match the new scenario folder names
-- Fixed environment loading issues in scenarios
+- Implemented the core state structure expansions for AgentState, FactorGraphState, and EnvironmentState
+- Added Default implementations for all new state structures to simplify instantiation
+- Created helper methods in ApiState for convenient access to entity and environment data
+- Added config Hz access via API with proper updating of both Config and Time<Fixed> resources
+- Enhanced plugin.rs to use default-initialized structures as starting points for data extraction
+- Added placeholders and TODOs in extract_state for full implementation of data extraction
 
 ## Next Steps
-1. **Expand API Data Extraction**
-   - Ensure all agent data is properly exposed through the API
-   - Verify environment data extraction is complete and accurate
-   - Add any missing state information needed for ML algorithms
+1. **Complete API Data Extraction**
+   - Extract actual data for all new state fields from ECS components
+   - Connect factor graph details to actual factor graph data
+   - Implement extraction of mission state and planning strategy
+   - Extract detailed environment information (SDF resolution, density maps)
 
-2. **Add Config Hz Access**
-   - Implement API endpoint to get the simulation Hz
-   - Add functionality to set the Hz if needed
-   - Update message protocol to support these operations
+2. **Implement Message Protocol Updates**
+   - Create serialized versions of all new state structures
+   - Ensure JSON compatibility for all types
+   - Implement From trait conversions for serialization/deserialization
 
-3. **Complete OpenAI Gym Integration**
-   - Implement observation and action spaces
+3. **Update Python Client**
+   - Enhance MagicsClient to handle expanded state information
+   - Create helper methods for accessing specific data elements
+   - Implement NumPy array conversions for numerical data
+   - Add proper type hints and documentation
+
+4. **Complete OpenAI Gym Integration**
+   - Implement observation and action spaces based on expanded state
    - Create step, reset, and render methods
    - Add reward calculation
    - Ensure proper state conversion between Rust and Python

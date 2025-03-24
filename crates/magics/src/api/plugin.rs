@@ -7,20 +7,25 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use bevy::prelude::*;
+use std::sync::RwLock;
 use gbp_config::Config;
 
 use super::{
     state::{
-        AgentState, ApiState, EnvironmentState, FactorGraphState, FactorWeights, WeightUpdate,
+        AgentState, ApiState, EnvironmentState, FactorCounts, FactorDetails, FactorGraphState, 
+        FactorWeights, MessageStats, MissionProgress, MissionState, PlanningStrategy, 
+        StateVectorInfo, WeightUpdate,
     },
     zmq_server::{ZmqServer, DEFAULT_PORT},
 };
 use crate::{
     environment::ObstacleMarker,
     factorgraph::factorgraph::FactorGraph,
+    movement::Velocity,
     pause_play::PausePlay,
-    planner::robot::{RobotConnections, StateVector},
+    planner::robot::{Mission, RadioAntenna, RobotConnections, Radius, StateVector},
 };
+use gbp_config::formation;
 
 /// Plugin for API integration.
 pub struct ApiPlugin {
@@ -224,49 +229,202 @@ fn complete_step_in_fixed_update(
 /// System that extracts the state of the simulation for the API.
 fn extract_state(
     api_state: Res<ApiState>,
+    // all_entities: Query<Entity>,
+    // transforms: Query<&Transform>,
+    // velocities: Query<&Velocity>,
+    // factor_graphs: Query<&FactorGraph>,
+    // connections: Query<&RobotConnections>,
+    // missions: Query<&Mission>,
+    // planning_strategies: Query<&formation::PlanningStrategy>,
+    // radiuses: Query<&Radius>,
+    // antennas: Query<&RadioAntenna>,
     robots: Query<(
         Entity,
         &Transform,
-        &StateVector,
+        Option<&Velocity>,  // Use Velocity instead of StateVector
         &FactorGraph,
         &RobotConnections,
+        Option<&Mission>,
+        Option<&formation::PlanningStrategy>,
+        Option<&Radius>,
+        Option<&RadioAntenna>,
     )>,
     obstacles: Query<&Transform, With<ObstacleMarker>>,
     config: Res<Config>,
 ) {
     // Only extract state if API is active
     if !api_state.is_active() {
+        info!("API: extract_state skipped because API is not active");
         return;
     }
 
+    // Debug: Count entities with each component
+    // let total_entities = all_entities.iter().count();
+    // let entities_with_transform = transforms.iter().count();
+    // let entities_with_velocity = velocities.iter().count();
+    // let entities_with_factor_graph = factor_graphs.iter().count();
+    // let entities_with_connections = connections.iter().count();
+    // let entities_with_mission = missions.iter().count();
+    // let entities_with_planning_strategy = planning_strategies.iter().count();
+    // let entities_with_radius = radiuses.iter().count();
+    // let entities_with_antenna = antennas.iter().count();
+    // let entities_with_all = robots.iter().count();
+    
+    // info!("API: Entity counts:");
+    // info!("  Total entities: {}", total_entities);
+    // info!("  With Transform: {}", entities_with_transform);
+    // info!("  With Velocity: {}", entities_with_velocity);
+    // info!("  With FactorGraph: {}", entities_with_factor_graph);
+    // info!("  With RobotConnections: {}", entities_with_connections);
+    // info!("  With Mission: {}", entities_with_mission);
+    // info!("  With PlanningStrategy: {}", entities_with_planning_strategy);
+    // info!("  With Radius: {}", entities_with_radius);
+    // info!("  With RadioAntenna: {}", entities_with_antenna);
+    // info!("  With ALL components: {}", entities_with_all);
+
     // Extract agent states
     if let Ok(mut agent_states) = api_state.agent_states.write() {
+        let old_count = agent_states.len();
         agent_states.clear();
 
-        for (entity, transform, state_vector, factor_graph, connections) in robots.iter() {
+        for (entity, transform, velocity_opt, factor_graph, connections, mission_opt, planning_strategy_opt, radius_opt, antenna_opt) in robots.iter() {
             let position = Vec2::new(transform.translation.x, transform.translation.z);
-            let velocity = state_vector.velocity();
+            // Get velocity from Velocity component if available, otherwise use default
+            let velocity = velocity_opt.map_or(Vec2::ZERO, |v| Vec2::new(v.x, v.z));
 
-            let factor_graph_state = FactorGraphState {
-                weights: FactorWeights {
-                    dynamic:    config.gbp.sigma_factor_dynamics as f32,
-                    obstacle:   config.gbp.sigma_factor_obstacle as f32,
-                    interrobot: config.gbp.sigma_factor_interrobot as f32,
-                    tracking:   config.gbp.sigma_factor_tracking as f32,
-                },
-                variable_count: factor_graph.node_count().variables,
-                factor_count: factor_graph.node_count().factors,
+            // Extract factor graph state with detailed message statistics
+            let mut factor_graph_state = FactorGraphState::default();
+            factor_graph_state.weights = FactorWeights {
+                dynamic:    config.gbp.sigma_factor_dynamics as f32,
+                obstacle:   config.gbp.sigma_factor_obstacle as f32,
+                interrobot: config.gbp.sigma_factor_interrobot as f32,
+                tracking:   config.gbp.sigma_factor_tracking as f32,
+            };
+            factor_graph_state.variable_count = factor_graph.node_count().variables;
+            factor_graph_state.factor_count = factor_graph.node_count().factors;
+            
+            // Add message statistics
+            factor_graph_state.messages_sent = MessageStats {
+                internal: factor_graph.messages_sent().internal,
+                external: factor_graph.messages_sent().external,
+            };
+            factor_graph_state.messages_received = MessageStats {
+                internal: factor_graph.messages_received().internal,
+                external: factor_graph.messages_received().external,
+            };
+            
+            // Add factor counts
+            let factor_counts = factor_graph.factor_count();
+            factor_graph_state.factor_counts = FactorCounts {
+                obstacle: factor_counts.obstacle,
+                interrobot: factor_counts.interrobot,
+                dynamic: factor_counts.dynamic,
+                tracking: factor_counts.tracking,
             };
 
-            let connected_neighbors = connections.robots_connected_with.iter().copied().collect();
+            // Use default values for optional components
+            // Extract mission and waypoint data if available
+            let (mission_state, next_waypoint, goal_point, mission_progress, current_waypoint_index) = 
+                if let Some(mission) = mission_opt {
+                    // Convert robot mission state to API mission state
+                    let api_mission_state = match mission.state {
+                        crate::planner::robot::MissionState::Idle { waiting_for_waypoints } => 
+                            MissionState::Idle { waiting_for_waypoints },
+                        crate::planner::robot::MissionState::Active => MissionState::Active,
+                        crate::planner::robot::MissionState::Completed => MissionState::Completed,
+                    };
+                    
+                    let next_wp = mission.next_waypoint().map(|wp| StateVectorInfo {
+                        position: wp.position(),
+                        velocity: wp.velocity(),
+                    });
+                    
+                    let goal = mission.taskpoints.last().map(|wp| wp.position());
+                    
+                    // Calculate mission progress statistics
+                    let total_waypoints = mission.waypoints().count();
+                    
+                    // Calculate remaining waypoints based on current state
+                    let remaining_waypoints = if mission.is_completed() {
+                        0
+                    } else {
+                        // Count remaining waypoints from the current position
+                        let current_route = mission.active_route().unwrap_or_else(|| mission.routes.first().unwrap());
+                        let remaining_in_current = if current_route.is_completed() { 
+                            0 
+                        } else {
+                            current_route.len().saturating_sub(
+                                current_route.current_waypoint_index().unwrap_or(0)
+                            )
+                        };
+                        
+                        // Add remaining waypoints from future routes
+                        let future_routes_waypoints: usize = mission.routes.iter()
+                            .skip(mission.routes.iter().position(|r| std::ptr::eq(r, current_route)).unwrap_or(0) + 1)
+                            .map(|route| route.len())
+                            .sum();
+                            
+                        remaining_in_current + future_routes_waypoints
+                    };
+                    
+                    // Construct the mission progress using available methods
+                    let progress = MissionProgress {
+                        started_at: mission.started_at(),
+                        finished_at: mission.finished_at(),
+                        active_route: mission.routes.iter().position(|r| 
+                            mission.active_route().map_or(false, |ar| std::ptr::eq(r, ar))
+                        ).unwrap_or(0),
+                        total_routes: mission.taskpoints.len().saturating_sub(1),
+                        total_waypoints,
+                        remaining_waypoints,
+                    };
+                    
+                    (api_mission_state, next_wp, goal, progress, mission.current_waypoint_index())
+                } else {
+                    // Default values if mission is not available
+                    (MissionState::default(), None, None, MissionProgress::default(), None)
+                };
 
-            agent_states.insert(entity, AgentState {
+            // Convert robot planning strategy to API planning strategy
+            let planning_strategy = planning_strategy_opt.map_or(PlanningStrategy::default(), |p| {
+                match p {
+                    formation::PlanningStrategy::OnlyLocal => PlanningStrategy::OnlyLocal,
+                    formation::PlanningStrategy::RrtStar => PlanningStrategy::RrtStar,
+                }
+            });
+            
+            // Get radius if available, otherwise use default
+            let radius_value = radius_opt.map_or(0.5, |r| r.0);
+            
+            // Get antenna properties if available, otherwise use defaults
+            let (communication_active, communication_radius) = antenna_opt.map_or(
+                (true, 5.0), 
+                |a| (a.active, a.radius)
+            );
+            
+            // Create complete agent state with all fields populated
+            let agent_state = AgentState {
                 position,
                 velocity,
                 factor_graph_state,
-                connected_neighbors,
-            });
+                connected_neighbors: connections.robots_connected_with.iter().copied().collect(),
+                mission_state,
+                planning_strategy,
+                radius: radius_value,
+                communication_active,
+                communication_radius,
+                target_speed: config.robot.target_speed.get(),
+                current_waypoint_index,
+                next_waypoint,
+                goal_point,
+                mission_progress,
+                factor_details: FactorDetails::default(), // Will populate with details in a future update
+            };
+            
+            agent_states.insert(entity, agent_state);
         }
+        
+        // info!("API: Updated agent_states from {} to {} agents", old_count, agent_states.len());
     }
 
     // Extract environment state
@@ -280,10 +438,21 @@ fn extract_state(
         // TODO: Extract actual environment boundaries from the config
         let boundaries = (Vec2::new(-100.0, -100.0), Vec2::new(100.0, 100.0));
 
-        *env_state = EnvironmentState {
-            obstacles: obstacle_positions,
-            boundaries,
-        };
+        // Create a default environment state and update with known values
+        let mut new_env_state = EnvironmentState::default();
+        new_env_state.obstacles = obstacle_positions;
+        new_env_state.boundaries = boundaries;
+        // Count the number of agents from the api_state's agent_states
+        if let Ok(agent_states_guard) = api_state.agent_states.read() {
+            new_env_state.total_agents = agent_states_guard.len();
+        }
+        
+        // TODO: Extract additional environment information
+        // - Agent density map would require analyzing agent positions
+        // - SDF resolution from environment configuration
+        // - World size from environment configuration
+        
+        *env_state = new_env_state;
     }
 }
 

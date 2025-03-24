@@ -340,6 +340,31 @@ env.close()
 - `set_api_active(active)`: Set the API active state
 - `close()`: Close the connection
 
+#### Agent State
+
+The agent state returned by `get_agent_state()` includes the following fields:
+
+- `position`: 2D position of the agent [x, y]
+- `velocity`: 2D velocity of the agent [vx, vy]
+- `factor_graph_state`: State of the agent's factor graph
+- `connected_neighbors`: List of connected neighbor IDs
+- `mission_state`: Current mission state of the agent
+  - `IDLE`: Agent is idle, possibly waiting for waypoints
+  - `ACTIVE`: Agent is actively following a route
+  - `COMPLETED`: Agent has completed its mission
+- `planning_strategy`: Planning strategy used by the agent
+  - `ONLY_LOCAL`: Agent uses only local planning
+  - `RRT_STAR`: Agent uses RRT* for global planning
+- `radius`: Radius of the agent
+- `communication_active`: Whether the agent's communication is active
+- `communication_radius`: Communication radius of the agent
+- `target_speed`: Target speed of the agent
+- `current_waypoint_index`: Index of the current waypoint
+- `next_waypoint`: Information about the next waypoint
+- `goal_point`: Position of the goal point
+- `mission_progress`: Mission progress information
+- `factor_details`: Detailed information about factor graph components
+
 ### MagicsEnv
 
 The `MagicsEnv` class implements the OpenAI Gymnasium interface:
@@ -349,6 +374,32 @@ The `MagicsEnv` class implements the OpenAI Gymnasium interface:
 - `reset(seed=None, options=None)`: Reset the environment
 - `render()`: Render the environment
 - `close()`: Close the environment
+
+#### Observation Space
+
+The observation space is a dictionary with the following structure:
+
+```python
+{
+    "agents": {
+        "positions": Box(shape=(num_agents, 2)),  # Agent positions
+        "velocities": Box(shape=(num_agents, 2)),  # Agent velocities
+        "connectivity": Box(shape=(num_agents, num_agents)),  # Connectivity matrix
+        "planning_strategies": MultiDiscrete([2] * num_agents),  # 0=OnlyLocal, 1=RrtStar
+        "mission_states": MultiDiscrete([3] * num_agents),  # 0=Idle, 1=Active, 2=Completed
+        "waiting_for_waypoints": MultiBinary(num_agents)  # Whether agents are waiting for waypoints
+    },
+    "obstacles": Box(shape=(num_obstacles, 2)),  # Obstacle positions
+    "boundaries": Box(shape=(2, 2))  # Environment boundaries [min, max]
+}
+```
+
+#### Action Space
+
+The action space is a Box with shape (4,) representing the factor weights:
+- `[dynamic, obstacle, interrobot, tracking]`
+
+Each weight can range from 0.1 to 10.0.
 
 ## Comparison with PyO3-based API
 
