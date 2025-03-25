@@ -75,6 +75,7 @@ impl MetricsPlugin {
         mut ui_state: ResMut<UiState>,
         mut current_pos: Local<egui::Pos2>,
         time_virtual: Res<Time<Virtual>>,
+        time_virtual: Res<Time<Virtual>>,
     ) {
         if !ui_state.metrics_window_visible {
             return;
