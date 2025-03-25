@@ -14,7 +14,7 @@ use std::{
 use bevy::{math::Vec2, prelude::*, time::Time};
 
 use crate::{
-    factorgraph::factorgraph::FactorGraph,
+    factorgraph::factorgraph::{FactorGraph, FactorGraphId},
     planner::robot::{RobotConnections, StateVector},
 };
 
@@ -183,25 +183,31 @@ pub struct InterRobotFactorInfo {
     pub variable_index: usize,
     /// ID of the external robot this factor connects to.
     pub external_robot_id: u32,
+    // ID of the external factor graph
+    pub external_factorgraph_id: u32,
     /// Index of the variable in the external robot's factor graph.
     pub external_variable_index: usize,
     /// Safety distance for collision avoidance.
     pub safety_distance: f32,
-    /// Current measurement value.
-    pub measurement: f64,
+    /// Current diff_between_estimated_positions value.
+    pub distance_between_variables: f64,
+    /// active (called skip)
+    pub active: bool,
 }
 
 /// Information about a tracking factor in the factor graph.
 #[derive(Debug, Clone)]
 pub struct TrackingFactorInfo {
     /// Index of the variable this factor is connected to.
-    pub variable_index: usize,
+    pub variable_index:     usize,
     /// Path that the robot is tracking.
-    pub tracking_path:  Vec<[f32; 2]>,
+    pub tracking_path:      Vec<[f32; 2]>,
     /// Current index in the tracking path.
-    pub tracking_index: usize,
+    pub tracking_index:     usize,
+    // Projected position
+    pub projected_position: [f32; 2],
     /// Path deviation measurement.
-    pub path_deviation: f32,
+    pub path_deviation:     f32,
 }
 
 /// Information about a dynamic factor in the factor graph.
@@ -252,6 +258,8 @@ pub struct FactorGraphState {
     pub messages_received: MessageStats,
     /// Counts of different factor types.
     pub factor_counts: FactorCounts,
+    /// All factors and variables in the factor graph.
+    pub factor_details: FactorDetails,
 }
 
 impl Default for FactorGraphState {
@@ -263,6 +271,7 @@ impl Default for FactorGraphState {
             messages_sent: MessageStats::default(),
             messages_received: MessageStats::default(),
             factor_counts: FactorCounts::default(),
+            factor_details: FactorDetails::default(),
         }
     }
 }

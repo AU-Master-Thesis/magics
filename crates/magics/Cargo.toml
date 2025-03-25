@@ -51,7 +51,7 @@ visualization = [
 ]
 
 api = [
-  "dep:pyo3",
+  #"dep:zmq",
 ]
 
 
@@ -161,7 +161,6 @@ colorgrad  = "0.6.2"
 # open          = "5.1.0"
 ordered-float = "4.2.0"
 # dialoguer = { version = "0.11.0", features = ["fuzzy-select"] }
-pyo3 = { version = "0.18", optional = true, features = ["extension-module"] }
 zmq = { version = "0.10", optional = false }
 
 open = "5.1"

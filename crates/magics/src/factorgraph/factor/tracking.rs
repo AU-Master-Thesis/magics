@@ -66,6 +66,16 @@ impl Tracking {
     pub fn get_record(&self) -> usize {
         self.record.lock().unwrap().get()
     }
+    
+    /// Get the tracking path
+    pub fn get_path(&self) -> Option<Vec<Vec2>> {
+        self.path.clone()
+    }
+    
+    /// Get the tracking index
+    pub fn get_index(&self) -> usize {
+        self.index
+    }
 }
 
 #[derive(Debug)]

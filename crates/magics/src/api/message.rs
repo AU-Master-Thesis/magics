@@ -212,6 +212,92 @@ pub struct SerializedMissionProgress {
     pub remaining_waypoints: usize,
 }
 
+/// Serialized variable information for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedVariableInfo {
+    /// Index of the variable.
+    pub index: usize,
+    /// Mean vector of the variable [x, y, vx, vy].
+    pub mean: [f64; 4],
+    /// Covariance matrix of the variable (4x4, flattened).
+    pub covariance: [f64; 16],
+    /// Estimated position from the variable.
+    pub estimated_position: [f32; 2],
+    /// Estimated velocity from the variable.
+    pub estimated_velocity: [f32; 2],
+}
+
+/// Serialized obstacle factor information for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedObstacleFactorInfo {
+    /// Index of the variable this factor is connected to.
+    pub variable_index: usize,
+    /// SDF measurement value.
+    pub measurement: f64,
+    /// Position of the measurement.
+    pub position: [f32; 2],
+}
+
+/// Serialized inter-robot factor information for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedInterRobotFactorInfo {
+    /// Index of the variable this factor is connected to.
+    pub variable_index: usize,
+    /// ID of the external robot this factor connects to.
+    pub external_robot_id: u32,
+    /// ID of the external factor graph
+    pub external_factorgraph_id: u32,
+    /// Index of the variable in the external robot's factor graph.
+    pub external_variable_index: usize,
+    /// Safety distance for collision avoidance.
+    pub safety_distance: f32,
+    /// Current distance between variables.
+    pub distance_between_variables: f64,
+    /// Whether the factor is active.
+    pub active: bool,
+}
+
+/// Serialized tracking factor information for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedTrackingFactorInfo {
+    /// Index of the variable this factor is connected to.
+    pub variable_index: usize,
+    /// Path that the robot is tracking.
+    pub tracking_path: Vec<[f32; 2]>,
+    /// Current index in the tracking path.
+    pub tracking_index: usize,
+    /// Projected position.
+    pub projected_position: [f32; 2],
+    /// Path deviation measurement.
+    pub path_deviation: f32,
+}
+
+/// Serialized dynamic factor information for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedDynamicFactorInfo {
+    /// Index of the source variable.
+    pub from_variable_index: usize,
+    /// Index of the destination variable.
+    pub to_variable_index: usize,
+    /// Time step between the variables.
+    pub delta_t: f32,
+}
+
+/// Serialized factor details for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedFactorDetails {
+    /// Information about variables in the factor graph.
+    pub variables: Vec<SerializedVariableInfo>,
+    /// Information about obstacle factors in the factor graph.
+    pub obstacle_factors: Vec<SerializedObstacleFactorInfo>,
+    /// Information about inter-robot factors in the factor graph.
+    pub interrobot_factors: Vec<SerializedInterRobotFactorInfo>,
+    /// Information about tracking factors in the factor graph.
+    pub tracking_factors: Vec<SerializedTrackingFactorInfo>,
+    /// Information about dynamic factors in the factor graph.
+    pub dynamic_factors: Vec<SerializedDynamicFactorInfo>,
+}
+
 /// Serialized factor graph state for API communication.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializedFactorGraphState {
@@ -223,6 +309,40 @@ pub struct SerializedFactorGraphState {
     
     /// Number of factors in the factor graph
     pub factor_count: usize,
+    
+    /// Statistics about messages sent from the factor graph.
+    pub messages_sent: SerializedMessageStats,
+    
+    /// Statistics about messages received by the factor graph.
+    pub messages_received: SerializedMessageStats,
+    
+    /// Counts of different factor types.
+    pub factor_counts: SerializedFactorCounts,
+    
+    /// Detailed information about factor graph components.
+    pub factor_details: SerializedFactorDetails,
+}
+
+/// Serialized message statistics for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedMessageStats {
+    /// Number of internal messages.
+    pub internal: usize,
+    /// Number of external messages.
+    pub external: usize,
+}
+
+/// Serialized factor counts for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedFactorCounts {
+    /// Number of obstacle factors.
+    pub obstacle: usize,
+    /// Number of interrobot factors.
+    pub interrobot: usize,
+    /// Number of dynamic factors.
+    pub dynamic: usize,
+    /// Number of tracking factors.
+    pub tracking: usize,
 }
 
 /// Serialized environment state for API communication.
@@ -299,6 +419,68 @@ impl From<&crate::api::state::AgentState> for SerializedAgentState {
             remaining_waypoints: state.mission_progress.remaining_waypoints,
         };
 
+        // Convert variable information
+        let variables = state.factor_details.variables.iter().map(|var| {
+            SerializedVariableInfo {
+                index: var.index,
+                mean: var.mean,
+                covariance: var.covariance,
+                estimated_position: var.estimated_position,
+                estimated_velocity: var.estimated_velocity,
+            }
+        }).collect();
+
+        // Convert obstacle factor information
+        let obstacle_factors = state.factor_details.obstacle_factors.iter().map(|factor| {
+            SerializedObstacleFactorInfo {
+                variable_index: factor.variable_index,
+                measurement: factor.measurement,
+                position: factor.position,
+            }
+        }).collect();
+
+        // Convert inter-robot factor information
+        let interrobot_factors = state.factor_details.interrobot_factors.iter().map(|factor| {
+            SerializedInterRobotFactorInfo {
+                variable_index: factor.variable_index,
+                external_robot_id: factor.external_robot_id,
+                external_factorgraph_id: factor.external_factorgraph_id,
+                external_variable_index: factor.external_variable_index,
+                safety_distance: factor.safety_distance,
+                distance_between_variables: factor.distance_between_variables,
+                active: factor.active,
+            }
+        }).collect();
+
+        // Convert tracking factor information
+        let tracking_factors = state.factor_details.tracking_factors.iter().map(|factor| {
+            SerializedTrackingFactorInfo {
+                variable_index: factor.variable_index,
+                tracking_path: factor.tracking_path.clone(),
+                tracking_index: factor.tracking_index,
+                projected_position: factor.projected_position,
+                path_deviation: factor.path_deviation,
+            }
+        }).collect();
+
+        // Convert dynamic factor information
+        let dynamic_factors = state.factor_details.dynamic_factors.iter().map(|factor| {
+            SerializedDynamicFactorInfo {
+                from_variable_index: factor.from_variable_index,
+                to_variable_index: factor.to_variable_index,
+                delta_t: factor.delta_t,
+            }
+        }).collect();
+
+        // Create serialized factor details
+        let factor_details = SerializedFactorDetails {
+            variables,
+            obstacle_factors,
+            interrobot_factors,
+            tracking_factors,
+            dynamic_factors,
+        };
+
         SerializedAgentState {
             position: [state.position.x, state.position.y],
             velocity: [state.velocity.x, state.velocity.y],
@@ -306,6 +488,21 @@ impl From<&crate::api::state::AgentState> for SerializedAgentState {
                 weights: state.factor_graph_state.weights,
                 variable_count: state.factor_graph_state.variable_count,
                 factor_count: state.factor_graph_state.factor_count,
+                messages_sent: SerializedMessageStats {
+                    internal: state.factor_graph_state.messages_sent.internal,
+                    external: state.factor_graph_state.messages_sent.external,
+                },
+                messages_received: SerializedMessageStats {
+                    internal: state.factor_graph_state.messages_received.internal,
+                    external: state.factor_graph_state.messages_received.external,
+                },
+                factor_counts: SerializedFactorCounts {
+                    obstacle: state.factor_graph_state.factor_counts.obstacle,
+                    interrobot: state.factor_graph_state.factor_counts.interrobot,
+                    dynamic: state.factor_graph_state.factor_counts.dynamic,
+                    tracking: state.factor_graph_state.factor_counts.tracking,
+                },
+                factor_details,
             },
             connected_neighbors: state.connected_neighbors.iter().map(|e| e.index()).collect(),
             mission_state,

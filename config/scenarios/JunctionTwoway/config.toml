@@ -55,7 +55,7 @@ schedule = "interleave-evenly"
 dynamic = true
 interrobot = true
 obstacle = true
-tracking = false
+tracking = true
 
 [robot]
 planning-horizon = 5.0

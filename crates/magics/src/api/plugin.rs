@@ -229,19 +229,9 @@ fn complete_step_in_fixed_update(
 /// System that extracts the state of the simulation for the API.
 fn extract_state(
     api_state: Res<ApiState>,
-    // all_entities: Query<Entity>,
-    // transforms: Query<&Transform>,
-    // velocities: Query<&Velocity>,
-    // factor_graphs: Query<&FactorGraph>,
-    // connections: Query<&RobotConnections>,
-    // missions: Query<&Mission>,
-    // planning_strategies: Query<&formation::PlanningStrategy>,
-    // radiuses: Query<&Radius>,
-    // antennas: Query<&RadioAntenna>,
     robots: Query<(
         Entity,
         &Transform,
-        Option<&Velocity>,  // Use Velocity instead of StateVector
         &FactorGraph,
         &RobotConnections,
         Option<&Mission>,
@@ -258,39 +248,21 @@ fn extract_state(
         return;
     }
 
-    // Debug: Count entities with each component
-    // let total_entities = all_entities.iter().count();
-    // let entities_with_transform = transforms.iter().count();
-    // let entities_with_velocity = velocities.iter().count();
-    // let entities_with_factor_graph = factor_graphs.iter().count();
-    // let entities_with_connections = connections.iter().count();
-    // let entities_with_mission = missions.iter().count();
-    // let entities_with_planning_strategy = planning_strategies.iter().count();
-    // let entities_with_radius = radiuses.iter().count();
-    // let entities_with_antenna = antennas.iter().count();
-    // let entities_with_all = robots.iter().count();
-    
-    // info!("API: Entity counts:");
-    // info!("  Total entities: {}", total_entities);
-    // info!("  With Transform: {}", entities_with_transform);
-    // info!("  With Velocity: {}", entities_with_velocity);
-    // info!("  With FactorGraph: {}", entities_with_factor_graph);
-    // info!("  With RobotConnections: {}", entities_with_connections);
-    // info!("  With Mission: {}", entities_with_mission);
-    // info!("  With PlanningStrategy: {}", entities_with_planning_strategy);
-    // info!("  With Radius: {}", entities_with_radius);
-    // info!("  With RadioAntenna: {}", entities_with_antenna);
-    // info!("  With ALL components: {}", entities_with_all);
-
     // Extract agent states
     if let Ok(mut agent_states) = api_state.agent_states.write() {
         let old_count = agent_states.len();
         agent_states.clear();
 
-        for (entity, transform, velocity_opt, factor_graph, connections, mission_opt, planning_strategy_opt, radius_opt, antenna_opt) in robots.iter() {
-            let position = Vec2::new(transform.translation.x, transform.translation.z);
-            // Get velocity from Velocity component if available, otherwise use default
-            let velocity = velocity_opt.map_or(Vec2::ZERO, |v| Vec2::new(v.x, v.z));
+        for (entity, transform, factor_graph, connections, mission_opt, planning_strategy_opt, radius_opt, antenna_opt) in robots.iter() {
+            let (_, current_variable) = factor_graph
+            .first_variable()
+            .expect("factorgraph should have >= 2 variables");
+            let [px, py] = current_variable.estimated_position();
+            let [vx, vy] = current_variable.estimated_velocity();
+            
+            
+            let position = Vec2::new(px as f32, py as f32);
+            let velocity = Vec2::new(vx as f32, vy as f32);
 
             // Extract factor graph state with detailed message statistics
             let mut factor_graph_state = FactorGraphState::default();
@@ -402,6 +374,13 @@ fn extract_state(
                 |a| (a.active, a.radius)
             );
             
+            // Extract factor details if API is active
+            let factor_details = if api_state.is_active() {
+                extract_factor_details(factor_graph)
+            } else {
+                FactorDetails::default()
+            };
+            
             // Create complete agent state with all fields populated
             let agent_state = AgentState {
                 position,
@@ -418,7 +397,7 @@ fn extract_state(
                 next_waypoint,
                 goal_point,
                 mission_progress,
-                factor_details: FactorDetails::default(), // Will populate with details in a future update
+                factor_details,
             };
             
             agent_states.insert(entity, agent_state);
@@ -454,6 +433,155 @@ fn extract_state(
         
         *env_state = new_env_state;
     }
+}
+
+/// Function to extract detailed information about factor graph components.
+fn extract_factor_details(factor_graph: &FactorGraph) -> FactorDetails {
+    use crate::api::state::{
+        VariableInfo, ObstacleFactorInfo, InterRobotFactorInfo, 
+        TrackingFactorInfo, DynamicFactorInfo
+    };
+    use crate::factorgraph::factorgraph::FactorIndex;
+    
+    let mut factor_details = FactorDetails::default();
+    
+    // Create a map of variable node indices to our variable indices
+    let mut variable_index_map = std::collections::HashMap::new();
+    
+    // Extract variable information
+    for (i, (var_index, variable)) in factor_graph.variables().enumerate() {
+        // Store the mapping from node index to our variable index
+        variable_index_map.insert(var_index.0.index(), i);
+        
+        // Create default mean and covariance arrays
+        // TODO: Convert to [f64; 4] and [f64; 16]
+        let mean = variable.belief.mean;
+        let covariance = variable.belief.covariance_matrix;
+
+        let node_index = variable.node_index();
+
+        // Convert f64 arrays to f32 arrays
+        let pos = variable.estimated_position();
+        let vel = variable.estimated_velocity();
+        let estimated_position = [pos[0] as f32, pos[1] as f32];
+        let estimated_velocity = [vel[0] as f32, vel[1] as f32];
+        
+        factor_details.variables.push(VariableInfo {
+            index: node_index.index(), // i was here before
+            mean,
+            covariance,
+            estimated_position,
+            estimated_velocity,
+        });
+    }
+    
+    // Extract obstacle factor information
+    for (factor_index, factor) in factor_graph.factors() {
+        if let Some(obstacle_factor) = factor.kind.try_as_obstacle_ref() {
+            // Find the variable this factor is connected to
+            if let Some(mut neighbors) = factor_graph.factor_neighbours(FactorIndex(factor_index)) {
+                // Get the first (and only) variable connected to this factor
+                if let Some(variable) = neighbors.next() {
+                    // Find the index of this variable in our variables list
+                    let variable_index = variable_index_map.get(&variable.node_index().index()).copied().unwrap_or(0);
+                    
+                    let last_measurement = obstacle_factor.last_measurement();
+                    
+                    factor_details.obstacle_factors.push(ObstacleFactorInfo {
+                        variable_index,
+                        measurement: last_measurement.value,
+                        position: [last_measurement.pos.x, last_measurement.pos.y],
+                    });
+                }
+            }
+        }
+    }
+    
+    // Extract inter-robot factor information
+    for (factor_index, interrobot_factor) in factor_graph.inter_robot_factors() {
+        // Find the variable this factor is connected to
+        if let Some(mut neighbors) = factor_graph.factor_neighbours(FactorIndex(factor_index)) {
+            // Get the first (and only) variable connected to this factor
+            if let Some(variable) = neighbors.next() {
+                // Find the index of this variable in our variables list
+                let variable_index = variable_index_map.get(&variable.node_index().index()).copied().unwrap_or(0);
+                
+                // Get the safety distance
+                let safety_distance = interrobot_factor.safety_distance() as f32;
+                
+                // Get the external factor graph ID and convert to u32
+                let external_id = interrobot_factor.external_variable.factorgraph_id.index();
+                
+                factor_details.interrobot_factors.push(InterRobotFactorInfo {
+                    variable_index,
+                    external_robot_id: external_id as u32,
+                    external_factorgraph_id: external_id as u32,
+                    external_variable_index: interrobot_factor.external_variable.variable_index.into(),
+                    safety_distance,
+                    distance_between_variables: safety_distance as f64, // Approximation
+                    active: true, // Default to active
+                });
+            }
+        }
+    }
+    
+    // Extract tracking factor information
+    for (factor_index, factor) in factor_graph.factors() {
+        if let Some(tracking_factor) = factor.kind.try_as_tracking_ref() {
+            // Find the variable this factor is connected to
+            if let Some(mut neighbors) = factor_graph.factor_neighbours(FactorIndex(factor_index)) {
+                // Get the first (and only) variable connected to this factor
+                if let Some(variable) = neighbors.next() {
+                    // Find the index of this variable in our variables list
+                    let variable_index = variable_index_map.get(&variable.node_index().index()).copied().unwrap_or(0);
+                    
+                    let tracking = tracking_factor.tracking();
+                    let last_measurement = tracking_factor.last_measurement();
+                    
+                    // Convert tracking path to the expected format using the helper method
+                    let tracking_path = tracking.get_path()
+                        .map(|path| path.iter().map(|v| [v.x, v.y]).collect())
+                        .unwrap_or_default();
+                    
+                    factor_details.tracking_factors.push(TrackingFactorInfo {
+                        variable_index,
+                        tracking_path,
+                        tracking_index: tracking.get_index(),
+                        projected_position: [last_measurement.pos.x, last_measurement.pos.y],
+                        path_deviation: last_measurement.value as f32,
+                    });
+                }
+            }
+        }
+    }
+    
+    // Extract dynamic factor information
+    // Dynamic factors connect two variables, so we need to find both
+    for (factor_index, factor) in factor_graph.factors() {
+        if let Some(_dynamic_factor) = factor.kind.try_as_dynamic_ref() {
+            // Find the variables this factor is connected to
+            if let Some(neighbors) = factor_graph.factor_neighbours(FactorIndex(factor_index)) {
+                let variables: Vec<_> = neighbors.collect();
+                
+                if variables.len() == 2 {
+                    // Find the indices of these variables in our variables list
+                    let from_variable_index = variable_index_map.get(&variables[0].node_index().index()).copied().unwrap_or(0);
+                    let to_variable_index = variable_index_map.get(&variables[1].node_index().index()).copied().unwrap_or(0);
+                    
+                    // Use a default delta_t value
+                    let delta_t = 0.1;
+                    
+                    factor_details.dynamic_factors.push(DynamicFactorInfo {
+                        from_variable_index,
+                        to_variable_index,
+                        delta_t,
+                    });
+                }
+            }
+        }
+    }
+    
+    factor_details
 }
 
 /// System that applies weight updates from the API.

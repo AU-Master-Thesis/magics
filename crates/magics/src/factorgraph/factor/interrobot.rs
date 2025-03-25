@@ -127,24 +127,6 @@ impl Factor for InterRobotFactor {
         let mut jacobian = Matrix::<Float>::zeros((state.initial_measurement.len(), DOFS * 2));
         let x_diff = self.diff_between_estimated_positions(lineraisation_point);
 
-        // let x_diff = {
-        //     let offset = DOFS / 2;
-        //     let mut diff_between_estimated_positions = lineraisation_point
-        //         .slice(s![..offset])
-        //         .sub(&lineraisation_point.slice(s![DOFS..DOFS + offset]));
-        //
-        //     // NOTE: In gbplanner, they weight this by the robot id, why they do this
-        // is     // unclear as a robot id should be unique, and not have any
-        //     // semantics of distance/weight.
-        //     for i in 0..offset {
-        //         // Add a tiny random offset to avoid div/0 errors
-        //         // x_diff[i] += 1e-6 *
-        //         // Float::from(self.external_variable.factorgraph_id.index());
-        //         diff_between_estimated_positions[i] += self.tiny_offset;
-        //     }
-        //     diff_between_estimated_positions
-        // };
-
         let radius = x_diff.euclidean_norm();
         if radius <= self.safety_distance {
             // J(0, seqN(0, n_dofs_ / 2)) = -1.f / safety_distance_ / r * X_diff;
@@ -165,22 +147,6 @@ impl Factor for InterRobotFactor {
     fn measure(&self, state: &FactorState, lineraisation_point: &Vector<Float>) -> Measurement {
         let mut measurement = Vector::<Float>::zeros(state.initial_measurement.len());
         let x_diff = self.diff_between_estimated_positions(lineraisation_point);
-        // let x_diff = {
-        //     let offset = DOFS / 2;
-        //     let mut diff_between_estimated_positions = lineraisation_point
-        //         .slice(s![..offset])
-        //         .sub(&lineraisation_point.slice(s![DOFS..DOFS + offset]));
-        //     // NOTE: In gbplanner, they weight this by the robot id, why they do this
-        // is     // unclear as a robot id should be unique, and not have any
-        //     // semantics of distance/weight.
-        //     for i in 0..offset {
-        //         // Add a tiny random offset to avoid div/0 errors
-        //         // x_diff[i] += 1e-6 *
-        //         // Float::from(self.external_variable.factorgraph_id.index());
-        //         diff_between_estimated_positions[i] += self.tiny_offset;
-        //     }
-        //     diff_between_estimated_positions
-        // };
 
         // let squared_distance = x_diff.mapv(|x| x * x).sum();
 

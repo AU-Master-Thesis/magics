@@ -1,4 +1,5 @@
 import time
+import enum
 from magics_client import MagicsClient
 import json
 import numpy as np
@@ -15,6 +16,9 @@ def convert_numpy_to_python(obj):
         return {key: convert_numpy_to_python(value) for key, value in obj.items()}
     elif isinstance(obj, list) or isinstance(obj, tuple):
         return [convert_numpy_to_python(item) for item in obj]
+    elif isinstance(obj, enum.Enum):
+        # Handle enum objects by just returning their value
+        return obj.value
     elif hasattr(obj, '__dict__'):
         # Handle custom objects by converting their __dict__ to a dictionary
         return {"type": obj.__class__.__name__, "data": convert_numpy_to_python(obj.__dict__)}

@@ -27,14 +27,6 @@ pub(crate) mod macros;
 
 mod api;
 
-// #[cfg(feature = "dhat-heap")]
-// #[global_allocator]
-// static ALLOC: dhat::Alloc = dhat::Alloc;
-
-// #[cfg(not(feature = "dhat-heap"))]
-#[global_allocator]
-static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
 use std::{path::Path, time::Duration};
 
 use bevy::{
@@ -52,7 +44,6 @@ use bevy::{
     window::{PrimaryWindow, WindowMode, WindowResolution},
 };
 use colored::Colorize;
-
 // use rand::{Rng, SeedableRng};
 use environment::MainCamera;
 use gbp_config::{read_config, Config, FormationGroup};
@@ -61,7 +52,6 @@ use gbp_environment::{Environment, EnvironmentType};
 use magics::AppState;
 
 use crate::cli::DumpDefault;
-
 
 #[allow(clippy::too_many_lines)]
 fn main() -> anyhow::Result<()> {
@@ -249,45 +239,6 @@ fn main() -> anyhow::Result<()> {
     // Only add the API plugin when the "api" feature is enabled
     #[cfg(feature = "api")]
     app.add_plugins(api::ApiPlugin::default());
-
-    if let Some(schedule) = cli.schedule_graph {
-        match schedule {
-            cli::BevySchedule::PreStartup => {
-                bevy_mod_debugdump::print_schedule_graph(&mut app, PreStartup);
-            }
-            cli::BevySchedule::Startup => {
-                bevy_mod_debugdump::print_schedule_graph(&mut app, Startup);
-            }
-            cli::BevySchedule::PostStartup => {
-                bevy_mod_debugdump::print_schedule_graph(&mut app, PostStartup);
-            }
-            cli::BevySchedule::PreUpdate => {
-                bevy_mod_debugdump::print_schedule_graph(&mut app, PreUpdate);
-            }
-            cli::BevySchedule::Update => {
-                bevy_mod_debugdump::print_schedule_graph(&mut app, Update);
-            }
-            cli::BevySchedule::PostUpdate => {
-                bevy_mod_debugdump::print_schedule_graph(&mut app, PostUpdate);
-            }
-            cli::BevySchedule::FixedUpdate => {
-                bevy_mod_debugdump::print_schedule_graph(&mut app, FixedUpdate);
-            }
-            cli::BevySchedule::Last => {
-                bevy_mod_debugdump::print_schedule_graph(&mut app, Last);
-            }
-        }
-
-        return Ok(());
-    }
-
-    if cli.record {
-        app.add_plugins(export_plugin);
-        app.add_systems(
-            Update,
-            setup_image_export.run_if(once_after_real_delay(Duration::from_secs(1))),
-        );
-    }
 
     app.run();
 
