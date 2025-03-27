@@ -68,6 +68,14 @@
         "documentation": {}
     },
     {
+        "label": "MagicsClient",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
         "label": "MagicsError",
         "importPath": "magics_client",
         "description": "magics_client",
@@ -853,6 +861,87 @@
         "description": "python_api.tests.test_zmq_requests",
         "peekOfCode": "def main():\n    print(\"ZeroMQ Debug Client\")\n    print(\"===================\")\n    # Create ZMQ context and socket\n    context = zmq.Context()\n    socket = context.socket(zmq.REQ)\n    socket.setsockopt(zmq.RCVTIMEO, 5000)  # 5 second timeout\n    # Connect to server\n    server_address = \"tcp://localhost:5555\"\n    print(f\"Connecting to server at {server_address}...\")",
         "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "client",
+        "kind": 5,
+        "importPath": "python_api.agent_weights_example",
+        "description": "python_api.agent_weights_example",
+        "peekOfCode": "client = MagicsClient(timeout=10_000)  # 10 second timeout\nif not client.is_api_active():\n    print(\"Activating API...\")\n    client.set_api_active(True)\n# Get the current state to see all agents\nagent_states = client.get_agent_state()\nprint(f\"Found {len(agent_states)} agents in the simulation\")\nfor agent_id, state in agent_states.items():\n    print(f\"Agent {agent_id}: Position {state['position']}\")\n    # Print current factor weights for each agent",
+        "detail": "python_api.agent_weights_example",
+        "documentation": {}
+    },
+    {
+        "label": "agent_states",
+        "kind": 5,
+        "importPath": "python_api.agent_weights_example",
+        "description": "python_api.agent_weights_example",
+        "peekOfCode": "agent_states = client.get_agent_state()\nprint(f\"Found {len(agent_states)} agents in the simulation\")\nfor agent_id, state in agent_states.items():\n    print(f\"Agent {agent_id}: Position {state['position']}\")\n    # Print current factor weights for each agent\n    if 'factor_graph_state' in state and 'weights' in state['factor_graph_state']:\n        weights = state['factor_graph_state']['weights']\n        print(f\"  Current weights: dynamic={weights['dynamic']}, obstacle={weights['obstacle']}, \"\n              f\"interrobot={weights['interrobot']}, tracking={weights['tracking']}\")\n# Ask which agent to modify",
+        "detail": "python_api.agent_weights_example",
+        "documentation": {}
+    },
+    {
+        "label": "agent_choice",
+        "kind": 5,
+        "importPath": "python_api.agent_weights_example",
+        "description": "python_api.agent_weights_example",
+        "peekOfCode": "agent_choice = input(\"\\nEnter agent ID to modify (leave empty for system-wide change): \")\nagent_id_to_modify = None if agent_choice == \"\" else int(agent_choice)\n# Ask which factor weights to modify\nprint(\"\\nEnter new weights (leave empty to keep current value):\")\ndynamic_input = input(\"Dynamic factor weight: \")\nobstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}",
+        "detail": "python_api.agent_weights_example",
+        "documentation": {}
+    },
+    {
+        "label": "agent_id_to_modify",
+        "kind": 5,
+        "importPath": "python_api.agent_weights_example",
+        "description": "python_api.agent_weights_example",
+        "peekOfCode": "agent_id_to_modify = None if agent_choice == \"\" else int(agent_choice)\n# Ask which factor weights to modify\nprint(\"\\nEnter new weights (leave empty to keep current value):\")\ndynamic_input = input(\"Dynamic factor weight: \")\nobstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:",
+        "detail": "python_api.agent_weights_example",
+        "documentation": {}
+    },
+    {
+        "label": "dynamic_input",
+        "kind": 5,
+        "importPath": "python_api.agent_weights_example",
+        "description": "python_api.agent_weights_example",
+        "peekOfCode": "dynamic_input = input(\"Dynamic factor weight: \")\nobstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)",
+        "detail": "python_api.agent_weights_example",
+        "documentation": {}
+    },
+    {
+        "label": "obstacle_input",
+        "kind": 5,
+        "importPath": "python_api.agent_weights_example",
+        "description": "python_api.agent_weights_example",
+        "peekOfCode": "obstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:",
+        "detail": "python_api.agent_weights_example",
+        "documentation": {}
+    },
+    {
+        "label": "interrobot_input",
+        "kind": 5,
+        "importPath": "python_api.agent_weights_example",
+        "description": "python_api.agent_weights_example",
+        "peekOfCode": "interrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:\n    weights[\"interrobot\"] = float(interrobot_input)",
+        "detail": "python_api.agent_weights_example",
+        "documentation": {}
+    },
+    {
+        "label": "tracking_input",
+        "kind": 5,
+        "importPath": "python_api.agent_weights_example",
+        "description": "python_api.agent_weights_example",
+        "peekOfCode": "tracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:\n    weights[\"interrobot\"] = float(interrobot_input)\nif tracking_input:",
+        "detail": "python_api.agent_weights_example",
+        "documentation": {}
+    },
+    {
+        "label": "weights",
+        "kind": 5,
+        "importPath": "python_api.agent_weights_example",
+        "description": "python_api.agent_weights_example",
+        "peekOfCode": "weights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:\n    weights[\"interrobot\"] = float(interrobot_input)\nif tracking_input:\n    weights[\"tracking\"] = float(tracking_input)\nif weights:",
+        "detail": "python_api.agent_weights_example",
         "documentation": {}
     },
     {

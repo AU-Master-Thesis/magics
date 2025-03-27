@@ -7,6 +7,10 @@ mod plugin;
 mod state;
 mod message;
 mod zmq_server;
+mod reset;
+mod factor_details;
+mod extract;
+mod weights;
 
 pub use plugin::ApiPlugin;
 pub use state::{AgentState, ApiState, EnvironmentState, WeightUpdate, FactorWeights, FactorGraphState};

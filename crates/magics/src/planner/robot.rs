@@ -1082,6 +1082,9 @@ impl RobotBundle {
             ) * start2goal.normalize();
 
         let mut factorgraph = FactorGraph::new(robot_id);
+        // Initialize factor weights from config
+        factorgraph.initialize_weights_from_config(config);
+        
         let last_variable_timestep = *variable_timesteps
             .last()
             .expect("Know that variable_timesteps has at least one element");
@@ -2408,6 +2411,13 @@ fn on_robot_clicked(
         println!("  {}:", "factorgraph".magenta());
         println!("    {}: {}", "edges".cyan(), edge_count);
         println!("    {}: {}", "nodes".cyan(), node_counts.total());
+        
+        // Print factor weights
+        println!("    {}:", "factor_weights".cyan());
+        println!("      {}: {}", "dynamic".yellow(), factorgraph.factor_weights().dynamic);
+        println!("      {}: {}", "obstacle".yellow(), factorgraph.factor_weights().obstacle);
+        println!("      {}: {}", "interrobot".yellow(), factorgraph.factor_weights().interrobot);
+        println!("      {}: {}", "tracking".yellow(), factorgraph.factor_weights().tracking);
         println!(
             "      {}: {}",
             "variable".red(),

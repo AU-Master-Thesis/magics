@@ -108,6 +108,7 @@ When running in Windows Subsystem for Linux (WSL), you need to configure an X se
 ```sh
 export DISPLAY=:0
 export WINIT_UNIX_BACKEND=x11
+$env:PATH += ";$env:USERPROFILE\.cargo\bin"; rustc --version
 ```
 
 4. Run the application as normal

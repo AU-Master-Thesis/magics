@@ -26,6 +26,7 @@
 - Maintain clear separation between variables and factors
 - Implement efficient state extraction for external observation
 - Use fixed point optimization for performance-critical areas
+- Always run with RUSTFLAGS=-Awarnings flag set
 
 ## Python API Guidelines
 - Design for OpenAI Gym compatibility

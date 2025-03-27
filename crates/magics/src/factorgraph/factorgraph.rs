@@ -85,7 +85,10 @@ pub struct FactorGraph {
 
     iteration_count: IterationCount,
 
-    message_count:    MessageCount,
+    message_count: MessageCount,
+
+    /// Per-agent factor weights
+    factor_weights:   crate::api::FactorWeights,
     /// In **gbpplanner** the sequence in which variables are inserted/created
     /// in the graph is meaningful. `self.graph` does not capture this
     /// ordering, so we use an extra vector to manage the order in which
@@ -156,6 +159,8 @@ impl FactorGraph {
             obstacle_factor_indices: Vec::new(),
             dynamic_factor_indices: Vec::new(),
             tracking_factor_indices: Vec::new(),
+            // Initialize with default weights
+            factor_weights: crate::api::FactorWeights::default(),
         }
     }
 
@@ -174,6 +179,8 @@ impl FactorGraph {
             obstacle_factor_indices: Vec::new(),
             dynamic_factor_indices: Vec::new(),
             tracking_factor_indices: Vec::new(),
+            // Initialize with default weights
+            factor_weights: crate::api::FactorWeights::default(),
         }
     }
 
@@ -887,6 +894,135 @@ impl FactorGraph {
             .node_weights()
             .map(|node| node.messages_received())
             .sum()
+    }
+
+    /// Get current factor weights
+    pub fn factor_weights(&self) -> &crate::api::FactorWeights {
+        &self.factor_weights
+    }
+
+    /// Initialize weights from config
+    pub fn initialize_weights_from_config(&mut self, config: &gbp_config::Config) {
+        self.factor_weights = crate::api::FactorWeights {
+            dynamic:    config.gbp.sigma_factor_dynamics,
+            obstacle:   config.gbp.sigma_factor_obstacle,
+            interrobot: config.gbp.sigma_factor_interrobot,
+            tracking:   config.gbp.sigma_factor_tracking,
+        };
+    }
+
+    /// Update factor weights and propagate changes to existing factors
+    pub fn update_factor_weights(&mut self, weights: crate::api::FactorWeights) {
+        // Store the new weights
+
+        // Update existing dynamic factors
+        if weights.dynamic != self.factor_weights.dynamic {
+            self.update_dynamic_factor_weights(weights.dynamic);
+            self.factor_weights.dynamic = weights.dynamic;
+        }
+
+        // Update existing obstacle factors
+        if weights.obstacle != self.factor_weights.obstacle {
+            self.update_obstacle_factor_weights(weights.obstacle);
+            self.factor_weights.obstacle = weights.obstacle;
+        }
+
+        // Update existing interrobot factors
+        if weights.interrobot != self.factor_weights.interrobot {
+            self.update_interrobot_factor_weights(weights.interrobot);
+            self.factor_weights.interrobot = weights.interrobot;
+        }
+
+        // Update existing tracking factors
+        if weights.tracking != self.factor_weights.tracking {
+            self.update_tracking_factor_weights(weights.tracking);
+            self.factor_weights.tracking = weights.tracking;
+        }
+        // self.factor_weights = weights;
+    }
+
+    /// Update weights for dynamic factors
+    fn update_dynamic_factor_weights(&mut self, weight: f32) {
+        for &ix in &self.dynamic_factor_indices {
+            if let Some(factor) = self.graph[ix].as_factor_mut() {
+                let old_strength = factor.state.strength;
+                let old_precision = factor.state.measurement_precision.clone();
+
+                factor.state.strength = weight.into();
+                factor.state.measurement_precision =
+                    Matrix::<Float>::eye(factor.state.initial_measurement.len())
+                        / Float::powi(weight.into(), 2);
+
+                info!(
+                    "Updated dynamic factor weight: index={:?}, strength: {:.4} → {:.4}, \
+                     precision: {:?} → {:?}",
+                    ix, old_strength, weight, old_precision, factor.state.measurement_precision
+                );
+            }
+        }
+    }
+
+    /// Update weights for obstacle factors
+    fn update_obstacle_factor_weights(&mut self, weight: f32) {
+        for &ix in &self.obstacle_factor_indices {
+            if let Some(factor) = self.graph[ix].as_factor_mut() {
+                let old_strength = factor.state.strength;
+                let old_precision = factor.state.measurement_precision.clone();
+
+                factor.state.strength = weight.into();
+                factor.state.measurement_precision =
+                    Matrix::<Float>::eye(factor.state.initial_measurement.len())
+                        / Float::powi(weight.into(), 2);
+
+                info!(
+                    "Updated obstacle factor weight: index={:?}, strength: {:.4} → {:.4}, \
+                     precision: {:?} → {:?}",
+                    ix, old_strength, weight, old_precision, factor.state.measurement_precision
+                );
+            }
+        }
+    }
+
+    /// Update weights for interrobot factors
+    fn update_interrobot_factor_weights(&mut self, weight: f32) {
+        for &ix in &self.interrobot_factor_indices {
+            if let Some(factor) = self.graph[ix].as_factor_mut() {
+                let old_strength = factor.state.strength;
+                let old_precision = factor.state.measurement_precision.clone();
+
+                factor.state.strength = weight.into();
+                factor.state.measurement_precision =
+                    Matrix::<Float>::eye(factor.state.initial_measurement.len())
+                        / Float::powi(weight.into(), 2);
+
+                info!(
+                    "Updated interrobot factor weight: index={:?}, strength: {:.4} → {:.4}, \
+                     precision: {:?} → {:?}",
+                    ix, old_strength, weight, old_precision, factor.state.measurement_precision
+                );
+            }
+        }
+    }
+
+    /// Update weights for tracking factors
+    fn update_tracking_factor_weights(&mut self, weight: f32) {
+        for &ix in &self.tracking_factor_indices {
+            if let Some(factor) = self.graph[ix].as_factor_mut() {
+                let old_strength = factor.state.strength;
+                let old_precision = factor.state.measurement_precision.clone();
+
+                factor.state.strength = weight.into();
+                factor.state.measurement_precision =
+                    Matrix::<Float>::eye(factor.state.initial_measurement.len())
+                        / Float::powi(weight.into(), 2);
+
+                info!(
+                    "Updated tracking factor weight: index={:?}, strength: {:.4} → {:.4}, \
+                     precision: {:?} → {:?}",
+                    ix, old_strength, weight, old_precision, factor.state.measurement_precision
+                );
+            }
+        }
     }
 
     pub fn update_inter_robot_safety_distance_multiplier(

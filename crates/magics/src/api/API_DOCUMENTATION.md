@@ -6,6 +6,29 @@ This document provides detailed information about the Magics API, including the 
 
 The Magics API provides access to the state of the simulation, including agent states, factor graph details, and environment information. The API is designed to be used with the Python client library, which provides a simple interface for interacting with the simulation.
 
+## Documentation Structure
+
+For more detailed documentation, please see the [docs](./docs/) directory, which contains the following:
+
+- [README](./docs/README.md) - Overview and navigation
+- [Getting Started](./docs/getting_started.md) - Quick start guide
+- [Core Concepts](./docs/core_concepts.md) - Explanation of key concepts
+- [Commands Reference](./docs/commands.md) - Detailed information about available commands
+- [Troubleshooting](./docs/troubleshooting.md) - Common issues and solutions
+
+### Data Structures
+
+- [Agent State](./docs/data_structures/agent_state.md) - Information about agent state representation
+- [Environment State](./docs/data_structures/environment_state.md) - Information about environment state representation
+- [Factor Graph](./docs/data_structures/factor_graph.md) - Information about factor graph representation
+- [Collision Information](./docs/data_structures/collision_info.md) - Information about collision detection and tracking
+
+### Examples
+
+- [Basic Usage](./docs/examples/basic_usage.md) - Basic examples of using the API
+- [Stepping](./docs/examples/stepping.md) - Examples of stepping through the simulation
+- [Weights](./docs/examples/weights.md) - Examples of modifying factor weights
+
 ## Agent State
 
 The `AgentState` object contains information about a single agent in the simulation.
@@ -200,3 +223,16 @@ The `PlanningStrategy` enum represents the planning strategy used by an agent.
 |-------|-------------|
 | `OnlyLocal` | Agent uses only local planning |
 | `RrtStar` | Agent uses RRT* for global planning |
+
+## Collision Information
+
+The `CollisionInfo` object contains information about collisions for an agent.
+
+| Field | Type | Description | Units |
+|-------|------|-------------|-------|
+| `robot_collisions_total` | `int` | Total number of collisions with other robots | - |
+| `robot_collisions_delta` | `int` | Change in robot collisions since last state extraction | - |
+| `environment_collisions_total` | `int` | Total number of collisions with the environment | - |
+| `environment_collisions_delta` | `int` | Change in environment collisions since last state extraction | - |
+
+The `robot_collisions_delta` and `environment_collisions_delta` fields are particularly useful for detecting when a collision has just occurred, as they represent the change in collision counts since the last state extraction.

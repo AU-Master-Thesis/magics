@@ -451,27 +451,29 @@ fn ui_settings_panel(
                         // ui.label("Factors");
                         //ui.label(egui::RichText::new("Factors Enabled").size(16.0));
 
-                        let update_float = |ui: &mut egui::Ui, value: &mut f32| {
-                            let mut text = if *value == 0.0 { "0.0".to_string() } else { value.to_string() };
-                            let te_output = egui::TextEdit::singleline(&mut text)
-                                //.char_limit()
-                                .interactive(time_virtual.is_paused())
-                                .desired_width(f32::INFINITY) // maximize
-                                .show(ui);
-                            //if te_output.response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                            if te_output.response.changed() {
-                                //error!("text is {text}");
-                                if let Ok(x) = text.parse::<f32>() {
-                                    //error!("parsed {x}");
-                                    *value = x;
-                                } else if text.is_empty() {
-                                    //error!("empty text, setting to 0.0");
-                                    *value = 0.0;
-                                } else {
-                                    //error!("failed to parse {} as f32", text);
+                            // Function to handle updating float values
+                            fn handle_weight_update(
+                                ui: &mut egui::Ui, 
+                                value: &mut f32, 
+                                is_paused: bool,
+                            ) -> bool {
+                                let mut text = if *value == 0.0 { "0.0".to_string() } else { value.to_string() };
+                                let te_output = egui::TextEdit::singleline(&mut text)
+                                    .interactive(is_paused)
+                                    .desired_width(f32::INFINITY) // maximize
+                                    .show(ui);
+                                
+                                if te_output.response.changed() {
+                                    if let Ok(x) = text.parse::<f32>() {
+                                        *value = x;
+                                        return true;
+                                    } else if text.is_empty() {
+                                        *value = 0.0;
+                                        return true;
+                                    }
                                 }
+                                false
                             }
-                        };
                         custom::grid("factor_grid", 3).show(ui, |ui| {
 
                             ui.label("Factor");
@@ -489,49 +491,89 @@ fn ui_settings_panel(
 
                             ui.end_row();
 
-                            let mut update_enabled_factors = |settings: gbp_config::FactorsEnabledSection| {
-                                let mut query = world.query::<&mut FactorGraph>();
-                                for mut fgraph in query.iter_mut(world) {
-                                    fgraph.change_factor_enabled(settings);
-                                }
-                            };
+                            // Track whether any weights were changed
+                            let mut weights_changed = false;
+                            
+                            // Track whether any factor enabled settings changed
+                            let mut factors_enabled_changed = false;
+                            let mut factors_enabled_settings = config.gbp.factors_enabled.clone();
 
-
-                            //let mut enabled_settings = config.gbp.factors_enabled.clone();
                             ui.label("Dynamic");
-                            update_float(ui, &mut config.gbp.sigma_factor_dynamics);
+                            // Update dynamic factor weight
+                            weights_changed |= handle_weight_update(
+                                ui, 
+                                &mut config.gbp.sigma_factor_dynamics,
+                                time_virtual.is_paused(),
+                            );
                             custom::float_right(ui, |ui| {
                                 if custom::toggle_ui(ui, &mut config.gbp.factors_enabled.dynamic).clicked() {
-                                    update_enabled_factors(config.gbp.factors_enabled.clone());
+                                    factors_enabled_changed = true;
                                 }
                             });
                             ui.end_row();
 
                             ui.label("Interrobot");
-                            update_float(ui, &mut config.gbp.sigma_factor_interrobot);
+                            // Update interrobot factor weight
+                            weights_changed |= handle_weight_update(
+                                ui, 
+                                &mut config.gbp.sigma_factor_interrobot,
+                                time_virtual.is_paused(),
+                            );
                             custom::float_right(ui, |ui| {
                                 if custom::toggle_ui(ui, &mut config.gbp.factors_enabled.interrobot).clicked() {
-                                    update_enabled_factors(config.gbp.factors_enabled.clone());
+                                    factors_enabled_changed = true;
                                 }
                             });
                             ui.end_row();
 
                             ui.label("Obstacle");
-                            update_float(ui, &mut config.gbp.sigma_factor_obstacle);
+                            // Update obstacle factor weight
+                            weights_changed |= handle_weight_update(
+                                ui, 
+                                &mut config.gbp.sigma_factor_obstacle,
+                                time_virtual.is_paused(),
+                            );
                             custom::float_right(ui, |ui| {
                                 if custom::toggle_ui(ui, &mut config.gbp.factors_enabled.obstacle).clicked() {
-                                    update_enabled_factors(config.gbp.factors_enabled.clone());
+                                    factors_enabled_changed = true;
                                 }
                             });
                             ui.end_row();
 
                             ui.label("Tracking");
-                            update_float(ui, &mut config.gbp.sigma_factor_tracking);
+                            // Update tracking factor weight
+                            weights_changed |= handle_weight_update(
+                                ui, 
+                                &mut config.gbp.sigma_factor_tracking,
+                                time_virtual.is_paused(),
+                            );
                             custom::float_right(ui, |ui| {
                                 if custom::toggle_ui(ui, &mut config.gbp.factors_enabled.tracking).clicked() {
-                                    update_enabled_factors(config.gbp.factors_enabled.clone());
+                                    factors_enabled_changed = true;
                                 }
                             });
+                            
+                            // Apply changes to factor graphs if needed
+                            if weights_changed {
+                                let weights = crate::api::FactorWeights {
+                                    dynamic: config.gbp.sigma_factor_dynamics,
+                                    obstacle: config.gbp.sigma_factor_obstacle,
+                                    interrobot: config.gbp.sigma_factor_interrobot,
+                                    tracking: config.gbp.sigma_factor_tracking,
+                                };
+                                
+                                let mut query = world.query::<&mut crate::factorgraph::factorgraph::FactorGraph>();
+                                for mut fgraph in query.iter_mut(world) {
+                                    fgraph.update_factor_weights(weights);
+                                }
+                            }
+                            
+                            if factors_enabled_changed {
+                                let mut query = world.query::<&mut FactorGraph>();
+                                for mut fgraph in query.iter_mut(world) {
+                                    fgraph.change_factor_enabled(config.gbp.factors_enabled.clone());
+                                }
+                            }
                             ui.end_row();
                         });
                         //
