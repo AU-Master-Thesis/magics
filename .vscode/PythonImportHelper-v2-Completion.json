@@ -193,6 +193,22 @@
         "documentation": {}
     },
     {
+        "label": "TypedDict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "NotRequired",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
         "label": "Iterable",
         "importPath": "typing",
         "description": "typing",
@@ -967,7 +983,7 @@
         "kind": 6,
         "importPath": "python_api.magics_client",
         "description": "python_api.magics_client",
-        "peekOfCode": "class PlanningStrategy(enum.Enum):\n    \"\"\"Planning strategy used by an agent.\"\"\"\n    ONLY_LOCAL = \"OnlyLocal\"\n    RRT_STAR = \"RrtStar\"\nclass MissionState(enum.Enum):\n    \"\"\"Mission state for an agent.\"\"\"\n    IDLE = \"Idle\"\n    ACTIVE = \"Active\"\n    COMPLETED = \"Completed\"\nclass MagicsError(Exception):",
+        "peekOfCode": "class PlanningStrategy(enum.Enum):\n    \"\"\"Planning strategy used by an agent.\"\"\"\n    ONLY_LOCAL = \"OnlyLocal\"\n    RRT_STAR = \"RrtStar\"\nclass MissionState(enum.Enum):\n    \"\"\"Mission state for an agent.\"\"\"\n    IDLE = \"Idle\"\n    ACTIVE = \"Active\"\n    COMPLETED = \"Completed\"\n# TypedDict definitions to document the structure of returned data",
         "detail": "python_api.magics_client",
         "documentation": {}
     },
@@ -976,7 +992,151 @@
         "kind": 6,
         "importPath": "python_api.magics_client",
         "description": "python_api.magics_client",
-        "peekOfCode": "class MissionState(enum.Enum):\n    \"\"\"Mission state for an agent.\"\"\"\n    IDLE = \"Idle\"\n    ACTIVE = \"Active\"\n    COMPLETED = \"Completed\"\nclass MagicsError(Exception):\n    \"\"\"Exception raised for errors from the Magics API.\"\"\"\n    pass\nclass MagicsClient:\n    \"\"\"",
+        "peekOfCode": "class MissionState(enum.Enum):\n    \"\"\"Mission state for an agent.\"\"\"\n    IDLE = \"Idle\"\n    ACTIVE = \"Active\"\n    COMPLETED = \"Completed\"\n# TypedDict definitions to document the structure of returned data\nclass CollisionInfoDict(TypedDict, total=False):\n    \"\"\"Information about collisions for an agent.\"\"\"\n    robot_collisions_total: int  # Total number of collisions with other robots\n    robot_collisions_delta: int  # Change in robot collisions since last state extraction",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "CollisionInfoDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class CollisionInfoDict(TypedDict, total=False):\n    \"\"\"Information about collisions for an agent.\"\"\"\n    robot_collisions_total: int  # Total number of collisions with other robots\n    robot_collisions_delta: int  # Change in robot collisions since last state extraction\n    environment_collisions_total: int  # Total number of collisions with the environment\n    environment_collisions_delta: int  # Change in environment collisions since last state extraction\nclass StateVectorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a state vector (position and velocity).\"\"\"\n    position: np.ndarray  # Position component of the state vector [x, y]\n    velocity: np.ndarray  # Velocity component of the state vector [vx, vy]",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "StateVectorInfoDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class StateVectorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a state vector (position and velocity).\"\"\"\n    position: np.ndarray  # Position component of the state vector [x, y]\n    velocity: np.ndarray  # Velocity component of the state vector [vx, vy]\nclass VariableInfoDict(TypedDict, total=False):\n    \"\"\"Information about a variable in the factor graph.\"\"\"\n    index: int  # Index of the variable\n    factorgraph_id: int  # ID of the factor graph this variable belongs to\n    mean: List[float]  # Mean vector of the variable [x, y, vx, vy]\n    covariance: List[float]  # Covariance matrix of the variable (4x4, flattened)",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "VariableInfoDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class VariableInfoDict(TypedDict, total=False):\n    \"\"\"Information about a variable in the factor graph.\"\"\"\n    index: int  # Index of the variable\n    factorgraph_id: int  # ID of the factor graph this variable belongs to\n    mean: List[float]  # Mean vector of the variable [x, y, vx, vy]\n    covariance: List[float]  # Covariance matrix of the variable (4x4, flattened)\n    estimated_position: List[float]  # Estimated position from the variable [x, y]\n    estimated_velocity: List[float]  # Estimated velocity from the variable [vx, vy]\nclass ObstacleFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an obstacle factor in the factor graph.\"\"\"",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "ObstacleFactorInfoDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class ObstacleFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an obstacle factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    sdf_value: float  # SDF value at the position, ranges from 0.0 (free space) to 1.0 (obstacle)\n    position: List[float]  # Position where the SDF value was measured [x, y]\nclass InterRobotFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an inter-robot factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    external_robot_id: int  # ID of the external robot this factor connects to\n    external_factorgraph_id: int  # ID of the external factor graph",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "InterRobotFactorInfoDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class InterRobotFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an inter-robot factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    external_robot_id: int  # ID of the external robot this factor connects to\n    external_factorgraph_id: int  # ID of the external factor graph\n    external_variable_index: int  # Index of the variable in the external robot's factor graph\n    safety_distance: float  # Safety distance for collision avoidance\n    distance_between_variables: float  # Current distance between estimated positions\n    active: bool  # Whether the factor is active (called skip in Rust)\nclass TrackingFactorInfoDict(TypedDict, total=False):",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "TrackingFactorInfoDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class TrackingFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a tracking factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    tracking_path: List[List[float]]  # Path that the robot is tracking\n    tracking_index: int  # Current index in the tracking path\n    projected_position: List[float]  # Projected position on the path [x, y]\n    path_deviation: float  # Path deviation measurement (normalized distance)\n    distance_to_path: float  # Distance from robot to projected point on path (in world units)\nclass DynamicFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a dynamic factor in the factor graph.\"\"\"",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "DynamicFactorInfoDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class DynamicFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a dynamic factor in the factor graph.\"\"\"\n    from_variable_index: int  # Index of the source variable\n    to_variable_index: int  # Index of the destination variable\n    delta_t: float  # Time step between the variables\nclass FactorDetailsDict(TypedDict, total=False):\n    \"\"\"Detailed information about factor graph components.\"\"\"\n    variables: List[VariableInfoDict]  # Information about variables in the factor graph\n    obstacle_factors: List[ObstacleFactorInfoDict]  # Information about obstacle factors\n    interrobot_factors: List[InterRobotFactorInfoDict]  # Information about inter-robot factors",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "FactorDetailsDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class FactorDetailsDict(TypedDict, total=False):\n    \"\"\"Detailed information about factor graph components.\"\"\"\n    variables: List[VariableInfoDict]  # Information about variables in the factor graph\n    obstacle_factors: List[ObstacleFactorInfoDict]  # Information about obstacle factors\n    interrobot_factors: List[InterRobotFactorInfoDict]  # Information about inter-robot factors\n    tracking_factors: List[TrackingFactorInfoDict]  # Information about tracking factors\n    dynamic_factors: List[DynamicFactorInfoDict]  # Information about dynamic factors\nclass MessageStatsDict(TypedDict, total=False):\n    \"\"\"Statistics about messages in the factor graph.\"\"\"\n    internal: int  # Number of internal messages",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MessageStatsDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class MessageStatsDict(TypedDict, total=False):\n    \"\"\"Statistics about messages in the factor graph.\"\"\"\n    internal: int  # Number of internal messages\n    external: int  # Number of external messages\nclass FactorCountsDict(TypedDict, total=False):\n    \"\"\"Counts of different factor types in the factor graph.\"\"\"\n    obstacle: int  # Number of obstacle factors\n    interrobot: int  # Number of interrobot factors\n    dynamic: int  # Number of dynamic factors\n    tracking: int  # Number of tracking factors",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "FactorCountsDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class FactorCountsDict(TypedDict, total=False):\n    \"\"\"Counts of different factor types in the factor graph.\"\"\"\n    obstacle: int  # Number of obstacle factors\n    interrobot: int  # Number of interrobot factors\n    dynamic: int  # Number of dynamic factors\n    tracking: int  # Number of tracking factors\nclass FactorWeightsDict(TypedDict, total=False):\n    \"\"\"Weights for different factor types in the factor graph.\"\"\"\n    dynamic: float  # Weight for dynamic factors\n    obstacle: float  # Weight for obstacle factors",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "FactorWeightsDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class FactorWeightsDict(TypedDict, total=False):\n    \"\"\"Weights for different factor types in the factor graph.\"\"\"\n    dynamic: float  # Weight for dynamic factors\n    obstacle: float  # Weight for obstacle factors\n    interrobot: float  # Weight for interrobot factors\n    tracking: float  # Weight for tracking factors\nclass FactorGraphStateDict(TypedDict, total=False):\n    \"\"\"State of a factor graph.\"\"\"\n    weights: FactorWeightsDict  # Current weights of the factor graph\n    variable_count: int  # Number of variables in the factor graph",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "FactorGraphStateDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class FactorGraphStateDict(TypedDict, total=False):\n    \"\"\"State of a factor graph.\"\"\"\n    weights: FactorWeightsDict  # Current weights of the factor graph\n    variable_count: int  # Number of variables in the factor graph\n    factor_count: int  # Number of factors in the factor graph\n    messages_sent: MessageStatsDict  # Statistics about messages sent\n    messages_received: MessageStatsDict  # Statistics about messages received\n    factor_counts: FactorCountsDict  # Counts of different factor types\n    factor_details: FactorDetailsDict  # All factors and variables in the factor graph\nclass MissionProgressDict(TypedDict, total=False):",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MissionProgressDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class MissionProgressDict(TypedDict, total=False):\n    \"\"\"Mission progress information.\"\"\"\n    started_at: float  # Time when the mission started\n    finished_at: Optional[float]  # Time when the mission finished, if completed\n    active_route: int  # Index of the active route\n    total_routes: int  # Total number of routes\n    total_waypoints: int  # Total number of waypoints\n    remaining_waypoints: int  # Number of remaining waypoints\nclass MissionStateDict(TypedDict, total=False):\n    \"\"\"Current mission state of an agent.\"\"\"",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MissionStateDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class MissionStateDict(TypedDict, total=False):\n    \"\"\"Current mission state of an agent.\"\"\"\n    type: MissionState  # The type of mission state (IDLE, ACTIVE, COMPLETED)\n    waiting_for_waypoints: NotRequired[bool]  # Whether the agent is waiting for waypoints (only for IDLE state)\nclass AgentStateDict(TypedDict, total=False):\n    \"\"\"State of an agent in the simulation.\"\"\"\n    agent_id: int  # ID of the agent\n    factorgraph_id: int  # ID of the factor graph\n    position: np.ndarray  # Position of the agent [x, y]\n    velocity: np.ndarray  # Velocity of the agent [vx, vy]",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "AgentStateDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class AgentStateDict(TypedDict, total=False):\n    \"\"\"State of an agent in the simulation.\"\"\"\n    agent_id: int  # ID of the agent\n    factorgraph_id: int  # ID of the factor graph\n    position: np.ndarray  # Position of the agent [x, y]\n    velocity: np.ndarray  # Velocity of the agent [vx, vy]\n    factor_graph_state: FactorGraphStateDict  # Factor graph state of the agent\n    connected_neighbors: List[int]  # IDs of connected neighbors\n    mission_state: MissionStateDict  # Current mission state of the agent\n    planning_strategy: PlanningStrategy  # Planning strategy used by the agent",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "EnvironmentStateDict",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class EnvironmentStateDict(TypedDict, total=False):\n    \"\"\"State of the environment in the simulation.\"\"\"\n    obstacles: np.ndarray  # Positions of obstacles in the environment\n    boundaries: Dict[str, np.ndarray]  # Boundaries of the environment {'min': [x,y], 'max': [x,y]}\n    total_agents: int  # Total number of agents in the environment\n    agent_density_map: Optional[List[float]]  # Optional agent density map\n    sdf_resolution: Optional[Tuple[int, int]]  # Optional SDF resolution (width, height)\n    world_size: Optional[Tuple[float, float]]  # Optional world size (width, height)\nclass MagicsError(Exception):\n    \"\"\"Exception raised for errors from the Magics API.\"\"\"",
         "detail": "python_api.magics_client",
         "documentation": {}
     },
