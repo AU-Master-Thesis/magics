@@ -1,0 +1,115 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Magics",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=magics",
+                    "--package=magics",
+                    "--config",
+                    "build.rustflags=['-Awarnings']"
+                ],
+                "filter": {
+                    "name": "magics",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "--initial-scenario",
+                "CircleExperiment"
+                // "JunctionTwoway"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUST_BACKTRACE": "1",
+                "RUSTFLAGS": "-Awarnings"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Magics with API",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=magics",
+                    "--package=magics",
+                    "--features=api",
+                    "--config",
+                    "build.rustflags=['-Awarnings']"
+                ],
+                "filter": {
+                    "name": "magics",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "--initial-scenario",
+                "CircleExperiment"
+                // "JunctionTwoway"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUST_BACKTRACE": "1",
+                "RUSTFLAGS": "-Awarnings"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Release Magics with API",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--release",
+                    "--bin=magics",
+                    "--package=magics",
+                    "--features=api",
+                    "--config",
+                    "build.rustflags=['-Awarnings']"
+                ],
+                "filter": {
+                    "name": "magics",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "--initial-scenario",
+                "CircleExperiment"
+                // "JunctionTwoway"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUST_BACKTRACE": "1",
+                "RUSTFLAGS": "-Awarnings"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Run Command: RUSTFLAGS=-Awarnings cargo run --release --bin magics --features api",
+            "program": "cargo",
+            "args": [
+                "run",
+                "--release",
+                "--bin",
+                "magics",
+                "--features",
+                "api",
+                "--config",
+                "build.rustflags=['-Awarnings']"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUSTFLAGS": "-Awarnings"
+            }
+        }
+    ]
+}

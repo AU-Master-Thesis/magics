@@ -174,3 +174,4 @@ embed-resource = "2.4.2"
 
 [lints]
 workspace = true
+

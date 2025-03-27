@@ -419,7 +419,7 @@ impl ZmqServer {
         })?;
         
         // Log the raw JSON response for debugging
-        info!("📄 Raw response: {}", response_json);
+        // info!("📄 Raw response: {}", response_json);
         
         // Log the complete response at debug level for even more detail
         debug!("Complete response: {}", 

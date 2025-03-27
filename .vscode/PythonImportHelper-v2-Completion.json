@@ -1,0 +1,1443 @@
+[
+    {
+        "label": "gymnasium",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "gymnasium",
+        "description": "gymnasium",
+        "detail": "gymnasium",
+        "documentation": {}
+    },
+    {
+        "label": "spaces",
+        "importPath": "gymnasium",
+        "description": "gymnasium",
+        "isExtraImport": true,
+        "detail": "gymnasium",
+        "documentation": {}
+    },
+    {
+        "label": "numpy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "numpy",
+        "description": "numpy",
+        "detail": "numpy",
+        "documentation": {}
+    },
+    {
+        "label": "sys",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sys",
+        "description": "sys",
+        "detail": "sys",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsClient",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsError",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsClient",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsError",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsClient",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "uuid",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "uuid",
+        "description": "uuid",
+        "detail": "uuid",
+        "documentation": {}
+    },
+    {
+        "label": "zmq",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "zmq",
+        "description": "zmq",
+        "detail": "zmq",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsEnv",
+        "importPath": "magics_gym",
+        "description": "magics_gym",
+        "isExtraImport": true,
+        "detail": "magics_gym",
+        "documentation": {}
+    },
+    {
+        "label": "enum",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "enum",
+        "description": "enum",
+        "detail": "enum",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Union",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Iterable",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Iterable",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Generator",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Iterable",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Iterable",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "setup",
+        "importPath": "setuptools",
+        "description": "setuptools",
+        "isExtraImport": true,
+        "detail": "setuptools",
+        "documentation": {}
+    },
+    {
+        "label": "find_packages",
+        "importPath": "setuptools",
+        "description": "setuptools",
+        "isExtraImport": true,
+        "detail": "setuptools",
+        "documentation": {}
+    },
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "argparse",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "argparse",
+        "description": "argparse",
+        "detail": "argparse",
+        "documentation": {}
+    },
+    {
+        "label": "ArgumentParser",
+        "importPath": "argparse",
+        "description": "argparse",
+        "isExtraImport": true,
+        "detail": "argparse",
+        "documentation": {}
+    },
+    {
+        "label": "itertools",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "itertools",
+        "description": "itertools",
+        "detail": "itertools",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "collections",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "collections",
+        "description": "collections",
+        "detail": "collections",
+        "documentation": {}
+    },
+    {
+        "label": "ProcessPoolExecutor",
+        "importPath": "concurrent.futures",
+        "description": "concurrent.futures",
+        "isExtraImport": true,
+        "detail": "concurrent.futures",
+        "documentation": {}
+    },
+    {
+        "label": "ProcessPoolExecutor",
+        "importPath": "concurrent.futures",
+        "description": "concurrent.futures",
+        "isExtraImport": true,
+        "detail": "concurrent.futures",
+        "documentation": {}
+    },
+    {
+        "label": "matplotlib.pyplot",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "matplotlib.pyplot",
+        "description": "matplotlib.pyplot",
+        "detail": "matplotlib.pyplot",
+        "documentation": {}
+    },
+    {
+        "label": "seaborn",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "seaborn",
+        "description": "seaborn",
+        "detail": "seaborn",
+        "documentation": {}
+    },
+    {
+        "label": "print",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "pretty",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "print",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "pretty",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "print",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "inspect",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "pretty",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "print",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "inspect",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "pretty",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "print",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "inspect",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "pretty",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "print",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "inspect",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "pretty",
+        "importPath": "rich",
+        "description": "rich",
+        "isExtraImport": true,
+        "detail": "rich",
+        "documentation": {}
+    },
+    {
+        "label": "pretty_errors",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pretty_errors",
+        "description": "pretty_errors",
+        "detail": "pretty_errors",
+        "documentation": {}
+    },
+    {
+        "label": "PALETTE",
+        "importPath": "catppuccin",
+        "description": "catppuccin",
+        "isExtraImport": true,
+        "detail": "catppuccin",
+        "documentation": {}
+    },
+    {
+        "label": "PALETTE",
+        "importPath": "catppuccin",
+        "description": "catppuccin",
+        "isExtraImport": true,
+        "detail": "catppuccin",
+        "documentation": {}
+    },
+    {
+        "label": "ldj",
+        "importPath": "ldj",
+        "description": "ldj",
+        "isExtraImport": true,
+        "detail": "ldj",
+        "documentation": {}
+    },
+    {
+        "label": "ldj",
+        "importPath": "ldj",
+        "description": "ldj",
+        "isExtraImport": true,
+        "detail": "ldj",
+        "documentation": {}
+    },
+    {
+        "label": "cv2",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "cv2",
+        "description": "cv2",
+        "detail": "cv2",
+        "documentation": {}
+    },
+    {
+        "label": "Image",
+        "importPath": "PIL",
+        "description": "PIL",
+        "isExtraImport": true,
+        "detail": "PIL",
+        "documentation": {}
+    },
+    {
+        "label": "os.path",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os.path",
+        "description": "os.path",
+        "detail": "os.path",
+        "documentation": {}
+    },
+    {
+        "label": "gaussian_filter",
+        "importPath": "scipy.ndimage",
+        "description": "scipy.ndimage",
+        "isExtraImport": true,
+        "detail": "scipy.ndimage",
+        "documentation": {}
+    },
+    {
+        "label": "statistics",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "statistics",
+        "description": "statistics",
+        "detail": "statistics",
+        "documentation": {}
+    },
+    {
+        "label": "tabulate",
+        "importPath": "tabulate",
+        "description": "tabulate",
+        "isExtraImport": true,
+        "detail": "tabulate",
+        "documentation": {}
+    },
+    {
+        "label": "tabulate",
+        "importPath": "tabulate",
+        "description": "tabulate",
+        "isExtraImport": true,
+        "detail": "tabulate",
+        "documentation": {}
+    },
+    {
+        "label": "tabulate",
+        "importPath": "tabulate",
+        "description": "tabulate",
+        "isExtraImport": true,
+        "detail": "tabulate",
+        "documentation": {}
+    },
+    {
+        "label": "simpson",
+        "importPath": "scipy.integrate",
+        "description": "scipy.integrate",
+        "isExtraImport": true,
+        "detail": "scipy.integrate",
+        "documentation": {}
+    },
+    {
+        "label": "simpson",
+        "importPath": "scipy.integrate",
+        "description": "scipy.integrate",
+        "isExtraImport": true,
+        "detail": "scipy.integrate",
+        "documentation": {}
+    },
+    {
+        "label": "dataclasses",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "dataclasses",
+        "description": "dataclasses",
+        "detail": "dataclasses",
+        "documentation": {}
+    },
+    {
+        "label": "dataclass",
+        "importPath": "dataclasses",
+        "description": "dataclasses",
+        "isExtraImport": true,
+        "detail": "dataclasses",
+        "documentation": {}
+    },
+    {
+        "label": "dataclass",
+        "importPath": "dataclasses",
+        "description": "dataclasses",
+        "isExtraImport": true,
+        "detail": "dataclasses",
+        "documentation": {}
+    },
+    {
+        "label": "toolz",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "toolz",
+        "description": "toolz",
+        "detail": "toolz",
+        "documentation": {}
+    },
+    {
+        "label": "get",
+        "importPath": "toolz.curried",
+        "description": "toolz.curried",
+        "isExtraImport": true,
+        "detail": "toolz.curried",
+        "documentation": {}
+    },
+    {
+        "label": "plotly.graph_objects",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "plotly.graph_objects",
+        "description": "plotly.graph_objects",
+        "detail": "plotly.graph_objects",
+        "documentation": {}
+    },
+    {
+        "label": "subprocess",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "subprocess",
+        "description": "subprocess",
+        "detail": "subprocess",
+        "documentation": {}
+    },
+    {
+        "label": "shutil",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "shutil",
+        "description": "shutil",
+        "detail": "shutil",
+        "documentation": {}
+    },
+    {
+        "label": "matplotlib",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "matplotlib",
+        "description": "matplotlib",
+        "detail": "matplotlib",
+        "documentation": {}
+    },
+    {
+        "label": "colorsys",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "colorsys",
+        "description": "colorsys",
+        "detail": "colorsys",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsEnv",
+        "kind": 6,
+        "importPath": "python_api.magics_gym.env",
+        "description": "python_api.magics_gym.env",
+        "peekOfCode": "class MagicsEnv(gym.Env):\n    \"\"\"\n    OpenAI Gym environment for the Magics simulation.\n    This environment implements the OpenAI Gym interface to control the\n    Magics simulation through the ZeroMQ API.\n    \"\"\"\n    metadata = {\"render_modes\": [\"human\", \"rgb_array\"]}\n    def __init__(self, host=\"localhost\", port=5555, render_mode=None):\n        \"\"\"\n        Initialize the environment.",
+        "detail": "python_api.magics_gym.env",
+        "documentation": {}
+    },
+    {
+        "label": "send_request",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def send_request(socket, command, parameters=None, request_id=None):\n    \"\"\"Send a request to the server and return the response.\"\"\"\n    if request_id is None:\n        request_id = str(uuid.uuid4())\n    # Create request with nested command structure\n    request = {\n        \"command\": {\n            \"command\": command\n        },\n        \"request_id\": request_id",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_is_api_active",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_is_api_active(socket):\n    \"\"\"Test the IsApiActive command.\"\"\"\n    print(\"\\n=== Testing IsApiActive ===\")\n    response = send_request(socket, \"IsApiActive\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data:\n                if isinstance(data, dict) and data.get(\"type\") == \"Boolean\":",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_set_api_active",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_set_api_active(socket, active=True):\n    \"\"\"Test the SetApiActive command.\"\"\"\n    print(f\"\\n=== Testing SetApiActive({active}) ===\")\n    response = send_request(socket, \"SetApiActive\", {\"active\": active})\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(f\"✅ Successfully set API active to {active}\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_get_agent_state",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_get_agent_state(socket):\n    \"\"\"Test the GetAgentState command.\"\"\"\n    print(\"\\n=== Testing GetAgentState ===\")\n    response = send_request(socket, \"GetAgentState\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data and data.get(\"type\") == \"AgentStates\":\n                agents = data.get(\"content\", {})",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_get_environment_state",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_get_environment_state(socket):\n    \"\"\"Test the GetEnvironmentState command.\"\"\"\n    print(\"\\n=== Testing GetEnvironmentState ===\")\n    response = send_request(socket, \"GetEnvironmentState\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data and data.get(\"type\") == \"EnvironmentState\":\n                env_state = data.get(\"content\", {})",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_set_factor_weights",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_set_factor_weights(socket):\n    \"\"\"Test the SetFactorWeights command.\"\"\"\n    print(\"\\n=== Testing SetFactorWeights ===\")\n    # Define some test weights\n    weights = {\n        \"dynamic\": 1.0,\n        \"obstacle\": 2.0,\n        \"interrobot\": 1.5,\n        \"tracking\": 1.0\n    }",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_step",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_step(socket):\n    \"\"\"Test the Step command.\"\"\"\n    print(\"\\n=== Testing Step ===\")\n    response = send_request(socket, \"Step\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Successfully stepped simulation\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_reset",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_reset(socket):\n    \"\"\"Test the Reset command.\"\"\"\n    print(\"\\n=== Testing Reset ===\")\n    response = send_request(socket, \"Reset\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Successfully reset simulation\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_get_simulation_hz",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_get_simulation_hz(socket):\n    \"\"\"Test the GetSimulationHz command.\"\"\"\n    print(\"\\n=== Testing GetSimulationHz ===\")\n    response = send_request(socket, \"GetSimulationHz\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data and data.get(\"type\") == \"Number\":\n                hz = data.get(\"content\")",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_set_simulation_hz",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_set_simulation_hz(socket, hz):\n    \"\"\"Test the SetSimulationHz command.\"\"\"\n    print(f\"\\n=== Testing SetSimulationHz({hz}) ===\")\n    response = send_request(socket, \"SetSimulationHz\", {\"hz\": hz})\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(f\"✅ Successfully set simulation Hz to {hz}\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_set_iterations_per_step",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_set_iterations_per_step(socket, iterations):\n    \"\"\"Test the SetIterationsPerStep command.\"\"\"\n    print(f\"\\n=== Testing SetIterationsPerStep({iterations}) ===\")\n    response = send_request(socket, \"SetIterationsPerStep\", {\"iterations\": iterations})\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(f\"✅ Successfully set iterations per step to {iterations}\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_hz_functionality",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def test_hz_functionality(socket):\n    \"\"\"Test the Hz functionality with multiple steps.\"\"\"\n    print(\"\\n=== Testing Hz Functionality ===\")\n    # Get current Hz\n    current_hz = test_get_simulation_hz(socket)\n    if current_hz is None:\n        print(\"❌ Failed to get current Hz\")\n        return False\n    # Set a new Hz value\n    new_hz = 30.0  # Change to 30 Hz",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "python_api.tests.test_zmq_requests",
+        "description": "python_api.tests.test_zmq_requests",
+        "peekOfCode": "def main():\n    print(\"ZeroMQ Debug Client\")\n    print(\"===================\")\n    # Create ZMQ context and socket\n    context = zmq.Context()\n    socket = context.socket(zmq.REQ)\n    socket.setsockopt(zmq.RCVTIMEO, 5000)  # 5 second timeout\n    # Connect to server\n    server_address = \"tcp://localhost:5555\"\n    print(f\"Connecting to server at {server_address}...\")",
+        "detail": "python_api.tests.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_direct_api",
+        "kind": 2,
+        "importPath": "python_api.example",
+        "description": "python_api.example",
+        "peekOfCode": "def test_direct_api():\n    \"\"\"Test the direct ZeroMQ API.\"\"\"\n    print(\"Testing direct ZeroMQ API...\")\n    # Create a client\n    client = MagicsClient()\n    try:\n        # Check if API is active\n        try:\n            api_active = client.is_api_active()\n            print(f\"API active: {api_active}\")",
+        "detail": "python_api.example",
+        "documentation": {}
+    },
+    {
+        "label": "test_gym_env",
+        "kind": 2,
+        "importPath": "python_api.example",
+        "description": "python_api.example",
+        "peekOfCode": "def test_gym_env():\n    \"\"\"Test the OpenAI Gym environment.\"\"\"\n    print(\"\\nTesting OpenAI Gym environment...\")\n    # Create environment\n    try:\n        env = MagicsEnv()\n        try:\n            # Reset the environment\n            observation, info = env.reset()\n            print(f\"Initial observation:\")",
+        "detail": "python_api.example",
+        "documentation": {}
+    },
+    {
+        "label": "PlanningStrategy",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class PlanningStrategy(enum.Enum):\n    \"\"\"Planning strategy used by an agent.\"\"\"\n    ONLY_LOCAL = \"OnlyLocal\"\n    RRT_STAR = \"RrtStar\"\nclass MissionState(enum.Enum):\n    \"\"\"Mission state for an agent.\"\"\"\n    IDLE = \"Idle\"\n    ACTIVE = \"Active\"\n    COMPLETED = \"Completed\"\nclass MagicsError(Exception):",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MissionState",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class MissionState(enum.Enum):\n    \"\"\"Mission state for an agent.\"\"\"\n    IDLE = \"Idle\"\n    ACTIVE = \"Active\"\n    COMPLETED = \"Completed\"\nclass MagicsError(Exception):\n    \"\"\"Exception raised for errors from the Magics API.\"\"\"\n    pass\nclass MagicsClient:\n    \"\"\"",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsError",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class MagicsError(Exception):\n    \"\"\"Exception raised for errors from the Magics API.\"\"\"\n    pass\nclass MagicsClient:\n    \"\"\"\n    Client for communicating with the Magics simulation using ZeroMQ.\n    This client uses the ZeroMQ REQ-REP pattern to send commands to the\n    simulation and receive responses.\n    \"\"\"\n    def __init__(self, host: str = \"localhost\", port: int = 5555, timeout: int = 5000):",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsClient",
+        "kind": 6,
+        "importPath": "python_api.magics_client",
+        "description": "python_api.magics_client",
+        "peekOfCode": "class MagicsClient:\n    \"\"\"\n    Client for communicating with the Magics simulation using ZeroMQ.\n    This client uses the ZeroMQ REQ-REP pattern to send commands to the\n    simulation and receive responses.\n    \"\"\"\n    def __init__(self, host: str = \"localhost\", port: int = 5555, timeout: int = 5000):\n        \"\"\"\n        Initialize the Magics client.\n        Args:",
+        "detail": "python_api.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "convert_numpy_to_python",
+        "kind": 2,
+        "importPath": "python_api.stepping",
+        "description": "python_api.stepping",
+        "peekOfCode": "def convert_numpy_to_python(obj):\n    \"\"\"Convert numpy objects and custom classes to native Python types for JSON serialization.\"\"\"\n    if isinstance(obj, np.ndarray):\n        return obj.tolist()\n    elif isinstance(obj, np.integer):\n        return int(obj)\n    elif isinstance(obj, np.floating):\n        return float(obj)\n    elif isinstance(obj, dict):\n        return {key: convert_numpy_to_python(value) for key, value in obj.items()}",
+        "detail": "python_api.stepping",
+        "documentation": {}
+    },
+    {
+        "label": "write_json_to_file",
+        "kind": 2,
+        "importPath": "python_api.stepping",
+        "description": "python_api.stepping",
+        "peekOfCode": "def write_json_to_file(data, filename):\n    \"\"\"Write JSON data to a file.\"\"\"\n    # Create output directory if it doesn't exist\n    os.makedirs(\"output\", exist_ok=True)\n    filepath = os.path.join(\"output\", filename)\n    with open(filepath, \"w\") as f:\n        json.dump(convert_numpy_to_python(data), f, sort_keys=True, indent=4)\n    print(f\"Wrote data to {filepath}\")\nclient = MagicsClient(timeout=10_000)  # 10 second timeout\nif not client.is_api_active():",
+        "detail": "python_api.stepping",
+        "documentation": {}
+    },
+    {
+        "label": "client",
+        "kind": 5,
+        "importPath": "python_api.stepping",
+        "description": "python_api.stepping",
+        "peekOfCode": "client = MagicsClient(timeout=10_000)  # 10 second timeout\nif not client.is_api_active():\n    client.set_api_active(True)\nclient.set_iterations_per_step(iterations=10)  # 5 iterations per step\nprint(\"Press Enter to step the simulation (Ctrl+C to exit)...\")\ntry:\n    while True:\n        # Wait for Enter key press\n        input()\n        print(\"Stepping simulation...\")",
+        "detail": "python_api.stepping",
+        "documentation": {}
+    },
+    {
+        "label": "flatten",
+        "kind": 2,
+        "importPath": "scripts.analyse-circle-scenario",
+        "description": "scripts.analyse-circle-scenario",
+        "peekOfCode": "def flatten(lst: Iterable) -> list:\n    return list(itertools.chain.from_iterable(lst))\ndef process_file(file):\n    match = RE.match(file.name)\n    assert match is not None\n    num_robots = int(match.group(1))\n    seed = int(match.group(2))\n    with open(file, 'r') as file:\n        data = json.load(file)\n    distance_travelled_of_each_robot: list[float] = []",
+        "detail": "scripts.analyse-circle-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "process_file",
+        "kind": 2,
+        "importPath": "scripts.analyse-circle-scenario",
+        "description": "scripts.analyse-circle-scenario",
+        "peekOfCode": "def process_file(file):\n    match = RE.match(file.name)\n    assert match is not None\n    num_robots = int(match.group(1))\n    seed = int(match.group(2))\n    with open(file, 'r') as file:\n        data = json.load(file)\n    distance_travelled_of_each_robot: list[float] = []\n    ldj_of_each_robot: list[float] = []\n    for _, robot_data in data['robots'].items():",
+        "detail": "scripts.analyse-circle-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "scripts.analyse-circle-scenario",
+        "description": "scripts.analyse-circle-scenario",
+        "peekOfCode": "def main():\n    print(f\"{sys.executable = }\")\n    print(f\"{sys.version = }\")\n    data = []\n    for RESULTS_DIR in RESULTS_DIRS:\n        with ProcessPoolExecutor() as executor:\n            results = executor.map(process_file, RESULTS_DIR.glob('*.json'))\n        # Aggregate results in a single-threaded manner to avoid data\n        aggregated_data_distance_travelled: dict[int, list[float]] = collections.defaultdict(list)\n        aggregated_data_makespan: dict[int, list[float]] = collections.defaultdict(list)",
+        "detail": "scripts.analyse-circle-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "RESULTS_DIRS",
+        "kind": 5,
+        "importPath": "scripts.analyse-circle-scenario",
+        "description": "scripts.analyse-circle-scenario",
+        "peekOfCode": "RESULTS_DIRS = [\n    Path('./experiments/circle-experiment-lm-3-th-5'),\n    Path('./experiments/circle-experiment-lm-3-th-13'),\n    Path('./experiments/circle-experiment-lm-1-th-13')\n]\nfor RESULTS_DIR in RESULTS_DIRS:\n    assert RESULTS_DIR.is_dir() and RESULTS_DIR.exists()\n# RESULTS_DIR = Path('./experiments/circle-experiment-lm-3-th-5')\n# assert RESULTS_DIR.is_dir() and RESULTS_DIR.exists()\nflavor = PALETTE.latte.colors",
+        "detail": "scripts.analyse-circle-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "flavor",
+        "kind": 5,
+        "importPath": "scripts.analyse-circle-scenario",
+        "description": "scripts.analyse-circle-scenario",
+        "peekOfCode": "flavor = PALETTE.latte.colors\n# num-robots-10-seed-0.json\nRE = re.compile(r\"num-robots-(\\d+)-seed-(\\d+).json\")\ndef flatten(lst: Iterable) -> list:\n    return list(itertools.chain.from_iterable(lst))\ndef process_file(file):\n    match = RE.match(file.name)\n    assert match is not None\n    num_robots = int(match.group(1))\n    seed = int(match.group(2))",
+        "detail": "scripts.analyse-circle-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "RE",
+        "kind": 5,
+        "importPath": "scripts.analyse-circle-scenario",
+        "description": "scripts.analyse-circle-scenario",
+        "peekOfCode": "RE = re.compile(r\"num-robots-(\\d+)-seed-(\\d+).json\")\ndef flatten(lst: Iterable) -> list:\n    return list(itertools.chain.from_iterable(lst))\ndef process_file(file):\n    match = RE.match(file.name)\n    assert match is not None\n    num_robots = int(match.group(1))\n    seed = int(match.group(2))\n    with open(file, 'r') as file:\n        data = json.load(file)",
+        "detail": "scripts.analyse-circle-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "flatten",
+        "kind": 2,
+        "importPath": "scripts.analyse-junction-scenario",
+        "description": "scripts.analyse-junction-scenario",
+        "peekOfCode": "def flatten(lst: Iterable) -> list:\n    return list(itertools.chain.from_iterable(lst))\ndef extract_data_from_file(file_path):\n    with open(file_path, 'r') as file:\n        data = json.load(file)\n    # Assuming the JSON structure and extracting necessary information\n    # Replace 'key' with actual key names in your JSON files\n    durations: list[float] = []\n    bins: list[int] = []\n    goal_areas: list = [v for _, v in data['goal_areas'].items()]",
+        "detail": "scripts.analyse-junction-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "extract_data_from_file",
+        "kind": 2,
+        "importPath": "scripts.analyse-junction-scenario",
+        "description": "scripts.analyse-junction-scenario",
+        "peekOfCode": "def extract_data_from_file(file_path):\n    with open(file_path, 'r') as file:\n        data = json.load(file)\n    # Assuming the JSON structure and extracting necessary information\n    # Replace 'key' with actual key names in your JSON files\n    durations: list[float] = []\n    bins: list[int] = []\n    goal_areas: list = [v for _, v in data['goal_areas'].items()]\n    # print(f\"{goal_areas=}\")\n    makespan = data['makespan']",
+        "detail": "scripts.analyse-junction-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "process_file",
+        "kind": 2,
+        "importPath": "scripts.analyse-junction-scenario",
+        "description": "scripts.analyse-junction-scenario",
+        "peekOfCode": "def process_file(file):\n    qin_value = float(file.stem.split('-')[1])\n    extracted_value = extract_data_from_file(file)\n    return qin_value, extracted_value\ndef main():\n    print(f\"{sys.executable = }\")\n    print(f\"{sys.version = }\")\n    aggregated_data = collections.defaultdict(list)\n    with ProcessPoolExecutor() as executor:\n        results = executor.map(process_file, RESULTS_DIR.glob('qin-*.json'))",
+        "detail": "scripts.analyse-junction-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "scripts.analyse-junction-scenario",
+        "description": "scripts.analyse-junction-scenario",
+        "peekOfCode": "def main():\n    print(f\"{sys.executable = }\")\n    print(f\"{sys.version = }\")\n    aggregated_data = collections.defaultdict(list)\n    with ProcessPoolExecutor() as executor:\n        results = executor.map(process_file, RESULTS_DIR.glob('qin-*.json'))\n    # Aggregate results in a single-threaded manner to avoid data races\n    for Qin, extracted_value in results:\n        aggregated_data[Qin].append(extracted_value)\n    xs: list[float] = []",
+        "detail": "scripts.analyse-junction-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "RESULTS_DIR",
+        "kind": 5,
+        "importPath": "scripts.analyse-junction-scenario",
+        "description": "scripts.analyse-junction-scenario",
+        "peekOfCode": "RESULTS_DIR = Path('./experiments/junction')\nassert RESULTS_DIR.is_dir() and RESULTS_DIR.exists()\nflavor = PALETTE.latte.colors\ndef flatten(lst: Iterable) -> list:\n    return list(itertools.chain.from_iterable(lst))\ndef extract_data_from_file(file_path):\n    with open(file_path, 'r') as file:\n        data = json.load(file)\n    # Assuming the JSON structure and extracting necessary information\n    # Replace 'key' with actual key names in your JSON files",
+        "detail": "scripts.analyse-junction-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "flavor",
+        "kind": 5,
+        "importPath": "scripts.analyse-junction-scenario",
+        "description": "scripts.analyse-junction-scenario",
+        "peekOfCode": "flavor = PALETTE.latte.colors\ndef flatten(lst: Iterable) -> list:\n    return list(itertools.chain.from_iterable(lst))\ndef extract_data_from_file(file_path):\n    with open(file_path, 'r') as file:\n        data = json.load(file)\n    # Assuming the JSON structure and extracting necessary information\n    # Replace 'key' with actual key names in your JSON files\n    durations: list[float] = []\n    bins: list[int] = []",
+        "detail": "scripts.analyse-junction-scenario",
+        "documentation": {}
+    },
+    {
+        "label": "create_distance_field",
+        "kind": 2,
+        "importPath": "scripts.create_distance_field",
+        "description": "scripts.create_distance_field",
+        "peekOfCode": "def create_distance_field(img):\n    if (img.shape[0]!=1000 or img.shape[1]!=1000):\n        print(\"Resizing to 1000 x 1000\")\n        img = cv2.resize(img, (1000, 1000))\n    # Convolve with a Gaussian to effect a blur.\n    blur = gaussian_filter(img, sigma=5)\n    blur = cv2.normalize(blur, None, 0, 1.0, cv2.NORM_MINMAX, dtype=cv2.CV_32F)\n    distance_field = blur\n    return distance_field\ndef is_valid_file(parser, arg):",
+        "detail": "scripts.create_distance_field",
+        "documentation": {}
+    },
+    {
+        "label": "is_valid_file",
+        "kind": 2,
+        "importPath": "scripts.create_distance_field",
+        "description": "scripts.create_distance_field",
+        "peekOfCode": "def is_valid_file(parser, arg):\n    if not os.path.exists(arg):\n        parser.error(\"The file %s does not exist!\" % arg)\n    else:\n        return open(arg, 'r')  # return an open file handle\nif __name__==\"__main__\":\n    parser = ArgumentParser(description=\"Input and output files for createing distance field\")\n    parser.add_argument(\"-i\", \"--input\", help=\"Input obstacle file to convert to distance field. Obstacles must be BLACK on WHITE background\", default=None)\n    parser.add_argument(\"-o\", \"--output\", help=\"Output file name for distance field. Default = replaces input\", default=None)\n    args = parser.parse_args()",
+        "detail": "scripts.create_distance_field",
+        "documentation": {}
+    },
+    {
+        "label": "plot_distances",
+        "kind": 2,
+        "importPath": "scripts.distance-travelled",
+        "description": "scripts.distance-travelled",
+        "peekOfCode": "def plot_distances(distances):\n    plt.boxplot(distances)\n    plt.title('Distance Travelled by Robots')\n    plt.ylabel('Distance')\n    plt.xlabel('Robots')\n    plt.ylim(0, 250)\n    num_measurements = len(distances)\n    plt.xticks([1], [str(num_measurements)])\n    plt.show()\ndef distance_travelled(positions: np.ndarray) -> float:",
+        "detail": "scripts.distance-travelled",
+        "documentation": {}
+    },
+    {
+        "label": "distance_travelled",
+        "kind": 2,
+        "importPath": "scripts.distance-travelled",
+        "description": "scripts.distance-travelled",
+        "peekOfCode": "def distance_travelled(positions: np.ndarray) -> float:\n    assert len(positions) > 0\n    assert positions.shape == (len(positions), 2)\n    diffs = np.diff(positions, axis=0)\n    distances = np.linalg.norm(diffs, axis=1)\n    total_distance = np.sum(distances)\n    return total_distance\ndef main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument('json_file', type=Path)",
+        "detail": "scripts.distance-travelled",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "scripts.distance-travelled",
+        "description": "scripts.distance-travelled",
+        "peekOfCode": "def main():\n    parser = argparse.ArgumentParser()\n    parser.add_argument('json_file', type=Path)\n    parser.add_argument('-b', '--best-possible', type=float, default=None)\n    args = parser.parse_args()\n    data = json.loads(args.json_file.read_text())\n    distance_travelled_of_each_robot: dict[int, float] = {}\n    for robot_id, robot_data in data['robots'].items():\n        positions = np.array([p for p in robot_data['positions']])\n        d = distance_travelled(positions)",
+        "detail": "scripts.distance-travelled",
+        "documentation": {}
+    },
+    {
+        "label": "print(f\"{sys.executable",
+        "kind": 5,
+        "importPath": "scripts.distance-travelled",
+        "description": "scripts.distance-travelled",
+        "peekOfCode": "print(f\"{sys.executable = }\")\nprint(f\"{sys.version = }\")\ndef plot_distances(distances):\n    plt.boxplot(distances)\n    plt.title('Distance Travelled by Robots')\n    plt.ylabel('Distance')\n    plt.xlabel('Robots')\n    plt.ylim(0, 250)\n    num_measurements = len(distances)\n    plt.xticks([1], [str(num_measurements)])",
+        "detail": "scripts.distance-travelled",
+        "documentation": {}
+    },
+    {
+        "label": "print(f\"{sys.version",
+        "kind": 5,
+        "importPath": "scripts.distance-travelled",
+        "description": "scripts.distance-travelled",
+        "peekOfCode": "print(f\"{sys.version = }\")\ndef plot_distances(distances):\n    plt.boxplot(distances)\n    plt.title('Distance Travelled by Robots')\n    plt.ylabel('Distance')\n    plt.xlabel('Robots')\n    plt.ylim(0, 250)\n    num_measurements = len(distances)\n    plt.xticks([1], [str(num_measurements)])\n    plt.show()",
+        "detail": "scripts.distance-travelled",
+        "documentation": {}
+    },
+    {
+        "label": "ldj",
+        "kind": 2,
+        "importPath": "scripts.ldj",
+        "description": "scripts.ldj",
+        "peekOfCode": "def ldj(velocities: np.ndarray, timesteps: np.ndarray) -> float:\n    \"\"\" Calculate the Log Dimensionless Jerk (LDJ) metric. \"\"\"\n    assert len(velocities) > 0\n    assert velocities.shape == (len(velocities), 2)\n    assert len(timesteps) == len(velocities)\n    assert np.all(np.diff(timesteps) > 0)\n    assert timesteps.shape == (len(timesteps),)\n    t_start: float = timesteps[0]\n    t_final: float = timesteps[-1]\n    assert t_start < t_final",
+        "detail": "scripts.ldj",
+        "documentation": {}
+    },
+    {
+        "label": "plot_ldj",
+        "kind": 2,
+        "importPath": "scripts.ldj",
+        "description": "scripts.ldj",
+        "peekOfCode": "def plot_ldj(ldjs):\n    plt.boxplot(ldjs)\n    plt.title('Log Dimensionless Jerk by Robots')\n    plt.ylabel('LDJ')\n    plt.xlabel('Robots')\n    plt.ylim( -25, 0)\n    num_measurements = len(ldjs)\n    plt.xticks([1], [str(num_measurements)])\n    plt.show()\ndef main():",
+        "detail": "scripts.ldj",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "scripts.ldj",
+        "description": "scripts.ldj",
+        "peekOfCode": "def main():\n    pretty.install()\n    # print(f\"{sys.executable =❯ bat ~/.jupyter/lab/user-settings/@jupyterlab/apputils-extension/notification.jupyterlab-settings }\")\n    # print(f\"{sys.version = }\")\n    parser = argparse.ArgumentParser()\n    parser.add_argument('-i', '--input', type=Path)\n    parser.add_argument('-p', '--plot', action='store_true')\n    args = parser.parse_args()\n    data = json.loads(args.input.read_text())\n    ldj_of_each_robot: dict[int, float] = {}",
+        "detail": "scripts.ldj",
+        "documentation": {}
+    },
+    {
+        "label": "Line",
+        "kind": 6,
+        "importPath": "scripts.perpendicular-path-deviation",
+        "description": "scripts.perpendicular-path-deviation",
+        "peekOfCode": "class Line:\n    a: float\n    b: float\ndef line_from_line_segment(x1: float, y1: float, x2: float, y2: float) -> Line:\n    a = (y2 - y1) / (x2 - x1)\n    b = y1 - (a * x1)\n    return Line(a=a, b=b)\ndef projection_onto_line(point: np.ndarray, line: Line) -> np.ndarray:\n    assert len(point) == 2\n    x1, y1 = point",
+        "detail": "scripts.perpendicular-path-deviation",
+        "documentation": {}
+    },
+    {
+        "label": "sliding_window",
+        "kind": 2,
+        "importPath": "scripts.perpendicular-path-deviation",
+        "description": "scripts.perpendicular-path-deviation",
+        "peekOfCode": "def sliding_window(iterable: Iterable, n: int):\n    \"Collect data into overlapping fixed-length chunks or blocks.\"\n    # sliding_window('ABCDEFG', 4) → ABCD BCDE CDEF DEFG\n    iterator = iter(iterable)\n    window = collections.deque(itertools.islice(iterator, n - 1), maxlen=n)\n    for x in iterator:\n        window.append(x)\n        yield tuple(window)\n@dataclass\nclass Line:",
+        "detail": "scripts.perpendicular-path-deviation",
+        "documentation": {}
+    },
+    {
+        "label": "line_from_line_segment",
+        "kind": 2,
+        "importPath": "scripts.perpendicular-path-deviation",
+        "description": "scripts.perpendicular-path-deviation",
+        "peekOfCode": "def line_from_line_segment(x1: float, y1: float, x2: float, y2: float) -> Line:\n    a = (y2 - y1) / (x2 - x1)\n    b = y1 - (a * x1)\n    return Line(a=a, b=b)\ndef projection_onto_line(point: np.ndarray, line: Line) -> np.ndarray:\n    assert len(point) == 2\n    x1, y1 = point\n    xp: float = (x1 + line.a * (y1 - line.b)) / (line.a * line.a + 1)\n    projection = np.array([xp, line.a * xp + line.b])\n    assert len(projection) == 2",
+        "detail": "scripts.perpendicular-path-deviation",
+        "documentation": {}
+    },
+    {
+        "label": "projection_onto_line",
+        "kind": 2,
+        "importPath": "scripts.perpendicular-path-deviation",
+        "description": "scripts.perpendicular-path-deviation",
+        "peekOfCode": "def projection_onto_line(point: np.ndarray, line: Line) -> np.ndarray:\n    assert len(point) == 2\n    x1, y1 = point\n    xp: float = (x1 + line.a * (y1 - line.b)) / (line.a * line.a + 1)\n    projection = np.array([xp, line.a * xp + line.b])\n    assert len(projection) == 2\n    return projection\ndef closest_projection_onto_line_segments(point: np.ndarray, lines: list[Line]) -> np.ndarray:\n    assert len(point) == 2\n    projections = [projection_onto_line(point, line) for line in lines]",
+        "detail": "scripts.perpendicular-path-deviation",
+        "documentation": {}
+    },
+    {
+        "label": "closest_projection_onto_line_segments",
+        "kind": 2,
+        "importPath": "scripts.perpendicular-path-deviation",
+        "description": "scripts.perpendicular-path-deviation",
+        "peekOfCode": "def closest_projection_onto_line_segments(point: np.ndarray, lines: list[Line]) -> np.ndarray:\n    assert len(point) == 2\n    projections = [projection_onto_line(point, line) for line in lines]\n    closest_projection = min(projections, key=lambda proj: np.linalg.norm(proj - point))\n    return closest_projection\ndef main():\n    print(f\"{sys.executable = }\")\n    print(f\"{sys.version = }\")\n    parser = argparse.ArgumentParser()\n    parser.add_argument('-i', '--input', type=Path)",
+        "detail": "scripts.perpendicular-path-deviation",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "scripts.perpendicular-path-deviation",
+        "description": "scripts.perpendicular-path-deviation",
+        "peekOfCode": "def main():\n    print(f\"{sys.executable = }\")\n    print(f\"{sys.version = }\")\n    parser = argparse.ArgumentParser()\n    parser.add_argument('-i', '--input', type=Path)\n    parser.add_argument('-p', '--plot', action='store_true')\n    args = parser.parse_args()\n    data = json.loads(args.input.read_text())\n    rmses: list[float] = []\n    rmse_of_each_robot: dict[str, float] = {}",
+        "detail": "scripts.perpendicular-path-deviation",
+        "documentation": {}
+    },
+    {
+        "label": "load_data",
+        "kind": 2,
+        "importPath": "scripts.plot-robot-positions-and-velocities",
+        "description": "scripts.plot-robot-positions-and-velocities",
+        "peekOfCode": "def load_data(filepath):\n    \"\"\" Load the JSON data from the given filepath. \"\"\"\n    with open(filepath, 'r') as file:\n        data = json.load(file)\n    return data\ndef plot_robot_paths_with_velocities(data):\n    \"\"\" Plot the paths and velocities for each robot. \"\"\"\n    fig = go.Figure()\n    # Scaling factor for velocity arrows to make them visible but not overwhelming\n    scale_factor = 0.1",
+        "detail": "scripts.plot-robot-positions-and-velocities",
+        "documentation": {}
+    },
+    {
+        "label": "plot_robot_paths_with_velocities",
+        "kind": 2,
+        "importPath": "scripts.plot-robot-positions-and-velocities",
+        "description": "scripts.plot-robot-positions-and-velocities",
+        "peekOfCode": "def plot_robot_paths_with_velocities(data):\n    \"\"\" Plot the paths and velocities for each robot. \"\"\"\n    fig = go.Figure()\n    # Scaling factor for velocity arrows to make them visible but not overwhelming\n    scale_factor = 0.1\n    for robot_id, robot_data in data['robots'].items():\n        positions = robot_data['positions']\n        velocities = robot_data['velocities']\n        x_coords = [pos[0] for pos in positions]\n        y_coords = [pos[1] for pos in positions]",
+        "detail": "scripts.plot-robot-positions-and-velocities",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "scripts.plot-robot-positions-and-velocities",
+        "description": "scripts.plot-robot-positions-and-velocities",
+        "peekOfCode": "def main():\n    # Accept file path from command line argument\n    filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('export.json')\n    data = load_data(filepath)\n    # Plot the paths of each robot with velocities\n    plot_robot_paths_with_velocities(data)\nif __name__ == '__main__':\n    main()",
+        "detail": "scripts.plot-robot-positions-and-velocities",
+        "documentation": {}
+    },
+    {
+        "label": "load_data",
+        "kind": 2,
+        "importPath": "scripts.plot-robot-positions",
+        "description": "scripts.plot-robot-positions",
+        "peekOfCode": "def load_data(filepath):\n    \"\"\" Load the JSON data from the given filepath. \"\"\"\n    with open(filepath, 'r') as file:\n        data = json.load(file)\n    return data\ndef plot_robot_paths_plotly(data, filepath=\"robot-positions.html\"):\n    \"\"\" Plot the paths for each robot using their position data. \"\"\"\n    fig = go.Figure()\n    for robot_id, robot_data in data['robots'].items():\n        positions = robot_data['positions']",
+        "detail": "scripts.plot-robot-positions",
+        "documentation": {}
+    },
+    {
+        "label": "plot_robot_paths_plotly",
+        "kind": 2,
+        "importPath": "scripts.plot-robot-positions",
+        "description": "scripts.plot-robot-positions",
+        "peekOfCode": "def plot_robot_paths_plotly(data, filepath=\"robot-positions.html\"):\n    \"\"\" Plot the paths for each robot using their position data. \"\"\"\n    fig = go.Figure()\n    for robot_id, robot_data in data['robots'].items():\n        positions = robot_data['positions']\n        x_coords = [pos[0] for pos in positions]\n        y_coords = [pos[1] for pos in positions]\n        positions = np.array(robot_data['positions'])\n        total_distance: float = np.sum(np.linalg.norm(np.diff(positions, axis=1), axis=0))\n        fig.add_trace(go.Scatter(x=x_coords, y=y_coords, mode='lines+markers',",
+        "detail": "scripts.plot-robot-positions",
+        "documentation": {}
+    },
+    {
+        "label": "plot_robot_paths_matplotlib",
+        "kind": 2,
+        "importPath": "scripts.plot-robot-positions",
+        "description": "scripts.plot-robot-positions",
+        "peekOfCode": "def plot_robot_paths_matplotlib(data, filepath=\"robot-positions.svg\"):\n    \"\"\" Plot the paths for each robot using their position data. \"\"\"\n    fig, ax = plt.subplots(figsize=(12, 10))\n    # Plot robot paths\n    n: int = 0\n    for robot_id, robot_data in data['robots'].items():\n        positions = robot_data['positions']\n        # match positions.shape:\n        #     case (_, 2):\n        #         pass",
+        "detail": "scripts.plot-robot-positions",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "scripts.plot-robot-positions",
+        "description": "scripts.plot-robot-positions",
+        "peekOfCode": "def main():\n    # positions = np.array([\n    #     [0, 0],\n    #     [1, 0],\n    #     [1, 2],\n    # ])\n    #\n    # distance_traveled: float = np.sum(np.linalg.norm(np.diff(positions, axis=0), axis=1))\n    # print(f\"{distance_traveled=}\")\n    #",
+        "detail": "scripts.plot-robot-positions",
+        "documentation": {}
+    },
+    {
+        "label": "load_data",
+        "kind": 2,
+        "importPath": "scripts.plot-robot-velocities",
+        "description": "scripts.plot-robot-velocities",
+        "peekOfCode": "def load_data(filepath: Path):\n    \"\"\" Load the JSON data from the given filepath. \"\"\"\n    with open(filepath, 'r') as file:\n        data = json.load(file)\n    return data\ndef plot_robot_velocities(data):\n    \"\"\" Plot the velocities for each robot over time. \"\"\"\n    fig = go.Figure()\n    for robot_id, robot_data in data['robots'].items():\n        velocities = robot_data['velocities']",
+        "detail": "scripts.plot-robot-velocities",
+        "documentation": {}
+    },
+    {
+        "label": "plot_robot_velocities",
+        "kind": 2,
+        "importPath": "scripts.plot-robot-velocities",
+        "description": "scripts.plot-robot-velocities",
+        "peekOfCode": "def plot_robot_velocities(data):\n    \"\"\" Plot the velocities for each robot over time. \"\"\"\n    fig = go.Figure()\n    for robot_id, robot_data in data['robots'].items():\n        velocities = robot_data['velocities']\n        time_steps = list(range(len(velocities)))  # Assuming constant time steps\n        # Calculating the magnitude of velocity\n        velocity_magnitudes = [((v[0]**2 + v[1]**2)**0.5) for v in velocities]\n        fig.add_trace(go.Scatter(x=time_steps, y=velocity_magnitudes, mode='lines+markers',\n                                 name=f'Robot {robot_id} (Radius: {robot_data[\"radius\"]})'))",
+        "detail": "scripts.plot-robot-velocities",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "scripts.plot-robot-velocities",
+        "description": "scripts.plot-robot-velocities",
+        "peekOfCode": "def main():\n    # Accept file path from command line argument\n    filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('export.json')\n    data = load_data(filepath)\n    # Plot the velocities of each robot\n    plot_robot_velocities(data)\nif __name__ == '__main__':\n    main()",
+        "detail": "scripts.plot-robot-velocities",
+        "documentation": {}
+    },
+    {
+        "label": "Line",
+        "kind": 6,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "class Line:\n    a: float\n    b: float\n@dataclass\nclass LinePoints:\n    start: List[float]\n    end: List[float]\ndef line_from_line_segment(x1: float, y1: float, x2: float, y2: float) -> Line:\n    a = (y2 - y1) / (x2 - x1)\n    b = y1 - (a * x1)",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "LinePoints",
+        "kind": 6,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "class LinePoints:\n    start: List[float]\n    end: List[float]\ndef line_from_line_segment(x1: float, y1: float, x2: float, y2: float) -> Line:\n    a = (y2 - y1) / (x2 - x1)\n    b = y1 - (a * x1)\n    return Line(a=a, b=b)\n# def projection_onto_line(point: np.ndarray, line: Line) -> np.ndarray:\n#     assert len(point) == 2\n#     x1, y1 = point",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "adjust_hue",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def adjust_hue(rgba, hue_offset):\n    \"\"\"\n    Adjusts the hue of an RGBA color.\n    rgba: A tuple of (r, g, b, a) where each component is between 0 and 1.\n    hue_offset: Hue offset in degrees (0 to 360).\n    Returns: A new RGBA color with adjusted hue.\n    \"\"\"\n    # Convert hue offset from degrees to a scale of 0-1\n    hue_offset = hue_offset / 360.0\n    # Unpack the RGBA values",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "set_alpha",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def set_alpha(rgba, alpha):\n    return (*rgba[:3], alpha)\ndef lighten(rgba, factor):\n    return (*[x + (1 - x) * factor for x in rgba[:3]], rgba[3])\n    # return ([x + (1 - x) * factor for x in rgba[:3]])\ndef hex_to_rgba(hex):\n    return rgba_to_float([int(hex[i:i+2], 16) for i in (1, 3, 5)])\n# lighten hex\ndef lighten_hex(hex, factor):\n    rgba = hex_to_rgba(hex)",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "lighten",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def lighten(rgba, factor):\n    return (*[x + (1 - x) * factor for x in rgba[:3]], rgba[3])\n    # return ([x + (1 - x) * factor for x in rgba[:3]])\ndef hex_to_rgba(hex):\n    return rgba_to_float([int(hex[i:i+2], 16) for i in (1, 3, 5)])\n# lighten hex\ndef lighten_hex(hex, factor):\n    rgba = hex_to_rgba(hex)\n    return rgba_to_hex(lighten(rgba, factor))\ndef darken(rgba, factor):",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "hex_to_rgba",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def hex_to_rgba(hex):\n    return rgba_to_float([int(hex[i:i+2], 16) for i in (1, 3, 5)])\n# lighten hex\ndef lighten_hex(hex, factor):\n    rgba = hex_to_rgba(hex)\n    return rgba_to_hex(lighten(rgba, factor))\ndef darken(rgba, factor):\n    return (*[x - x * factor for x in rgba[:3]], rgba[3])\ndef rgba_to_hex(rgba):\n    return '#' + ''.join(f'{int(x * 255):02x}' for x in rgba[:3])",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "lighten_hex",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def lighten_hex(hex, factor):\n    rgba = hex_to_rgba(hex)\n    return rgba_to_hex(lighten(rgba, factor))\ndef darken(rgba, factor):\n    return (*[x - x * factor for x in rgba[:3]], rgba[3])\ndef rgba_to_hex(rgba):\n    return '#' + ''.join(f'{int(x * 255):02x}' for x in rgba[:3])\ndef flatten(lst: Iterable) -> list:\n    return list(itertools.chain.from_iterable(lst))\ndef sliding_window(iterable: Iterable, n: int):",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "darken",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def darken(rgba, factor):\n    return (*[x - x * factor for x in rgba[:3]], rgba[3])\ndef rgba_to_hex(rgba):\n    return '#' + ''.join(f'{int(x * 255):02x}' for x in rgba[:3])\ndef flatten(lst: Iterable) -> list:\n    return list(itertools.chain.from_iterable(lst))\ndef sliding_window(iterable: Iterable, n: int):\n    \"Collect data into overlapping fixed-length chunks or blocks.\"\n    # sliding_window('ABCDEFG', 4) → ABCD BCDE CDEF DEFG\n    iterator = iter(iterable)",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "rgba_to_hex",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def rgba_to_hex(rgba):\n    return '#' + ''.join(f'{int(x * 255):02x}' for x in rgba[:3])\ndef flatten(lst: Iterable) -> list:\n    return list(itertools.chain.from_iterable(lst))\ndef sliding_window(iterable: Iterable, n: int):\n    \"Collect data into overlapping fixed-length chunks or blocks.\"\n    # sliding_window('ABCDEFG', 4) → ABCD BCDE CDEF DEFG\n    iterator = iter(iterable)\n    window = collections.deque(itertools.islice(iterator, n - 1), maxlen=n)\n    for x in iterator:",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "flatten",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def flatten(lst: Iterable) -> list:\n    return list(itertools.chain.from_iterable(lst))\ndef sliding_window(iterable: Iterable, n: int):\n    \"Collect data into overlapping fixed-length chunks or blocks.\"\n    # sliding_window('ABCDEFG', 4) → ABCD BCDE CDEF DEFG\n    iterator = iter(iterable)\n    window = collections.deque(itertools.islice(iterator, n - 1), maxlen=n)\n    for x in iterator:\n        window.append(x)\n        yield tuple(window)",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "sliding_window",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def sliding_window(iterable: Iterable, n: int):\n    \"Collect data into overlapping fixed-length chunks or blocks.\"\n    # sliding_window('ABCDEFG', 4) → ABCD BCDE CDEF DEFG\n    iterator = iter(iterable)\n    window = collections.deque(itertools.islice(iterator, n - 1), maxlen=n)\n    for x in iterator:\n        window.append(x)\n        yield tuple(window)\ndef process_file(file, RE):\n    match = RE.match(file.name)",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "process_file",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def process_file(file, RE):\n    match = RE.match(file.name)\n    assert match is not None\n    num_robots = int(match.group(1))\n    seed = int(match.group(2))\n    with open(file, 'r') as file:\n        data = json.load(file)\n    distance_travelled_of_each_robot: list[float] = []\n    ldj_of_each_robot: list[float] = []\n    for _, robot_data in data['robots'].items():",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "sliding_window",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def sliding_window(iterable: Iterable, n: int):\n    \"Collect data into overlapping fixed-length chunks or blocks.\"\n    # sliding_window('ABCDEFG', 4) → ABCD BCDE CDEF DEFG\n    iterator = iter(iterable)\n    window = collections.deque(itertools.islice(iterator, n - 1), maxlen=n)\n    for x in iterator:\n        window.append(x)\n        yield tuple(window)\n@dataclass\nclass Line:",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "line_from_line_segment",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def line_from_line_segment(x1: float, y1: float, x2: float, y2: float) -> Line:\n    a = (y2 - y1) / (x2 - x1)\n    b = y1 - (a * x1)\n    return Line(a=a, b=b)\n# def projection_onto_line(point: np.ndarray, line: Line) -> np.ndarray:\n#     assert len(point) == 2\n#     x1, y1 = point\n#     xp: float = (x1 + line.a * (y1 - line.b)) / (line.a * line.a + 1)\n#     projection = np.array([xp, line.a * xp + line.b])\n#     assert len(projection) == 2",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "projection_onto_line",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def projection_onto_line(point: np.ndarray, line: LinePoints) -> np.ndarray:\n    start = np.array(line.start)\n    end = np.array(line.end)\n    line_vector = end - start\n    # projection in rust:\n    # &current_start + (&x_pos - &current_start).dot(&line) / &line.dot(&line) * &line;\n    projection = start + np.dot(point - start, line_vector) / np.dot(line_vector, line_vector) * line_vector\n    return projection\ndef line_is_valid(line_point: LinePoints, point: np.ndarray) -> bool:\n    lp1 = np.array(line_point.start)",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "line_is_valid",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def line_is_valid(line_point: LinePoints, point: np.ndarray) -> bool:\n    lp1 = np.array(line_point.start)\n    lp2 = np.array(line_point.end)\n    v1 = point - lp1\n    v2 = point - lp2\n    return abs(np.arctan2(v1[0], v1[1]) - np.arctan2(v2[0], v2[1])) >= np.pi / 2\ndef closest_projection_onto_line_segments(point: np.ndarray, lines: list[LinePoints]) -> np.ndarray:\n    assert len(point) == 2\n    # lines: List[Line] = [line_from_line_segment(*line_points[0].start, *line_points[0].end) for line in line_points]\n    # sort out lines that the point is not between",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "closest_projection_onto_line_segments",
+        "kind": 2,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "def closest_projection_onto_line_segments(point: np.ndarray, lines: list[LinePoints]) -> np.ndarray:\n    assert len(point) == 2\n    # lines: List[Line] = [line_from_line_segment(*line_points[0].start, *line_points[0].end) for line in line_points]\n    # sort out lines that the point is not between\n    valid_lines = [\n        line\n        for line in lines\n        if line_is_valid(line, point)\n    ]\n    # print(f\"{valid_lines=}\")",
+        "detail": "scripts.utils",
+        "documentation": {}
+    },
+    {
+        "label": "rgba_to_float",
+        "kind": 5,
+        "importPath": "scripts.utils",
+        "description": "scripts.utils",
+        "peekOfCode": "rgba_to_float = lambda rgba: [x / 255 for x in rgba]\n# rgba tuple (r, g, b, a) in [0, 1], hue in [0, 1]\n# rgba_add_hue = lambda rgba, hue_offset: (*sns.color_palette([rgba], 1, 1)[0], rgba[3])\ndef adjust_hue(rgba, hue_offset):\n    \"\"\"\n    Adjusts the hue of an RGBA color.\n    rgba: A tuple of (r, g, b, a) where each component is between 0 and 1.\n    hue_offset: Hue offset in degrees (0 to 360).\n    Returns: A new RGBA color with adjusted hue.\n    \"\"\"",
+        "detail": "scripts.utils",
+        "documentation": {}
+    }
+]

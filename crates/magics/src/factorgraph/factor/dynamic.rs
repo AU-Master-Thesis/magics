@@ -12,6 +12,7 @@ use crate::factorgraph::DOFS;
 #[derive(Debug)]
 pub struct DynamicFactor {
     cached_jacobian: Matrix<Float>,
+    pub delta_t:     Float,
 }
 
 impl DynamicFactor {
@@ -48,7 +49,10 @@ impl DynamicFactor {
         ];
         debug_assert_eq!(cached_jacobian.shape(), &[DOFS, DOFS * 2]);
 
-        Self { cached_jacobian }
+        Self {
+            cached_jacobian,
+            delta_t,
+        }
     }
 }
 

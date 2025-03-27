@@ -76,7 +76,7 @@ time-scale = 1.2699999809265137
 manual-step-factor = 1
 hz = 10.0
 prng-seed = 2
-pause-on-spawn = false
+pause-on-spawn = true
 despawn-robot-when-final-waypoint-reached = true
 exit-application-on-scenario-finished = false
 

@@ -1084,15 +1084,37 @@ impl<'fg> InterRobotFactors<'fg> {
     }
 }
 
+// impl<'fg> Iterator for InterRobotFactors<'fg> {
+//     type Item = (NodeIndex, &'fg InterRobotFactor);
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let index = match self.factor_indices.next() {
+//             Some(index) => index,
+//             None => {
+//                 panic!("Unexpectedly reached end of factor_indices iterator
+// at InterRobotFactors::next()");             }
+//         };
+//         let node = &self.graph[index];
+//         node.as_factor()
+//             .and_then(|factor| factor.kind.try_as_inter_robot_ref())
+//             .map(|interrobot| (index, interrobot))
+//     }
+// }
+
 impl<'fg> Iterator for InterRobotFactors<'fg> {
     type Item = (NodeIndex, &'fg InterRobotFactor);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let &index = self.factor_indices.next()?;
-        let node = &self.graph[index];
-        node.as_factor()
-            .and_then(|factor| factor.kind.try_as_inter_robot_ref())
-            .map(|interrobot| (index, interrobot))
+        loop {
+            let &index = self.factor_indices.next()?;
+            let node = &self.graph[index];
+            if let Some(factor) = node.as_factor() {
+                if let Some(interrobot) = factor.kind.try_as_inter_robot_ref() {
+                    return Some((index, interrobot));
+                }
+            }
+            // if not valid, loop continues searching for next valid item
+        }
     }
 }
 

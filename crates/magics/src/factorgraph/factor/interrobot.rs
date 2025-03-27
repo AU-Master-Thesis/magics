@@ -1,4 +1,9 @@
-use std::{borrow::Cow, num::NonZeroUsize, ops::Sub};
+use std::{
+    borrow::Cow,
+    cell::{Cell, RefCell},
+    num::NonZeroUsize,
+    ops::Sub,
+};
 
 use bevy::log::info;
 use gbp_linalg::prelude::*;
@@ -40,7 +45,7 @@ impl ExternalVariableId {
 pub struct InterRobotFactor {
     safety_distance: Float,
     robot_radius: Float,
-    skip: bool,
+    pub skip: bool,
     pub external_variable: ExternalVariableId,
     tiny_offset: Float,
     // all_zeros_jacobian: Matrix<Float>,
@@ -88,7 +93,7 @@ impl InterRobotFactor {
         self.safety_distance = multiplier.get() * self.robot_radius
     }
 
-    fn diff_between_estimated_positions(
+    pub fn diff_between_estimated_positions(
         &self,
         linearisation_point: &Vector<Float>,
     ) -> Vector<Float> {

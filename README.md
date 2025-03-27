@@ -242,7 +242,7 @@ rustflags = [
 
 #### Scenario Loading Issues
 - **Problem**: "simulation with name exists"
-- **Solution**: Use exact scenario name as shown in `--list-scenarios` output in "" fx. "Circle Experiment"
+- **Solution**: Use exact scenario name as shown in `--list-scenarios` output in "" fx. "CircleExperiment"
 
 #### Performance Issues
 - **Problem**: Slow simulation or rendering

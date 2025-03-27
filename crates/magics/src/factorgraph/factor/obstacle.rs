@@ -17,7 +17,6 @@ pub struct ObstacleFactor {
     /// `.jacobian_delta()` and `.measurement()`
     world_size:       WorldSize,
     // world_size:       Float,
-    // 
     last_measurement: Mutex<Cell<LastMeasurement>>,
     jacobian_delta:   Float,
 }

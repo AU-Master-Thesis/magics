@@ -52,9 +52,26 @@ impl Default for PlanningStrategy {
     }
 }
 
+/// Information about collisions for an agent.
+#[derive(Debug, Clone, Default)]
+pub struct CollisionInfo {
+    /// Total number of collisions with other robots.
+    pub robot_collisions_total: usize,
+    /// Change in robot collisions since last state extraction.
+    pub robot_collisions_delta: usize,
+    /// Total number of collisions with the environment.
+    pub environment_collisions_total: usize,
+    /// Change in environment collisions since last state extraction.
+    pub environment_collisions_delta: usize,
+}
+
 /// State of an agent in the simulation.
 #[derive(Debug, Clone)]
 pub struct AgentState {
+    /// ID of the agent (Entity ID).
+    pub agent_id: u32,
+    /// ID of the factor graph.
+    pub factorgraph_id: u32,
     /// Position of the agent.
     pub position: Vec2,
     /// Velocity of the agent.
@@ -85,11 +102,15 @@ pub struct AgentState {
     pub mission_progress: MissionProgress,
     /// Detailed information about factor graph components.
     pub factor_details: FactorDetails,
+    /// Information about collisions.
+    pub collision_info: CollisionInfo,
 }
 
 impl Default for AgentState {
     fn default() -> Self {
         Self {
+            agent_id: 0,
+            factorgraph_id: 0,
             position: Vec2::ZERO,
             velocity: Vec2::ZERO,
             factor_graph_state: FactorGraphState::default(),
@@ -105,6 +126,7 @@ impl Default for AgentState {
             goal_point: None,
             mission_progress: MissionProgress::default(),
             factor_details: FactorDetails::default(),
+            collision_info: CollisionInfo::default(),
         }
     }
 }
@@ -155,14 +177,16 @@ pub struct FactorDetails {
 pub struct VariableInfo {
     /// Index of the variable.
     pub index: usize,
+    /// ID of the factor graph this variable belongs to
+    pub factorgraph_id: u32,
     /// Mean vector of the variable [x, y, vx, vy].
     pub mean: [f64; 4],
     /// Covariance matrix of the variable (4x4, flattened).
     pub covariance: [f64; 16],
     /// Estimated position from the variable.
-    pub estimated_position: [f32; 2],
+    pub estimated_position: [f64; 2],
     /// Estimated velocity from the variable.
-    pub estimated_velocity: [f32; 2],
+    pub estimated_velocity: [f64; 2],
 }
 
 /// Information about an obstacle factor in the factor graph.
@@ -170,9 +194,9 @@ pub struct VariableInfo {
 pub struct ObstacleFactorInfo {
     /// Index of the variable this factor is connected to.
     pub variable_index: usize,
-    /// SDF measurement value.
-    pub measurement:    f64,
-    /// Position of the measurement.
+    /// SDF value at the position, ranges from 0.0 (free space) to 1.0 (obstacle).
+    pub sdf_value:      f64,
+    /// Position where the SDF value was measured.
     pub position:       [f32; 2],
 }
 
@@ -204,10 +228,12 @@ pub struct TrackingFactorInfo {
     pub tracking_path:      Vec<[f32; 2]>,
     /// Current index in the tracking path.
     pub tracking_index:     usize,
-    // Projected position
+    /// Projected position on the path.
     pub projected_position: [f32; 2],
-    /// Path deviation measurement.
+    /// Path deviation measurement (normalized distance).
     pub path_deviation:     f32,
+    /// Distance from robot to projected point on path (in world units).
+    pub distance_to_path:   f64,
 }
 
 /// Information about a dynamic factor in the factor graph.
