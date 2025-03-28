@@ -17,6 +17,7 @@ use super::{
         StateVectorInfo, WeightUpdate,
     },
     zmq_server::{ZmqServer, DEFAULT_PORT},
+    despawned_agents::{DespawnedAgentsTracker, track_robots_about_to_despawn, track_entities_with_despawn_timer, clear_despawned_agents_after_step},
 };
 use crate::{
     environment::ObstacleMarker,
@@ -61,9 +62,10 @@ impl ApiPlugin {
 
 impl Plugin for ApiPlugin {
     fn build(&self, app: &mut App) {
-        // Initialize the API state and collision tracking
+        // Initialize the API state, collision tracking, and despawned agents tracker
         app.init_resource::<ApiState>()
-           .init_resource::<PreviousCollisionCounts>();
+           .init_resource::<PreviousCollisionCounts>()
+           .init_resource::<DespawnedAgentsTracker>();
 
         // Get the API state and create the ZMQ server
         let mut api_state = app.world.resource_mut::<ApiState>().clone();
@@ -113,7 +115,12 @@ impl Plugin for ApiPlugin {
            .add_systems(PreUpdate, super::reset::handle_reset_and_load_requests.run_if(api_mode_active))
            
            // Add system to handle completion events
-           .add_systems(Update, super::reset::handle_completion_events);
+           .add_systems(Update, super::reset::handle_completion_events)
+           
+           // Add systems for tracking despawned agents
+           .add_systems(Update, track_robots_about_to_despawn)
+           .add_systems(PreUpdate, track_entities_with_despawn_timer)
+           .add_systems(PostUpdate, clear_despawned_agents_after_step.after(complete_step_in_fixed_update));
            
            // Note: extract_state is now called directly from complete_step_in_fixed_update
            // when remaining <= 1, so we don't need to add it as a separate system
@@ -227,6 +234,7 @@ fn complete_step_in_fixed_update(
     robot_robot_collisions: Res<RobotRobotCollisions>,
     robot_environment_collisions: Res<RobotEnvironmentCollisions>,
     mut previous_collision_counts: ResMut<PreviousCollisionCounts>,
+    despawned_agents: Res<DespawnedAgentsTracker>,
 ) {
     let remaining = api_state.decrement_step_iterations_remaining();
     
@@ -251,7 +259,8 @@ fn complete_step_in_fixed_update(
             config, 
             &robot_robot_collisions, 
             &robot_environment_collisions, 
-            &mut previous_collision_counts
+            &mut previous_collision_counts,
+            &despawned_agents
         );
         // Pause the simulation again
         let virtual_time = time_virtual.bypass_change_detection();

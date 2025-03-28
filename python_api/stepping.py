@@ -55,14 +55,6 @@ if not client.is_api_active():
 
 
 client.set_iterations_per_step(iterations=10)  # 5 iterations per step
-# client.step()  # Step the simulation once to initialize
-# client.step()  # Step the simulation once to initialize
-# client.reset()  # Reset the simulation
-# client.step()  # Step the simulation once to initialize
-# client.step()  # Step the simulation once to initialize
-# client.load_environment("CircleExperiment")  # Load the environment
-# client.step()  # Step the simulation once to initialize
-# client.step()  # Step the simulation once to initialize
 
 print("Press Enter to step the simulation (Ctrl+C to exit)...")
 

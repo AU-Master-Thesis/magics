@@ -11,11 +11,15 @@ mod reset;
 mod factor_details;
 mod extract;
 mod weights;
+mod despawned_agents;
+mod state_utils;
 
 pub use plugin::ApiPlugin;
 pub use state::{AgentState, ApiState, EnvironmentState, WeightUpdate, FactorWeights, FactorGraphState};
 pub use zmq_server::{ZmqServer, DEFAULT_PORT};
 pub use message::{Request, Response, Command, Status, ResponseData, Error};
+pub use despawned_agents::DespawnedAgentsTracker;
+pub use state_utils::create_agent_state;
 
 /// Feature flag for enabling the API functionality
 #[cfg(feature = "api")]
