@@ -77,6 +77,7 @@ manual-step-factor = 1
 hz = 60.0
 prng-seed = 0
 pause-on-spawn = true
+pause-on-load = true
 despawn-robot-when-final-waypoint-reached = false
 exit-application-on-scenario-finished = false
 

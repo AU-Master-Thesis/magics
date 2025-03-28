@@ -34,6 +34,12 @@ pub enum Command {
     /// Reset the simulation.
     Reset,
 
+    /// Load a specific environment by name.
+    LoadEnvironment {
+        /// Name of the environment to load
+        name: String,
+    },
+
     /// Check if the API is active.
     IsApiActive,
 

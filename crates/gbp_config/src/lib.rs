@@ -314,6 +314,10 @@ pub struct SimulationSection {
     /// Whether to pause the simulation time when the first robot is spawned
     pub pause_on_spawn: bool,
 
+    /// Whether to pause the simulation time when the environment is loaded
+    #[serde(default = "SimulationSection::default_pause_on_load")]
+    pub pause_on_load: bool,
+
     /// Whether to despawn a robot when it reaches its final waypoint and
     /// "completes" its route.
     /// Exists for the circle formation environment, where it looks slick if
@@ -326,6 +330,10 @@ pub struct SimulationSection {
 
 impl SimulationSection {
     fn default_exit_application_on_scenario_finished() -> bool {
+        false
+    }
+
+    fn default_pause_on_load() -> bool {
         false
     }
 }
@@ -342,6 +350,7 @@ impl Default for SimulationSection {
             // world_size:         StrictlyPositiveFinite::<f32>::new(100.0).expect("100.0 > 0.0"),
             prng_seed: 0,
             pause_on_spawn: false,
+            pause_on_load: Self::default_pause_on_load(),
             despawn_robot_when_final_waypoint_reached: true,
             exit_application_on_scenario_finished:
                 Self::default_exit_application_on_scenario_finished(),

@@ -70,7 +70,6 @@
 ## Cross-Platform Considerations
 - Linux primary development platform
 - WSL2 support
-- Potential future web (WASM) support
 - X11 and Wayland compatibility
 - Python compatibility across platforms
 

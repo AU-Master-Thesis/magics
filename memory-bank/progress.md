@@ -19,6 +19,17 @@
   - [x] Config Hz access via API
   - [x] Basic agent and environment data extraction
   - [x] Collision detection and tracking
+  - [x] Agent State Extraction
+    - [x] Basic position and velocity
+    - [x] Factor graph state
+    - [x] Mission state and progress
+    - [x] Neighbor connections
+    - [x] Communication properties
+    - [x] Collision information
+- [x] Factor Graph Details Extraction
+  - [x] Variable information
+  - [x] Factor information (obstacle, interrobot, tracking, dynamic)
+  - [x] Message statistics
 
 ## Partially Implemented Features
 - [x] Python Client Implementation
@@ -27,56 +38,30 @@
   - [x] Command sending/receiving
   - [x] Basic step and reset methods
   - [ ] Full OpenAI Gym integration
-- [x] Agent State Extraction
-  - [x] Basic position and velocity
-  - [x] Factor graph state
-  - [x] Mission state and progress
-  - [x] Neighbor connections
-  - [x] Communication properties
-  - [x] Collision information
-- [x] Factor Graph Details Extraction
-  - [x] Variable information
-  - [x] Factor information (obstacle, interrobot, tracking, dynamic)
-  - [x] Message statistics
+
 
 ## Important Next Steps
-1. **Implement Per-agent Factor Graph Weights**
-   - Currently only system-wide weight updates are supported
-   - Need to extend FactorGraph implementation for per-agent weights
-   - Update weights.rs to handle agent-specific weight modifications
 
-2. **Complete Environment Data Extraction**
-   - Implement agent density map extraction
-   - Add SDF resolution from environment configuration
-   - Include world size from environment configuration
-
-3. **Finalize OpenAI Gym Integration**
+1. **Finalize OpenAI Gym Integration**
    - Define observation and action spaces
    - Implement proper reward calculation
    - Create render methods
    - Ensure proper state conversion between Rust and Python
 
-4. **Improve API Documentation**
-   - Create structured documentation in docs folder
-   - Add usage examples
-   - Document data structures and their relationships
-   - Provide troubleshooting guidance
-
 ## Pending Features
 - [ ] Advanced Reinforcement Learning Support
-- [ ] Real-time Performance Visualization for ML
+- [ ] Real-time Performance Visualization for ML (not important now)
 - [ ] Expanded Reward Functions
 - [ ] Distributed Multi-robot Coordination
 
 ## Known Issues
-- Performance bottlenecks in message passing
+- Performance bottlenecks in message passing (Huge problem in the iterate_gbp_v2 function, too many allocations, copying ndarray matricer, and deallocation aka. drop)
 - Limited scenario complexity
 - Potential numerical stability challenges
-- Thread safety concerns with concurrent API access
 
 ## Performance Metrics
 - Current Scenario Complexity: Medium
-- Average Robot Count: 5-10
+- Average Robot Count: 30-100
 - Computation Time per Iteration: ~10-20ms
 - Collision Avoidance Success Rate: ~95%
 

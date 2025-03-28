@@ -73,8 +73,9 @@ manual-step-factor = 1
 hz                 = 10.0
 # world-size                                = 100.0
 prng-seed                                 = 805
-pause-on-spawn                            = true
-despawn-robot-when-final-waypoint-reached = true
+pause-on-spawn                            = false
+pause-on-load                             = true
+despawn-robot-when-final-waypoint-reached = false
 exit-application-on-scenario-finished     = true
 
 [rrt]

@@ -305,7 +305,7 @@ impl Default for FactorGraphState {
 /// Weights for different factor types in the factor graph.
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct FactorWeights {
-    /// Weight for dynamic factors.
+    /// Weight for dynamic factors. 
     pub dynamic:    f32,
     /// Weight for obstacle factors.
     pub obstacle:   f32,
@@ -380,6 +380,14 @@ pub struct ApiState {
     pub step_completed: Arc<AtomicBool>,
     /// Flag indicating whether the API is active.
     pub api_active: Arc<AtomicBool>,
+    /// Flag indicating whether a reset has been requested.
+    pub reset_requested: Arc<AtomicBool>,
+    /// Flag indicating whether a reset has been completed.
+    pub reset_completed: Arc<AtomicBool>,
+    /// Flag indicating whether an environment load has been requested.
+    pub load_environment_requested: Arc<RwLock<Option<String>>>,
+    /// Flag indicating whether an environment load has been completed.
+    pub load_environment_completed: Arc<AtomicBool>,
     /// Number of iterations remaining in the current step
     pub step_iterations_remaining: Arc<AtomicUsize>,
     /// Number of iterations to use for each step
@@ -403,6 +411,10 @@ impl Default for ApiState {
             api_active: Arc::new(AtomicBool::new(true)),
             #[cfg(not(feature = "api"))]
             api_active: Arc::new(AtomicBool::new(false)),
+            reset_requested: Arc::new(AtomicBool::new(false)),
+            reset_completed: Arc::new(AtomicBool::new(false)),
+            load_environment_requested: Arc::new(RwLock::new(None)),
+            load_environment_completed: Arc::new(AtomicBool::new(false)),
             step_iterations_remaining: Arc::new(AtomicUsize::new(0)),
             // Default to 2 iterations per step
             iterations_per_step: Arc::new(AtomicUsize::new(2)),
@@ -570,5 +582,85 @@ impl ApiState {
         }
 
         Err("Time<Fixed> resource not available".to_string())
+    }
+
+    /// Request a reset of the simulation.
+    pub fn request_reset(&self) {
+        self.reset_requested.store(true, Ordering::SeqCst);
+        info!("API: Reset requested");
+    }
+
+    /// Check if a reset has been requested.
+    pub fn is_reset_requested(&self) -> bool {
+        self.reset_requested.load(Ordering::SeqCst)
+    }
+
+    /// Clear the reset request flag.
+    pub fn clear_reset_request(&self) {
+        self.reset_requested.store(false, Ordering::SeqCst);
+        info!("API: Reset request cleared");
+    }
+
+    /// Request loading a specific environment.
+    pub fn request_load_environment(&self, name: String) {
+        if let Ok(mut env_name) = self.load_environment_requested.write() {
+            *env_name = Some(name.clone());
+            info!("API: Load environment '{}' requested", name);
+        } else {
+            error!("API: Failed to acquire write lock on load_environment_requested");
+        }
+    }
+
+    /// Get the name of the environment to load, if any.
+    pub fn get_load_environment_request(&self) -> Option<String> {
+        if let Ok(env_name) = self.load_environment_requested.read() {
+            env_name.clone()
+        } else {
+            None
+        }
+    }
+
+    /// Clear the load environment request.
+    pub fn clear_load_environment_request(&self) {
+        if let Ok(mut env_name) = self.load_environment_requested.write() {
+            *env_name = None;
+            info!("API: Load environment request cleared");
+        } else {
+            error!("API: Failed to acquire write lock on load_environment_requested");
+        }
+    }
+
+    /// Mark a reset as completed.
+    pub fn complete_reset(&self) {
+        self.reset_completed.store(true, Ordering::SeqCst);
+        info!("API: Reset completed");
+    }
+
+    /// Check if a reset has been completed.
+    pub fn is_reset_completed(&self) -> bool {
+        self.reset_completed.load(Ordering::SeqCst)
+    }
+
+    /// Reset the reset completion status.
+    pub fn reset_reset_completion(&self) {
+        self.reset_completed.store(false, Ordering::SeqCst);
+        info!("API: Reset completion status reset");
+    }
+
+    /// Mark an environment load as completed.
+    pub fn complete_load_environment(&self) {
+        self.load_environment_completed.store(true, Ordering::SeqCst);
+        info!("API: Load environment completed");
+    }
+
+    /// Check if an environment load has been completed.
+    pub fn is_load_environment_completed(&self) -> bool {
+        self.load_environment_completed.load(Ordering::SeqCst)
+    }
+
+    /// Reset the environment load completion status.
+    pub fn reset_load_environment_completion(&self) {
+        self.load_environment_completed.store(false, Ordering::SeqCst);
+        info!("API: Load environment completion status reset");
     }
 }

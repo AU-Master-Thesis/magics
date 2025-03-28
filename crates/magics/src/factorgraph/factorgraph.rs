@@ -986,6 +986,9 @@ impl FactorGraph {
     /// Update weights for interrobot factors
     fn update_interrobot_factor_weights(&mut self, weight: f32) {
         for &ix in &self.interrobot_factor_indices {
+            if !self.graph.contains_node(ix){
+                continue;
+            }
             if let Some(factor) = self.graph[ix].as_factor_mut() {
                 let old_strength = factor.state.strength;
                 let old_precision = factor.state.measurement_precision.clone();

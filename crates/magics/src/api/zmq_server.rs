@@ -84,7 +84,11 @@ impl ZmqServer {
     }
     
     /// Main server loop.
-    fn server_loop(state: Arc<ApiState>, running: Arc<AtomicBool>, port: u16) -> Result<(), Error> {
+    fn server_loop(
+        state: Arc<ApiState>, 
+        running: Arc<AtomicBool>, 
+        port: u16
+    ) -> Result<(), Error> {
         let context = zmq::Context::new();
         let socket = context.socket(zmq::REP)?;
         
@@ -156,7 +160,10 @@ impl ZmqServer {
     }
     
     /// Handle a message from a client.
-    fn handle_message(message: &str, api_state: &Arc<ApiState>) -> Result<String, Error> {
+    fn handle_message(
+        message: &str, 
+        api_state: &Arc<ApiState>
+    ) -> Result<String, Error> {
         info!("===================== API call to Server =============================");
         // Try to parse as standard request first
         let parse_result = serde_json::from_str::<Request>(message);
@@ -198,6 +205,7 @@ impl ZmqServer {
             },
             Command::Step => "Step".to_string(),
             Command::Reset => "Reset".to_string(),
+            Command::LoadEnvironment { ref name } => format!("LoadEnvironment({})", name),
             Command::IsApiActive => "IsApiActive".to_string(),
             Command::SetApiActive { active } => format!("SetApiActive({})", active),
             Command::SetIterationsPerStep { iterations } => format!("SetIterationsPerStep({})", iterations),
@@ -284,7 +292,54 @@ impl ZmqServer {
                 }
             },
             Command::Reset => {
-                // TODO: Implement reset functionality
+                // Reset the reset completion status
+                api_state.reset_reset_completion();
+                
+                // Set the reset_requested flag in the API state
+                api_state.request_reset();
+                info!("Reset command: Requested reset via API state");
+                
+                // Wait for reset to complete with timeout
+                let start_time = Instant::now();
+                let timeout = Duration::from_secs(10);
+                
+                while !api_state.is_reset_completed() {
+                    if start_time.elapsed() > timeout {
+                        return Err(Error::Timeout("Reset command timed out".to_string()));
+                    }
+                    thread::sleep(Duration::from_millis(100));
+                }
+                
+                info!("Reset command: Reset completed");
+                
+                Response {
+                    status: Status::Success,
+                    data: Some(ResponseData::None),
+                    error: None,
+                    request_id: request_id.clone(),
+                }
+            },
+            Command::LoadEnvironment { ref name } => {
+                // Reset the load environment completion status
+                api_state.reset_load_environment_completion();
+                
+                // Set the load_environment_requested flag in the API state
+                api_state.request_load_environment(name.clone());
+                info!("LoadEnvironment command: Requested load of environment '{}' via API state", name);
+                
+                // Wait for load environment to complete with timeout
+                let start_time = Instant::now();
+                let timeout = Duration::from_secs(10);
+                
+                while !api_state.is_load_environment_completed() {
+                    if start_time.elapsed() > timeout {
+                        return Err(Error::Timeout(format!("LoadEnvironment command for '{}' timed out", name)));
+                    }
+                    thread::sleep(Duration::from_millis(100));
+                }
+                
+                info!("LoadEnvironment command: Load of environment '{}' completed", name);
+                
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::None),
@@ -395,6 +450,7 @@ impl ZmqServer {
             Command::SetFactorWeights { .. } => "SetFactorWeights".to_string(),
             Command::Step => "Step".to_string(),
             Command::Reset => "Reset".to_string(),
+            Command::LoadEnvironment { ref name } => format!("LoadEnvironment({})", name),
             Command::IsApiActive => "IsApiActive".to_string(),
             Command::SetApiActive { active } => {
                 if *active { 

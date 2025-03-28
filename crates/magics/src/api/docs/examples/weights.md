@@ -6,12 +6,58 @@ This example demonstrates how to modify factor weights using the Magics API. Fac
 
 The factor graph in Magics uses several types of factors, each with an associated weight:
 
-- **Dynamic Factors**: Model the dynamics of an agent, connecting variables at different time steps
-- **Obstacle Factors**: Model the interaction between an agent and obstacles in the environment
-- **Inter-Robot Factors**: Model the interaction between different agents
-- **Tracking Factors**: Model the tracking of a predefined path
+- **Dynamic Factors**: Model the dynamics of an agent, connecting variables at different time steps (model physics soft constraints).
+- **Obstacle Factors**: Model the interaction between an agent and obstacles in the environment.
+- **Inter-Robot Factors**: Model the interaction between different agents.
+- **Tracking Factors**: Model the tracking of a predefined path.
 
-The weights of these factors determine their influence on the overall solution. Higher weights give more importance to the corresponding factor type.
+## Understanding Factor Weights
+
+### Technical Implementation
+
+In the Magics implementation, weights have a counter-intuitive relationship with factor importance:
+
+- **Lower weight values** → **Higher precision** → **Less uncertainty allowed** → **Factor has MORE influence**
+- **Higher weight values** → **Lower precision** → **More uncertainty allowed** → **Factor has LESS influence**
+
+This is because weights are used to calculate the precision matrix (inverse of covariance) for each factor:
+
+```rust
+// From FactorState::new() in factor/mod.rs
+let measurement_precision = Matrix::<Float>::eye(initial_measurement.len()) / Float::powi(strength, 2);
+```
+
+The precision matrix determines how strictly a factor constrains the variables it's connected to. A higher precision (resulting from a lower weight) means the factor allows less deviation from its ideal state.
+
+### Conceptual Understanding
+
+To understand this relationship intuitively:
+
+- Think of weights as "flexibility" or "tolerance for deviation"
+- A lower weight means less flexibility (stricter constraint)
+- A higher weight means more flexibility (looser constraint)
+
+For example, if you set a low obstacle weight, the agent will strictly avoid obstacles (less tolerance for being close to obstacles). If you set a high obstacle weight, the agent will be more willing to get closer to obstacles (more tolerance).
+
+## Weight Effects
+
+The weights of different factor types have the following effects on agent behavior:
+
+- **Dynamic Weight**: Controls how closely the agent follows physically plausible trajectories.
+  - **Lower values**: Agent strictly follows smooth, physically plausible trajectories
+  - **Higher values**: Agent may make less physically realistic movements if needed
+
+- **Obstacle Weight**: Controls how strongly the agent avoids obstacles.
+  - **Lower values**: Agent strictly avoids obstacles, even if it means significant path deviation
+  - **Higher values**: Agent may get closer to obstacles if it helps achieve other goals
+
+- **Inter-Robot Weight**: Controls how strongly the agent avoids other agents.
+  - **Lower values**: Agent strictly avoids collisions with other agents
+  - **Higher values**: Agent may get closer to other agents if it helps achieve other goals
+
+- **Tracking Weight**: Controls how closely the agent follows its predefined path.
+  - **Lower values**: Agent strictly follows the predefined path
+  - **Higher values**: Agent may deviate from the path if it helps achieve other goals
 
 ## Setting System-Wide Weights
 
@@ -25,15 +71,15 @@ client = MagicsClient()
 
 # Set factor weights for all agents
 weights = {
-    "dynamic": 1.0,
-    "obstacle": 1.0,
-    "interrobot": 1.0,
-    "tracking": 1.0
+    "dynamic": 1.0,    # Balanced physical plausibility
+    "obstacle": 0.5,   # Strict obstacle avoidance (lower = stricter)
+    "interrobot": 0.8, # Moderately strict agent avoidance
+    "tracking": 1.2    # Somewhat flexible path following
 }
 client.set_factor_weights(weights)
 ```
 
-This sets the weights for all agents in the simulation. The weights are normalized, so the relative values are what matter.
+This sets the weights for all agents in the simulation. The relative values determine the balance between different constraints.
 
 ## Setting Per-Agent Weights
 
@@ -49,23 +95,12 @@ client = MagicsClient()
 agent_id = 1
 weights = {
     "dynamic": 1.0,
-    "obstacle": 1.0,
-    "interrobot": 1.0,
-    "tracking": 1.0
+    "obstacle": 0.5,
+    "interrobot": 0.8,
+    "tracking": 1.2
 }
 client.set_factor_weights(weights, agent_id)
 ```
-
-**Note**: Per-agent weights are currently not fully implemented in the API. The API structure exists, but the implementation is incomplete. This feature is planned for future updates.
-
-## Weight Effects
-
-The weights of different factor types have different effects on the behavior of agents:
-
-- **Dynamic Weight**: Controls how closely the agent follows its predicted trajectory. Higher values make the agent more likely to follow a smooth, physically plausible trajectory.
-- **Obstacle Weight**: Controls how strongly the agent avoids obstacles. Higher values make the agent more likely to avoid obstacles, even if it means deviating from its trajectory.
-- **Inter-Robot Weight**: Controls how strongly the agent avoids other agents. Higher values make the agent more likely to avoid collisions with other agents, even if it means deviating from its trajectory.
-- **Tracking Weight**: Controls how closely the agent follows its predefined path. Higher values make the agent more likely to stay on the path, even if it means getting closer to obstacles or other agents.
 
 ## Experimenting with Weights
 
@@ -99,30 +134,30 @@ weight_configs = [
         }
     },
     {
-        "name": "Obstacle Avoidance",
+        "name": "Strict Obstacle Avoidance",
         "weights": {
             "dynamic": 1.0,
-            "obstacle": 2.0,
+            "obstacle": 0.5,  # Lower = stricter avoidance
             "interrobot": 1.0,
-            "tracking": 0.5
+            "tracking": 1.5   # Higher = more flexible path following
         }
     },
     {
-        "name": "Path Following",
+        "name": "Strict Path Following",
         "weights": {
             "dynamic": 1.0,
-            "obstacle": 0.5,
-            "interrobot": 0.5,
-            "tracking": 2.0
+            "obstacle": 1.5,  # Higher = more flexible obstacle avoidance
+            "interrobot": 1.5, # Higher = more flexible agent avoidance
+            "tracking": 0.5   # Lower = stricter path following
         }
     },
     {
-        "name": "Inter-Robot Avoidance",
+        "name": "Strict Inter-Robot Avoidance",
         "weights": {
             "dynamic": 1.0,
-            "obstacle": 0.5,
-            "interrobot": 2.0,
-            "tracking": 0.5
+            "obstacle": 1.5,
+            "interrobot": 0.5, # Lower = stricter agent avoidance
+            "tracking": 1.5
         }
     }
 ]
@@ -247,13 +282,15 @@ for i in range(num_steps):
         
         # Adjust obstacle weight based on recent collisions
         if collision_info['environment_collisions_delta'] > 0:
-            # Increase obstacle weight if the agent has recently collided with an obstacle
-            weights['obstacle'] = 2.0
+            # Decrease obstacle weight if the agent has recently collided with an obstacle
+            # (lower weight = stricter avoidance)
+            weights['obstacle'] = 0.5
         
         # Adjust interrobot weight based on recent collisions
         if collision_info['robot_collisions_delta'] > 0:
-            # Increase interrobot weight if the agent has recently collided with another robot
-            weights['interrobot'] = 2.0
+            # Decrease interrobot weight if the agent has recently collided with another robot
+            # (lower weight = stricter avoidance)
+            weights['interrobot'] = 0.5
         
         # Adjust tracking weight based on distance to goal
         if agent['goal_point'] is not None:
@@ -261,9 +298,10 @@ for i in range(num_steps):
             goal = np.array(agent['goal_point'])
             distance_to_goal = np.linalg.norm(position - goal)
             
-            # Increase tracking weight as the agent gets closer to the goal
+            # Decrease tracking weight as the agent gets closer to the goal
+            # (lower weight = stricter path following)
             if distance_to_goal < 10.0:
-                weights['tracking'] = 1.5
+                weights['tracking'] = 0.7
         
         # Set the adjusted weights for this agent
         client.set_factor_weights(weights, agent_id)
@@ -276,8 +314,19 @@ This example adjusts the weights for each agent based on its current state, such
 
 ## Implementation Details
 
-The weight update functionality is implemented in the following files:
+### How Weights Are Applied in the Code
 
+When you set a weight for a factor, the following happens:
+
+1. The weight value is stored as the `strength` field in the `FactorState` struct
+2. The `measurement_precision` matrix is calculated as `Identity / strength²`
+3. During message passing, this precision matrix determines how much the factor influences connected variables
+4. Lower weights create higher precision matrices, resulting in stricter constraints
+
+The relevant code can be found in:
+
+- [`factor/mod.rs`](../../factorgraph/factor/mod.rs): Contains the `FactorState` struct and precision calculation
+- [`factorgraph.rs`](../../factorgraph/factorgraph.rs): Contains methods to update weights for different factor types
 - [`weights.rs`](../../weights.rs): Contains the `apply_weight_updates` system that applies weight updates to factor graphs
 - [`state.rs`](../../state.rs): Contains the `WeightUpdate` structure that represents a weight update request
 - [`zmq_server.rs`](../../zmq_server.rs): Handles the `SetFactorWeights` command and adds weight update requests to the API state

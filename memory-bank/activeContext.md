@@ -3,7 +3,9 @@
 ## Current Development Focus
 The current development focus is on finalizing the API implementation and creating comprehensive documentation to support reinforcement learning research:
 
-1. **API Completion**: Finalizing the remaining aspects of the API implementation, particularly per-agent factor graph weights (`crates/magics/src/api/weights.rs`) and additional environment data extraction (`crates/magics/src/api/extract.rs`).
+1. **API Completion**: Finalizing the remaining aspects of the API implementation, reset environment, load environment.
+
+1.5. **Simulation extensions**:  Also working on a new config variable that pauses the simulation on load. (We have one that pauses on spawn, but this is not the logic we want.)  
 
 2. **Documentation Structure**: Creating a structured documentation system with multiple interconnected files to make the API more accessible and easier to understand, starting with `crates/magics/src/api/API_DOCUMENTATION.md`.
 
@@ -24,7 +26,6 @@ The current development focus is on finalizing the API implementation and creati
 - Per-agent factor graph weights (`crates/magics/src/factorgraph/factorgraph.rs` and `crates/magics/src/api/weights.rs`)
 
 ### Partially Implemented Components
-- Environment data extraction (`crates/magics/src/api/extract.rs` - basic data extracted, but missing agent density map, SDF resolution, world size)
 - Python client (`python_api/magics_client.py` - basic functionality implemented, but missing full OpenAI Gym integration)
 
 ## Key Files and Their Purposes
@@ -55,24 +56,9 @@ The current development focus is on finalizing the API implementation and creati
 
 ## Next Steps
 
-1. **Complete Environment Data Extraction**
-   - Implement agent density map extraction in `crates/magics/src/api/extract.rs`
-   - Add SDF resolution from environment configuration in `crates/magics/src/api/extract.rs`
-   - Include world size from environment configuration in `crates/magics/src/api/extract.rs`
-
-2. **Create Structured API Documentation**
-   - Create a `docs` folder under `crates/magics/src/api/`
-   - Develop a main README with navigation to detailed documentation
-   - Create separate files for different aspects of the API
-   - Add usage examples and code snippets
-   - Document data structures and their relationships
-
-3. **UI Improvements for Per-Agent Weights**
-   - Add UI controls for setting per-agent weights in the simulation interface
-   - Implement visual indicators showing different agent weights
-   - Create preset weight profiles for different agent behaviors
-
-4. **Finalize OpenAI Gym Integration**
+1. **Finalize API**: Finalizing the remaining aspects of the API implementation, reset environment, load environment.
+2. **Extend confi**: Implement pause on load. 
+3. **Finalize OpenAI Gym Integration**
    - Define observation and action spaces in `python_api/magics_gym/`
    - Implement proper reward calculation in `python_api/magics_gym/`
    - Create render methods in `python_api/magics_gym/`

@@ -48,7 +48,7 @@ pub struct FactorWeights {
 | `interrobot` | `f32` | Weight for inter-robot factors | - |
 | `tracking` | `f32` | Weight for tracking factors | - |
 
-These weights determine the influence of each factor type on the overall solution. Higher weights give more importance to the corresponding factor type.
+These weights determine the influence of each factor type on the overall solution. Lower weights give more importance to the corresponding factor type, as they result in higher precision (less uncertainty allowed) for that factor.
 
 ## Message Statistics
 

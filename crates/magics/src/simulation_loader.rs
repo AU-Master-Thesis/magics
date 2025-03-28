@@ -272,7 +272,7 @@ pub struct Simulation {
     // pub raw: Raw,
 }
 
-#[derive(Debug, Resource)]
+#[derive(Debug, Resource, Clone)]
 pub struct SimulationManager {
     // _phantom_data: PhantomData<()>,
     // simulations_dir: std::path::PathBuf,
@@ -487,7 +487,12 @@ impl SimulationManager {
 pub struct SimulationId(usize);
 
 #[derive(Event)]
-pub struct LoadSimulation(pub SimulationId);
+pub struct LoadSimulation {
+    /// ID of the simulation to load
+    pub id: SimulationId,
+    /// Name of the simulation
+    pub name: String,
+}
 
 #[derive(Event)]
 pub struct ReloadSimulation(pub SimulationId);
@@ -651,8 +656,12 @@ fn handle_requests(
             let seed: [u8; 8] = config.simulation.prng_seed.to_le_bytes();
             rng.reseed(seed);
 
-            evw_load_simulation.send(LoadSimulation(id));
-            info!("sent load simulation event with id: {}", id.0);
+            let simulation_name = simulation_manager.names[id.0].to_string();
+            evw_load_simulation.send(LoadSimulation {
+                id,
+                name: simulation_name.clone(),
+            });
+            info!("sent load simulation event with id: {} and name: {}", id.0, simulation_name);
             simulation_manager.simulations_loaded += 1;
             let simulation_name = &simulation_manager.names[id.0];
 
@@ -716,8 +725,13 @@ fn handle_requests(
 
             let virtual_time = time_virtual.bypass_change_detection();
             *virtual_time = Time::<Virtual>::default();
-            // The below is not working if we are using API, as we want it to be paused.
-            if is_paused {
+            
+            // Check if we should pause on load
+            if config.simulation.pause_on_load {
+                info!("Pausing simulation on load as configured");
+                virtual_time.pause();
+            } else if is_paused {
+                // Otherwise, maintain the previous pause state
                 virtual_time.pause();
             } else {
                 virtual_time.unpause();

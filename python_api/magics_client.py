@@ -114,10 +114,10 @@ class FactorCountsDict(TypedDict, total=False):
 
 class FactorWeightsDict(TypedDict, total=False):
     """Weights for different factor types in the factor graph."""
-    dynamic: float  # Weight for dynamic factors
-    obstacle: float  # Weight for obstacle factors
-    interrobot: float  # Weight for interrobot factors
-    tracking: float  # Weight for tracking factors
+    dynamic: float  # Weight for dynamic factors (lower values, means more important)
+    obstacle: float  # Weight for obstacle factors (lower values, means more important)
+    interrobot: float  # Weight for interrobot factors (lower values, means more important)
+    tracking: float  # Weight for tracking factors (lower values, means more important)
 
 
 class FactorGraphStateDict(TypedDict, total=False):
@@ -459,8 +459,25 @@ class MagicsClient:
     def reset(self) -> None:
         """
         Reset the simulation.
+        
+        This reloads the current environment, resetting all robots and the simulation state.
         """
         self._send_request("Reset")
+        
+    def load_environment(self, name: str) -> None:
+        """
+        Load a specific environment by name.
+        
+        This loads a different environment configuration, replacing the current one.
+        The environment must exist in the config/scenarios directory.
+        
+        Args:
+            name: The name of the environment to load (e.g., "CircleExperiment", "JunctionTwoway")
+        
+        Raises:
+            MagicsError: If the environment with the specified name is not found
+        """
+        self._send_request("LoadEnvironment", name=name)
 
     def is_api_active(self) -> bool:
         """

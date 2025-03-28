@@ -92,12 +92,12 @@ impl Plugin for ApiPlugin {
         // Register the ZMQ server as a resource
         app.insert_resource(zmq_server);
 
+        // Register event types
+        app.add_event::<super::reset::ResetCompleted>()
+           .add_event::<super::reset::LoadEnvironmentCompleted>();
+        
         // Add systems
         app
-           // Add system to pause the simulation when API is active
-           // Run in PostStartup to ensure all resources are properly initialized
-           .add_systems(PostStartup, pause_on_api_active)
-           
            // FixedUpdate Integration
            .add_systems(PreUpdate, process_step_request.run_if(api_mode_active))
            .add_systems(FixedUpdate, monitor_fixed_update.run_if(api_mode_active).run_if(api_step_in_progress))
@@ -107,7 +107,13 @@ impl Plugin for ApiPlugin {
            .add_systems(PreUpdate, super::weights::apply_weight_updates)
            
            // Add system to reset API state when a new environment is loaded
-           .add_systems(Update, super::reset::reset_api_state_on_simulation_change);
+           .add_systems(Update, super::reset::reset_api_state_on_simulation_change)
+           
+           // Add system to handle reset and load environment requests
+           .add_systems(PreUpdate, super::reset::handle_reset_and_load_requests.run_if(api_mode_active))
+           
+           // Add system to handle completion events
+           .add_systems(Update, super::reset::handle_completion_events);
            
            // Note: extract_state is now called directly from complete_step_in_fixed_update
            // when remaining <= 1, so we don't need to add it as a separate system
@@ -125,15 +131,6 @@ fn cleanup_zmq_server(mut zmq_server: ResMut<ZmqServer>) {
     zmq_server.stop();
 }
 
-/// System that pauses the simulation when the API is active.
-fn pause_on_api_active(api_state: Res<ApiState>, mut time_virtual: ResMut<Time<Virtual>>) {
-    // if api_state.is_active() {
-    //     // Pause the simulation when API is active by directly pausing the
-    // virtual time     info!("API is active, pausing virtual time in
-    // PostStartup");     let virtual_time =
-    // time_virtual.bypass_change_detection();     virtual_time.pause();
-    // }
-}
 
 /// Run condition that checks if the API mode is active.
 fn api_mode_active(api_state: Res<ApiState>) -> bool {

@@ -92,7 +92,7 @@ RUSTFLAGS=-Awarnings cargo run --release --bin magics -- -i <SCENARIO_NAME> # fx
 RUSTFLAGS=-Awarnings cargo run --release --bin magics -- --initial-scenario <SCENARIO_NAME> # fx. "CircleExperiment"
 
 # Run with Python API enabled
-RUSTFLAGS=-Awarnings cargo run --release --bin magics --features api
+RUSTFLAGS=-Awarnings cargo run --release --bin magics --features api -- --initial-scenario "JunctionTwoway"
 ```
 
 > **Important**: When specifying a scenario, use the exact name as shown in the `--list-scenarios` output. Do not use file paths.
