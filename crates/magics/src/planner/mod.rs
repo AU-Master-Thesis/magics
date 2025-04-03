@@ -2,8 +2,9 @@ pub mod collisions;
 pub mod mission;
 pub mod robot;
 pub mod spawner;
+pub mod spawn_utils;
 pub mod tracking;
-mod visualiser;
+pub mod visualiser; // Make public
 
 use bevy::prelude::*;
 pub use robot::{RobotConnections, RobotId};

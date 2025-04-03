@@ -5,7 +5,7 @@ pub mod factorgraphs;
 mod interrobot;
 mod obstacle;
 mod robot;
-mod tracer;
+pub mod tracer; // Make public
 mod tracking;
 mod uncertainty;
 pub mod waypoints;

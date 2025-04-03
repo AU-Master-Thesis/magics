@@ -11,6 +11,7 @@ use gbp_config::{
 use itertools::Itertools;
 use rand::{seq::IteratorRandom, Rng};
 use strum::IntoEnumIterator;
+use min_len_vec::TwoOrMore; // Added import
 
 use super::{
     robot::{RobotFinishedRoute, RobotSpawned},
@@ -425,8 +426,8 @@ fn spawn_formation(
     sdf: Res<Sdf>,
     mut prng: ResMut<GlobalEntropy<bevy_prng::WyRand>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
-    // time_virtual: Res<Time<Virtual>>,
     time_fixed: Res<Time<Fixed>>,
+    // Theme is already included below
 ) {
     for event in evr_robot_formation_spawned.read() {
         let formation_group = simulation_manager
@@ -498,149 +499,54 @@ fn spawn_formation(
             })
             .collect();
 
-        #[rustfmt::skip]
-        let Some(min_radius) = radii.iter().copied().map(ordered_float::OrderedFloat).min() else {
-            return;
-        };
-        #[rustfmt::skip]
-        let Some(max_radius) = radii.iter().copied().map(ordered_float::OrderedFloat).max() else {
-            return;
-        };
-
-        for (i, initial_pose) in initial_pose_for_each_robot.iter().enumerate() {
-            let mut waypoints: Vec<Vec4> = waypoint_poses_for_each_robot
-                .iter()
-                .map(|wps| wps[i])
-                .collect();
-            trace!(
-                "initial pose: {:?}, waypoints: {:?}",
-                initial_pose,
-                waypoints
-            );
-
-            let initial_direction = initial_pose.yz().extend(0.0);
-            let initial_translation = Vec3::new(initial_pose.x, -1.5, initial_pose.y);
-            // let initial_translation = Vec3::new(initial_pose.x, -5.5, initial_pose.y);
-
-            let mut entity = commands.spawn_empty();
-            let robot_entity = entity.id();
-            evw_waypoint_created.send_batch(waypoints.iter().map(|pose| WaypointCreated {
-                for_robot: robot_entity,
-                position:  pose.xy(),
-            }));
-
-            // let second_last = waypoints.get(waypoints.len() - 2).copied().unwrap();
-            // let last = waypoints.last_mut().unwrap();
-            // last.z = second_last.z;
-            // last.w = second_last.w;
-
-            // let mu
-            let mut waypoints = std::iter::once(initial_pose)
-                .chain(waypoints.iter())
-                .copied()
-                .map_into::<StateVector>()
+        for (i, initial_pose_vec4) in initial_pose_for_each_robot.iter().enumerate() {
+            
+            // Construct waypoints for this specific robot
+            let mut waypoints_statevector: Vec<StateVector> = std::iter::once(initial_pose_vec4) // Start at initial pose (&Vec4)
+                .chain(waypoint_poses_for_each_robot.iter().map(|wps| &wps[i])) // Chain with other &Vec4
+                .copied() // Convert iterator of &Vec4 to iterator of Vec4
+                .map_into::<StateVector>() // Convert iterator of Vec4 to iterator of StateVector
                 .collect::<Vec<_>>();
 
-            let second_last = waypoints.get(waypoints.len() - 2).copied().unwrap();
-            let last = waypoints.last_mut().unwrap();
-            last.update_velocity(second_last.velocity());
-            // last.z = second_last.z;
-            // last.w = second_last.w;
-            //
+            // Ensure the last waypoint has appropriate velocity (e.g., zero or copied from second last)
+            if waypoints_statevector.len() >= 2 {
+                let second_last_vel = waypoints_statevector[waypoints_statevector.len() - 2].velocity();
+                waypoints_statevector.last_mut().unwrap().update_velocity(second_last_vel);
+            }
 
-            // let lookahead_horizon = (5.0 / 0.25) as u32;
-            // let lookahead_multiple = 3;
+            let initial_state_vec = StateVector::new(*initial_pose_vec4);
+            let radius = radii[i];
+            let target_speed = config.robot.target_speed.get(); 
 
-            //     globals.T_HORIZON / globals.T0, globals.LOOKAHEAD_MULTIPLE);
-            // num_variables_ = variable_timesteps.size();
-            // let t0: f32 = radii[i] / 2.0 / config.robot.max_speed.get();
+            // Convert the Vec<StateVector> into TwoOrMore<StateVector> for the helper function
+            let waypoints_for_mission: TwoOrMore<StateVector> = waypoints_statevector
+                .try_into()
+                .expect("Waypoints vec should have >= 2 elements");
 
-            // let divisor: f32 = (min_radius / 2.0 / config.robot.max_speed.get()).into();
-            let divisor: f32 = (max_radius / 2.0 / config.robot.target_speed.get()).into();
 
-            let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / divisor) as u32;
-            let lookahead_horizon: u32 = config.robot.planning_horizon.get() as u32;
-            let lookahead_horizon: u32 =
-                (config.robot.target_speed * config.robot.planning_horizon).get() as u32;
-            // let lookahead_horizon: u32 = (config.robot.planning_horizon.get()
-            //     / radii.iter().map(ordered_float::OrderedFloat).min().unwrap())
-            //     as u32;
-            let lookahead_multiple = config.gbp.lookahead_multiple as u32;
-            let variable_timesteps = get_variable_timesteps(lookahead_horizon, lookahead_multiple);
-
-            let robotbundle = RobotBundle::new(
-                robot_entity,
-                StateVector::new(*initial_pose),
-                // route,
-                variable_timesteps.as_slice(),
+            // Call the helper function
+            let _robot_entity = crate::planner::spawn_utils::spawn_robot(
+                &mut commands,
                 &config,
                 &env_config,
-                radii[i],
-                &sdf.0,
-                time_fixed.elapsed().as_secs_f64(),
-                waypoints.try_into().unwrap(),
-                // config
+                &sdf,
+                &mut prng,
+                &mut materials,
+                &mut mesh_assets,
+                &theme,
+                &time_fixed,
+                &mut evw_robot_spawned,
+                &mut evw_waypoint_created,
+                // Robot specific parameters
+                initial_state_vec,
+                waypoints_for_mission, // Pass the constructed TwoOrMore<StateVector>
+                radius,
                 formation.planning_strategy,
+                target_speed,
                 formation.waypoint_reached_when_intersects,
                 formation.finished_when_intersects,
-                // matches!(formation.planning_strategy, PlanningStrategy::RrtStar
-                // ),
+                None, // No initial custom weights from formation spawner
             );
-
-            let initial_visibility = if config.visualisation.draw.robots {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            };
-
-            let random_color = DisplayColour::iter()
-                .choose(prng.deref_mut())
-                .expect("there is more than 0 colors");
-
-            let material = materials.add(StandardMaterial {
-                base_color: Color::from_catppuccin_colour(theme.get_display_colour(&random_color)),
-                ..Default::default()
-            });
-
-            let mesh = mesh_assets.add(
-                Sphere::new(radii[i])
-                    .mesh()
-                    .ico(2)
-                    .expect("4 subdivisions is less than the maximum allowed of 80"),
-            );
-
-            let pbrbundle = PbrBundle {
-                mesh,
-                material,
-                transform: Transform::from_translation(initial_translation),
-                visibility: initial_visibility,
-                ..Default::default()
-            };
-
-            entity.insert((
-                robotbundle,
-                pbrbundle,
-                prng.fork_rng(),
-                simulation_loader::Reloadable,
-                // super::tracking::PositionTracker::new(1000, Duration::from_millis(50)),
-                // super::tracking::VelocityTracker::new(1000, Duration::from_millis(50)),
-                super::tracking::PositionTracker::new(10000, Duration::from_millis(100)),
-                super::tracking::VelocityTracker::new(10000, Duration::from_millis(100)),
-                PickableBundle::default(),
-                On::<Pointer<Click>>::send_event::<RobotClickedOn>(),
-                ColorAssociation { name: random_color },
-                FollowCameraMe::new(0.0, 30.0, 0.0)
-                    .with_up_direction(Direction3d::new(initial_direction).expect(
-                        "Vector between initial position and first waypoint should be different \
-                         from 0, NaN, and infinity.",
-                    ))
-                    .with_attached(true),
-                crate::goal_area::components::Collider(Box::new(parry2d::shape::Ball::new(
-                    radii[i],
-                ))),
-            ));
-
-            evw_robot_spawned.send(RobotSpawned(robot_entity));
         }
     }
 }

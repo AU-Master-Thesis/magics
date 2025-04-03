@@ -4,7 +4,7 @@
 //! sources, particularly for integration with external clients via ZeroMQ.
 
 mod plugin;
-mod state;
+pub mod state; // Make state public
 mod message;
 mod zmq_server;
 mod reset;

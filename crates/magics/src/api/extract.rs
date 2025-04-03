@@ -31,7 +31,7 @@ pub fn extract_state(
     robot_robot_collisions: &RobotRobotCollisions,
     robot_environment_collisions: &RobotEnvironmentCollisions,
     previous_collision_counts: &mut PreviousCollisionCounts,
-    despawned_agents: &DespawnedAgentsTracker,
+    despawned_agents: &mut DespawnedAgentsTracker, // Make mutable
 ) {
     // Only extract state if API is active
     if !api_state.is_active() {
@@ -84,6 +84,15 @@ pub fn extract_state(
                 agent_states.len() - despawned_agents.despawned_agents.len(),
                 despawned_agents.despawned_agents.len()
             );
+        }
+
+        // Clear the despawned agents tracker after extraction
+        if !despawned_agents.despawned_agents.is_empty() {
+            info!(
+                "Clearing {} despawned agents from tracker after API step completion",
+                despawned_agents.despawned_agents.len()
+            );
+            despawned_agents.despawned_agents.clear();
         }
     }
 

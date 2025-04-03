@@ -96,7 +96,7 @@ fn remove_when_robot_reached_waypoint(
 /// Used to make it easier to retrieve the entity id, of the robot
 /// a visualizer is associated with.
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct AssociatedWithRobot(pub RobotId);
+pub struct AssociatedWithRobot(pub RobotId); // Make struct and field public
 
 fn create_waypoint_visualizer(
     mut commands: Commands,
