@@ -63,6 +63,30 @@ pub enum Command {
         /// The new Hz value
         hz: f64,
     },
+
+    /// Remove an agent from the simulation.
+    RemoveAgent {
+        /// ID of the agent to remove (Entity index)
+        agent_id: u32,
+    },
+
+    /// Spawn a new agent in the simulation.
+    SpawnAgent {
+        /// Initial position [x, z]
+        initial_position: [f32; 2],
+        /// Goal position [x, z]
+        goal_position: [f32; 2],
+        /// Optional initial velocity [x, z] (defaults to zero)
+        initial_velocity: Option<[f32; 2]>,
+        /// Optional radius (defaults to config value)
+        radius: Option<f32>,
+        /// Optional planning strategy ("OnlyLocal" or "RrtStar", defaults to "OnlyLocal")
+        planning_strategy: Option<String>,
+        /// Optional target speed (defaults to config value)
+        target_speed: Option<f32>,
+        /// Optional custom factor weights (defaults to config values)
+        weights: Option<FactorWeights>,
+    },
 }
 
 /// Request message sent from client to server.
@@ -112,6 +136,9 @@ pub enum ResponseData {
 
     /// Numeric result (float)
     Number(f64),
+
+    /// ID of a newly spawned agent
+    SpawnedAgentId(u32),
 
     /// No data
     None,

@@ -18,6 +18,8 @@ The Magics API supports the following commands:
 | `SetIterationsPerStep` | Set the number of iterations per step |
 | `GetSimulationHz` | Get the simulation Hz (frequency) |
 | `SetSimulationHz` | Set the simulation Hz (frequency) |
+| `RemoveAgent` | Remove an agent from the simulation |
+| `SpawnAgent` | Spawn a new agent in the simulation |
 
 ## Command Details
 
@@ -213,6 +215,52 @@ client.set_simulation_hz(60.0)
 ```
 
 **Implementation**: [`zmq_server.rs`](../zmq_server.rs) (server-side), [`state.rs`](../state.rs) (API state management), [`magics_client.py`](../../../../python_api/magics_client.py) (client-side)
+
+### RemoveAgent
+
+Remove an agent from the simulation immediately.
+
+**Parameters**:
+- `agent_id`: The ID (u32) of the agent to remove. This corresponds to the `agent_id` field in `AgentState`, which is the Bevy `Entity` index.
+
+**Returns**: None
+
+**Example**:
+```python
+# Remove agent with ID 5
+client.remove_agent(agent_id=5)
+```
+
+**Implementation**: [`zmq_server.rs`](../zmq_server.rs) (server-side), [`plugin.rs`](../plugin.rs) (removal system), [`state.rs`](../state.rs) (request queue), [`magics_client.py`](../../../../python_api/magics_client.py) (client-side)
+
+### SpawnAgent
+
+Spawn a new agent in the simulation.
+
+**Parameters**:
+- `initial_position`: List `[x, z]` representing the initial position.
+- `goal_position`: List `[x, z]` representing the goal position.
+- `initial_velocity` (optional): List `[vx, vz]` for initial velocity. Defaults to `[0.0, 0.0]`.
+- `radius` (optional): Float for the agent's radius. Defaults to the value in the simulation config (`config.robot.radius`).
+- `planning_strategy` (optional): String `"OnlyLocal"` or `"RrtStar"`. Defaults to `"OnlyLocal"`.
+- `target_speed` (optional): Float for the agent's target speed. Defaults to the value in the simulation config (`config.robot.target_speed`).
+- `weights` (optional): Dictionary for custom factor weights (see `SetFactorWeights`). Defaults to simulation config values.
+
+**Returns**: The ID (u32) of the newly spawned agent.
+
+**Example**:
+```python
+new_agent_id = client.spawn_agent(
+    initial_position=[10.0, 5.0],
+    goal_position=[-5.0, -8.0],
+    radius=0.6,
+    target_speed=1.2
+)
+print(f"Spawned agent with ID: {new_agent_id}")
+```
+
+**Implementation**: [`zmq_server.rs`](../zmq_server.rs) (server-side), [`plugin.rs`](../plugin.rs) (spawn system), [`state.rs`](../state.rs) (request/result queues), [`magics_client.py`](../../../../python_api/magics_client.py) (client-side)
+
 
 ## Message Protocol
 

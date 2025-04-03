@@ -11,7 +11,7 @@ use bevy::{prelude::*, utils::info};
 use zmq;
 use serde_json;
 
-use super::state::{ApiState, AgentState, EnvironmentState, WeightUpdate, FactorWeights};
+use super::state::{ApiState, AgentState, EnvironmentState, WeightUpdate, FactorWeights, SpawnParams}; // Added SpawnParams
 use super::message::{Request, AlternativeRequest, Response, Command, Status, ResponseData, Error, SerializedAgentState, SerializedEnvironmentState};
 
 /// Default port for the ZeroMQ server.
@@ -211,6 +211,10 @@ impl ZmqServer {
             Command::SetIterationsPerStep { iterations } => format!("SetIterationsPerStep({})", iterations),
             Command::GetSimulationHz => "GetSimulationHz".to_string(),
             Command::SetSimulationHz { hz } => format!("SetSimulationHz({})", hz),
+            Command::RemoveAgent { agent_id } => format!("RemoveAgent({})", agent_id),
+            Command::SpawnAgent { initial_position, goal_position, .. } => {
+                format!("SpawnAgent(pos: {:?}, goal: {:?}, ...)", initial_position, goal_position)
+            },
         };
         
         info!("📥 Received API request: {} (ID: {})", command_name, request_id_str);
@@ -420,6 +424,70 @@ impl ZmqServer {
                     request_id: request_id.clone(),
                 }
             },
+            Command::RemoveAgent { agent_id } => {
+                // Request agent removal
+                api_state.request_agent_removal(agent_id);
+                info!("RemoveAgent command: Requested removal of agent {} via API state", agent_id);
+
+                // TODO: Should we wait for confirmation like Reset/Load? 
+                // For now, assume it's handled synchronously or queued for next Bevy update.
+                Response {
+                    status: Status::Success,
+                    data: Some(ResponseData::None), // Or Boolean(true)?
+                    error: None,
+                    request_id: request_id.clone(),
+                }
+            },
+            Command::SpawnAgent { 
+                initial_position, 
+                goal_position, 
+                initial_velocity, 
+                radius, 
+                ref planning_strategy, 
+                target_speed, 
+                weights 
+            } => {
+                // Prepare parameters for the spawn request
+                let params = SpawnParams {
+                    initial_position,
+                    goal_position,
+                    initial_velocity,
+                    radius,
+                    planning_strategy: planning_strategy.clone(), // Clone here
+                    target_speed,
+                    weights,
+                };
+
+                // Request agent spawn
+                api_state.request_agent_spawn(params);
+                info!("SpawnAgent command: Requested spawn via API state");
+
+                // Wait for spawn to complete and get the new agent ID
+                let start_time = Instant::now();
+                let timeout = Duration::from_secs(5); // Timeout for spawn completion
+                let mut new_agent_id: Option<u32> = None;
+
+                while new_agent_id.is_none() {
+                    if start_time.elapsed() > timeout {
+                        return Err(Error::Timeout("SpawnAgent command timed out waiting for completion".to_string()));
+                    }
+                    
+                    // Check if a new ID has appeared
+                    if let Some(id) = api_state.pop_spawned_agent_id() {
+                        new_agent_id = Some(id);
+                        info!("SpawnAgent command: Spawn completed for agent ID {}", id);
+                    } else {
+                        thread::sleep(Duration::from_millis(10)); // Wait before checking again
+                    }
+                }
+
+                Response {
+                    status: Status::Success,
+                    data: Some(ResponseData::SpawnedAgentId(new_agent_id.expect("Should have ID after loop"))), 
+                    error: None,
+                    request_id: request_id.clone(),
+                }
+            },
         };
         // Log the successful handling of the request with detailed response information
         
@@ -439,6 +507,9 @@ impl ZmqServer {
             },
             Some(ResponseData::Number(val)) => {
                 format!("Returning numeric value: {}", val)
+            },
+            Some(ResponseData::SpawnedAgentId(id)) => {
+                format!("Returning spawned agent ID: {}", id)
             },
             _ => "No detailed data to display".to_string()
         };
@@ -462,6 +533,8 @@ impl ZmqServer {
             Command::SetIterationsPerStep { iterations } => format!("SetIterationsPerStep({})", iterations),
             Command::GetSimulationHz => "GetSimulationHz".to_string(),
             Command::SetSimulationHz { hz } => format!("SetSimulationHz({})", hz),
+            Command::RemoveAgent { agent_id } => format!("RemoveAgent({})", agent_id),
+            Command::SpawnAgent { .. } => "SpawnAgent".to_string(),
         };
         info!("📤 Successfully processed API request: {} (ID: {})", command_summary, request_id_str);
         

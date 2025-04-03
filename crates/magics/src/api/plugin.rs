@@ -3,13 +3,25 @@
 //! This module provides a Bevy plugin that integrates the API functionality
 //! with the simulation.
 
-use std::sync::Arc;
-use std::time::Duration;
+use std::{
+    collections::HashMap,
+    ops::DerefMut,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 use bevy::prelude::*;
-use std::sync::RwLock;
-use gbp_config::Config;
+use bevy_mod_picking::prelude::{Click, On, PickableBundle, Pointer};
+use bevy_rand::prelude::{ForkableRng, GlobalEntropy};
+use gbp_config::{
+    formation::{self, ReachedWhen, Formation as FormationConfig}, // Use alias FormationConfig
+    Config,
+};
 use gbp_linalg::VectorNorm;
+use min_len_vec::{one_or_more, two_or_more, OneOrMore, TwoOrMore}; // Import OneOrMore
+use rand::seq::IteratorRandom;
+use strum::IntoEnumIterator;
+
 use super::{
     state::{
         AgentState, ApiState, CollisionInfo, EnvironmentState, FactorCounts, FactorDetails, FactorGraphState, 
@@ -20,15 +32,22 @@ use super::{
     despawned_agents::{DespawnedAgentsTracker, track_robots_about_to_despawn, track_entities_with_despawn_timer, clear_despawned_agents_after_step},
 };
 use crate::{
-    environment::ObstacleMarker,
-    factorgraph::{factor::{self, Factor}, factorgraph::FactorGraph},
+    environment::{FollowCameraMe, ObstacleMarker},
+    factorgraph::factorgraph::FactorGraph, // Keep single FactorGraph import
     movement::Velocity,
     pause_play::PausePlay,
-    planner::robot::{Mission, RadioAntenna, Radius, RobotConnections, StateVector},
-    planner::collisions::resources::{RobotRobotCollisions, RobotEnvironmentCollisions},
+    planner::{
+        collisions::resources::{RobotEnvironmentCollisions, RobotRobotCollisions}, // Keep collision imports
+        robot::{
+            Mission, RadioAntenna, Radius, RobotBundle, RobotConnections, RobotDespawned,
+            RobotSpawned, Route, StateVector,
+        },
+        spawner::{RobotClickedOn, WaypointCreated},
+        tracking::{PositionTracker, VelocityTracker},
+    },
+    simulation_loader::{Reloadable, Sdf},
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
-use gbp_config::formation;
-use std::collections::HashMap;
 
 /// Resource to track previous collision counts for calculating deltas
 #[derive(Resource, Default)]
@@ -112,11 +131,17 @@ impl Plugin for ApiPlugin {
            .add_systems(Update, super::reset::reset_api_state_on_simulation_change)
            
            // Add system to handle reset and load environment requests
-           .add_systems(PreUpdate, super::reset::handle_reset_and_load_requests.run_if(api_mode_active))
-           
-           // Add system to handle completion events
-           .add_systems(Update, super::reset::handle_completion_events)
-           
+            .add_systems(PreUpdate, super::reset::handle_reset_and_load_requests.run_if(api_mode_active))
+            
+            // Add system to handle completion events
+            .add_systems(Update, super::reset::handle_completion_events)
+
+            // Add system to handle agent removal requests
+            .add_systems(Update, handle_agent_removal_requests.run_if(api_mode_active))
+
+            // Add system to handle agent spawn requests
+            .add_systems(Update, handle_agent_spawn_requests.run_if(api_mode_active))
+            
            // Add systems for tracking despawned agents
            .add_systems(Update, track_robots_about_to_despawn)
            .add_systems(PreUpdate, track_entities_with_despawn_timer)
@@ -271,5 +296,249 @@ fn complete_step_in_fixed_update(
         
         info!("API: Completed step after {} iterations", 
               api_state.get_step_iterations_remaining());
+    }
+}
+
+
+/// System to handle agent removal requests from the API
+fn handle_agent_removal_requests(
+    mut commands: Commands,
+    api_state: Res<ApiState>,
+    mut despawned_agents_tracker: ResMut<DespawnedAgentsTracker>,
+    config: Res<Config>,
+    robot_robot_collisions: Res<RobotRobotCollisions>,
+    robot_environment_collisions: Res<RobotEnvironmentCollisions>,
+    previous_collision_counts: Res<PreviousCollisionCounts>,
+    mut evw_robot_despawned: EventWriter<RobotDespawned>,
+    // Query to find the robot entity and its components
+    robots_query: Query<(
+        Entity,
+        &Transform,
+        &FactorGraph,
+        &RobotConnections,
+        Option<&Mission>,
+        Option<&formation::PlanningStrategy>,
+        Option<&Radius>,
+        Option<&RadioAntenna>,
+    )>,
+) {
+    let agent_ids_to_remove = api_state.get_agent_removal_requests();
+
+    if agent_ids_to_remove.is_empty() {
+        return;
+    }
+
+    info!("API: Processing removal requests for agents: {:?}", agent_ids_to_remove);
+
+    for agent_id_to_remove in agent_ids_to_remove {
+        // Find the entity corresponding to the agent_id
+        let mut found_entity: Option<Entity> = None;
+        for (entity, ..) in robots_query.iter() {
+            if entity.index() == agent_id_to_remove {
+                found_entity = Some(entity);
+                break;
+            }
+        }
+
+        if let Some(entity_to_remove) = found_entity {
+            // Get the components for the specific entity
+            if let Ok((
+                _entity, // We already have entity_to_remove
+                transform,
+                factor_graph,
+                connections,
+                mission_opt,
+                planning_strategy_opt,
+                radius_opt,
+                antenna_opt,
+            )) = robots_query.get(entity_to_remove)
+            {
+                info!("API: Found entity {:?} for removal request ID {}", entity_to_remove, agent_id_to_remove);
+
+                // 1. Capture final state
+                let final_state = super::state_utils::create_agent_state(
+                    entity_to_remove,
+                    transform,
+                    factor_graph,
+                    connections,
+                    mission_opt,
+                    planning_strategy_opt,
+                    radius_opt,
+                    antenna_opt,
+                    &robot_robot_collisions,
+                    &robot_environment_collisions,
+                    &previous_collision_counts,
+                    &config,
+                    true, // Always extract factor details for despawned agents
+                );
+
+                // 2. Add state to tracker
+                despawned_agents_tracker.despawned_agents.insert(entity_to_remove, final_state);
+                info!("API: Added final state of {:?} to DespawnedAgentsTracker", entity_to_remove);
+
+                // 3. Despawn entity
+                commands.entity(entity_to_remove).despawn_recursive();
+                info!("API: Despawned entity {:?}", entity_to_remove);
+
+                // 4. Send event
+                evw_robot_despawned.send(RobotDespawned(entity_to_remove));
+                info!("API: Sent RobotDespawned event for {:?}", entity_to_remove);
+
+            } else {
+                warn!("API: Could not query components for entity {:?} (ID {}) during removal request. Maybe already despawned?", entity_to_remove, agent_id_to_remove);
+            }
+        } else {
+            warn!("API: Agent with ID {} not found for removal request.", agent_id_to_remove);
+        }
+    }
+}
+
+
+/// System to handle agent spawn requests from the API
+fn handle_agent_spawn_requests(
+    mut commands: Commands,
+    api_state: Res<ApiState>,
+    config: Res<Config>,
+    env_config: Res<gbp_environment::Environment>,
+    sdf: Res<Sdf>,
+    mut prng: ResMut<GlobalEntropy<bevy_prng::WyRand>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+    theme: Res<CatppuccinTheme>,
+    time_fixed: Res<Time<Fixed>>,
+    // Events needed?
+    mut evw_robot_spawned: EventWriter<RobotSpawned>, // Remove duplicate
+    mut evw_waypoint_created: EventWriter<WaypointCreated>,
+) {
+    let spawn_requests = api_state.get_agent_spawn_requests();
+
+    if spawn_requests.is_empty() {
+        return;
+    }
+
+    info!("API: Processing {} agent spawn requests", spawn_requests.len());
+
+    for params in spawn_requests {
+        // --- Prepare Agent Parameters ---
+        let initial_pos = Vec2::from_array(params.initial_position);
+        let goal_pos = Vec2::from_array(params.goal_position);
+        let initial_vel = params.initial_velocity.map_or(Vec2::ZERO, Vec2::from_array);
+        
+        // Use provided radius or default from config
+        let radius = params.radius.unwrap_or_else(|| {
+            // Use the start of the range
+            *config.robot.radius.range().start() // Keep using start()
+        });
+
+        // Use provided target speed or default from config
+        let target_speed = params.target_speed.unwrap_or_else(|| config.robot.target_speed.get());
+
+        // Determine planning strategy
+        let planning_strategy = params.planning_strategy.map_or(
+            formation::PlanningStrategy::OnlyLocal, // Default
+            |s| match s.to_lowercase().as_str() {
+                "rrtstar" => formation::PlanningStrategy::RrtStar,
+                _ => formation::PlanningStrategy::OnlyLocal,
+            }
+        );
+
+        // Waypoints: Create a simple route from initial pos to goal pos
+        // Velocity at goal can be zero or derived? Using zero for now.
+        let initial_state_vec = StateVector::new(Vec4::new(initial_pos.x, initial_pos.y, initial_vel.x, initial_vel.y));
+        let goal_state_vec = StateVector::new(Vec4::new(goal_pos.x, goal_pos.y, 0.0, 0.0)); // Zero velocity at goal
+        
+        // Waypoints for the bundle constructor
+        let waypoints = two_or_more![initial_state_vec, goal_state_vec];
+
+        // Timesteps (copied from spawner.rs logic, might need adjustment)
+        // Ensure divisor is not zero
+        let divisor: f32 = (radius / 2.0 / target_speed).max(f32::EPSILON); 
+        let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / divisor).round() as u32; 
+        let lookahead_multiple = config.gbp.lookahead_multiple as u32;
+        let variable_timesteps = crate::utils::get_variable_timesteps(lookahead_horizon, lookahead_multiple);
+
+        // --- Spawn Entity and Components ---
+        let mut entity_commands = commands.spawn_empty();
+        let new_entity = entity_commands.id();
+
+        // Create RobotBundle
+        let robot_bundle = RobotBundle::new(
+            new_entity,
+            initial_state_vec,
+            variable_timesteps.as_slice(),
+            &config,
+            &env_config,
+            radius,
+            &sdf.0,
+            time_fixed.elapsed().as_secs_f64(),
+            waypoints, // Pass the TwoOrMore<StateVector> directly
+            planning_strategy,
+            ReachedWhen::same_as_paper(),
+            ReachedWhen::same_as_paper(), // Use same_as_paper for finished as well
+        );
+
+        // Visuals
+        let initial_translation = Vec3::new(initial_pos.x, -1.5, initial_pos.y); 
+        let random_color = DisplayColour::iter()
+            .choose(prng.deref_mut())
+            .expect("there is more than 0 colors");
+        let material = materials.add(StandardMaterial {
+            base_color: Color::from_catppuccin_colour_ref(theme.get_display_colour(&random_color)), // Use _ref version
+            ..Default::default()
+        });
+        let mesh = mesh_assets.add(
+            Sphere::new(radius)
+                .mesh()
+                .ico(2)
+                .expect("Subdivision level is valid"),
+        );
+        let pbr_bundle = PbrBundle {
+            mesh,
+            material,
+            transform: Transform::from_translation(initial_translation),
+            visibility: Visibility::Visible, // Assume visible by default
+            ..Default::default()
+        };
+
+        // Insert all components
+        entity_commands.insert((
+            robot_bundle,
+            pbr_bundle,
+            prng.fork_rng(),
+            Reloadable, // Use directly after import
+            PositionTracker::new(10000, Duration::from_millis(100)), // Use directly
+            VelocityTracker::new(10000, Duration::from_millis(100)), // Use directly
+            PickableBundle::default(),
+            On::<Pointer<Click>>::send_event::<RobotClickedOn>(), 
+            ColorAssociation { name: random_color },
+            FollowCameraMe::new(0.0, 30.0, 0.0),
+            crate::goal_area::components::Collider(Box::new(parry2d::shape::Ball::new(radius))),
+        ));
+
+        // --- Post-Spawn Actions ---
+
+        // Send WaypointCreated event for the goal
+        evw_waypoint_created.send(WaypointCreated { // Use directly
+            for_robot: new_entity,
+            position: goal_pos,
+        });
+
+        // Send RobotSpawned event
+        evw_robot_spawned.send(RobotSpawned(new_entity));
+
+        // Add the new agent's ID to the ApiState queue for the ZMQ server
+        api_state.add_spawned_agent_id(new_entity.index());
+
+        info!("API: Spawned new agent {:?} with ID {}", new_entity, new_entity.index());
+
+        // Handle custom weights if provided
+        if let Some(custom_weights) = params.weights {
+             let update = WeightUpdate {
+                 agent_id: Some(new_entity),
+                 weights: custom_weights,
+             };
+             api_state.add_weight_update(update);
+             info!("API: Queued custom weights for spawned agent {:?}", new_entity);
+        }
     }
 }

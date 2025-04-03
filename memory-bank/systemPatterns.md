@@ -121,8 +121,11 @@ graph LR
     subgraph Python
         Step[Step Command]
         Weights[Factor Weights]
+        Spawn[Spawn Agent Command]
+        Remove[Remove Agent Command]
         Observation[State Observation]
         Config[Config Access]
+        SpawnResult[Spawned Agent ID]
     end
     
     subgraph ZMQ
@@ -136,6 +139,7 @@ graph LR
         Control[Control System]
         Extraction[State Extraction]
         Modification[Weight Modification]
+        AgentMgmt[Agent Management System] // New system
         FixedUpdate[FixedUpdate System]
         ConfigAccess[Config Access]
     end
@@ -169,6 +173,18 @@ graph LR
     ApiState --> RepSocket
     RepSocket --> ReqSocket
     ReqSocket --> Config
+
+    Spawn --> ReqSocket
+    Remove --> ReqSocket
+    ReqSocket --> RepSocket
+    RepSocket --> ZmqThread
+    ZmqThread --> ApiState
+    ApiState --> AgentMgmt
+    AgentMgmt --> Simulation
+    AgentMgmt --> ApiState // For Spawned ID
+    ApiState --> RepSocket
+    RepSocket --> ReqSocket
+    ReqSocket --> SpawnResult
 ```
 
 ## Stepping Mechanism

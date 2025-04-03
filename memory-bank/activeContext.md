@@ -24,9 +24,11 @@ The current development focus is on finalizing the API implementation and creati
 - Simulation stepping mechanism with configurable iterations (`crates/magics/src/api/plugin.rs`)
 - Config Hz access via API (`crates/magics/src/api/state.rs` and `crates/magics/src/api/zmq_server.rs`)
 - Per-agent factor graph weights (`crates/magics/src/factorgraph/factorgraph.rs` and `crates/magics/src/api/weights.rs`)
+- Agent spawning via API (`SpawnAgent` command, `handle_agent_spawn_requests` system in `plugin.rs`)
+- Agent removal via API (`RemoveAgent` command, `handle_agent_removal_requests` system in `plugin.rs`)
 
 ### Partially Implemented Components
-- Python client (`python_api/magics_client.py` - basic functionality implemented, but missing full OpenAI Gym integration)
+- Python client (`python_api/magics_client.py` - Added `spawn_agent` and `remove_agent` methods, but still missing full OpenAI Gym integration)
 
 ## Key Files and Their Purposes
 - `crates/magics/src/api/mod.rs`: Main module definition and exports
@@ -38,7 +40,9 @@ The current development focus is on finalizing the API implementation and creati
 - `crates/magics/src/api/factor_details.rs`: Factor graph details extraction
 - `crates/magics/src/api/weights.rs`: Factor weight updates
 - `crates/magics/src/api/reset.rs`: API state reset handling
-- `python_api/magics_client.py`: Python client implementation
+- `crates/magics/src/api/state_utils.rs`: Utility functions for state creation (used by spawn/remove)
+- `crates/magics/src/api/despawned_agents.rs`: Tracks agents removed via API for correct state reporting
+- `python_api/magics_client.py`: Python client implementation (now includes spawn/remove)
 - `python_api/stepping.py`: Example of stepping through simulation
 - `python_api/agent_weights_example.py`: Example of setting per-agent factor weights
 
@@ -53,6 +57,7 @@ The current development focus is on finalizing the API implementation and creati
 - Planned a structured documentation system to improve API usability
 - Verified the implementation status of all API components
 - Identified TODOs in `crates/magics/src/api/extract.rs` for additional environment information
+- **Implemented `SpawnAgent` and `RemoveAgent` API commands and corresponding Rust/Python logic.**
 
 ## Next Steps
 
@@ -91,7 +96,16 @@ crates/magics/src/api/
 - `AgentState`: Contains agent position, velocity, factor graph state, mission state, etc.
 - `FactorGraphState`: Contains factor graph weights, variable/factor counts, message statistics
 - `EnvironmentState`: Contains obstacle positions, boundaries, agent count, etc.
-- `ApiState`: Main resource for managing API state, including agent states, environment state, and weight requests
+- `ApiState`: Main resource for managing API state, including agent states, environment state, weight requests, spawn/removal requests, and spawned agent IDs.
+
+### Agent Spawning/Removal Implementation
+- **Commands**: `SpawnAgent` and `RemoveAgent` added to `message.rs`.
+- **State**: `ApiState` in `state.rs` extended with `SpawnParams` struct, `agent_spawn_requests`, `spawned_agent_ids`, and `agent_removal_requests` queues, plus methods to manage them.
+- **Server**: `zmq_server.rs` updated to handle new commands, queue requests in `ApiState`, and wait for spawn completion using `spawned_agent_ids`.
+- **Plugin**: `plugin.rs` updated with `handle_agent_spawn_requests` and `handle_agent_removal_requests` systems.
+  - `handle_agent_spawn_requests` uses `Commands` to spawn a `RobotBundle` and associated components, mimicking `planner/spawner.rs`, and reports the new ID via `ApiState`.
+  - `handle_agent_removal_requests` captures final state using `state_utils::create_agent_state`, adds it to `DespawnedAgentsTracker`, despawns the entity, and sends `RobotDespawned` event.
+- **Client**: `magics_client.py` updated with `spawn_agent` and `remove_agent` methods.
 
 ### Agent-Based Factor Weights Implementation
 The per-agent factor weights system allows each agent to have its own unique set of weights:
@@ -109,9 +123,10 @@ This system provides several benefits:
 - Better integration with reinforcement learning for agent-specific policies
 
 ### Message Protocol (`crates/magics/src/api/message.rs`)
-- `Command`: Enum for all supported API operations (GetAgentState, GetEnvironmentState, SetFactorWeights, etc.)
-- `Request`: Message sent from client to server
-- `Response`: Message sent from server to client
+- `Command`: Enum for all supported API operations (now includes `SpawnAgent`, `RemoveAgent`).
+- `Request`: Message sent from client to server.
+- `Response`: Message sent from server to client.
+- `ResponseData`: Enum for response data types (now includes `SpawnedAgentId`).
 - `SerializedAgentState`, `SerializedEnvironmentState`, etc.: Serialized versions of state structures
 
 ### ZeroMQ Server (`crates/magics/src/api/zmq_server.rs`)

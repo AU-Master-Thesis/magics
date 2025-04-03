@@ -365,6 +365,25 @@ pub struct WeightUpdate {
     pub weights:  FactorWeights,
 }
 
+/// Parameters for spawning a new agent via the API.
+#[derive(Debug, Clone)]
+pub struct SpawnParams {
+    /// Initial position [x, z]
+    pub initial_position: [f32; 2],
+    /// Goal position [x, z]
+    pub goal_position: [f32; 2],
+    /// Optional initial velocity [x, z] (defaults to zero)
+    pub initial_velocity: Option<[f32; 2]>,
+    /// Optional radius (defaults to config value)
+    pub radius: Option<f32>,
+    /// Optional planning strategy ("OnlyLocal" or "RrtStar", defaults to "OnlyLocal")
+    pub planning_strategy: Option<String>,
+    /// Optional target speed (defaults to config value)
+    pub target_speed: Option<f32>,
+    /// Optional custom factor weights (defaults to config values)
+    pub weights: Option<FactorWeights>,
+}
+
 /// State for the API.
 #[derive(Resource, Clone)]
 pub struct ApiState {
@@ -374,6 +393,12 @@ pub struct ApiState {
     pub environment_state: Arc<RwLock<EnvironmentState>>,
     /// Requests to update factor weights.
     pub weight_requests: Arc<RwLock<Vec<WeightUpdate>>>,
+    /// Requests to remove agents. Stores agent IDs (u32).
+    pub agent_removal_requests: Arc<RwLock<Vec<u32>>>,
+    /// Requests to spawn new agents.
+    pub agent_spawn_requests: Arc<RwLock<Vec<SpawnParams>>>,
+    /// IDs of agents spawned via API in the current Bevy update cycle.
+    pub spawned_agent_ids: Arc<RwLock<Vec<u32>>>,
     /// Flag indicating whether a step has been requested.
     pub step_requested: Arc<AtomicBool>,
     /// Flag indicating whether a step has been completed.
@@ -404,6 +429,9 @@ impl Default for ApiState {
             agent_states: Arc::new(RwLock::new(HashMap::new())),
             environment_state: Arc::new(RwLock::new(EnvironmentState::default())),
             weight_requests: Arc::new(RwLock::new(Vec::new())),
+            agent_removal_requests: Arc::new(RwLock::new(Vec::new())),
+            agent_spawn_requests: Arc::new(RwLock::new(Vec::new())), // Initialize new field
+            spawned_agent_ids: Arc::new(RwLock::new(Vec::new())), // Initialize new field
             step_requested: Arc::new(AtomicBool::new(false)),
             step_completed: Arc::new(AtomicBool::new(false)),
             // Set api_active to true when the API feature is enabled
@@ -422,9 +450,69 @@ impl Default for ApiState {
             time_fixed: None,
         }
     }
-}
+} // End of impl Default for ApiState
 
 impl ApiState {
+    /// Request the removal of an agent.
+    pub fn request_agent_removal(&self, agent_id: u32) {
+        if let Ok(mut requests) = self.agent_removal_requests.write() {
+            requests.push(agent_id);
+            info!("API: Agent removal requested for ID {}", agent_id);
+        } else {
+            error!("API: Failed to acquire write lock on agent_removal_requests");
+        }
+    }
+
+    /// Get and clear the current agent removal requests.
+    pub fn get_agent_removal_requests(&self) -> Vec<u32> {
+        if let Ok(mut requests) = self.agent_removal_requests.write() {
+            std::mem::take(&mut *requests)
+        } else {
+            error!("API: Failed to acquire write lock on agent_removal_requests for reading");
+            Vec::new()
+        }
+    }
+
+    /// Request the spawn of a new agent.
+    pub fn request_agent_spawn(&self, params: SpawnParams) {
+        if let Ok(mut requests) = self.agent_spawn_requests.write() {
+            requests.push(params);
+            info!("API: Agent spawn requested with params: {:?}", requests.last());
+        } else {
+            error!("API: Failed to acquire write lock on agent_spawn_requests");
+        }
+    }
+
+    /// Get and clear the current agent spawn requests.
+    pub fn get_agent_spawn_requests(&self) -> Vec<SpawnParams> {
+        if let Ok(mut requests) = self.agent_spawn_requests.write() {
+            std::mem::take(&mut *requests)
+        } else {
+            error!("API: Failed to acquire write lock on agent_spawn_requests for reading");
+            Vec::new()
+        }
+    }
+
+    /// Add the ID of a newly spawned agent to the queue.
+    pub fn add_spawned_agent_id(&self, agent_id: u32) {
+        if let Ok(mut ids) = self.spawned_agent_ids.write() {
+            ids.push(agent_id);
+            info!("API: Added spawned agent ID {} to queue", agent_id);
+        } else {
+            error!("API: Failed to acquire write lock on spawned_agent_ids");
+        }
+    }
+
+    /// Pop an ID from the spawned agent ID queue if available.
+    pub fn pop_spawned_agent_id(&self) -> Option<u32> {
+        if let Ok(mut ids) = self.spawned_agent_ids.write() {
+            ids.pop()
+        } else {
+            error!("API: Failed to acquire write lock on spawned_agent_ids for popping");
+            None
+        }
+    }
+
     /// Get the state of an agent with the given entity ID.
     pub fn get_agent_state(&self, entity: Entity) -> Option<AgentState> {
         if let Ok(agent_states) = self.agent_states.read() {

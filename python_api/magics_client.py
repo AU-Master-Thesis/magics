@@ -572,6 +572,71 @@ class MagicsClient:
 
         self._send_request("SetSimulationHz", hz=hz)
 
+    def spawn_agent(
+        self,
+        initial_position: List[float],
+        goal_position: List[float],
+        initial_velocity: Optional[List[float]] = None,
+        radius: Optional[float] = None,
+        planning_strategy: Optional[str] = None,
+        target_speed: Optional[float] = None,
+        weights: Optional[FactorWeightsDict] = None,
+    ) -> int:
+        """
+        Spawn a new agent in the simulation.
+
+        Args:
+            initial_position: Initial position [x, z]
+            goal_position: Goal position [x, z]
+            initial_velocity: Optional initial velocity [x, z] (defaults to zero)
+            radius: Optional radius (defaults to config value)
+            planning_strategy: Optional planning strategy ("OnlyLocal" or "RrtStar", defaults to "OnlyLocal")
+            target_speed: Optional target speed (defaults to config value)
+            weights: Optional custom factor weights (defaults to config values)
+
+        Returns:
+            The ID (u32) of the newly spawned agent.
+
+        Raises:
+            MagicsError: If the server returns an error or times out.
+        """
+        params = {
+            "initial_position": initial_position,
+            "goal_position": goal_position,
+        }
+        if initial_velocity is not None:
+            params["initial_velocity"] = initial_velocity
+        if radius is not None:
+            params["radius"] = radius
+        if planning_strategy is not None:
+            params["planning_strategy"] = planning_strategy
+        if target_speed is not None:
+            params["target_speed"] = target_speed
+        if weights is not None:
+            params["weights"] = weights
+
+        data = self._send_request("SpawnAgent", **params)
+
+        if not data:
+            raise MagicsError("No data returned from spawn_agent")
+        if "type" not in data or data["type"] != "SpawnedAgentId":
+            raise MagicsError(f"Invalid response format for spawn_agent: {data}")
+
+        return data["content"]
+
+    def remove_agent(self, agent_id: int) -> None:
+        """
+        Remove an agent from the simulation.
+
+        Args:
+            agent_id: The ID (u32) of the agent to remove.
+
+        Raises:
+            MagicsError: If the server returns an error.
+        """
+        self._send_request("RemoveAgent", agent_id=agent_id)
+
+
     def close(self) -> None:
         """
         Close the connection.

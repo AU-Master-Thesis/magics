@@ -30,10 +30,13 @@
   - [x] Variable information
   - [x] Factor information (obstacle, interrobot, tracking, dynamic)
   - [x] Message statistics
+  - [x] Agent Spawning (`SpawnAgent` command)
+  - [x] Agent Removal (`RemoveAgent` command)
 
 ## Partially Implemented Features
 - [x] Python Client Implementation
   - [x] Basic client structure
+  - [x] Added `spawn_agent` and `remove_agent` methods
   - [x] Connection handling
   - [x] Command sending/receiving
   - [x] Basic step and reset methods
