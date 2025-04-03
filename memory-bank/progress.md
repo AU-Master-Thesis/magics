@@ -32,11 +32,12 @@
   - [x] Message statistics
   - [x] Agent Spawning (`SpawnAgent` command)
   - [x] Agent Removal (`RemoveAgent` command)
+  - [x] Current Scenario Query (`GetCurrentScenario` command)
 
 ## Partially Implemented Features
 - [x] Python Client Implementation
   - [x] Basic client structure
-  - [x] Added `spawn_agent` and `remove_agent` methods
+  - [x] Added `spawn_agent`, `remove_agent`, and `get_current_scenario` methods
   - [x] Connection handling
   - [x] Command sending/receiving
   - [x] Basic step and reset methods

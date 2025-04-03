@@ -215,6 +215,7 @@ impl ZmqServer {
             Command::SpawnAgent { initial_position, goal_position, .. } => {
                 format!("SpawnAgent(pos: {:?}, goal: {:?}, ...)", initial_position, goal_position)
             },
+            Command::GetCurrentScenario => "GetCurrentScenario".to_string(),
         };
         
         info!("📥 Received API request: {} (ID: {})", command_name, request_id_str);
@@ -488,6 +489,21 @@ impl ZmqServer {
                     request_id: request_id.clone(),
                 }
             },
+            Command::GetCurrentScenario => {
+                // Get the current scenario name from ApiState
+                let scenario_name = if let Ok(name_lock) = api_state.current_scenario_name.read() {
+                    name_lock.clone() // Clone the Option<String>
+                } else {
+                    return Err(Error::ApiState("Failed to read current scenario name".to_string()));
+                };
+
+                Response {
+                    status: Status::Success,
+                    data: Some(ResponseData::CurrentScenario(scenario_name)),
+                    error: None,
+                    request_id: request_id.clone(),
+                }
+            },
         };
         // Log the successful handling of the request with detailed response information
         
@@ -510,6 +526,12 @@ impl ZmqServer {
             },
             Some(ResponseData::SpawnedAgentId(id)) => {
                 format!("Returning spawned agent ID: {}", id)
+            },
+            Some(ResponseData::CurrentScenario(name_opt)) => {
+                match name_opt {
+                    Some(name) => format!("Returning current scenario name: {}", name),
+                    None => "Returning current scenario name: None".to_string(),
+                }
             },
             _ => "No detailed data to display".to_string()
         };
@@ -535,6 +557,7 @@ impl ZmqServer {
             Command::SetSimulationHz { hz } => format!("SetSimulationHz({})", hz),
             Command::RemoveAgent { agent_id } => format!("RemoveAgent({})", agent_id),
             Command::SpawnAgent { .. } => "SpawnAgent".to_string(),
+            Command::GetCurrentScenario => "GetCurrentScenario".to_string(),
         };
         info!("📤 Successfully processed API request: {} (ID: {})", command_summary, request_id_str);
         

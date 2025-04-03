@@ -46,7 +46,7 @@ use crate::{
         tracking::{PositionTracker, VelocityTracker},
         visualiser::waypoints::{AssociatedWithRobot, WaypointVisualiser}, // Added visualiser imports
     },
-    simulation_loader::{Reloadable, Sdf},
+    simulation_loader::{LoadSimulation, Reloadable, Sdf, SimulationManager}, // Added LoadSimulation, SimulationManager
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
 };
 
@@ -142,6 +142,9 @@ impl Plugin for ApiPlugin {
 
             // Add system to handle agent spawn requests
             .add_systems(Update, handle_agent_spawn_requests.run_if(api_mode_active))
+
+            // Add system to update API state with current scenario name on load
+            .add_systems(Update, update_api_scenario_name_on_load)
             
            // Add systems for tracking despawned agents
            .add_systems(Update, track_robots_about_to_despawn)
@@ -409,6 +412,21 @@ fn handle_agent_removal_requests(
             }
         } else {
             warn!("API: Agent with ID {} not found for removal request.", agent_id_to_remove);
+        }
+    }
+}
+
+/// System to update the current scenario name in ApiState when a LoadSimulation event occurs.
+fn update_api_scenario_name_on_load(
+    mut evr_load_simulation: EventReader<LoadSimulation>,
+    api_state: Res<ApiState>,
+) {
+    for event in evr_load_simulation.read() {
+        if let Ok(mut scenario_name_lock) = api_state.current_scenario_name.write() {
+            *scenario_name_lock = Some(event.name.clone());
+            info!("API: Updated current scenario name in ApiState to: {}", event.name);
+        } else {
+            error!("API: Failed to acquire write lock on current_scenario_name");
         }
     }
 }

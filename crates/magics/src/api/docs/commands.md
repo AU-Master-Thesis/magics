@@ -261,6 +261,25 @@ print(f"Spawned agent with ID: {new_agent_id}")
 
 **Implementation**: [`zmq_server.rs`](../zmq_server.rs) (server-side), [`plugin.rs`](../plugin.rs) (spawn system), [`state.rs`](../state.rs) (request/result queues), [`magics_client.py`](../../../../python_api/magics_client.py) (client-side)
 
+### GetCurrentScenario
+
+Get the name of the currently loaded scenario.
+
+**Parameters**: None
+
+**Returns**: The name of the current scenario as a string, or `null` if no scenario is loaded or the information is unavailable.
+
+**Example**:
+```python
+scenario_name = client.get_current_scenario()
+if scenario_name:
+    print(f"Current scenario: {scenario_name}")
+else:
+    print("No scenario currently loaded.")
+```
+
+**Implementation**: [`zmq_server.rs`](../zmq_server.rs) (server-side), [`state.rs`](../state.rs) (API state management), [`plugin.rs`](../plugin.rs) (state update system), [`magics_client.py`](../../../../python_api/magics_client.py) (client-side)
+
 
 ## Message Protocol
 

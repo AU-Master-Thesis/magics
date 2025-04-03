@@ -421,6 +421,8 @@ pub struct ApiState {
     pub config: Option<Arc<RwLock<gbp_config::Config>>>,
     /// Reference to the Time<Fixed> resource for updating the fixed timestep
     pub time_fixed: Option<Arc<RwLock<Time<Fixed>>>>,
+    /// Name of the currently loaded scenario
+    pub current_scenario_name: Arc<RwLock<Option<String>>>,
 }
 
 impl Default for ApiState {
@@ -448,6 +450,7 @@ impl Default for ApiState {
             iterations_per_step: Arc::new(AtomicUsize::new(2)),
             config: None,
             time_fixed: None,
+            current_scenario_name: Arc::new(RwLock::new(None)), // Initialize new field
         }
     }
 } // End of impl Default for ApiState

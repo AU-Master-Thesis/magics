@@ -26,6 +26,7 @@ The current development focus is on finalizing the API implementation and creati
 - Per-agent factor graph weights (`crates/magics/src/factorgraph/factorgraph.rs` and `crates/magics/src/api/weights.rs`)
 - Agent spawning via API (`SpawnAgent` command, `handle_agent_spawn_requests` system in `plugin.rs`)
 - Agent removal via API (`RemoveAgent` command, `handle_agent_removal_requests` system in `plugin.rs`)
+- Current scenario query via API (`GetCurrentScenario` command, `zmq_server.rs`, `state.rs`, `plugin.rs`)
 
 ### Partially Implemented Components
 - Python client (`python_api/magics_client.py` - Added `spawn_agent` and `remove_agent` methods, but still missing full OpenAI Gym integration)
@@ -42,7 +43,7 @@ The current development focus is on finalizing the API implementation and creati
 - `crates/magics/src/api/reset.rs`: API state reset handling
 - `crates/magics/src/api/state_utils.rs`: Utility functions for state creation (used by spawn/remove)
 - `crates/magics/src/api/despawned_agents.rs`: Tracks agents removed via API for correct state reporting
-- `python_api/magics_client.py`: Python client implementation (now includes spawn/remove)
+- `python_api/magics_client.py`: Python client implementation (now includes spawn/remove, get_current_scenario)
 - `python_api/stepping.py`: Example of stepping through simulation
 - `python_api/agent_weights_example.py`: Example of setting per-agent factor weights
 
@@ -58,6 +59,7 @@ The current development focus is on finalizing the API implementation and creati
 - Verified the implementation status of all API components
 - Identified TODOs in `crates/magics/src/api/extract.rs` for additional environment information
 - **Implemented `SpawnAgent` and `RemoveAgent` API commands and corresponding Rust/Python logic.**
+- **Implemented `GetCurrentScenario` API command and corresponding Rust/Python logic.**
 
 ## Next Steps
 

@@ -41,10 +41,11 @@ graph TB
     subgraph Rust
         ZmqServer[ZMQ Server Thread]
         ApiPlugin[API Plugin]
-        ApiState[API State Resource]
-        Sim[Simulation Systems]
-        FactorGraph[Factor Graph]
-        FixedUpdate[FixedUpdate System]
+    ApiState[API State Resource]
+    Sim[Simulation Systems]
+    FactorGraph[Factor Graph]
+    FixedUpdate[FixedUpdate System]
+    SimLoader[Simulation Loader]
     end
     
     Gym -- "step(), reset()" --> PyClient
@@ -57,6 +58,7 @@ graph TB
     ApiState -- "Counts" --> FixedUpdate
     FixedUpdate -- "Advances" --> Sim
     Sim -- "Updates" --> FactorGraph
+    SimLoader -- "Updates" --> ApiState
 ```
 
 ## Design Patterns
@@ -123,9 +125,11 @@ graph LR
         Weights[Factor Weights]
         Spawn[Spawn Agent Command]
         Remove[Remove Agent Command]
+        GetScenario[Get Scenario Command]
         Observation[State Observation]
         Config[Config Access]
         SpawnResult[Spawned Agent ID]
+        ScenarioResult[Scenario Name]
     end
     
     subgraph ZMQ
@@ -173,6 +177,14 @@ graph LR
     ApiState --> RepSocket
     RepSocket --> ReqSocket
     ReqSocket --> Config
+
+    GetScenario --> ReqSocket
+    ReqSocket --> RepSocket
+    RepSocket --> ZmqThread
+    ZmqThread --> ApiState
+    ApiState --> RepSocket
+    RepSocket --> ReqSocket
+    ReqSocket --> ScenarioResult
 
     Spawn --> ReqSocket
     Remove --> ReqSocket

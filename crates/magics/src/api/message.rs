@@ -87,6 +87,9 @@ pub enum Command {
         /// Optional custom factor weights (defaults to config values)
         weights: Option<FactorWeights>,
     },
+
+    /// Get the name of the currently loaded scenario.
+    GetCurrentScenario,
 }
 
 /// Request message sent from client to server.
@@ -139,6 +142,9 @@ pub enum ResponseData {
 
     /// ID of a newly spawned agent
     SpawnedAgentId(u32),
+
+    /// Name of the currently loaded scenario
+    CurrentScenario(Option<String>),
 
     /// No data
     None,
