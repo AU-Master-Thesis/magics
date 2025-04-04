@@ -42,7 +42,7 @@ pub fn handle_reset_and_load_requests(
 
             if let Some(seed_val) = seed_to_use {
                 info!("API: Reseeding RNG with provided seed: {}", seed_val);
-                rng_res.reseed(&seed_val.to_le_bytes());
+                rng_res.reseed(seed_val.to_le_bytes()); // Remove the borrow here
             } else {
                 // If no seed was provided via API, we might want to ensure
                 // randomness here, or let the simulation_loader handle it based on config.

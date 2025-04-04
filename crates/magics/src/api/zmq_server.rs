@@ -204,7 +204,7 @@ impl ZmqServer {
                     agent_str, weights.dynamic, weights.obstacle, weights.interrobot, weights.tracking)
             },
             Command::Step => "Step".to_string(),
-            Command::Reset => "Reset".to_string(),
+            Command::Reset { .. } => "Reset".to_string(), // Ignore seed field for logging
             Command::LoadEnvironment { ref name } => format!("LoadEnvironment({})", name),
             Command::IsApiActive => "IsApiActive".to_string(),
             Command::SetApiActive { active } => format!("SetApiActive({})", active),
@@ -563,7 +563,7 @@ impl ZmqServer {
             Command::GetEnvironmentState => "GetEnvironmentState".to_string(),
             Command::SetFactorWeights { .. } => "SetFactorWeights".to_string(),
             Command::Step => "Step".to_string(),
-            Command::Reset => "Reset".to_string(),
+            Command::Reset { .. } => "Reset".to_string(), // Ignore seed field for logging summary
             Command::LoadEnvironment { ref name } => format!("LoadEnvironment({})", name),
             Command::IsApiActive => "IsApiActive".to_string(),
             Command::SetApiActive { active } => {
