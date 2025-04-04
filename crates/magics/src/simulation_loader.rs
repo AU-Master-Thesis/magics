@@ -698,8 +698,10 @@ fn handle_requests(
                     },
                 });
 
-                let seed: [u8; 8] = config.simulation.prng_seed.to_le_bytes();
-                rng.reseed(seed);
+                // REMOVED: Do not reseed from config on reload, API reset handles seeding.
+                // let seed: [u8; 8] = config.simulation.prng_seed.to_le_bytes();
+                // rng.reseed(seed);
+                info!("API: Reload request processed, seeding handled by API reset logic.");
                 // evw_toast.send(ToastEvent::info("reloaded simulation"));
             }
             None => {
