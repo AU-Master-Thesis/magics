@@ -125,9 +125,10 @@ client.step()
 
 ### Reset
 
-Reset the simulation.
+Reset the simulation. Optionally accepts a seed for reproducible randomness.
 
-**Parameters**: None
+**Parameters**:
+- `seed` (optional): An unsigned 64-bit integer (`u64`) to seed the random number generator used during the reset process. If provided, the reset will be deterministic for that seed. If omitted, the reset will use random initialization.
 
 **Returns**: None
 

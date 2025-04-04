@@ -296,14 +296,24 @@ impl ZmqServer {
                     request_id: request_id.clone(),
                 }
             },
-            Command::Reset => {
+            Command::Reset { seed } => { // Destructure the seed here
+                // Store the requested seed in ApiState
+                if let Ok(mut requested_seed) = api_state.requested_reset_seed.write() {
+                    *requested_seed = seed;
+                    info!("Reset command: Stored requested seed: {:?}", seed);
+                } else {
+                    error!("Reset command: Failed to acquire write lock for requested_reset_seed");
+                    // Return an error response if we cannot store the seed
+                    return Err(Error::ApiState("Failed to store requested reset seed".to_string()));
+                }
+
                 // Reset the reset completion status
                 api_state.reset_reset_completion();
-                
+
                 // Set the reset_requested flag in the API state
                 api_state.request_reset();
                 info!("Reset command: Requested reset via API state");
-                
+
                 // Wait for reset to complete with timeout
                 let start_time = Instant::now();
                 let timeout = Duration::from_secs(10);
@@ -314,9 +324,20 @@ impl ZmqServer {
                     }
                     thread::sleep(Duration::from_millis(100));
                 }
-                
+
                 info!("Reset command: Reset completed");
-                
+
+                // Clear the requested seed after successful reset
+                // The system performing the reset should ideally consume/clear it,
+                // but clearing here ensures it's not accidentally reused if the
+                // reset system doesn't handle it.
+                if let Ok(mut requested_seed) = api_state.requested_reset_seed.write() {
+                    *requested_seed = None;
+                } else {
+                     error!("Reset command: Failed to clear requested_reset_seed after completion");
+                }
+
+
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::None),

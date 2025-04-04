@@ -95,6 +95,7 @@ graph TB
    - JSON for human-readable message format
    - Thread-safe shared state
    - FixedUpdate-based stepping for consistent time advancement
+   - Optional seeding for reproducible environment resets
 
 ## Component Relationships
 ```mermaid

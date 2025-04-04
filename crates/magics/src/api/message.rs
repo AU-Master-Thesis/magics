@@ -32,7 +32,8 @@ pub enum Command {
     Step,
 
     /// Reset the simulation.
-    Reset,
+    /// Optionally accepts a seed for reproducible randomness.
+    Reset { seed: Option<u64> },
 
     /// Load a specific environment by name.
     LoadEnvironment {

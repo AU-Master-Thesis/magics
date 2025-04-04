@@ -1404,16 +1404,22 @@ fn create_interrobot_factors(
     let mut external_edges_to_add = Vec::new();
 
     for (robot_id, mut factorgraph, mut robotstate, radius) in &mut query {
-        let num_variables = factorgraph.node_count().variables;
+        let num_variables_current = factorgraph.node_count().variables; // Number of variables for THIS robot
         for other_robot_id in new_connections_to_establish
             .get(&robot_id)
             .expect("the key is in the map")
         {
             let other_variable_indices = variable_indices_of_each_factorgraph
                 .get(other_robot_id)
-                .expect("the key is in the map");
+                .expect("the key is in the map"); // Indices for the OTHER robot
 
-            for i in 1..num_variables {
+            // Determine the safe upper bound for the loop
+            // Length of other_variable_indices is num_variables_other - 1
+            let num_variables_other = other_variable_indices.len() + 1;
+            let loop_bound = std::cmp::min(num_variables_current, num_variables_other);
+
+            // Loop goes from 1 up to num_variables (exclusive) of the CURRENT robot
+            for i in 1..loop_bound { // Use loop_bound instead of num_variables_current
                 let initial_measurement = Vector::<Float>::zeros(DOFS);
                 // let eps = 0.2 * config.robot.radius.get();
                 // let eps = 0.2 * radius.0;

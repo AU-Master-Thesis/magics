@@ -423,6 +423,8 @@ pub struct ApiState {
     pub time_fixed: Option<Arc<RwLock<Time<Fixed>>>>,
     /// Name of the currently loaded scenario
     pub current_scenario_name: Arc<RwLock<Option<String>>>,
+    /// Optional seed provided in the last Reset request.
+    pub requested_reset_seed: Arc<RwLock<Option<u64>>>,
 }
 
 impl Default for ApiState {
@@ -451,6 +453,7 @@ impl Default for ApiState {
             config: None,
             time_fixed: None,
             current_scenario_name: Arc::new(RwLock::new(None)), // Initialize new field
+            requested_reset_seed: Arc::new(RwLock::new(None)), // Initialize new field
         }
     }
 } // End of impl Default for ApiState

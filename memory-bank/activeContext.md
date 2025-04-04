@@ -18,6 +18,7 @@ The current development focus is on finalizing the API implementation and creati
 ### Completed Components
 - Core ZeroMQ API implementation with server (`crates/magics/src/api/zmq_server.rs`) and message protocol (`crates/magics/src/api/message.rs`)
 - Basic Python client (`python_api/magics_client.py`) with connection handling and command sending/receiving
+- **Reset command with optional seed parameter for controlled randomness (`message.rs`, `zmq_server.rs`, `reset.rs`, `magics_client.py`)**
 - Agent state extraction (`crates/magics/src/api/extract.rs`) including position, velocity, factor graph state, and mission information
 - Factor graph details extraction (`crates/magics/src/api/factor_details.rs`) including variables and factors
 - Collision detection and tracking (via `PreviousCollisionCounts` in `crates/magics/src/api/plugin.rs`)
@@ -58,13 +59,15 @@ The current development focus is on finalizing the API implementation and creati
 - Planned a structured documentation system to improve API usability
 - Verified the implementation status of all API components
 - Identified TODOs in `crates/magics/src/api/extract.rs` for additional environment information
-- **Implemented `SpawnAgent` and `RemoveAgent` API commands and corresponding Rust/Python logic.**
-- **Implemented `GetCurrentScenario` API command and corresponding Rust/Python logic.**
+ - **Implemented `SpawnAgent` and `RemoveAgent` API commands and corresponding Rust/Python logic.**
+ - **Implemented `GetCurrentScenario` API command and corresponding Rust/Python logic.**
++- **Fixed panic in `create_interrobot_factors` by handling potential variable count mismatches between robots.**
++- **Added optional `seed` parameter to `Reset` command for reproducible environment generation.**
 
-## Next Steps
+ ## Next Steps
 
-1. **Finalize API**: Finalizing the remaining aspects of the API implementation, reset environment, load environment.
-2. **Extend confi**: Implement pause on load. 
+1. **Finalize API**: Finalizing the remaining aspects of the API implementation, load environment. (Reset is now enhanced).
+2. **Extend confi**: Implement pause on load.
 3. **Finalize OpenAI Gym Integration**
    - Define observation and action spaces in `python_api/magics_gym/`
    - Implement proper reward calculation in `python_api/magics_gym/`

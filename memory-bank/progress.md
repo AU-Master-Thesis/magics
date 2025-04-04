@@ -19,6 +19,7 @@
   - [x] Config Hz access via API
   - [x] Basic agent and environment data extraction
   - [x] Collision detection and tracking
+  - [x] Reset command with optional seed parameter
   - [x] Agent State Extraction
     - [x] Basic position and velocity
     - [x] Factor graph state

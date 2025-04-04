@@ -64,7 +64,7 @@ inter-robot-safety-distance-multiplier = 2.200000047683716
 
 [robot.radius]
 min = 2.0
-max = 3.0
+max = 5.0
 
 [robot.communication]
 radius       = 50.0
