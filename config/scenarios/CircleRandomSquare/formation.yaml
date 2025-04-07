@@ -1,0 +1,33 @@
+formations:
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 1
+  delay:
+    secs: 0 # Corrected indentation
+    nanos: 0
+  robots: 5 # Spawn 5 robots
+  planning-strategy: only-local
+  initial-position:
+    shape: !random-square
+      p1: { x: 0.2, y: 0.2 } # Smaller bottom-left area
+      p2: { x: 0.4, y: 0.4 }
+      min_distance: 1.5 # Minimum distance between spawned robots
+    placement-strategy: !random { attempts: 1 } # Required by parser, but value ignored for !random-square
+  waypoints:
+  - shape: !random-square
+      p1: { x: 0.6, y: 0.6 } # Smaller top-right area (same as previous test)
+      p2: { x: 0.8, y: 0.8 }
+      min_distance: 1.5 # Minimum distance between target points
+    projection-strategy: identity # Required by parser, but value ignored for !random-square waypoints
+  # waypoint-reached-when-intersects: horizon
+  # waypoint-reached-when-intersects: current
+  # finished-when-intersects: current
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: robot-radius
+    intersects-with: current
+  # waypoint-reached-when-intersects: !variable 5

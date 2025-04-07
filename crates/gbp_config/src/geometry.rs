@@ -103,6 +103,13 @@ pub enum Shape {
     },
     Polygon(OneOrMore<Point>),
     LineSegment((Point, Point)),
+    /// A square defined by two opposite corner points (p1, p2) in normalized coordinates (0.0 to 1.0).
+    /// Robots are spawned randomly within this area, ensuring a minimum distance between them.
+    RandomSquare {
+        p1: Point,
+        p2: Point,
+        min_distance: f32,
+    },
 }
 
 impl Shape {

@@ -30,6 +30,7 @@ mod api;
 use std::{path::Path, time::Duration};
 
 use bevy::{
+    log::LogPlugin, // Import LogPlugin
     input::common_conditions::input_just_pressed,
     prelude::*,
     render::{
@@ -46,7 +47,7 @@ use bevy::{
 use colored::Colorize;
 // use rand::{Rng, SeedableRng};
 use environment::MainCamera;
-use gbp_config::{read_config, Config, FormationGroup};
+use gbp_config::{read_config, Config, FormationGroup, LogLevel}; // Import LogLevel
 // use config::{environment::EnvironmentType, Environment};
 use gbp_environment::{Environment, EnvironmentType};
 use magics::AppState;
@@ -183,8 +184,32 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    let verbosity = cli.verbosity();
-    eprintln!("verbosity level: {:?}", verbosity);
+    // Read the initial config to determine the log level *before* initializing plugins
+    // This is a bit redundant as simulation_loader will load it again, but necessary
+    // to configure logging early.
+    // We assume the default config path for initial log level setup.
+    // The CLI argument for config path is currently commented out in cli.rs.
+    let initial_config_path = std::path::PathBuf::from("./config/config.toml");
+    let initial_config = match read_config(Some(&initial_config_path)) { // Wrap path in Some()
+        Ok(cfg) => cfg,
+        Err(e) => {
+            eprintln!(
+                "{} Failed to read initial config at '{}' for log level setup: {}. Using default.",
+                "WARN:".yellow(),
+                initial_config_path.display(),
+                e
+            );
+            Config::default()
+        }
+    };
+
+    let log_level_config = initial_config.simulation.log_level;
+    let bevy_log_level: Option<bevy::log::Level> = log_level_config.into();
+
+    eprintln!("Configured log level: {:?}", log_level_config);
+    if bevy_log_level.is_none() {
+        eprintln!("Logging is OFF based on configuration.");
+    }
 
     // bevy app
     let mut app = App::new();
@@ -192,14 +217,20 @@ fn main() -> anyhow::Result<()> {
     let image_plugin = ImagePlugin::default_nearest();
 
     app
-        //.add_plugins(default_plugins)
         // bevy builtin plugins
-        .add_plugins(DefaultPlugins
-            .set(window_plugin)
-            .set(image_plugin)
-            .set(RenderPlugin {
-                                    synchronous_pipeline_compilation: true,
-                                    render_creation: WgpuSettings {
+        .add_plugins(
+            DefaultPlugins
+                .set(window_plugin)
+                .set(image_plugin)
+                // Customize LogPlugin based on config
+                .set(LogPlugin {
+                    level: bevy_log_level.unwrap_or(bevy::log::Level::ERROR), // Default to ERROR if OFF
+                    filter: "wgpu=error,naga=warn,bevy_render=info,bevy_app=info".to_string(), // Keep default filters or adjust as needed
+                    update_subscriber: None,
+                })
+                .set(RenderPlugin {
+                    synchronous_pipeline_compilation: true,
+                    render_creation: WgpuSettings {
                                         backends: Some(Backends::VULKAN),
                                         device_label: Some("NVIDIA".into()), // <-- Explicit device label
                                         ..Default::default()

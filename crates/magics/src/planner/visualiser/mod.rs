@@ -91,6 +91,14 @@ pub struct Line;
 #[derive(Component)]
 pub struct LineSegment;
 
+/// A **Bevy** marker [`Component`] for visualising an initial spawn area defined by `Shape::RandomSquare`.
+#[derive(Component)]
+pub struct InitialSpawnAreaViz;
+
+/// A **Bevy** marker [`Component`] for visualising a waypoint area defined by `Shape::RandomSquare`.
+#[derive(Component)]
+pub struct WaypointAreaViz;
+
 /// A **Bevy** [`Component`] for drawing a path or line
 /// Contains a list of points and a width used to construct a mesh
 #[derive(Debug, Clone)]

@@ -80,6 +80,8 @@ pause-on-spawn                            = false
 pause-on-load                             = true
 despawn-robot-when-final-waypoint-reached = false
 exit-application-on-scenario-finished     = false
+# The verbosity level of logging. Options: "error", "warn", "info", "debug", "trace", "off"
+log-level                                 = "info"
 
 [rrt]
 max-iterations       = 1000000

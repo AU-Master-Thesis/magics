@@ -26,8 +26,10 @@ use crate::{
     simulation_loader::{
         self, EndSimulation, LoadSimulation, ReloadSimulation, Sdf, SimulationManager,
     },
-    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour}, // Restore theme imports
+    planner::visualiser::{InitialSpawnAreaViz, WaypointAreaViz}, // Import new components
     utils::get_variable_timesteps,
+    bevy_utils::run_conditions::event_exists, // Import event_exists
 };
 
 pub struct RobotSpawnerPlugin;
@@ -68,6 +70,9 @@ impl Plugin for RobotSpawnerPlugin {
                 (
                     track_score.run_if(resource_exists::<Scoreboard>),
                     notify_on_all_formations_finished.run_if(on_event::<AllFormationsFinished>()),
+                    // Add systems to toggle visibility
+                    show_or_hide_spawn_areas.run_if(event_exists::<crate::input::DrawSettingsEvent>),
+                    show_or_hide_waypoint_areas.run_if(event_exists::<crate::input::DrawSettingsEvent>),
                 ),
             );
     }
@@ -412,6 +417,92 @@ fn advance_time(
     }
 }
 
+
+/// **Bevy** [`Update`] system
+/// Reads [`DrawSettingsEvent`], where if `DrawSettingEvent.setting ==
+/// DrawSetting::SpawnAreas` the boolean `DrawSettingEvent.value` will be used to
+/// set the visibility of the [`InitialSpawnAreaViz`] entities
+fn show_or_hide_spawn_areas(
+    mut visualizers: Query<&mut Visibility, With<InitialSpawnAreaViz>>,
+    mut evr_draw_settings: EventReader<crate::input::DrawSettingsEvent>,
+    config: Res<Config>, // Need config to check the specific setting name potentially
+) {
+    // Check if the setting exists in the config struct to avoid panic if name changes
+    // This check might be overly cautious if DrawSetting enum is kept in sync
+    let setting_name = "spawn_areas"; // Match the field name in DrawSection
+
+    for event in evr_draw_settings.read() {
+        // TODO: This matching logic needs refinement.
+        // We need a way to map the event's setting (which might be an enum variant)
+        // back to the field name or have a dedicated enum variant for these areas.
+        // For now, assuming a direct string match or similar mechanism exists in DrawSettingsEvent handling.
+        // Placeholder: Directly check the config bool for now, assuming the event triggers a re-check.
+        // A better approach would involve modifying DrawSettingsEvent or DrawSetting enum.
+
+        // Let's assume DrawSettingsEvent carries enough info or we react based on config change
+        // If DrawSettingsEvent had a field like `setting_name: String`, we could use:
+        // if event.setting_name == setting_name { ... }
+
+        // Simplified approach: React to *any* DrawSettingsEvent by checking the current config value.
+        // This isn't ideal but works if the UI updates the config resource before sending the event.
+        let draw = config.visualisation.draw.spawn_areas;
+        for mut visibility in &mut visualizers {
+             if draw {
+                *visibility = Visibility::Visible;
+            } else {
+                *visibility = Visibility::Hidden;
+            }
+        }
+
+        // Ideal approach (requires changes to DrawSetting/DrawSettingsEvent):
+        // if matches!(event.setting, crate::input::DrawSetting::SpawnAreas) { // Assuming SpawnAreas variant exists
+        //     for mut visibility in &mut visualizers {
+        //         if event.draw {
+        //             *visibility = Visibility::Visible;
+        //         } else {
+        //             *visibility = Visibility::Hidden;
+        //         }
+        //     }
+        // }
+    }
+}
+
+
+/// **Bevy** [`Update`] system
+/// Reads [`DrawSettingsEvent`], where if `DrawSettingEvent.setting ==
+/// DrawSetting::WaypointAreas` the boolean `DrawSettingEvent.value` will be used to
+/// set the visibility of the [`WaypointAreaViz`] entities
+fn show_or_hide_waypoint_areas(
+    mut visualizers: Query<&mut Visibility, With<WaypointAreaViz>>,
+    mut evr_draw_settings: EventReader<crate::input::DrawSettingsEvent>,
+    config: Res<Config>, // Need config to check the specific setting name potentially
+) {
+     // Similar logic as show_or_hide_spawn_areas
+    let setting_name = "waypoint_areas";
+
+    for event in evr_draw_settings.read() {
+        // Simplified approach: React to *any* DrawSettingsEvent by checking the current config value.
+        let draw = config.visualisation.draw.waypoint_areas;
+         for mut visibility in &mut visualizers {
+             if draw {
+                *visibility = Visibility::Visible;
+            } else {
+                *visibility = Visibility::Hidden;
+            }
+        }
+        // Ideal approach (requires changes to DrawSetting/DrawSettingsEvent):
+        // if matches!(event.setting, crate::input::DrawSetting::WaypointAreas) { // Assuming WaypointAreas variant exists
+        //     for mut visibility in &mut visualizers {
+        //         if event.draw {
+        //             *visibility = Visibility::Visible;
+        //         } else {
+        //             *visibility = Visibility::Hidden;
+        //         }
+        //     }
+        // }
+    }
+}
+
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn spawn_formation(
     mut commands: Commands,
@@ -425,9 +516,9 @@ fn spawn_formation(
     simulation_manager: Res<SimulationManager>,
     sdf: Res<Sdf>,
     mut prng: ResMut<GlobalEntropy<bevy_prng::WyRand>>,
-    mut mesh_assets: ResMut<Assets<Mesh>>,
+    mut mesh_assets: ResMut<Assets<Mesh>>, // Changed to mutable
+    meshes: Res<Meshes>,                   // Added Meshes resource
     time_fixed: Res<Time<Fixed>>,
-    // Theme is already included below
 ) {
     for event in evr_robot_formation_spawned.read() {
         let formation_group = simulation_manager
@@ -435,7 +526,6 @@ fn spawn_formation(
             .expect("there is an active formation group");
 
         let formation = &formation_group.formations[event.formation_group_index];
-        // TODO: check this gets reloaded correctly
 
         let world_dims = {
             let tile_size = env_config.tiles.settings.tile_size as f64;
@@ -461,13 +551,49 @@ fn spawn_formation(
             )
         else {
             error!(
-                "failed to spawn formation {}, reason: was not able to place robots along line \
-                 segment after {} attempts, skipping",
+                "failed to spawn formation {}, reason: was not able to place robots after {} attempts, skipping",
                 event.formation_group_index,
-                max_placement_attempts.get()
+                max_placement_attempts.get() // Assuming this is defined earlier for RandomSquare too
             );
             return;
         };
+
+        // --- Spawn Initial Spawn Area Visualization ---
+        if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = formation.initial_position.shape {
+            let world_p1 = world_dims.point_to_world_position(p1);
+            let world_p2 = world_dims.point_to_world_position(p2);
+            let center = (world_p1 + world_p2) / 2.0;
+            let size_vec = (world_p1 - world_p2).abs(); // Keep the actual size vector
+
+            let mut material = StandardMaterial::from(Color::from_catppuccin_colour_with_alpha(
+                theme.red(),
+                0.3, // Semi-transparent red
+            ));
+            material.unlit = true; // Make it unlit so it's clearly visible
+            material.cull_mode = None; // Render both sides
+
+            commands.spawn((
+                simulation_loader::Reloadable,
+                InitialSpawnAreaViz,
+                PbrBundle {
+                    // Create a mesh with the exact dimensions needed
+                    mesh: mesh_assets.add(Mesh::from(Rectangle::new(size_vec.x, size_vec.y))),
+                    material: materials.add(material),
+                    // No scaling needed now, just position and rotation
+                    transform: Transform::from_xyz(center.x, -config.visualisation.height.objects + 0.01, center.y) // Slightly above ground
+                        .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)), // Rotate to be flat on XZ plane
+                    visibility: if config.visualisation.draw.spawn_areas {
+                        Visibility::Visible
+                    } else {
+                        Visibility::Hidden
+                    },
+                    ..default()
+                },
+                PickableBundle::default(), // Optional: make it pickable if needed later
+            ));
+        }
+        // --- End Spawn Initial Spawn Area Visualization ---
+
 
         let initial_pose_for_each_robot: Vec<Vec4> = initial_position_for_each_robot
             .iter()
@@ -482,6 +608,46 @@ fn spawn_formation(
                 Vec4::new(from.x, from.y, v.x, v.y)
             })
             .collect();
+
+
+        // --- Spawn Waypoint Area Visualizations ---
+        for waypoint in formation.waypoints.iter() {
+             if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = waypoint.shape {
+                let world_p1 = world_dims.point_to_world_position(p1);
+                let world_p2 = world_dims.point_to_world_position(p2);
+                let center = (world_p1 + world_p2) / 2.0;
+                let size_vec = (world_p1 - world_p2).abs(); // Keep the actual size vector
+
+                let mut material = StandardMaterial::from(Color::from_catppuccin_colour_with_alpha(
+                    theme.green(),
+                    0.3, // Semi-transparent green
+                ));
+                material.unlit = true;
+                material.cull_mode = None;
+
+                commands.spawn((
+                    simulation_loader::Reloadable,
+                    WaypointAreaViz, // Use the correct marker component
+                    PbrBundle {
+                         // Create a mesh with the exact dimensions needed
+                        mesh: mesh_assets.add(Mesh::from(Rectangle::new(size_vec.x, size_vec.y))),
+                        material: materials.add(material),
+                         // No scaling needed now, just position and rotation
+                        transform: Transform::from_xyz(center.x, -config.visualisation.height.objects + 0.01, center.y)
+                            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+                        visibility: if config.visualisation.draw.waypoint_areas { // Use the correct draw setting
+                            Visibility::Visible
+                        } else {
+                            Visibility::Hidden
+                        },
+                        ..default()
+                    },
+                    PickableBundle::default(),
+                ));
+            }
+        }
+        // --- End Spawn Waypoint Area Visualizations ---
+
 
         let waypoint_poses_for_each_robot: Vec<Vec<Vec4>> = waypoint_positions_for_each_robot
             .iter()

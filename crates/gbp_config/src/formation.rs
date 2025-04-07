@@ -14,7 +14,7 @@ use bevy::{
 use itertools::Itertools;
 use min_len_vec::{one_or_more, OneOrMore};
 use num_traits::{Saturating, SaturatingMul};
-use rand::{thread_rng, Rng};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 
@@ -450,6 +450,94 @@ impl Formation {
                 Some((initial_positions, waypoints_of_each_robots))
             }
             Shape::Polygon(_) => todo!(),
+            Shape::RandomSquare { p1, p2, min_distance } => {
+                // Calculate world coordinates for the square corners
+                let world_p1 = world_dims.point_to_world_position(p1);
+                let world_p2 = world_dims.point_to_world_position(p2);
+
+                // Determine min/max x and y for the square bounds
+                let min_x = world_p1.x.min(world_p2.x);
+                let max_x = world_p1.x.max(world_p2.x);
+                let min_y = world_p1.y.min(world_p2.y);
+                let max_y = world_p1.y.max(world_p2.y);
+
+                // Generate initial positions
+                let initial_positions = randomly_place_nonoverlapping_circles_within_square(
+                    min_x,
+                    max_x,
+                    min_y,
+                    max_y,
+                    &robot_radii,
+                    min_distance,
+                    1000, // Max attempts per robot
+                    rng,
+                )?;
+
+                // Generate waypoints for each robot
+                let waypoints_of_each_robot: Vec<Vec<Vec2>> = self
+                    .waypoints
+                    .iter()
+                    .map(|wp| match wp.shape {
+                        Shape::RandomSquare { p1: wp1, p2: wp2, min_distance: wp_min_dist } => {
+                            // Waypoint is also a square, generate random targets within it
+                            let wp_world_p1 = world_dims.point_to_world_position(wp1);
+                            let wp_world_p2 = world_dims.point_to_world_position(wp2);
+                            let wp_min_x = wp_world_p1.x.min(wp_world_p2.x);
+                            let wp_max_x = wp_world_p1.x.max(wp_world_p2.x);
+                            let wp_min_y = wp_world_p1.y.min(wp_world_p2.y);
+                            let wp_max_y = wp_world_p1.y.max(wp_world_p2.y);
+
+                            // Generate random target positions within the waypoint square
+                            // Note: We use robot_radii here to ensure target points are also spaced out,
+                            // preventing impossible scenarios where multiple robots target the exact same spot.
+                            randomly_place_nonoverlapping_circles_within_square(
+                                wp_min_x,
+                                wp_max_x,
+                                wp_min_y,
+                                wp_max_y,
+                                &robot_radii, // Use robot radii for spacing targets too
+                                wp_min_dist,
+                                1000, // Max attempts per target
+                                rng,
+                            )
+                            .expect("Failed to place waypoint targets in RandomSquare") // Or handle error more gracefully
+                        }
+                        Shape::LineSegment((ls_start, ls_end)) => {
+                            // Waypoint is a line segment, project initial positions
+                            let ls_start_world = world_dims.point_to_world_position(ls_start);
+                            let ls_end_world = world_dims.point_to_world_position(ls_end);
+                            // Need relative positions from initial placement to project
+                            // This requires calculating lerp factors from the random initial placement,
+                            // which is complex. For now, let's just assign random points on the line.
+                            // TODO: Implement a more meaningful projection if needed.
+                             (0..self.robots)
+                                .map(|_| {
+                                    let lerp_factor = rng.gen::<f32>();
+                                    ls_start_world.lerp(ls_end_world, lerp_factor)
+                                })
+                                .collect()
+                        }
+                         Shape::Circle { radius, center } => {
+                            // Waypoint is a circle, project initial positions
+                            let center_world = world_dims.point_to_world_position(center);
+                            let radius_world = radius.get(); // Assuming radius is already scaled appropriately
+                             // Similar to LineSegment, projecting random initial points is complex.
+                             // Assign random points on the circle perimeter for now.
+                             // TODO: Implement a more meaningful projection if needed.
+                             (0..self.robots)
+                                .map(|_| {
+                                    let angle = rng.gen::<f32>() * TAU;
+                                    center_world + Vec2::from_polar(angle, radius_world)
+                                })
+                                .collect()
+                        }
+                        Shape::Polygon(_) => unimplemented!("Waypoints as Polygons not implemented yet"),
+                    })
+                    .collect();
+
+
+                Some((initial_positions, waypoints_of_each_robot))
+            }
         }
     }
 }
@@ -766,6 +854,79 @@ impl Default for FormationGroup {
         Self::circle_from_paper()
     }
 }
+
+
+/// Places circles (robots) randomly within a defined rectangular area, ensuring no overlaps
+/// and maintaining a minimum distance between their centers.
+///
+/// # Arguments
+/// * `min_x`, `max_x`, `min_y`, `max_y` - The boundaries of the rectangular area in world coordinates.
+/// * `radii` - A slice containing the radius of each circle to be placed. The length determines the number of circles.
+/// * `min_inter_distance` - The minimum required distance between the centers of any two placed circles.
+/// * `max_attempts_per_circle` - The maximum number of attempts to find a valid position for each circle.
+/// * `rng` - A mutable reference to a random number generator.
+///
+/// # Returns
+/// * `Some(Vec<Vec2>)` containing the center positions of the placed circles if successful.
+/// * `None` if placement failed for any circle after exhausting attempts.
+fn randomly_place_nonoverlapping_circles_within_square(
+    min_x: f32,
+    max_x: f32,
+    min_y: f32,
+    max_y: f32,
+    radii: &[f32],
+    min_inter_distance: f32,
+    max_attempts_per_circle: usize,
+    rng: &mut impl Rng,
+) -> Option<Vec<Vec2>> {
+    let num_circles = radii.len();
+    if num_circles == 0 {
+        return Some(Vec::new());
+    }
+
+    let mut placed_positions = Vec::with_capacity(num_circles);
+
+    for i in 0..num_circles {
+        let current_radius = radii[i];
+        let mut placed_successfully = false;
+
+        for _ in 0..max_attempts_per_circle {
+            // Generate random position within the square bounds
+            let x = rng.gen_range(min_x..=max_x);
+            let y = rng.gen_range(min_y..=max_y);
+            let new_pos = Vec2::new(x, y);
+
+            // Check for collision with already placed circles
+            let mut collision_free = true;
+            for j in 0..placed_positions.len() {
+                let other_pos = placed_positions[j];
+                let other_radius = radii[j];
+                let distance = new_pos.distance(other_pos);
+                // Check both radius overlap and minimum inter-distance constraint
+                if distance < (current_radius + other_radius) || distance < min_inter_distance {
+                    collision_free = false;
+                    break;
+                }
+            }
+
+            if collision_free {
+                placed_positions.push(new_pos);
+                placed_successfully = true;
+                break; // Successfully placed this circle
+            }
+        }
+
+        if !placed_successfully {
+            // Failed to place this circle after max attempts
+            // Consider logging a warning here
+             eprintln!("Warning: Failed to place circle {} within square after {} attempts.", i, max_attempts_per_circle);
+            return None;
+        }
+    }
+
+    Some(placed_positions)
+}
+
 
 #[cfg(test)]
 mod tests {

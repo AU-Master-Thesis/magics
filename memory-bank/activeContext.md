@@ -63,6 +63,7 @@ The current development focus is on finalizing the API implementation and creati
  - **Implemented `GetCurrentScenario` API command and corresponding Rust/Python logic.**
 +- **Fixed panic in `create_interrobot_factors` by handling potential variable count mismatches between robots.**
 +- **Added optional `seed` parameter to `Reset` command for reproducible environment generation.**
++- **Added configurable `log_level` to `[simulation]` section in `config.toml` (options: "error", "warn", "info", "debug", "trace", "off") to control logging verbosity.**
 
  ## Next Steps
 

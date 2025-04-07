@@ -13,6 +13,7 @@ use bevy::{
 pub use formation::FormationGroup;
 use gbp_schedule::GbpSchedule;
 pub use reader::read_config;
+use bevy::log::Level as BevyLogLevel;
 use serde::{Deserialize, Serialize};
 use struct_iterable::Iterable;
 use typed_floats::StrictlyPositiveFinite;
@@ -160,6 +161,8 @@ pub enum DrawSetting {
     EnvironmentColliders,
     RobotEnvironmentCollisions,
     // InfiniteGrid,
+    SpawnAreas,
+    WaypointAreas,
 }
 
 // TODO: store in a bitset
@@ -186,6 +189,10 @@ pub struct DrawSection {
     pub robot_robot_collisions: bool,
     pub robot_environment_collisions: bool,
     // pub infinite_grid: bool,
+    #[serde(default)]
+    pub spawn_areas: bool,
+    #[serde(default)]
+    pub waypoint_areas: bool,
 }
 
 impl Default for DrawSection {
@@ -210,6 +217,8 @@ impl Default for DrawSection {
             robot_robot_collisions: false,
             robot_environment_collisions: false,
             // infinite_grid: true,
+            spawn_areas: true,    // Default to true
+            waypoint_areas: true, // Default to true
         }
     }
 }
@@ -236,6 +245,8 @@ impl DrawSection {
             "robot_robot_collisions" => "Robot-Robot Collisions",
             "robot_environment_collisions" => "Robot-Environment Collisions",
             // "infinite_grid" => "Infinite Grid",
+            "spawn_areas" => "Spawn Areas",
+            "waypoint_areas" => "Waypoint Areas",
             _ => "Unknown",
         }
     }
@@ -326,9 +337,46 @@ pub struct SimulationSection {
 
     #[serde(default = "SimulationSection::default_exit_application_on_scenario_finished")]
     pub exit_application_on_scenario_finished: bool,
+
+    /// The verbosity level of logging.
+    #[serde(default = "SimulationSection::default_log_level")]
+    pub log_level: LogLevel,
+}
+
+/// Enum representing the available log levels.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, strum_macros::Display,
+)]
+#[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab-case")]
+pub enum LogLevel {
+    Error,
+    Warn,
+    #[default]
+    Info,
+    Debug,
+    Trace,
+    Off,
+}
+
+impl From<LogLevel> for Option<BevyLogLevel> {
+    fn from(level: LogLevel) -> Self {
+        match level {
+            LogLevel::Error => Some(BevyLogLevel::ERROR),
+            LogLevel::Warn => Some(BevyLogLevel::WARN),
+            LogLevel::Info => Some(BevyLogLevel::INFO),
+            LogLevel::Debug => Some(BevyLogLevel::DEBUG),
+            LogLevel::Trace => Some(BevyLogLevel::TRACE),
+            LogLevel::Off => None, // Bevy doesn't have an 'Off' level, represent as None
+        }
+    }
 }
 
 impl SimulationSection {
+    fn default_log_level() -> LogLevel {
+        LogLevel::default()
+    }
+
     fn default_exit_application_on_scenario_finished() -> bool {
         false
     }
@@ -354,6 +402,7 @@ impl Default for SimulationSection {
             despawn_robot_when_final_waypoint_reached: true,
             exit_application_on_scenario_finished:
                 Self::default_exit_application_on_scenario_finished(),
+            log_level: Self::default_log_level(), // Add missing field
         }
     }
 }

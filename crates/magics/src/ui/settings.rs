@@ -880,21 +880,29 @@ fn ui_settings_panel(
                                                 );
                                             custom::float_right(ui, |ui| {
                                                 if custom::toggle_ui(ui, setting).clicked() {
-                                                    println!("name: {}", name);
-                                                    if let Ok(setting_kind) = name.parse::<DrawSetting>() {
+                                                    // Explicitly match known new fields first
+                                                    let maybe_setting_kind = match name {
+                                                        "spawn_areas" => Some(DrawSetting::SpawnAreas),
+                                                        "waypoint_areas" => Some(DrawSetting::WaypointAreas),
+                                                        // Attempt to parse other known settings
+                                                        _ => name.parse::<DrawSetting>().ok(),
+                                                    };
+
+                                                    if let Some(setting_kind) = maybe_setting_kind {
                                                         let event = DrawSettingsEvent {
                                                             setting: setting_kind,
-                                                            draw:    *setting,
+                                                            draw: *setting,
                                                         };
                                                         world.send_event::<DrawSettingsEvent>(event);
                                                     } else {
-                                                        error!("Failed to parse into a `DrawSection`: {}", name);
+                                                        error!("Failed to parse draw setting name '{}' into known DrawSetting variant", name);
                                                     }
                                                 }
                                             });
-                                        });
-                                    });
-                                }
+                                });
+                            });
+                        }
+
                             });
 
 
