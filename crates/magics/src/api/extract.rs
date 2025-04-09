@@ -28,6 +28,7 @@ pub fn extract_state(
     )>,
     obstacles: Query<&Transform, With<ObstacleMarker>>,
     config: Res<Config>,
+    env_config: Res<gbp_environment::Environment>,
     robot_robot_collisions: &RobotRobotCollisions,
     robot_environment_collisions: &RobotEnvironmentCollisions,
     previous_collision_counts: &mut PreviousCollisionCounts,
@@ -116,10 +117,16 @@ pub fn extract_state(
             new_env_state.total_agents = agent_states_guard.len();
         }
         
-        // TODO: Extract additional environment information
+        // Extract additional environment information
         // - Agent density map would require analyzing agent positions
         // - SDF resolution from environment configuration
         // - World size from environment configuration
+        
+        // Set the world size from the environment configuration
+        let tile_size = env_config.tiles.settings.tile_size as f64;
+        let width = tile_size * env_config.tiles.grid.ncols() as f64;
+        let height = tile_size * env_config.tiles.grid.nrows() as f64;
+        new_env_state.world_size = Some((width, height));
         
         *env_state = new_env_state;
     }

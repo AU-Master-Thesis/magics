@@ -11,8 +11,21 @@ use bevy::{prelude::*, utils::info};
 use zmq;
 use serde_json;
 
-use super::state::{ApiState, AgentState, EnvironmentState, WeightUpdate, FactorWeights, SpawnParams}; // Added SpawnParams
-use super::message::{Request, AlternativeRequest, Response, Command, Status, ResponseData, Error, SerializedAgentState, SerializedEnvironmentState};
+use gbp_config::{
+    formation::{FormationGroup, SerializedSquare}, // Removed Shape import
+    geometry::Point,
+};
+
+use super::{
+    message::{
+        AlternativeRequest, Command, Error, Request, Response, ResponseData, SerializedAgentState,
+        SerializedEnvironmentState, Status,
+    },
+    state::{
+        AgentState, ApiState, EnvironmentState, FactorWeights, ReplanRequestParams, SpawnParams,
+        WeightUpdate,
+    }, // Added SpawnParams, ReplanRequestParams
+};
 
 /// Default port for the ZeroMQ server.
 pub const DEFAULT_PORT: u16 = 5555;
@@ -22,13 +35,13 @@ pub const DEFAULT_PORT: u16 = 5555;
 pub struct ZmqServer {
     /// API state shared with the server thread.
     state: Arc<ApiState>,
-    
+
     /// Server thread handle.
     thread: Option<JoinHandle<()>>,
-    
+
     /// Flag indicating whether the server is running.
     running: Arc<AtomicBool>,
-    
+
     /// Port the server is listening on.
     port: u16,
 }
@@ -43,63 +56,63 @@ impl ZmqServer {
             port: port.unwrap_or(DEFAULT_PORT),
         }
     }
-    
+
     /// Start the server in a separate thread.
     pub fn start(&mut self) -> Result<(), Error> {
         if self.thread.is_some() {
             return Ok(());
         }
-        
+
         self.running.store(true, Ordering::SeqCst);
-        
+
         let state = self.state.clone();
         let running = self.running.clone();
         let port = self.port;
-        
+
         info!("Starting ZeroMQ API server on port {}...", self.port);
-        
+
         self.thread = Some(thread::spawn(move || {
             if let Err(err) = Self::server_loop(state, running, port) {
                 error!("ZeroMQ server error: {:?}", err);
             }
         }));
-        
+
         info!("✅ ZeroMQ API server successfully started on tcp://127.0.0.1:{}", self.port);
         info!("💡 Python clients can now connect to this address");
-        
+
         Ok(())
     }
-    
+
     /// Stop the server and join the thread.
     pub fn stop(&mut self) {
         if let Some(thread) = self.thread.take() {
             self.running.store(false, Ordering::SeqCst);
-            
+
             if let Err(err) = thread.join() {
                 error!("Failed to join ZeroMQ server thread: {:?}", err);
             }
-            
+
             info!("ZeroMQ server stopped");
         }
     }
-    
+
     /// Main server loop.
     fn server_loop(
-        state: Arc<ApiState>, 
-        running: Arc<AtomicBool>, 
+        state: Arc<ApiState>,
+        running: Arc<AtomicBool>,
         port: u16
     ) -> Result<(), Error> {
         let context = zmq::Context::new();
         let socket = context.socket(zmq::REP)?;
-        
+
         let address = format!("tcp://127.0.0.1:{}", port);
         socket.bind(&address)?;
-        
+
         info!("ZeroMQ server loop started on {}", address);
-        
+
         // Set socket to non-blocking mode
         socket.set_rcvtimeo(100)?;
-        
+
         while running.load(Ordering::Relaxed) {
             // Try to receive a message
             match socket.recv_string(zmq::DONTWAIT) {
@@ -112,14 +125,24 @@ impl ZmqServer {
                                 status: Status::Error,
                                 data: None,
                                 error: Some(err.to_string()),
-                                request_id: None,
+                                request_id: None, // Attempt to get request_id if possible from parse error?
                             };
-                            serde_json::to_string(&error_response).unwrap_or_else(|_| 
+                            // Try to extract request_id even from failed parse for better error reporting
+                            let request_id_from_err = serde_json::from_str::<Request>(&message)
+                                .ok()
+                                .and_then(|req| req.request_id)
+                                .or_else(|| serde_json::from_str::<AlternativeRequest>(&message)
+                                    .ok()
+                                    .and_then(|req| req.request_id));
+
+                            let final_error_response = Response { request_id: request_id_from_err, ..error_response };
+
+                            serde_json::to_string(&final_error_response).unwrap_or_else(|_|
                                 r#"{"status":"error","data":null,"error":"Failed to serialize error"}"#.to_string()
                             )
                         }
                     };
-                    
+
                     // Send response
                     if let Err(err) = socket.send(response.as_bytes(), 0) {
                         error!("Failed to send response: {:?}", err);
@@ -149,25 +172,25 @@ impl ZmqServer {
                 }
             }
         }
-        
+
         // Clean up
         drop(socket);
         drop(context);
-        
+
         info!("ZMQ server loop stopped");
-        
+
         Ok(())
     }
-    
+
     /// Handle a message from a client.
     fn handle_message(
-        message: &str, 
+        message: &str,
         api_state: &Arc<ApiState>
     ) -> Result<String, Error> {
         info!("===================== API call to Server =============================");
         // Try to parse as standard request first
         let parse_result = serde_json::from_str::<Request>(message);
-        
+
         // If that fails, try to parse as alternative request format
         let (command, request_id) = match parse_result {
             Ok(request) => {
@@ -188,7 +211,7 @@ impl ZmqServer {
                 }
             }
         };
-        
+
         // Log the incoming request with more details
         let request_id_str = request_id.as_deref().unwrap_or("anonymous");
         let command_name = match &command {
@@ -199,7 +222,7 @@ impl ZmqServer {
                     Some(id) => format!("agent {}", id),
                     None => "all agents".to_string(),
                 };
-                
+
                 format!("SetFactorWeights for {} (dynamic: {:.2}, obstacle: {:.2}, interrobot: {:.2}, tracking: {:.2})",
                     agent_str, weights.dynamic, weights.obstacle, weights.interrobot, weights.tracking)
             },
@@ -216,23 +239,25 @@ impl ZmqServer {
                 format!("SpawnAgent(pos: {:?}, goal: {:?}, ...)", initial_position, goal_position)
             },
             Command::GetCurrentScenario => "GetCurrentScenario".to_string(),
+            Command::ReplanCompletedAgents { .. } => "ReplanCompletedAgents".to_string(),
+            Command::GetAvailableSquares => "GetAvailableSquares".to_string(),
         };
-        
+
         info!("📥 Received API request: {} (ID: {})", command_name, request_id_str);
-        
+
         // Log the raw request message for debugging
         info!("📄 Raw request: {}", message);
-        
+
         let response = match command {
             Command::GetAgentState => {
                 // Get agent states
                 if let Ok(agent_states) = api_state.agent_states.read() {
                     let mut serialized_states = HashMap::new();
-                    
+
                     for (entity, state) in agent_states.iter() {
                         serialized_states.insert(entity.index(), SerializedAgentState::from(state));
                     }
-                    
+
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::AgentStates(serialized_states)),
@@ -262,9 +287,9 @@ impl ZmqServer {
                     agent_id: agent_id.map(Entity::from_raw),
                     weights,
                 };
-                
+
                 api_state.add_weight_update(update);
-                
+
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::None),
@@ -276,18 +301,18 @@ impl ZmqServer {
                 // Request a step
                 api_state.reset_step_completion();
                 api_state.request_step();
-                
+
                 // Wait for step to complete with timeout
                 let start_time = Instant::now();
                 let timeout = Duration::from_secs(5);
-                
+
                 while !api_state.is_step_completed() {
                     if start_time.elapsed() > timeout {
                         return Err(Error::Timeout("Step command timed out".to_string()));
                     }
                     thread::sleep(Duration::from_millis(10));
                 }
-                
+
                 // Step completed successfully
                 Response {
                     status: Status::Success,
@@ -317,7 +342,7 @@ impl ZmqServer {
                 // Wait for reset to complete with timeout
                 let start_time = Instant::now();
                 let timeout = Duration::from_secs(10);
-                
+
                 while !api_state.is_reset_completed() {
                     if start_time.elapsed() > timeout {
                         return Err(Error::Timeout("Reset command timed out".to_string()));
@@ -348,24 +373,24 @@ impl ZmqServer {
             Command::LoadEnvironment { ref name } => {
                 // Reset the load environment completion status
                 api_state.reset_load_environment_completion();
-                
+
                 // Set the load_environment_requested flag in the API state
                 api_state.request_load_environment(name.clone());
                 info!("LoadEnvironment command: Requested load of environment '{}' via API state", name);
-                
+
                 // Wait for load environment to complete with timeout
                 let start_time = Instant::now();
                 let timeout = Duration::from_secs(10);
-                
+
                 while !api_state.is_load_environment_completed() {
                     if start_time.elapsed() > timeout {
                         return Err(Error::Timeout(format!("LoadEnvironment command for '{}' timed out", name)));
                     }
                     thread::sleep(Duration::from_millis(100));
                 }
-                
+
                 info!("LoadEnvironment command: Load of environment '{}' completed", name);
-                
+
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::None),
@@ -376,7 +401,7 @@ impl ZmqServer {
             Command::IsApiActive => {
                 // Check if API is active
                 let is_active = api_state.is_active();
-                
+
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::Boolean(is_active)),
@@ -387,7 +412,7 @@ impl ZmqServer {
             Command::SetApiActive { active } => {
                 // Set API active state
                 api_state.set_active(active);
-                
+
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::None),
@@ -400,12 +425,12 @@ impl ZmqServer {
                 if iterations == 0 {
                     return Err(Error::Command("Iterations per step must be greater than 0".to_string()));
                 }
-                
+
                 // Store the iterations per step for future use
                 api_state.set_iterations_per_step(iterations);
-                
+
                 info!("Set iterations per step to {}", iterations);
-                
+
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::None),
@@ -416,9 +441,9 @@ impl ZmqServer {
             Command::GetSimulationHz => {
                 // Get the simulation Hz from the config
                 let hz = api_state.get_simulation_hz();
-                
+
                 info!("Getting simulation Hz: {}", hz);
-                
+
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::Number(hz)),
@@ -431,14 +456,14 @@ impl ZmqServer {
                 if hz <= 0.0 {
                     return Err(Error::Command("Simulation Hz must be greater than 0".to_string()));
                 }
-                
+
                 // Update the Hz in the config
                 if let Err(err) = api_state.set_simulation_hz(hz) {
                     return Err(Error::ApiState(format!("Failed to set simulation Hz: {}", err)));
                 }
-                
+
                 info!("Set simulation Hz to {}", hz);
-                
+
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::None),
@@ -451,7 +476,7 @@ impl ZmqServer {
                 api_state.request_agent_removal(agent_id);
                 info!("RemoveAgent command: Requested removal of agent {} via API state", agent_id);
 
-                // TODO: Should we wait for confirmation like Reset/Load? 
+                // TODO: Should we wait for confirmation like Reset/Load?
                 // For now, assume it's handled synchronously or queued for next Bevy update.
                 Response {
                     status: Status::Success,
@@ -460,14 +485,14 @@ impl ZmqServer {
                     request_id: request_id.clone(),
                 }
             },
-            Command::SpawnAgent { 
-                initial_position, 
-                goal_position, 
-                initial_velocity, 
-                radius, 
-                ref planning_strategy, 
-                target_speed, 
-                weights 
+            Command::SpawnAgent {
+                initial_position,
+                goal_position,
+                initial_velocity,
+                radius,
+                ref planning_strategy,
+                target_speed,
+                weights
             } => {
                 // Prepare parameters for the spawn request
                 let params = SpawnParams {
@@ -493,7 +518,7 @@ impl ZmqServer {
                     if start_time.elapsed() > timeout {
                         return Err(Error::Timeout("SpawnAgent command timed out waiting for completion".to_string()));
                     }
-                    
+
                     // Check if a new ID has appeared
                     if let Some(id) = api_state.pop_spawned_agent_id() {
                         new_agent_id = Some(id);
@@ -505,7 +530,7 @@ impl ZmqServer {
 
                 Response {
                     status: Status::Success,
-                    data: Some(ResponseData::SpawnedAgentId(new_agent_id.expect("Should have ID after loop"))), 
+                    data: Some(ResponseData::SpawnedAgentId(new_agent_id.expect("Should have ID after loop"))),
                     error: None,
                     request_id: request_id.clone(),
                 }
@@ -525,9 +550,49 @@ impl ZmqServer {
                     request_id: request_id.clone(),
                 }
             },
+            Command::ReplanCompletedAgents {
+                ref strategy, // Borrow strategy as well
+                ref square_id, // Borrow square_id instead of moving it
+                avoid_current_square,
+            } => {
+                // Store the replan request in ApiState
+                let params = ReplanRequestParams {
+                    strategy: strategy.clone(), // Clone the borrowed String
+                    square_id: square_id.clone(), // Clone the borrowed Option<String>
+                    avoid_current_square: avoid_current_square.unwrap_or(true), // Default to true
+                };
+                api_state.request_replan(params);
+                info!("ReplanCompletedAgents command: Stored request in API state");
+
+                // Acknowledge receipt; the actual replan happens in a Bevy system
+                Response {
+                    status: Status::Success,
+                    data: Some(ResponseData::None),
+                    error: None,
+                    request_id: request_id.clone(),
+                }
+            }
+            Command::GetAvailableSquares => {
+                // Get the available squares from the API state
+                let squares = api_state.get_available_squares();
+                let count = squares.len();
+                
+                if count == 0 {
+                    info!("GetAvailableSquares: No squares available in API state cache");
+                } else {
+                    info!("GetAvailableSquares: Returning {} squares from API state cache", count);
+                }
+
+                Response {
+                    status: Status::Success,
+                    data: Some(ResponseData::AvailableSquares(squares)),
+                    error: None,
+                    request_id: request_id.clone(),
+                }
+            }
         };
         // Log the successful handling of the request with detailed response information
-        
+
         // Prepare detailed response logs based on response type
         let response_details = match &response.data {
             Some(ResponseData::AgentStates(states)) => {
@@ -554,9 +619,12 @@ impl ZmqServer {
                     None => "Returning current scenario name: None".to_string(),
                 }
             },
-            _ => "No detailed data to display".to_string()
+            Some(ResponseData::AvailableSquares(squares)) => {
+                format!("Returning {} available squares", squares.len())
+            }
+            _ => "No detailed data to display".to_string(),
         };
-        
+
         // Log summary of the processed request with basic info
         let command_summary = match &command {
             Command::GetAgentState => "GetAgentState".to_string(),
@@ -567,10 +635,10 @@ impl ZmqServer {
             Command::LoadEnvironment { ref name } => format!("LoadEnvironment({})", name),
             Command::IsApiActive => "IsApiActive".to_string(),
             Command::SetApiActive { active } => {
-                if *active { 
-                    "SetApiActive(true)".to_string() 
-                } else { 
-                    "SetApiActive(false)".to_string() 
+                if *active {
+                    "SetApiActive(true)".to_string()
+                } else {
+                    "SetApiActive(false)".to_string()
                 }
             },
             Command::SetIterationsPerStep { iterations } => format!("SetIterationsPerStep({})", iterations),
@@ -579,26 +647,28 @@ impl ZmqServer {
             Command::RemoveAgent { agent_id } => format!("RemoveAgent({})", agent_id),
             Command::SpawnAgent { .. } => "SpawnAgent".to_string(),
             Command::GetCurrentScenario => "GetCurrentScenario".to_string(),
+            Command::ReplanCompletedAgents { .. } => "ReplanCompletedAgents".to_string(),
+            Command::GetAvailableSquares => "GetAvailableSquares".to_string(),
         };
         info!("📤 Successfully processed API request: {} (ID: {})", command_summary, request_id_str);
-        
+
         // Log the detailed response info
         info!("🔍 Response details: {}", response_details);
-        
+
         // Serialize the response to JSON
         let response_json = serde_json::to_string(&response).map_err(|e| {
             error!("Failed to serialize response: {:?}", e);
             Error::Json(e)
         })?;
-        
+
         // Log the raw JSON response for debugging
         // info!("📄 Raw response: {}", response_json);
-        
+
         // Log the complete response at debug level for even more detail
-        debug!("Complete response: {}", 
+        debug!("Complete response: {}",
             serde_json::to_string_pretty(&response)
                 .unwrap_or_else(|_| "Failed to serialize response".to_string()));
-        
+
         info!("===================================================================");
         Ok(response_json)
     }
@@ -609,3 +679,5 @@ impl Drop for ZmqServer {
         self.stop();
     }
 }
+
+// Removed extract_available_squares function from here (moved to plugin.rs)

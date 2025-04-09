@@ -5,7 +5,8 @@
 
 use std::collections::HashMap;
 
-use bevy::prelude::Entity;
+use bevy::{math::Vec2, prelude::Entity};
+use gbp_config::formation::SerializedSquare;
 use serde::{Deserialize, Serialize};
 
 use crate::api::state::FactorWeights;
@@ -91,6 +92,19 @@ pub enum Command {
 
     /// Get the name of the currently loaded scenario.
     GetCurrentScenario,
+
+    /// Replan all completed agents with new goals
+    ReplanCompletedAgents {
+        /// Strategy to use for position generation ("CompleteRandom" or "RandomSquares")
+        strategy: String,
+        /// Optional index or name of the square to use (uses a random different square if not specified)
+        square_id: Option<String>,
+        /// Whether to avoid the current square when selecting a new one (default: true)
+        avoid_current_square: Option<bool>,
+    },
+
+    /// Get available squares from the configuration
+    GetAvailableSquares,
 }
 
 /// Request message sent from client to server.
@@ -146,6 +160,9 @@ pub enum ResponseData {
 
     /// Name of the currently loaded scenario
     CurrentScenario(Option<String>),
+
+    /// Available squares for random position generation
+    AvailableSquares(Vec<SerializedSquare>),
 
     /// No data
     None,
@@ -236,6 +253,8 @@ pub struct SerializedAgentState {
     
     /// Information about collisions
     pub collision_info: SerializedCollisionInfo,
+    /// ID of the square this agent is currently targeting
+    pub target_square_id: Option<String>,
 }
 
 /// Serialized mission state for API communication.
@@ -620,6 +639,7 @@ impl From<&crate::api::state::AgentState> for SerializedAgentState {
             goal_point,
             mission_progress,
             collision_info,
+            target_square_id: state.target_square_id.clone(),
         }
     }
 }

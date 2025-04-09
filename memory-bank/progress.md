@@ -34,11 +34,12 @@
   - [x] Agent Spawning (`SpawnAgent` command)
   - [x] Agent Removal (`RemoveAgent` command)
   - [x] Current Scenario Query (`GetCurrentScenario` command)
+  - [x] API-Driven Replanning (`ReplanCompletedAgents`, `GetAvailableSquares` commands)
 
 ## Partially Implemented Features
 - [x] Python Client Implementation
   - [x] Basic client structure
-  - [x] Added `spawn_agent`, `remove_agent`, and `get_current_scenario` methods
+  - [x] Added `spawn_agent`, `remove_agent`, `get_current_scenario`, `get_available_squares`, `replan_completed_agents` methods
   - [x] Connection handling
   - [x] Command sending/receiving
   - [x] Basic step and reset methods
@@ -63,6 +64,7 @@
 - Performance bottlenecks in message passing (Huge problem in the iterate_gbp_v2 function, too many allocations, copying ndarray matricer, and deallocation aka. drop)
 - Limited scenario complexity
 - Potential numerical stability challenges
+- Incorrect starting position used for pathfinding during replanning (Fixed)
 
 ## Performance Metrics
 - Current Scenario Complexity: Medium
@@ -90,6 +92,7 @@
 
 4. **Validation and Experimentation** 🔜
    - [ ] Comprehensive Test Suite
+
    - [ ] Benchmark Scenario Development
    - [ ] Performance Comparison with Existing Approaches
    - [ ] Reinforcement Learning Experiments

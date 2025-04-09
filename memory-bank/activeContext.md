@@ -28,9 +28,17 @@ The current development focus is on finalizing the API implementation and creati
 - Agent spawning via API (`SpawnAgent` command, `handle_agent_spawn_requests` system in `plugin.rs`)
 - Agent removal via API (`RemoveAgent` command, `handle_agent_removal_requests` system in `plugin.rs`)
 - Current scenario query via API (`GetCurrentScenario` command, `zmq_server.rs`, `state.rs`, `plugin.rs`)
+- **API-driven replanning of completed agents (`ReplanCompletedAgents`, `GetAvailableSquares` commands)**
+  - Added commands to `message.rs`
+  - Added `SerializedSquare` to `gbp_config/formation.rs`
+  - Added `target_square_id` to `Mission` in `planner/robot.rs`
+  - Added `target_square_id` to `AgentState` and `ReplanRequestParams` to `ApiState` in `api/state.rs`
+  - Added handlers for new commands in `api/zmq_server.rs`
+  - Added `handle_replan_requests` system and helper functions in `api/plugin.rs`
+  - Added `get_available_squares` and `replan_completed_agents` methods to `magics_client/magics_client.py`
 
 ### Partially Implemented Components
-- Python client (`python_api/magics_client.py` - Added `spawn_agent` and `remove_agent` methods, but still missing full OpenAI Gym integration)
+- Python client (`magics_client/magics_client.py` - Added `spawn_agent`, `remove_agent`, `get_current_scenario`, `get_available_squares`, `replan_completed_agents` methods, but still missing full OpenAI Gym integration)
 
 ## Key Files and Their Purposes
 - `crates/magics/src/api/mod.rs`: Main module definition and exports
@@ -44,7 +52,7 @@ The current development focus is on finalizing the API implementation and creati
 - `crates/magics/src/api/reset.rs`: API state reset handling
 - `crates/magics/src/api/state_utils.rs`: Utility functions for state creation (used by spawn/remove)
 - `crates/magics/src/api/despawned_agents.rs`: Tracks agents removed via API for correct state reporting
-- `python_api/magics_client.py`: Python client implementation (now includes spawn/remove, get_current_scenario)
+- `magics_client/magics_client.py`: Python client implementation (now includes spawn/remove, get_current_scenario, get_available_squares, replan_completed_agents)
 - `python_api/stepping.py`: Example of stepping through simulation
 - `python_api/agent_weights_example.py`: Example of setting per-agent factor weights
 
@@ -64,10 +72,12 @@ The current development focus is on finalizing the API implementation and creati
 +- **Fixed panic in `create_interrobot_factors` by handling potential variable count mismatches between robots.**
 +- **Added optional `seed` parameter to `Reset` command for reproducible environment generation.**
 +- **Added configurable `log_level` to `[simulation]` section in `config.toml` (options: "error", "warn", "info", "debug", "trace", "off") to control logging verbosity.**
++- **Implemented API-driven replanning for completed agents (`ReplanCompletedAgents`, `GetAvailableSquares`).**
++- **Fixed issue with replanning where pathfinding was not using the correct starting position by using the current transform position instead of the mission taskpoint.**
 
  ## Next Steps
 
-1. **Finalize API**: Finalizing the remaining aspects of the API implementation, load environment. (Reset is now enhanced).
+1. **Finalize API**: Finalizing the remaining aspects of the API implementation, load environment. (Reset and Replan are now enhanced).
 2. **Extend confi**: Implement pause on load.
 3. **Finalize OpenAI Gym Integration**
    - Define observation and action spaces in `python_api/magics_gym/`

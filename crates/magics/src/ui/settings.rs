@@ -884,6 +884,7 @@ fn ui_settings_panel(
                                                     let maybe_setting_kind = match name {
                                                         "spawn_areas" => Some(DrawSetting::SpawnAreas),
                                                         "waypoint_areas" => Some(DrawSetting::WaypointAreas),
+                                                        "goal_position_areas" => Some(DrawSetting::GoalPositionAreas),
                                                         // Attempt to parse other known settings
                                                         _ => name.parse::<DrawSetting>().ok(),
                                                     };
@@ -944,6 +945,38 @@ fn ui_settings_panel(
                             custom::toggle_ui(ui, &mut gizmo_config.enabled);
                         });
 
+                        ui.end_row();
+                        
+                        // AREAS (Combined toggle for spawn, waypoint, and goal position areas)
+                        ui.label("All Areas");
+                        custom::float_right(ui, |ui| {
+                            let mut all_areas_visible = config.visualisation.draw.spawn_areas && 
+                                                       config.visualisation.draw.waypoint_areas && 
+                                                       config.visualisation.draw.goal_position_areas;
+                            
+                            let response = custom::toggle_ui(ui, &mut all_areas_visible);
+                            if response.clicked() {
+                                // Update all area visibility settings
+                                config.visualisation.draw.spawn_areas = all_areas_visible;
+                                config.visualisation.draw.waypoint_areas = all_areas_visible;
+                                config.visualisation.draw.goal_position_areas = all_areas_visible;
+                                
+                                // Send events for each area type
+                                world.send_event(DrawSettingsEvent {
+                                    setting: DrawSetting::SpawnAreas,
+                                    draw: all_areas_visible,
+                                });
+                                world.send_event(DrawSettingsEvent {
+                                    setting: DrawSetting::WaypointAreas,
+                                    draw: all_areas_visible,
+                                });
+                                world.send_event(DrawSettingsEvent {
+                                    setting: DrawSetting::GoalPositionAreas,
+                                    draw: all_areas_visible,
+                                });
+                            }
+                        });
+                        
                         ui.end_row();
 
                         // INFINITE GRID

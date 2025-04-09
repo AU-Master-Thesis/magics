@@ -17,7 +17,7 @@ use num_traits::{Saturating, SaturatingMul};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
-
+use bevy::log::info;
 use super::geometry::{Point, Shape};
 use crate::line;
 
@@ -225,7 +225,12 @@ pub struct Formation {
     /// Where to spawn the formation
     pub initial_position: InitialPosition,
     /// List of waypoints.
-    pub waypoints: OneOrMore<Waypoint>,
+    /// If not provided, goal_position must be present and will be used for initial waypoints.
+    #[serde(default)]
+    pub waypoints: Vec<Waypoint>,
+    /// List of goal positions for replanning.
+    /// If waypoints is not set, the first goal position will be used as the initial waypoint.
+    pub goal_position: Option<OneOrMore<Waypoint>>,
     pub waypoint_reached_when_intersects: ReachedWhen,
     #[serde(default = "Formation::default_finished_when_intersects")]
     pub finished_when_intersects: ReachedWhen,
@@ -288,7 +293,8 @@ impl Formation {
                 shape: circle.clone(),
                 placement_strategy: InitialPlacementStrategy::Equal,
             },
-            waypoints: one_or_more![Waypoint::new(circle, ProjectionStrategy::Cross)],
+            waypoints: vec![Waypoint::new(circle, ProjectionStrategy::Cross)],
+            goal_position: None,
             waypoint_reached_when_intersects: ReachedWhen::same_as_paper(),
             finished_when_intersects: ReachedWhen::same_as_paper(),
         }
@@ -308,6 +314,16 @@ impl Formation {
         robot_radii: &[f32],
         rng: &mut impl Rng,
     ) -> Option<(Vec<Vec2>, Vec<Vec<Vec2>>)> {
+        // Determine which waypoints to use
+        // If waypoints is empty but goal_position is present, use the first goal_position for initial waypoints
+        let waypoints_to_use: Vec<Waypoint> = if self.waypoints.is_empty() && self.goal_position.is_some() {
+            // Pick just one random goal position for initial waypoints
+            let goal_positions = self.goal_position.as_ref().unwrap();
+            let random_index = rng.gen_range(0..goal_positions.len());
+            vec![goal_positions[random_index].clone()]
+        } else {
+            self.waypoints.clone()
+        };
         match self.initial_position.shape {
             Shape::LineSegment((ls_start, ls_end)) => {
                 let ls_start = world_dims.point_to_world_position(ls_start);
@@ -351,8 +367,7 @@ impl Formation {
                     .map(|by| ls_start.lerp(ls_end, *by))
                     .collect();
 
-                let waypoints_of_each_robot: Vec<Vec<Vec2>> = self
-                    .waypoints
+                let waypoints_of_each_robot: Vec<Vec<Vec2>> = waypoints_to_use
                     .iter()
                     .map(|wp| {
                         let Shape::LineSegment((ls_start, ls_end)) = wp.shape else {
@@ -421,8 +436,7 @@ impl Formation {
                     .map(|polar| center + polar)
                     .collect();
 
-                let waypoints_of_each_robots: Vec<Vec<Vec2>> = self
-                    .waypoints
+                let waypoints_of_each_robots: Vec<Vec<Vec2>> = waypoints_to_use
                     .iter()
                     .map(|wp| {
                         let Shape::Circle { radius, center } = wp.shape else {
@@ -474,8 +488,7 @@ impl Formation {
                 )?;
 
                 // Generate waypoints for each robot
-                let waypoints_of_each_robot: Vec<Vec<Vec2>> = self
-                    .waypoints
+                let waypoints_of_each_robot: Vec<Vec<Vec2>> = waypoints_to_use
                     .iter()
                     .map(|wp| match wp.shape {
                         Shape::RandomSquare { p1: wp1, p2: wp2, min_distance: wp_min_dist } => {
@@ -486,6 +499,12 @@ impl Formation {
                             let wp_max_x = wp_world_p1.x.max(wp_world_p2.x);
                             let wp_min_y = wp_world_p1.y.min(wp_world_p2.y);
                             let wp_max_y = wp_world_p1.y.max(wp_world_p2.y);
+                            
+                            info!(
+                                "Placing waypoints in RandomSquare: min_x: {}, max_x: {}, min_y: {}, max_y: {}",
+                                wp_min_x, wp_max_x, wp_min_y, wp_max_y
+                            );
+                            info!("World dimensions: width: {}, height: {}", world_dims.width(), world_dims.height());
 
                             // Generate random target positions within the waypoint square
                             // Note: We use robot_radii here to ensure target points are also spaced out,
@@ -807,11 +826,12 @@ impl FormationGroup {
                         placement_strategy: InitialPlacementStrategy::Equal,
                     },
 
-                    waypoints: one_or_more![Waypoint::new(
+                    waypoints: vec![Waypoint::new(
                         line![(0.45, 1.25), (0.55, 1.25)],
                         ProjectionStrategy::Identity
-                    ),],
+                    )],
 
+                    goal_position: None,
                     waypoint_reached_when_intersects: ReachedWhen::same_as_paper(),
                     finished_when_intersects: ReachedWhen {
                         distance: IntersectionDistance::RobotRadius,
@@ -832,11 +852,12 @@ impl FormationGroup {
                         placement_strategy: InitialPlacementStrategy::Equal,
                     },
 
-                    waypoints: one_or_more![Waypoint::new(
+                    waypoints: vec![Waypoint::new(
                         line![(1.25, 0.45), (1.25, 0.55)],
                         ProjectionStrategy::Identity,
-                    ),],
+                    )],
 
+                    goal_position: None,
                     waypoint_reached_when_intersects: ReachedWhen::same_as_paper(),
                     finished_when_intersects: ReachedWhen {
                         distance: IntersectionDistance::RobotRadius,
@@ -853,6 +874,21 @@ impl Default for FormationGroup {
         // Self::intersection_from_paper()
         Self::circle_from_paper()
     }
+}
+
+/// Serialized square information for API communication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializedSquare {
+    /// Unique identifier for the square
+    pub id: String,
+    /// Type of square (InitialPosition or Waypoint)
+    pub square_type: String,
+    /// Minimum corner (bottom-left)
+    pub min: [f32; 2],
+    /// Maximum corner (top-right)
+    pub max: [f32; 2],
+    /// Minimum distance between points (if specified)
+    pub min_distance: Option<f32>,
 }
 
 

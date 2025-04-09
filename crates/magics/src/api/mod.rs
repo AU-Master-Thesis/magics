@@ -13,6 +13,10 @@ mod extract;
 mod weights;
 mod despawned_agents;
 mod state_utils;
+pub mod replan;
+pub mod agent_management;
+pub mod step;
+pub mod scenario;
 
 pub use plugin::ApiPlugin;
 pub use state::{AgentState, ApiState, EnvironmentState, WeightUpdate, FactorWeights, FactorGraphState};

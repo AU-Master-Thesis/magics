@@ -1,19 +1,44 @@
 [
     {
-        "label": "gymnasium",
+        "label": "time",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "gymnasium",
-        "description": "gymnasium",
-        "detail": "gymnasium",
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
         "documentation": {}
     },
     {
-        "label": "spaces",
-        "importPath": "gymnasium",
-        "description": "gymnasium",
+        "label": "json",
+        "kind": 6,
         "isExtraImport": true,
-        "detail": "gymnasium",
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsClient",
+        "importPath": "adaptive_gbp.magics_client.magics_client",
+        "description": "adaptive_gbp.magics_client.magics_client",
+        "isExtraImport": true,
+        "detail": "adaptive_gbp.magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsClient",
+        "importPath": "adaptive_gbp.magics_client.magics_client",
+        "description": "adaptive_gbp.magics_client.magics_client",
+        "isExtraImport": true,
+        "detail": "adaptive_gbp.magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsClient",
+        "importPath": "adaptive_gbp.magics_client.magics_client",
+        "description": "adaptive_gbp.magics_client.magics_client",
+        "isExtraImport": true,
+        "detail": "adaptive_gbp.magics_client.magics_client",
         "documentation": {}
     },
     {
@@ -44,69 +69,118 @@
         "documentation": {}
     },
     {
-        "label": "MagicsClient",
-        "importPath": "magics_client",
-        "description": "magics_client",
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
         "isExtraImport": true,
-        "detail": "magics_client",
+        "detail": "pathlib",
         "documentation": {}
     },
     {
-        "label": "MagicsError",
-        "importPath": "magics_client",
-        "description": "magics_client",
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
         "isExtraImport": true,
-        "detail": "magics_client",
+        "detail": "pathlib",
         "documentation": {}
     },
     {
-        "label": "MagicsClient",
-        "importPath": "magics_client",
-        "description": "magics_client",
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
         "isExtraImport": true,
-        "detail": "magics_client",
+        "detail": "pathlib",
         "documentation": {}
     },
     {
-        "label": "MagicsClient",
-        "importPath": "magics_client",
-        "description": "magics_client",
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
         "isExtraImport": true,
-        "detail": "magics_client",
+        "detail": "pathlib",
         "documentation": {}
     },
     {
-        "label": "MagicsError",
-        "importPath": "magics_client",
-        "description": "magics_client",
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
         "isExtraImport": true,
-        "detail": "magics_client",
+        "detail": "pathlib",
         "documentation": {}
     },
     {
-        "label": "MagicsClient",
-        "importPath": "magics_client",
-        "description": "magics_client",
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
         "isExtraImport": true,
-        "detail": "magics_client",
+        "detail": "pathlib",
         "documentation": {}
     },
     {
-        "label": "json",
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "enum",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "json",
-        "description": "json",
-        "detail": "json",
+        "importPath": "enum",
+        "description": "enum",
+        "detail": "enum",
         "documentation": {}
     },
     {
-        "label": "uuid",
+        "label": "build_graph_from_factor_graph",
+        "importPath": "adaptive_gbp.graph.construction",
+        "description": "adaptive_gbp.graph.construction",
+        "isExtraImport": true,
+        "detail": "adaptive_gbp.graph.construction",
+        "documentation": {}
+    },
+    {
+        "label": "traceback",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "uuid",
-        "description": "uuid",
-        "detail": "uuid",
+        "importPath": "traceback",
+        "description": "traceback",
+        "detail": "traceback",
+        "documentation": {}
+    },
+    {
+        "label": "readline",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "readline",
+        "description": "readline",
+        "detail": "readline",
         "documentation": {}
     },
     {
@@ -119,29 +193,94 @@
         "documentation": {}
     },
     {
-        "label": "time",
-        "kind": 6,
+        "label": "MagicsClient",
+        "importPath": "magics_client",
+        "description": "magics_client",
         "isExtraImport": true,
-        "importPath": "time",
-        "description": "time",
-        "detail": "time",
+        "detail": "magics_client",
         "documentation": {}
     },
     {
-        "label": "MagicsEnv",
-        "importPath": "magics_gym",
-        "description": "magics_gym",
+        "label": "MagicsError",
+        "importPath": "magics_client",
+        "description": "magics_client",
         "isExtraImport": true,
-        "detail": "magics_gym",
+        "detail": "magics_client",
         "documentation": {}
     },
     {
-        "label": "enum",
+        "label": "PlanningStrategy",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MissionState",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsClient",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsError",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "FactorWeightsDict",
+        "importPath": "magics_client",
+        "description": "magics_client",
+        "isExtraImport": true,
+        "detail": "magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "T",
+        "importPath": "encodings.punycode",
+        "description": "encodings.punycode",
+        "isExtraImport": true,
+        "detail": "encodings.punycode",
+        "documentation": {}
+    },
+    {
+        "label": "random",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "enum",
-        "description": "enum",
-        "detail": "enum",
+        "importPath": "random",
+        "description": "random",
+        "detail": "random",
+        "documentation": {}
+    },
+    {
+        "label": "uuid",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "uuid",
+        "description": "uuid",
+        "detail": "uuid",
+        "documentation": {}
+    },
+    {
+        "label": "subprocess",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "subprocess",
+        "description": "subprocess",
+        "detail": "subprocess",
         "documentation": {}
     },
     {
@@ -194,14 +333,6 @@
     },
     {
         "label": "TypedDict",
-        "importPath": "typing",
-        "description": "typing",
-        "isExtraImport": true,
-        "detail": "typing",
-        "documentation": {}
-    },
-    {
-        "label": "NotRequired",
         "importPath": "typing",
         "description": "typing",
         "isExtraImport": true,
@@ -305,70 +436,6 @@
         "importPath": "itertools",
         "description": "itertools",
         "detail": "itertools",
-        "documentation": {}
-    },
-    {
-        "label": "Path",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
-        "label": "Path",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
-        "label": "Path",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
-        "label": "Path",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
-        "label": "Path",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
-        "label": "Path",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
-        "label": "Path",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
-        "label": "Path",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
         "documentation": {}
     },
     {
@@ -718,15 +785,6 @@
         "documentation": {}
     },
     {
-        "label": "subprocess",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "subprocess",
-        "description": "subprocess",
-        "detail": "subprocess",
-        "documentation": {}
-    },
-    {
         "label": "shutil",
         "kind": 6,
         "isExtraImport": true,
@@ -754,435 +812,660 @@
         "documentation": {}
     },
     {
-        "label": "MagicsEnv",
-        "kind": 6,
-        "importPath": "python_api.magics_gym.env",
-        "description": "python_api.magics_gym.env",
-        "peekOfCode": "class MagicsEnv(gym.Env):\n    \"\"\"\n    OpenAI Gym environment for the Magics simulation.\n    This environment implements the OpenAI Gym interface to control the\n    Magics simulation through the ZeroMQ API.\n    \"\"\"\n    metadata = {\"render_modes\": [\"human\", \"rgb_array\"]}\n    def __init__(self, host=\"localhost\", port=5555, render_mode=None):\n        \"\"\"\n        Initialize the environment.",
-        "detail": "python_api.magics_gym.env",
-        "documentation": {}
-    },
-    {
-        "label": "send_request",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def send_request(socket, command, parameters=None, request_id=None):\n    \"\"\"Send a request to the server and return the response.\"\"\"\n    if request_id is None:\n        request_id = str(uuid.uuid4())\n    # Create request with nested command structure\n    request = {\n        \"command\": {\n            \"command\": command\n        },\n        \"request_id\": request_id",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_is_api_active",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_is_api_active(socket):\n    \"\"\"Test the IsApiActive command.\"\"\"\n    print(\"\\n=== Testing IsApiActive ===\")\n    response = send_request(socket, \"IsApiActive\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data:\n                if isinstance(data, dict) and data.get(\"type\") == \"Boolean\":",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_set_api_active",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_set_api_active(socket, active=True):\n    \"\"\"Test the SetApiActive command.\"\"\"\n    print(f\"\\n=== Testing SetApiActive({active}) ===\")\n    response = send_request(socket, \"SetApiActive\", {\"active\": active})\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(f\"✅ Successfully set API active to {active}\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_get_agent_state",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_get_agent_state(socket):\n    \"\"\"Test the GetAgentState command.\"\"\"\n    print(\"\\n=== Testing GetAgentState ===\")\n    response = send_request(socket, \"GetAgentState\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data and data.get(\"type\") == \"AgentStates\":\n                agents = data.get(\"content\", {})",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_get_environment_state",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_get_environment_state(socket):\n    \"\"\"Test the GetEnvironmentState command.\"\"\"\n    print(\"\\n=== Testing GetEnvironmentState ===\")\n    response = send_request(socket, \"GetEnvironmentState\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data and data.get(\"type\") == \"EnvironmentState\":\n                env_state = data.get(\"content\", {})",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_set_factor_weights",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_set_factor_weights(socket):\n    \"\"\"Test the SetFactorWeights command.\"\"\"\n    print(\"\\n=== Testing SetFactorWeights ===\")\n    # Define some test weights\n    weights = {\n        \"dynamic\": 1.0,\n        \"obstacle\": 2.0,\n        \"interrobot\": 1.5,\n        \"tracking\": 1.0\n    }",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_step",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_step(socket):\n    \"\"\"Test the Step command.\"\"\"\n    print(\"\\n=== Testing Step ===\")\n    response = send_request(socket, \"Step\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Successfully stepped simulation\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_reset",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_reset(socket):\n    \"\"\"Test the Reset command.\"\"\"\n    print(\"\\n=== Testing Reset ===\")\n    response = send_request(socket, \"Reset\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Successfully reset simulation\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_get_simulation_hz",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_get_simulation_hz(socket):\n    \"\"\"Test the GetSimulationHz command.\"\"\"\n    print(\"\\n=== Testing GetSimulationHz ===\")\n    response = send_request(socket, \"GetSimulationHz\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data and data.get(\"type\") == \"Number\":\n                hz = data.get(\"content\")",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_set_simulation_hz",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_set_simulation_hz(socket, hz):\n    \"\"\"Test the SetSimulationHz command.\"\"\"\n    print(f\"\\n=== Testing SetSimulationHz({hz}) ===\")\n    response = send_request(socket, \"SetSimulationHz\", {\"hz\": hz})\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(f\"✅ Successfully set simulation Hz to {hz}\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_set_iterations_per_step",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_set_iterations_per_step(socket, iterations):\n    \"\"\"Test the SetIterationsPerStep command.\"\"\"\n    print(f\"\\n=== Testing SetIterationsPerStep({iterations}) ===\")\n    response = send_request(socket, \"SetIterationsPerStep\", {\"iterations\": iterations})\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(f\"✅ Successfully set iterations per step to {iterations}\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "test_hz_functionality",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def test_hz_functionality(socket):\n    \"\"\"Test the Hz functionality with multiple steps.\"\"\"\n    print(\"\\n=== Testing Hz Functionality ===\")\n    # Get current Hz\n    current_hz = test_get_simulation_hz(socket)\n    if current_hz is None:\n        print(\"❌ Failed to get current Hz\")\n        return False\n    # Set a new Hz value\n    new_hz = 30.0  # Change to 30 Hz",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
-        "label": "main",
-        "kind": 2,
-        "importPath": "python_api.tests.test_zmq_requests",
-        "description": "python_api.tests.test_zmq_requests",
-        "peekOfCode": "def main():\n    print(\"ZeroMQ Debug Client\")\n    print(\"===================\")\n    # Create ZMQ context and socket\n    context = zmq.Context()\n    socket = context.socket(zmq.REQ)\n    socket.setsockopt(zmq.RCVTIMEO, 5000)  # 5 second timeout\n    # Connect to server\n    server_address = \"tcp://localhost:5555\"\n    print(f\"Connecting to server at {server_address}...\")",
-        "detail": "python_api.tests.test_zmq_requests",
-        "documentation": {}
-    },
-    {
         "label": "client",
         "kind": 5,
-        "importPath": "python_api.agent_weights_example",
-        "description": "python_api.agent_weights_example",
+        "importPath": "magics_client.test.agent_weights_example",
+        "description": "magics_client.test.agent_weights_example",
         "peekOfCode": "client = MagicsClient(timeout=10_000)  # 10 second timeout\nif not client.is_api_active():\n    print(\"Activating API...\")\n    client.set_api_active(True)\n# Get the current state to see all agents\nagent_states = client.get_agent_state()\nprint(f\"Found {len(agent_states)} agents in the simulation\")\nfor agent_id, state in agent_states.items():\n    print(f\"Agent {agent_id}: Position {state['position']}\")\n    # Print current factor weights for each agent",
-        "detail": "python_api.agent_weights_example",
+        "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
         "label": "agent_states",
         "kind": 5,
-        "importPath": "python_api.agent_weights_example",
-        "description": "python_api.agent_weights_example",
+        "importPath": "magics_client.test.agent_weights_example",
+        "description": "magics_client.test.agent_weights_example",
         "peekOfCode": "agent_states = client.get_agent_state()\nprint(f\"Found {len(agent_states)} agents in the simulation\")\nfor agent_id, state in agent_states.items():\n    print(f\"Agent {agent_id}: Position {state['position']}\")\n    # Print current factor weights for each agent\n    if 'factor_graph_state' in state and 'weights' in state['factor_graph_state']:\n        weights = state['factor_graph_state']['weights']\n        print(f\"  Current weights: dynamic={weights['dynamic']}, obstacle={weights['obstacle']}, \"\n              f\"interrobot={weights['interrobot']}, tracking={weights['tracking']}\")\n# Ask which agent to modify",
-        "detail": "python_api.agent_weights_example",
+        "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
         "label": "agent_choice",
         "kind": 5,
-        "importPath": "python_api.agent_weights_example",
-        "description": "python_api.agent_weights_example",
+        "importPath": "magics_client.test.agent_weights_example",
+        "description": "magics_client.test.agent_weights_example",
         "peekOfCode": "agent_choice = input(\"\\nEnter agent ID to modify (leave empty for system-wide change): \")\nagent_id_to_modify = None if agent_choice == \"\" else int(agent_choice)\n# Ask which factor weights to modify\nprint(\"\\nEnter new weights (leave empty to keep current value):\")\ndynamic_input = input(\"Dynamic factor weight: \")\nobstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}",
-        "detail": "python_api.agent_weights_example",
+        "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
         "label": "agent_id_to_modify",
         "kind": 5,
-        "importPath": "python_api.agent_weights_example",
-        "description": "python_api.agent_weights_example",
+        "importPath": "magics_client.test.agent_weights_example",
+        "description": "magics_client.test.agent_weights_example",
         "peekOfCode": "agent_id_to_modify = None if agent_choice == \"\" else int(agent_choice)\n# Ask which factor weights to modify\nprint(\"\\nEnter new weights (leave empty to keep current value):\")\ndynamic_input = input(\"Dynamic factor weight: \")\nobstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:",
-        "detail": "python_api.agent_weights_example",
+        "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
         "label": "dynamic_input",
         "kind": 5,
-        "importPath": "python_api.agent_weights_example",
-        "description": "python_api.agent_weights_example",
+        "importPath": "magics_client.test.agent_weights_example",
+        "description": "magics_client.test.agent_weights_example",
         "peekOfCode": "dynamic_input = input(\"Dynamic factor weight: \")\nobstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)",
-        "detail": "python_api.agent_weights_example",
+        "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
         "label": "obstacle_input",
         "kind": 5,
-        "importPath": "python_api.agent_weights_example",
-        "description": "python_api.agent_weights_example",
+        "importPath": "magics_client.test.agent_weights_example",
+        "description": "magics_client.test.agent_weights_example",
         "peekOfCode": "obstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:",
-        "detail": "python_api.agent_weights_example",
+        "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
         "label": "interrobot_input",
         "kind": 5,
-        "importPath": "python_api.agent_weights_example",
-        "description": "python_api.agent_weights_example",
+        "importPath": "magics_client.test.agent_weights_example",
+        "description": "magics_client.test.agent_weights_example",
         "peekOfCode": "interrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:\n    weights[\"interrobot\"] = float(interrobot_input)",
-        "detail": "python_api.agent_weights_example",
+        "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
         "label": "tracking_input",
         "kind": 5,
-        "importPath": "python_api.agent_weights_example",
-        "description": "python_api.agent_weights_example",
+        "importPath": "magics_client.test.agent_weights_example",
+        "description": "magics_client.test.agent_weights_example",
         "peekOfCode": "tracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:\n    weights[\"interrobot\"] = float(interrobot_input)\nif tracking_input:",
-        "detail": "python_api.agent_weights_example",
+        "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
         "label": "weights",
         "kind": 5,
-        "importPath": "python_api.agent_weights_example",
-        "description": "python_api.agent_weights_example",
+        "importPath": "magics_client.test.agent_weights_example",
+        "description": "magics_client.test.agent_weights_example",
         "peekOfCode": "weights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:\n    weights[\"interrobot\"] = float(interrobot_input)\nif tracking_input:\n    weights[\"tracking\"] = float(tracking_input)\nif weights:",
-        "detail": "python_api.agent_weights_example",
+        "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
-        "label": "test_direct_api",
+        "label": "main",
         "kind": 2,
-        "importPath": "python_api.example",
-        "description": "python_api.example",
-        "peekOfCode": "def test_direct_api():\n    \"\"\"Test the direct ZeroMQ API.\"\"\"\n    print(\"Testing direct ZeroMQ API...\")\n    # Create a client\n    client = MagicsClient()\n    try:\n        # Check if API is active\n        try:\n            api_active = client.is_api_active()\n            print(f\"API active: {api_active}\")",
-        "detail": "python_api.example",
+        "importPath": "magics_client.test.start_sim_test",
+        "description": "magics_client.test.start_sim_test",
+        "peekOfCode": "def main():\n    print(\"--- Testing MagicsClient.start_sim() ---\")\n    if not Path(MAGICS_ROOT_DIRECTORY).is_dir():\n        print(f\"ERROR: Magics root directory not found or invalid: {MAGICS_ROOT_DIRECTORY}\")\n        print(\"Please update the MAGICS_ROOT_DIRECTORY variable in this script.\")\n        sys.exit(1)\n    client = None\n    try:\n        print(f\"Instantiating MagicsClient with magics_root_dir='{MAGICS_ROOT_DIRECTORY}'...\")\n        # Increase timeout slightly for potentially slower startup",
+        "detail": "magics_client.test.start_sim_test",
         "documentation": {}
     },
     {
-        "label": "test_gym_env",
-        "kind": 2,
-        "importPath": "python_api.example",
-        "description": "python_api.example",
-        "peekOfCode": "def test_gym_env():\n    \"\"\"Test the OpenAI Gym environment.\"\"\"\n    print(\"\\nTesting OpenAI Gym environment...\")\n    # Create environment\n    try:\n        env = MagicsEnv()\n        try:\n            # Reset the environment\n            observation, info = env.reset()\n            print(f\"Initial observation:\")",
-        "detail": "python_api.example",
+        "label": "script_dir",
+        "kind": 5,
+        "importPath": "magics_client.test.start_sim_test",
+        "description": "magics_client.test.start_sim_test",
+        "peekOfCode": "script_dir = Path(__file__).parent.resolve()\nproject_root = script_dir.parent.parent # Go up two levels: test -> magics_client -> adaptive_gbp\nsys.path.insert(0, str(project_root.parent)) # Add the directory containing adaptive_gbp\ntry:\n    from adaptive_gbp.magics_client.magics_client import MagicsClient, MagicsError\nexcept ImportError as e:\n    print(f\"Error importing MagicsClient: {e}\")\n    print(\"Ensure the script is run from the correct directory or the project is installed.\")\n    sys.exit(1)\n# --- Configuration ---",
+        "detail": "magics_client.test.start_sim_test",
         "documentation": {}
     },
     {
-        "label": "PlanningStrategy",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class PlanningStrategy(enum.Enum):\n    \"\"\"Planning strategy used by an agent.\"\"\"\n    ONLY_LOCAL = \"OnlyLocal\"\n    RRT_STAR = \"RrtStar\"\nclass MissionState(enum.Enum):\n    \"\"\"Mission state for an agent.\"\"\"\n    IDLE = \"Idle\"\n    ACTIVE = \"Active\"\n    COMPLETED = \"Completed\"\n# TypedDict definitions to document the structure of returned data",
-        "detail": "python_api.magics_client",
+        "label": "project_root",
+        "kind": 5,
+        "importPath": "magics_client.test.start_sim_test",
+        "description": "magics_client.test.start_sim_test",
+        "peekOfCode": "project_root = script_dir.parent.parent # Go up two levels: test -> magics_client -> adaptive_gbp\nsys.path.insert(0, str(project_root.parent)) # Add the directory containing adaptive_gbp\ntry:\n    from adaptive_gbp.magics_client.magics_client import MagicsClient, MagicsError\nexcept ImportError as e:\n    print(f\"Error importing MagicsClient: {e}\")\n    print(\"Ensure the script is run from the correct directory or the project is installed.\")\n    sys.exit(1)\n# --- Configuration ---\n# !!! IMPORTANT: Set this to the correct root path of your Magics Rust project installation !!!",
+        "detail": "magics_client.test.start_sim_test",
         "documentation": {}
     },
     {
-        "label": "MissionState",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class MissionState(enum.Enum):\n    \"\"\"Mission state for an agent.\"\"\"\n    IDLE = \"Idle\"\n    ACTIVE = \"Active\"\n    COMPLETED = \"Completed\"\n# TypedDict definitions to document the structure of returned data\nclass CollisionInfoDict(TypedDict, total=False):\n    \"\"\"Information about collisions for an agent.\"\"\"\n    robot_collisions_total: int  # Total number of collisions with other robots\n    robot_collisions_delta: int  # Change in robot collisions since last state extraction",
-        "detail": "python_api.magics_client",
+        "label": "MAGICS_ROOT_DIRECTORY",
+        "kind": 5,
+        "importPath": "magics_client.test.start_sim_test",
+        "description": "magics_client.test.start_sim_test",
+        "peekOfCode": "MAGICS_ROOT_DIRECTORY = \"/home/zartris/code/rust/magics_api/\"\n# Specify a scenario to test loading\nTEST_SCENARIO = \"JunctionTwoway\" \n# --- End Configuration ---\ndef main():\n    print(\"--- Testing MagicsClient.start_sim() ---\")\n    if not Path(MAGICS_ROOT_DIRECTORY).is_dir():\n        print(f\"ERROR: Magics root directory not found or invalid: {MAGICS_ROOT_DIRECTORY}\")\n        print(\"Please update the MAGICS_ROOT_DIRECTORY variable in this script.\")\n        sys.exit(1)",
+        "detail": "magics_client.test.start_sim_test",
         "documentation": {}
     },
     {
-        "label": "CollisionInfoDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class CollisionInfoDict(TypedDict, total=False):\n    \"\"\"Information about collisions for an agent.\"\"\"\n    robot_collisions_total: int  # Total number of collisions with other robots\n    robot_collisions_delta: int  # Change in robot collisions since last state extraction\n    environment_collisions_total: int  # Total number of collisions with the environment\n    environment_collisions_delta: int  # Change in environment collisions since last state extraction\nclass StateVectorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a state vector (position and velocity).\"\"\"\n    position: np.ndarray  # Position component of the state vector [x, y]\n    velocity: np.ndarray  # Velocity component of the state vector [vx, vy]",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "StateVectorInfoDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class StateVectorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a state vector (position and velocity).\"\"\"\n    position: np.ndarray  # Position component of the state vector [x, y]\n    velocity: np.ndarray  # Velocity component of the state vector [vx, vy]\nclass VariableInfoDict(TypedDict, total=False):\n    \"\"\"Information about a variable in the factor graph.\"\"\"\n    index: int  # Index of the variable\n    factorgraph_id: int  # ID of the factor graph this variable belongs to\n    mean: List[float]  # Mean vector of the variable [x, y, vx, vy]\n    covariance: List[float]  # Covariance matrix of the variable (4x4, flattened)",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "VariableInfoDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class VariableInfoDict(TypedDict, total=False):\n    \"\"\"Information about a variable in the factor graph.\"\"\"\n    index: int  # Index of the variable\n    factorgraph_id: int  # ID of the factor graph this variable belongs to\n    mean: List[float]  # Mean vector of the variable [x, y, vx, vy]\n    covariance: List[float]  # Covariance matrix of the variable (4x4, flattened)\n    estimated_position: List[float]  # Estimated position from the variable [x, y]\n    estimated_velocity: List[float]  # Estimated velocity from the variable [vx, vy]\nclass ObstacleFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an obstacle factor in the factor graph.\"\"\"",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "ObstacleFactorInfoDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class ObstacleFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an obstacle factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    sdf_value: float  # SDF value at the position, ranges from 0.0 (free space) to 1.0 (obstacle)\n    position: List[float]  # Position where the SDF value was measured [x, y]\nclass InterRobotFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an inter-robot factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    external_robot_id: int  # ID of the external robot this factor connects to\n    external_factorgraph_id: int  # ID of the external factor graph",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "InterRobotFactorInfoDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class InterRobotFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an inter-robot factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    external_robot_id: int  # ID of the external robot this factor connects to\n    external_factorgraph_id: int  # ID of the external factor graph\n    external_variable_index: int  # Index of the variable in the external robot's factor graph\n    safety_distance: float  # Safety distance for collision avoidance\n    distance_between_variables: float  # Current distance between estimated positions\n    active: bool  # Whether the factor is active (called skip in Rust)\nclass TrackingFactorInfoDict(TypedDict, total=False):",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "TrackingFactorInfoDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class TrackingFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a tracking factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    tracking_path: List[List[float]]  # Path that the robot is tracking\n    tracking_index: int  # Current index in the tracking path\n    projected_position: List[float]  # Projected position on the path [x, y]\n    path_deviation: float  # Path deviation measurement (normalized distance)\n    distance_to_path: float  # Distance from robot to projected point on path (in world units)\nclass DynamicFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a dynamic factor in the factor graph.\"\"\"",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "DynamicFactorInfoDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class DynamicFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a dynamic factor in the factor graph.\"\"\"\n    from_variable_index: int  # Index of the source variable\n    to_variable_index: int  # Index of the destination variable\n    delta_t: float  # Time step between the variables\nclass FactorDetailsDict(TypedDict, total=False):\n    \"\"\"Detailed information about factor graph components.\"\"\"\n    variables: List[VariableInfoDict]  # Information about variables in the factor graph\n    obstacle_factors: List[ObstacleFactorInfoDict]  # Information about obstacle factors\n    interrobot_factors: List[InterRobotFactorInfoDict]  # Information about inter-robot factors",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "FactorDetailsDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class FactorDetailsDict(TypedDict, total=False):\n    \"\"\"Detailed information about factor graph components.\"\"\"\n    variables: List[VariableInfoDict]  # Information about variables in the factor graph\n    obstacle_factors: List[ObstacleFactorInfoDict]  # Information about obstacle factors\n    interrobot_factors: List[InterRobotFactorInfoDict]  # Information about inter-robot factors\n    tracking_factors: List[TrackingFactorInfoDict]  # Information about tracking factors\n    dynamic_factors: List[DynamicFactorInfoDict]  # Information about dynamic factors\nclass MessageStatsDict(TypedDict, total=False):\n    \"\"\"Statistics about messages in the factor graph.\"\"\"\n    internal: int  # Number of internal messages",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "MessageStatsDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class MessageStatsDict(TypedDict, total=False):\n    \"\"\"Statistics about messages in the factor graph.\"\"\"\n    internal: int  # Number of internal messages\n    external: int  # Number of external messages\nclass FactorCountsDict(TypedDict, total=False):\n    \"\"\"Counts of different factor types in the factor graph.\"\"\"\n    obstacle: int  # Number of obstacle factors\n    interrobot: int  # Number of interrobot factors\n    dynamic: int  # Number of dynamic factors\n    tracking: int  # Number of tracking factors",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "FactorCountsDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class FactorCountsDict(TypedDict, total=False):\n    \"\"\"Counts of different factor types in the factor graph.\"\"\"\n    obstacle: int  # Number of obstacle factors\n    interrobot: int  # Number of interrobot factors\n    dynamic: int  # Number of dynamic factors\n    tracking: int  # Number of tracking factors\nclass FactorWeightsDict(TypedDict, total=False):\n    \"\"\"Weights for different factor types in the factor graph.\"\"\"\n    dynamic: float  # Weight for dynamic factors\n    obstacle: float  # Weight for obstacle factors",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "FactorWeightsDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class FactorWeightsDict(TypedDict, total=False):\n    \"\"\"Weights for different factor types in the factor graph.\"\"\"\n    dynamic: float  # Weight for dynamic factors\n    obstacle: float  # Weight for obstacle factors\n    interrobot: float  # Weight for interrobot factors\n    tracking: float  # Weight for tracking factors\nclass FactorGraphStateDict(TypedDict, total=False):\n    \"\"\"State of a factor graph.\"\"\"\n    weights: FactorWeightsDict  # Current weights of the factor graph\n    variable_count: int  # Number of variables in the factor graph",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "FactorGraphStateDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class FactorGraphStateDict(TypedDict, total=False):\n    \"\"\"State of a factor graph.\"\"\"\n    weights: FactorWeightsDict  # Current weights of the factor graph\n    variable_count: int  # Number of variables in the factor graph\n    factor_count: int  # Number of factors in the factor graph\n    messages_sent: MessageStatsDict  # Statistics about messages sent\n    messages_received: MessageStatsDict  # Statistics about messages received\n    factor_counts: FactorCountsDict  # Counts of different factor types\n    factor_details: FactorDetailsDict  # All factors and variables in the factor graph\nclass MissionProgressDict(TypedDict, total=False):",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "MissionProgressDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class MissionProgressDict(TypedDict, total=False):\n    \"\"\"Mission progress information.\"\"\"\n    started_at: float  # Time when the mission started\n    finished_at: Optional[float]  # Time when the mission finished, if completed\n    active_route: int  # Index of the active route\n    total_routes: int  # Total number of routes\n    total_waypoints: int  # Total number of waypoints\n    remaining_waypoints: int  # Number of remaining waypoints\nclass MissionStateDict(TypedDict, total=False):\n    \"\"\"Current mission state of an agent.\"\"\"",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "MissionStateDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class MissionStateDict(TypedDict, total=False):\n    \"\"\"Current mission state of an agent.\"\"\"\n    type: MissionState  # The type of mission state (IDLE, ACTIVE, COMPLETED)\n    waiting_for_waypoints: NotRequired[bool]  # Whether the agent is waiting for waypoints (only for IDLE state)\nclass AgentStateDict(TypedDict, total=False):\n    \"\"\"State of an agent in the simulation.\"\"\"\n    agent_id: int  # ID of the agent\n    factorgraph_id: int  # ID of the factor graph\n    position: np.ndarray  # Position of the agent [x, y]\n    velocity: np.ndarray  # Velocity of the agent [vx, vy]",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "AgentStateDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class AgentStateDict(TypedDict, total=False):\n    \"\"\"State of an agent in the simulation.\"\"\"\n    agent_id: int  # ID of the agent\n    factorgraph_id: int  # ID of the factor graph\n    position: np.ndarray  # Position of the agent [x, y]\n    velocity: np.ndarray  # Velocity of the agent [vx, vy]\n    factor_graph_state: FactorGraphStateDict  # Factor graph state of the agent\n    connected_neighbors: List[int]  # IDs of connected neighbors\n    mission_state: MissionStateDict  # Current mission state of the agent\n    planning_strategy: PlanningStrategy  # Planning strategy used by the agent",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "EnvironmentStateDict",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class EnvironmentStateDict(TypedDict, total=False):\n    \"\"\"State of the environment in the simulation.\"\"\"\n    obstacles: np.ndarray  # Positions of obstacles in the environment\n    boundaries: Dict[str, np.ndarray]  # Boundaries of the environment {'min': [x,y], 'max': [x,y]}\n    total_agents: int  # Total number of agents in the environment\n    agent_density_map: Optional[List[float]]  # Optional agent density map\n    sdf_resolution: Optional[Tuple[int, int]]  # Optional SDF resolution (width, height)\n    world_size: Optional[Tuple[float, float]]  # Optional world size (width, height)\nclass MagicsError(Exception):\n    \"\"\"Exception raised for errors from the Magics API.\"\"\"",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "MagicsError",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class MagicsError(Exception):\n    \"\"\"Exception raised for errors from the Magics API.\"\"\"\n    pass\nclass MagicsClient:\n    \"\"\"\n    Client for communicating with the Magics simulation using ZeroMQ.\n    This client uses the ZeroMQ REQ-REP pattern to send commands to the\n    simulation and receive responses.\n    \"\"\"\n    def __init__(self, host: str = \"localhost\", port: int = 5555, timeout: int = 5000):",
-        "detail": "python_api.magics_client",
-        "documentation": {}
-    },
-    {
-        "label": "MagicsClient",
-        "kind": 6,
-        "importPath": "python_api.magics_client",
-        "description": "python_api.magics_client",
-        "peekOfCode": "class MagicsClient:\n    \"\"\"\n    Client for communicating with the Magics simulation using ZeroMQ.\n    This client uses the ZeroMQ REQ-REP pattern to send commands to the\n    simulation and receive responses.\n    \"\"\"\n    def __init__(self, host: str = \"localhost\", port: int = 5555, timeout: int = 5000):\n        \"\"\"\n        Initialize the Magics client.\n        Args:",
-        "detail": "python_api.magics_client",
+        "label": "TEST_SCENARIO",
+        "kind": 5,
+        "importPath": "magics_client.test.start_sim_test",
+        "description": "magics_client.test.start_sim_test",
+        "peekOfCode": "TEST_SCENARIO = \"JunctionTwoway\" \n# --- End Configuration ---\ndef main():\n    print(\"--- Testing MagicsClient.start_sim() ---\")\n    if not Path(MAGICS_ROOT_DIRECTORY).is_dir():\n        print(f\"ERROR: Magics root directory not found or invalid: {MAGICS_ROOT_DIRECTORY}\")\n        print(\"Please update the MAGICS_ROOT_DIRECTORY variable in this script.\")\n        sys.exit(1)\n    client = None\n    try:",
+        "detail": "magics_client.test.start_sim_test",
         "documentation": {}
     },
     {
         "label": "convert_numpy_to_python",
         "kind": 2,
-        "importPath": "python_api.stepping",
-        "description": "python_api.stepping",
+        "importPath": "magics_client.test.stepping",
+        "description": "magics_client.test.stepping",
         "peekOfCode": "def convert_numpy_to_python(obj):\n    \"\"\"Convert numpy objects and custom classes to native Python types for JSON serialization.\"\"\"\n    if isinstance(obj, np.ndarray):\n        return obj.tolist()\n    elif isinstance(obj, np.integer):\n        return int(obj)\n    elif isinstance(obj, np.floating):\n        return float(obj)\n    elif isinstance(obj, dict):\n        return {key: convert_numpy_to_python(value) for key, value in obj.items()}",
-        "detail": "python_api.stepping",
+        "detail": "magics_client.test.stepping",
         "documentation": {}
     },
     {
         "label": "write_json_to_file",
         "kind": 2,
-        "importPath": "python_api.stepping",
-        "description": "python_api.stepping",
+        "importPath": "magics_client.test.stepping",
+        "description": "magics_client.test.stepping",
         "peekOfCode": "def write_json_to_file(data, filename):\n    \"\"\"Write JSON data to a file.\"\"\"\n    # Create output directory if it doesn't exist\n    os.makedirs(\"output\", exist_ok=True)\n    filepath = os.path.join(\"output\", filename)\n    with open(filepath, \"w\") as f:\n        json.dump(convert_numpy_to_python(data), f, sort_keys=True, indent=4)\n    print(f\"Wrote data to {filepath}\")\nclient = MagicsClient(timeout=10_000)  # 10 second timeout\nif not client.is_api_active():",
-        "detail": "python_api.stepping",
+        "detail": "magics_client.test.stepping",
         "documentation": {}
     },
     {
         "label": "client",
         "kind": 5,
-        "importPath": "python_api.stepping",
-        "description": "python_api.stepping",
+        "importPath": "magics_client.test.stepping",
+        "description": "magics_client.test.stepping",
         "peekOfCode": "client = MagicsClient(timeout=10_000)  # 10 second timeout\nif not client.is_api_active():\n    client.set_api_active(True)\nclient.set_iterations_per_step(iterations=10)  # 5 iterations per step\nprint(\"Press Enter to step the simulation (Ctrl+C to exit)...\")\ntry:\n    while True:\n        # Wait for Enter key press\n        input()\n        print(\"Stepping simulation...\")",
-        "detail": "python_api.stepping",
+        "detail": "magics_client.test.stepping",
+        "documentation": {}
+    },
+    {
+        "label": "convert_numpy_to_python",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def convert_numpy_to_python(obj):\n    \"\"\"Convert numpy objects and custom classes to native Python types for JSON serialization.\"\"\"\n    if isinstance(obj, np.ndarray):\n        return obj.tolist()\n    elif isinstance(obj, np.integer):\n        return int(obj)\n    elif isinstance(obj, np.floating):\n        return float(obj)\n    elif isinstance(obj, dict):\n        return {key: convert_numpy_to_python(value) for key, value in obj.items()}",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "write_json_to_file",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def write_json_to_file(data, filename):\n    \"\"\"Write JSON data to a file.\"\"\"\n    # Create output directory if it doesn't exist\n    output_dir = \"output\"\n    os.makedirs(output_dir, exist_ok=True)\n    filepath = os.path.join(output_dir, filename)\n    try:\n        with open(filepath, \"w\") as f:\n            json.dump(convert_numpy_to_python(data), f, sort_keys=True, indent=4)\n        print(f\"Wrote data to {filepath}\")",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_step",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_step(client: MagicsClient, args: list):\n    \"\"\"Steps the simulation forward N times (default 1).\"\"\"\n    num_steps = 1\n    if args:\n        try:\n            num_steps = int(args[0])\n            if num_steps <= 0:\n                print(\"Error: Number of steps must be positive.\")\n                return\n        except ValueError:",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_reset",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_reset(client: MagicsClient, args: list):\n    \"\"\"Resets the simulation, optionally with a seed.\"\"\"\n    seed = None\n    if args:\n        try:\n            seed = int(args[0])\n            # Optional: Add validation for u64 range if desired, though client does it too\n            # if not (0 <= seed <= 18446744073709551615):\n            #     print(\"Error: Seed must be a valid unsigned 64-bit integer.\")\n            #     return",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_iterations",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_iterations(client: MagicsClient, args: list):\n    \"\"\"Sets the number of iterations per step.\"\"\"\n    if not args:\n        print(\"Usage: iterations <number>\")\n        return\n    try:\n        iterations = int(args[0])\n        if iterations <= 0:\n            print(\"Error: Number of iterations must be positive.\")\n            return",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_get_agent_state",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_get_agent_state(client: MagicsClient, args: list):\n    \"\"\"Gets the current agent states and prints them.\"\"\"\n    start = time.perf_counter()\n    agent_states = client.get_agent_state()\n    end = time.perf_counter()\n    print(f\"Agent states ({((end - start) * 1000):.2f} ms):\")\n    print(json.dumps(convert_numpy_to_python(agent_states), sort_keys=True, indent=4))\ndef handle_save_agent_state(client: MagicsClient, args: list):\n    \"\"\"Gets the current agent states and saves them to output/agent_states.json.\"\"\"\n    start = time.perf_counter()",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_save_agent_state",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_save_agent_state(client: MagicsClient, args: list):\n    \"\"\"Gets the current agent states and saves them to output/agent_states.json.\"\"\"\n    start = time.perf_counter()\n    agent_states = client.get_agent_state()\n    end = time.perf_counter()\n    print(f\"Fetched agent states ({((end - start) * 1000):.2f} ms). Saving...\")\n    write_json_to_file(agent_states, \"agent_states.json\")\ndef handle_get_env_state(client: MagicsClient, args: list):\n    \"\"\"Gets the current environment state and prints it.\"\"\"\n    start = time.perf_counter()",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_get_env_state",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_get_env_state(client: MagicsClient, args: list):\n    \"\"\"Gets the current environment state and prints it.\"\"\"\n    start = time.perf_counter()\n    env_state = client.get_environment_state()\n    end = time.perf_counter()\n    print(f\"Environment state ({((end - start) * 1000):.2f} ms):\")\n    print(json.dumps(convert_numpy_to_python(env_state), sort_keys=True, indent=4))\ndef handle_save_env_state(client: MagicsClient, args: list):\n    \"\"\"Gets the current environment state and saves it to output/environment_state.json.\"\"\"\n    start = time.perf_counter()",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_save_env_state",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_save_env_state(client: MagicsClient, args: list):\n    \"\"\"Gets the current environment state and saves it to output/environment_state.json.\"\"\"\n    start = time.perf_counter()\n    env_state = client.get_environment_state()\n    end = time.perf_counter()\n    print(f\"Fetched environment state ({((end - start) * 1000):.2f} ms). Saving...\")\n    write_json_to_file(env_state, \"environment_state.json\")\ndef handle_get_scenario(client: MagicsClient, args: list):\n    \"\"\"Gets the name of the currently loaded scenario.\"\"\"\n    start = time.perf_counter()",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_get_scenario",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_get_scenario(client: MagicsClient, args: list):\n    \"\"\"Gets the name of the currently loaded scenario.\"\"\"\n    start = time.perf_counter()\n    scenario_name = client.get_current_scenario()\n    end = time.perf_counter()\n    if scenario_name:\n        print(f\"Current scenario ({((end - start) * 1000):.2f} ms): {scenario_name}\")\n    else:\n        print(f\"No scenario currently loaded ({((end - start) * 1000):.2f} ms).\")\ndef handle_squares(client: MagicsClient, args: list):",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_squares",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_squares(client: MagicsClient, args: list):\n    \"\"\"Gets the available formation squares and prints them.\"\"\"\n    start = time.perf_counter()\n    try:\n        squares = client.get_available_squares()\n        end = time.perf_counter()\n        print(f\"Available Squares ({((end - start) * 1000):.2f} ms):\")\n        if squares:\n            for sq in squares:\n                min_dist = (",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_replan",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_replan(client: MagicsClient, args: list):\n    \"\"\"Replans completed agents. Usage: replan [strategy=CompleteRandom|RandomSquares] [square_id=ID] [avoid_current=true|false]\"\"\"\n    replan_args = {\n        \"strategy\": \"RandomSquares\",  # Default strategy\n        \"square_id\": None,\n        \"avoid_current_square\": True,  # Default avoid\n    }\n    try:\n        for part in args:\n            if \"=\" in part:",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_help",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_help(client: MagicsClient, args: list):\n    \"\"\"Prints this help message.\"\"\"\n    print(\"Available commands:\")\n    print(\"  step (s) [N]     : Step the simulation forward N times (default: 1).\")\n    print(\"  reset (r) [SEED] : Reset the simulation, optionally with an integer seed.\")\n    print(\"  iterations (i) N : Set the number of GBP iterations per step to N.\")\n    print(\"  get_agent_state (gas) : Get and print current agent states.\")\n    print(\n        \"  save_agent_state (sas): Get and save current agent states to output/agent_states.json.\"\n    )",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_quit",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_quit(client: MagicsClient, args: list):\n    \"\"\"Exits the controller.\"\"\"\n    print(\"Exiting...\")\n    return False  # Signal to exit the main loop\n# --- Command Mapping ---\ncommands = {\n    \"step\": handle_step,\n    \"s\": handle_step,\n    \"reset\": handle_reset,\n    \"r\": handle_reset,",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "setup_readline_history",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def setup_readline_history():\n    \"\"\"Loads history from HISTFILE and sets up saving on exit.\"\"\"\n    if hasattr(readline, \"read_history_file\"):\n        try:\n            readline.read_history_file(HISTFILE)\n            # Default history length is -1 (infinite), which is fine\n            # readline.set_history_length(1000) # Optionally limit history size\n        except FileNotFoundError:\n            pass  # No history file yet\n        except Exception as e:",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def main():\n    client = None\n    setup_readline_history()  # Setup history loading/saving\n    try:\n        print(\"Connecting to Magics server...\")\n        # Increased timeout for potentially long operations\n        client = MagicsClient(timeout=10_000)\n        client.set_iterations_per_step(iterations=1)\n        print(\"Connected.\")\n        if not client.is_api_active():",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "commands",
+        "kind": 5,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "commands = {\n    \"step\": handle_step,\n    \"s\": handle_step,\n    \"reset\": handle_reset,\n    \"r\": handle_reset,\n    \"iterations\": handle_iterations,\n    \"i\": handle_iterations,\n    \"get_agent_state\": handle_get_agent_state,\n    \"gas\": handle_get_agent_state,\n    \"save_agent_state\": handle_save_agent_state,",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "HISTFILE",
+        "kind": 5,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "HISTFILE = os.path.expanduser(\"~/.magics_terminal_history\")\ndef setup_readline_history():\n    \"\"\"Loads history from HISTFILE and sets up saving on exit.\"\"\"\n    if hasattr(readline, \"read_history_file\"):\n        try:\n            readline.read_history_file(HISTFILE)\n            # Default history length is -1 (infinite), which is fine\n            # readline.set_history_length(1000) # Optionally limit history size\n        except FileNotFoundError:\n            pass  # No history file yet",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "magics_client.test.test_reset",
+        "description": "magics_client.test.test_reset",
+        "peekOfCode": "def main():\n    # Connect to the Magics API\n    client = MagicsClient()\n    print(\"Connected to Magics API\")\n    # Test reset functionality\n    print(\"\\n=== Testing Reset ===\")\n    print(\"Resetting simulation...\")\n    start_time = time.time()\n    client.reset()\n    end_time = time.time()",
+        "detail": "magics_client.test.test_reset",
+        "documentation": {}
+    },
+    {
+        "label": "print_agent_summary",
+        "kind": 2,
+        "importPath": "magics_client.test.test_spawn_and_remove",
+        "description": "magics_client.test.test_spawn_and_remove",
+        "peekOfCode": "def print_agent_summary(agent_states):\n    \"\"\"Prints a summary of current agents.\"\"\"\n    if not agent_states:\n        print(\"  No agents found.\")\n        return\n    print(f\"  Found {len(agent_states)} agents:\")\n    for agent_id, state in agent_states.items():\n        pos = state.get(\"position\", \"[N/A]\")\n        vel = state.get(\"velocity\", \"[N/A]\")\n        print(f\"    - Agent {agent_id}: Pos={pos}, Vel={vel}\")",
+        "detail": "magics_client.test.test_spawn_and_remove",
+        "documentation": {}
+    },
+    {
+        "label": "HOST",
+        "kind": 5,
+        "importPath": "magics_client.test.test_spawn_and_remove",
+        "description": "magics_client.test.test_spawn_and_remove",
+        "peekOfCode": "HOST = \"localhost\"\nPORT = 5555\nTIMEOUT = 10000  # Increased timeout for potentially longer operations like spawn\n# --- Helper Function ---\ndef print_agent_summary(agent_states):\n    \"\"\"Prints a summary of current agents.\"\"\"\n    if not agent_states:\n        print(\"  No agents found.\")\n        return\n    print(f\"  Found {len(agent_states)} agents:\")",
+        "detail": "magics_client.test.test_spawn_and_remove",
+        "documentation": {}
+    },
+    {
+        "label": "PORT",
+        "kind": 5,
+        "importPath": "magics_client.test.test_spawn_and_remove",
+        "description": "magics_client.test.test_spawn_and_remove",
+        "peekOfCode": "PORT = 5555\nTIMEOUT = 10000  # Increased timeout for potentially longer operations like spawn\n# --- Helper Function ---\ndef print_agent_summary(agent_states):\n    \"\"\"Prints a summary of current agents.\"\"\"\n    if not agent_states:\n        print(\"  No agents found.\")\n        return\n    print(f\"  Found {len(agent_states)} agents:\")\n    for agent_id, state in agent_states.items():",
+        "detail": "magics_client.test.test_spawn_and_remove",
+        "documentation": {}
+    },
+    {
+        "label": "TIMEOUT",
+        "kind": 5,
+        "importPath": "magics_client.test.test_spawn_and_remove",
+        "description": "magics_client.test.test_spawn_and_remove",
+        "peekOfCode": "TIMEOUT = 10000  # Increased timeout for potentially longer operations like spawn\n# --- Helper Function ---\ndef print_agent_summary(agent_states):\n    \"\"\"Prints a summary of current agents.\"\"\"\n    if not agent_states:\n        print(\"  No agents found.\")\n        return\n    print(f\"  Found {len(agent_states)} agents:\")\n    for agent_id, state in agent_states.items():\n        pos = state.get(\"position\", \"[N/A]\")",
+        "detail": "magics_client.test.test_spawn_and_remove",
+        "documentation": {}
+    },
+    {
+        "label": "send_request",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def send_request(socket, command, parameters=None, request_id=None):\n    \"\"\"Send a request to the server and return the response.\"\"\"\n    if request_id is None:\n        request_id = str(uuid.uuid4())\n    # Create request with nested command structure\n    request = {\n        \"command\": {\n            \"command\": command\n        },\n        \"request_id\": request_id",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_is_api_active",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_is_api_active(socket):\n    \"\"\"Test the IsApiActive command.\"\"\"\n    print(\"\\n=== Testing IsApiActive ===\")\n    response = send_request(socket, \"IsApiActive\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data:\n                if isinstance(data, dict) and data.get(\"type\") == \"Boolean\":",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_set_api_active",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_set_api_active(socket, active=True):\n    \"\"\"Test the SetApiActive command.\"\"\"\n    print(f\"\\n=== Testing SetApiActive({active}) ===\")\n    response = send_request(socket, \"SetApiActive\", {\"active\": active})\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(f\"✅ Successfully set API active to {active}\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_get_agent_state",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_get_agent_state(socket):\n    \"\"\"Test the GetAgentState command.\"\"\"\n    print(\"\\n=== Testing GetAgentState ===\")\n    response = send_request(socket, \"GetAgentState\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data and data.get(\"type\") == \"AgentStates\":\n                agents = data.get(\"content\", {})",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_get_environment_state",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_get_environment_state(socket):\n    \"\"\"Test the GetEnvironmentState command.\"\"\"\n    print(\"\\n=== Testing GetEnvironmentState ===\")\n    response = send_request(socket, \"GetEnvironmentState\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data and data.get(\"type\") == \"EnvironmentState\":\n                env_state = data.get(\"content\", {})",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_set_factor_weights",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_set_factor_weights(socket):\n    \"\"\"Test the SetFactorWeights command.\"\"\"\n    print(\"\\n=== Testing SetFactorWeights ===\")\n    # Define some test weights\n    weights = {\n        \"dynamic\": 1.0,\n        \"obstacle\": 2.0,\n        \"interrobot\": 1.5,\n        \"tracking\": 1.0\n    }",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_step",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_step(socket):\n    \"\"\"Test the Step command.\"\"\"\n    print(\"\\n=== Testing Step ===\")\n    response = send_request(socket, \"Step\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Successfully stepped simulation\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_reset",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_reset(socket):\n    \"\"\"Test the Reset command.\"\"\"\n    print(\"\\n=== Testing Reset ===\")\n    response = send_request(socket, \"Reset\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Successfully reset simulation\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_get_simulation_hz",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_get_simulation_hz(socket):\n    \"\"\"Test the GetSimulationHz command.\"\"\"\n    print(\"\\n=== Testing GetSimulationHz ===\")\n    response = send_request(socket, \"GetSimulationHz\")\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(\"✅ Command succeeded\")\n            data = response.get(\"data\")\n            if data and data.get(\"type\") == \"Number\":\n                hz = data.get(\"content\")",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_set_simulation_hz",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_set_simulation_hz(socket, hz):\n    \"\"\"Test the SetSimulationHz command.\"\"\"\n    print(f\"\\n=== Testing SetSimulationHz({hz}) ===\")\n    response = send_request(socket, \"SetSimulationHz\", {\"hz\": hz})\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(f\"✅ Successfully set simulation Hz to {hz}\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_set_iterations_per_step",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_set_iterations_per_step(socket, iterations):\n    \"\"\"Test the SetIterationsPerStep command.\"\"\"\n    print(f\"\\n=== Testing SetIterationsPerStep({iterations}) ===\")\n    response = send_request(socket, \"SetIterationsPerStep\", {\"iterations\": iterations})\n    if response:\n        if response.get(\"status\") == \"Success\":\n            print(f\"✅ Successfully set iterations per step to {iterations}\")\n            return True\n        else:\n            print(f\"❌ Command failed: {response.get('error', 'Unknown error')}\")",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "test_hz_functionality",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def test_hz_functionality(socket):\n    \"\"\"Test the Hz functionality with multiple steps.\"\"\"\n    print(\"\\n=== Testing Hz Functionality ===\")\n    # Get current Hz\n    current_hz = test_get_simulation_hz(socket)\n    if current_hz is None:\n        print(\"❌ Failed to get current Hz\")\n        return False\n    # Set a new Hz value\n    new_hz = 30.0  # Change to 30 Hz",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "magics_client.test.test_zmq_requests",
+        "description": "magics_client.test.test_zmq_requests",
+        "peekOfCode": "def main():\n    print(\"ZeroMQ Debug Client\")\n    print(\"===================\")\n    # Create ZMQ context and socket\n    context = zmq.Context()\n    socket = context.socket(zmq.REQ)\n    socket.setsockopt(zmq.RCVTIMEO, 5000)  # 5 second timeout\n    # Connect to server\n    server_address = \"tcp://localhost:5555\"\n    print(f\"Connecting to server at {server_address}...\")",
+        "detail": "magics_client.test.test_zmq_requests",
+        "documentation": {}
+    },
+    {
+        "label": "PlanningStrategy",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class PlanningStrategy(enum.Enum):\n    \"\"\"Planning strategy used by an agent.\"\"\"\n    ONLY_LOCAL = \"OnlyLocal\"\n    RRT_STAR = \"RrtStar\"\nclass MissionState(enum.Enum):\n    \"\"\"Mission state for an agent.\"\"\"\n    IDLE = \"Idle\"\n    ACTIVE = \"Active\"\n    COMPLETED = \"Completed\"\n# TypedDict definitions to document the structure of returned data",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MissionState",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class MissionState(enum.Enum):\n    \"\"\"Mission state for an agent.\"\"\"\n    IDLE = \"Idle\"\n    ACTIVE = \"Active\"\n    COMPLETED = \"Completed\"\n# TypedDict definitions to document the structure of returned data\nclass CollisionInfoDict(TypedDict, total=False):\n    \"\"\"Information about collisions for an agent.\"\"\"\n    robot_collisions_total: int  # Total number of collisions with other robots\n    robot_collisions_delta: (",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "CollisionInfoDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class CollisionInfoDict(TypedDict, total=False):\n    \"\"\"Information about collisions for an agent.\"\"\"\n    robot_collisions_total: int  # Total number of collisions with other robots\n    robot_collisions_delta: (\n        int  # Change in robot collisions since last state extraction\n    )\n    environment_collisions_total: int  # Total number of collisions with the environment\n    environment_collisions_delta: (\n        int  # Change in environment collisions since last state extraction\n    )",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "StateVectorInfoDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class StateVectorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a state vector (position and velocity).\"\"\"\n    position: np.ndarray  # Position component of the state vector [x, y]\n    velocity: np.ndarray  # Velocity component of the state vector [vx, vy]\nclass VariableInfoDict(TypedDict, total=False):\n    \"\"\"Information about a variable in the factor graph.\"\"\"\n    index: int  # Index of the variable\n    factorgraph_id: int  # ID of the factor graph this variable belongs to\n    mean: List[float]  # Mean vector of the variable [x, y, vx, vy]\n    covariance: List[float]  # Covariance matrix of the variable (4x4, flattened)",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "VariableInfoDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class VariableInfoDict(TypedDict, total=False):\n    \"\"\"Information about a variable in the factor graph.\"\"\"\n    index: int  # Index of the variable\n    factorgraph_id: int  # ID of the factor graph this variable belongs to\n    mean: List[float]  # Mean vector of the variable [x, y, vx, vy]\n    covariance: List[float]  # Covariance matrix of the variable (4x4, flattened)\n    estimated_position: List[float]  # Estimated position from the variable [x, y]\n    estimated_velocity: List[float]  # Estimated velocity from the variable [vx, vy]\nclass ObstacleFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an obstacle factor in the factor graph.\"\"\"",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "ObstacleFactorInfoDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class ObstacleFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an obstacle factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    sdf_value: float  # SDF value at the position, ranges from 0.0 (free space) to 1.0 (obstacle)\n    position: List[float]  # Position where the SDF value was measured [x, y]\nclass InterRobotFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an inter-robot factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    external_robot_id: int  # ID of the external robot this factor connects to\n    external_factorgraph_id: int  # ID of the external factor graph",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "InterRobotFactorInfoDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class InterRobotFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about an inter-robot factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    external_robot_id: int  # ID of the external robot this factor connects to\n    external_factorgraph_id: int  # ID of the external factor graph\n    external_variable_index: (\n        int  # Index of the variable in the external robot's factor graph\n    )\n    safety_distance: float  # Safety distance for collision avoidance\n    distance_between_variables: float  # Current distance between estimated positions",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "TrackingFactorInfoDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class TrackingFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a tracking factor in the factor graph.\"\"\"\n    variable_index: int  # Index of the variable this factor is connected to\n    tracking_path: List[List[float]]  # Path that the robot is tracking\n    tracking_index: int  # Current index in the tracking path\n    projected_position: List[float]  # Projected position on the path [x, y]\n    path_deviation: float  # Path deviation measurement (normalized distance)\n    distance_to_path: (\n        float  # Distance from robot to projected point on path (in world units)\n    )",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "DynamicFactorInfoDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class DynamicFactorInfoDict(TypedDict, total=False):\n    \"\"\"Information about a dynamic factor in the factor graph.\"\"\"\n    from_variable_index: int  # Index of the source variable\n    to_variable_index: int  # Index of the destination variable\n    delta_t: float  # Time step between the variables\nclass FactorDetailsDict(TypedDict, total=False):\n    \"\"\"Detailed information about factor graph components.\"\"\"\n    variables: List[VariableInfoDict]  # Information about variables in the factor graph\n    obstacle_factors: List[ObstacleFactorInfoDict]  # Information about obstacle factors\n    interrobot_factors: List[",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "FactorDetailsDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class FactorDetailsDict(TypedDict, total=False):\n    \"\"\"Detailed information about factor graph components.\"\"\"\n    variables: List[VariableInfoDict]  # Information about variables in the factor graph\n    obstacle_factors: List[ObstacleFactorInfoDict]  # Information about obstacle factors\n    interrobot_factors: List[\n        InterRobotFactorInfoDict\n    ]  # Information about inter-robot factors\n    tracking_factors: List[TrackingFactorInfoDict]  # Information about tracking factors\n    dynamic_factors: List[DynamicFactorInfoDict]  # Information about dynamic factors\nclass MessageStatsDict(TypedDict, total=False):",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MessageStatsDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class MessageStatsDict(TypedDict, total=False):\n    \"\"\"Statistics about messages in the factor graph.\"\"\"\n    internal: int  # Number of internal messages\n    external: int  # Number of external messages\nclass FactorCountsDict(TypedDict, total=False):\n    \"\"\"Counts of different factor types in the factor graph.\"\"\"\n    obstacle: int  # Number of obstacle factors\n    interrobot: int  # Number of interrobot factors\n    dynamic: int  # Number of dynamic factors\n    tracking: int  # Number of tracking factors",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "FactorCountsDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class FactorCountsDict(TypedDict, total=False):\n    \"\"\"Counts of different factor types in the factor graph.\"\"\"\n    obstacle: int  # Number of obstacle factors\n    interrobot: int  # Number of interrobot factors\n    dynamic: int  # Number of dynamic factors\n    tracking: int  # Number of tracking factors\nclass FactorWeightsDict(TypedDict, total=False):\n    \"\"\"Weights for different factor types in the factor graph.\"\"\"\n    dynamic: float  # Weight for dynamic factors (lower values, means more important)\n    obstacle: float  # Weight for obstacle factors (lower values, means more important)",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "FactorWeightsDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class FactorWeightsDict(TypedDict, total=False):\n    \"\"\"Weights for different factor types in the factor graph.\"\"\"\n    dynamic: float  # Weight for dynamic factors (lower values, means more important)\n    obstacle: float  # Weight for obstacle factors (lower values, means more important)\n    interrobot: (\n        float  # Weight for interrobot factors (lower values, means more important)\n    )\n    tracking: float  # Weight for tracking factors (lower values, means more important)\nclass FactorGraphStateDict(TypedDict, total=False):\n    \"\"\"State of a factor graph.\"\"\"",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "FactorGraphStateDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class FactorGraphStateDict(TypedDict, total=False):\n    \"\"\"State of a factor graph.\"\"\"\n    weights: FactorWeightsDict  # Current weights of the factor graph\n    variable_count: int  # Number of variables in the factor graph\n    factor_count: int  # Number of factors in the factor graph\n    messages_sent: MessageStatsDict  # Statistics about messages sent\n    messages_received: MessageStatsDict  # Statistics about messages received\n    factor_counts: FactorCountsDict  # Counts of different factor types\n    factor_details: FactorDetailsDict  # All factors and variables in the factor graph\nclass MissionProgressDict(TypedDict, total=False):",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MissionProgressDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class MissionProgressDict(TypedDict, total=False):\n    \"\"\"Mission progress information.\"\"\"\n    started_at: float  # Time when the mission started\n    finished_at: Optional[float]  # Time when the mission finished, if completed\n    active_route: int  # Index of the active route\n    total_routes: int  # Total number of routes\n    total_waypoints: int  # Total number of waypoints\n    remaining_waypoints: int  # Number of remaining waypoints\nclass MissionStateDict(TypedDict, total=False):\n    \"\"\"Current mission state of an agent.\"\"\"",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MissionStateDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class MissionStateDict(TypedDict, total=False):\n    \"\"\"Current mission state of an agent.\"\"\"\n    type: MissionState  # The type of mission state (IDLE, ACTIVE, COMPLETED)\n    waiting_for_waypoints: NotRequired[\n        bool\n    ]  # Whether the agent is waiting for waypoints (only for IDLE state)\nclass AgentStateDict(TypedDict, total=False):\n    \"\"\"State of an agent in the simulation.\"\"\"\n    agent_id: int  # ID of the agent\n    factorgraph_id: int  # ID of the factor graph",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "AgentStateDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class AgentStateDict(TypedDict, total=False):\n    \"\"\"State of an agent in the simulation.\"\"\"\n    agent_id: int  # ID of the agent\n    factorgraph_id: int  # ID of the factor graph\n    position: np.ndarray  # Position of the agent [x, y]\n    velocity: np.ndarray  # Velocity of the agent [vx, vy]\n    factor_graph_state: FactorGraphStateDict  # Factor graph state of the agent\n    connected_neighbors: List[int]  # IDs of connected neighbors\n    mission_state: MissionStateDict  # Current mission state of the agent\n    planning_strategy: PlanningStrategy  # Planning strategy used by the agent",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "EnvironmentStateDict",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class EnvironmentStateDict(TypedDict, total=False):\n    \"\"\"State of the environment in the simulation.\"\"\"\n    obstacles: np.ndarray  # Positions of obstacles in the environment\n    boundaries: Dict[\n        str, np.ndarray\n    ]  # Boundaries of the environment {'min': [x,y], 'max': [x,y]}\n    total_agents: int  # Total number of agents in the environment\n    agent_density_map: Optional[List[float]]  # Optional agent density map\n    sdf_resolution: Optional[Tuple[int, int]]  # Optional SDF resolution (width, height)\n    world_size: Optional[Tuple[float, float]]  # Optional world size (width, height)",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsError",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class MagicsError(Exception):\n    \"\"\"Exception raised for errors from the Magics API.\"\"\"\n    pass\nclass MagicsClient:\n    \"\"\"\n    Client for communicating with the Magics simulation using ZeroMQ.\n    This client uses the ZeroMQ REQ-REP pattern to send commands to the\n    simulation and receive responses.\n    \"\"\"\n    def __init__(",
+        "detail": "magics_client.magics_client",
+        "documentation": {}
+    },
+    {
+        "label": "MagicsClient",
+        "kind": 6,
+        "importPath": "magics_client.magics_client",
+        "description": "magics_client.magics_client",
+        "peekOfCode": "class MagicsClient:\n    \"\"\"\n    Client for communicating with the Magics simulation using ZeroMQ.\n    This client uses the ZeroMQ REQ-REP pattern to send commands to the\n    simulation and receive responses.\n    \"\"\"\n    def __init__(\n        self,\n        host: str = \"localhost\",\n        port: int = 5555,",
+        "detail": "magics_client.magics_client",
         "documentation": {}
     },
     {

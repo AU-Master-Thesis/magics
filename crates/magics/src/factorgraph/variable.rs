@@ -353,10 +353,10 @@ impl VariableNode {
         self.inbox.values_mut().for_each(|message| {
             *message = Message::empty();
         });
-        info!(
-            "resetting variable to have mean: {:?}, sigma: {}",
-            mean, sigma
-        );
+        // info!(
+        //     "resetting variable to have mean: {:?}, sigma: {}",
+        //     mean, sigma
+        // );
     }
 }
 

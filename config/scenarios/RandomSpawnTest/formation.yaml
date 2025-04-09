@@ -21,13 +21,26 @@ formations:
       p2: { x: 0.8, y: 0.8 }
       min_distance: 1.5 # Minimum distance between target points
     projection-strategy: identity # Required by parser, but value ignored for !random-square waypoints
-  # waypoint-reached-when-intersects: horizon
-  # waypoint-reached-when-intersects: current
-  # finished-when-intersects: current
+  - shape: !random-square # Add a second waypoint square
+      p1: { x: 0.2, y: 0.6 } # Top-left area
+      p2: { x: 0.4, y: 0.8 }
+      min_distance: 1.5
+    projection-strategy: identity
+  # New goal-position field for replanning
+  goal-position:
+  - shape: !random-square
+      p1: { x: 0.6, y: 0.6 } # Top-right area for goals
+      p2: { x: 0.8, y: 0.8 }
+      min_distance: 1.5
+    projection-strategy: identity
+  - shape: !random-square
+      p1: { x: 0.2, y: 0.6 } # Top-left area for goals
+      p2: { x: 0.4, y: 0.8 }
+      min_distance: 1.5
+    projection-strategy: identity
   waypoint-reached-when-intersects:
     distance: robot-radius
     intersects-with: horizon
   finished-when-intersects:
     distance: robot-radius
     intersects-with: current
-  # waypoint-reached-when-intersects: !variable 5

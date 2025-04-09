@@ -202,6 +202,7 @@ pub fn create_agent_state(
         mission_progress,
         factor_details,
         collision_info,
+        target_square_id: mission_opt.and_then(|m| m.target_square_id.clone()), // Added this line
     }
 }
 

@@ -163,6 +163,7 @@ pub enum DrawSetting {
     // InfiniteGrid,
     SpawnAreas,
     WaypointAreas,
+    GoalPositionAreas,
 }
 
 // TODO: store in a bitset
@@ -193,6 +194,8 @@ pub struct DrawSection {
     pub spawn_areas: bool,
     #[serde(default)]
     pub waypoint_areas: bool,
+    #[serde(default)]
+    pub goal_position_areas: bool,
 }
 
 impl Default for DrawSection {
@@ -219,6 +222,7 @@ impl Default for DrawSection {
             // infinite_grid: true,
             spawn_areas: true,    // Default to true
             waypoint_areas: true, // Default to true
+            goal_position_areas: true, // Default to true
         }
     }
 }
@@ -247,6 +251,7 @@ impl DrawSection {
             // "infinite_grid" => "Infinite Grid",
             "spawn_areas" => "Spawn Areas",
             "waypoint_areas" => "Waypoint Areas",
+            "goal_position_areas" => "Goal Position Areas",
             _ => "Unknown",
         }
     }

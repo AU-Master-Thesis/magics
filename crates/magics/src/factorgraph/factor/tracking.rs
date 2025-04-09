@@ -163,6 +163,11 @@ impl TrackingFactor {
     pub fn set_timeout(&mut self, iterations: usize) {
         self.timeout.lock().unwrap().set(Some(iterations));
     }
+
+    /// Resets the internal tracking record to 0.
+    pub fn reset_tracking_record(&mut self) {
+        self.tracking.record.lock().unwrap().set(0);
+    }
 }
 
 impl Factor for TrackingFactor {

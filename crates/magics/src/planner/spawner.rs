@@ -27,7 +27,7 @@ use crate::{
         self, EndSimulation, LoadSimulation, ReloadSimulation, Sdf, SimulationManager,
     },
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour}, // Restore theme imports
-    planner::visualiser::{InitialSpawnAreaViz, WaypointAreaViz}, // Import new components
+    planner::visualiser::{InitialSpawnAreaViz, WaypointAreaViz, GoalPositionAreaViz}, // Import new components
     utils::get_variable_timesteps,
     bevy_utils::run_conditions::event_exists, // Import event_exists
 };
@@ -73,6 +73,7 @@ impl Plugin for RobotSpawnerPlugin {
                     // Add systems to toggle visibility
                     show_or_hide_spawn_areas.run_if(event_exists::<crate::input::DrawSettingsEvent>),
                     show_or_hide_waypoint_areas.run_if(event_exists::<crate::input::DrawSettingsEvent>),
+                    show_or_hide_goal_position_areas.run_if(event_exists::<crate::input::DrawSettingsEvent>),
                 ),
             );
     }
@@ -503,6 +504,41 @@ fn show_or_hide_waypoint_areas(
     }
 }
 
+/// **Bevy** [`Update`] system
+/// Reads [`DrawSettingsEvent`], where if `DrawSettingEvent.setting ==
+/// DrawSetting::GoalPositionAreas` the boolean `DrawSettingEvent.value` will be used to
+/// set the visibility of the [`GoalPositionAreaViz`] entities
+fn show_or_hide_goal_position_areas(
+    mut visualizers: Query<&mut Visibility, With<GoalPositionAreaViz>>,
+    mut evr_draw_settings: EventReader<crate::input::DrawSettingsEvent>,
+    config: Res<Config>, // Need config to check the specific setting name potentially
+) {
+     // Similar logic as show_or_hide_spawn_areas
+    let setting_name = "goal_position_areas";
+
+    for event in evr_draw_settings.read() {
+        // Simplified approach: React to *any* DrawSettingsEvent by checking the current config value.
+        let draw = config.visualisation.draw.goal_position_areas;
+         for mut visibility in &mut visualizers {
+             if draw {
+                *visibility = Visibility::Visible;
+            } else {
+                *visibility = Visibility::Hidden;
+            }
+        }
+        // Ideal approach (requires changes to DrawSetting/DrawSettingsEvent):
+        // if matches!(event.setting, crate::input::DrawSetting::GoalPositionAreas) { // Assuming GoalPositionAreas variant exists
+        //     for mut visibility in &mut visualizers {
+        //         if event.draw {
+        //             *visibility = Visibility::Visible;
+        //         } else {
+        //             *visibility = Visibility::Hidden;
+        //         }
+        //     }
+        // }
+    }
+}
+
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn spawn_formation(
     mut commands: Commands,
@@ -619,8 +655,8 @@ fn spawn_formation(
                 let size_vec = (world_p1 - world_p2).abs(); // Keep the actual size vector
 
                 let mut material = StandardMaterial::from(Color::from_catppuccin_colour_with_alpha(
-                    theme.green(),
-                    0.3, // Semi-transparent green
+                    theme.blue(),
+                    0.3, // Semi-transparent light blue
                 ));
                 material.unlit = true;
                 material.cull_mode = None;
@@ -647,6 +683,46 @@ fn spawn_formation(
             }
         }
         // --- End Spawn Waypoint Area Visualizations ---
+
+        // --- Spawn Goal Position Area Visualizations ---
+        if let Some(goal_positions) = &formation.goal_position {
+            for goal in goal_positions.iter() {
+                if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = goal.shape {
+                    let world_p1 = world_dims.point_to_world_position(p1);
+                    let world_p2 = world_dims.point_to_world_position(p2);
+                    let center = (world_p1 + world_p2) / 2.0;
+                    let size_vec = (world_p1 - world_p2).abs(); // Keep the actual size vector
+
+                    let mut material = StandardMaterial::from(Color::from_catppuccin_colour_with_alpha(
+                        theme.green(),
+                        0.3, // Semi-transparent green
+                    ));
+                    material.unlit = true;
+                    material.cull_mode = None;
+
+                    commands.spawn((
+                        simulation_loader::Reloadable,
+                        GoalPositionAreaViz, // Use the correct marker component
+                        PbrBundle {
+                            // Create a mesh with the exact dimensions needed
+                            mesh: mesh_assets.add(Mesh::from(Rectangle::new(size_vec.x, size_vec.y))),
+                            material: materials.add(material),
+                            // No scaling needed now, just position and rotation
+                            transform: Transform::from_xyz(center.x, -config.visualisation.height.objects + 0.01, center.y)
+                                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+                            visibility: if config.visualisation.draw.goal_position_areas { // Use the correct draw setting
+                                Visibility::Visible
+                            } else {
+                                Visibility::Hidden
+                            },
+                            ..default()
+                        },
+                        PickableBundle::default(),
+                    ));
+                }
+            }
+        }
+        // --- End Goal Position Area Visualizations ---
 
 
         let waypoint_poses_for_each_robot: Vec<Vec<Vec4>> = waypoint_positions_for_each_robot

@@ -99,6 +99,10 @@ pub struct InitialSpawnAreaViz;
 #[derive(Component)]
 pub struct WaypointAreaViz;
 
+/// A **Bevy** marker [`Component`] for visualising a goal position area defined by `Shape::RandomSquare`.
+#[derive(Component)]
+pub struct GoalPositionAreaViz;
+
 /// A **Bevy** [`Component`] for drawing a path or line
 /// Contains a list of points and a width used to construct a mesh
 #[derive(Debug, Clone)]

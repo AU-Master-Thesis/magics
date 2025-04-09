@@ -96,7 +96,7 @@ impl From<RelativePoint> for bevy::math::Vec2 {
 
 #[derive(Debug, Clone, Serialize, Deserialize, derive_more::IsVariant)]
 #[serde(rename_all = "kebab-case")]
-pub enum Shape {
+pub enum Shape { // Added pub here
     Circle {
         radius: StrictlyPositiveFinite<f32>,
         center: Point,

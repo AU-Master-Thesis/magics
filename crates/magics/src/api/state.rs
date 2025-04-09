@@ -104,6 +104,8 @@ pub struct AgentState {
     pub factor_details: FactorDetails,
     /// Information about collisions.
     pub collision_info: CollisionInfo,
+    /// ID of the square this agent is currently targeting
+    pub target_square_id: Option<String>,
 }
 
 impl Default for AgentState {
@@ -127,6 +129,7 @@ impl Default for AgentState {
             mission_progress: MissionProgress::default(),
             factor_details: FactorDetails::default(),
             collision_info: CollisionInfo::default(),
+            target_square_id: None,
         }
     }
 }
@@ -425,7 +428,20 @@ pub struct ApiState {
     pub current_scenario_name: Arc<RwLock<Option<String>>>,
     /// Optional seed provided in the last Reset request.
     pub requested_reset_seed: Arc<RwLock<Option<u64>>>,
+    /// Request to replan completed agents. Stores the strategy and optional square ID.
+    pub replan_request: Arc<RwLock<Option<ReplanRequestParams>>>,
+    /// Available squares for replanning, cached for ZMQ server access
+    pub available_squares: Arc<RwLock<Vec<gbp_config::formation::SerializedSquare>>>,
 }
+
+/// Parameters for the ReplanCompletedAgents command.
+#[derive(Debug, Clone)]
+pub struct ReplanRequestParams {
+    pub strategy: String,
+    pub square_id: Option<String>,
+    pub avoid_current_square: bool,
+}
+
 
 impl Default for ApiState {
     fn default() -> Self {
@@ -454,6 +470,8 @@ impl Default for ApiState {
             time_fixed: None,
             current_scenario_name: Arc::new(RwLock::new(None)), // Initialize new field
             requested_reset_seed: Arc::new(RwLock::new(None)), // Initialize new field
+            replan_request: Arc::new(RwLock::new(None)), // Initialize new field
+            available_squares: Arc::new(RwLock::new(Vec::new())), // Initialize available_squares
         }
     }
 } // End of impl Default for ApiState
@@ -756,5 +774,45 @@ impl ApiState {
     pub fn reset_load_environment_completion(&self) {
         self.load_environment_completed.store(false, Ordering::SeqCst);
         info!("API: Load environment completion status reset");
+    }
+
+    /// Request replanning of completed agents.
+    pub fn request_replan(&self, params: ReplanRequestParams) {
+        if let Ok(mut request) = self.replan_request.write() {
+            *request = Some(params);
+            info!("API: Replan requested");
+        } else {
+            error!("API: Failed to acquire write lock on replan_request");
+        }
+    }
+
+    /// Get and clear the current replan request.
+    pub fn take_replan_request(&self) -> Option<ReplanRequestParams> {
+        if let Ok(mut request) = self.replan_request.write() {
+            request.take()
+        } else {
+            error!("API: Failed to acquire write lock on replan_request for taking");
+            None
+        }
+    }
+
+    /// Update the available squares for replanning.
+    pub fn update_available_squares(&self, squares: Vec<gbp_config::formation::SerializedSquare>) {
+        if let Ok(mut available_squares) = self.available_squares.write() {
+            *available_squares = squares;
+            info!("API: Updated available squares: {} squares available", available_squares.len());
+        } else {
+            error!("API: Failed to acquire write lock on available_squares");
+        }
+    }
+
+    /// Get the available squares for replanning.
+    pub fn get_available_squares(&self) -> Vec<gbp_config::formation::SerializedSquare> {
+        if let Ok(available_squares) = self.available_squares.read() {
+            available_squares.clone()
+        } else {
+            error!("API: Failed to acquire read lock on available_squares");
+            Vec::new()
+        }
     }
 }
