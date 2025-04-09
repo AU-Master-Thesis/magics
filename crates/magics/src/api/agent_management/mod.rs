@@ -226,7 +226,7 @@ pub fn handle_agent_spawn_requests(
         // Handle custom weights separately by queuing an update
         if let Some(custom_weights) = params.weights {
             let update = WeightUpdate {
-                agent_id: Some(new_entity),
+                agent_id: Some(new_entity.index()),
                 weights: custom_weights,
             };
             api_state.add_weight_update(update);

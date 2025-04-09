@@ -93,6 +93,8 @@ RUSTFLAGS=-Awarnings cargo run --release --bin magics -- --initial-scenario <SCE
 
 # Run with Python API enabled
 RUSTFLAGS=-Awarnings cargo run --release --bin magics --features api -- --initial-scenario "JunctionTwoway"
+
+
 ```
 
 > **Important**: When specifying a scenario, use the exact name as shown in the `--list-scenarios` output. Do not use file paths.

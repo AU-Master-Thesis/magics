@@ -663,7 +663,7 @@ impl FactorGraph {
                     // Send the messages to the connected factors within the same factorgraph
                     // self.graph.
                     if !self.factor_indices.contains(&factor_id.factor_index.0) {
-                        info!(
+                        debug!(
                             "factor_id: {:?} does not exist in the factorgraph {:?}",
                             factor_id, self.id
                         );
@@ -953,7 +953,7 @@ impl FactorGraph {
                     Matrix::<Float>::eye(factor.state.initial_measurement.len())
                         / Float::powi(weight.into(), 2);
 
-                info!(
+                debug!(
                     "Updated dynamic factor weight: index={:?}, strength: {:.4} → {:.4}, \
                      precision: {:?} → {:?}",
                     ix, old_strength, weight, old_precision, factor.state.measurement_precision
@@ -974,7 +974,7 @@ impl FactorGraph {
                     Matrix::<Float>::eye(factor.state.initial_measurement.len())
                         / Float::powi(weight.into(), 2);
 
-                info!(
+                debug!(
                     "Updated obstacle factor weight: index={:?}, strength: {:.4} → {:.4}, \
                      precision: {:?} → {:?}",
                     ix, old_strength, weight, old_precision, factor.state.measurement_precision
@@ -998,7 +998,7 @@ impl FactorGraph {
                     Matrix::<Float>::eye(factor.state.initial_measurement.len())
                         / Float::powi(weight.into(), 2);
 
-                info!(
+                debug!(
                     "Updated interrobot factor weight: index={:?}, strength: {:.4} → {:.4}, \
                      precision: {:?} → {:?}",
                     ix, old_strength, weight, old_precision, factor.state.measurement_precision
@@ -1019,7 +1019,7 @@ impl FactorGraph {
                     Matrix::<Float>::eye(factor.state.initial_measurement.len())
                         / Float::powi(weight.into(), 2);
 
-                info!(
+                debug!(
                     "Updated tracking factor weight: index={:?}, strength: {:.4} → {:.4}, \
                      precision: {:?} → {:?}",
                     ix, old_strength, weight, old_precision, factor.state.measurement_precision

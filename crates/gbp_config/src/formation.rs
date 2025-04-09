@@ -18,6 +18,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use typed_floats::StrictlyPositiveFinite;
 use bevy::log::info;
+use bevy::log::debug;
 use super::geometry::{Point, Shape};
 use crate::line;
 
@@ -500,11 +501,11 @@ impl Formation {
                             let wp_min_y = wp_world_p1.y.min(wp_world_p2.y);
                             let wp_max_y = wp_world_p1.y.max(wp_world_p2.y);
                             
-                            info!(
+                            debug!(
                                 "Placing waypoints in RandomSquare: min_x: {}, max_x: {}, min_y: {}, max_y: {}",
                                 wp_min_x, wp_max_x, wp_min_y, wp_max_y
                             );
-                            info!("World dimensions: width: {}, height: {}", world_dims.width(), world_dims.height());
+                            debug!("World dimensions: width: {}, height: {}", world_dims.width(), world_dims.height());
 
                             // Generate random target positions within the waypoint square
                             // Note: We use robot_radii here to ensure target points are also spaced out,

@@ -16,7 +16,7 @@ use super::state::{
 };
 use super::plugin::PreviousCollisionCounts;
 use super::factor_details;
-
+use bevy::log::debug;
 /// Create an agent state from components.
 ///
 /// This function extracts all the necessary information from the provided components
@@ -48,12 +48,16 @@ pub fn create_agent_state(
 
     // Extract factor graph state
     let mut factor_graph_state = FactorGraphState::default();
-    factor_graph_state.weights = FactorWeights {
-        dynamic:    config.gbp.sigma_factor_dynamics as f32,
-        obstacle:   config.gbp.sigma_factor_obstacle as f32,
-        interrobot: config.gbp.sigma_factor_interrobot as f32,
-        tracking:   config.gbp.sigma_factor_tracking as f32,
-    };
+    
+    // BUG FIX: Use the actual weights from the factor graph instead of the config
+    factor_graph_state.weights = *factor_graph.factor_weights();
+    
+    // Log the weights for debugging
+    debug!("create_agent_state: Agent state extraction for entity {:?}: Using weights from factor graph: {:?}", 
+          entity, factor_graph.factor_weights());
+    debug!("create_agent_state: Config weights for comparison: dynamic={}, obstacle={}, interrobot={}, tracking={}",
+          config.gbp.sigma_factor_dynamics, config.gbp.sigma_factor_obstacle,
+          config.gbp.sigma_factor_interrobot, config.gbp.sigma_factor_tracking);
     factor_graph_state.variable_count = factor_graph.node_count().variables;
     factor_graph_state.factor_count = factor_graph.node_count().factors;
     

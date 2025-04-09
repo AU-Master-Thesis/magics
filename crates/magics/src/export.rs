@@ -58,7 +58,7 @@ mod resources {
 }
 
 fn send_default_export_event(mut evw_export: EventWriter<events::Export>) {
-    evw_export.send(events::Export::default());
+    // evw_export.send(events::Export::default());
 }
 
 #[derive(Debug, Clone, Default)]

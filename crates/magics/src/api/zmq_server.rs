@@ -22,9 +22,9 @@ use super::{
         SerializedEnvironmentState, Status,
     },
     state::{
-        AgentState, ApiState, EnvironmentState, FactorWeights, ReplanRequestParams, SpawnParams,
+        AgentState, ApiState, BatchWeightUpdate, EnvironmentState, FactorWeights, ReplanRequestParams, SpawnParams,
         WeightUpdate,
-    }, // Added SpawnParams, ReplanRequestParams
+    }, // Added BatchWeightUpdate, SpawnParams, ReplanRequestParams
 };
 
 /// Default port for the ZeroMQ server.
@@ -226,6 +226,9 @@ impl ZmqServer {
                 format!("SetFactorWeights for {} (dynamic: {:.2}, obstacle: {:.2}, interrobot: {:.2}, tracking: {:.2})",
                     agent_str, weights.dynamic, weights.obstacle, weights.interrobot, weights.tracking)
             },
+            Command::SetBatchFactorWeights { agent_weights, .. } => {
+                format!("SetBatchFactorWeights for {} agents", agent_weights.len())
+            },
             Command::Step => "Step".to_string(),
             Command::Reset { .. } => "Reset".to_string(), // Ignore seed field for logging
             Command::LoadEnvironment { ref name } => format!("LoadEnvironment({})", name),
@@ -283,12 +286,65 @@ impl ZmqServer {
             },
             Command::SetFactorWeights { weights, agent_id } => {
                 // Set factor weights
+                info!("SetFactorWeights command received with agent_id: {:?}", agent_id);
+                
+                // Reset the weight updates applied flag
+                api_state.weight_updates_applied.store(false, Ordering::SeqCst);
+                
+                // Pass the agent_id directly to the WeightUpdate struct
                 let update = WeightUpdate {
-                    agent_id: agent_id.map(Entity::from_raw),
+                    agent_id: agent_id,
                     weights,
                 };
-
                 api_state.add_weight_update(update);
+                
+                // Wait for weight updates to be applied with timeout
+                let start_time = Instant::now();
+                let timeout = Duration::from_secs(5);
+                
+                while !api_state.are_weight_updates_applied() {
+                    if start_time.elapsed() > timeout {
+                        return Err(Error::Timeout("SetFactorWeights command timed out waiting for weight updates to be applied".to_string()));
+                    }
+                    thread::sleep(Duration::from_millis(10));
+                }
+                
+                info!("SetFactorWeights command: Weight updates applied successfully");
+
+                Response {
+                    status: Status::Success,
+                    data: Some(ResponseData::None),
+                    error: None,
+                    request_id: request_id.clone(),
+                }
+            },
+            
+            Command::SetBatchFactorWeights { ref agent_weights, default_weights } => {
+                // Set batch factor weights
+                info!("SetBatchFactorWeights command received for {} agents", agent_weights.len());
+                
+                // Reset the weight updates applied flag
+                api_state.weight_updates_applied.store(false, Ordering::SeqCst);
+                
+                // Create and add the batch update
+                let update = BatchWeightUpdate {
+                    agent_weights: agent_weights.clone(),
+                    default_weights,
+                };
+                api_state.add_batch_weight_update(update);
+                
+                // Wait for weight updates to be applied with timeout
+                let start_time = Instant::now();
+                let timeout = Duration::from_secs(5);
+                
+                while !api_state.are_weight_updates_applied() {
+                    if start_time.elapsed() > timeout {
+                        return Err(Error::Timeout("SetBatchFactorWeights command timed out waiting for weight updates to be applied".to_string()));
+                    }
+                    thread::sleep(Duration::from_millis(10));
+                }
+                
+                info!("SetBatchFactorWeights command: Weight updates applied successfully");
 
                 Response {
                     status: Status::Success,
@@ -555,6 +611,9 @@ impl ZmqServer {
                 ref square_id, // Borrow square_id instead of moving it
                 avoid_current_square,
             } => {
+                // Reset the replan completion status
+                api_state.reset_replan_completion();
+                
                 // Store the replan request in ApiState
                 let params = ReplanRequestParams {
                     strategy: strategy.clone(), // Clone the borrowed String
@@ -564,7 +623,19 @@ impl ZmqServer {
                 api_state.request_replan(params);
                 info!("ReplanCompletedAgents command: Stored request in API state");
 
-                // Acknowledge receipt; the actual replan happens in a Bevy system
+                // Wait for replan to complete with timeout
+                let start_time = Instant::now();
+                let timeout = Duration::from_secs(5);
+                
+                while !api_state.is_replan_completed() {
+                    if start_time.elapsed() > timeout {
+                        return Err(Error::Timeout("ReplanCompletedAgents command timed out waiting for replan to complete".to_string()));
+                    }
+                    thread::sleep(Duration::from_millis(10));
+                }
+                
+                info!("ReplanCompletedAgents command: Replan completed successfully");
+
                 Response {
                     status: Status::Success,
                     data: Some(ResponseData::None),
@@ -630,6 +701,7 @@ impl ZmqServer {
             Command::GetAgentState => "GetAgentState".to_string(),
             Command::GetEnvironmentState => "GetEnvironmentState".to_string(),
             Command::SetFactorWeights { .. } => "SetFactorWeights".to_string(),
+            Command::SetBatchFactorWeights { .. } => "SetBatchFactorWeights".to_string(),
             Command::Step => "Step".to_string(),
             Command::Reset { .. } => "Reset".to_string(), // Ignore seed field for logging summary
             Command::LoadEnvironment { ref name } => format!("LoadEnvironment({})", name),

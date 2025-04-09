@@ -825,70 +825,25 @@
         "kind": 5,
         "importPath": "magics_client.test.agent_weights_example",
         "description": "magics_client.test.agent_weights_example",
-        "peekOfCode": "agent_states = client.get_agent_state()\nprint(f\"Found {len(agent_states)} agents in the simulation\")\nfor agent_id, state in agent_states.items():\n    print(f\"Agent {agent_id}: Position {state['position']}\")\n    # Print current factor weights for each agent\n    if 'factor_graph_state' in state and 'weights' in state['factor_graph_state']:\n        weights = state['factor_graph_state']['weights']\n        print(f\"  Current weights: dynamic={weights['dynamic']}, obstacle={weights['obstacle']}, \"\n              f\"interrobot={weights['interrobot']}, tracking={weights['tracking']}\")\n# Ask which agent to modify",
+        "peekOfCode": "agent_states = client.get_agent_state()\nprint(f\"Found {len(agent_states)} agents in the simulation\")\nfor agent_id, state in agent_states.items():\n    print(f\"Agent {agent_id}: Position {state['position']}\")\n    # Print current factor weights for each agent\n    if 'factor_graph_state' in state and 'weights' in state['factor_graph_state']:\n        weights = state['factor_graph_state']['weights']\n        print(f\"  Current weights: dynamic={weights['dynamic']}, obstacle={weights['obstacle']}, \"\n              f\"interrobot={weights['interrobot']}, tracking={weights['tracking']}\")\n# Ask which mode to use",
         "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
-        "label": "agent_choice",
+        "label": "mode_choice",
         "kind": 5,
         "importPath": "magics_client.test.agent_weights_example",
         "description": "magics_client.test.agent_weights_example",
-        "peekOfCode": "agent_choice = input(\"\\nEnter agent ID to modify (leave empty for system-wide change): \")\nagent_id_to_modify = None if agent_choice == \"\" else int(agent_choice)\n# Ask which factor weights to modify\nprint(\"\\nEnter new weights (leave empty to keep current value):\")\ndynamic_input = input(\"Dynamic factor weight: \")\nobstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}",
+        "peekOfCode": "mode_choice = input(\"Enter your choice (1 or 2): \")\nif mode_choice == \"1\":\n    # Single agent or system-wide mode\n    agent_choice = input(\"\\nEnter agent ID to modify (leave empty for system-wide change): \")\n    agent_id_to_modify = None if agent_choice == \"\" else int(agent_choice)\n    # Ask which factor weights to modify\n    print(\"\\nEnter new weights (leave empty to keep current value):\")\n    dynamic_input = input(\"Dynamic factor weight: \")\n    obstacle_input = input(\"Obstacle factor weight: \")\n    interrobot_input = input(\"Interrobot factor weight: \")",
         "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
     {
-        "label": "agent_id_to_modify",
+        "label": "updated_states",
         "kind": 5,
         "importPath": "magics_client.test.agent_weights_example",
         "description": "magics_client.test.agent_weights_example",
-        "peekOfCode": "agent_id_to_modify = None if agent_choice == \"\" else int(agent_choice)\n# Ask which factor weights to modify\nprint(\"\\nEnter new weights (leave empty to keep current value):\")\ndynamic_input = input(\"Dynamic factor weight: \")\nobstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:",
-        "detail": "magics_client.test.agent_weights_example",
-        "documentation": {}
-    },
-    {
-        "label": "dynamic_input",
-        "kind": 5,
-        "importPath": "magics_client.test.agent_weights_example",
-        "description": "magics_client.test.agent_weights_example",
-        "peekOfCode": "dynamic_input = input(\"Dynamic factor weight: \")\nobstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)",
-        "detail": "magics_client.test.agent_weights_example",
-        "documentation": {}
-    },
-    {
-        "label": "obstacle_input",
-        "kind": 5,
-        "importPath": "magics_client.test.agent_weights_example",
-        "description": "magics_client.test.agent_weights_example",
-        "peekOfCode": "obstacle_input = input(\"Obstacle factor weight: \")\ninterrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:",
-        "detail": "magics_client.test.agent_weights_example",
-        "documentation": {}
-    },
-    {
-        "label": "interrobot_input",
-        "kind": 5,
-        "importPath": "magics_client.test.agent_weights_example",
-        "description": "magics_client.test.agent_weights_example",
-        "peekOfCode": "interrobot_input = input(\"Interrobot factor weight: \")\ntracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:\n    weights[\"interrobot\"] = float(interrobot_input)",
-        "detail": "magics_client.test.agent_weights_example",
-        "documentation": {}
-    },
-    {
-        "label": "tracking_input",
-        "kind": 5,
-        "importPath": "magics_client.test.agent_weights_example",
-        "description": "magics_client.test.agent_weights_example",
-        "peekOfCode": "tracking_input = input(\"Tracking factor weight: \")\n# Prepare weights dictionary\nweights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:\n    weights[\"interrobot\"] = float(interrobot_input)\nif tracking_input:",
-        "detail": "magics_client.test.agent_weights_example",
-        "documentation": {}
-    },
-    {
-        "label": "weights",
-        "kind": 5,
-        "importPath": "magics_client.test.agent_weights_example",
-        "description": "magics_client.test.agent_weights_example",
-        "peekOfCode": "weights = {}\nif dynamic_input:\n    weights[\"dynamic\"] = float(dynamic_input)\nif obstacle_input:\n    weights[\"obstacle\"] = float(obstacle_input)\nif interrobot_input:\n    weights[\"interrobot\"] = float(interrobot_input)\nif tracking_input:\n    weights[\"tracking\"] = float(tracking_input)\nif weights:",
+        "peekOfCode": "updated_states = client.get_agent_state()\nprint(\"\\nUpdated weights for all agents:\")\nfor agent_id, state in updated_states.items():\n    if 'factor_graph_state' in state and 'weights' in state['factor_graph_state']:\n        weights = state['factor_graph_state']['weights']\n        print(f\"Agent {agent_id}: dynamic={weights['dynamic']}, obstacle={weights['obstacle']}, \"\n              f\"interrobot={weights['interrobot']}, tracking={weights['tracking']}\")\n# Clean up\nclient.close()\nprint(\"Connection closed\")",
         "detail": "magics_client.test.agent_weights_example",
         "documentation": {}
     },
@@ -1060,6 +1015,15 @@
         "importPath": "magics_client.test.terminal_control",
         "description": "magics_client.test.terminal_control",
         "peekOfCode": "def handle_squares(client: MagicsClient, args: list):\n    \"\"\"Gets the available formation squares and prints them.\"\"\"\n    start = time.perf_counter()\n    try:\n        squares = client.get_available_squares()\n        end = time.perf_counter()\n        print(f\"Available Squares ({((end - start) * 1000):.2f} ms):\")\n        if squares:\n            for sq in squares:\n                min_dist = (",
+        "detail": "magics_client.test.terminal_control",
+        "documentation": {}
+    },
+    {
+        "label": "handle_set_weights",
+        "kind": 2,
+        "importPath": "magics_client.test.terminal_control",
+        "description": "magics_client.test.terminal_control",
+        "peekOfCode": "def handle_set_weights(client: MagicsClient, args: list):\n    \"\"\"Sets factor weights for an agent or all agents.\n    Usage: set_weights [agent_id=ID or all] d=X o=Y ir=Z t=W\n    Examples:\n      set_weights all d=0.5 o=1.0 ir=2.0 t=1.5\n      set_weights 3 d=0.8 ir=1.2\n    Shorthand notation:\n      d = dynamic factor weight\n      o = obstacle factor weight\n      ir = interrobot factor weight",
         "detail": "magics_client.test.terminal_control",
         "documentation": {}
     },

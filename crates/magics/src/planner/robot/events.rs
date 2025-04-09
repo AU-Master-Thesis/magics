@@ -113,7 +113,7 @@ pub fn progress_missions2(
                     };
                     
                     let end = mission.taskpoints[mission.active_route + 1].position();
-                    info!(
+                    debug!(
                         "starting pathfinding task for entity: {:?} from {:?} to {:?} #colliders \
                          {}",
                         robot_entity,
@@ -146,7 +146,7 @@ pub fn progress_missions2(
             ) => {
                 if let Ok(mut task) = tasks.get_mut(robot_entity) {
                     if let Some(result) = future::block_on(future::poll_once(&mut task.0)) {
-                        info!("Pathfinding task completed for entity: {:?}", robot_entity);
+                        debug!("Pathfinding task completed for entity: {:?}", robot_entity);
                         commands.entity(robot_entity).remove::<PathfindingTask>();
                         match result {
                             Ok(new_path) => {
@@ -167,7 +167,7 @@ pub fn progress_missions2(
                                 path_with_start.push(current_pos);
                                 
                                 // Log the original path from RRT*
-                                info!("Original RRT* path: {:?}", new_path.0);
+                                debug!("Original RRT* path: {:?}", new_path.0);
                                 
                                 // Add the rest of the path from RRT*
                                 // Always include all points from the RRT* path
@@ -218,7 +218,7 @@ pub fn progress_missions2(
                                         );
                                     });
 
-                                    info!(
+                                    debug!(
                                         "updated tracking_path of each tracking factor of robot: \
                                          {:?}",
                                         robot_entity
@@ -258,7 +258,7 @@ pub fn progress_missions2(
                                     );
                                 }
 
-                                info!("updating route waypoints: {:?}", waypoints);
+                                debug!("updating route waypoints: {:?}", waypoints);
                                 active_route.update_waypoints(waypoints.try_into().unwrap());
                                 mission.state = MissionState::Active;
                             }

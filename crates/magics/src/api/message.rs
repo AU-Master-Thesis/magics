@@ -28,6 +28,14 @@ pub enum Command {
         /// Optional agent ID for per-agent weights
         agent_id: Option<u32>,
     },
+    
+    /// Set factor graph weights for multiple agents at once.
+    SetBatchFactorWeights {
+        /// Map of agent IDs to their weights
+        agent_weights: HashMap<u32, FactorWeights>,
+        /// Optional system-wide weights to apply to all other agents
+        default_weights: Option<FactorWeights>,
+    },
 
     /// Step the simulation forward by one frame.
     Step,

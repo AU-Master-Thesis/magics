@@ -35,14 +35,14 @@ pub fn handle_replan_requests(
     mut prng: ResMut<GlobalEntropy<bevy_prng::WyRand>>, // For random selection
 ) {
     if let Some(replan_params) = api_state.take_replan_request() {
-        info!("API: Processing replan request with params: {:?}", replan_params);
+        debug!("API: Processing replan request with params: {:?}", replan_params);
 
         // Get available squares from the simulation manager
         let available_squares = if let Some(formation_group) = simulation_manager.active_formation_group() {
             let squares = extract_available_squares(formation_group);
             // Update the available squares in the API state for ZMQ server access
             api_state.update_available_squares(squares.clone());
-            info!("API Replan: Using formation group from simulation manager with {} squares", squares.len());
+            debug!("API Replan: Using formation group from simulation manager with {} squares", squares.len());
             squares
         } else {
             error!("API Replan: Failed to get active formation group from simulation manager");
@@ -55,13 +55,13 @@ pub fn handle_replan_requests(
         let height = tile_size * env_config.tiles.grid.nrows() as f64;
         let world_size = Some((width, height));
         
-        info!("API Replan: Using world size: width={}, height={}", width, height);
+        debug!("API Replan: Using world size: width={}, height={}", width, height);
 
 
         // Iterate mutably and destructure the tuple correctly
         for (entity, transform, mut mission, planning_strategy, mut factorgraph, mut finished_path) in query.iter_mut() {
             if mission.state == RobotMissionState::Completed {
-                info!("API Replan: Replanning agent {:?}", entity);
+                debug!("API Replan: Replanning agent {:?}", entity);
 
                 let current_pos = transform.translation.xz();
                 let current_vel = Vec2::ZERO; // Assume zero velocity when starting new route? Or use last known?
@@ -170,6 +170,10 @@ pub fn handle_replan_requests(
                 }
             }
         }
+
+        // Mark replan as completed
+        api_state.complete_replan();
+        info!("API: Replan request processing completed");
     }
 }
 

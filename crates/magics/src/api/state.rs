@@ -363,9 +363,18 @@ impl Default for EnvironmentState {
 #[derive(Debug, Clone)]
 pub struct WeightUpdate {
     /// ID of the agent to update weights for, or None for system-wide update.
-    pub agent_id: Option<Entity>,
+    pub agent_id: Option<u32>,
     /// New weights to apply.
     pub weights:  FactorWeights,
+}
+
+/// Batch update to factor weights.
+#[derive(Debug, Clone)]
+pub struct BatchWeightUpdate {
+    /// Map of agent IDs to their weights
+    pub agent_weights: HashMap<u32, FactorWeights>,
+    /// Optional system-wide weights to apply to all other agents
+    pub default_weights: Option<FactorWeights>,
 }
 
 /// Parameters for spawning a new agent via the API.
@@ -396,6 +405,10 @@ pub struct ApiState {
     pub environment_state: Arc<RwLock<EnvironmentState>>,
     /// Requests to update factor weights.
     pub weight_requests: Arc<RwLock<Vec<WeightUpdate>>>,
+    /// Requests to update factor weights in batch.
+    pub batch_weight_requests: Arc<RwLock<Vec<BatchWeightUpdate>>>,
+    /// Flag indicating whether weight updates have been applied.
+    pub weight_updates_applied: Arc<AtomicBool>,
     /// Requests to remove agents. Stores agent IDs (u32).
     pub agent_removal_requests: Arc<RwLock<Vec<u32>>>,
     /// Requests to spawn new agents.
@@ -430,6 +443,8 @@ pub struct ApiState {
     pub requested_reset_seed: Arc<RwLock<Option<u64>>>,
     /// Request to replan completed agents. Stores the strategy and optional square ID.
     pub replan_request: Arc<RwLock<Option<ReplanRequestParams>>>,
+    /// Flag indicating whether replan has been completed.
+    pub replan_completed: Arc<AtomicBool>,
     /// Available squares for replanning, cached for ZMQ server access
     pub available_squares: Arc<RwLock<Vec<gbp_config::formation::SerializedSquare>>>,
 }
@@ -449,6 +464,8 @@ impl Default for ApiState {
             agent_states: Arc::new(RwLock::new(HashMap::new())),
             environment_state: Arc::new(RwLock::new(EnvironmentState::default())),
             weight_requests: Arc::new(RwLock::new(Vec::new())),
+            batch_weight_requests: Arc::new(RwLock::new(Vec::new())),
+            weight_updates_applied: Arc::new(AtomicBool::new(true)), // Initially true since no pending updates
             agent_removal_requests: Arc::new(RwLock::new(Vec::new())),
             agent_spawn_requests: Arc::new(RwLock::new(Vec::new())), // Initialize new field
             spawned_agent_ids: Arc::new(RwLock::new(Vec::new())), // Initialize new field
@@ -471,6 +488,7 @@ impl Default for ApiState {
             current_scenario_name: Arc::new(RwLock::new(None)), // Initialize new field
             requested_reset_seed: Arc::new(RwLock::new(None)), // Initialize new field
             replan_request: Arc::new(RwLock::new(None)), // Initialize new field
+            replan_completed: Arc::new(AtomicBool::new(true)), // Initially true since no pending replan
             available_squares: Arc::new(RwLock::new(Vec::new())), // Initialize available_squares
         }
     }
@@ -594,8 +612,33 @@ impl ApiState {
     /// Add a weight update request.
     pub fn add_weight_update(&self, update: WeightUpdate) {
         if let Ok(mut requests) = self.weight_requests.write() {
+            // Only mark as not applied if we're actually adding a request
+            if requests.is_empty() && self.batch_weight_requests.read().unwrap().is_empty() {
+                self.weight_updates_applied.store(false, Ordering::SeqCst);
+            }
             requests.push(update);
         }
+    }
+    
+    /// Add a batch weight update request.
+    pub fn add_batch_weight_update(&self, update: BatchWeightUpdate) {
+        if let Ok(mut requests) = self.batch_weight_requests.write() {
+            // Only mark as not applied if we're actually adding a request
+            if requests.is_empty() && self.weight_requests.read().unwrap().is_empty() {
+                self.weight_updates_applied.store(false, Ordering::SeqCst);
+            }
+            requests.push(update);
+        }
+    }
+
+    /// Check if weight updates have been applied.
+    pub fn are_weight_updates_applied(&self) -> bool {
+        self.weight_updates_applied.load(Ordering::SeqCst)
+    }
+
+    /// Mark weight updates as applied.
+    pub fn mark_weight_updates_applied(&self) {
+        self.weight_updates_applied.store(true, Ordering::SeqCst);
     }
 
     /// Get the number of iterations remaining in the current step.
@@ -780,10 +823,28 @@ impl ApiState {
     pub fn request_replan(&self, params: ReplanRequestParams) {
         if let Ok(mut request) = self.replan_request.write() {
             *request = Some(params);
+            self.replan_completed.store(false, Ordering::SeqCst);
             info!("API: Replan requested");
         } else {
             error!("API: Failed to acquire write lock on replan_request");
         }
+    }
+
+    /// Check if replan has been completed.
+    pub fn is_replan_completed(&self) -> bool {
+        self.replan_completed.load(Ordering::SeqCst)
+    }
+
+    /// Mark replan as completed.
+    pub fn complete_replan(&self) {
+        self.replan_completed.store(true, Ordering::SeqCst);
+        info!("API: Replan completed");
+    }
+
+    /// Reset replan completion status.
+    pub fn reset_replan_completion(&self) {
+        self.replan_completed.store(false, Ordering::SeqCst);
+        info!("API: Replan completion status reset");
     }
 
     /// Get and clear the current replan request.
