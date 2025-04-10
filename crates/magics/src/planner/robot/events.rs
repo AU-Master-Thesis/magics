@@ -252,7 +252,7 @@ pub fn progress_missions2(
 
                                     fgraph.reset_variables(&means, 1e30, Float::INFINITY);
                                     fgraph.reset_tracking_factors();
-                                    error!(
+                                    debug!(
                                         "updated variable positions of robot: {:?}",
                                         robot_entity
                                     );
@@ -450,7 +450,7 @@ pub fn progress_missions(
                                     fgraph.reset_variables(&means, 1e30, Float::INFINITY);
                                     fgraph.reset_tracking_factors();
                                     // fgraph.reset_variable_positions(positions.as_slice());
-                                    error!(
+                                    debug!(
                                         "updated variable positions of robot: {:?}",
                                         robot_entity
                                     );

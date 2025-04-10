@@ -123,7 +123,7 @@ fn update_robot_robot_collisions(
                 //     .intersection(&aabbs[c].1)
                 //     .expect("the robots just hit each other, so they intersect");
 
-                println!(
+                info!(
                     "send robot collided event with intersection: {:?}",
                     &intersection
                 );

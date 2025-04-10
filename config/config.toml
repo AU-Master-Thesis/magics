@@ -35,7 +35,6 @@ environment-colliders              = false
 robot-robot-collisions             = true
 robot-environment-collisions       = true
 
-
 [gbp]
 sigma-pose-fixed        = 0.000000000000001
 sigma-factor-dynamics   = 0.1
@@ -44,8 +43,8 @@ sigma-factor-obstacle   = 0.01
 sigma-factor-tracking   = 0.2
 lookahead-multiple      = 3
 
-[gbp.iterations-per-timestep]
-internal = 10
+[gbp.iteration-schedule]
+internal = 15
 external = 10
 schedule = "interleave-evenly"
 
@@ -74,8 +73,8 @@ world-size                                = 100.0
 prng-seed                                 = 0
 pause-on-spawn                            = false
 despawn-robot-when-final-waypoint-reached = false
+log-level                                 = "warn"
 # The verbosity level of logging. Options: "error", "warn", "info", "debug", "trace", "off"
-log-level                                 = "info"
 
 [rrt]
 max-iterations       = 1000
@@ -92,6 +91,16 @@ step-size      = 0.5
 style = "dashed"
 len   = 8.0
 color = "red"
+
+[graphviz.interrobot.active]
+style = "dashed"
+len   = 8.0
+color = "red"
+
+[graphviz.interrobot.inactive]
+style = "dashed"
+len   = 8.0
+color = "gray"
 
 [graphviz]
 export-location = "./assets/export/"
