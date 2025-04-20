@@ -83,7 +83,10 @@ pub enum PlacementStrategy {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Waypoint {
-    pub shape: Shape,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shape: Option<Shape>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub multi_shapes: Option<Vec<Shape>>,
     // pub placement_strategy: PlacementStrategy,
     pub projection_strategy: ProjectionStrategy,
 }
@@ -91,9 +94,10 @@ pub struct Waypoint {
 impl Waypoint {
     /// Crate a new `Waypoint`
     #[must_use]
-    pub const fn new(shape: Shape, projection_strategy: ProjectionStrategy) -> Self {
+    pub fn new(shape: Shape, projection_strategy: ProjectionStrategy) -> Self {
         Self {
-            shape,
+            shape: Some(shape),
+            multi_shapes: None,
             projection_strategy,
         }
     }
@@ -104,7 +108,10 @@ impl Waypoint {
 #[serde(rename_all = "kebab-case")]
 pub struct InitialPosition {
     /// The shape in which the robots should spawn
-    pub shape: Shape,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shape: Option<Shape>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub multi_shapes: Option<Vec<Shape>>,
     /// Strategy for how to place the robots
     pub placement_strategy: InitialPlacementStrategy,
 }
@@ -259,6 +266,33 @@ impl Default for Formation {
     }
 }
 
+
+/// Helper function to select a shape, handling validation and random selection from multi_shapes.
+pub fn select_shape_helper<R: Rng + ?Sized>( // Made public
+    shape_opt: &Option<Shape>,
+    multi_shapes_opt: &Option<Vec<Shape>>,
+    context: &str,
+    rng: &mut R,
+) -> Result<Shape, String> {
+    match (shape_opt, multi_shapes_opt) {
+        (Some(shape), None) => Ok(shape.clone()),
+        (None, Some(shapes)) if !shapes.is_empty() => {
+            let index = rng.gen_range(0..shapes.len());
+            Ok(shapes[index].clone())
+        }
+        (None, Some(_)) => Err(format!("'multi-shapes' in {} cannot be empty.", context)),
+        (Some(_), Some(_)) => Err(format!(
+            "Cannot specify both 'shape' and 'multi-shapes' in {}.",
+            context
+        )),
+        (None, None) => Err(format!(
+            "Must specify either 'shape' or 'multi-shapes' in {}.",
+            context
+        )),
+    }
+}
+
+
 impl Formation {
     fn default_finished_when_intersects() -> ReachedWhen {
         ReachedWhen {
@@ -291,7 +325,8 @@ impl Formation {
             robots: 3.try_into().expect("3 > 0"),
             planning_strategy: PlanningStrategy::OnlyLocal,
             initial_position: InitialPosition {
-                shape: circle.clone(),
+                shape: Some(circle.clone()),
+                multi_shapes: None,
                 placement_strategy: InitialPlacementStrategy::Equal,
             },
             waypoints: vec![Waypoint::new(circle, ProjectionStrategy::Cross)],
@@ -325,8 +360,23 @@ impl Formation {
         } else {
             self.waypoints.clone()
         };
-        match self.initial_position.shape {
-            Shape::LineSegment((ls_start, ls_end)) => {
+
+        // --- Select initial position shape ---
+        let initial_shape = match select_shape_helper(
+            &self.initial_position.shape,
+            &self.initial_position.multi_shapes,
+            "initial_position",
+            rng,
+        ) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Formation config error: {}", e);
+                return None;
+            } // Or log error
+        };
+
+        match initial_shape {
+             Shape::LineSegment((ls_start, ls_end)) => {
                 let ls_start = world_dims.point_to_world_position(ls_start);
                 let ls_end = world_dims.point_to_world_position(ls_end);
 
@@ -370,8 +420,21 @@ impl Formation {
 
                 let waypoints_of_each_robot: Vec<Vec<Vec2>> = waypoints_to_use
                     .iter()
-                    .map(|wp| {
-                        let Shape::LineSegment((ls_start, ls_end)) = wp.shape else {
+                    .enumerate() // Add enumerate to get waypoint index for error context
+                    .map(|(idx, wp)| {
+                        let waypoint_shape = match select_shape_helper(
+                            &wp.shape,
+                            &wp.multi_shapes,
+                            &format!("waypoint {}", idx),
+                            rng,
+                        ) {
+                            Ok(s) => s,
+                            Err(e) => {
+                                eprintln!("Formation config error: {}", e);
+                                return Vec::new();
+                            } // Handle error, maybe return None earlier
+                        };
+                        let Shape::LineSegment((ls_start, ls_end)) = waypoint_shape else {
                             unimplemented!("no time for the other combinations sadly :(");
                         };
                         let ls_start = world_dims.point_to_world_position(ls_start);
@@ -394,8 +457,9 @@ impl Formation {
                         //     .map(|by| ls_start.lerp(ls_end, *by))
                         //     .collect();
                         positions
-                    })
-                    .collect();
+                    } // <--- Add missing closing brace for the map closure
+                    ) // Closing parenthesis for .map()
+                    .collect(); // Collect the results of the outer map
 
                 assert!(waypoints_of_each_robot
                     .iter()
@@ -404,7 +468,7 @@ impl Formation {
 
                 Some((initial_positions, waypoints_of_each_robot))
             }
-            Shape::Circle { radius, center } => {
+             Shape::Circle { radius, center } => {
                 let perimeter_radius: f32 = radius.get();
                 let center = world_dims.point_to_world_position(center);
                 // dbg!(&center);
@@ -439,8 +503,21 @@ impl Formation {
 
                 let waypoints_of_each_robots: Vec<Vec<Vec2>> = waypoints_to_use
                     .iter()
-                    .map(|wp| {
-                        let Shape::Circle { radius, center } = wp.shape else {
+                    .enumerate()
+                    .map(|(idx, wp)| {
+                        let waypoint_shape = match select_shape_helper(
+                            &wp.shape,
+                            &wp.multi_shapes,
+                            &format!("waypoint {}", idx),
+                            rng,
+                        ) {
+                            Ok(s) => s,
+                            Err(e) => {
+                                eprintln!("Formation config error: {}", e);
+                                return Vec::new();
+                            } // Handle error
+                         };
+                        let Shape::Circle { radius, center } = waypoint_shape else {
                             unimplemented!("no time for the other combinations sadly :(");
                         };
                         match wp.projection_strategy {
@@ -464,8 +541,8 @@ impl Formation {
 
                 Some((initial_positions, waypoints_of_each_robots))
             }
-            Shape::Polygon(_) => todo!(),
-            Shape::RandomSquare { p1, p2, min_distance } => {
+             Shape::Polygon(_) => todo!(),
+             Shape::RandomSquare { p1, p2, min_distance } => {
                 // Calculate world coordinates for the square corners
                 let world_p1 = world_dims.point_to_world_position(p1);
                 let world_p2 = world_dims.point_to_world_position(p2);
@@ -491,8 +568,22 @@ impl Formation {
                 // Generate waypoints for each robot
                 let waypoints_of_each_robot: Vec<Vec<Vec2>> = waypoints_to_use
                     .iter()
-                    .map(|wp| match wp.shape {
-                        Shape::RandomSquare { p1: wp1, p2: wp2, min_distance: wp_min_dist } => {
+                    .enumerate()
+                    .map(|(idx, wp)| {
+                        let waypoint_shape = match select_shape_helper(
+                            &wp.shape,
+                            &wp.multi_shapes,
+                            &format!("waypoint {}", idx),
+                            rng,
+                        ) {
+                            Ok(s) => s,
+                            Err(e) => {
+                                eprintln!("Formation config error: {}", e);
+                                return Vec::new();
+                            } // Handle error
+                        };
+                        match waypoint_shape {
+                         Shape::RandomSquare { p1: wp1, p2: wp2, min_distance: wp_min_dist } => {
                             // Waypoint is also a square, generate random targets within it
                             let wp_world_p1 = world_dims.point_to_world_position(wp1);
                             let wp_world_p2 = world_dims.point_to_world_position(wp2);
@@ -522,7 +613,7 @@ impl Formation {
                             )
                             .expect("Failed to place waypoint targets in RandomSquare") // Or handle error more gracefully
                         }
-                        Shape::LineSegment((ls_start, ls_end)) => {
+                         Shape::LineSegment((ls_start, ls_end)) => {
                             // Waypoint is a line segment, project initial positions
                             let ls_start_world = world_dims.point_to_world_position(ls_start);
                             let ls_end_world = world_dims.point_to_world_position(ls_end);
@@ -551,8 +642,10 @@ impl Formation {
                                 })
                                 .collect()
                         }
-                        Shape::Polygon(_) => unimplemented!("Waypoints as Polygons not implemented yet"),
-                    })
+                         Shape::Polygon(_) => unimplemented!("Waypoints as Polygons not implemented yet"),
+                    }
+                    }
+                )
                     .collect();
 
 
@@ -823,7 +916,8 @@ impl FormationGroup {
                     robots: 1.try_into().expect("1 > 0"),
                     planning_strategy: PlanningStrategy::OnlyLocal,
                     initial_position: InitialPosition {
-                        shape: line![(0.45, 0.0), (0.55, 0.0)],
+                        shape: Some(line![(0.45, 0.0), (0.55, 0.0)]),
+                        multi_shapes: None,
                         placement_strategy: InitialPlacementStrategy::Equal,
                     },
 
@@ -849,7 +943,8 @@ impl FormationGroup {
                     robots: 1.try_into().expect("1 > 0"),
                     planning_strategy: PlanningStrategy::OnlyLocal,
                     initial_position: InitialPosition {
-                        shape: line![(0.0, 0.45), (0.0, 0.55)],
+                        shape: Some(line![(0.0, 0.45), (0.0, 0.55)]),
+                        multi_shapes: None,
                         placement_strategy: InitialPlacementStrategy::Equal,
                     },
 

@@ -417,7 +417,7 @@ pub fn extract_available_squares(formation_group: &FormationGroup) -> Vec<Serial
 
     for (i, formation) in formation_group.formations.iter().enumerate() {
         // Extract initial position squares
-        if let Shape::RandomSquare { p1, p2, min_distance } = &formation.initial_position.shape {
+        if let Some(Shape::RandomSquare { p1, p2, min_distance }) = &formation.initial_position.shape {
             squares.push(SerializedSquare {
                 id: format!("initial_{}", i),
                 square_type: "InitialPosition".to_string(),
@@ -429,7 +429,7 @@ pub fn extract_available_squares(formation_group: &FormationGroup) -> Vec<Serial
 
         // Extract waypoint squares
         for (j, waypoint) in formation.waypoints.iter().enumerate() {
-            if let Shape::RandomSquare { p1, p2, min_distance } = &waypoint.shape {
+            if let Some(Shape::RandomSquare { p1, p2, min_distance }) = &waypoint.shape {
                 squares.push(SerializedSquare {
                     id: format!("waypoint_{}_{}", i, j),
                     square_type: "Waypoint".to_string(),
@@ -443,7 +443,7 @@ pub fn extract_available_squares(formation_group: &FormationGroup) -> Vec<Serial
         // Extract goal position squares
         if let Some(goal_positions) = &formation.goal_position {
             for (j, goal) in goal_positions.iter().enumerate() {
-                if let Shape::RandomSquare { p1, p2, min_distance } = &goal.shape {
+                if let Some(Shape::RandomSquare { p1, p2, min_distance }) = &goal.shape {
                     squares.push(SerializedSquare {
                         id: format!("goal_{}_{}", i, j),
                         square_type: "GoalPosition".to_string(),

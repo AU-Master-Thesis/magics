@@ -1,0 +1,191 @@
+formations:
+# Cross scenario
+- repeat:
+    every:
+      secs: 6
+      nanos: 0
+    times: !finite 1
+  delay:
+    secs: 0
+    nanos: 0
+  name: "cross_scenario"
+  robots: 10
+  planning-strategy: rrt-star
+  initial-position:
+    multi-shapes: # Use 'possible-shapes' with a list
+      - !random-square   # Top goal
+        p1: { x: 0.244, y: 0.9 }
+        p2: { x: 0.280, y: 0.707 }
+        min_distance: 1.0
+      - !random-square   # Right goal
+        p1: { x: 0.471, y: 0.463 }
+        p2: { x: 0.371, y: 0.537 }
+        min_distance: 1.0
+      - !random-square # Bottom goal
+        p1: { x: 0.244, y: 0.1 }
+        p2: { x: 0.280, y: 0.293}
+        min_distance: 1.0
+      - !random-square # Left goal
+        p1: { x: 0.052, y: 0.463 }
+        p2: { x: 0.157, y: 0.537 }
+        min_distance: 1.0 
+    placement-strategy: !random # Applies within the randomly chosen shape
+      attempts: 2000
+  goal-position: # goal_position is a list of Waypoints
+    - multi-shapes: # Each Waypoint uses 'possible-shapes'
+      - !random-square   # Top goal
+        p1: { x: 0.244, y: 0.9 }
+        p2: { x: 0.280, y: 0.707 }
+        min_distance: 1.0
+      - !random-square   # Right goal
+        p1: { x: 0.471, y: 0.463 }
+        p2: { x: 0.371, y: 0.537 }
+        min_distance: 1.0
+      - !random-square # Bottom goal
+        p1: { x: 0.244, y: 0.1 }
+        p2: { x: 0.280, y: 0.293}
+        min_distance: 1.0
+      - !random-square # Left goal
+        p1: { x: 0.052, y: 0.463 }
+        p2: { x: 0.157, y: 0.537 }
+        min_distance: 1.0 
+      projection-strategy: identity # Less relevant now, applies per-robot target
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: !meter 3
+    intersects-with: current
+
+# Line scenario
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 1
+  delay:
+    secs: 0
+    nanos: 0
+  name: "line_scenario"
+  robots: 5
+  planning-strategy: only-local
+  initial-position: # Using 'multi-shapes' again
+    multi-shapes:
+      - !random-square # Bottom goal
+        p1: { x: 0.53, y: 0.1 }
+        p2: { x: 0.567, y: 0.293}
+        min_distance: 1.0
+    placement-strategy: equal # Applies within the randomly chosen shape
+  goal-position: # Using 'multi-shapes' again
+    - multi-shapes:
+      - !random-square   # Top goal
+        p1: { x: 0.53, y: 0.9 }
+        p2: { x: 0.567, y: 0.707 }
+        min_distance: 1.0
+      projection-strategy: cross
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: robot-radius
+    intersects-with: current
+
+# Line scenario
+- repeat:
+    every:
+      secs: 10
+      nanos: 0
+    times: !finite 1
+  delay:
+    secs: 0
+    nanos: 0
+  name: "line_scenario"
+  robots: 5
+  planning-strategy: only-local
+  initial-position: # Using 'multi-shapes' again
+    multi-shapes:
+      - !random-square   # Top goal
+        p1: { x: 0.53, y: 0.9 }
+        p2: { x: 0.567, y: 0.707 }
+        min_distance: 1.0
+    placement-strategy: equal # Applies within the randomly chosen shape
+  goal-position: # Using 'multi-shapes' again
+    - multi-shapes:
+      - !random-square # Bottom goal
+        p1: { x: 0.53, y: 0.1 }
+        p2: { x: 0.567, y: 0.293}
+        min_distance: 1.0
+      projection-strategy: cross
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: robot-radius
+    intersects-with: current
+
+
+# Circle scenario
+- repeat:
+    every:
+      secs: 8
+      nanos: 0
+    times: !finite 1
+  delay:
+    secs: 0
+    nanos: 0
+  name: "Cicle_scenario"
+  robots: 10
+  planning-strategy: only-local
+  initial-position: # Using single 'shape' for backward compatibility example
+    shape: !circle
+      radius: 12.0
+      center:
+        x: 0.690476
+        y: 0.5
+    placement-strategy: equal
+  waypoints: # Using single 'shape' for backward compatibility example
+    - shape: !circle
+        radius: 12.0
+        center:
+          x: 0.690476
+          y: 0.5
+      projection-strategy: cross
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: robot-radius
+    intersects-with: current
+
+# Doorway scenario
+- repeat:
+    every:
+      secs: 6
+      nanos: 0
+    times: !finite 1
+  delay:
+    secs: 0
+    nanos: 0
+  name: "door_scenario"
+  robots: 6
+  planning-strategy: rrt-star
+  initial-position:
+    shape: !random-square   
+        p1: { x: 0.833, y: 0.591 }
+        p2: { x: 0.928, y: 0.408 }
+        min_distance: 1.0
+    placement-strategy: !random # Applies within the randomly chosen shape
+      attempts: 2000
+  goal-position: # goal_position is a list of Waypoints
+    - shape: !random-square   
+        p1: { x: 0.833, y: 0.226036 }
+        p2: { x: 0.928, y: 0.043036 }
+        min_distance: 1.0
+      projection-strategy: identity # Less relevant now, applies per-robot target
+  waypoint-reached-when-intersects:
+    distance: robot-radius
+    intersects-with: horizon
+  finished-when-intersects:
+    distance: !meter 3
+    intersects-with: current
+

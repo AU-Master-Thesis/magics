@@ -5,16 +5,18 @@ use bevy_mod_picking::prelude::*;
 use bevy_notify::ToastEvent;
 use bevy_rand::prelude::{ForkableRng, GlobalEntropy};
 use gbp_config::{
-    formation::{PlanningStrategy, RepeatTimes, WorldDimensions},
+    formation::{select_shape_helper, PlanningStrategy, RepeatTimes, WorldDimensions}, // Added select_shape_helper
+    geometry::Shape, // Added Shape
     Config,
 };
 use itertools::Itertools;
+use min_len_vec::{two_or_more, TwoOrMore}; // Added import
 use rand::{seq::IteratorRandom, Rng};
 use strum::IntoEnumIterator;
-use min_len_vec::TwoOrMore; // Added import
 
 use super::{
     robot::{RobotFinishedRoute, RobotSpawned},
+    spawn_utils::{place_single_robot, spawn_robot}, // Corrected path for place_single_robot and added spawn_robot
     RobotId,
 };
 use crate::{
@@ -31,6 +33,51 @@ use crate::{
     utils::get_variable_timesteps,
     bevy_utils::run_conditions::event_exists, // Import event_exists
 };
+
+/// Helper function to spawn a square visualization mesh.
+fn spawn_square_viz_helper<MC: Component + Default>(
+    commands: &mut Commands,
+    mesh_assets: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+    theme: &CatppuccinTheme,
+    config: &Config,
+    world_dims: &WorldDimensions,
+    p1: gbp_config::geometry::Point,
+    p2: gbp_config::geometry::Point,
+    color: Color,
+    visibility_flag: bool,
+) {
+    let world_p1 = world_dims.point_to_world_position(p1);
+    let world_p2 = world_dims.point_to_world_position(p2);
+    let center = (world_p1 + world_p2) / 2.0;
+    let size_vec = (world_p1 - world_p2).abs();
+
+    let mut material = StandardMaterial::from(color);
+    material.unlit = true;
+    material.cull_mode = None;
+
+    commands.spawn((
+        simulation_loader::Reloadable,
+        MC::default(), // Use the generic marker component's default
+        PbrBundle {
+            mesh: mesh_assets.add(Mesh::from(Rectangle::new(size_vec.x, size_vec.y))),
+            material: materials.add(material),
+            transform: Transform::from_xyz(
+                center.x,
+                -config.visualisation.height.objects + 0.01,
+                center.y,
+            )
+            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+            visibility: if visibility_flag {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
+            ..default()
+        },
+        PickableBundle::default(),
+    ));
+}
 
 pub struct RobotSpawnerPlugin;
 
@@ -61,8 +108,7 @@ impl Plugin for RobotSpawnerPlugin {
                 (
                     spawn_formation,
                     advance_time.run_if(not(virtual_time_is_paused)),
-                    exit_application_on_scenario_finished,
-                    // exit_application_on_scenario_finished.run_if(on_event::<AllFormationsFinished>())
+                    exit_application_on_scenario_finished, // exit_application_on_scenario_finished.run_if(on_event::<AllFormationsFinished>())
                 ),
             )
             .add_systems(
@@ -71,9 +117,12 @@ impl Plugin for RobotSpawnerPlugin {
                     track_score.run_if(resource_exists::<Scoreboard>),
                     notify_on_all_formations_finished.run_if(on_event::<AllFormationsFinished>()),
                     // Add systems to toggle visibility
-                    show_or_hide_spawn_areas.run_if(event_exists::<crate::input::DrawSettingsEvent>),
-                    show_or_hide_waypoint_areas.run_if(event_exists::<crate::input::DrawSettingsEvent>),
-                    show_or_hide_goal_position_areas.run_if(event_exists::<crate::input::DrawSettingsEvent>),
+                    show_or_hide_spawn_areas
+                        .run_if(event_exists::<crate::input::DrawSettingsEvent>),
+                    show_or_hide_waypoint_areas
+                        .run_if(event_exists::<crate::input::DrawSettingsEvent>),
+                    show_or_hide_goal_position_areas
+                        .run_if(event_exists::<crate::input::DrawSettingsEvent>),
                 ),
             );
     }
@@ -131,63 +180,12 @@ pub struct WaypointCreated {
     /// The id of the robot the waypoint is created for
     pub for_robot: RobotId,
     /// The (x,y) position of the created waypoint in world coordinates.
-    pub position:  Vec2,
+    pub position: Vec2,
 }
-
-// #[derive(Event)]
-// pub struct RobotReachedWaypoint(pub Entity);
-
-// TODO: allocate for each obstacle factor, a bit wasteful but should not take
-// up to much memory like 8-10 MB
-// TODO: needs to be changed whenever the sim reloads, use resource?
-/// Every [`ObstacleFactor`] has a static reference to the obstacle image.
-// static OBSTACLE_IMAGE: OnceLock<Image> = OnceLock::new();
-// TODO: use once_cell, so we can mutate it when sim reloads
-// static OBSTACLE_SDF: Lazy<RwLock<Image>> = Lazy::new(||
-// RwLock::new(Image::new(1, 1)));
-
-// /// Component attached to an entity that spawns formations.
-// #[derive(Component)]
-// pub struct FormationSpawnerCountdown {
-//     pub timer: Timer,
-//     pub formation_group_index: usize,
-// }
-
-// /// Enum representing the number of times a formation should repeat.
-// #[derive(Debug, Clone, Copy, Default)]
-// pub enum RepeatTimes {
-//     #[default]
-//     Infinite,
-//     Finite(usize),
-// }
-
-// impl RepeatTimes {
-//     pub const ONCE: Self = Self::Finite(1);
-
-//     /// Construct a new `RepeatTimes::Finite` variant
-//     pub fn finite(times: NonZeroUsize) -> Self {
-//         Self::Finite(times.into())
-//     }
-
-//     /// Returns true if there are one or more times left repeating
-//     pub const fn exhausted(&self) -> bool {
-//         match self {
-//             Self::Infinite => false,
-//             Self::Finite(remaining) => *remaining == 0,
-//         }
-//     }
-
-//     pub fn decrement(&mut self) {
-//         match self {
-//             Self::Finite(ref mut remaining) if *remaining > 0 => *remaining -= 1,
-//             _ => {} // RepeatTimes::Infinite => {},
-//         }
-//     }
-// }
 
 #[derive(Debug, Clone)]
 pub struct RepeatingTimer {
-    timer:  Timer,
+    timer: Timer,
     repeat: RepeatTimes,
 }
 
@@ -205,10 +203,6 @@ impl RepeatingTimer {
     #[inline]
     pub fn tick(&mut self, delta: Duration) {
         self.timer.tick(delta);
-        // TODO: have all state mutation in this call
-        // if self.timer.just_finished() {
-        //     self.repeat.decrement();
-        // }
     }
 
     #[inline]
@@ -220,11 +214,6 @@ impl RepeatingTimer {
 
         finished
     }
-
-    // #[inline]
-    // pub fn duration(&self) -> Duration {
-    //     self.timer.duration()
-    // }
 }
 
 #[derive(Debug, Component)]
@@ -240,10 +229,7 @@ pub struct FormationSpawner {
 enum FormationSpawnerState {
     #[default]
     Inactive,
-    Active {
-        on_cooldown: bool,
-    },
-    // OnCooldown,
+    Active { on_cooldown: bool },
     Finished,
 }
 
@@ -265,16 +251,11 @@ impl FormationSpawner {
 
     #[inline]
     const fn is_active(&self) -> bool {
-        // self.initial_delay.finished()
         matches!(self.state, FormationSpawnerState::Active { .. })
     }
 
-    /// Return `true` if there is no more to spawn
-    /// TODO: use this to test if the simulation is "finished"
-    /// Simulation is finished when all spawners are finished
     #[inline]
     pub const fn exhausted(&self) -> bool {
-        // self.timer.exhausted()
         matches!(self.state, FormationSpawnerState::Finished)
     }
 
@@ -301,7 +282,6 @@ impl FormationSpawner {
         }
     }
 
-    /// Returns the number of robots spawned so far
     #[inline]
     pub const fn spawned(&self) -> usize {
         self.spawned
@@ -322,27 +302,45 @@ impl FormationSpawner {
             on_cooldown: false,
         })
     }
-
-    // #[inline]
-    // fn on_cooldown(&mut self) -> bool {
-    //     matches!(self.state, FormationSpawnerState::Active { on_cooldown: true })
-    // }
 }
 
 fn delete_formation_group_spawners(
     mut commands: Commands,
     formation_spawners: Query<Entity, With<FormationSpawner>>,
+    // Query using a component unique to robots, e.g., Mission
+    robots: Query<Entity, With<crate::planner::robot::Mission>>,
+    initial_viz: Query<Entity, With<InitialSpawnAreaViz>>,
+    waypoint_viz: Query<Entity, With<WaypointAreaViz>>,
+    goal_viz: Query<Entity, With<GoalPositionAreaViz>>,
 ) {
-    for spawner in &formation_spawners {
-        info!("despawning formation spawner: {:?}", spawner);
-        commands.entity(spawner).despawn();
+    info!("Despawning formation spawners, robots, and visualization entities...");
+    for spawner in formation_spawners.iter() { // Use .iter()
+        // info!("despawning formation spawner: {:?}", spawner);
+        commands.entity(spawner).despawn_recursive();
     }
+    for robot in robots.iter() { // Use .iter()
+        // info!("despawning robot: {:?}", robot);
+        commands.entity(robot).despawn_recursive();
+    }
+     for viz in initial_viz.iter() { // Use .iter()
+        // info!("despawning initial viz: {:?}", viz);
+        commands.entity(viz).despawn_recursive();
+    }
+     for viz in waypoint_viz.iter() { // Use .iter()
+        // info!("despawning waypoint viz: {:?}", viz);
+        commands.entity(viz).despawn_recursive();
+    }
+     for viz in goal_viz.iter() { // Use .iter()
+        // info!("despawning goal viz: {:?}", viz);
+        commands.entity(viz).despawn_recursive();
+    }
+     info!("Despawning complete.");
 }
 
 #[derive(Resource)]
 pub struct Scoreboard {
     pub robots_left: usize,
-    pub game_over:   bool,
+    pub game_over: bool,
 }
 
 fn create_formation_group_spawners(
@@ -372,24 +370,15 @@ fn create_formation_group_spawners(
     }
     commands.insert_resource(Scoreboard {
         robots_left: robots_to_spawn,
-        game_over:   false,
+        game_over: false,
     });
 }
 
-/// Event that is sent when a formation should be spawned.
-/// The `formation_group_index` is the index of the formation group in the
-/// `FormationGroup` resource. Telling the event reader which formation group to
-/// spawn.
-/// Assumes that the `FormationGroup` resource has been initialised, and does
-/// not change during the program's execution.
 #[derive(Debug, Event)]
 pub struct RobotFormationSpawned {
     pub formation_group_index: usize,
 }
 
-/// Advance time for each `FormationSpawnerCountdown` entity with
-/// `Time::delta()`. If the timer has just finished, send a
-/// `FormationSpawnEvent`.
 fn advance_time(
     mut spawners: Query<&mut FormationSpawner>,
     mut evw_robot_formation_spawned: EventWriter<RobotFormationSpawned>,
@@ -411,131 +400,60 @@ fn advance_time(
             });
 
             if config.simulation.pause_on_spawn {
-                // error!("pausing on spawn");
                 evw_pause_play.send(PausePlay::Pause);
             }
         }
     }
 }
 
-
-/// **Bevy** [`Update`] system
-/// Reads [`DrawSettingsEvent`], where if `DrawSettingEvent.setting ==
-/// DrawSetting::SpawnAreas` the boolean `DrawSettingEvent.value` will be used to
-/// set the visibility of the [`InitialSpawnAreaViz`] entities
 fn show_or_hide_spawn_areas(
     mut visualizers: Query<&mut Visibility, With<InitialSpawnAreaViz>>,
     mut evr_draw_settings: EventReader<crate::input::DrawSettingsEvent>,
-    config: Res<Config>, // Need config to check the specific setting name potentially
+    config: Res<Config>,
 ) {
-    // Check if the setting exists in the config struct to avoid panic if name changes
-    // This check might be overly cautious if DrawSetting enum is kept in sync
-    let setting_name = "spawn_areas"; // Match the field name in DrawSection
-
-    for event in evr_draw_settings.read() {
-        // TODO: This matching logic needs refinement.
-        // We need a way to map the event's setting (which might be an enum variant)
-        // back to the field name or have a dedicated enum variant for these areas.
-        // For now, assuming a direct string match or similar mechanism exists in DrawSettingsEvent handling.
-        // Placeholder: Directly check the config bool for now, assuming the event triggers a re-check.
-        // A better approach would involve modifying DrawSettingsEvent or DrawSetting enum.
-
-        // Let's assume DrawSettingsEvent carries enough info or we react based on config change
-        // If DrawSettingsEvent had a field like `setting_name: String`, we could use:
-        // if event.setting_name == setting_name { ... }
-
-        // Simplified approach: React to *any* DrawSettingsEvent by checking the current config value.
-        // This isn't ideal but works if the UI updates the config resource before sending the event.
+    for _ in evr_draw_settings.read() {
         let draw = config.visualisation.draw.spawn_areas;
         for mut visibility in &mut visualizers {
-             if draw {
+            if draw {
                 *visibility = Visibility::Visible;
             } else {
                 *visibility = Visibility::Hidden;
             }
         }
-
-        // Ideal approach (requires changes to DrawSetting/DrawSettingsEvent):
-        // if matches!(event.setting, crate::input::DrawSetting::SpawnAreas) { // Assuming SpawnAreas variant exists
-        //     for mut visibility in &mut visualizers {
-        //         if event.draw {
-        //             *visibility = Visibility::Visible;
-        //         } else {
-        //             *visibility = Visibility::Hidden;
-        //         }
-        //     }
-        // }
     }
 }
 
-
-/// **Bevy** [`Update`] system
-/// Reads [`DrawSettingsEvent`], where if `DrawSettingEvent.setting ==
-/// DrawSetting::WaypointAreas` the boolean `DrawSettingEvent.value` will be used to
-/// set the visibility of the [`WaypointAreaViz`] entities
 fn show_or_hide_waypoint_areas(
     mut visualizers: Query<&mut Visibility, With<WaypointAreaViz>>,
     mut evr_draw_settings: EventReader<crate::input::DrawSettingsEvent>,
-    config: Res<Config>, // Need config to check the specific setting name potentially
+    config: Res<Config>,
 ) {
-     // Similar logic as show_or_hide_spawn_areas
-    let setting_name = "waypoint_areas";
-
-    for event in evr_draw_settings.read() {
-        // Simplified approach: React to *any* DrawSettingsEvent by checking the current config value.
+    for _ in evr_draw_settings.read() {
         let draw = config.visualisation.draw.waypoint_areas;
-         for mut visibility in &mut visualizers {
-             if draw {
+        for mut visibility in &mut visualizers {
+            if draw {
                 *visibility = Visibility::Visible;
             } else {
                 *visibility = Visibility::Hidden;
             }
         }
-        // Ideal approach (requires changes to DrawSetting/DrawSettingsEvent):
-        // if matches!(event.setting, crate::input::DrawSetting::WaypointAreas) { // Assuming WaypointAreas variant exists
-        //     for mut visibility in &mut visualizers {
-        //         if event.draw {
-        //             *visibility = Visibility::Visible;
-        //         } else {
-        //             *visibility = Visibility::Hidden;
-        //         }
-        //     }
-        // }
     }
 }
 
-/// **Bevy** [`Update`] system
-/// Reads [`DrawSettingsEvent`], where if `DrawSettingEvent.setting ==
-/// DrawSetting::GoalPositionAreas` the boolean `DrawSettingEvent.value` will be used to
-/// set the visibility of the [`GoalPositionAreaViz`] entities
 fn show_or_hide_goal_position_areas(
     mut visualizers: Query<&mut Visibility, With<GoalPositionAreaViz>>,
     mut evr_draw_settings: EventReader<crate::input::DrawSettingsEvent>,
-    config: Res<Config>, // Need config to check the specific setting name potentially
+    config: Res<Config>,
 ) {
-     // Similar logic as show_or_hide_spawn_areas
-    let setting_name = "goal_position_areas";
-
-    for event in evr_draw_settings.read() {
-        // Simplified approach: React to *any* DrawSettingsEvent by checking the current config value.
+    for _ in evr_draw_settings.read() {
         let draw = config.visualisation.draw.goal_position_areas;
-         for mut visibility in &mut visualizers {
-             if draw {
+        for mut visibility in &mut visualizers {
+            if draw {
                 *visibility = Visibility::Visible;
             } else {
                 *visibility = Visibility::Hidden;
             }
         }
-        // Ideal approach (requires changes to DrawSetting/DrawSettingsEvent):
-        // if matches!(event.setting, crate::input::DrawSetting::GoalPositionAreas) { // Assuming GoalPositionAreas variant exists
-        //     for mut visibility in &mut visualizers {
-        //         if event.draw {
-        //             *visibility = Visibility::Visible;
-        //         } else {
-        //             *visibility = Visibility::Hidden;
-        //         }
-        //     }
-        // }
     }
 }
 
@@ -552,8 +470,8 @@ fn spawn_formation(
     simulation_manager: Res<SimulationManager>,
     sdf: Res<Sdf>,
     mut prng: ResMut<GlobalEntropy<bevy_prng::WyRand>>,
-    mut mesh_assets: ResMut<Assets<Mesh>>, // Changed to mutable
-    meshes: Res<Meshes>,                   // Added Meshes resource
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+    meshes: Res<Meshes>,
     time_fixed: Res<Time<Fixed>>,
 ) {
     for event in evr_robot_formation_spawned.read() {
@@ -563,6 +481,48 @@ fn spawn_formation(
 
         let formation = &formation_group.formations[event.formation_group_index];
 
+        // --- Validation ---
+        if !formation.waypoints.is_empty() && formation.goal_position.is_some() {
+            error!(
+                "Formation {} cannot define both 'waypoints' and 'goal_position'. Skipping.",
+                event.formation_group_index
+            );
+            continue; // Skip this formation
+        }
+
+        if formation.waypoints.is_empty() && formation.goal_position.is_none() {
+            error!(
+                "Formation {} must define either 'waypoints' or 'goal_position'. Skipping.",
+                event.formation_group_index
+            );
+            continue; // Skip this formation
+        }
+
+        if !formation.waypoints.is_empty() && formation.initial_position.multi_shapes.is_some() {
+            warn!(
+                "Formation {} defines 'waypoints' and 'initial_position.multi_shapes'. 'multi_shapes' will be ignored for initial placement with waypoints.",
+                event.formation_group_index
+            );
+            if formation.initial_position.shape.is_none() {
+                error!(
+                    "Formation {} defines 'waypoints' but 'initial_position' is missing a single 'shape' (required when using waypoints). Skipping.",
+                    event.formation_group_index
+                );
+                continue;
+            }
+        }
+
+        if formation.initial_position.shape.is_none()
+            && formation.initial_position.multi_shapes.is_none()
+        {
+            error!(
+                "Formation {} 'initial_position' must define either 'shape' or 'multi_shapes'. Skipping.",
+                event.formation_group_index
+            );
+            continue;
+        }
+        // --- End Validation ---
+
         let world_dims = {
             let tile_size = env_config.tiles.settings.tile_size as f64;
             let width = tile_size * env_config.tiles.grid.ncols() as f64;
@@ -570,225 +530,326 @@ fn spawn_formation(
             WorldDimensions::new(width, height)
         };
 
-        let max_placement_attempts = NonZeroUsize::new(1000).expect("1000 is not zero");
+        let max_placement_attempts = 1000; // Max attempts for placing a single robot
 
         let radii = (0..formation.robots)
             .map(|_| prng.gen_range(config.robot.radius.range()))
             .collect::<Vec<_>>();
 
-        let Some((initial_position_for_each_robot, waypoint_positions_for_each_robot)) = formation
-            .as_positions(
-                world_dims,
-                &radii, /* config.robot.radius,
-                         * max_placement_attempts,
-                         * &mut prng.rng as &mut dyn Rng,
-                         * prng as &mut dyn Rng, */
-                prng.deref_mut(),
-            )
-        else {
-            error!(
-                "failed to spawn formation {}, reason: was not able to place robots after {} attempts, skipping",
-                event.formation_group_index,
-                max_placement_attempts.get() // Assuming this is defined earlier for RandomSquare too
-            );
-            return;
-        };
-
+        // --- Spawn Visualization ---
+        // (Visualization logic remains largely the same, spawning based on defined shapes)
         // --- Spawn Initial Spawn Area Visualization ---
-        if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = formation.initial_position.shape {
-            let world_p1 = world_dims.point_to_world_position(p1);
-            let world_p2 = world_dims.point_to_world_position(p2);
-            let center = (world_p1 + world_p2) / 2.0;
-            let size_vec = (world_p1 - world_p2).abs(); // Keep the actual size vector
-
-            let mut material = StandardMaterial::from(Color::from_catppuccin_colour_with_alpha(
-                theme.red(),
-                0.3, // Semi-transparent red
-            ));
-            material.unlit = true; // Make it unlit so it's clearly visible
-            material.cull_mode = None; // Render both sides
-
-            commands.spawn((
-                simulation_loader::Reloadable,
-                InitialSpawnAreaViz,
-                PbrBundle {
-                    // Create a mesh with the exact dimensions needed
-                    mesh: mesh_assets.add(Mesh::from(Rectangle::new(size_vec.x, size_vec.y))),
-                    material: materials.add(material),
-                    // No scaling needed now, just position and rotation
-                    transform: Transform::from_xyz(center.x, -config.visualisation.height.objects + 0.01, center.y) // Slightly above ground
-                        .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)), // Rotate to be flat on XZ plane
-                    visibility: if config.visualisation.draw.spawn_areas {
-                        Visibility::Visible
-                    } else {
-                        Visibility::Hidden
-                    },
-                    ..default()
-                },
-                PickableBundle::default(), // Optional: make it pickable if needed later
-            ));
+        let initial_viz_color = Color::from_catppuccin_colour_with_alpha(theme.red(), 0.3);
+        if let Some(shape) = &formation.initial_position.shape {
+            if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = shape {
+                spawn_square_viz_helper::<InitialSpawnAreaViz>(
+                    &mut commands,
+                    &mut mesh_assets,
+                    &mut materials,
+                    &theme,
+                    &config,
+                    &world_dims,
+                    *p1,
+                    *p2,
+                    initial_viz_color,
+                    config.visualisation.draw.spawn_areas,
+                );
+            }
+        } else if let Some(shapes) = &formation.initial_position.multi_shapes {
+            for shape in shapes {
+                if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = shape {
+                    spawn_square_viz_helper::<InitialSpawnAreaViz>(
+                        &mut commands,
+                        &mut mesh_assets,
+                        &mut materials,
+                        &theme,
+                        &config,
+                        &world_dims,
+                        *p1,
+                        *p2,
+                        initial_viz_color,
+                        config.visualisation.draw.spawn_areas,
+                    );
+                }
+            }
         }
         // --- End Spawn Initial Spawn Area Visualization ---
-
-
-        let initial_pose_for_each_robot: Vec<Vec4> = initial_position_for_each_robot
-            .iter()
-            .zip(
-                waypoint_positions_for_each_robot
-                    .first()
-                    .expect("there is at least one waypoint"),
-            )
-            .map(|(from, to)| {
-                let d = *to - *from;
-                let v = d.normalize_or_zero() * config.robot.target_speed.get();
-                Vec4::new(from.x, from.y, v.x, v.y)
-            })
-            .collect();
-
-
         // --- Spawn Waypoint Area Visualizations ---
+        let waypoint_viz_color = Color::from_catppuccin_colour_with_alpha(theme.blue(), 0.3);
         for waypoint in formation.waypoints.iter() {
-             if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = waypoint.shape {
-                let world_p1 = world_dims.point_to_world_position(p1);
-                let world_p2 = world_dims.point_to_world_position(p2);
-                let center = (world_p1 + world_p2) / 2.0;
-                let size_vec = (world_p1 - world_p2).abs(); // Keep the actual size vector
-
-                let mut material = StandardMaterial::from(Color::from_catppuccin_colour_with_alpha(
-                    theme.blue(),
-                    0.3, // Semi-transparent light blue
-                ));
-                material.unlit = true;
-                material.cull_mode = None;
-
-                commands.spawn((
-                    simulation_loader::Reloadable,
-                    WaypointAreaViz, // Use the correct marker component
-                    PbrBundle {
-                         // Create a mesh with the exact dimensions needed
-                        mesh: mesh_assets.add(Mesh::from(Rectangle::new(size_vec.x, size_vec.y))),
-                        material: materials.add(material),
-                         // No scaling needed now, just position and rotation
-                        transform: Transform::from_xyz(center.x, -config.visualisation.height.objects + 0.01, center.y)
-                            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-                        visibility: if config.visualisation.draw.waypoint_areas { // Use the correct draw setting
-                            Visibility::Visible
-                        } else {
-                            Visibility::Hidden
-                        },
-                        ..default()
-                    },
-                    PickableBundle::default(),
-                ));
+            if let Some(shape) = &waypoint.shape {
+                if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = shape {
+                    spawn_square_viz_helper::<WaypointAreaViz>(
+                        &mut commands,
+                        &mut mesh_assets,
+                        &mut materials,
+                        &theme,
+                        &config,
+                        &world_dims,
+                        *p1,
+                        *p2,
+                        waypoint_viz_color,
+                        config.visualisation.draw.waypoint_areas,
+                    );
+                }
+            } else if let Some(shapes) = &waypoint.multi_shapes {
+                for shape in shapes {
+                    if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = shape {
+                        spawn_square_viz_helper::<WaypointAreaViz>(
+                            &mut commands,
+                            &mut mesh_assets,
+                            &mut materials,
+                            &theme,
+                            &config,
+                            &world_dims,
+                            *p1,
+                            *p2,
+                            waypoint_viz_color,
+                            config.visualisation.draw.waypoint_areas,
+                        );
+                    }
+                }
             }
         }
         // --- End Spawn Waypoint Area Visualizations ---
-
         // --- Spawn Goal Position Area Visualizations ---
+        let goal_viz_color = Color::from_catppuccin_colour_with_alpha(theme.green(), 0.3);
         if let Some(goal_positions) = &formation.goal_position {
             for goal in goal_positions.iter() {
-                if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = goal.shape {
-                    let world_p1 = world_dims.point_to_world_position(p1);
-                    let world_p2 = world_dims.point_to_world_position(p2);
-                    let center = (world_p1 + world_p2) / 2.0;
-                    let size_vec = (world_p1 - world_p2).abs(); // Keep the actual size vector
-
-                    let mut material = StandardMaterial::from(Color::from_catppuccin_colour_with_alpha(
-                        theme.green(),
-                        0.3, // Semi-transparent green
-                    ));
-                    material.unlit = true;
-                    material.cull_mode = None;
-
-                    commands.spawn((
-                        simulation_loader::Reloadable,
-                        GoalPositionAreaViz, // Use the correct marker component
-                        PbrBundle {
-                            // Create a mesh with the exact dimensions needed
-                            mesh: mesh_assets.add(Mesh::from(Rectangle::new(size_vec.x, size_vec.y))),
-                            material: materials.add(material),
-                            // No scaling needed now, just position and rotation
-                            transform: Transform::from_xyz(center.x, -config.visualisation.height.objects + 0.01, center.y)
-                                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-                            visibility: if config.visualisation.draw.goal_position_areas { // Use the correct draw setting
-                                Visibility::Visible
-                            } else {
-                                Visibility::Hidden
-                            },
-                            ..default()
-                        },
-                        PickableBundle::default(),
-                    ));
+                if let Some(shape) = &goal.shape {
+                    if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = shape {
+                        spawn_square_viz_helper::<GoalPositionAreaViz>(
+                            &mut commands,
+                            &mut mesh_assets,
+                            &mut materials,
+                            &theme,
+                            &config,
+                            &world_dims,
+                            *p1,
+                            *p2,
+                            goal_viz_color,
+                            config.visualisation.draw.goal_position_areas,
+                        );
+                    }
+                } else if let Some(shapes) = &goal.multi_shapes {
+                    for shape in shapes {
+                        if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = shape {
+                            spawn_square_viz_helper::<GoalPositionAreaViz>(
+                                &mut commands,
+                                &mut mesh_assets,
+                                &mut materials,
+                                &theme,
+                                &config,
+                                &world_dims,
+                                *p1,
+                                *p2,
+                                goal_viz_color,
+                                config.visualisation.draw.goal_position_areas,
+                            );
+                        }
+                    }
                 }
             }
         }
         // --- End Goal Position Area Visualizations ---
+        // --- End Spawn Visualization ---
 
+        // --- Branching Logic: Waypoints vs Goal Position ---
+        if !formation.waypoints.is_empty() {
+            // --- Waypoint-based Spawning (Existing Logic using as_positions) ---
+            // Assumes initial_position uses a single shape (validated above)
+            let Some((initial_position_for_each_robot, waypoint_positions_for_each_robot)) =
+                formation.as_positions(world_dims, &radii, prng.deref_mut())
+            else {
+                error!(
+                    "failed to spawn formation {} using waypoints, reason: as_positions failed, skipping",
+                    event.formation_group_index,
+                );
+                continue; // Skip this formation
+            };
 
-        let waypoint_poses_for_each_robot: Vec<Vec<Vec4>> = waypoint_positions_for_each_robot
-            .iter()
-            .chain(waypoint_positions_for_each_robot.last().into_iter())
-            .tuple_windows()
-            .map(|(a, b)| {
-                a.iter()
-                    .zip(b.iter())
-                    .map(|(from, to)| {
-                        let d = *to - *from;
-                        let v = d.normalize_or_zero() * config.robot.target_speed.get();
-                        Vec4::new(from.x, from.y, v.x, v.y)
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect();
+            let initial_pose_for_each_robot: Vec<Vec4> = initial_position_for_each_robot
+                .iter()
+                .zip(
+                    waypoint_positions_for_each_robot
+                        .first()
+                        .expect("there is at least one waypoint"),
+                )
+                .map(|(from, to)| {
+                    let d = *to - *from;
+                    let v = d.normalize_or_zero() * config.robot.target_speed.get();
+                    Vec4::new(from.x, from.y, v.x, v.y)
+                })
+                .collect();
 
-        for (i, initial_pose_vec4) in initial_pose_for_each_robot.iter().enumerate() {
-            
-            // Construct waypoints for this specific robot
-            let mut waypoints_statevector: Vec<StateVector> = std::iter::once(initial_pose_vec4) // Start at initial pose (&Vec4)
-                .chain(waypoint_poses_for_each_robot.iter().map(|wps| &wps[i])) // Chain with other &Vec4
-                .copied() // Convert iterator of &Vec4 to iterator of Vec4
-                .map_into::<StateVector>() // Convert iterator of Vec4 to iterator of StateVector
-                .collect::<Vec<_>>();
+            let waypoint_poses_for_each_robot: Vec<Vec<Vec4>> = waypoint_positions_for_each_robot
+                .iter()
+                .chain(waypoint_positions_for_each_robot.last().into_iter())
+                .tuple_windows()
+                .map(|(a, b)| {
+                    a.iter()
+                        .zip(b.iter())
+                        .map(|(from, to)| {
+                            let d = *to - *from;
+                            let v = d.normalize_or_zero() * config.robot.target_speed.get();
+                            Vec4::new(from.x, from.y, v.x, v.y)
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect();
 
-            // Ensure the last waypoint has appropriate velocity (e.g., zero or copied from second last)
-            if waypoints_statevector.len() >= 2 {
-                let second_last_vel = waypoints_statevector[waypoints_statevector.len() - 2].velocity();
-                waypoints_statevector.last_mut().unwrap().update_velocity(second_last_vel);
+            for (i, initial_pose_vec4) in initial_pose_for_each_robot.iter().enumerate() {
+                let mut waypoints_statevector: Vec<StateVector> = std::iter::once(initial_pose_vec4)
+                    .chain(waypoint_poses_for_each_robot.iter().map(|wps| &wps[i]))
+                    .copied()
+                    .map_into::<StateVector>()
+                    .collect::<Vec<_>>();
+
+                if waypoints_statevector.len() >= 2 {
+                    let second_last_vel =
+                        waypoints_statevector[waypoints_statevector.len() - 2].velocity();
+                    waypoints_statevector
+                        .last_mut()
+                        .unwrap()
+                        .update_velocity(second_last_vel);
+                }
+
+                let initial_state_vec = StateVector::new(*initial_pose_vec4);
+                let radius = radii[i];
+                let target_speed = config.robot.target_speed.get();
+
+                let waypoints_for_mission: TwoOrMore<StateVector> = waypoints_statevector
+                    .try_into()
+                    .expect("Waypoints vec should have >= 2 elements");
+
+                let _robot_entity = spawn_robot(
+                    &mut commands,
+                    &config,
+                    &env_config,
+                    &sdf,
+                    &mut prng,
+                    &mut materials,
+                    &mut mesh_assets,
+                    &theme,
+                    &time_fixed,
+                    &mut evw_robot_spawned,
+                    &mut evw_waypoint_created,
+                    initial_state_vec,
+                    waypoints_for_mission,
+                    radius,
+                    formation.planning_strategy,
+                    target_speed,
+                    formation.waypoint_reached_when_intersects,
+                    formation.finished_when_intersects,
+                    None,
+                );
             }
+        // --- End Waypoint-based Spawning ---
+        } else if let Some(goal_positions) = &formation.goal_position {
+            // --- Goal-Position-based Spawning (New Per-Robot Logic) ---
+            let mut placed_robots: Vec<(Vec2, f32)> = Vec::with_capacity(formation.robots);
 
-            let initial_state_vec = StateVector::new(*initial_pose_vec4);
-            let radius = radii[i];
-            let target_speed = config.robot.target_speed.get(); 
+            for i in 0..formation.robots {
+                let radius = radii[i];
 
-            // Convert the Vec<StateVector> into TwoOrMore<StateVector> for the helper function
-            let waypoints_for_mission: TwoOrMore<StateVector> = waypoints_statevector
-                .try_into()
-                .expect("Waypoints vec should have >= 2 elements");
+                // 1. Select Initial Shape
+                let initial_shape = match select_shape_helper(
+                    &formation.initial_position.shape,
+                    &formation.initial_position.multi_shapes,
+                    &format!("formation {} initial", event.formation_group_index),
+                    &mut *prng,
+                ) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!("Skipping robot {}: {}", i, e);
+                        continue;
+                    }
+                };
 
+                // 2. Calculate Initial Position (with collision avoidance)
+                let initial_pos = match place_single_robot(
+                    &initial_shape,
+                    &world_dims,
+                    radius,
+                    &placed_robots,
+                    max_placement_attempts, // Use NonZeroUsize directly
+                    &mut *prng,
+                ) {
+                    Some(pos) => pos,
+                    None => {
+                        error!(
+                            "Failed to place robot {} for formation {} after {} attempts. Skipping robot.",
+                            i, event.formation_group_index, max_placement_attempts
+                        );
+                        continue; // Skip this robot
+                    }
+                };
+                placed_robots.push((initial_pos, radius)); // Add successfully placed robot
 
-            // Call the helper function
-            let _robot_entity = crate::planner::spawn_utils::spawn_robot(
-                &mut commands,
-                &config,
-                &env_config,
-                &sdf,
-                &mut prng,
-                &mut materials,
-                &mut mesh_assets,
-                &theme,
-                &time_fixed,
-                &mut evw_robot_spawned,
-                &mut evw_waypoint_created,
-                // Robot specific parameters
-                initial_state_vec,
-                waypoints_for_mission, // Pass the constructed TwoOrMore<StateVector>
-                radius,
-                formation.planning_strategy,
-                target_speed,
-                formation.waypoint_reached_when_intersects,
-                formation.finished_when_intersects,
-                None, // No initial custom weights from formation spawner
-            );
+                // 3. Select Goal Shape
+                // Assuming goal_position is OneOrMore, so unwrap is safe after validation
+                let goal_waypoint = goal_positions
+                    .iter()
+                    .choose(&mut *prng) // Choose one Waypoint struct randomly
+                    .expect("Goal position list should not be empty (validated earlier)");
+
+                let goal_shape = match select_shape_helper(
+                    &goal_waypoint.shape,
+                    &goal_waypoint.multi_shapes,
+                    &format!("formation {} goal", event.formation_group_index),
+                    &mut *prng,
+                ) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!("Skipping robot {}: {}", i, e);
+                        continue;
+                    }
+                };
+
+                // 4. Calculate Goal Position
+                let goal_pos = match goal_shape.get_random_point(&world_dims, &mut *prng) {
+                    Some(pos) => pos,
+                    None => {
+                        error!(
+                            "Failed to get random point in goal shape {:?} for robot {}. Skipping robot.",
+                            goal_shape, i
+                        );
+                        continue;
+                    }
+                };
+
+                // 5. Spawn Robot
+                let initial_state_vec =
+                    StateVector::new(Vec4::new(initial_pos.x, initial_pos.y, 0.0, 0.0)); // Start with zero velocity
+                let goal_state_vec =
+                    StateVector::new(Vec4::new(goal_pos.x, goal_pos.y, 0.0, 0.0)); // Zero velocity at goal
+
+                let waypoints_for_mission = two_or_more![initial_state_vec, goal_state_vec];
+                let target_speed = config.robot.target_speed.get();
+
+                let _robot_entity = spawn_robot(
+                    &mut commands,
+                    &config,
+                    &env_config,
+                    &sdf,
+                    &mut prng,
+                    &mut materials,
+                    &mut mesh_assets,
+                    &theme,
+                    &time_fixed,
+                    &mut evw_robot_spawned,
+                    &mut evw_waypoint_created,
+                    initial_state_vec,
+                    waypoints_for_mission,
+                    radius,
+                    formation.planning_strategy,
+                    target_speed,
+                    formation.waypoint_reached_when_intersects,
+                    formation.finished_when_intersects,
+                    None, // No initial custom weights from spawner
+                );
+            }
+            // --- End Goal-Position-based Spawning ---
         }
     }
 }

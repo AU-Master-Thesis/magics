@@ -11,9 +11,11 @@ use gbp_config::{
 use gbp_linalg::prelude::*;
 use min_len_vec::{one_or_more, two_or_more, OneOrMore, TwoOrMore};
 use rand::seq::IteratorRandom;
+use rand::Rng; // Added import
 use strum::IntoEnumIterator;
 use std::time::Duration;
 
+use gbp_config::geometry::Shape; // Use external crate path
 use crate::{
     api::state::FactorWeights as ApiFactorWeights, // Keep alias for clarity
     environment::{FollowCameraMe},
@@ -31,7 +33,42 @@ use crate::{
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
     goal_area,
     utils, // Added utils for get_variable_timesteps
+    // gbp_config::geometry::Shape, // Removed duplicate import
 };
+
+
+/// Places a single robot randomly within the given shape, avoiding collisions with already placed robots.
+/// Returns `Some(Vec2)` with the valid position if successful within `max_attempts`, otherwise `None`.
+pub fn place_single_robot<R: Rng + ?Sized>( // Made public
+    shape: &Shape,
+    world_dims: &gbp_config::formation::WorldDimensions,
+    robot_radius: f32,
+    placed_robots: &[(Vec2, f32)], // List of (position, radius) of already placed robots
+    max_attempts: usize,
+    rng: &mut R,
+) -> Option<Vec2> {
+    for _ in 0..max_attempts {
+        if let Some(candidate_pos) = shape.get_random_point(world_dims, rng) {
+            let collision_free = placed_robots
+                .iter()
+                .all(|(other_pos, other_radius)| {
+                    candidate_pos.distance(*other_pos) >= robot_radius + *other_radius
+                });
+
+            if collision_free {
+                return Some(candidate_pos);
+            }
+        } else {
+            // Shape does not support random point generation (e.g., Polygon)
+            // or failed internally. We cannot place the robot.
+            error!("Failed to generate a random point within the provided shape: {:?}", shape);
+            return None;
+        }
+    }
+    // Failed to find a collision-free spot after max_attempts
+    warn!("Failed to place robot collision-free after {} attempts within shape: {:?}", max_attempts, shape);
+    None
+}
 
 
 /// Helper function to spawn a single robot entity with all necessary components.
