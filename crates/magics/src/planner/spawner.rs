@@ -1,11 +1,16 @@
-use std::{num::NonZeroUsize, ops::DerefMut, time::Duration};
+use std::{
+    num::NonZeroUsize,
+    ops::DerefMut,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_notify::ToastEvent;
 use bevy_rand::prelude::{ForkableRng, GlobalEntropy};
 use gbp_config::{
-    formation::{select_shape_helper, PlanningStrategy, RepeatTimes, WorldDimensions}, // Added select_shape_helper
+    formation::{select_shape_helper, PlanningStrategy, RepeatTimes, WorldDimensions}, /* Added select_shape_helper */
     geometry::Shape, // Added Shape
     Config,
 };
@@ -16,22 +21,23 @@ use strum::IntoEnumIterator;
 
 use super::{
     robot::{RobotFinishedRoute, RobotSpawned},
-    spawn_utils::{place_single_robot, spawn_robot}, // Corrected path for place_single_robot and added spawn_robot
+    spawn_utils::{place_single_robot, spawn_robot}, /* Corrected path for place_single_robot and
+                                                     * added spawn_robot */
     RobotId,
 };
 use crate::{
     // asset_loader::SceneAssets,
     asset_loader::Meshes,
+    bevy_utils::run_conditions::event_exists, // Import event_exists
     environment::FollowCameraMe,
     pause_play::PausePlay,
     planner::robot::{RobotBundle, Route, StateVector},
+    planner::visualiser::{GoalPositionAreaViz, InitialSpawnAreaViz, WaypointAreaViz}, /* Import new components */
     simulation_loader::{
         self, EndSimulation, LoadSimulation, ReloadSimulation, Sdf, SimulationManager,
     },
-    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour}, // Restore theme imports
-    planner::visualiser::{InitialSpawnAreaViz, WaypointAreaViz, GoalPositionAreaViz}, // Import new components
+    theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour}, /* Restore theme imports */
     utils::get_variable_timesteps,
-    bevy_utils::run_conditions::event_exists, // Import event_exists
 };
 
 /// Helper function to spawn a square visualization mesh.
@@ -180,12 +186,12 @@ pub struct WaypointCreated {
     /// The id of the robot the waypoint is created for
     pub for_robot: RobotId,
     /// The (x,y) position of the created waypoint in world coordinates.
-    pub position: Vec2,
+    pub position:  Vec2,
 }
 
 #[derive(Debug, Clone)]
 pub struct RepeatingTimer {
-    timer: Timer,
+    timer:  Timer,
     repeat: RepeatTimes,
 }
 
@@ -229,7 +235,9 @@ pub struct FormationSpawner {
 enum FormationSpawnerState {
     #[default]
     Inactive,
-    Active { on_cooldown: bool },
+    Active {
+        on_cooldown: bool,
+    },
     Finished,
 }
 
@@ -314,33 +322,38 @@ fn delete_formation_group_spawners(
     goal_viz: Query<Entity, With<GoalPositionAreaViz>>,
 ) {
     info!("Despawning formation spawners, robots, and visualization entities...");
-    for spawner in formation_spawners.iter() { // Use .iter()
+    for spawner in formation_spawners.iter() {
+        // Use .iter()
         // info!("despawning formation spawner: {:?}", spawner);
         commands.entity(spawner).despawn_recursive();
     }
-    for robot in robots.iter() { // Use .iter()
+    for robot in robots.iter() {
+        // Use .iter()
         // info!("despawning robot: {:?}", robot);
         commands.entity(robot).despawn_recursive();
     }
-     for viz in initial_viz.iter() { // Use .iter()
+    for viz in initial_viz.iter() {
+        // Use .iter()
         // info!("despawning initial viz: {:?}", viz);
         commands.entity(viz).despawn_recursive();
     }
-     for viz in waypoint_viz.iter() { // Use .iter()
+    for viz in waypoint_viz.iter() {
+        // Use .iter()
         // info!("despawning waypoint viz: {:?}", viz);
         commands.entity(viz).despawn_recursive();
     }
-     for viz in goal_viz.iter() { // Use .iter()
+    for viz in goal_viz.iter() {
+        // Use .iter()
         // info!("despawning goal viz: {:?}", viz);
         commands.entity(viz).despawn_recursive();
     }
-     info!("Despawning complete.");
+    info!("Despawning complete.");
 }
 
 #[derive(Resource)]
 pub struct Scoreboard {
     pub robots_left: usize,
-    pub game_over: bool,
+    pub game_over:   bool,
 }
 
 fn create_formation_group_spawners(
@@ -370,7 +383,7 @@ fn create_formation_group_spawners(
     }
     commands.insert_resource(Scoreboard {
         robots_left: robots_to_spawn,
-        game_over: false,
+        game_over:   false,
     });
 }
 
@@ -500,12 +513,14 @@ fn spawn_formation(
 
         if !formation.waypoints.is_empty() && formation.initial_position.multi_shapes.is_some() {
             warn!(
-                "Formation {} defines 'waypoints' and 'initial_position.multi_shapes'. 'multi_shapes' will be ignored for initial placement with waypoints.",
+                "Formation {} defines 'waypoints' and 'initial_position.multi_shapes'. \
+                 'multi_shapes' will be ignored for initial placement with waypoints.",
                 event.formation_group_index
             );
             if formation.initial_position.shape.is_none() {
                 error!(
-                    "Formation {} defines 'waypoints' but 'initial_position' is missing a single 'shape' (required when using waypoints). Skipping.",
+                    "Formation {} defines 'waypoints' but 'initial_position' is missing a single \
+                     'shape' (required when using waypoints). Skipping.",
                     event.formation_group_index
                 );
                 continue;
@@ -516,7 +531,8 @@ fn spawn_formation(
             && formation.initial_position.multi_shapes.is_none()
         {
             error!(
-                "Formation {} 'initial_position' must define either 'shape' or 'multi_shapes'. Skipping.",
+                "Formation {} 'initial_position' must define either 'shape' or 'multi_shapes'. \
+                 Skipping.",
                 event.formation_group_index
             );
             continue;
@@ -537,8 +553,8 @@ fn spawn_formation(
             .collect::<Vec<_>>();
 
         // --- Spawn Visualization ---
-        // (Visualization logic remains largely the same, spawning based on defined shapes)
-        // --- Spawn Initial Spawn Area Visualization ---
+        // (Visualization logic remains largely the same, spawning based on defined
+        // shapes) --- Spawn Initial Spawn Area Visualization ---
         let initial_viz_color = Color::from_catppuccin_colour_with_alpha(theme.red(), 0.3);
         if let Some(shape) = &formation.initial_position.shape {
             if let gbp_config::geometry::Shape::RandomSquare { p1, p2, .. } = shape {
@@ -662,7 +678,8 @@ fn spawn_formation(
                 formation.as_positions(world_dims, &radii, prng.deref_mut())
             else {
                 error!(
-                    "failed to spawn formation {} using waypoints, reason: as_positions failed, skipping",
+                    "failed to spawn formation {} using waypoints, reason: as_positions failed, \
+                     skipping",
                     event.formation_group_index,
                 );
                 continue; // Skip this formation
@@ -699,11 +716,12 @@ fn spawn_formation(
                 .collect();
 
             for (i, initial_pose_vec4) in initial_pose_for_each_robot.iter().enumerate() {
-                let mut waypoints_statevector: Vec<StateVector> = std::iter::once(initial_pose_vec4)
-                    .chain(waypoint_poses_for_each_robot.iter().map(|wps| &wps[i]))
-                    .copied()
-                    .map_into::<StateVector>()
-                    .collect::<Vec<_>>();
+                let mut waypoints_statevector: Vec<StateVector> =
+                    std::iter::once(initial_pose_vec4)
+                        .chain(waypoint_poses_for_each_robot.iter().map(|wps| &wps[i]))
+                        .copied()
+                        .map_into::<StateVector>()
+                        .collect::<Vec<_>>();
 
                 if waypoints_statevector.len() >= 2 {
                     let second_last_vel =
@@ -726,7 +744,7 @@ fn spawn_formation(
                     &mut commands,
                     &config,
                     &env_config,
-                    &sdf,
+                    sdf.0.clone(), // Access the Arc and clone it
                     &mut prng,
                     &mut materials,
                     &mut mesh_assets,
@@ -778,7 +796,8 @@ fn spawn_formation(
                     Some(pos) => pos,
                     None => {
                         error!(
-                            "Failed to place robot {} for formation {} after {} attempts. Skipping robot.",
+                            "Failed to place robot {} for formation {} after {} attempts. \
+                             Skipping robot.",
                             i, event.formation_group_index, max_placement_attempts
                         );
                         continue; // Skip this robot
@@ -811,7 +830,8 @@ fn spawn_formation(
                     Some(pos) => pos,
                     None => {
                         error!(
-                            "Failed to get random point in goal shape {:?} for robot {}. Skipping robot.",
+                            "Failed to get random point in goal shape {:?} for robot {}. Skipping \
+                             robot.",
                             goal_shape, i
                         );
                         continue;
@@ -821,8 +841,7 @@ fn spawn_formation(
                 // 5. Spawn Robot
                 let initial_state_vec =
                     StateVector::new(Vec4::new(initial_pos.x, initial_pos.y, 0.0, 0.0)); // Start with zero velocity
-                let goal_state_vec =
-                    StateVector::new(Vec4::new(goal_pos.x, goal_pos.y, 0.0, 0.0)); // Zero velocity at goal
+                let goal_state_vec = StateVector::new(Vec4::new(goal_pos.x, goal_pos.y, 0.0, 0.0)); // Zero velocity at goal
 
                 let waypoints_for_mission = two_or_more![initial_state_vec, goal_state_vec];
                 let target_speed = config.robot.target_speed.get();
@@ -831,7 +850,7 @@ fn spawn_formation(
                     &mut commands,
                     &config,
                     &env_config,
-                    &sdf,
+                    sdf.0.clone(), // Access the Arc and clone it
                     &mut prng,
                     &mut materials,
                     &mut mesh_assets,

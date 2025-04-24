@@ -7,11 +7,11 @@ use gbp_linalg::prelude::*;
 use ndarray::array;
 
 use super::{Factor, FactorState, Measurement};
-use crate::simulation_loader::SdfImage;
+use crate::simulation_loader::{SdfImage, SharedSdfImage};
 
 pub struct ObstacleFactor {
     /// The signed distance field of the environment
-    obstacle_sdf:     SdfImage,
+    obstacle_sdf:     SharedSdfImage,
     /// Copy of the `WORLD_SZ` setting from **gbpplanner**, that we store a copy
     /// of here since `ObstacleFactor` needs this information to calculate
     /// `.jacobian_delta()` and `.measurement()`
@@ -94,7 +94,7 @@ impl ObstacleFactor {
 
     /// Creates a new [`ObstacleFactor`].
     #[must_use]
-    pub fn new(obstacle_sdf: SdfImage, world_size: WorldSize) -> Self {
+    pub fn new(obstacle_sdf: SharedSdfImage, world_size: WorldSize) -> Self {
         let jacobian_delta = {
             let width = world_size.width / Float::from(obstacle_sdf.width());
             let height = world_size.height / Float::from(obstacle_sdf.height());

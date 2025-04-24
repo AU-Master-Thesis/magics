@@ -19,7 +19,7 @@ use crate::{
 pub struct RobotCollisionsPlugin;
 
 impl RobotCollisionsPlugin {
-    pub const UPDATE_EVERY: Duration = Duration::from_millis(200);
+    pub const UPDATE_EVERY: Duration = Duration::from_millis(10);
 }
 
 impl Plugin for RobotCollisionsPlugin {

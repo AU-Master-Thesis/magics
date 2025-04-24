@@ -1,8 +1,16 @@
 use bevy::prelude::*;
-use gbp_config::{formation::{PlanningStrategy, ReachedWhen}, Config};
+use gbp_config::{
+    formation::{PlanningStrategy, ReachedWhen},
+    Config,
+};
 use gbp_linalg::prelude::*;
 use ndarray::{array, concatenate, s, Axis};
 
+use super::{
+    gbp::GbpIterationSchedule,
+    mission::Mission,
+    utils::RobotNumberGenerator, // Assuming utils.rs will exist
+};
 use crate::{
     factorgraph::{
         factor::{ExternalVariableId, FactorNode},
@@ -11,13 +19,7 @@ use crate::{
         variable::VariableNode,
         DOFS,
     },
-    simulation_loader::SdfImage,
-};
-
-use super::{
-    gbp::GbpIterationSchedule,
-    mission::Mission,
-    utils::RobotNumberGenerator, // Assuming utils.rs will exist
+    simulation_loader::{SdfImage, SharedSdfImage},
 };
 
 pub type RobotId = Entity;
@@ -193,7 +195,7 @@ impl RobotBundle {
         config: &Config,
         env_config: &gbp_environment::Environment,
         radius: f32,
-        sdf: &SdfImage,
+        sdf: SharedSdfImage,
         started_at: f64,
         waypoints: min_len_vec::TwoOrMore<StateVector>,
         planning_strategy: PlanningStrategy,
@@ -312,7 +314,7 @@ impl RobotBundle {
                 factorgraph.id(),
                 Float::from(config.gbp.sigma_factor_obstacle),
                 array![0.0],
-                sdf.clone(),
+                sdf.clone(), // Clone the Arc to avoid moving it
                 world_size,
                 config.gbp.factors_enabled.obstacle,
             );

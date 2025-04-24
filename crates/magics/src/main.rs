@@ -53,13 +53,16 @@ use gbp_environment::{Environment, EnvironmentType};
 use magics::AppState;
 
 use crate::cli::DumpDefault;
-
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
 #[allow(clippy::too_many_lines)]
 fn main() -> anyhow::Result<()> {
     const NAME: &str = env!("CARGO_PKG_NAME");
     const VERSION: &str = env!("CARGO_PKG_VERSION");
     const MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
-
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
     let cli = cli::parse_arguments();
 
     if let Some(dump) = cli.dump_default {

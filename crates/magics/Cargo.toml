@@ -27,20 +27,21 @@ codegen-units = 256      # Increase parallelism
 
 # Release profile optimizations - full optimization
 [profile.release]
-opt-level = 3            # Maximum optimization
-codegen-units = 1        # Single unit compilation for maximum cross-module optimization
-lto = "fat"              # Full link-time optimization for better performance
-strip = "symbols"        # Strip symbols from binary to reduce size
-debug            = false
-debug-assertions = false
-panic            = "abort"
-rpath            = false
-incremental = true
+# opt-level = 3            # Maximum optimization
+# codegen-units = 1        # Single unit compilation for maximum cross-module optimization
+# lto = "fat"              # Full link-time optimization for better performance
+# strip = "symbols"        # Strip symbols from binary to reduce size
+debug            = 1
+# debug-assertions = false
+# panic            = "abort"
+# rpath            = false
+# incremental = true
 
 [features]
 dev = [
   "bevy/dynamic_linking",
 ]
+dhat-heap = []    # if you are doing heap profiling
 
 # TODO: use this feature, to only sample last measurement when enabled
 visualization-obstacle-factors = [
@@ -164,6 +165,7 @@ ordered-float = "4.2.0"
 zmq = { version = "0.10", optional = false }
 
 open = "5.1"
+dhat = "0.3.3"
 
 [dev-dependencies]
 pretty_assertions.workspace = true

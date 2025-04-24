@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, VecDeque},
+    sync::{Arc, RwLock},
     time::Duration,
 };
 
@@ -50,10 +51,14 @@ impl SimulationLoaderPlugin {
 }
 
 pub type SdfImage = image::ImageBuffer<image::Rgb<u8>, Vec<u8>>;
+pub type SharedSdfImage = Arc<SdfImage>;
 pub type RawImage = image::ImageBuffer<image::Rgb<u8>, Vec<u8>>;
 
+// #[derive(Debug, Clone, Resource, Deref, DerefMut)]
+// pub struct Sdf(pub SdfImage);
+
 #[derive(Debug, Clone, Resource, Deref, DerefMut)]
-pub struct Sdf(pub SdfImage);
+pub struct Sdf(pub SharedSdfImage);
 
 #[derive(Debug, Clone, Resource, Deref, DerefMut)]
 pub struct Raw(pub RawImage);
@@ -183,7 +188,7 @@ impl Plugin for SimulationLoaderPlugin {
                     config,
                     environment,
                     formation_group: formation,
-                    sdf: Sdf(sdf_image_buffer.into()),
+                    sdf: Sdf(Arc::new(sdf_image_buffer.into())),
                     // raw: Raw(raw_image_buffer.into()),
                 };
 
@@ -215,7 +220,10 @@ impl Plugin for SimulationLoaderPlugin {
         let config = initial_simulation.config.clone();
         let formation_group = initial_simulation.formation_group.clone();
         let environment = initial_simulation.environment.clone();
-        let sdf = initial_simulation.sdf.clone();
+        let sdf = initial_simulation.sdf.clone(); // This now just clones the Arc, not the entire image
+
+        // let sdf = Arc::new(RwLock::new(sdf));
+        // let sdf = Box::leak(Box::new(sdf));
         // let raw = initial_simulation.raw.clone();
 
         let initial_simulation_name = initial_simulation.name.clone();
@@ -489,7 +497,7 @@ pub struct SimulationId(usize);
 #[derive(Event)]
 pub struct LoadSimulation {
     /// ID of the simulation to load
-    pub id: SimulationId,
+    pub id:   SimulationId,
     /// Name of the simulation
     pub name: String,
 }
@@ -661,7 +669,10 @@ fn handle_requests(
                 id,
                 name: simulation_name.clone(),
             });
-            info!("sent load simulation event with id: {} and name: {}", id.0, simulation_name);
+            info!(
+                "sent load simulation event with id: {} and name: {}",
+                id.0, simulation_name
+            );
             simulation_manager.simulations_loaded += 1;
             let simulation_name = &simulation_manager.names[id.0];
 
@@ -727,7 +738,7 @@ fn handle_requests(
 
             let virtual_time = time_virtual.bypass_change_detection();
             *virtual_time = Time::<Virtual>::default();
-            
+
             // Check if we should pause on load
             if config.simulation.pause_on_load {
                 info!("Pausing simulation on load as configured");

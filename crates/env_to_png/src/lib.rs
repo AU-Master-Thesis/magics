@@ -158,8 +158,10 @@ pub fn env_to_sdf_image(
     if blur_pixels < 1.0 {
         return Ok(image);
     }
-    let sdf = image::imageops::blur(&image, blur_pixels);
-
+    let sdf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> =
+        image::imageops::blur(&image, blur_pixels);
+    // print height and width of the image
+    println!("SDF image height: {}, width: {}", sdf.height(), sdf.width());
     Ok(sdf)
 }
 

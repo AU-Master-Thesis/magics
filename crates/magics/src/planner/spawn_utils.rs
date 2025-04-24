@@ -1,11 +1,14 @@
 //! Utility functions for spawning robot entities.
 
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::{Click, On, PickableBundle, Pointer};
 use bevy_prng::WyRand;
 use bevy_rand::prelude::{ForkableRng, GlobalEntropy};
+use gbp_config::geometry::Shape; // Use external crate path
 use gbp_config::{
-    formation::{ReachedWhen, PlanningStrategy},
+    formation::{PlanningStrategy, ReachedWhen},
     Config,
 };
 use gbp_linalg::prelude::*;
@@ -13,33 +16,34 @@ use min_len_vec::{one_or_more, two_or_more, OneOrMore, TwoOrMore};
 use rand::seq::IteratorRandom;
 use rand::Rng; // Added import
 use strum::IntoEnumIterator;
-use std::time::Duration;
 
-use gbp_config::geometry::Shape; // Use external crate path
+use crate::simulation_loader::SharedSdfImage;
 use crate::{
     api::state::FactorWeights as ApiFactorWeights, // Keep alias for clarity
-    environment::{FollowCameraMe},
+    environment::FollowCameraMe,
     factorgraph::factorgraph::FactorGraph,
+    goal_area,
     movement::Velocity,
     planner::{
         robot::{
-            Mission, RadioAntenna, Radius, RobotBundle, RobotConnections, RobotDespawned,
-            RobotSpawned, Route, StateVector, VariableTimesteps, T0, FinishedPath, Ball, GbpIterationSchedule
+            Ball, FinishedPath, GbpIterationSchedule, Mission, RadioAntenna, Radius, RobotBundle,
+            RobotConnections, RobotDespawned, RobotSpawned, Route, StateVector, VariableTimesteps,
+            T0,
         },
         spawner::{RobotClickedOn, WaypointCreated},
         tracking::{PositionTracker, VelocityTracker},
     },
     simulation_loader::{Reloadable, Sdf, SdfImage},
     theme::{CatppuccinTheme, ColorAssociation, ColorFromCatppuccinColourExt, DisplayColour},
-    goal_area,
-    utils, // Added utils for get_variable_timesteps
-    // gbp_config::geometry::Shape, // Removed duplicate import
+    utils, /* Added utils for get_variable_timesteps
+            * gbp_config::geometry::Shape, // Removed duplicate import */
 };
 
-
-/// Places a single robot randomly within the given shape, avoiding collisions with already placed robots.
-/// Returns `Some(Vec2)` with the valid position if successful within `max_attempts`, otherwise `None`.
-pub fn place_single_robot<R: Rng + ?Sized>( // Made public
+/// Places a single robot randomly within the given shape, avoiding collisions
+/// with already placed robots. Returns `Some(Vec2)` with the valid position if
+/// successful within `max_attempts`, otherwise `None`.
+pub fn place_single_robot<R: Rng + ?Sized>(
+    // Made public
     shape: &Shape,
     world_dims: &gbp_config::formation::WorldDimensions,
     robot_radius: f32,
@@ -49,11 +53,9 @@ pub fn place_single_robot<R: Rng + ?Sized>( // Made public
 ) -> Option<Vec2> {
     for _ in 0..max_attempts {
         if let Some(candidate_pos) = shape.get_random_point(world_dims, rng) {
-            let collision_free = placed_robots
-                .iter()
-                .all(|(other_pos, other_radius)| {
-                    candidate_pos.distance(*other_pos) >= robot_radius + *other_radius
-                });
+            let collision_free = placed_robots.iter().all(|(other_pos, other_radius)| {
+                candidate_pos.distance(*other_pos) >= robot_radius + *other_radius
+            });
 
             if collision_free {
                 return Some(candidate_pos);
@@ -61,23 +63,29 @@ pub fn place_single_robot<R: Rng + ?Sized>( // Made public
         } else {
             // Shape does not support random point generation (e.g., Polygon)
             // or failed internally. We cannot place the robot.
-            error!("Failed to generate a random point within the provided shape: {:?}", shape);
+            error!(
+                "Failed to generate a random point within the provided shape: {:?}",
+                shape
+            );
             return None;
         }
     }
     // Failed to find a collision-free spot after max_attempts
-    warn!("Failed to place robot collision-free after {} attempts within shape: {:?}", max_attempts, shape);
+    warn!(
+        "Failed to place robot collision-free after {} attempts within shape: {:?}",
+        max_attempts, shape
+    );
     None
 }
 
-
-/// Helper function to spawn a single robot entity with all necessary components.
+/// Helper function to spawn a single robot entity with all necessary
+/// components.
 #[allow(clippy::too_many_arguments)]
 pub fn spawn_robot(
     commands: &mut Commands,
     config: &Config,
     env_config: &gbp_environment::Environment,
-    sdf: &Sdf,
+    sdf: SharedSdfImage,
     prng: &mut GlobalEntropy<WyRand>,
     materials: &mut Assets<StandardMaterial>,
     mesh_assets: &mut Assets<Mesh>,
@@ -93,9 +101,9 @@ pub fn spawn_robot(
     target_speed: f32,
     waypoint_reached_when_intersects: ReachedWhen,
     finished_when_intersects: ReachedWhen,
-    initial_custom_weights: Option<ApiFactorWeights>, // Note: Handling this requires caller to queue WeightUpdate
+    initial_custom_weights: Option<ApiFactorWeights>, /* Note: Handling this requires caller to
+                                                       * queue WeightUpdate */
 ) -> Entity {
-
     // Timesteps
     let divisor: f32 = (radius / 2.0 / target_speed).max(f32::EPSILON);
     let lookahead_horizon: u32 = (config.robot.planning_horizon.get() / divisor).round() as u32;
@@ -114,7 +122,7 @@ pub fn spawn_robot(
         config,
         env_config,
         radius,
-        &sdf.0, // Assuming sdf.0 is the image buffer
+        sdf, 
         time_fixed.elapsed().as_secs_f64(),
         waypoints_for_mission.clone(), // Clone waypoints for the bundle
         planning_strategy,
@@ -147,7 +155,11 @@ pub fn spawn_robot(
     };
 
     // Get goal position before moving robot_bundle
-    let goal_position_for_event = robot_bundle.mission.taskpoints.last().map(|wp| wp.position());
+    let goal_position_for_event = robot_bundle
+        .mission
+        .taskpoints
+        .last()
+        .map(|wp| wp.position());
 
     // --- Insert Components ---
     entity_commands.insert((
@@ -168,10 +180,10 @@ pub fn spawn_robot(
 
     // Send WaypointCreated event for the goal
     if let Some(goal_pos) = goal_position_for_event {
-         evw_waypoint_created.send(WaypointCreated {
-             for_robot: new_entity,
-             position: goal_pos,
-         });
+        evw_waypoint_created.send(WaypointCreated {
+            for_robot: new_entity,
+            position:  goal_pos,
+        });
     }
 
     // Send RobotSpawned event

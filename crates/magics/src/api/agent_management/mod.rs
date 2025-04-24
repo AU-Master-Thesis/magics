@@ -11,23 +11,27 @@ use gbp_config::{
 use gbp_environment::Environment;
 use min_len_vec::{two_or_more, TwoOrMore};
 
+use super::{
+    state::{AgentState, ApiState, WeightUpdate},
+    state_utils,
+};
 use crate::{
+    api::plugin::PreviousCollisionCounts,
+    factorgraph::factorgraph::FactorGraph,
     planner::{
         robot::{
-            Mission, RadioAntenna, Radius, RobotConnections, RobotDespawned, RobotSpawned, StateVector,
+            Mission, RadioAntenna, Radius, RobotConnections, RobotDespawned, RobotSpawned,
+            StateVector,
         },
         spawner::WaypointCreated,
-        visualiser::waypoints::{AssociatedWithRobot, WaypointVisualiser},
-        visualiser::tracer::Traces,
+        visualiser::{
+            tracer::Traces,
+            waypoints::{AssociatedWithRobot, WaypointVisualiser},
+        },
     },
-    simulation_loader::Sdf,
+    simulation_loader::{Sdf, SharedSdfImage},
     theme::CatppuccinTheme,
-    factorgraph::factorgraph::FactorGraph,
-    api::plugin::PreviousCollisionCounts,
 };
-
-use super::state::{AgentState, ApiState, WeightUpdate};
-use super::state_utils;
 
 /// System to handle agent removal requests from the API
 pub fn handle_agent_removal_requests(
@@ -36,7 +40,9 @@ pub fn handle_agent_removal_requests(
     mut despawned_agents_tracker: ResMut<super::despawned_agents::DespawnedAgentsTracker>,
     config: Res<Config>,
     robot_robot_collisions: Res<crate::planner::collisions::resources::RobotRobotCollisions>,
-    robot_environment_collisions: Res<crate::planner::collisions::resources::RobotEnvironmentCollisions>,
+    robot_environment_collisions: Res<
+        crate::planner::collisions::resources::RobotEnvironmentCollisions,
+    >,
     previous_collision_counts: Res<PreviousCollisionCounts>,
     mut evw_robot_despawned: EventWriter<RobotDespawned>,
     mut traces: ResMut<Traces>, // Add Traces resource
@@ -60,7 +66,10 @@ pub fn handle_agent_removal_requests(
         return;
     }
 
-    info!("API: Processing removal requests for agents: {:?}", agent_ids_to_remove);
+    info!(
+        "API: Processing removal requests for agents: {:?}",
+        agent_ids_to_remove
+    );
 
     for agent_id_to_remove in agent_ids_to_remove {
         // Find the entity corresponding to the agent_id
@@ -85,7 +94,10 @@ pub fn handle_agent_removal_requests(
                 antenna_opt,
             )) = robots_query.get(entity_to_remove)
             {
-                info!("API: Found entity {:?} for removal request ID {}", entity_to_remove, agent_id_to_remove);
+                info!(
+                    "API: Found entity {:?} for removal request ID {}",
+                    entity_to_remove, agent_id_to_remove
+                );
 
                 // 1. Capture final state
                 let final_state = state_utils::create_agent_state(
@@ -105,21 +117,35 @@ pub fn handle_agent_removal_requests(
                 );
 
                 // 2. Add state to tracker
-                despawned_agents_tracker.despawned_agents.insert(entity_to_remove, final_state);
-                info!("API: Added final state of {:?} to DespawnedAgentsTracker", entity_to_remove);
+                despawned_agents_tracker
+                    .despawned_agents
+                    .insert(entity_to_remove, final_state);
+                info!(
+                    "API: Added final state of {:?} to DespawnedAgentsTracker",
+                    entity_to_remove
+                );
 
                 // 3. Remove path trace data
                 if traces.0.remove(&entity_to_remove).is_some() {
-                    info!("API: Removed path trace data for robot {:?}", entity_to_remove);
+                    info!(
+                        "API: Removed path trace data for robot {:?}",
+                        entity_to_remove
+                    );
                 } else {
-                    warn!("API: No path trace data found for robot {:?} during removal", entity_to_remove);
+                    warn!(
+                        "API: No path trace data found for robot {:?} during removal",
+                        entity_to_remove
+                    );
                 }
 
                 // 4. Despawn associated waypoint visualizers
                 for (viz_entity, associated_robot) in waypoint_viz_query.iter() {
                     if associated_robot.0 == entity_to_remove {
                         commands.entity(viz_entity).despawn_recursive();
-                        info!("API: Despawned waypoint visualizer {:?} for robot {:?}", viz_entity, entity_to_remove);
+                        info!(
+                            "API: Despawned waypoint visualizer {:?} for robot {:?}",
+                            viz_entity, entity_to_remove
+                        );
                     }
                 }
 
@@ -130,12 +156,18 @@ pub fn handle_agent_removal_requests(
                 // 6. Send event (might still be useful for other listeners)
                 evw_robot_despawned.send(RobotDespawned(entity_to_remove));
                 info!("API: Sent RobotDespawned event for {:?}", entity_to_remove);
-
             } else {
-                warn!("API: Could not query components for entity {:?} (ID {}) during removal request. Maybe already despawned?", entity_to_remove, agent_id_to_remove);
+                warn!(
+                    "API: Could not query components for entity {:?} (ID {}) during removal \
+                     request. Maybe already despawned?",
+                    entity_to_remove, agent_id_to_remove
+                );
             }
         } else {
-            warn!("API: Agent with ID {} not found for removal request.", agent_id_to_remove);
+            warn!(
+                "API: Agent with ID {} not found for removal request.",
+                agent_id_to_remove
+            );
         }
     }
 }
@@ -162,7 +194,10 @@ pub fn handle_agent_spawn_requests(
         return;
     }
 
-    info!("API: Processing {} agent spawn requests", spawn_requests.len());
+    info!(
+        "API: Processing {} agent spawn requests",
+        spawn_requests.len()
+    );
 
     for params in spawn_requests {
         // --- Prepare Agent Parameters ---
@@ -177,7 +212,9 @@ pub fn handle_agent_spawn_requests(
         });
 
         // Use provided target speed or default from config
-        let target_speed = params.target_speed.unwrap_or_else(|| config.robot.target_speed.get());
+        let target_speed = params
+            .target_speed
+            .unwrap_or_else(|| config.robot.target_speed.get());
 
         // Determine planning strategy
         let planning_strategy = params.planning_strategy.map_or(
@@ -185,12 +222,17 @@ pub fn handle_agent_spawn_requests(
             |s| match s.to_lowercase().as_str() {
                 "rrtstar" => formation::PlanningStrategy::RrtStar,
                 _ => formation::PlanningStrategy::OnlyLocal,
-            }
+            },
         );
 
         // Waypoints: Create a simple route from initial pos to goal pos
         // Velocity at goal can be zero or derived? Using zero for now.
-        let initial_state_vec = StateVector::new(Vec4::new(initial_pos.x, initial_pos.y, initial_vel.x, initial_vel.y));
+        let initial_state_vec = StateVector::new(Vec4::new(
+            initial_pos.x,
+            initial_pos.y,
+            initial_vel.x,
+            initial_vel.y,
+        ));
         let goal_state_vec = StateVector::new(Vec4::new(goal_pos.x, goal_pos.y, 0.0, 0.0)); // Zero velocity at goal
 
         // Waypoints for the bundle constructor
@@ -201,7 +243,7 @@ pub fn handle_agent_spawn_requests(
             &mut commands,
             &config,
             &env_config,
-            &sdf,
+            sdf.0.clone(),
             &mut prng,
             &mut materials,
             &mut mesh_assets,
@@ -217,20 +259,23 @@ pub fn handle_agent_spawn_requests(
             target_speed,
             ReachedWhen::same_as_paper(), // Default waypoint reached
             ReachedWhen::same_as_paper(), // Default finished reached
-            None, // Custom weights handled below
+            None,                         // Custom weights handled below
         );
 
         // Add the new agent's ID to the ApiState queue for the ZMQ server
-            api_state.add_spawned_agent_id(new_entity.index());
+        api_state.add_spawned_agent_id(new_entity.index());
 
         // Handle custom weights separately by queuing an update
         if let Some(custom_weights) = params.weights {
             let update = WeightUpdate {
                 agent_id: Some(new_entity.index()),
-                weights: custom_weights,
+                weights:  custom_weights,
             };
             api_state.add_weight_update(update);
-            info!("API: Queued custom weights for spawned agent {:?}", new_entity);
+            info!(
+                "API: Queued custom weights for spawned agent {:?}",
+                new_entity
+            );
         }
     }
 }

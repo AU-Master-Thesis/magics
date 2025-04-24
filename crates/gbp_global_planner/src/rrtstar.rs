@@ -6,6 +6,7 @@ use bevy::{
 use bevy_prng::WyRand;
 use gbp_config::RRTSection;
 use rand::{RngCore, SeedableRng};
+use rand::Rng;
 
 use crate::{Colliders, CollisionProblem, Path, PathfindingError, PathfindingTask};
 
@@ -156,7 +157,7 @@ pub fn spawn_pathfinding_task_with_direct_goal_check(
         // Create a custom sampling function that occasionally samples the goal directly
         let goal_biased_sampler = || {
             // With GOAL_BIAS_PERCENTAGE probability, return the goal
-            if rand::random::<f64>() < GOAL_BIAS_PERCENTAGE {
+            if rng_source.gen::<f64>() < GOAL_BIAS_PERCENTAGE {
                 return vec![end[0], end[1]];
             }
             // Otherwise, return a random sample

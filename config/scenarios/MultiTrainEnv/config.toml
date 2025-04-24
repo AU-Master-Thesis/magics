@@ -86,15 +86,15 @@ exit-application-on-scenario-finished     = false
 log-level                                 = "warn"
 
 [rrt]
-max-iterations       = 5000000000
-step-size            = 5.0
+max-iterations       = 50000000
+step-size            = 20.0
 collision-radius     = 3.0
-neighbourhood-radius = 2.0
+neighbourhood-radius = 10.0
 
 [rrt.smoothing]
 enabled        = true
 max-iterations = 500
-step-size      = 0.5
+step-size      = 10
 
 [graphviz]
 export-location = "./assets/export/"
