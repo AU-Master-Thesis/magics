@@ -51,10 +51,15 @@ pub fn place_single_robot<R: Rng + ?Sized>(
     max_attempts: usize,
     rng: &mut R,
 ) -> Option<Vec2> {
+    let min_distance = match shape {
+        Shape::RandomSquare { min_distance, .. } => *min_distance,
+        // For other shapes, use a default or fall back to just radius checks
+        _ => 0.0,
+    };
     for _ in 0..max_attempts {
         if let Some(candidate_pos) = shape.get_random_point(world_dims, rng) {
             let collision_free = placed_robots.iter().all(|(other_pos, other_radius)| {
-                candidate_pos.distance(*other_pos) >= robot_radius + *other_radius
+                candidate_pos.distance(*other_pos) >= (robot_radius + *other_radius).max(min_distance)
             });
 
             if collision_free {

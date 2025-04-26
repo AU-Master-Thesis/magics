@@ -14,25 +14,25 @@ formations:
   initial-position:
     multi-shapes: # Use 'possible-shapes' with a list
       - !random-square   # Top goal
-        p1: { x: 0.244, y: 0.9 }
-        p2: { x: 0.280, y: 0.707 }
-        min_distance: 1.0
+        p1: { x: 0.248, y: 0.894 }
+        p2: { x: 0.276, y: 0.707 }
+        min_distance: 3.0
     placement-strategy: !random # Applies within the randomly chosen shape
       attempts: 2000
   goal-position: # goal_position is a list of Waypoints
     - multi-shapes: # Each Waypoint uses 'possible-shapes'
       - !random-square   # Right goal
-        p1: { x: 0.471, y: 0.463 }
-        p2: { x: 0.371, y: 0.537 }
-        min_distance: 1.0
+        p1: { x: 0.467, y: 0.47 }
+        p2: { x: 0.371, y: 0.531 }
+        min_distance: 3.0
       - !random-square # Bottom goal
-        p1: { x: 0.244, y: 0.1 }
-        p2: { x: 0.280, y: 0.293}
-        min_distance: 1.0
+        p1: { x: 0.248, y: 0.104 }
+        p2: { x: 0.276, y: 0.293}
+        min_distance: 3.0
       - !random-square # Left goal
-        p1: { x: 0.052, y: 0.463 }
-        p2: { x: 0.157, y: 0.537 }
-        min_distance: 1.0 
+        p1: { x: 0.056, y: 0.470 }
+        p2: { x: 0.157, y: 0.531 }
+        min_distance: 3.0
       projection-strategy: identity # Less relevant now, applies per-robot target
   waypoint-reached-when-intersects:
     distance: robot-radius
@@ -55,25 +55,25 @@ formations:
   initial-position:
     multi-shapes: # Use 'possible-shapes' with a list
       - !random-square   # Right goal
-        p1: { x: 0.471, y: 0.463 }
-        p2: { x: 0.371, y: 0.537 }
-        min_distance: 1.0
+        p1: { x: 0.467, y: 0.47 }
+        p2: { x: 0.371, y: 0.531 }
+        min_distance: 3.0
     placement-strategy: !random # Applies within the randomly chosen shape
       attempts: 2000
   goal-position: # goal_position is a list of Waypoints
     - multi-shapes: # Each Waypoint uses 'possible-shapes'
       - !random-square   # Top goal
-        p1: { x: 0.244, y: 0.9 }
-        p2: { x: 0.280, y: 0.707 }
-        min_distance: 1.0
+        p1: { x: 0.248, y: 0.894 }
+        p2: { x: 0.276, y: 0.707 }
+        min_distance: 3.0
       - !random-square # Bottom goal
-        p1: { x: 0.244, y: 0.1 }
-        p2: { x: 0.280, y: 0.293}
-        min_distance: 1.0
+        p1: { x: 0.248, y: 0.104 }
+        p2: { x: 0.276, y: 0.293}
+        min_distance: 3.0
       - !random-square # Left goal
-        p1: { x: 0.052, y: 0.463 }
-        p2: { x: 0.157, y: 0.537 }
-        min_distance: 1.0 
+        p1: { x: 0.056, y: 0.470 }
+        p2: { x: 0.157, y: 0.531 }
+        min_distance: 3.0 
       projection-strategy: identity # Less relevant now, applies per-robot target
   waypoint-reached-when-intersects:
     distance: robot-radius
@@ -96,25 +96,25 @@ formations:
   initial-position:
     multi-shapes: 
       - !random-square # Bottom goal
-        p1: { x: 0.244, y: 0.1 }
-        p2: { x: 0.280, y: 0.293}
-        min_distance: 1.0 
+        p1: { x: 0.248, y: 0.104 }
+        p2: { x: 0.276, y: 0.293}
+        min_distance: 3.0
     placement-strategy: !random # Applies within the randomly chosen shape
       attempts: 2000
   goal-position: # goal_position is a list of Waypoints
     - multi-shapes: # Each Waypoint uses 'possible-shapes'
       - !random-square   # Top goal
-        p1: { x: 0.244, y: 0.9 }
-        p2: { x: 0.280, y: 0.707 }
-        min_distance: 1.0
+        p1: { x: 0.248, y: 0.894 }
+        p2: { x: 0.276, y: 0.707 }
+        min_distance: 3.0
       - !random-square   # Right goal
-        p1: { x: 0.471, y: 0.463 }
-        p2: { x: 0.371, y: 0.537 }
-        min_distance: 1.0
+        p1: { x: 0.467, y: 0.47 }
+        p2: { x: 0.371, y: 0.531 }
+        min_distance: 3.0
       - !random-square # Left goal
-        p1: { x: 0.052, y: 0.463 }
-        p2: { x: 0.157, y: 0.537 }
-        min_distance: 1.0 
+        p1: { x: 0.056, y: 0.470 }
+        p2: { x: 0.157, y: 0.531 }
+        min_distance: 3.0
       projection-strategy: identity # Less relevant now, applies per-robot target
   waypoint-reached-when-intersects:
     distance: robot-radius
@@ -137,25 +137,25 @@ formations:
   initial-position:
     multi-shapes: # Use 'possible-shapes' with a list
       - !random-square # Left goal
-        p1: { x: 0.052, y: 0.463 }
-        p2: { x: 0.157, y: 0.537 }
-        min_distance: 1.0 
+        p1: { x: 0.056, y: 0.470 }
+        p2: { x: 0.157, y: 0.531 }
+        min_distance: 3.0
     placement-strategy: !random # Applies within the randomly chosen shape
       attempts: 2000
   goal-position: # goal_position is a list of Waypoints
     - multi-shapes: # Each Waypoint uses 'possible-shapes'
       - !random-square   # Top goal
-        p1: { x: 0.244, y: 0.9 }
-        p2: { x: 0.280, y: 0.707 }
-        min_distance: 1.0
+        p1: { x: 0.248, y: 0.894 }
+        p2: { x: 0.276, y: 0.707 }
+        min_distance: 3.0
       - !random-square   # Right goal
-        p1: { x: 0.471, y: 0.463 }
-        p2: { x: 0.371, y: 0.537 }
-        min_distance: 1.0
+        p1: { x: 0.467, y: 0.47 }
+        p2: { x: 0.371, y: 0.531 }
+        min_distance: 3.0
       - !random-square # Bottom goal
-        p1: { x: 0.244, y: 0.1 }
-        p2: { x: 0.280, y: 0.293}
-        min_distance: 1.0
+        p1: { x: 0.248, y: 0.104 }
+        p2: { x: 0.276, y: 0.293}
+        min_distance: 3.0
       projection-strategy: identity # Less relevant now, applies per-robot target
   waypoint-reached-when-intersects:
     distance: robot-radius
@@ -181,14 +181,14 @@ formations:
       - !random-square # Bottom goal
         p1: { x: 0.53, y: 0.1 }
         p2: { x: 0.567, y: 0.293}
-        min_distance: 1.0
+        min_distance: 3.0
     placement-strategy: equal # Applies within the randomly chosen shape
   goal-position: # Using 'multi-shapes' again
     - multi-shapes:
       - !random-square   # Top goal
         p1: { x: 0.53, y: 0.9 }
         p2: { x: 0.567, y: 0.707 }
-        min_distance: 1.0
+        min_distance: 3.0
       projection-strategy: cross
   waypoint-reached-when-intersects:
     distance: robot-radius
@@ -214,14 +214,14 @@ formations:
       - !random-square   # Top goal
         p1: { x: 0.53, y: 0.9 }
         p2: { x: 0.567, y: 0.707 }
-        min_distance: 1.0
+        min_distance: 3.0
     placement-strategy: equal # Applies within the randomly chosen shape
   goal-position: # Using 'multi-shapes' again
     - multi-shapes:
       - !random-square # Bottom goal
         p1: { x: 0.53, y: 0.1 }
         p2: { x: 0.567, y: 0.293}
-        min_distance: 1.0
+        min_distance: 3.0
       projection-strategy: cross
   waypoint-reached-when-intersects:
     distance: robot-radius
@@ -280,14 +280,14 @@ formations:
     shape: !random-square   
         p1: { x: 0.833, y: 0.591 }
         p2: { x: 0.928, y: 0.408 }
-        min_distance: 1.0
+        min_distance: 3.0
     placement-strategy: !random # Applies within the randomly chosen shape
       attempts: 2000
   goal-position: # goal_position is a list of Waypoints
     - shape: !random-square   
         p1: { x: 0.833, y: 0.226036 }
         p2: { x: 0.928, y: 0.043036 }
-        min_distance: 1.0
+        min_distance: 3.0
       projection-strategy: identity # Less relevant now, applies per-robot target
   waypoint-reached-when-intersects:
     distance: robot-radius

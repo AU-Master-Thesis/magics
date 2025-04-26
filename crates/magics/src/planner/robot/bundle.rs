@@ -310,10 +310,21 @@ impl RobotBundle {
         // horizon state
         #[allow(clippy::needless_range_loop)]
         for i in 1..variable_timesteps.len() - 1 {
+            let variable = factorgraph
+                .get_variable(variable_node_indices[i])
+                .expect("Variable should exist");
+            let position = variable.estimated_position_vec2();
+
             let obstacle_factor = FactorNode::new_obstacle_factor(
                 factorgraph.id(),
                 Float::from(config.gbp.sigma_factor_obstacle),
                 array![0.0],
+                array![
+                    Float::from(position.x),
+                    Float::from(position.y),
+                    0.0, // vx - zero velocity
+                    0.0  // vy - zero velocity
+                ],
                 sdf.clone(), // Clone the Arc to avoid moving it
                 world_size,
                 config.gbp.factors_enabled.obstacle,

@@ -27,15 +27,15 @@ codegen-units = 256      # Increase parallelism
 
 # Release profile optimizations - full optimization
 [profile.release]
-# opt-level = 3            # Maximum optimization
-# codegen-units = 1        # Single unit compilation for maximum cross-module optimization
-# lto = "fat"              # Full link-time optimization for better performance
-# strip = "symbols"        # Strip symbols from binary to reduce size
-debug            = 1
-# debug-assertions = false
-# panic            = "abort"
-# rpath            = false
-# incremental = true
+opt-level = 3            # Maximum optimization
+codegen-units = 1        # Single unit compilation for maximum cross-module optimization
+lto = "fat"              # Full link-time optimization for better performance
+strip = "symbols"        # Strip symbols from binary to reduce size
+debug            = false
+debug-assertions = false
+panic            = "abort"
+rpath            = false
+incremental = true
 
 [features]
 dev = [

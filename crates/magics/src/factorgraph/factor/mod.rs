@@ -243,14 +243,19 @@ impl FactorNode {
         factorgraph_id: FactorGraphId,
         strength: Float,
         measurement: Vector<Float>,
+        linearisation_point: Vector<Float>,
         obstacle_sdf: SharedSdfImage,
         world_size: obstacle::WorldSize,
         enabled: bool,
         // world_size_width: Float,
         // world_size_height: Float,
     ) -> Self {
-        let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS);
-        let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size);
+        let state = FactorState::new(measurement, strength, ObstacleFactor::NEIGHBORS)
+            .with_linearisation_point(linearisation_point.clone());
+        let obstacle_factor = ObstacleFactor::new(obstacle_sdf, world_size).with_last_measurement(
+            Vec2::new(linearisation_point[0] as f32, linearisation_point[1] as f32),
+            0.0,
+        );
         let kind = FactorKind::Obstacle(obstacle_factor);
         Self::new(factorgraph_id, state, kind, enabled)
     }

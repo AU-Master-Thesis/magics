@@ -487,6 +487,7 @@ fn spawn_formation(
     meshes: Res<Meshes>,
     time_fixed: Res<Time<Fixed>>,
 ) {
+
     for event in evr_robot_formation_spawned.read() {
         let formation_group = simulation_manager
             .active_formation_group()
@@ -766,7 +767,8 @@ fn spawn_formation(
         } else if let Some(goal_positions) = &formation.goal_position {
             // --- Goal-Position-based Spawning (New Per-Robot Logic) ---
             let mut placed_robots: Vec<(Vec2, f32)> = Vec::with_capacity(formation.robots);
-
+            let mut placed_goals: Vec<(Vec2, f32)> = Vec::with_capacity(formation.robots);
+    
             for i in 0..formation.robots {
                 let radius = radii[i];
 
@@ -804,7 +806,7 @@ fn spawn_formation(
                     }
                 };
                 placed_robots.push((initial_pos, radius)); // Add successfully placed robot
-
+                
                 // 3. Select Goal Shape
                 // Assuming goal_position is OneOrMore, so unwrap is safe after validation
                 let goal_waypoint = goal_positions
@@ -825,18 +827,28 @@ fn spawn_formation(
                     }
                 };
 
-                // 4. Calculate Goal Position
-                let goal_pos = match goal_shape.get_random_point(&world_dims, &mut *prng) {
+                // 4. Calculate Goal Position with collision detection
+                // Use place_single_robot instead of get_random_point
+                let goal_pos = match place_single_robot(
+                    &goal_shape,
+                    &world_dims,
+                    radius,
+                    &placed_goals, // Use placed_goals for checking collisions
+                    max_placement_attempts,
+                    &mut *prng,
+                ) {
                     Some(pos) => pos,
                     None => {
                         error!(
-                            "Failed to get random point in goal shape {:?} for robot {}. Skipping \
-                             robot.",
-                            goal_shape, i
+                            "Failed to place goal for robot {} after {} attempts. Skipping robot.",
+                            i, max_placement_attempts
                         );
                         continue;
                     }
                 };
+
+                // Add the placed goal to the tracking list
+                placed_goals.push((goal_pos, radius));
 
                 // 5. Spawn Robot
                 let initial_state_vec =

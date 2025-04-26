@@ -8,25 +8,25 @@ height-map = 1.0
 
 [visualisation.draw]
 robots                             = true
-communication-graph                = true
+communication-graph                = false
 predicted-trajectories             = true
-waypoints                          = true
+waypoints                          = false
 uncertainty                        = false
-paths                              = false
+paths                              = true
 communication-radius               = false
 obstacle-factors                   = false
 tracking                           = false
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
 generated-map                      = true
-sdf                                = false
+sdf                                = true
 robot-colliders                    = false
 environment-colliders              = false
-robot-robot-collisions             = false
-robot-environment-collisions       = false
-spawn-areas                        = true
+robot-robot-collisions             = true
+robot-environment-collisions       = true
+spawn-areas                        = false
 waypoint-areas                     = false
-goal-position-areas                = true
+goal-position-areas                = false
 
 [visualisation.uncertainty]
 max-radius = 2.5
@@ -34,14 +34,14 @@ scale      = 300.0
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance    = 200.0
+default-cam-distance    = 150.0
 
 [gbp]
 sigma-pose-fixed        = 0.0000000000000010000000036274937
-sigma-factor-dynamics   = 0.05
-sigma-factor-interrobot = 0.005
-sigma-factor-obstacle   = 0.005
-sigma-factor-tracking   = 0.15
+sigma-factor-dynamics   = 0.5
+sigma-factor-interrobot = 0.004999999888241291
+sigma-factor-obstacle   = 0.004999999888241291
+sigma-factor-tracking   = 0.15000000596046448
 lookahead-multiple      = 3
 variables               = 10
 
@@ -61,24 +61,24 @@ obstacle   = true
 tracking   = false
 
 [robot]
-planning-horizon                       = 3.0
+planning-horizon                       = 2.0
 target-speed                           = 10.0
 inter-robot-safety-distance-multiplier = 2.5
 
 [robot.radius]
-min = 1.0
-max = 1.0
+min = 0.8
+max = 1.5
 
 [robot.communication]
 radius       = 20.0
 failure-rate = 0.0
 
 [simulation]
-time-scale                                = 1.0
 max-time                                  = 10000.0
+time-scale                                = 1.0
 manual-step-factor                        = 1
 hz                                        = 10.0
-prng-seed                                 = 10
+prng-seed                                 = 2
 pause-on-spawn                            = false
 pause-on-load                             = true
 despawn-robot-when-final-waypoint-reached = false
@@ -89,12 +89,12 @@ log-level                                 = "warn"
 max-iterations       = 50000000
 step-size            = 10.0
 collision-radius     = 3.0
-neighbourhood-radius = 10.0
+neighbourhood-radius = 20.0
 
 [rrt.smoothing]
 enabled        = true
 max-iterations = 500
-step-size      = 2.0
+step-size      = 10.0
 
 [graphviz]
 export-location = "./assets/export/"

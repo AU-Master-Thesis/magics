@@ -108,6 +108,14 @@ impl ObstacleFactor {
             jacobian_delta,
         }
     }
+    pub fn with_last_measurement(self, pos: Vec2, value: Float) -> Self {
+        self.last_measurement
+            .lock()
+            .unwrap()
+            .set(LastMeasurement { pos, value });
+
+        self
+    }
 
     pub fn last_measurement(&self) -> LastMeasurement {
         self.last_measurement.lock().unwrap().get()

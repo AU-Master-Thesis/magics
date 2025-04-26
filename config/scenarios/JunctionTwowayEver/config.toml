@@ -10,7 +10,7 @@ height-map = 1.0
 robots                             = true
 communication-graph                = false
 predicted-trajectories             = true
-waypoints                          = true
+waypoints                          = false
 uncertainty                        = false
 paths                              = false
 communication-radius               = false
@@ -18,19 +18,19 @@ obstacle-factors                   = false
 tracking                           = false
 interrobot-factors                 = false
 interrobot-factors-safety-distance = false
-generated-map                      = true
+generated-map                      = false
 sdf                                = false
 robot-colliders                    = false
 environment-colliders              = false
 robot-robot-collisions             = true
-robot-environment-collisions       = false
-spawn-areas                        = true
+robot-environment-collisions       = true
+spawn-areas                        = false
 waypoint-areas                     = false
-goal-position-areas                = true
+goal-position-areas                = false
 
 [visualisation.uncertainty]
 max-radius = 2.5
-scale      = 600.0
+scale      = 300.0
 
 [interaction]
 ui-focus-cancels-inputs = true
@@ -66,8 +66,8 @@ target-speed                           = 10.0
 inter-robot-safety-distance-multiplier = 2.5
 
 [robot.radius]
-min = 1.0
-max = 1.0
+min = 0.8
+max = 1.5
 
 [robot.communication]
 radius       = 20.0
@@ -75,7 +75,7 @@ failure-rate = 0.0
 
 [simulation]
 max-time                                  = 10000.0
-time-scale                                = 1.0
+time-scale                                = 5.0
 manual-step-factor                        = 1
 hz                                        = 10.0
 prng-seed                                 = 2
