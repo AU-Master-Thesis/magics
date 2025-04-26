@@ -1,12 +1,22 @@
+use std::{
+    collections::{BTreeSet, HashMap},
+    num::NonZeroUsize,
+};
+
 use bevy::prelude::*;
-use bevy_rand::prelude::GlobalEntropy;
 use bevy_prng::WyRand;
+use bevy_rand::prelude::GlobalEntropy;
 use gbp_config::Config;
 use gbp_linalg::prelude::*;
 use ndarray::{array, concatenate, s, Axis};
 use rand::Rng;
-use std::{collections::{BTreeSet, HashMap}, num::NonZeroUsize};
 
+use super::{
+    bundle::{FinishedPath, RadioAntenna, Radius, RobotConnections, RobotId, T0},
+    events::GbpScheduleChanged, // Assuming events.rs will exist
+    mission::Mission,
+    utils::RobotNumberGenerator, // Assuming utils.rs will exist
+};
 use crate::{
     factorgraph::{
         factor::{ExternalVariableId, FactorNode},
@@ -15,13 +25,7 @@ use crate::{
         message::{FactorToVariableMessage, VariableToFactorMessage},
         DOFS,
     },
-};
-
-use super::{
-    bundle::{FinishedPath, RadioAntenna, Radius, RobotConnections, RobotId, T0},
-    events::GbpScheduleChanged, // Assuming events.rs will exist
-    mission::Mission,
-    utils::RobotNumberGenerator, // Assuming utils.rs will exist
+    planner::robot::VariableTimesteps,
 };
 
 #[derive(Clone, Copy, Debug, Component, Resource, derive_more::Into, derive_more::From)]
@@ -72,7 +76,9 @@ pub fn update_robot_neighbours(
     }
 }
 
-pub fn delete_interrobot_factors(mut query: Query<(Entity, &mut FactorGraph, &mut RobotConnections)>) {
+pub fn delete_interrobot_factors(
+    mut query: Query<(Entity, &mut FactorGraph, &mut RobotConnections)>,
+) {
     // the set of robots connected with will (possibly) be mutated
     // the robots factorgraph will (possibly) be mutated
     // the other robot with an interrobot factor connected will be mutated
@@ -180,7 +186,8 @@ pub fn create_interrobot_factors(
             let loop_bound = std::cmp::min(num_variables_current, num_variables_other);
 
             // Loop goes from 1 up to num_variables (exclusive) of the CURRENT robot
-            for i in 1..loop_bound { // Use loop_bound instead of num_variables_current
+            for i in 1..loop_bound {
+                // Use loop_bound instead of num_variables_current
                 let initial_measurement = Vector::<Float>::zeros(DOFS);
                 let external_variable_id = ExternalVariableId::new(
                     *other_robot_id,
@@ -220,7 +227,10 @@ pub fn create_interrobot_factors(
 
     for (robot_id, factor_index, other_robot_id, i) in external_edges_to_add {
         let Ok((_, mut other_factorgraph, _, _)) = query.get_mut(other_robot_id) else {
-            error!("Could not find other_robot_id {:?} in query", other_robot_id);
+            error!(
+                "Could not find other_robot_id {:?} in query",
+                other_robot_id
+            );
             continue;
         };
 
@@ -238,7 +248,7 @@ pub fn create_interrobot_factors(
 
     for (robot_id, factor_index, variable_message, variable_id) in temp {
         let Ok((_, mut factorgraph, _, _)) = query.get_mut(robot_id) else {
-             error!("Could not find robot_id {:?} in query", robot_id);
+            error!("Could not find robot_id {:?} in query", robot_id);
             continue;
         };
 
@@ -358,7 +368,7 @@ pub fn iterate_gbp_v2(
     }
 }
 
-/// Called `Robot::updateHorizon` in **gbpplanner**
+
 pub fn update_prior_of_horizon_state(
     config: Res<Config>,
     time: Res<Time>,
@@ -370,6 +380,8 @@ pub fn update_prior_of_horizon_state(
             &mut FinishedPath,
             &Radius,
             &RadioAntenna,
+            &VariableTimesteps,
+            &T0,
         ),
         With<RobotConnections>,
     >,
@@ -380,17 +392,27 @@ pub fn update_prior_of_horizon_state(
 
     let mut robots_to_despawn = Vec::new();
 
-    for (robot_id, mut factorgraph, mission, mut finished_path, radius, antenna) in &mut query {
+    for (
+        robot_id,
+        mut factorgraph,
+        mission,
+        mut finished_path,
+        radius,
+        antenna,
+        variable_timesteps,
+        t0,
+    ) in &mut query
+    {
         if finished_path.0 || mission.state.idle() {
             continue;
         }
 
         let Some(next_waypoint) = mission.next_waypoint() else {
-            info!(
-                "robot {:?} finished at {:?}",
-                robot_id,
-                mission.finished_at()
-            );
+            // debug!(
+            //     "robot {:?} finished at {:?}",
+            //     robot_id,
+            //     mission.finished_at()
+            // );
             finished_path.0 = true;
             robots_to_despawn.push(robot_id);
             continue;
@@ -400,6 +422,15 @@ pub fn update_prior_of_horizon_state(
             continue;
         }
 
+        // Get the current robot position (var0) - clone the data to avoid borrow issues
+        let current_position = {
+            let (_, current_variable) = factorgraph
+                .nth_variable(0)
+                .expect("factorgraph should have a current variable");
+            current_variable.belief.mean.slice(s![..2]).to_owned()
+        };
+
+        // Now we can borrow factorgraph mutably
         let (horizon_variable_index, horizon_variable) = factorgraph.last_variable_mut().unwrap();
         let estimated_position = horizon_variable.belief.mean.slice(s![..2]);
 
@@ -408,11 +439,64 @@ pub fn update_prior_of_horizon_state(
             Float::from(next_waypoint.position().y)
         ];
 
+        // debug!(
+        //     "Robot {:?} - Current position: [{:.2}, {:.2}], Horizon position: [{:.2},
+        // {:.2}], \      Waypoint: [{:.2}, {:.2}]",
+        //     robot_id,
+        //     current_position[0],
+        //     current_position[1],
+        //     estimated_position[0],
+        //     estimated_position[1],
+        //     next_waypoint_pos[0],
+        //     next_waypoint_pos[1]
+        // );
+
+        // Calculate vector toward waypoint and desired velocity
         let horizon2waypoint = next_waypoint_pos - estimated_position;
         let horizon2goal_dist = horizon2waypoint.euclidean_norm();
 
         let new_velocity = Float::min(max_speed, horizon2goal_dist) * horizon2waypoint.normalized();
-        let new_position = estimated_position.into_owned() + (&new_velocity * delta_t);
+
+        // Calculate unbounded new position
+        let unbounded_new_position = estimated_position.into_owned() + (&new_velocity * delta_t);
+
+        // Calculate maximum allowed distance from current position
+        let t0_value = Float::from(**t0);
+        let last_timestep = Float::from(*variable_timesteps.0.last().unwrap_or(&0));
+        let time_diff_to_end = t0_value * last_timestep;
+
+        let max_allowed_distance = max_speed * time_diff_to_end;
+
+        // Check if unbounded position exceeds maximum allowed distance
+        let current_to_new = &unbounded_new_position - &current_position;
+        let distance_to_new = current_to_new.euclidean_norm();
+
+        // debug!(
+        //     "Robot {:?} - Unbounded new pos: [{:.2}, {:.2}], Max allowed distance:
+        // {:.2}, Actual \      distance: {:.2}, t0: {:.4}, last_timestep:
+        // {:.1}",     robot_id,
+        //     unbounded_new_position[0],
+        //     unbounded_new_position[1],
+        //     max_allowed_distance,
+        //     distance_to_new,
+        //     t0_value,
+        //     last_timestep
+        // );
+
+        // Bound the new position if necessary
+        let new_position = if distance_to_new > max_allowed_distance {
+            // Clamp to maximum allowed distance
+            let bounded =
+                current_position.to_owned() + max_allowed_distance * current_to_new.normalized();
+            // debug!(
+            //     "Robot {:?} - BOUNDING APPLIED! Bounded position: [{:.2}, {:.2}]",
+            //     robot_id, bounded[0], bounded[1]
+            // );
+            bounded
+        } else {
+            // debug!("Robot {:?} - No bounding needed", robot_id);
+            unbounded_new_position
+        };
 
         // Update horizon state with new position and velocity
         let new_mean = concatenate![Axis(0), new_position, new_velocity];
@@ -425,7 +509,7 @@ pub fn update_prior_of_horizon_state(
 
     // Send messages to external factors
     for message in all_messages_to_external_factors.drain(..) {
-        let Ok((_, mut external_factorgraph, _, _, _, _)) =
+        let Ok((_, mut external_factorgraph, _, _, _, _, _, _)) =
             query.get_mut(message.to.factorgraph_id)
         else {
             continue;

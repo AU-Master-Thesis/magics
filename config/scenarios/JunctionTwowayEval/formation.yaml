@@ -33,10 +33,10 @@ formations:
           min_distance: 5.0
       projection-strategy: identity
   waypoint-reached-when-intersects:
-    distance: !meter 3
+    distance: !meter 2
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 3
+    distance: !meter 5
     intersects-with: current
 
 #   # Start from top
@@ -79,10 +79,10 @@ formations:
   #     min_distance: 5.0
   #   projection-strategy: identity
   waypoint-reached-when-intersects:
-    distance: !meter 3
+    distance: !meter 2
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 3
+    distance: !meter 5
     intersects-with: current
 
 #   # Start from right
@@ -119,10 +119,10 @@ formations:
           min_distance: 5.0
       projection-strategy: identity
   waypoint-reached-when-intersects:
-    distance: !meter 3
+    distance: !meter 2
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 3
+    distance: !meter 5
     intersects-with: current
 
 #   # Start from bottom
@@ -159,8 +159,8 @@ formations:
           min_distance: 5.0
       projection-strategy: identity
   waypoint-reached-when-intersects:
-    distance: !meter 3
+    distance: !meter 2
     intersects-with: horizon
   finished-when-intersects:
-    distance: !meter 3
+    distance: !meter 5
     intersects-with: current
