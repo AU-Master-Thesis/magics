@@ -11,14 +11,14 @@ formations:
   planning-strategy: only-local
   initial-position:
     shape: !circle
-      radius: 15.0
+      radius: 25.0
       center:
         x: 0.5
         y: 0.5
     placement-strategy: equal
   waypoints:
   - shape: !circle
-      radius: 15.0
+      radius: 25.0
       center:
         x: 0.5
         y: 0.5

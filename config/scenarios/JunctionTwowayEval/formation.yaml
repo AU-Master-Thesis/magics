@@ -11,7 +11,7 @@ formations:
   robots: 3
   planning-strategy: rrt-star
   initial-position:
-    shape: !random-square
+    shape: !random-square # Left
       p1: { x: 0.175, y: 0.47 }
       p2: { x: 0.3, y: 0.53 }
       min_distance: 5.0
@@ -19,14 +19,14 @@ formations:
       attempts: 2000
   goal-position:
     - multi-shapes:
-      - !random-square # Top
-          p1: { x: 0.53, y: 0.7 }
-          p2: { x: 0.47, y: 0.825 }
-          min_distance: 5.0
-      - !random-square # Bottom goal
-          p1: { x: 0.53, y: 0.175 }
-          p2: { x: 0.47, y: 0.3 }
-          min_distance: 5.0
+      # - !random-square # Top
+      #     p1: { x: 0.53, y: 0.7 }
+      #     p2: { x: 0.47, y: 0.825 }
+      #     min_distance: 5.0
+      # - !random-square # Bottom goal
+      #     p1: { x: 0.53, y: 0.175 }
+      #     p2: { x: 0.47, y: 0.3 }
+      #     min_distance: 5.0
       - !random-square # Right goal
           p1: { x: 0.825, y: 0.47 }
           p2: { x: 0.7, y: 0.53 }
@@ -51,7 +51,7 @@ formations:
   robots: 3
   planning-strategy: rrt-star
   initial-position:
-    shape: !random-square
+    shape: !random-square # Top
       p1: { x: 0.53, y: 0.7 }
       p2: { x: 0.47, y: 0.825 }
       min_distance: 5.0
@@ -59,18 +59,18 @@ formations:
       attempts: 2000
   goal-position:
     - multi-shapes:
-      - !random-square # Left goal
-          p1: { x: 0.175, y: 0.47 }
-          p2: { x: 0.3, y: 0.53 }
-          min_distance: 5.0
+      # - !random-square # Left goal
+      #     p1: { x: 0.175, y: 0.47 }
+      #     p2: { x: 0.3, y: 0.53 }
+      #     min_distance: 5.0
       - !random-square # Bottom goal
           p1: { x: 0.53, y: 0.175 }
           p2: { x: 0.47, y: 0.3 }
           min_distance: 5.0
-      - !random-square # Right goal
-          p1: { x: 0.825, y: 0.47 }
-          p2: { x: 0.7, y: 0.53 }
-          min_distance: 5.0
+      # - !random-square # Right goal
+      #     p1: { x: 0.825, y: 0.47 }
+      #     p2: { x: 0.7, y: 0.53 }
+      #     min_distance: 5.0
       projection-strategy: identity
   # Left goal (for U-turns)
   # - shape: !random-square
@@ -97,7 +97,7 @@ formations:
   robots: 3
   planning-strategy: rrt-star
   initial-position:
-    shape: !random-square
+    shape: !random-square # Right
       p1: { x: 0.825, y: 0.47 }
       p2: { x: 0.7, y: 0.53 }
       min_distance: 5.0
@@ -109,14 +109,14 @@ formations:
           p1: { x: 0.175, y: 0.47 }
           p2: { x: 0.3, y: 0.53 }
           min_distance: 5.0
-      - !random-square # Top
-          p1: { x: 0.53, y: 0.7 }
-          p2: { x: 0.47, y: 0.825 }
-          min_distance: 5.0
-      - !random-square # Bottom goal
-          p1: { x: 0.53, y: 0.175 }
-          p2: { x: 0.47, y: 0.3 }
-          min_distance: 5.0
+      # - !random-square # Top
+      #     p1: { x: 0.53, y: 0.7 }
+      #     p2: { x: 0.47, y: 0.825 }
+      #     min_distance: 5.0
+      # - !random-square # Bottom goal
+      #     p1: { x: 0.53, y: 0.175 }
+      #     p2: { x: 0.47, y: 0.3 }
+      #     min_distance: 5.0
       projection-strategy: identity
   waypoint-reached-when-intersects:
     distance: !meter 2
@@ -137,7 +137,7 @@ formations:
   robots: 3
   planning-strategy: rrt-star
   initial-position:
-    shape: !random-square
+    shape: !random-square # Bottom
       p1: { x: 0.53, y: 0.175 }
       p2: { x: 0.47, y: 0.3 }
       min_distance: 5.0
@@ -145,18 +145,18 @@ formations:
       attempts: 2000
   goal-position:
     - multi-shapes:
-      - !random-square # Left goal
-          p1: { x: 0.175, y: 0.47 }
-          p2: { x: 0.3, y: 0.53 }
-          min_distance: 5.0
+      # - !random-square # Left goal
+      #     p1: { x: 0.175, y: 0.47 }
+      #     p2: { x: 0.3, y: 0.53 }
+      #     min_distance: 5.0
       - !random-square # Top
           p1: { x: 0.53, y: 0.7 }
           p2: { x: 0.47, y: 0.825 }
           min_distance: 5.0
-      - !random-square # Right goal
-          p1: { x: 0.825, y: 0.47 }
-          p2: { x: 0.7, y: 0.53 }
-          min_distance: 5.0
+      # - !random-square # Right goal
+      #     p1: { x: 0.825, y: 0.47 }
+      #     p2: { x: 0.7, y: 0.53 }
+      #     min_distance: 5.0
       projection-strategy: identity
   waypoint-reached-when-intersects:
     distance: !meter 2

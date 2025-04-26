@@ -75,7 +75,7 @@ failure-rate = 0.0
 
 [simulation]
 max-time                                  = 10000.0
-time-scale                                = 5.0
+time-scale                                = 1.0
 manual-step-factor                        = 1
 hz                                        = 10.0
 prng-seed                                 = 2

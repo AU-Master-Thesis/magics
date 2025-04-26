@@ -5,10 +5,10 @@ tiles:
   - ' ╵ ' 
   settings:
     tile-size: 50.0
-    path-width: 0.25
+    path-width: 0.3
     obstacle-height: 2.0
     sdf:
       resolution: 200
-      expansion: 0.01
+      expansion: 0.05
       blur: 0.02
 obstacles: []
