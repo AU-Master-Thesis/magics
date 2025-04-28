@@ -8,7 +8,7 @@ formations:
   delay:
     secs: 0
     nanos: 0
-  robots: 3
+  robots: 5
   planning-strategy: rrt-star
   initial-position:
     shape: !random-square
@@ -48,7 +48,7 @@ formations:
   delay:
     secs: 0
     nanos: 0
-  robots: 3
+  robots: 5
   planning-strategy: rrt-star
   initial-position:
     shape: !random-square
@@ -94,7 +94,7 @@ formations:
   delay:
     secs: 0
     nanos: 0
-  robots: 3
+  robots: 5
   planning-strategy: rrt-star
   initial-position:
     shape: !random-square
@@ -134,7 +134,7 @@ formations:
   delay:
     secs: 0
     nanos: 0
-  robots: 3
+  robots: 5
   planning-strategy: rrt-star
   initial-position:
     shape: !random-square

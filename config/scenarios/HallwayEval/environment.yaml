@@ -1,0 +1,22 @@
+tiles:
+  grid:
+  - '   '
+  - ' █ '
+  - ' █ '
+  - ' █ '
+  - ' █ '
+  - ' █ '
+  - ' █ '  
+  - ' █ '
+  - ' █ '
+  - ' █ '
+  - '   '
+  settings:
+    tile-size: 10.0
+    path-width: 0.75
+    obstacle-height: 2.0
+    sdf:
+      resolution: 200
+      expansion: 0.2
+      blur: 0.1
+obstacles: []

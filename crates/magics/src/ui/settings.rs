@@ -1063,7 +1063,7 @@ fn ui_settings_panel(
                             ui.label(format!("{:.2}x", time_scale));
                             ui.spacing_mut().slider_width = ui.available_width();
                             let slider_response = ui.add(
-                                egui::Slider::new(&mut time_scale, 0.1..=5.0)
+                                egui::Slider::new(&mut time_scale, 0.1..=25.0)
                                     // .suffix("x")
                                     .trailing_fill(true)
                                     .show_value(false),

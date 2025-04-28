@@ -7,18 +7,18 @@ formations:
   delay:
     secs: 0
     nanos: 0
-  robots: 12
+  robots: 20
   planning-strategy: only-local
   initial-position:
     shape: !circle
-      radius: 25.0
+      radius: 30.0
       center:
         x: 0.5
         y: 0.5
     placement-strategy: equal
   waypoints:
   - shape: !circle
-      radius: 25.0
+      radius: 30.0
       center:
         x: 0.5
         y: 0.5

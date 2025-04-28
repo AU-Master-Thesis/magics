@@ -9,20 +9,20 @@ formations:
     secs: 0
     nanos: 0
   name: "door_scenario"
-  robots: 8
+  robots: 20
   planning-strategy: rrt-star
   initial-position:
     shape: !random-square   
         p1: { x: 0.25, y: 0.85 }
         p2: { x: 0.75, y: 0.6 }
-        min_distance: 7.0
+        min_distance: 3.0
     placement-strategy: !random # Applies within the randomly chosen shape
       attempts: 2000
   goal-position: # goal_position is a list of Waypoints
     - shape: !random-square   
         p1: { x: 0.25, y: 0.3 }
         p2: { x: 0.75, y: 0.15 }
-        min_distance: 7.0
+        min_distance: 3.0
       projection-strategy: identity # Less relevant now, applies per-robot target
   waypoint-reached-when-intersects:
     distance: !meter 3

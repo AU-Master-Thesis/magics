@@ -31,7 +31,7 @@ scale      = 30.0
 
 [interaction]
 ui-focus-cancels-inputs = true
-default-cam-distance    = 100.0
+default-cam-distance    = 150.0
 
 [gbp]
 sigma-pose-fixed        = 0.0000000000000010000000036274937
@@ -72,7 +72,7 @@ failure-rate = 0.0
 
 [simulation]
 max-time                                  = 10000.0
-time-scale                                = 1.2699999809265137
+time-scale                                = 5.0
 manual-step-factor                        = 1
 hz                                        = 10.0
 prng-seed                                 = 2

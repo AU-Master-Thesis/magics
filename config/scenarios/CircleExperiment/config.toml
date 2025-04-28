@@ -43,6 +43,7 @@ sigma-factor-obstacle   = 0.005
 sigma-factor-tracking   = 0.1
 # iterations-per-timestep = 10
 lookahead-multiple = 3
+
 [gbp.iteration-schedule]
 internal = 50
 external = 10

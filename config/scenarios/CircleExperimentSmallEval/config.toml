@@ -65,8 +65,8 @@ target-speed                           = 10.0
 inter-robot-safety-distance-multiplier = 2.5
 
 [robot.radius]
-min = 0.8
-max = 1.5
+min = 1.0
+max = 1.0
 
 [robot.communication]
 radius       = 20.0
@@ -74,7 +74,7 @@ failure-rate = 0.0
 
 [simulation]
 max-time                                  = 10000.0
-time-scale                                = 1.0
+time-scale                                = 5.0
 manual-step-factor                        = 1
 hz                                        = 10.0
 prng-seed                                 = 2
