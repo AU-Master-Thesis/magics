@@ -9,7 +9,7 @@ formations:
     secs: 0
     nanos: 0
   name: "door_scenario"
-  robots: 20
+  robots: 16
   planning-strategy: rrt-star
   initial-position:
     shape: !random-square   
