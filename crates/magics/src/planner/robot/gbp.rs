@@ -290,6 +290,7 @@ pub fn iterate_gbp_v2(
     >,
     config: Res<Config>,
 ) {
+    println!("iterating gbp");
     let schedule_config = gbp_schedule::GbpScheduleParams {
         internal: config.gbp.iteration_schedule.internal as u8,
         external: config.gbp.iteration_schedule.external as u8,
@@ -368,10 +369,10 @@ pub fn iterate_gbp_v2(
     }
 }
 
-
 pub fn update_prior_of_horizon_state(
     config: Res<Config>,
     time: Res<Time>,
+    time_fixed: Res<Time<Fixed>>,
     mut query: Query<
         (
             Entity,
@@ -387,10 +388,10 @@ pub fn update_prior_of_horizon_state(
     >,
     mut all_messages_to_external_factors: Local<Vec<VariableToFactorMessage>>,
 ) {
-    let delta_t = Float::from(time.delta_seconds());
+    let delta_t = Float::from(time_fixed.delta_seconds());
     let max_speed = Float::from(config.robot.target_speed.get());
 
-    let mut robots_to_despawn = Vec::new();
+    let mut robots_to_despawn: Vec<Entity> = Vec::new();
 
     for (
         robot_id,
