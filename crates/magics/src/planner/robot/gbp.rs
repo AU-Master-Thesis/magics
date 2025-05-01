@@ -290,7 +290,7 @@ pub fn iterate_gbp_v2(
     >,
     config: Res<Config>,
 ) {
-    println!("iterating gbp");
+    // println!("iterating gbp");
     let schedule_config = gbp_schedule::GbpScheduleParams {
         internal: config.gbp.iteration_schedule.internal as u8,
         external: config.gbp.iteration_schedule.external as u8,
@@ -371,7 +371,6 @@ pub fn iterate_gbp_v2(
 
 pub fn update_prior_of_horizon_state(
     config: Res<Config>,
-    time: Res<Time>,
     time_fixed: Res<Time<Fixed>>,
     mut query: Query<
         (
