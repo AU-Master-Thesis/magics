@@ -15,6 +15,6 @@ tiles:
     obstacle-height: 2.0
     sdf:
       resolution: 200
-      expansion: 0.2
+      expansion: 0.07
       blur: 0.1
 obstacles: []

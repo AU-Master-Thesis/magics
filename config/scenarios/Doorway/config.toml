@@ -63,15 +63,15 @@ tracking   = false
 [robot]
 planning-horizon                       = 2.0
 target-speed                           = 10.0
-inter-robot-safety-distance-multiplier = 2.5
+inter-robot-safety-distance-multiplier = 3.0
 
 [robot.radius]
-min = 0.8
-max = 1.5
+min = 1.0
+max = 1.0
 
 [robot.communication]
 radius       = 20.0
-failure-rate = 0.0
+failure-rate = 0.01
 
 [simulation]
 max-time                                  = 10000.0

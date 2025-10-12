@@ -242,7 +242,7 @@ pub fn progress_missions2(
                                     let means = (0..n)
                                         .map(|i| i as f32 / n as f32)
                                         .map(|r| {
-                                            let pos = start.xy().lerp(next.xy(), r);
+                                            let pos = start.xy();//.lerp(next.xy(), r);
                                             let vel =
                                                 config.robot.target_speed.get() * dir_normalized;
                                             Vec4::new(pos.x, pos.y, vel.x, vel.y)
@@ -436,7 +436,7 @@ pub fn progress_missions(
                                     let means = (0..n)
                                         .map(|i| i as f32 / n as f32)
                                         .map(|r| {
-                                            let pos = start.xy().lerp(next.xy(), r);
+                                            let pos = start.xy();//.lerp(next.xy(), r);
                                             let vel =
                                                 config.robot.target_speed.get() * dir_normalized;
                                             Vec4::new(pos.x, pos.y, vel.x, vel.y)

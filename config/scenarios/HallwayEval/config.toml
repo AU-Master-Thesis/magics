@@ -7,46 +7,47 @@ objects    = 0.5
 height-map = 1.0
 
 [visualisation.draw]
-robots                             = false
-communication-graph                = false
-predicted-trajectories             = false
-waypoints                          = false
-uncertainty                        = false
-paths                              = false
-communication-radius               = false
-obstacle-factors                   = false
-tracking                           = false
-interrobot-factors                 = false
-interrobot-factors-safety-distance = false
-generated-map                      = false
-sdf                                = false
-robot-colliders                    = false
-environment-colliders              = false
-robot-robot-collisions             = false
-robot-environment-collisions       = false
-spawn-areas                        = false
-waypoint-areas                     = false
-goal-position-areas                = false
-# robots                             = true
+# robots                             = false
 # communication-graph                = false
-# predicted-trajectories             = true
+# predicted-trajectories             = false
 # waypoints                          = false
 # uncertainty                        = false
-# paths                              = true
+# paths                              = false
 # communication-radius               = false
 # obstacle-factors                   = false
 # tracking                           = false
 # interrobot-factors                 = false
 # interrobot-factors-safety-distance = false
-# generated-map                      = true
-# sdf                                = true
+# generated-map                      = false
+# sdf                                = false
 # robot-colliders                    = false
 # environment-colliders              = false
-# robot-robot-collisions             = true
-# robot-environment-collisions       = true
+# robot-robot-collisions             = false
+# robot-environment-collisions       = false
 # spawn-areas                        = false
 # waypoint-areas                     = false
 # goal-position-areas                = false
+#===========================================
+robots                             = true
+communication-graph                = false
+predicted-trajectories             = true
+waypoints                          = false
+uncertainty                        = false
+paths                              = true
+communication-radius               = false
+obstacle-factors                   = false
+tracking                           = false
+interrobot-factors                 = false
+interrobot-factors-safety-distance = false
+generated-map                      = true
+sdf                                = true
+robot-colliders                    = false
+environment-colliders              = false
+robot-robot-collisions             = true
+robot-environment-collisions       = true
+spawn-areas                        = false
+waypoint-areas                     = false
+goal-position-areas                = false
 
 [visualisation.uncertainty]
 max-radius = 2.5
@@ -63,7 +64,7 @@ sigma-factor-interrobot = 0.004999999888241291
 sigma-factor-obstacle   = 0.004999999888241291
 sigma-factor-tracking   = 0.15000000596046448
 lookahead-multiple      = 3
-variables               = 10
+variables               = 6
 
 [gbp.tracking]
 switch-padding      = 1.0
@@ -82,7 +83,7 @@ tracking   = false
 
 [robot]
 planning-horizon                       = 2.0
-target-speed                           = 10.0
+target-speed                           = 7.0
 inter-robot-safety-distance-multiplier = 2.5
 
 [robot.radius]
@@ -91,11 +92,11 @@ max = 1.0
 
 [robot.communication]
 radius       = 20.0
-failure-rate = 0.0
+failure-rate = 0.01
 
 [simulation]
 max-time                                  = 10000.0
-time-scale                                = 5.0
+time-scale                                = 1.0
 manual-step-factor                        = 1
 hz                                        = 10.0
 prng-seed                                 = 2
